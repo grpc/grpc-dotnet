@@ -1,8 +1,14 @@
 language: csharp
-mono: none
-dotnet: 2.1.300
+sudo: required
+dist: xenial
+mono: latest
 branches:
   only:
     - master
+install:
+  - curl -o dotnet-sdk.tar.gz -sSL https://download.visualstudio.microsoft.com/download/pr/9f071c35-36b4-48c9-bcc2-b381ecb6cada/5be4784f19c28cb58f8c79219347201a/dotnet-sdk-3.0.100-preview-009812-linux-x64.tar.gz
+  - mkdir -p $PWD/dotnet
+  - tar zxf dotnet-sdk.tar.gz -C $PWD/dotnet
+  - export PATH="$PWD/dotnet:$PATH"
 script:
   - ./build_and_test.sh
