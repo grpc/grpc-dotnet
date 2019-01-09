@@ -1,0 +1,8 @@
+language: csharp
+mono: none
+dotnet: 2.1.300
+branches:
+  only:
+    - master
+script:
+  - ./build_and_test.sh
