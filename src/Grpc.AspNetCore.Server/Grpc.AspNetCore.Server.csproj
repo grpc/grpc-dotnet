@@ -6,9 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
     <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
 
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="3.0.0-preview-18579-0056" />
     <PackageReference Include="Google.Protobuf" Version="3.6.1" />
   </ItemGroup>
 
