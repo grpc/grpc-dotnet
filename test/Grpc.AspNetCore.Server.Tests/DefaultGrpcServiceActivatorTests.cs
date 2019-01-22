@@ -23,6 +23,7 @@ using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Server.Tests
 {
+    [TestFixture]
     public class DefaultGrpcServiceActivatorTests
     {
         public class GrpcService { }

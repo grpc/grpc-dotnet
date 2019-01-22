@@ -41,6 +41,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
             services.AddRouting();
+            services.TryAddSingleton<GrpcMarkerService>();
             services.TryAddScoped(typeof(IGrpcServiceActivator<>), typeof(DefaultGrpcServiceActivator<>));
 
             return services;
