@@ -15,14 +15,11 @@
     <!-- 3. None ItemGroup: Remove the *.proto files from None since the generator metadata for those files are ignored -->
     <!-- 4. Content ItemGroup: Include the *.proto files in the Content ItemGroup. This isn't required if the file is included in the project directory. I'm not sure about what's going on with this requirement. -->
     <ProtoBuf Include="..\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
-    <ProtoBuf Include="..\Clients\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
 
     <None Remove="@(ProtoBuf)" />
     <Content Include="@(ProtoBuf)" LinkBase="" />
 
-    <Compile Include="$(MSBuildThisFileDirectory)..\Shared\Resources.cs" />
-
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 
     <PackageReference Include="Grpc.Tools" Version="1.17.0-pre3" />
   </ItemGroup>
