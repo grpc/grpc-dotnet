@@ -30,9 +30,9 @@ namespace Grpc.AspNetCore.Server.Internal
            where TImplementation : class
     {
         private readonly string _methodName;
-        private readonly MessageParser _inputParser;
+        private readonly IMessageParser _inputParser;
 
-        public UnaryServerCallHandler(MessageParser inputParser, string methodName)
+        public UnaryServerCallHandler(IMessageParser inputParser, string methodName)
         {
             _methodName = methodName;
             _inputParser = inputParser;
@@ -67,5 +67,4 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.AppendTrailer("grpc-status", ((int)StatusCode.OK).ToString());
         }
     }
-
 }

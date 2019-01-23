@@ -4,3 +4,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Grpc.AspNetCore.Server.Tests")]
+[assembly: InternalsVisibleTo("Grpc.AspNetCore.Performance")]
