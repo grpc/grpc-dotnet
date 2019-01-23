@@ -19,17 +19,45 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Google.Protobuf;
+using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    // utilities for parsing gRPC messages from request/response streams
-    // NOTE: implementations are not efficient and are very GC heavy
-    internal class StreamUtils
+    internal static class MessageHelpers
     {
-        private static readonly int MessageDelimiterSize = 4;  // how many bytes it takes to encode "Message-Length"
+        public const int MessageDelimiterSize = 4;
 
-        // reads a grpc message
-        // returns null if there are no more messages.
+        public static T AssertReadMessage<T>(byte[] messageData) where T : IMessage, new()
+        {
+            Assert.AreEqual(0, messageData[0]);
+
+            var messageLength = DecodeMessageLength(messageData.AsSpan(1, 4));
+
+            int expectedLength = MessageDelimiterSize + 1 + messageLength;
+
+            Assert.AreEqual(expectedLength, messageData.Length);
+
+            var message = new T();
+            message.MergeFrom(messageData.AsSpan(5).ToArray());
+
+            return message;
+        }
+
+        public static async Task<T> AssertReadMessageAsync<T>(Stream stream) where T : IMessage, new()
+        {
+            var messageData = await ReadMessageAsync(stream);
+            if (messageData == null)
+            {
+                return default;
+            }
+
+            var message = new T();
+            message.MergeFrom(messageData);
+
+            return message;
+        }
+
         public static async Task<byte[]> ReadMessageAsync(Stream stream)
         {
             // read Compressed-Flag and Message-Length
@@ -57,24 +85,6 @@ namespace Grpc.AspNetCore.Server.Internal
             return msgBuffer;
         }
 
-        public static async Task WriteMessageAsync(Stream stream, byte[] buffer, int offset, int count, bool flush = false)
-        {
-            var delimiterBuffer = new byte[1 + MessageDelimiterSize];
-            delimiterBuffer[0] = 0; // = non-compressed
-            EncodeMessageLength(count, new Span<byte>(delimiterBuffer, 1, MessageDelimiterSize));
-            await stream.WriteAsync(delimiterBuffer, 0, delimiterBuffer.Length);
-
-            await stream.WriteAsync(buffer, offset, count);
-
-            if (flush)
-            {
-                await stream.FlushAsync();
-            }
-        }
-
-        // reads exactly the number of requested bytes (returns true if successfully read).
-        // returns false if we reach end of stream before successfully reading anything.
-        // throws if stream ends in the middle of reading.
         private static async Task<bool> ReadExactlyBytesOrNothing(Stream stream, byte[] buffer, int offset, int count)
         {
             bool noBytesRead = true;
@@ -96,31 +106,37 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static void EncodeMessageLength(int messageLength, Span<byte> dest)
+        public static async Task WriteMessageAsync<T>(Stream stream, T message) where T : IMessage
         {
-            if (dest.Length < MessageDelimiterSize)
-            {
-                throw new ArgumentException("Buffer too small to encode message length.");
-            }
+            var messageData = message.ToByteArray();
 
-            ulong unsignedValue = (ulong)messageLength;
-            for (int i = MessageDelimiterSize - 1; i >= 0; i--)
+            await WriteMessageAsync(stream, messageData, 0, messageData.Length);
+        }
+
+        public static async Task WriteMessageAsync(Stream stream, byte[] buffer, int offset, int count, bool flush = false)
+        {
+            var delimiterBuffer = new byte[1 + MessageDelimiterSize];
+            delimiterBuffer[0] = 0; // = non-compressed
+            EncodeMessageLength(count, new Span<byte>(delimiterBuffer, 1, MessageDelimiterSize));
+            await stream.WriteAsync(delimiterBuffer, 0, delimiterBuffer.Length);
+
+            await stream.WriteAsync(buffer, offset, count);
+
+            if (flush)
             {
-                // msg length stored in big endian
-                dest[i] = (byte)(unsignedValue & 0xff);
-                unsignedValue >>= 8;
+                await stream.FlushAsync();
             }
         }
 
-        private static int DecodeMessageLength(ReadOnlySpan<byte> buffer)
+        public static int DecodeMessageLength(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length < MessageDelimiterSize)
             {
                 throw new ArgumentException("Buffer too small to decode message length.");
             }
 
-            ulong result = 0;
-            for (int i = 0; i < MessageDelimiterSize; i++)
+            var result = 0UL;
+            for (var i = 0; i < MessageDelimiterSize; i++)
             {
                 // msg length stored in big endian
                 result = (result << 8) + buffer[i];
@@ -133,5 +149,20 @@ namespace Grpc.AspNetCore.Server.Internal
             return (int)result;
         }
 
+        public static void EncodeMessageLength(int messageLength, Span<byte> destination)
+        {
+            if (destination.Length < MessageDelimiterSize)
+            {
+                throw new ArgumentException("Buffer too small to encode message length.");
+            }
+
+            var unsignedValue = (ulong)messageLength;
+            for (var i = MessageDelimiterSize - 1; i >= 0; i--)
+            {
+                // msg length stored in big endian
+                destination[i] = (byte)(unsignedValue & 0xff);
+                unsignedValue >>= 8;
+            }
+        }
     }
 }

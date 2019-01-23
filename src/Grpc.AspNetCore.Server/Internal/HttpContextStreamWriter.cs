@@ -34,13 +34,17 @@ namespace Grpc.AspNetCore.Server.Internal
             _serializer = serializer;
         }
 
-        public WriteOptions WriteOptions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public WriteOptions WriteOptions { get; set; }
 
         public Task WriteAsync(TResponse message)
         {
             // TODO: make sure the response is not null
             var responsePayload = _serializer(message);
-            return StreamUtils.WriteMessageAsync(_httpContext.Response.Body, responsePayload, 0, responsePayload.Length);
+
+            // Flush messages unless WriteOptions.Flags has BufferHint set
+            var flush = ((WriteOptions?.Flags ?? default(WriteFlags)) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
+
+            return StreamUtils.WriteMessageAsync(_httpContext.Response.Body, responsePayload, 0, responsePayload.Length, flush);
         }
     }
 }

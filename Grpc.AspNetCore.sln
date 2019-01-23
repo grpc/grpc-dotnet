@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27924.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28407.52
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{EA330592-E294-4A29-B60E-196AA05831DD}"
 EndProject
@@ -52,6 +52,20 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Core.Api", "src\Grpc.C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Tests", "test\Grpc.AspNetCore.Server.Tests\Grpc.AspNetCore.Server.Tests.csproj", "{278B1311-41BF-4345-947E-7B70E277FC3C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", "{01540F1D-DDB7-4D68-B84F-A554EC5B8564}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "test\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.FunctionalTests", "test\FunctionalTests\Grpc.AspNetCore.FunctionalTests.csproj", "{B190F61D-854C-4EE1-9532-B81AB3215F90}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{84125B9C-E409-4047-872C-4427D15175E4}"
+	ProjectSection(SolutionItems) = preProject
+		test\testassets\Proto\chat.proto = test\testassets\Proto\chat.proto
+		test\testassets\Proto\count.proto = test\testassets\Proto\count.proto
+		test\testassets\Proto\greet.proto = test\testassets\Proto\greet.proto
+		test\testassets\Proto\message.proto = test\testassets\Proto\message.proto
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -86,6 +100,14 @@ Global
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -103,6 +125,10 @@ Global
 		{89ED416F-92F1-4425-9379-D4E76A285860} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{7AB17083-D5F5-4B19-B054-EC191001A80D} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{278B1311-41BF-4345-947E-7B70E277FC3C} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{01540F1D-DDB7-4D68-B84F-A554EC5B8564} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
+		{B190F61D-854C-4EE1-9532-B81AB3215F90} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{84125B9C-E409-4047-872C-4427D15175E4} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
