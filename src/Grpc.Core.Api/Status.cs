@@ -1,5 +1,5 @@
 #region Copyright notice and license
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ using Grpc.Core.Utils;
 namespace Grpc.Core
 {
     /// <summary>
-    /// Represents RPC result, which consists of <see cref="StatusCode"/> and an optional detail string. 
+    /// Represents RPC result, which consists of <see cref="StatusCode"/> and an optional detail string.
     /// </summary>
     public struct Status
     {
