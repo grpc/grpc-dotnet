@@ -1,5 +1,5 @@
 #region Copyright notice and license
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -328,7 +328,7 @@ namespace Grpc.Core
                 {
                     return string.Format("[Entry: key={0}, valueBytes={1}]", key, valueBytes);
                 }
-                
+
                 return string.Format("[Entry: key={0}, value={1}]", key, value);
             }
 
@@ -358,14 +358,14 @@ namespace Grpc.Core
             {
                 GrpcPreconditions.CheckNotNull(key, "key");
 
-                GrpcPreconditions.CheckArgument(IsValidKey(key, out bool isLowercase), 
+                GrpcPreconditions.CheckArgument(IsValidKey(key, out bool isLowercase),
                     "Metadata entry key not valid. Keys can only contain lowercase alphanumeric characters, underscores, hyphens and dots.");
                 if (isLowercase)
                 {
                     // save allocation of a new string if already lowercase
                     return key;
                 }
-                
+
                 return key.ToLowerInvariant();
             }
 
@@ -378,7 +378,7 @@ namespace Grpc.Core
                     if ('a' <= c && c <= 'z' ||
                         '0' <= c && c <= '9' ||
                         c == '.' ||
-                        c == '_' || 
+                        c == '_' ||
                         c == '-' )
                         continue;
 

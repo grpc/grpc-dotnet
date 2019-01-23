@@ -1,6 +1,6 @@
 #region Copyright notice and license
 
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ namespace Grpc.Core
         /// Creates a new <c>RpcException</c> associated with given status and message.
         /// </summary>
         /// <param name="status">Resulting status of a call.</param>
-        /// <param name="message">The exception message.</param> 
+        /// <param name="message">The exception message.</param>
         public RpcException(Status status, string message) : this(status, Metadata.Empty, message)
         {
         }
@@ -50,7 +50,7 @@ namespace Grpc.Core
         /// Creates a new <c>RpcException</c> associated with given status and trailing response metadata.
         /// </summary>
         /// <param name="status">Resulting status of a call.</param>
-        /// <param name="trailers">Response trailing metadata.</param> 
+        /// <param name="trailers">Response trailing metadata.</param>
         public RpcException(Status status, Metadata trailers) : this(status, trailers, status.ToString())
         {
         }

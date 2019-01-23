@@ -1,6 +1,6 @@
 #region Copyright notice and license
 
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ namespace Grpc.Core.Logging
         private ConsoleLogger(Type forType) : base(() => Console.Error, forType)
         {
         }
- 
+
         /// <summary>
         /// Returns a logger associated with the specified type.
         /// </summary>

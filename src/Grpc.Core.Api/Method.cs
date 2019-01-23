@@ -1,6 +1,6 @@
 #region Copyright notice and license
 
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ namespace Grpc.Core
                 return this.type;
             }
         }
-            
+
         /// <summary>
         /// Gets the name of the service to which this method belongs.
         /// </summary>
@@ -152,7 +152,7 @@ namespace Grpc.Core
                 return this.responseMarshaller;
             }
         }
-            
+
         /// <summary>
         /// Gets the fully qualified name of the method. On the server side, methods are dispatched
         /// based on this name.
