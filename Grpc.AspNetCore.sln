@@ -66,6 +66,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{84125B9C
 		test\testassets\Proto\message.proto = test\testassets\Proto\message.proto
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{4163E1B3-4D75-46B4-9107-9A158FD708FC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Performance", "benchmarks\Grpc.AspNetCore.Performance\Grpc.AspNetCore.Performance.csproj", "{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -108,6 +112,10 @@ Global
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -129,6 +137,7 @@ Global
 		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
 		{B190F61D-854C-4EE1-9532-B81AB3215F90} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{84125B9C-E409-4047-872C-4427D15175E4} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
+		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0} = {4163E1B3-4D75-46B4-9107-9A158FD708FC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

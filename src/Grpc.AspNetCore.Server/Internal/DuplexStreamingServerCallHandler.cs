@@ -29,10 +29,10 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : IMessage
         where TImplementation : class
     {
-        private readonly MessageParser _inputParser;
+        private readonly IMessageParser _inputParser;
         private readonly string _methodName;
 
-        public DuplexStreamingServerCallHandler(MessageParser inputParser, string methodName)
+        public DuplexStreamingServerCallHandler(IMessageParser inputParser, string methodName)
         {
             _methodName = methodName;
             _inputParser = inputParser;

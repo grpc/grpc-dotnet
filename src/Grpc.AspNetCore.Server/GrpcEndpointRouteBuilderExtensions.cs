@@ -18,6 +18,9 @@
 
 using System;
 using System.Collections.Generic;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
+using Grpc.AspNetCore;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -62,30 +65,30 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     var inputType = method.InputType;
                     var outputType = method.OutputType;
-                    object handler;
+                    IServerCallHandler handler;
 
                     if (method.IsClientStreaming && method.IsServerStreaming)
                     {
                         var handlerType = typeof(DuplexStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = Activator.CreateInstance(handlerType, new object[] { inputType.Parser, method.Name });
+                        handler = CreateCallHandler(handlerType, inputType, method);
                     }
                     else if (method.IsClientStreaming)
                     {
                         var handlerType = typeof(ClientStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = Activator.CreateInstance(handlerType, new object[] { inputType.Parser, method.Name });
+                        handler = CreateCallHandler(handlerType, inputType, method);
                     }
                     else if (method.IsServerStreaming)
                     {
                         var handlerType = typeof(ServerStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = Activator.CreateInstance(handlerType, new object[] { inputType.Parser, method.Name });
+                        handler = CreateCallHandler(handlerType, inputType, method);
                     }
                     else
                     {
                         var handlerType = typeof(UnaryServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = Activator.CreateInstance(handlerType, new object[] { inputType.Parser, method.Name });
+                        handler = CreateCallHandler(handlerType, inputType, method);
                     }
 
-                    var conventionBuilder = builder.MapPost($"{method.Service.FullName}/{method.Name}", ((IServerCallHandler)handler).HandleCallAsync);
+                    var conventionBuilder = builder.MapPost($"{method.Service.FullName}/{method.Name}", handler.HandleCallAsync);
                     endpointConventionBuilders.Add(conventionBuilder);
                 }
 
@@ -94,6 +97,28 @@ namespace Microsoft.Extensions.DependencyInjection
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Unable to map gRPC service '{service.Name}'.", ex);
+            }
+        }
+
+        private static IServerCallHandler CreateCallHandler(Type handlerType, MessageDescriptor inputMessageDescriptor, MethodDescriptor methodDescriptor)
+        {
+            var defaultMessageParser = new DefaultMessageParser(inputMessageDescriptor.Parser);
+
+            return (IServerCallHandler)Activator.CreateInstance(handlerType, new object[] { defaultMessageParser, methodDescriptor.Name });
+        }
+
+        private class DefaultMessageParser : IMessageParser
+        {
+            private readonly MessageParser _messageParser;
+
+            public DefaultMessageParser(MessageParser messageParser)
+            {
+                _messageParser = messageParser;
+            }
+
+            public object ParseFrom(byte[] data)
+            {
+                return _messageParser.ParseFrom(data);
             }
         }
 
