@@ -58,7 +58,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 var serviceBinder = new GrpcServiceBinder<TService>(builder);
 
-                // Create dummy service instance for the call to BindService. This will fail for services that resolve Scoped services in the constructor.
+                // Create dummy service instance for the call to BindService.
+                // This will fail for services that resolve Scoped services in the constructor.
+                // This restriction will be fixed by https://github.com/grpc/grpc-dotnet/issues/21
                 var dummy = new DefaultGrpcServiceActivator<TService>(builder.ServiceProvider).Create();
 
                 // Invoke
