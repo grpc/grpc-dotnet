@@ -15,7 +15,6 @@ namespace Sample.Clients
             var channel = new Channel("localhost:50051", ClientResources.SslCredentials);
             var client = new Chatter.ChatterClient(channel);
 
-
             using (var chat = client.Chat())
             {
                 Console.WriteLine($"Connected as {name}. Send empty message to quit.");

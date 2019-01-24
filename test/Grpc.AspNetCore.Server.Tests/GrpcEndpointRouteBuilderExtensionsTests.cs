@@ -19,7 +19,6 @@
 using NUnit.Framework;
 using Moq;
 using System;
-using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using System.Collections.Generic;
@@ -58,7 +57,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<object>());
             Assert.AreEqual("Unable to map gRPC service 'Object'.", ex.Message);
-            Assert.AreEqual("Cannot retrieve service descriptor.", ex.InnerException.Message);
+            Assert.AreEqual("Cannot locate BindService(ServiceBinderBase, ServiceBase) method on generated gRPC service type.", ex.InnerException.Message);
         }
 
         [Test]
@@ -78,11 +77,11 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, dataSource.Endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)dataSource.Endpoints[0];
-            Assert.AreEqual("Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("POST", ((IHttpMethodMetadata)routeEndpoint1.Metadata.Single()).HttpMethods.Single());
 
             var routeEndpoint2 = (RouteEndpoint)dataSource.Endpoints[1];
-            Assert.AreEqual("Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", ((IHttpMethodMetadata)routeEndpoint2.Metadata.Single()).HttpMethods.Single());
         }
 
@@ -106,11 +105,11 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, dataSource.Endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)dataSource.Endpoints[0];
-            Assert.AreEqual("Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint1.Metadata.GetMetadata<CustomMetadata>());
 
             var routeEndpoint2 = (RouteEndpoint)dataSource.Endpoints[1];
-            Assert.AreEqual("Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
         }
 
