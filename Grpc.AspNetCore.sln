@@ -12,7 +12,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{AC41B2B2
 		sample\Proto\chat.proto = sample\Proto\chat.proto
 		sample\Proto\count.proto = sample\Proto\count.proto
 		sample\Proto\greet.proto = sample\Proto\greet.proto
-		sample\Proto\message.proto = sample\Proto\message.proto
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clients", "Clients", "{F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}"

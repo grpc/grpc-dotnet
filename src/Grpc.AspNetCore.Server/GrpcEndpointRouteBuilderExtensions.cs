@@ -17,14 +17,9 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using Google.Protobuf;
-using Google.Protobuf.Reflection;
-using Grpc.AspNetCore;
 using Grpc.AspNetCore.Server.Internal;
-using Microsoft.AspNetCore.Builder;
+using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
-using ProtobufServiceDescriptor = Google.Protobuf.Reflection.ServiceDescriptor;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -53,72 +48,27 @@ namespace Microsoft.Extensions.DependencyInjection
                 // We need to call Foo.BindService from the declaring type.
                 var declaringType = baseType?.DeclaringType;
 
-                // Get the descriptor
-                var descriptor = declaringType?.GetProperty("Descriptor")?.GetValue(null) as ProtobufServiceDescriptor;
-                if (descriptor == null)
+                // The method we want to call is public static void BindService(ServiceBinderBase serviceBinder)
+                var bindService = declaringType?.GetMethod("BindService", new[] { typeof(ServiceBinderBase), baseType });
+
+                if (bindService == null)
                 {
-                    throw new InvalidOperationException("Cannot retrieve service descriptor.");
+                    throw new InvalidOperationException("Cannot locate BindService(ServiceBinderBase, ServiceBase) method on generated gRPC service type.");
                 }
 
-                List<IEndpointConventionBuilder> endpointConventionBuilders = new List<IEndpointConventionBuilder>();
-                foreach (var method in descriptor.Methods)
-                {
-                    var inputType = method.InputType;
-                    var outputType = method.OutputType;
-                    IServerCallHandler handler;
+                var serviceBinder = new GrpcServiceBinder<TService>(builder);
 
-                    if (method.IsClientStreaming && method.IsServerStreaming)
-                    {
-                        var handlerType = typeof(DuplexStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = CreateCallHandler(handlerType, inputType, method);
-                    }
-                    else if (method.IsClientStreaming)
-                    {
-                        var handlerType = typeof(ClientStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = CreateCallHandler(handlerType, inputType, method);
-                    }
-                    else if (method.IsServerStreaming)
-                    {
-                        var handlerType = typeof(ServerStreamingServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = CreateCallHandler(handlerType, inputType, method);
-                    }
-                    else
-                    {
-                        var handlerType = typeof(UnaryServerCallHandler<,,>).MakeGenericType(inputType.ClrType, outputType.ClrType, service);
-                        handler = CreateCallHandler(handlerType, inputType, method);
-                    }
+                // Create dummy service instance for the call to BindService. This will fail for services that resolve Scoped services in the constructor.
+                var dummy = new DefaultGrpcServiceActivator<TService>(builder.ServiceProvider).Create();
 
-                    var conventionBuilder = builder.MapPost($"{method.Service.FullName}/{method.Name}", handler.HandleCallAsync);
-                    endpointConventionBuilders.Add(conventionBuilder);
-                }
+                // Invoke
+                bindService.Invoke(null, new object[] { serviceBinder, dummy });
 
-                return new CompositeEndpointConventionBuilder(endpointConventionBuilders);
+                return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Unable to map gRPC service '{service.Name}'.", ex);
-            }
-        }
-
-        private static IServerCallHandler CreateCallHandler(Type handlerType, MessageDescriptor inputMessageDescriptor, MethodDescriptor methodDescriptor)
-        {
-            var defaultMessageParser = new DefaultMessageParser(inputMessageDescriptor.Parser);
-
-            return (IServerCallHandler)Activator.CreateInstance(handlerType, new object[] { defaultMessageParser, methodDescriptor.Name });
-        }
-
-        private class DefaultMessageParser : IMessageParser
-        {
-            private readonly MessageParser _messageParser;
-
-            public DefaultMessageParser(MessageParser messageParser)
-            {
-                _messageParser = messageParser;
-            }
-
-            public object ParseFrom(byte[] data)
-            {
-                return _messageParser.ParseFrom(data);
             }
         }
 

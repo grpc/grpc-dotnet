@@ -9,8 +9,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
-
-    <PackageReference Include="Google.Protobuf" Version="3.6.1" />
   </ItemGroup>
 
 </Project>

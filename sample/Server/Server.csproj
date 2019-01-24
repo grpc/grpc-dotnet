@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 
     <PackageReference Include="Grpc.Tools" Version="1.17.0-pre3" />
+    <PackageReference Include="Google.Protobuf" Version="3.6.1" />
   </ItemGroup>
 
 </Project>

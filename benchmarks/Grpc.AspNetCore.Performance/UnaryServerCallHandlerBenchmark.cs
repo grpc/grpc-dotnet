@@ -24,6 +24,7 @@ using Google.Protobuf;
 using Grpc.AspNetCore.Performance.Internal;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
@@ -40,16 +41,13 @@ namespace Grpc.AspNetCore.Performance
         [GlobalSetup]
         public void GlobalSetup()
         {
-            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(new TestMessageParser(new ChatMessage()), "SayHello");
+            var marshaller = Marshallers.Create((arg) =>MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
+            var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
+            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method);
 
             var services = new ServiceCollection();
             services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));
             _requestServices = services.BuildServiceProvider();
-
-            MemoryStream ms = new MemoryStream();
-            CodedOutputStream codedOutputStream = new CodedOutputStream(ms);
-            ChatMessage chatMessage = new ChatMessage();
-            chatMessage.WriteTo(codedOutputStream);
         }
 
         [Benchmark]
