@@ -16,18 +16,14 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using BenchmarkDotNet.Running;
+using Grpc.Core;
+using Microsoft.Extensions.Primitives;
 
-namespace Grpc.AspNetCore.Performance
+namespace Grpc.AspNetCore.Server.Internal
 {
-    public class Program
+    internal static class Constants
     {
-        static void Main(string[] args)
-        {
-            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-        }
+        public const string GrpcStatusHeader = "grpc-status";
+        public static readonly StringValues GrpcStatusOk = ((int)StatusCode.OK).ToString();
     }
 }
