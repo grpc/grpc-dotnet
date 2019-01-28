@@ -24,26 +24,23 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class ServerStreamingServerCallHandler<TRequest, TResponse, TService> : IServerCallHandler
+    internal class ServerStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
         where TResponse : class
         where TService : class
     {
-        private readonly Method<TRequest, TResponse> _method;
-
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method)
+        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
-            _method = method ?? throw new ArgumentNullException(nameof(method));
         }
 
-        public async Task HandleCallAsync(HttpContext httpContext)
+        public override async Task HandleCallAsync(HttpContext httpContext)
         {
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
             var requestPayload = await StreamUtils.ReadMessageAsync(httpContext.Request.Body);
             // TODO: make sure the payload is not null
-            var request = _method.RequestMarshaller.Deserializer(requestPayload);
+            var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
             // TODO: make sure there are no more request messages.
 
@@ -51,20 +48,16 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
 
-            // Select procedure using reflection
-            var handlerMethod = typeof(TService).GetMethod(_method.Name);
-
-            // Invoke procedure
-            await (Task)handlerMethod.Invoke(
+            await GetMethodExecutor().ExecuteAsync(
                 service,
                 new object[]
                 {
                     request,
-                    new HttpContextStreamWriter<TResponse>(httpContext, _method.ResponseMarshaller.Serializer),
+                    new HttpContextStreamWriter<TResponse>(httpContext, Method.ResponseMarshaller.Serializer),
                     null
                 });
 
-            httpContext.Response.AppendTrailer("grpc-status", ((int)StatusCode.OK).ToString());
+            httpContext.Response.AppendTrailer(Constants.GrpcStatusHeader, Constants.GrpcStatusOk);
         }
     }
 }
