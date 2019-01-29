@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28407.52
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{EA330592-E294-4A29-B60E-196AA05831DD}"
 EndProject
@@ -47,27 +47,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CECC4AE8
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server", "src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj", "{89ED416F-92F1-4425-9379-D4E76A285860}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Core.Api", "src\Grpc.Core.Api\Grpc.Core.Api.csproj", "{7AB17083-D5F5-4B19-B054-EC191001A80D}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Tests", "test\Grpc.AspNetCore.Server.Tests\Grpc.AspNetCore.Server.Tests.csproj", "{278B1311-41BF-4345-947E-7B70E277FC3C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", "{01540F1D-DDB7-4D68-B84F-A554EC5B8564}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "test\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.FunctionalTests", "test\FunctionalTests\Grpc.AspNetCore.FunctionalTests.csproj", "{B190F61D-854C-4EE1-9532-B81AB3215F90}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{84125B9C-E409-4047-872C-4427D15175E4}"
-	ProjectSection(SolutionItems) = preProject
-		test\testassets\Proto\chat.proto = test\testassets\Proto\chat.proto
-		test\testassets\Proto\count.proto = test\testassets\Proto\count.proto
-		test\testassets\Proto\greet.proto = test\testassets\Proto\greet.proto
-		test\testassets\Proto\message.proto = test\testassets\Proto\message.proto
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{4163E1B3-4D75-46B4-9107-9A158FD708FC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Performance", "benchmarks\Grpc.AspNetCore.Performance\Grpc.AspNetCore.Performance.csproj", "{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", "{59C7B1F0-EE4D-4098-8596-0ADDBC305234}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4-6099-4EF9-85BB-7EE6CBEB920C}"
+	ProjectSection(SolutionItems) = preProject
+		testassets\Proto\chat.proto = testassets\Proto\chat.proto
+		testassets\Proto\count.proto = testassets\Proto\count.proto
+		testassets\Proto\greet.proto = testassets\Proto\greet.proto
+		testassets\Proto\message.proto = testassets\Proto\message.proto
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{7B95289B-4992-4C0D-B26F-8EC58F81FC96}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -95,18 +93,10 @@ Global
 		{89ED416F-92F1-4425-9379-D4E76A285860}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89ED416F-92F1-4425-9379-D4E76A285860}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89ED416F-92F1-4425-9379-D4E76A285860}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7AB17083-D5F5-4B19-B054-EC191001A80D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7AB17083-D5F5-4B19-B054-EC191001A80D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7AB17083-D5F5-4B19-B054-EC191001A80D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7AB17083-D5F5-4B19-B054-EC191001A80D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{278B1311-41BF-4345-947E-7B70E277FC3C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -115,6 +105,10 @@ Global
 		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B95289B-4992-4C0D-B26F-8EC58F81FC96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B95289B-4992-4C0D-B26F-8EC58F81FC96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B95289B-4992-4C0D-B26F-8EC58F81FC96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B95289B-4992-4C0D-B26F-8EC58F81FC96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -130,13 +124,11 @@ Global
 		{409A27EF-A5E9-45C5-9041-7210C6C8FC17} = {EA330592-E294-4A29-B60E-196AA05831DD}
 		{3E045DF6-62EF-4331-B712-9CF5EC56F04C} = {EA330592-E294-4A29-B60E-196AA05831DD}
 		{89ED416F-92F1-4425-9379-D4E76A285860} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
-		{7AB17083-D5F5-4B19-B054-EC191001A80D} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{278B1311-41BF-4345-947E-7B70E277FC3C} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
-		{01540F1D-DDB7-4D68-B84F-A554EC5B8564} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
-		{C3E4E454-76BD-4A95-901F-2D0E7A5DFA94} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
 		{B190F61D-854C-4EE1-9532-B81AB3215F90} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
-		{84125B9C-E409-4047-872C-4427D15175E4} = {01540F1D-DDB7-4D68-B84F-A554EC5B8564}
 		{01C2E73D-CE9C-44B5-92D9-4E3B448106F0} = {4163E1B3-4D75-46B4-9107-9A158FD708FC}
+		{BF1393D4-6099-4EF9-85BB-7EE6CBEB920C} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
+		{7B95289B-4992-4C0D-B26F-8EC58F81FC96} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

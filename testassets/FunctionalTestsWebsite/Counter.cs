@@ -22,6 +22,7 @@ using Grpc.Core;
 using Count;
 using Microsoft.Extensions.Logging;
 using FunctionalTestsWebsite.Infrastructure;
+using System.Threading;
 
 namespace FunctionalTestsWebsite
 {
@@ -47,7 +48,7 @@ namespace FunctionalTestsWebsite
 
         public override async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
-            while (await requestStream.MoveNextAsync())
+            while (await requestStream.MoveNext(CancellationToken.None))
             {
                 _logger.LogInformation($"Incrementing count by {requestStream.Current.Count}");
 

@@ -37,7 +37,7 @@ namespace FunctionalTestsWebsite
 
         public override async Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
         {
-            if (!await requestStream.MoveNextAsync())
+            if (!await requestStream.MoveNext())
             {
                 // No messages so don't register and just exit.
                 return;
@@ -53,7 +53,7 @@ namespace FunctionalTestsWebsite
             do
             {
                 await BroadcastMessageAsync(requestStream.Current, _logger);
-            } while (await requestStream.MoveNextAsync());
+            } while (await requestStream.MoveNext());
 
             _subscribers.Remove(responseStream);
             _logger.LogInformation($"{user} disconnected");

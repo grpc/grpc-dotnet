@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -36,12 +37,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public TRequest Current { get; private set; }
 
-        public ValueTask DisposeAsync()
-        {
-            return new ValueTask(Task.CompletedTask);
-        }
+        public void Dispose() { }
 
-        public async ValueTask<bool> MoveNextAsync()
+        public async Task<bool> MoveNext(CancellationToken cancellationToken)
         {
             var requestPayload = await StreamUtils.ReadMessageAsync(_httpContext.Request.Body);
 

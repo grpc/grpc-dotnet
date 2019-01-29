@@ -19,10 +19,10 @@
     <None Remove="@(ProtoBuf)" />
     <Content Include="@(ProtoBuf)" LinkBase="" />
 
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 
-    <PackageReference Include="Grpc.Tools" Version="1.17.0-pre3" />
-    <PackageReference Include="Google.Protobuf" Version="3.6.1" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" />
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
   </ItemGroup>
 
 </Project>
