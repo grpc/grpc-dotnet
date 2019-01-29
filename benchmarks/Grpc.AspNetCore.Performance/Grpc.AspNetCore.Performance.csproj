@@ -10,16 +10,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProtoBuf Include=".\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
+    <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
 
-    <None Remove="@(ProtoBuf)" />
-    <Content Include="@(ProtoBuf)" LinkBase="" />
+    <None Remove="@(Protobuf)" />
+    <Content Include="@(Protobuf)" LinkBase="" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <PackageReference Include="BenchmarkDotNet" Version="$(BenchmarkDotNetPackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

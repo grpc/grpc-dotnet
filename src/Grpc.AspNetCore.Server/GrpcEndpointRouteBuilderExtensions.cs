@@ -38,7 +38,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             try
             {
-                // Implementation type FooImpl derives from Foo.FooBase (with implicit base type of Object).
+                // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
+                // We need to access the static BindService method on Foo which implicitly derives from Object.
                 var baseType = service.BaseType;
                 while (baseType?.BaseType?.BaseType != null)
                 {
@@ -53,7 +54,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 if (bindService == null)
                 {
-                    throw new InvalidOperationException("Cannot locate BindService(ServiceBinderBase, ServiceBase) method on generated gRPC service type.");
+                    throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {service.FullName}. The type must be an implementation of a gRPC service.");
                 }
 
                 var serviceBinder = new GrpcServiceBinder<TService>(builder);

@@ -49,12 +49,12 @@ namespace Grpc.AspNetCore.Server.Internal
                     null
                 });
 
-            // TODO: make sure the response is not null
+            // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responsePayload = Method.ResponseMarshaller.Serializer(response);
 
             await StreamUtils.WriteMessageAsync(httpContext.Response.Body, responsePayload, 0, responsePayload.Length);
 
-            httpContext.Response.AppendTrailer(Constants.GrpcStatusHeader, Constants.GrpcStatusOk);
+            httpContext.Response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, GrpcProtocolConstants.StatusOk);
         }
     }
 }

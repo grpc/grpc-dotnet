@@ -12,14 +12,14 @@
     <!-- 2. Generator metadata: this is the target that's run during the design time build to generate the *.cs files -->
     <!-- 3. None ItemGroup: Remove the *.proto files from None since the generator metadata for those files are ignored -->
     <!-- 4. Content ItemGroup: Include the *.proto files in the Content ItemGroup. This isn't required if the file is included in the project directory. I'm not sure about what's going on with this requirement. -->
-    <ProtoBuf Include="..\..\Proto\greet.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
-    <None Remove="@(ProtoBuf)" />
-    <Content Include="@(ProtoBuf)" LinkBase="" />
+    <Protobuf Include="..\..\Proto\greet.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
+    <None Remove="@(Protobuf)" />
+    <Content Include="@(Protobuf)" LinkBase="" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 </Project>
