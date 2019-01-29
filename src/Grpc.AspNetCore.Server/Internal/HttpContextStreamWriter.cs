@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public Task WriteAsync(TResponse message)
         {
-            // TODO: make sure the response is not null
+            // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responsePayload = _serializer(message);
 
             // Flush messages unless WriteOptions.Flags has BufferHint set

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,6 +16,18 @@
 
 #endregion
 
-using Grpc.AspNetCore.Performance;
+using System.IO;
+using Grpc.Core;
 
-[assembly: DefaultCoreConfigAttribute]
+namespace Common
+{
+    public static class ClientResources
+    {
+        public static SslCredentials SslCredentials
+            = new SslCredentials(
+                File.ReadAllText(Path.Combine(Resources.CertDir, "ca.crt")),
+                new KeyCertificatePair(
+                    File.ReadAllText(Path.Combine(Resources.CertDir, "client.crt")),
+                    File.ReadAllText(Path.Combine(Resources.CertDir, "client.key"))));
+    }
+}

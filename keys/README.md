@@ -7,3 +7,5 @@ Contents
   Signing key to provide strong name of gRPC assemblies.
   As per https://msdn.microsoft.com/en-us/library/wd40t7ad(v=vs.110).aspx
   signing key should be checked into the repository.
+
+These keys originated from https://github.com/grpc/grpc/tree/master/src/csharp/keys.

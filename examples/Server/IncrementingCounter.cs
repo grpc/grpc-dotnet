@@ -16,6 +16,15 @@
 
 #endregion
 
-using Grpc.AspNetCore.Performance;
+namespace GRPCServer
+{
+    public class IncrementingCounter
+    {
+        public void Increment(int amount)
+        {
+            Count += amount;
+        }
 
-[assembly: DefaultCoreConfigAttribute]
+        public int Count { get; private set; }
+    }
+}

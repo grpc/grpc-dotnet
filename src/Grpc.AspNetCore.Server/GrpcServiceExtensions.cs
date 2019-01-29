@@ -33,7 +33,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> for adding services.</param>
         /// <returns></returns>
-        // TODO: Options?
+        // TODO(JunTaoLuo): Options?
         public static IServiceCollection AddGrpc(this IServiceCollection services)
         {
             if (services == null)

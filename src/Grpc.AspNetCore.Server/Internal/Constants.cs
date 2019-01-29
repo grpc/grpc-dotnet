@@ -16,14 +16,12 @@
 
 #endregion
 
-using Grpc.Core;
-using Microsoft.Extensions.Primitives;
-
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal static class Constants
+    internal static class GrpcProtocolConstants
     {
-        public const string GrpcStatusHeader = "grpc-status";
-        public static readonly StringValues GrpcStatusOk = ((int)StatusCode.OK).ToString();
+        internal const string StatusTrailer = "grpc-status";
+        // This represents the numeric value of Grpc.Core.StatusCode.OK
+        internal const string StatusOk = "0";
     }
 }

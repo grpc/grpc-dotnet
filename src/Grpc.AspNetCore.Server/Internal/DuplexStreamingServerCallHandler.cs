@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     null
                 });
 
-            httpContext.Response.AppendTrailer(Constants.GrpcStatusHeader, Constants.GrpcStatusOk);
+            httpContext.Response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, GrpcProtocolConstants.StatusOk);
         }
     }
 }
