@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
 
-            var response = (TResponse)await GetMethodExecutor().ExecuteAsync(
+            var response = (TResponse)await ObjectMethodExecutor.ExecuteAsync(
                 service,
                 new object[]
                 {
