@@ -59,12 +59,15 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public static async Task WriteMessageAsync(Stream stream, byte[] buffer, int offset, int count, bool flush = false)
         {
-            var delimiterBuffer = new byte[1 + MessageDelimiterSize];
-            delimiterBuffer[0] = 0; // = non-compressed
-            EncodeMessageLength(count, new Span<byte>(delimiterBuffer, 1, MessageDelimiterSize));
-            await stream.WriteAsync(delimiterBuffer, 0, delimiterBuffer.Length);
+            // Write message to the stream with one call
+            // HTTP/2 will place separate calls to Stream.WriteAsync in their own DATA sections in packet
+            // Switching to pipelines will give greater control
+            var completeBuffer = new byte[1 + MessageDelimiterSize + count];
+            completeBuffer[0] = 0; // = non-compressed
+            EncodeMessageLength(count, new Span<byte>(completeBuffer, 1, MessageDelimiterSize));
+            Array.Copy(buffer, offset, completeBuffer, 5, count);
 
-            await stream.WriteAsync(buffer, offset, count);
+            await stream.WriteAsync(completeBuffer, 0, completeBuffer.Length);
 
             if (flush)
             {
