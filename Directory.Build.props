@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="build\dependencies.props" />
 
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)keys\Grpc.snk</AssemblyOriginatorKeyFile>

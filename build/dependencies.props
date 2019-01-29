@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
+    <GoogleProtobufPackageVersion>3.6.1</GoogleProtobufPackageVersion>
+    <GrpcCorePackageVersion>1.17.0-pre3</GrpcCorePackageVersion>
+    <GrpcToolsPackageVersion>1.17.0-pre3</GrpcToolsPackageVersion>
+    <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
+    <MoqPackageVersion>4.10.0</MoqPackageVersion>
+    <NunitPackageVersion>3.11.0</NunitPackageVersion>
+    <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
+  </PropertyGroup>
+</Project>

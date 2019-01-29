@@ -3,6 +3,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Count;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace GRPCServer
 {
@@ -26,7 +27,7 @@ namespace GRPCServer
 
         public override async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
-            while (await requestStream.MoveNextAsync())
+            while (await requestStream.MoveNext(CancellationToken.None))
             {
                 _logger.LogInformation($"Incrementing count by {requestStream.Current.Count}");
 
