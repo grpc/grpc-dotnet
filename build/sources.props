@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup Label="RestoreSources">
+    <RestoreSources>
+      $(RestoreSources);
+      $(MSBuildThisFileDirectory)feed;
+      https://api.nuget.org/v3/index.json;
+    </RestoreSources>
+  </PropertyGroup>
+</Project>
