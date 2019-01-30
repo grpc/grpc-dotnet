@@ -37,3 +37,4 @@ binaries/
 global.json
 .vscode/
 *.binlog
+build/feed
