@@ -50,7 +50,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 // We need to call Foo.BindService from the declaring type.
                 var declaringType = baseType?.DeclaringType;
 
-                // The method we want to call is public static void BindService(ServiceBinderBase serviceBinder)
+                // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
                 var bindService = declaringType?.GetMethod("BindService", new[] { typeof(ServiceBinderBase), baseType });
 
                 if (bindService == null)
@@ -60,13 +60,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 var serviceBinder = new GrpcServiceBinder<TService>(builder);
 
-                // Create dummy service instance for the call to BindService.
-                // This will fail for services that resolve Scoped services in the constructor.
-                // This restriction will be fixed by https://github.com/grpc/grpc-dotnet/issues/21
-                var dummy = new DefaultGrpcServiceActivator<TService>(builder.ServiceProvider).Create();
-
                 // Invoke
-                bindService.Invoke(null, new object[] { serviceBinder, dummy });
+                bindService.Invoke(null, new object[] { serviceBinder, null });
 
                 return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
             }
