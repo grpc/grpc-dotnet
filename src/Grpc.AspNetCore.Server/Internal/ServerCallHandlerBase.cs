@@ -26,10 +26,12 @@ namespace Grpc.AspNetCore.Server.Internal
     internal abstract class ServerCallHandlerBase<TRequest, TResponse, TService> : IServerCallHandler
     {
         protected Method<TRequest, TResponse> Method { get; }
+        protected GrpcServiceOptions ServiceOptions { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method)
+        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions)
         {
-            Method = method ?? throw new ArgumentNullException(nameof(method));
+            Method = method;
+            ServiceOptions = serviceOptions;
         }
 
         public abstract Task HandleCallAsync(HttpContext httpContext);

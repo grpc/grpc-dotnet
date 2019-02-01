@@ -16,22 +16,17 @@
 
 #endregion
 
-using System.IO;
-using System.IO.Pipelines;
-using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Internal;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Performance.Internal
+namespace Grpc.AspNetCore.Server.Internal
 {
-    internal static class MessageHelpers
+    internal class GrpcServerBuilder : IGrpcServerBuilder
     {
-        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
+        public IServiceCollection Services { get; }
 
-        public static void WriteMessage(Stream stream, byte[] message)
+        public GrpcServerBuilder(IServiceCollection services)
         {
-            var pipeWriter = new StreamPipeWriter(stream);
-
-            PipeExtensions.WriteMessageAsync(pipeWriter, message, TestServiceOptions, flush: true).GetAwaiter().GetResult();
+            Services = services;
         }
     }
 }

@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private readonly UnaryServerMethod _invoker;
 
-        public UnaryServerCallHandler(Method<TRequest, TResponse> method) : base(method)
+        public UnaryServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions) : base(method, serviceOptions)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync();
+            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(ServiceOptions);
 
             var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
@@ -72,7 +72,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responseBodyPipe = httpContext.Response.BodyPipe;
-            await responseBodyPipe.WriteMessageAsync(response, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
+            await responseBodyPipe.WriteMessageAsync(response, ServiceOptions, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 

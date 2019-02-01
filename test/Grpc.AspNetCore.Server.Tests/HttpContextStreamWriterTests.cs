@@ -33,6 +33,8 @@ namespace Grpc.AspNetCore.Server.Tests
     [TestFixture]
     public class HttpContextStreamWriterTests
     {
+        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
+
         [Test]
         public async Task WriteAsync_DefaultWriteOptions_Flushes()
         {
@@ -42,7 +44,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
             var serverCallContext = new HttpContextServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, TestServiceOptions, (message) => message.ToByteArray());
 
             // Act 1
             await writer.WriteAsync(new HelloReply
@@ -80,7 +82,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
             var serverCallContext = new HttpContextServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, TestServiceOptions, (message) => message.ToByteArray());
             serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
 
             // Act 1 
