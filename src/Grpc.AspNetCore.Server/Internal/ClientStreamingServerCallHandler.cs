@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private readonly ClientStreamingServerMethod _invoker;
 
-        public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
+        public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions) : base(method, serviceOptions)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
@@ -60,13 +60,13 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 response = await _invoker(
                     service,
-                    new HttpContextStreamReader<TRequest>(httpContext, Method.RequestMarshaller.Deserializer),
+                    new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
                     serverCallContext);
             }
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responseBodyPipe = httpContext.Response.BodyPipe;
-            await responseBodyPipe.WriteMessageAsync(response, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
+            await responseBodyPipe.WriteMessageAsync(response, ServiceOptions, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 

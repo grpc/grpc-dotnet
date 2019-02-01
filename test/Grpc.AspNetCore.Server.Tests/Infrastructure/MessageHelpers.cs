@@ -26,6 +26,8 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
     internal static class MessageHelpers
     {
+        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
+
         public static T AssertReadMessage<T>(byte[] messageData) where T : IMessage, new()
         {
             var ms = new MemoryStream(messageData);
@@ -37,7 +39,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
         {
             var pipeReader = new StreamPipeReader(stream);
 
-            var messageData = await pipeReader.ReadSingleMessageAsync();
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServiceOptions);
 
             var message = new T();
             message.MergeFrom(messageData);
@@ -54,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 
         public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader) where T : IMessage, new()
         {
-            var messageData = await pipeReader.ReadStreamMessageAsync();
+            var messageData = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
 
             if (messageData == null)
             {
@@ -73,7 +75,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 
             var pipeWriter = new StreamPipeWriter(stream);
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, flush: true).GetAwaiter().GetResult();
+            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServiceOptions, flush: true).GetAwaiter().GetResult();
         }
     }
 }

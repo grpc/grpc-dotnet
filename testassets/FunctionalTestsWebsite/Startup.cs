@@ -31,7 +31,12 @@ namespace FunctionalTestsWebsite
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
+            services.AddGrpc()
+                .AddServiceOptions<GreeterService>(options =>
+                {
+                    options.SendMaxMessageSize = 64 * 1024;
+                    options.ReceiveMaxMessageSize = 64 * 1024;
+                });
             services.AddScoped<IncrementingCounter>();
         }
 

@@ -25,11 +25,13 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TResponse>
     {
         private readonly HttpContextServerCallContext _context;
+        private readonly GrpcServiceOptions _serviceOptions;
         private readonly Func<TResponse, byte[]> _serializer;
 
-        public HttpContextStreamWriter(HttpContextServerCallContext context, Func<TResponse, byte[]> serializer)
+        public HttpContextStreamWriter(HttpContextServerCallContext context, GrpcServiceOptions serviceOptions, Func<TResponse, byte[]> serializer)
         {
             _context = context;
+            _serviceOptions = serviceOptions;
             _serializer = serializer;
         }
 
@@ -39,6 +41,6 @@ namespace Grpc.AspNetCore.Server.Internal
             set => _context.WriteOptions = value;
         }
 
-        public Task WriteAsync(TResponse message) => _context.HttpContext.Response.BodyPipe.WriteMessageAsync(message, _serializer, WriteOptions);
+        public Task WriteAsync(TResponse message) => _context.HttpContext.Response.BodyPipe.WriteMessageAsync(message, _serviceOptions, _serializer, WriteOptions);
     }
 }
