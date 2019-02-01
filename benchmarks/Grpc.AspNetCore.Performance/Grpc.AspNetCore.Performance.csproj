@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
+
+    <None Remove="@(Protobuf)" />
+    <Content Include="@(Protobuf)" LinkBase="" />
+
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <PackageReference Include="BenchmarkDotNet" Version="$(BenchmarkDotNetPackageVersion)" />
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="build\dependencies.props" />
+
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)keys\Grpc.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

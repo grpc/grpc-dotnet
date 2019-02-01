@@ -1,7 +1,10 @@
 language: csharp
 sudo: required
 dist: xenial
-mono: latest
+env:
+  global:
+    - DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+mono: none
 branches:
   only:
     - master
