@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -31,7 +32,7 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class UnaryMethodTests : FunctionalTestBase
     {
         [Test]
-        public async Task SayHello_ValidRequest_SuccessResponse()
+        public async Task SendValidRequest_SuccessResponse()
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -39,18 +40,126 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Name = "World"
             };
 
-            var stream = new MemoryStream();
-            await MessageHelpers.WriteMessageAsync(stream, requestMessage).DefaultTimeout();
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
             var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
-                new StreamContent(stream)).DefaultTimeout();
+                new StreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            Assert.AreEqual("Hello World", responseMessage.Message);
+        }
+
+        [Test]
+        public async Task StreamedMessage_SuccessResponseAfterMessageReceived()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            var response = await responseTask.DefaultTimeout();
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            Assert.AreEqual("Hello World", responseMessage.Message);
+        }
+
+        [Test]
+        public async Task AdditionalDataAfterStreamedMessage_ErrorResponse()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+
+            // TODO - this should return a response with a gRPC status object
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await responseTask.DefaultTimeout();
+            });
+            Assert.AreEqual("Additional data after the message received.", ex.Message);
+        }
+
+        [Test]
+        public async Task MessageSentInMultipleChunks_SuccessResponse()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            // Send message one byte at a time then finish
+            foreach (var b in ms.ToArray())
+            {
+                await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
+            }            
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            var response = await responseTask.DefaultTimeout();
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);

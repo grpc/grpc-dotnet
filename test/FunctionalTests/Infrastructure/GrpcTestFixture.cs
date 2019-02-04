@@ -32,16 +32,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public GrpcTestFixture()
         {
-            Signal = new Signaler();
-
-            Action<IServiceCollection> configureServices = services =>
-            {
-                // Register signaler so server can signal tests
-                services.AddSingleton(Signal);
-            };
-
             var builder = new WebHostBuilder()
-                .ConfigureServices(configureServices)
                 .UseStartup<TStartup>();
 
             _server = new TestServer(builder);
@@ -49,8 +40,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Client = _server.CreateClient();
             Client.BaseAddress = new Uri("http://localhost");
         }
-
-        public Signaler Signal { get; }
 
         public HttpClient Client { get; }
 
