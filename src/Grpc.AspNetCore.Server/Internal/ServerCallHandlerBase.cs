@@ -18,46 +18,41 @@
 
 using System;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal abstract class ServerCallHandlerBase<TRequest, TResponse, TService> : IServerCallHandler
     {
-        private readonly object _lock;
         protected Method<TRequest, TResponse> Method { get; }
 
-        private ObjectMethodExecutor _objectMethodExecutor;
+        private readonly Lazy<ObjectMethodExecutor> _objectMethodExecutor;
 
         protected ServerCallHandlerBase(Method<TRequest, TResponse> method)
         {
-            _lock = new object();
             Method = method ?? throw new ArgumentNullException(nameof(method));
+
+            _objectMethodExecutor = new Lazy<ObjectMethodExecutor>(
+                CreateObjectMethodExecutor,
+                LazyThreadSafetyMode.ExecutionAndPublication);
+        }
+
+        private ObjectMethodExecutor CreateObjectMethodExecutor()
+        {
+            var handlerMethod = typeof(TService).GetMethod(Method.Name);
+
+            var objectMethodExecutor = ObjectMethodExecutor.Create(
+                handlerMethod,
+                typeof(TService).GetTypeInfo());
+
+            return objectMethodExecutor;
         }
 
         public abstract Task HandleCallAsync(HttpContext httpContext);
 
-        protected ObjectMethodExecutor GetMethodExecutor()
-        {
-            if (_objectMethodExecutor == null)
-            {
-                lock (_lock)
-                {
-                    if (_objectMethodExecutor == null)
-                    {
-                        var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
-                        _objectMethodExecutor = ObjectMethodExecutor.Create(
-                            handlerMethod,
-                            typeof(TService).GetTypeInfo());
-                    }
-                }
-            }
-
-            return _objectMethodExecutor;
-        }
+        protected ObjectMethodExecutor ObjectMethodExecutor => _objectMethodExecutor.Value;
     }
 }
