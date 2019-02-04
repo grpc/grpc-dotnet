@@ -24,25 +24,47 @@ using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    public class AwaitableMemoryStream : Stream
+    /// <summary>
+    /// A memory stream that waits for data when reading and allows the sender of data to wait for it to be read.
+    /// </summary>
+    public class SyncPointMemoryStream : Stream
     {
-        private TaskCompletionSource<byte[]> _tcs;
+        private SyncPoint _syncPoint;
+        private Func<Task> _awaiter;
         private byte[] _currentData;
 
-        public AwaitableMemoryStream()
+        public SyncPointMemoryStream()
         {
             _currentData = Array.Empty<byte>();
-            ResetTcs();
+            ResetSyncPoint();
         }
 
-        private void ResetTcs()
+        /// <summary>
+        /// Give the stream more data and wait until it is all read.
+        /// </summary>
+        public Task AddDataAndWait(byte[] data)
         {
-            _tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+            AddDataCore(data);
+            return _awaiter();
         }
 
-        public void SendData(byte[] data)
+        /// <summary>
+        /// Give the stream more data.
+        /// </summary>
+        public void AddData(byte[] data)
         {
-            _tcs.SetResult(data);
+            AddDataCore(data);
+            _ = _awaiter();
+        }
+
+        private void AddDataCore(byte[] data)
+        {
+            if (_currentData.Length != 0)
+            {
+                throw new Exception("Memory stream still has data to read.");
+            }
+
+            _currentData = data;
         }
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -53,8 +75,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 return ReadInternalBuffer(buffer, offset, count);
             }
 
-            _currentData = await _tcs.Task;
-            ResetTcs();
+            // Wait until data is provided by AddDataAndWait
+            await _syncPoint.WaitForSyncPoint();
 
             return ReadInternalBuffer(buffer, offset, count);
         }
@@ -68,7 +90,24 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 _currentData = _currentData.AsSpan(readBytes, _currentData.Length - readBytes).ToArray();
             }
 
+            if (_currentData.Length == 0)
+            {
+                // We have read all data
+                // Signal AddDataAndWait to continue
+                // Reset sync point for next read
+                var syncPoint = _syncPoint;
+
+                ResetSyncPoint();
+
+                syncPoint.Continue();
+            }
+
             return readBytes;
+        }
+
+        private void ResetSyncPoint()
+        {
+            _awaiter = SyncPoint.Create(out _syncPoint);
         }
 
         #region Stream implementation
