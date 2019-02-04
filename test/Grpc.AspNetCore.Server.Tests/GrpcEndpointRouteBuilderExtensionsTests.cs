@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterService>().Apply(builder =>
+            routeBuilder.MapGrpcService<GreeterService>().Add(builder =>
             {
                 builder.Metadata.Add(new CustomMetadata());
             });
