@@ -29,30 +29,11 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         protected Method<TRequest, TResponse> Method { get; }
 
-        private readonly Lazy<ObjectMethodExecutor> _objectMethodExecutor;
-
         protected ServerCallHandlerBase(Method<TRequest, TResponse> method)
         {
             Method = method ?? throw new ArgumentNullException(nameof(method));
-
-            _objectMethodExecutor = new Lazy<ObjectMethodExecutor>(
-                CreateObjectMethodExecutor,
-                LazyThreadSafetyMode.ExecutionAndPublication);
-        }
-
-        private ObjectMethodExecutor CreateObjectMethodExecutor()
-        {
-            var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
-            var objectMethodExecutor = ObjectMethodExecutor.Create(
-                handlerMethod,
-                typeof(TService).GetTypeInfo());
-
-            return objectMethodExecutor;
         }
 
         public abstract Task HandleCallAsync(HttpContext httpContext);
-
-        protected ObjectMethodExecutor ObjectMethodExecutor => _objectMethodExecutor.Value;
     }
 }

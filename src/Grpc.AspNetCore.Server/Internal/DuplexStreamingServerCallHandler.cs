@@ -29,8 +29,15 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
         where TService : class
     {
+        private delegate Task DuplexStreamingServerCall(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
+
+        private readonly DuplexStreamingServerCall _invoker;
+
         public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
+            var handlerMethod = typeof(TService).GetMethod(Method.Name);
+
+            _invoker = (DuplexStreamingServerCall)Delegate.CreateDelegate(typeof(DuplexStreamingServerCall), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
@@ -42,14 +49,10 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
 
-            await ObjectMethodExecutor.ExecuteAsync(
-                service,
-                new object[]
-                {
-                    new HttpContextStreamReader<TRequest>(httpContext, Method.RequestMarshaller.Deserializer),
-                    new HttpContextStreamWriter<TResponse>(httpContext, Method.ResponseMarshaller.Serializer),
-                    null
-                });
+            await _invoker(service,
+                           new HttpContextStreamReader<TRequest>(httpContext, Method.RequestMarshaller.Deserializer),
+                           new HttpContextStreamWriter<TResponse>(httpContext, Method.ResponseMarshaller.Serializer),
+                           null);
 
             httpContext.Response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, GrpcProtocolConstants.StatusOk);
         }
