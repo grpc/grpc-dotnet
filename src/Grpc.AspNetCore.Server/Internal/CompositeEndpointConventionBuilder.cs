@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Builder;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -32,11 +32,11 @@ namespace Grpc.AspNetCore.Server.Internal
             _endpointConventionBuilders = endpointConventionBuilders.ToList();
         }
 
-        public void Apply(Action<EndpointModel> convention)
+        public void Add(Action<EndpointBuilder> convention)
         {
             foreach (var endpointConventionBuilder in _endpointConventionBuilders)
             {
-                endpointConventionBuilder.Apply(convention);
+                endpointConventionBuilder.Add(convention);
             }
         }
     }
