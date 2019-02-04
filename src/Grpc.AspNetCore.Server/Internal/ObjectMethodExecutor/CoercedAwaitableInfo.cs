@@ -21,7 +21,7 @@ using System.Linq.Expressions;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal struct CoercedAwaitableInfo
+    internal readonly struct CoercedAwaitableInfo
     {
         public AwaitableInfo AwaitableInfo { get; }
         public Expression CoercerExpression { get; }
