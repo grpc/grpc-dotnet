@@ -213,6 +213,31 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void ReadMessageAsync_AdditionalData_ThrowError()
+        {
+            // Arrange
+            var ms = new MemoryStream(new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01, // length = 2
+                    0x10,
+                    0x10 // additional data
+                });
+
+            var pipeReader = new StreamPipeReader(ms);
+
+            // Act
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(
+                () => pipeReader.ReadMessageAsync().AsTask());
+
+            // Assert
+            Assert.AreEqual("Additional data after the message received.", ex.Message);
+        }
+
+        [Test]
         public void ReadMessageStreamAsync_HeaderIncomplete_ThrowError()
         {
             // Arrange
@@ -265,7 +290,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Array.Empty<byte>());
+            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"));
 
             // Assert
             var messageData = ms.ToArray();
