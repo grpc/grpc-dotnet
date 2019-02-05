@@ -16,12 +16,9 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using BenchmarkDotNet.Running;
 
-namespace Grpc.AspNetCore.Performance
+namespace Grpc.AspNetCore.Microbenchmarks
 {
     public class Program
     {
