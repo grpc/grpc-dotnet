@@ -15,6 +15,8 @@
 
 set -ex
 
+./build/get-grpc.sh
+
 dotnet build
 
 dotnet test
