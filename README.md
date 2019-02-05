@@ -1,8 +1,8 @@
 # gRPC for dotnet
 
-## Experimental Only!
+## Coming soon!
 
-This repository is currently experimental and work-in-progress.
+This repository is currently under active development. We will be releasing previews shortly.
 See https://github.com/grpc/grpc for the official version of gRPC C# (ready for production workloads).
 
 ## The Plan
@@ -23,11 +23,30 @@ Please note that we plan both implementations (gRPC C# native and fully-managed 
 
 ## To start using gRPC for ASP.NET Core
 
-Instructions coming soon!
+Documentation and guides are coming soon! In the mean time we suggest referring to the examples at https://github.com/grpc/grpc-dotnet/tree/master/examples/Server.
 
 ## To develop gRPC for ASP.NET Core
 
-TODO: add development instructions
+Install [.NET Core SDK 3 preview 2](https://dotnet.microsoft.com/download/dotnet-core/3.0).
+
+Setting up local feed with unreleased Grpc.* packages:
+```
+# For the time being, we are depending on unreleased Grpc.* packages.
+# Run this script before building the project.
+# Note that since unreleased packages do not have unique version numbers, nuget
+# cache may need to be cleared prior to building (dotnet nuget locals all --clear)
+./build/get-grpc.sh
+```
+
+To build:
+```
+dotnet build Grpc.AspNetCore.sln
+```
+
+To run tests:
+```
+dotnet test Grpc.AspNetCore.sln
+```
 
 ## To contribute
 
