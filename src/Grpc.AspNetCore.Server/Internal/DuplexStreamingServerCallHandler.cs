@@ -29,15 +29,18 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
         where TService : class
     {
-        private delegate Task DuplexStreamingServerCall(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
+        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
+        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to DuplexStreamingServerMethod<TRequest, TResponse>
+        // with an instance parameter.
+        private delegate Task DuplexStreamingServerMethod(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
 
-        private readonly DuplexStreamingServerCall _invoker;
+        private readonly DuplexStreamingServerMethod _invoker;
 
         public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
-            _invoker = (DuplexStreamingServerCall)Delegate.CreateDelegate(typeof(DuplexStreamingServerCall), handlerMethod);
+            _invoker = (DuplexStreamingServerMethod)Delegate.CreateDelegate(typeof(DuplexStreamingServerMethod), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)

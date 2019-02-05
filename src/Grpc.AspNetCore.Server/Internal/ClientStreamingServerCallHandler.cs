@@ -29,15 +29,18 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
         where TService : class
     {
-        private delegate Task<TResponse> ClientStreamingServerCall(TService service, IAsyncStreamReader<TRequest> stream, ServerCallContext serverCallContext);
+        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
+        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to ClientStreamingServerMethod<TRequest, TResponse>
+        // with an instance parameter.
+        private delegate Task<TResponse> ClientStreamingServerMethod(TService service, IAsyncStreamReader<TRequest> stream, ServerCallContext serverCallContext);
 
-        private readonly ClientStreamingServerCall _invoker;
+        private readonly ClientStreamingServerMethod _invoker;
 
         public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
-            _invoker = (ClientStreamingServerCall)Delegate.CreateDelegate(typeof(ClientStreamingServerCall), handlerMethod);
+            _invoker = (ClientStreamingServerMethod)Delegate.CreateDelegate(typeof(ClientStreamingServerMethod), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
