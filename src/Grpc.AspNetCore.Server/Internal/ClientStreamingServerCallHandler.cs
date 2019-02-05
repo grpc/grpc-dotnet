@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -28,8 +29,18 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
         where TService : class
     {
+        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
+        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to ClientStreamingServerMethod<TRequest, TResponse>
+        // with an instance parameter.
+        private delegate Task<TResponse> ClientStreamingServerMethod(TService service, IAsyncStreamReader<TRequest> stream, ServerCallContext serverCallContext);
+
+        private readonly ClientStreamingServerMethod _invoker;
+
         public ClientStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
+            var handlerMethod = typeof(TService).GetMethod(Method.Name);
+
+            _invoker = (ClientStreamingServerMethod)Delegate.CreateDelegate(typeof(ClientStreamingServerMethod), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
@@ -41,13 +52,10 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
 
-            var response = (TResponse)await ObjectMethodExecutor.ExecuteAsync(
+            var response = await _invoker(
                 service,
-                new object[]
-                {
-                    new HttpContextStreamReader<TRequest>(httpContext, Method.RequestMarshaller.Deserializer),
-                    null
-                });
+                new HttpContextStreamReader<TRequest>(httpContext, Method.RequestMarshaller.Deserializer),
+                null);
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responsePayload = Method.ResponseMarshaller.Serializer(response);

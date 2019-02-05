@@ -29,8 +29,18 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
         where TService : class
     {
+        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
+        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to UnaryServerMethod<TRequest, TResponse>
+        // with an instance parameter.
+        private delegate Task<TResponse> UnaryServerMethod(TService service, TRequest request, ServerCallContext serverCallContext);
+
+        private readonly UnaryServerMethod _invoker;
+
         public UnaryServerCallHandler(Method<TRequest, TResponse> method) : base(method)
         {
+            var handlerMethod = typeof(TService).GetMethod(Method.Name);
+
+            _invoker = (UnaryServerMethod)Delegate.CreateDelegate(typeof(UnaryServerMethod), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
@@ -49,13 +59,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
 
-            var response = (TResponse)await ObjectMethodExecutor.ExecuteAsync(
-                service,
-                new object[]
-                {
-                    request,
-                    null
-                });
+            var response = await _invoker(service, request, null);
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responsePayload = Method.ResponseMarshaller.Serializer(response);
