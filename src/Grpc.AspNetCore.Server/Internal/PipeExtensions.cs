@@ -53,6 +53,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private static void WriteHeader(PipeWriter pipeWriter, int length)
         {
             Span<byte> headerData = pipeWriter.GetSpan(HeaderSize);
+            // Messages are currently always uncompressed
             headerData[0] = 0;
             EncodeMessageLength(length, headerData.Slice(1));
 
@@ -120,16 +121,16 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                throw new InvalidOperationException("Unexpected compressed flag value in message header.");
+                throw new InvalidDataException("Unexpected compressed flag value in message header.");
             }
         }
 
         /// <summary>
-        /// Read a single message from the pipe reader. Ensure the reader completes without additonal data.
+        /// Read a single message from the pipe reader. Ensure the reader completes without additional data.
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <returns>Complete message data.</returns>
-        public static async ValueTask<byte[]> ReadMessageAsync(this PipeReader input)
+        public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input)
         {
             byte[] completeMessageData = null;
 
@@ -142,14 +143,14 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     if (result.IsCanceled)
                     {
-                        throw new InvalidOperationException("Incoming message cancelled.");
+                        throw new InvalidDataException("Incoming message cancelled.");
                     }
 
                     if (!buffer.IsEmpty)
                     {
                         if (completeMessageData != null)
                         {
-                            throw new InvalidOperationException("Additional data after the message received.");
+                            throw new InvalidDataException("Additional data after the message received.");
                         }
 
                         if (TryReadMessage(ref buffer, out var data))
@@ -168,7 +169,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             return completeMessageData;
                         }
 
-                        throw new InvalidOperationException("Incomplete message.");
+                        throw new InvalidDataException("Incomplete message.");
                     }
                 }
                 finally
@@ -186,7 +187,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        public static async ValueTask<byte[]> ReadMessageStreamAsync(this PipeReader input)
+        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input)
         {
             while (true)
             {
@@ -197,7 +198,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     if (result.IsCanceled)
                     {
-                        throw new InvalidOperationException("Incoming message cancelled.");
+                        throw new InvalidDataException("Incoming message cancelled.");
                     }
 
                     if (!buffer.IsEmpty)
@@ -216,7 +217,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             return null;
                         }
 
-                        throw new InvalidOperationException("Incomplete message.");
+                        throw new InvalidDataException("Incomplete message.");
                     }
                 }
                 finally
@@ -240,7 +241,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (compressed)
             {
                 // TODO(jtattermusch): support compressed messages
-                throw new IOException("Compressed messages are not yet supported.");
+                throw new InvalidDataException("Compressed messages are not yet supported.");
             }
 
             if (buffer.Length < HeaderSize + messageLength)

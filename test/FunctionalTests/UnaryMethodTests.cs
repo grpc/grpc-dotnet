@@ -120,7 +120,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
 
             // TODO - this should return a response with a gRPC status object
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            var ex = Assert.ThrowsAsync<InvalidDataException>(async () =>
             {
                 await responseTask.DefaultTimeout();
             });

@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public async Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            var requestPayload = await _httpContext.Request.BodyPipe.ReadMessageStreamAsync();
+            var requestPayload = await _httpContext.Request.BodyPipe.ReadStreamMessageAsync();
 
             // Stream is complete
             if (requestPayload == null)

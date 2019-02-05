@@ -37,7 +37,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var pipeReader = new StreamPipeReader(stream);
 
-            var messageData = await pipeReader.ReadMessageAsync();
+            var messageData = await pipeReader.ReadSingleMessageAsync();
 
             var message = new T();
             message.MergeFrom(messageData);
@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var pipeReader = new StreamPipeReader(stream);
 
-            var messageData = await pipeReader.ReadMessageStreamAsync();
+            var messageData = await pipeReader.ReadStreamMessageAsync();
 
             if (messageData == null)
             {
