@@ -27,18 +27,23 @@ Instructions coming soon!
 
 ## To develop gRPC for ASP.NET Core
 
-Install [.NET Core SDK 3 preview 2](https://dotnet.microsoft.com/download/dotnet-core/3.0)
-or [VS 2019 preview](https://visualstudio.microsoft.com/vs/preview/).
+Install [.NET Core SDK 3 preview 2](https://dotnet.microsoft.com/download/dotnet-core/3.0).
 
-TODO(jtattermusch): add instructions for grabbing pre-release Grpc.Core.Api package.
+Populate local package cache:
+```
+# For the time being, we are depending on unreleased Grpc.* packages,
+# so this trick populates the local cache with the right nugets.
+./build/get-grpc.sh
+```
 
+To build:
 ```
 dotnet build Grpc.AspNetCore.sln
 ```
 
 To run tests:
 ```
-dotnet tests Grpc.AspNetCore.sln
+dotnet test Grpc.AspNetCore.sln
 ```
 
 ## To contribute
