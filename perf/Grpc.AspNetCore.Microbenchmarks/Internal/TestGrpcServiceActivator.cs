@@ -16,6 +16,27 @@
 
 #endregion
 
-using Grpc.AspNetCore.Performance;
+using Grpc.AspNetCore.Server;
 
-[assembly: DefaultCoreConfigAttribute]
+namespace Grpc.AspNetCore.Microbenchmarks.Internal
+{
+    public class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
+        where TGrpcService : class
+    {
+        public readonly TGrpcService _service;
+
+        public TestGrpcServiceActivator(TGrpcService service)
+        {
+            _service = service;
+        }
+
+        public TGrpcService Create()
+        {
+            return _service;
+        }
+
+        public void Release(TGrpcService service)
+        {
+        }
+    }
+}

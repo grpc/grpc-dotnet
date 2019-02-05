@@ -16,27 +16,25 @@
 
 #endregion
 
+using System.IO;
+using System.IO.Pipelines;
+using Google.Protobuf;
 using Grpc.AspNetCore.Server;
+using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.Performance.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
-    public class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
-        where TGrpcService : class
+    internal static class MessageHelpers
     {
-        public readonly TGrpcService _service;
+        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
 
-        public TestGrpcServiceActivator(TGrpcService service)
+        public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
         {
-            _service = service;
-        }
+            var messageData = message.ToByteArray();
 
-        public TGrpcService Create()
-        {
-            return _service;
-        }
+            var pipeWriter = new StreamPipeWriter(stream);
 
-        public void Release(TGrpcService service)
-        {
+            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServiceOptions, flush: true).GetAwaiter().GetResult();
         }
     }
 }
