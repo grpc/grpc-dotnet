@@ -33,12 +33,18 @@ class GreeterService : Greeter.GreeterBase
     //Server side handler of the SayHello RPC
     public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {
+        var httpContext = context.GetHttpContext();
+        _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
+
         _logger.LogInformation($"Sending hello to {request.Name}");
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
     public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
+        var httpContext = context.GetHttpContext();
+        _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
+
         for (int i = 0; i < 3; i++)
         {
             var message = $"How are you {request.Name}? {i}";

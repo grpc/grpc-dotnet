@@ -2,8 +2,11 @@
   <PropertyGroup Label="RestoreSources">
     <RestoreSources>
       $(RestoreSources);
-      $(MSBuildThisFileDirectory)feed;
       https://api.nuget.org/v3/index.json;
+    </RestoreSources>
+    <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)feed')">
+      $(RestoreSources);
+      $(MSBuildThisFileDirectory)feed;
     </RestoreSources>
   </PropertyGroup>
 </Project>

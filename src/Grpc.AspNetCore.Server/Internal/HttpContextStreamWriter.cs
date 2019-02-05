@@ -19,32 +19,26 @@
 using System;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TResponse>
     {
-        private readonly HttpContext _httpContext;
+        private readonly HttpContextServerCallContext _context;
         private readonly Func<TResponse, byte[]> _serializer;
 
-        public HttpContextStreamWriter(HttpContext context, Func<TResponse, byte[]> serializer)
+        public HttpContextStreamWriter(HttpContextServerCallContext context, Func<TResponse, byte[]> serializer)
         {
-            _httpContext = context;
+            _context = context;
             _serializer = serializer;
         }
 
-        public WriteOptions WriteOptions { get; set; }
-
-        public Task WriteAsync(TResponse message)
+        public WriteOptions WriteOptions
         {
-            // TODO(JunTaoLuo, JamesNK): make sure the response is not null
-            var responsePayload = _serializer(message);
-
-            // Flush messages unless WriteOptions.Flags has BufferHint set
-            var flush = ((WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
-
-            return _httpContext.Response.BodyPipe.WriteMessageAsync(responsePayload, flush);
+            get => _context.WriteOptions;
+            set => _context.WriteOptions = value;
         }
+
+        public Task WriteAsync(TResponse message) => _context.HttpContext.Response.BodyPipe.WriteMessageAsync(message, _serializer, WriteOptions);
     }
 }
