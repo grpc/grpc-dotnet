@@ -94,18 +94,20 @@ namespace Grpc.Testing
             return new Payload { Body = ByteString.CopyFrom(new byte[size]) };
         }
 
-        private static async Task EnsureEchoMetadataAsync(ServerCallContext context)
+        private static Task EnsureEchoMetadataAsync(ServerCallContext context)
         {
-            var echoInitialList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-initial").ToList();
-            if (echoInitialList.Any()) {
-                var entry = echoInitialList.Single();
-                await context.WriteResponseHeadersAsync(new Metadata { entry });
-            }
+            return Task.CompletedTask;
+            // TODO(jtattermusch): uncomment once ServerCallContext is populated.
+            //var echoInitialList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-initial").ToList();
+            //if (echoInitialList.Any()) {
+            //    var entry = echoInitialList.Single();
+            //    await context.WriteResponseHeadersAsync(new Metadata { entry });
+            //}
 
-            var echoTrailingList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-trailing-bin").ToList();
-            if (echoTrailingList.Any()) {
-                context.ResponseTrailers.Add(echoTrailingList.Single());
-            }
+            //var echoTrailingList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-trailing-bin").ToList();
+            //if (echoTrailingList.Any()) {
+            //    context.ResponseTrailers.Add(echoTrailingList.Single());
+            //}
         }
 
         private static void EnsureEchoStatus(EchoStatus responseStatus, ServerCallContext context)
