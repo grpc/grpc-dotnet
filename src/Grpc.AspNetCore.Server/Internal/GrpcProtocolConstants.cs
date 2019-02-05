@@ -21,7 +21,6 @@ namespace Grpc.AspNetCore.Server.Internal
     internal static class GrpcProtocolConstants
     {
         internal const string StatusTrailer = "grpc-status";
-        // This represents the numeric value of Grpc.Core.StatusCode.OK
-        internal const string StatusOk = "0";
+        internal const string MessageTrailer = "grpc-message";
     }
 }

@@ -38,6 +38,9 @@ namespace GRPCServer
 
         public override Task<CounterReply> IncrementCount(Empty request, ServerCallContext context)
         {
+            var httpContext = context.GetHttpContext();
+            _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
+
             _logger.LogInformation("Incrementing count by 1");
             _counter.Increment(1);
             return Task.FromResult(new CounterReply { Count = _counter.Count });
@@ -45,6 +48,9 @@ namespace GRPCServer
 
         public override async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
+            var httpContext = context.GetHttpContext();
+            _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
+
             while (await requestStream.MoveNext(CancellationToken.None))
             {
                 _logger.LogInformation($"Incrementing count by {requestStream.Current.Count}");

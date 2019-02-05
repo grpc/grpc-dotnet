@@ -18,8 +18,8 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Grpc.Core;
 using Chat;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 
 namespace GRPCServer
@@ -37,6 +37,9 @@ namespace GRPCServer
 
         public override async Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
         {
+            var httpContext = context.GetHttpContext();
+            _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
+
             if (!await requestStream.MoveNext())
             {
                 // No messages so don't register and just exit.
