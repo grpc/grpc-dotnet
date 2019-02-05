@@ -32,17 +32,17 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class DuplexStreamingMethodTests : FunctionalTestBase
     {
         [Test]
-        public async Task Chat_MultipleMessagesFromOneClient_SuccessResponses()
+        public async Task MultipleMessagesFromOneClient_SuccessResponses()
         {
             // Arrange
             var ms = new MemoryStream();
-            await MessageHelpers.WriteMessageAsync(ms, new ChatMessage
+            MessageHelpers.WriteMessage(ms, new ChatMessage
             {
                 Name = "John",
                 Message = "Hello Jill"
-            }).DefaultTimeout();
+            });
 
-            var requestStream = new AwaitableMemoryStream();
+            var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Chat.Chatter/Chat");
             httpRequest.Content = new StreamContent(requestStream);
@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
-            requestStream.SendData(ms.ToArray());
+            requestStream.AddData(ms.ToArray());
 
             var response = await responseTask.DefaultTimeout();
 
@@ -62,31 +62,31 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
 
-            var message1Task = MessageHelpers.AssertReadMessageAsync<ChatMessage>(responseStream);
+            var message1Task = MessageHelpers.AssertReadMessageStreamAsync<ChatMessage>(responseStream);
             Assert.IsTrue(message1Task.IsCompleted);
             var message1 = await message1Task.DefaultTimeout();
             Assert.AreEqual("John", message1.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
 
-            var message2Task = MessageHelpers.AssertReadMessageAsync<ChatMessage>(responseStream);
+            var message2Task = MessageHelpers.AssertReadMessageStreamAsync<ChatMessage>(responseStream);
             Assert.IsFalse(message2Task.IsCompleted, "Server is waiting for messages from client");
 
             ms = new MemoryStream();
-            await MessageHelpers.WriteMessageAsync(ms, new ChatMessage
+            MessageHelpers.WriteMessage(ms, new ChatMessage
             {
                 Name = "Jill",
                 Message = "Hello John"
-            }).DefaultTimeout();
+            });
 
-            requestStream.SendData(ms.ToArray());
+            requestStream.AddData(ms.ToArray());
             var message2 = await message2Task.DefaultTimeout();
             Assert.AreEqual("Jill", message2.Name);
             Assert.AreEqual("Hello John", message2.Message);
 
-            var finishedTask = MessageHelpers.AssertReadMessageAsync<ChatMessage>(responseStream);
+            var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<ChatMessage>(responseStream);
             Assert.IsFalse(finishedTask.IsCompleted, "Server is waiting for client to end streaming");
 
-            requestStream.SendData(Array.Empty<byte>());
+            requestStream.AddData(Array.Empty<byte>());
             await finishedTask.DefaultTimeout();
         }
     }
