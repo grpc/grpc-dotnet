@@ -32,16 +32,16 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class ClientStreamingMethodTests : FunctionalTestBase
     {
         [Test]
-        public async Task AccumulateCount_MultipleMessagesThenClose_SuccessResponse()
+        public async Task MultipleMessagesThenClose_SuccessResponse()
         {
             // Arrange
             var ms = new MemoryStream();
-            await MessageHelpers.WriteMessageAsync(ms, new CounterRequest
+            MessageHelpers.WriteMessage(ms, new CounterRequest
             {
                 Count = 1
-            }).DefaultTimeout();
+            });
 
-            var requestStream = new AwaitableMemoryStream();
+            var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
             httpRequest.Content = new StreamContent(requestStream);
@@ -52,17 +52,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-            Fixture.Signal.Reset();
-            requestStream.SendData(ms.ToArray());
-            await Fixture.Signal.Task.DefaultTimeout();
-
-            Fixture.Signal.Reset();
-            requestStream.SendData(ms.ToArray());
-            await Fixture.Signal.Task.DefaultTimeout();
-
-            Fixture.Signal.Reset();
-            requestStream.SendData(Array.Empty<byte>());
-            await Fixture.Signal.Task.DefaultTimeout();
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
 
@@ -76,6 +68,42 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsTrue(replyTask.IsCompleted);
             var reply = await replyTask.DefaultTimeout();
             Assert.AreEqual(2, reply.Count);
+        }
+
+        [Test]
+        public async Task CompleteThenIncompleteMessage_ErrorResponse()
+        {
+            // Arrange
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new CounterRequest
+            {
+                Count = 1
+            });
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            // Complete message
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+
+            // Incomplete message and finish
+            await requestStream.AddDataAndWait(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).DefaultTimeout();
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            // TODO - this should return a response with a gRPC status object
+            var ex = Assert.ThrowsAsync<InvalidDataException>(async () =>
+            {
+                await responseTask.DefaultTimeout();
+            });
+            Assert.AreEqual("Incomplete message.", ex.Message);
         }
     }
 }

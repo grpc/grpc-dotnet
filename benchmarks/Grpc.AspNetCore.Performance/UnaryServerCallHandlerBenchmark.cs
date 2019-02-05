@@ -55,7 +55,7 @@ namespace Grpc.AspNetCore.Performance
             }.ToByteArray();
 
             _requestStream = new MemoryStream();
-            StreamUtils.WriteMessageAsync(_requestStream, messageData, 0, messageData.Length).GetAwaiter().GetResult();
+            MessageHelpers.WriteMessage(_requestStream, messageData);
 
             var services = new ServiceCollection();
             services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));

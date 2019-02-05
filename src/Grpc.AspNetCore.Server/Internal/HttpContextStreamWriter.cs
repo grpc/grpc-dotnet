@@ -42,9 +42,9 @@ namespace Grpc.AspNetCore.Server.Internal
             var responsePayload = _serializer(message);
 
             // Flush messages unless WriteOptions.Flags has BufferHint set
-            var flush = ((WriteOptions?.Flags ?? default(WriteFlags)) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
+            var flush = ((WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
 
-            return StreamUtils.WriteMessageAsync(_httpContext.Response.Body, responsePayload, 0, responsePayload.Length, flush);
+            return _httpContext.Response.BodyPipe.WriteMessageAsync(responsePayload, flush);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class ServerStreamingMethodTests : FunctionalTestBase
     {
         [Test]
-        public async Task SayHellos_NoBuffering_SuccessResponsesStreamed()
+        public async Task NoBuffering_SuccessResponsesStreamed()
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -40,7 +40,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             };
 
             var requestStream = new MemoryStream();
-            await MessageHelpers.WriteMessageAsync(requestStream, requestMessage).DefaultTimeout();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellos");
             httpRequest.Content = new StreamContent(requestStream);
@@ -57,7 +57,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             for (var i = 0; i < 3; i++)
             {
-                var greetingTask = MessageHelpers.AssertReadMessageAsync<HelloReply>(responseStream);
+                var greetingTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
 
                 // The first response comes with the headers
                 // Additional responses are streamed
@@ -68,11 +68,11 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
-            var goodbyeTask = MessageHelpers.AssertReadMessageAsync<HelloReply>(responseStream);
+            var goodbyeTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
             Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
 
-            var finishedTask = MessageHelpers.AssertReadMessageAsync<HelloReply>(responseStream);
+            var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
             Assert.IsNull(await finishedTask.DefaultTimeout());
         }
     }

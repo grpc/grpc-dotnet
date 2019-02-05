@@ -16,29 +16,19 @@
 
 #endregion
 
-using System.Threading.Tasks;
+using System.IO;
+using System.IO.Pipelines;
+using Grpc.AspNetCore.Server.Internal;
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace Grpc.AspNetCore.Performance.Internal
 {
-    public class Signaler
+    internal static class MessageHelpers
     {
-        private TaskCompletionSource<object> _tcs;
-
-        public Signaler()
+        public static void WriteMessage(Stream stream, byte[] message)
         {
-            Reset();
-        }
+            var pipeWriter = new StreamPipeWriter(stream);
 
-        public void Reset()
-        {
-            _tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            PipeExtensions.WriteMessageAsync(pipeWriter, message, flush: true).GetAwaiter().GetResult();
         }
-
-        public void Set()
-        {
-            _tcs.SetResult(null);
-        }
-
-        public Task Task => _tcs.Task;
     }
 }

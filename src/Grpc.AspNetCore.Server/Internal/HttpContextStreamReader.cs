@@ -41,11 +41,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public async Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            var requestPayload = await StreamUtils.ReadMessageAsync(_httpContext.Request.Body);
+            var requestPayload = await _httpContext.Request.BodyPipe.ReadStreamMessageAsync();
 
+            // Stream is complete
             if (requestPayload == null)
             {
-                Current = default(TRequest);
+                Current = default;
                 return false;
             }
 
