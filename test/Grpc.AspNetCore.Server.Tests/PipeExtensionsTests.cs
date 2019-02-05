@@ -46,7 +46,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadMessageAsync();
+            var messageData = await pipeReader.ReadSingleMessageAsync();
 
             // Assert
             Assert.AreEqual(0, messageData.Length);
@@ -69,7 +69,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadMessageAsync();
+            var messageData = await pipeReader.ReadSingleMessageAsync();
 
             // Assert
             Assert.AreEqual(1, messageData.Length);
@@ -97,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadMessageAsync();
+            var messageData = await pipeReader.ReadSingleMessageAsync();
 
             // Assert
             Assert.AreEqual(449, messageData.Length);
@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadMessageStreamAsync();
+            var messageData = await pipeReader.ReadStreamMessageAsync();
 
             // Assert
             Assert.AreEqual(449, messageData.Length);
@@ -149,19 +149,19 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act 1
-            var messageData1 = await pipeReader.ReadMessageStreamAsync();
+            var messageData1 = await pipeReader.ReadStreamMessageAsync();
 
             // Assert 1
             Assert.AreEqual(0, messageData1.Length);
 
             // Act 2
-            var messageData2 = await pipeReader.ReadMessageStreamAsync();
+            var messageData2 = await pipeReader.ReadStreamMessageAsync();
 
             // Assert 2
             Assert.AreEqual(0, messageData2.Length);
 
             // Act 3
-            var messageData3 = await pipeReader.ReadMessageStreamAsync();
+            var messageData3 = await pipeReader.ReadStreamMessageAsync();
 
             // Assert 3
             Assert.IsNull(messageData3);
@@ -181,8 +181,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => pipeReader.ReadMessageAsync().AsTask());
+            var ex = Assert.ThrowsAsync<InvalidDataException>(
+                () => pipeReader.ReadSingleMessageAsync().AsTask());
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Message);
@@ -205,8 +205,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => pipeReader.ReadMessageAsync().AsTask());
+            var ex = Assert.ThrowsAsync<InvalidDataException>(
+                () => pipeReader.ReadSingleMessageAsync().AsTask());
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Message);
@@ -230,8 +230,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => pipeReader.ReadMessageAsync().AsTask());
+            var ex = Assert.ThrowsAsync<InvalidDataException>(
+                () => pipeReader.ReadSingleMessageAsync().AsTask());
 
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Message);
@@ -251,8 +251,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => pipeReader.ReadMessageAsync().AsTask());
+            var ex = Assert.ThrowsAsync<InvalidDataException>(
+                () => pipeReader.ReadSingleMessageAsync().AsTask());
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Message);
@@ -275,8 +275,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(
-                () => pipeReader.ReadMessageStreamAsync().AsTask());
+            var ex = Assert.ThrowsAsync<InvalidDataException>(
+                () => pipeReader.ReadStreamMessageAsync().AsTask());
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Message);
