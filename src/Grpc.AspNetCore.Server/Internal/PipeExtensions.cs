@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
+using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -30,6 +31,16 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
+
+        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, Func<TResponse, byte[]> serializer, WriteOptions writeOptions)
+        {
+            var responsePayload = serializer(response);
+
+            // Flush messages unless WriteOptions.Flags has BufferHint set
+            var flush = ((writeOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
+
+            return pipeWriter.WriteMessageAsync(responsePayload, flush);
+        }
 
         public static Task WriteMessageAsync(this PipeWriter pipeWriter, byte[] messageData, bool flush = false)
         {

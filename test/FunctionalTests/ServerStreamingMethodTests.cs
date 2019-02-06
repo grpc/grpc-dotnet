@@ -75,5 +75,51 @@ namespace Grpc.AspNetCore.FunctionalTests
             var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
             Assert.IsNull(await finishedTask.DefaultTimeout());
         }
+
+        [Test]
+        public async Task WriteResponseHeadersAsyncCore_FlushesHeadersToClient()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellosSendHeadersFirst");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+
+            for (var i = 0; i < 3; i++)
+            {
+                var greetingTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+
+                // The headers are already sent
+                // All responses are streamed
+                Assert.False(greetingTask.IsCompleted);
+
+                var greeting = await greetingTask.DefaultTimeout();
+
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
+            }
+
+            var goodbyeTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            Assert.False(goodbyeTask.IsCompleted);
+            Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
+
+            var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            Assert.IsNull(await finishedTask.DefaultTimeout());
+        }
     }
 }
