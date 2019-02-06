@@ -55,12 +55,19 @@ namespace Grpc.AspNetCore.Server.Internal
             // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer);
 
-            await _invoker(service, request, new HttpContextStreamWriter<TResponse>(httpContext, Method.ResponseMarshaller.Serializer), null);
+            await _invoker(
+                service,
+                request,
+                streamWriter,
+                serverCallContext);
 
+            httpContext.Response.ConsolidateTrailers(serverCallContext);
+
+            // Flush any buffered content
             await httpContext.Response.BodyPipe.FlushAsync();
-
-            httpContext.Response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, GrpcProtocolConstants.StatusOk);
         }
     }
 }
