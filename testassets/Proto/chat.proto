@@ -20,6 +20,7 @@ package Chat;
 service Chatter {
   // Sends a greeting
   rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
+  rpc ChatBufferHint (stream ChatMessage) returns (stream ChatMessage) {}
 }
 
 // The chat message.

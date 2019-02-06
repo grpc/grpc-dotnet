@@ -16,10 +16,10 @@
 
 #endregion
 
-using NUnit.Framework;
-using Moq;
 using System;
 using Grpc.AspNetCore.Server.Internal;
+using Moq;
+using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
 {

@@ -16,12 +16,14 @@
 
 #endregion
 
+using System;
+
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal static class GrpcProtocolConstants
+    internal class SystemClock : ISystemClock
     {
-        internal const string TimeoutHeader = "grpc-timeout";
-        internal const string StatusTrailer = "grpc-status";
-        internal const string MessageTrailer = "grpc-message";
+        public static readonly SystemClock Instance = new SystemClock();
+
+        public DateTime UtcNow => DateTime.UtcNow;
     }
 }
