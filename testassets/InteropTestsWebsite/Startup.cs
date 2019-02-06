@@ -16,7 +16,6 @@
 
 #endregion
 
-using InteropTestsWebsite.Infrastructure;
 using Grpc.AspNetCore;
 using Grpc.Testing;
 using Microsoft.AspNetCore.Builder;
@@ -41,20 +40,6 @@ namespace InteropTestsWebsite
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            // Workaround for https://github.com/aspnet/AspNetCore/issues/6880
-            app.Use((context, next) =>
-            {
-                if (!context.Response.SupportsTrailers())
-                {
-                    context.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
-                    {
-                        Trailers = new HttpResponseTrailers()
-                    });
-                }
-
-                return next();
-            });
-
             app.UseRouting(builder =>
             {
                 builder.MapGrpcService<TestServiceImpl>();
