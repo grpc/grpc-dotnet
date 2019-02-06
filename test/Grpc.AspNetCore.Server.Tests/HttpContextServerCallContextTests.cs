@@ -19,6 +19,7 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -238,6 +239,134 @@ namespace Grpc.AspNetCore.Server.Tests
         private class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
         {
             public IHeaderDictionary Trailers { get; set; } = new HttpResponseTrailers();
+        }
+		
+        private static readonly ISystemClock TestClock = new TestSystemClock(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        private const long TicksPerMicrosecond = 10;
+        private const long NanosecondsPerTick = 100;
+
+        [Test]
+        public void Deadline_NoTimeoutHeader_MaxValue()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var context = new HttpContextServerCallContext(httpContext);
+
+            // Act
+            context.Initialize();
+
+            // Assert
+            Assert.AreEqual(DateTime.MaxValue, context.Deadline);
+        }
+
+        [TestCase("0H", 0 * TimeSpan.TicksPerHour)]
+        [TestCase("0M", 0 * TimeSpan.TicksPerMinute)]
+        [TestCase("0S", 0 * TimeSpan.TicksPerSecond)]
+        [TestCase("0m", 0 * TimeSpan.TicksPerMillisecond)]
+        [TestCase("0u", 0 * TicksPerMicrosecond)]
+        [TestCase("0n", 0 / NanosecondsPerTick)]
+        [TestCase("1H", 1 * TimeSpan.TicksPerHour)]
+        [TestCase("1M", 1 * TimeSpan.TicksPerMinute)]
+        [TestCase("1S", 1 * TimeSpan.TicksPerSecond)]
+        [TestCase("1m", 1 * TimeSpan.TicksPerMillisecond)]
+        [TestCase("1u", 1 * TicksPerMicrosecond)]
+        [TestCase("1n", 1 / NanosecondsPerTick)]
+        [TestCase("100H", 100 * TimeSpan.TicksPerHour)]
+        [TestCase("100M", 100 * TimeSpan.TicksPerMinute)]
+        [TestCase("100S", 100 * TimeSpan.TicksPerSecond)]
+        [TestCase("100m", 100 * TimeSpan.TicksPerMillisecond)]
+        [TestCase("100u", 100 * TicksPerMicrosecond)]
+        [TestCase("100n", 100 / NanosecondsPerTick)]
+        [TestCase("99999999m", 99999999 * TimeSpan.TicksPerMillisecond)]
+        [TestCase("99999999u", 99999999 * TicksPerMicrosecond)]
+        [TestCase("99999999n", 99999999 / NanosecondsPerTick)]
+        public void Deadline_ParseValidHeader_ReturnDeadline(string header, long ticks)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
+            var context = new HttpContextServerCallContext(httpContext);
+            context.Clock = TestClock;
+
+            // Act
+            context.Initialize();
+
+            // Assert
+            Assert.AreEqual(TestClock.UtcNow.Add(TimeSpan.FromTicks(ticks)), context.Deadline);
+        }
+
+        [TestCase("-1M")]
+        [TestCase("+1M")]
+        [TestCase("99999999999999999999999999999M")]
+        [TestCase("1.1M")]
+        [TestCase(" 1M")]
+        [TestCase("1M ")]
+        [TestCase("1 M")]
+        [TestCase("1,111M")]
+        [TestCase("1")]
+        [TestCase("M")]
+        [TestCase("1G")]
+        public void Deadline_ParseInvalidHeader_ThrowsError(string header)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
+            var context = new HttpContextServerCallContext(httpContext);
+
+            // Act
+            var ex = Assert.Catch<InvalidOperationException>(() => context.Initialize());
+
+            // Assert
+            Assert.AreEqual("Error reading grpc-timeout value.", ex.Message);
+        }
+
+        [TestCase("9999999H")] // 8 9s it too large for DateTime
+        [TestCase("99999999M")]
+        [TestCase("99999999S")]
+        public void Deadline_UnsupportedLength_ThrowsError(string header)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
+            var context = new HttpContextServerCallContext(httpContext);
+
+            // Act
+            var ex = Assert.Catch<InvalidOperationException>(() => context.Initialize());
+
+            // Assert
+            Assert.AreEqual("A timeout greater than 2147483647 milliseconds is not supported.", ex.Message);
+        }
+
+        [Test]
+        public async Task CancellationToken_WithDeadline_CancellationRequested()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
+            var context = new HttpContextServerCallContext(httpContext);
+            context.Initialize();
+
+            // Act & Assert
+            try
+            {
+                await Task.Delay(int.MaxValue, context.CancellationToken).DefaultTimeout();
+                Assert.Fail();
+            }
+            catch (TaskCanceledException)
+            {
+                // Assert
+                Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
+            }
+        }
+
+        private class TestSystemClock : ISystemClock
+        {
+            public TestSystemClock(DateTime utcNow)
+            {
+                UtcNow = utcNow;
+            }
+
+            public DateTime UtcNow { get; }
         }
     }
 }

@@ -35,7 +35,19 @@ namespace FunctionalTestsWebsite
 
         private static HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
 
-        public override async Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
+        public override Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
+        {
+            return ChatCore(requestStream, responseStream);
+        }
+
+        public override Task ChatBufferHint(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
+        {
+            context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+
+            return ChatCore(requestStream, responseStream);
+        }
+
+        private async Task ChatCore(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream)
         {
             if (!await requestStream.MoveNext())
             {

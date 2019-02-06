@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
     internal static class MessageHelpers
     {
@@ -43,6 +43,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             message.MergeFrom(messageData);
 
             return message;
+        }
+
+        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream) where T : IMessage, new()
+        {
+            var pipeReader = new StreamPipeReader(stream);
+
+            return AssertReadStreamMessageAsync<T>(pipeReader);
         }
 
         public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader) where T : IMessage, new()
