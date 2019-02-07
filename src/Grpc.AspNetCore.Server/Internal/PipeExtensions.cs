@@ -49,16 +49,19 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (flush)
             {
-                // Avoid async state machine
-                return FlushWriterAsync(pipeWriter);
+                var valueTask = pipeWriter.FlushAsync();
+
+                if (valueTask.IsCompletedSuccessfully)
+                {
+                    // We do this to reset the underlying value task (which happens in GetResult())
+                    valueTask.GetAwaiter().GetResult();
+                    return Task.CompletedTask;
+                }
+
+                return valueTask.AsTask();
             }
 
             return Task.CompletedTask;
-
-            async Task FlushWriterAsync(PipeWriter p)
-            {
-                await p.FlushAsync();
-            }
         }
 
         private static void WriteHeader(PipeWriter pipeWriter, int length)
@@ -92,7 +95,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return (int)result;
         }
 
-        private static bool TryReadHeader(ReadOnlySequence<byte> buffer, out bool compressed, out int messageLength)
+        private static bool TryReadHeader(in ReadOnlySequence<byte> buffer, out bool compressed, out int messageLength)
         {
             if (buffer.Length < HeaderSize)
             {
