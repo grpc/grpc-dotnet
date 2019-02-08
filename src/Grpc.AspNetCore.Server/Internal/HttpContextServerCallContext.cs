@@ -74,7 +74,18 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     foreach (var header in HttpContext.Request.Headers)
                     {
-                        if (!header.Key.StartsWith(':'))
+                        // ASP.NET Core includes pseudo headers in the set of request headers
+                        // whereas, they are not in gRPC implementations. We will filter them
+                        // out when we construct the list of headers on the context.
+                        if (header.Key.StartsWith(':'))
+                        {
+                            continue;
+                        }
+                        else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _requestHeaders.Add(header.Key, Convert.FromBase64String(header.Value));
+                        }
+                        else
                         {
                             _requestHeaders.Add(header.Key, header.Value);
                         }
@@ -116,13 +127,22 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
         {
+            // Headers can only be written once. Throw on subsequent call to write response header instead of silent no-op.
+            if (HttpContext.Response.HasStarted)
+            {
+                throw new InvalidOperationException("Response headers can only be sent once per call.");
+            }
+
             if (responseHeaders != null)
             {
                 foreach (var entry in responseHeaders)
                 {
-                    if (!entry.IsBinary)
+                    if (entry.IsBinary)
                     {
-                        // TODO(juntaoluo): what about binary headers?
+                        HttpContext.Response.Headers[entry.Key] = Convert.ToBase64String(entry.ValueBytes);
+                    }
+                    else
+                    {
                         HttpContext.Response.Headers[entry.Key] = entry.Value;
                     }
                 }

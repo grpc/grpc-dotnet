@@ -16,7 +16,7 @@
 
 #endregion
 
-using System.IO;
+using System.Runtime.InteropServices;
 using Common;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -38,7 +38,11 @@ namespace GRPCServer
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenLocalhost(50051, listenOptions =>
                     {
-                        listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                        // ALPN is not available on macOS so only use Https on Windows and Linux
+                        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                        {
+                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                        }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });
                 })
