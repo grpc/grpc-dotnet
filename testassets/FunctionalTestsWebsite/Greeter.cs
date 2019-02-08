@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -61,5 +62,21 @@ class GreeterService : Greeter.GreeterBase
         context.WriteResponseHeadersAsync(null);
 
         return SayHellos(request, responseStream, context);
+    }
+
+    public override Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)
+    {
+        context.WriteResponseHeadersAsync(null);
+
+        try
+        {
+            context.WriteResponseHeadersAsync(null);
+        }
+        catch (InvalidOperationException e) when (e.Message == "Response headers can only be sent once per call.")
+        {
+            return Task.FromResult(new HelloReply { Message = "Exception validated" });
+        }
+
+        return Task.FromResult(new HelloReply { Message = "No exception thrown" });
     }
 }

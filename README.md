@@ -33,9 +33,7 @@ Setting up local feed with unreleased Grpc.* packages:
 ```
 # For the time being, we are depending on unreleased Grpc.* packages.
 # Run this script before building the project.
-# Note that since unreleased packages do not have unique version numbers, nuget
-# cache may need to be cleared prior to building (dotnet nuget locals all --clear)
-./build/get-grpc.sh
+./build/get-grpc.sh or ./build/get-grpc.ps1
 ```
 
 To build:

@@ -16,7 +16,9 @@
 
 #endregion
 
+using System;
 using System.Net;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void WriteResponseHeadersAsyncCore_AddsMetadataToResponseHeaders()
+        public async Task WriteResponseHeadersAsyncCore_AddsMetadataToResponseHeaders()
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
@@ -55,10 +57,29 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var serverCallContext = new HttpContextServerCallContext(httpContext);
-            serverCallContext.WriteResponseHeadersAsync(metadata);
+            await serverCallContext.WriteResponseHeadersAsync(metadata);
 
             // Assert
             Assert.AreEqual("bar", httpContext.Response.Headers["foo"]);
+        }
+
+        [TestCase("foo-bin")]
+        [TestCase("Foo-Bin")]
+        [TestCase("FOO-BIN")]
+        public async Task WriteResponseHeadersAsyncCore_Base64EncodesBinaryResponseHeaders(string headerName)
+        {
+            // Arrange
+            var headerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+            var httpContext = new DefaultHttpContext();
+            var metadata = new Metadata();
+            metadata.Add(headerName, headerBytes);
+
+            // Act
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            await serverCallContext.WriteResponseHeadersAsync(metadata);
+
+            // Assert
+            CollectionAssert.AreEqual(headerBytes, Convert.FromBase64String(httpContext.Response.Headers["foo-bin"].ToString()));
         }
 
         [TestCase("name-suffix", "value", "name-suffix", "value")]
@@ -94,6 +115,40 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual(0, serverCallContext.RequestHeaders.Count);
+        }
+
+        [TestCase("test-bin")]
+        [TestCase("Test-Bin")]
+        [TestCase("TEST-BIN")]
+        public void RequestHeaders_ParsesBase64EncodedBinaryHeaders(string headerName)
+        {
+            var headerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[headerName] = Convert.ToBase64String(headerBytes);
+
+            // Act
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+
+            // Assert
+            Assert.AreEqual(1, serverCallContext.RequestHeaders.Count);
+            var header = serverCallContext.RequestHeaders[0];
+            Assert.True(header.IsBinary);
+            CollectionAssert.AreEqual(headerBytes, header.ValueBytes);
+        }
+
+        [Test]
+        public void RequestHeaders_ThrowsForNonBase64EncodedBinaryHeader()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers["test-bin"] = "a;b";
+
+            // Act
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+
+            // Assert
+            Assert.Throws<FormatException>(() => serverCallContext.RequestHeaders.Clear());
         }
 
         [TestCase("trailer-name", "trailer-value", "trailer-name", "trailer-value")]
@@ -155,6 +210,29 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
             Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
+        }
+
+        [TestCase("trailer-bin")]
+        [TestCase("Trailer-Bin")]
+        [TestCase("TRAILER-BIN")]
+        public void ConsolidateTrailers_Base64EncodesBinaryTrailers(string trailerName)
+        {
+            // Arrange
+            var trailerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            serverCallContext.ResponseTrailers.Add(trailerName, trailerBytes);
+
+            // Act
+            httpContext.Response.ConsolidateTrailers(serverCallContext);
+
+            // Assert
+            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+
+            Assert.AreEqual(2, responseTrailers.Count);
+            Assert.AreEqual(StatusCode.OK.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
+            Assert.AreEqual(Convert.ToBase64String(trailerBytes), responseTrailers["trailer-bin"]);
         }
 
         private class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
