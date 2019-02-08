@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -28,8 +29,11 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 foreach (var trailer in context.ResponseTrailers)
                 {
-                    // TODO(juntaoluo): What about binary trailers
-                    if (!trailer.IsBinary)
+                    if (trailer.IsBinary)
+                    {
+                        httpResponse.AppendTrailer(trailer.Key, Convert.ToBase64String(trailer.ValueBytes));
+                    }
+                    else
                     {
                         httpResponse.AppendTrailer(trailer.Key, trailer.Value);
                     }

@@ -17,10 +17,11 @@
 #endregion
 
 using System;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Common;
-using Grpc.Core;
 using Count;
+using Grpc.Core;
 
 namespace Sample.Clients
 {
@@ -30,7 +31,9 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var channel = new Channel("localhost:50051", ClientResources.SslCredentials);
+            // Server will only support Https on Windows and Linux
+            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
+            var channel = new Channel("localhost:50051", credentials);
             var client = new Counter.CounterClient(channel);
 
             var reply = client.IncrementCount(new Google.Protobuf.WellKnownTypes.Empty());

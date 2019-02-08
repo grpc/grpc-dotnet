@@ -154,7 +154,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             foreach (var b in ms.ToArray())
             {
                 await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
-            }            
+            }
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
@@ -163,6 +163,32 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
+        }
+
+        [Test]
+        public async Task SendHeadersTwice_ThrowsException()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "Greet.Greeter/SayHelloSendHeadersTwice",
+                new StreamContent(ms)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            Assert.AreEqual("Exception validated", responseMessage.Message);
         }
     }
 }

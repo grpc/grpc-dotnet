@@ -17,11 +17,12 @@
 #endregion
 
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Chat;
 using Common;
 using Grpc.Core;
-using Chat;
 
 namespace Sample.Clients
 {
@@ -36,7 +37,11 @@ namespace Sample.Clients
             }
 
             var name = args[0];
-            var channel = new Channel("localhost:50051", ClientResources.SslCredentials);
+
+            // Server will only support Https on Windows and Linux
+            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
+
+            var channel = new Channel("localhost:50051", credentials);
             var client = new Chatter.ChatterClient(channel);
 
             using (var chat = client.Chat())
