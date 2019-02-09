@@ -64,7 +64,7 @@ namespace Grpc.Testing
             await requestStream.ForEachAsync(request =>
             {
                 sum += request.Payload.Body.Length;
-                return TaskUtils.CompletedTask;
+                return Task.CompletedTask;
             });
             return new StreamingInputCallResponse { AggregatedPayloadSize = sum };
         }
