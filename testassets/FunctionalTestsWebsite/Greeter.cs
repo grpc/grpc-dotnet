@@ -38,7 +38,50 @@ class GreeterService : Greeter.GreeterBase
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
-    public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    public override Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        return SayHellosCore(request, responseStream);
+    }
+
+    public override Task SayHellosBufferHint(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+
+        return SayHellosCore(request, responseStream);
+    }
+
+    public override Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        context.WriteResponseHeadersAsync(null);
+
+        return SayHellosCore(request, responseStream);
+    }
+
+    public override async Task SayHellosDeadline(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        var i = 0;
+        while (DateTime.UtcNow < context.Deadline)
+        {
+            var message = $"How are you {request.Name}? {i}";
+            await responseStream.WriteAsync(new HelloReply { Message = message });
+
+            i++;
+        }
+    }
+
+    public override async Task SayHellosDeadlineCancellationToken(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        var i = 0;
+        while (!context.CancellationToken.IsCancellationRequested)
+        {
+            var message = $"How are you {request.Name}? {i}";
+            await responseStream.WriteAsync(new HelloReply { Message = message });
+
+            i++;
+        }
+    }
+
+    private async Task SayHellosCore(HelloRequest request, IServerStreamWriter<HelloReply> responseStream)
     {
         for (var i = 0; i < 3; i++)
         {
@@ -55,13 +98,6 @@ class GreeterService : Greeter.GreeterBase
 
         _logger.LogInformation("Sending goodbye");
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
-    }
-
-    public override Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-    {
-        context.WriteResponseHeadersAsync(null);
-
-        return SayHellos(request, responseStream, context);
     }
 
     public override Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)

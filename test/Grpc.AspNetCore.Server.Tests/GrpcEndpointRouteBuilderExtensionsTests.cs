@@ -16,15 +16,14 @@
 
 #endregion
 
-using NUnit.Framework;
-using Moq;
 using System;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Builder;
 using System.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
-using Greet;
 using System.Linq;
+using Greet;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
 {
@@ -73,14 +72,14 @@ namespace Grpc.AspNetCore.Server.Tests
             routeBuilder.MapGrpcService<GreeterService>();
 
             // Assert
-            var dataSource = routeBuilder.DataSources.Single();
-            Assert.AreEqual(2, dataSource.Endpoints.Count);
+            var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
+            Assert.AreEqual(2, endpoints.Count);
 
-            var routeEndpoint1 = (RouteEndpoint)dataSource.Endpoints[0];
+            var routeEndpoint1 = (RouteEndpoint)endpoints[0];
             Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("POST", ((IHttpMethodMetadata)routeEndpoint1.Metadata.Single()).HttpMethods.Single());
 
-            var routeEndpoint2 = (RouteEndpoint)dataSource.Endpoints[1];
+            var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", ((IHttpMethodMetadata)routeEndpoint2.Metadata.Single()).HttpMethods.Single());
         }
