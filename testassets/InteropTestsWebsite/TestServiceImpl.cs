@@ -23,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
-using Grpc.Core.Utils;
+using InteropTestsWebsite;
 
 namespace Grpc.Testing
 {
