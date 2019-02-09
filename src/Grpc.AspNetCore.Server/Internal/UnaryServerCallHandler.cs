@@ -59,10 +59,16 @@ namespace Grpc.AspNetCore.Server.Internal
             var service = activator.Create();
             var serverCallContext = new HttpContextServerCallContext(httpContext);
 
-            var response = await _invoker(
-                service,
-                request,
-                serverCallContext);
+            serverCallContext.Initialize();
+
+            TResponse response;
+            using (serverCallContext)
+            {
+                response = await _invoker(
+                    service,
+                    request,
+                    serverCallContext);
+            }
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
             var responseBodyPipe = httpContext.Response.BodyPipe;

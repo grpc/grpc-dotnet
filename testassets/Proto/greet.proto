@@ -23,6 +23,9 @@ service Greeter {
   rpc SayHelloSendHeadersTwice (HelloRequest) returns (HelloReply) {}
   rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
   rpc SayHellosSendHeadersFirst (HelloRequest) returns (stream HelloReply) {}
+  rpc SayHellosBufferHint (HelloRequest) returns (stream HelloReply) {}
+  rpc SayHellosDeadline (HelloRequest) returns (stream HelloReply) {}
+  rpc SayHellosDeadlineCancellationToken (HelloRequest) returns (stream HelloReply) {}
 }
 
 // The request message containing the user's name.

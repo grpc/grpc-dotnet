@@ -58,11 +58,16 @@ namespace Grpc.AspNetCore.Server.Internal
             var serverCallContext = new HttpContextServerCallContext(httpContext);
             var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer);
 
-            await _invoker(
-                service,
-                request,
-                streamWriter,
-                serverCallContext);
+            serverCallContext.Initialize();
+
+            using (serverCallContext)
+            {
+                await _invoker(
+                    service,
+                    request,
+                    streamWriter,
+                    serverCallContext);
+            }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 

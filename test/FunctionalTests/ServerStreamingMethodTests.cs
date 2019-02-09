@@ -17,6 +17,7 @@
 #endregion
 
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -54,10 +55,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = new StreamPipeReader(responseStream);
 
             for (var i = 0; i < 3; i++)
             {
-                var greetingTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+                var greetingTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
 
                 // The first response comes with the headers
                 // Additional responses are streamed
@@ -68,11 +70,11 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
-            var goodbyeTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
 
-            var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.IsNull(await finishedTask.DefaultTimeout());
         }
 
@@ -100,10 +102,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = new StreamPipeReader(responseStream);
 
             for (var i = 0; i < 3; i++)
             {
-                var greetingTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+                var greetingTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
 
                 // The headers are already sent
                 // All responses are streamed
@@ -114,12 +117,55 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
-            var goodbyeTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
 
-            var finishedTask = MessageHelpers.AssertReadMessageStreamAsync<HelloReply>(responseStream);
+            var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.IsNull(await finishedTask.DefaultTimeout());
+        }
+
+        [Test]
+        public async Task Buffering_SuccessResponsesStreamed()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellosBufferHint");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
+
+            var response = await responseTask;
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = new StreamPipeReader(new PipeReaderFixStream(responseStream));
+
+            for (var i = 0; i < 3; i++)
+            {
+                var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
+
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
+            }
+
+            var goodbye = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
+            Assert.AreEqual("Goodbye World!", goodbye.Message);
+
+            Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout());
         }
     }
 }

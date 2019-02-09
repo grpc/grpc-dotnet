@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,11 +26,15 @@ using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class HttpContextServerCallContext : ServerCallContext
+    internal sealed class HttpContextServerCallContext : ServerCallContext, IDisposable
     {
+        // Override the current time for unit testing
+        internal ISystemClock Clock = SystemClock.Instance;
         private string _peer;
         private Metadata _requestHeaders;
         private Metadata _responseTrailers;
+        private DateTime _deadline;
+        private CancellationTokenSource _cts;
 
         internal HttpContextServerCallContext(HttpContext httpContext)
         {
@@ -61,8 +66,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        // TODO(JunTaoLuo, JamesNK): implement this
-        protected override DateTime DeadlineCore => throw new NotImplementedException();
+        protected override DateTime DeadlineCore => _deadline;
 
         protected override Metadata RequestHeadersCore
         {
@@ -96,8 +100,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        // TODO(JunTaoLuo, JamesNK): implement this
-        protected override CancellationToken CancellationTokenCore => throw new NotImplementedException();
+        protected override CancellationToken CancellationTokenCore => _cts.Token;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -149,6 +152,33 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             return HttpContext.Response.Body.FlushAsync();
+        }
+		
+        public void Initialize()
+        {
+            var timeout = GrpcProtocolHelpers.GetTimeout(HttpContext);
+
+            if (timeout != TimeSpan.MaxValue)
+            {
+                // CancellationTokenSource does not support greater than int.MaxValue milliseconds
+                if (timeout.TotalMilliseconds > int.MaxValue)
+                {
+                    throw new InvalidOperationException("A timeout greater than 2147483647 milliseconds is not supported.");
+                }
+
+                _deadline = Clock.UtcNow.Add(timeout);
+                _cts = new CancellationTokenSource(timeout);
+            }
+            else
+            {
+                _deadline = DateTime.MaxValue;
+                _cts = new CancellationTokenSource();
+            }
+        }
+
+        public void Dispose()
+        {
+            _cts?.Dispose();
         }
     }
 }
