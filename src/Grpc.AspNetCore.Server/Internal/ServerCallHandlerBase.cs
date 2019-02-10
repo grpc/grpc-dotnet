@@ -20,6 +20,7 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -27,11 +28,13 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
+        protected ILogger Logger { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions)
+        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory)
         {
             Method = method;
             ServiceOptions = serviceOptions;
+            Logger = loggerFactory.CreateLogger(GetType());
         }
 
         public abstract Task HandleCallAsync(HttpContext httpContext);

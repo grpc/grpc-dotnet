@@ -17,15 +17,14 @@
 #endregion
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 
 namespace FunctionalTestsWebsite.Infrastructure
 {
     /// <summary>
-    /// Workaround for https://github.com/aspnet/AspNetCore/issues/6880
+    /// Workaround to expose trailers until HttpClient supports them. Not safe for parallel calls.
     /// </summary>
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
+    public class TrailersContainer
     {
-        public IHeaderDictionary Trailers { get; set; }
+        public IHeaderDictionary Trailers { get; } = new HeaderDictionary();
     }
 }

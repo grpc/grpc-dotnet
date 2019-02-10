@@ -16,16 +16,31 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
+using System.Threading;
 using Microsoft.AspNetCore.Http.Features;
 
 namespace FunctionalTestsWebsite.Infrastructure
 {
     /// <summary>
-    /// Workaround for https://github.com/aspnet/AspNetCore/issues/6880
+    /// Workaround for https://github.com/aspnet/AspNetCore/issues/7449
     /// </summary>
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
+    public class TestHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
     {
-        public IHeaderDictionary Trailers { get; set; }
+        private CancellationTokenSource _abortableCts = new CancellationTokenSource();
+        private CancellationTokenSource _linkedCts;
+
+        public CancellationToken RequestAborted
+        {
+            get => _linkedCts?.Token ?? _abortableCts.Token;
+            set
+            {
+                _linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_abortableCts.Token, value);
+            }
+        }
+
+        public void Abort()
+        {
+            _abortableCts.Cancel();
+        }
     }
 }

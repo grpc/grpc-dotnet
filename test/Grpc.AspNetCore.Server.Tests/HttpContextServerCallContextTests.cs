@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
@@ -25,6 +27,9 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -42,7 +47,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Connection.RemotePort = port;
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.AreEqual(expected, serverCallContext.Peer);
@@ -57,7 +62,7 @@ namespace Grpc.AspNetCore.Server.Tests
             metadata.Add("foo", "bar");
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             await serverCallContext.WriteResponseHeadersAsync(metadata);
 
             // Assert
@@ -76,7 +81,7 @@ namespace Grpc.AspNetCore.Server.Tests
             metadata.Add(headerName, headerBytes);
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             await serverCallContext.WriteResponseHeadersAsync(metadata);
 
             // Assert
@@ -92,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[headerName] = headerValue;
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.AreEqual(1, serverCallContext.RequestHeaders.Count);
@@ -112,7 +117,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[headerName] = "dummy";
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.AreEqual(0, serverCallContext.RequestHeaders.Count);
@@ -129,7 +134,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[headerName] = Convert.ToBase64String(headerBytes);
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.AreEqual(1, serverCallContext.RequestHeaders.Count);
@@ -146,7 +151,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers["test-bin"] = "a;b";
 
             // Act
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.Throws<FormatException>(() => serverCallContext.RequestHeaders.Clear());
@@ -159,7 +164,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerValue);
 
             // Act
@@ -178,7 +183,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
 
             // Act
@@ -197,7 +202,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.MessageTrailer, "All is good");
             serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
@@ -222,7 +227,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var trailerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerBytes);
 
             // Act
@@ -250,7 +255,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            var context = new HttpContextServerCallContext(httpContext);
+            var context = CreateServerCallContext(httpContext);
 
             // Act
             context.Initialize();
@@ -278,7 +283,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
-            var context = new HttpContextServerCallContext(httpContext);
+            var context = CreateServerCallContext(httpContext);
             context.Clock = TestClock;
 
             // Act
@@ -305,56 +310,86 @@ namespace Grpc.AspNetCore.Server.Tests
         [TestCase("1")]
         [TestCase("M")]
         [TestCase("1G")]
+        [TestCase("9999999H")] // too large for CancellationTokenSource
+        [TestCase("99999999M")] // too large for CancellationTokenSource
+        [TestCase("99999999S")] // too large for CancellationTokenSource
         public void Deadline_ParseInvalidHeader_IgnoresHeader(string header)
         {
             // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
-            var context = new HttpContextServerCallContext(httpContext);
+            var context = CreateServerCallContext(httpContext, testLogger);
 
             // Act
             context.Initialize();
 
             // Assert
             Assert.AreEqual(DateTime.MaxValue, context.Deadline);
-        }
 
-        [TestCase("9999999H")] // 8 9s it too large for DateTime
-        [TestCase("99999999M")]
-        [TestCase("99999999S")]
-        public void Deadline_UnsupportedLength_ThrowsError(string header)
-        {
-            // Arrange
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
-            var context = new HttpContextServerCallContext(httpContext);
-
-            // Act
-            var ex = Assert.Catch<InvalidOperationException>(() => context.Initialize());
-
-            // Assert
-            Assert.AreEqual("A timeout greater than 2147483647 milliseconds is not supported.", ex.Message);
+            var write = testSink.Writes.Single(w => w.EventId.Name == "InvalidTimeoutIgnored");
+            Assert.AreEqual($"Invalid grpc-timeout header value '{header}' has been ignored.", write.State.ToString());
         }
 
         [Test]
         public async Task CancellationToken_WithDeadline_CancellationRequested()
         {
             // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
             var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
-            var context = new HttpContextServerCallContext(httpContext);
+            var context = CreateServerCallContext(httpContext, testLogger);
             context.Initialize();
 
-            // Act & Assert
+            // Act
             try
             {
-                await Task.Delay(int.MaxValue, context.CancellationToken).DefaultTimeout();
+                await Task.WhenAll(
+                    Task.Delay(int.MaxValue, context.CancellationToken),
+                    Task.Delay(int.MaxValue, httpContext.RequestAborted)
+                    ).DefaultTimeout();
                 Assert.Fail();
             }
             catch (TaskCanceledException)
             {
-                // Assert
-                Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
+            }
+
+            // Assert
+            Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
+            Assert.IsTrue(httpContext.RequestAborted.IsCancellationRequested);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
+        }
+
+        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger logger = null)
+        {
+            return new HttpContextServerCallContext(httpContext, logger ?? NullLogger.Instance);
+        }
+
+        private class TestHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
+        {
+            private readonly CancellationTokenSource _cts;
+
+            public TestHttpRequestLifetimeFeature()
+            {
+                _cts = new CancellationTokenSource();
+            }
+
+            public CancellationToken RequestAborted
+            {
+                get => _cts.Token;
+                set => throw new NotSupportedException();
+            }
+
+            public void Abort()
+            {
+                _cts.Cancel();
             }
         }
 

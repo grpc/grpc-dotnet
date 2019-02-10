@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -78,6 +79,11 @@ class GreeterService : Greeter.GreeterBase
 
             i++;
         }
+
+        // Ensure deadline timer has run
+        var tcs = new TaskCompletionSource<object>();
+        context.CancellationToken.Register(() => tcs.SetResult(null));
+        await tcs.Task;
     }
 
     public override async Task SayHellosDeadlineCancellationToken(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)

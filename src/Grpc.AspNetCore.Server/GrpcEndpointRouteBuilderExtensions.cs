@@ -61,9 +61,9 @@ namespace Microsoft.AspNetCore.Builder
                     throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {service.FullName}. The type must be an implementation of a gRPC service.");
                 }
 
-                var serviceOptions = builder.ServiceProvider.GetRequiredService<IOptions<GrpcServiceOptions<TService>>>();
+                var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
 
-                var serviceBinder = new GrpcServiceBinder<TService>(builder, serviceOptions.Value);
+                var serviceBinder = new GrpcServiceBinder<TService>(builder, callHandlerFactory);
 
                 // Invoke
                 bindService.Invoke(null, new object[] { serviceBinder, null });

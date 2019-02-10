@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FunctionalTestsWebsite
 {
@@ -38,14 +39,18 @@ namespace FunctionalTestsWebsite
                     options.ReceiveMaxMessageSize = 64 * 1024;
                 });
             services.AddScoped<IncrementingCounter>();
+
+            // When the site is run from the test project a signaler will already be registered
+            // This will add a default one if the site is run standalone
+            services.TryAddSingleton<TrailersContainer>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
-            // Workaround for https://github.com/aspnet/AspNetCore/issues/6880
             app.Use((context, next) =>
             {
+                // Workaround for https://github.com/aspnet/AspNetCore/issues/6880
                 if (!context.Response.SupportsTrailers())
                 {
                     context.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
@@ -53,6 +58,9 @@ namespace FunctionalTestsWebsite
                         Trailers = new HttpResponseTrailers()
                     });
                 }
+
+                // Workaround for https://github.com/aspnet/AspNetCore/issues/7449
+                context.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
 
                 return next();
             });
@@ -62,6 +70,21 @@ namespace FunctionalTestsWebsite
                 builder.MapGrpcService<ChatterService>();
                 builder.MapGrpcService<CounterService>();
                 builder.MapGrpcService<GreeterService>();
+            });
+
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                var trailers = context.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+
+                var trailersContainer = context.RequestServices.GetRequiredService<TrailersContainer>();
+
+                trailersContainer.Trailers.Clear();
+                foreach (var trailer in trailers)
+                {
+                    trailersContainer.Trailers[trailer.Key] = trailer.Value;
+                }
             });
         }
     }

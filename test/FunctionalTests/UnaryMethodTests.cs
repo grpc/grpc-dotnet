@@ -24,6 +24,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -55,6 +57,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]
@@ -163,6 +167,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]

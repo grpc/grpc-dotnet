@@ -24,6 +24,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Count;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -68,6 +70,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsTrue(replyTask.IsCompleted);
             var reply = await replyTask.DefaultTimeout();
             Assert.AreEqual(2, reply.Count);
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]
