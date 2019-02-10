@@ -17,12 +17,15 @@
 #endregion
 
 using System;
+using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace Microsoft.AspNetCore.Builder
 {
     public static class GrpcEndpointRouteBuilderExtensions
     {
@@ -58,7 +61,9 @@ namespace Microsoft.Extensions.DependencyInjection
                     throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {service.FullName}. The type must be an implementation of a gRPC service.");
                 }
 
-                var serviceBinder = new GrpcServiceBinder<TService>(builder);
+                var serviceOptions = builder.ServiceProvider.GetRequiredService<IOptions<GrpcServiceOptions<TService>>>();
+
+                var serviceBinder = new GrpcServiceBinder<TService>(builder, serviceOptions.Value);
 
                 // Invoke
                 bindService.Invoke(null, new object[] { serviceBinder, null });
