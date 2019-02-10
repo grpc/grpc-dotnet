@@ -61,9 +61,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             {
                 var greetingTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
 
-                // The first response comes with the headers
-                // Additional responses are streamed
-                Assert.AreEqual(i == 0, greetingTask.IsCompleted);
+                Assert.IsFalse(greetingTask.IsCompleted);
 
                 var greeting = await greetingTask.DefaultTimeout();
 
