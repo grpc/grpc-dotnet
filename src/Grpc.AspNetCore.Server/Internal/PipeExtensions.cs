@@ -32,18 +32,23 @@ namespace Grpc.AspNetCore.Server.Internal
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
 
-        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, Func<TResponse, byte[]> serializer, WriteOptions writeOptions)
+        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, GrpcServiceOptions serviceOptions, Func<TResponse, byte[]> serializer, WriteOptions writeOptions)
         {
             var responsePayload = serializer(response);
 
             // Flush messages unless WriteOptions.Flags has BufferHint set
             var flush = ((writeOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
 
-            return pipeWriter.WriteMessageAsync(responsePayload, flush);
+            return pipeWriter.WriteMessageAsync(responsePayload, serviceOptions, flush);
         }
 
-        public static Task WriteMessageAsync(this PipeWriter pipeWriter, byte[] messageData, bool flush = false)
+        public static Task WriteMessageAsync(this PipeWriter pipeWriter, byte[] messageData, GrpcServiceOptions serviceOptions, bool flush = false)
         {
+            if (messageData.Length > serviceOptions.SendMaxMessageSize)
+            {
+                throw new InvalidOperationException("Sending message exceeds the maximum configured message size.");
+            }
+
             WriteHeader(pipeWriter, messageData.Length);
             pipeWriter.Write(messageData);
 
@@ -144,7 +149,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <returns>Complete message data.</returns>
-        public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input)
+        public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input, GrpcServiceOptions serviceOptions)
         {
             byte[] completeMessageData = null;
 
@@ -167,7 +172,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             throw new InvalidDataException("Additional data after the message received.");
                         }
 
-                        if (TryReadMessage(ref buffer, out var data))
+                        if (TryReadMessage(ref buffer, serviceOptions, out var data))
                         {
                             // Store the message data
                             // Need to verify the request completes with no additional data
@@ -201,7 +206,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input)
+        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, GrpcServiceOptions serviceOptions)
         {
             while (true)
             {
@@ -217,7 +222,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     if (!buffer.IsEmpty)
                     {
-                        if (TryReadMessage(ref buffer, out var data))
+                        if (TryReadMessage(ref buffer, serviceOptions, out var data))
                         {
                             return data;
                         }
@@ -244,12 +249,17 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, out byte[] message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, GrpcServiceOptions serviceOptions, out byte[] message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
                 message = null;
                 return false;
+            }
+
+            if (messageLength > serviceOptions.ReceiveMaxMessageSize)
+            {
+                throw new InvalidDataException("Received message exceeds the maximum configured message size.");
             }
 
             if (compressed)

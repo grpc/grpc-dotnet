@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private readonly ServerStreamingServerMethod _invoker;
 
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method) : base(method)
+        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions) : base(method, serviceOptions)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync();
+            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(ServiceOptions);
 
             var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
             var serverCallContext = new HttpContextServerCallContext(httpContext);
-            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer);
+            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer);
 
             serverCallContext.Initialize();
 

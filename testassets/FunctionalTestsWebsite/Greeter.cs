@@ -38,6 +38,12 @@ class GreeterService : Greeter.GreeterBase
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
+    public override Task<HelloReply> SayHelloSendLargeReply(HelloRequest request, ServerCallContext context)
+    {
+        _logger.LogInformation($"Sending hello to {request.Name}");
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name + new string('!', 1000000) });
+    }
+	
     public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
         // Explicitly send the response headers before any streamed content
