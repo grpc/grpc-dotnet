@@ -38,9 +38,14 @@ class GreeterService : Greeter.GreeterBase
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
-    public override Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
-        return SayHellosCore(request, responseStream);
+        // Explicitly send the response headers before any streamed content
+        Metadata responseHeaders = new Metadata();
+        responseHeaders.Add("test-response-header", "value");
+        await context.WriteResponseHeadersAsync(responseHeaders);
+
+        await SayHellosCore(request, responseStream);
     }
 
     public override Task SayHellosBufferHint(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
