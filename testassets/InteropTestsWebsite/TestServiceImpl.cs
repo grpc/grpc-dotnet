@@ -23,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
-using Grpc.Core.Utils;
+using InteropTestsWebsite;
 
 namespace Grpc.Testing
 {
@@ -64,7 +64,7 @@ namespace Grpc.Testing
             await requestStream.ForEachAsync(request =>
             {
                 sum += request.Payload.Body.Length;
-                return TaskUtils.CompletedTask;
+                return Task.CompletedTask;
             });
             return new StreamingInputCallResponse { AggregatedPayloadSize = sum };
         }

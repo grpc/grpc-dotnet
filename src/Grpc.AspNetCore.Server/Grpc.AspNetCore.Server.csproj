@@ -9,7 +9,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcCorePackageVersion)" />
   </ItemGroup>
 
 </Project>
