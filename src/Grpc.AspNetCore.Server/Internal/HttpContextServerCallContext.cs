@@ -156,7 +156,7 @@ namespace Grpc.AspNetCore.Server.Internal
 		
         public void Initialize()
         {
-            TimeSpan timeout = GetTimeout();
+            var timeout = GetTimeout();
 
             if (timeout != TimeSpan.Zero)
             {
