@@ -259,18 +259,11 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(DateTime.MaxValue, context.Deadline);
         }
 
-        [TestCase("0H", 0 * TimeSpan.TicksPerHour)]
-        [TestCase("0M", 0 * TimeSpan.TicksPerMinute)]
-        [TestCase("0S", 0 * TimeSpan.TicksPerSecond)]
-        [TestCase("0m", 0 * TimeSpan.TicksPerMillisecond)]
-        [TestCase("0u", 0 * TicksPerMicrosecond)]
-        [TestCase("0n", 0 / NanosecondsPerTick)]
         [TestCase("1H", 1 * TimeSpan.TicksPerHour)]
         [TestCase("1M", 1 * TimeSpan.TicksPerMinute)]
         [TestCase("1S", 1 * TimeSpan.TicksPerSecond)]
         [TestCase("1m", 1 * TimeSpan.TicksPerMillisecond)]
         [TestCase("1u", 1 * TicksPerMicrosecond)]
-        [TestCase("1n", 1 / NanosecondsPerTick)]
         [TestCase("100H", 100 * TimeSpan.TicksPerHour)]
         [TestCase("100M", 100 * TimeSpan.TicksPerMinute)]
         [TestCase("100S", 100 * TimeSpan.TicksPerSecond)]
@@ -295,6 +288,12 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(TestClock.UtcNow.Add(TimeSpan.FromTicks(ticks)), context.Deadline);
         }
 
+        [TestCase("0H")]
+        [TestCase("0M")]
+        [TestCase("0S")]
+        [TestCase("0m")]
+        [TestCase("0u")]
+        [TestCase("0n")]
         [TestCase("-1M")]
         [TestCase("+1M")]
         [TestCase("99999999999999999999999999999M")]
@@ -306,7 +305,7 @@ namespace Grpc.AspNetCore.Server.Tests
         [TestCase("1")]
         [TestCase("M")]
         [TestCase("1G")]
-        public void Deadline_ParseInvalidHeader_ThrowsError(string header)
+        public void Deadline_ParseInvalidHeader_IgnoresHeader(string header)
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
@@ -314,10 +313,10 @@ namespace Grpc.AspNetCore.Server.Tests
             var context = new HttpContextServerCallContext(httpContext);
 
             // Act
-            var ex = Assert.Catch<InvalidOperationException>(() => context.Initialize());
+            context.Initialize();
 
             // Assert
-            Assert.AreEqual("Error reading grpc-timeout value.", ex.Message);
+            Assert.AreEqual(DateTime.MaxValue, context.Deadline);
         }
 
         [TestCase("9999999H")] // 8 9s it too large for DateTime
