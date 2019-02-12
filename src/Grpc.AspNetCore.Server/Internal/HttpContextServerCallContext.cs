@@ -180,18 +180,16 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
             {
-                if (!GrpcProtocolHelpers.TryDecodeTimeout(values, out var timeout))
+                if (GrpcProtocolHelpers.TryDecodeTimeout(values, out var timeout))
                 {
-                    // TODO(JamesNK): Log that the bad timeout value is being ignored
-                    // https://github.com/grpc/grpc/blob/da09b1fd083a80e3ebca927eb5ff6bc2cfe23cb5/src/core/ext/transport/chttp2/transport/parsing.cc#L441
+                    return timeout;
                 }
 
-                return timeout;
+                // TODO(JamesNK): Log that the bad timeout value is being ignored
+                // https://github.com/grpc/grpc/blob/da09b1fd083a80e3ebca927eb5ff6bc2cfe23cb5/src/core/ext/transport/chttp2/transport/parsing.cc#L441
             }
-            else
-            {
-                return TimeSpan.Zero;
-            }
+
+            return TimeSpan.Zero;
         }
 
         public void Dispose()
