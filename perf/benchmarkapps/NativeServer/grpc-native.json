@@ -1,0 +1,27 @@
+{
+  "Default": {
+    "Client": "Grpc",
+    "ClientProperties": {
+      "UseTls": "false"
+    },
+
+    "Source": {
+      "Repository": "https://github.com/grpc/grpc-dotnet.git",
+      "BranchOrCommit": "master",
+      "Project": "perf/benchmarkapps/NativeServer/NativeServer.csproj"
+    },
+    "Port": 50051
+  },
+  "unary-1-connection": {
+    "ClientProperties": {
+      "Scenario": "Unary"
+    },
+    "Connections": 1
+  },
+  "unary-16-connection": {
+    "ClientProperties": {
+      "Scenario": "Unary"
+    },
+    "Connections": 16
+  }
+}

@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 using Chat;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Performance.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
     public class TestService
     {

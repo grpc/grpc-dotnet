@@ -28,7 +28,7 @@ using BenchmarkDotNet.Toolchains.DotNetCli;
 using BenchmarkDotNet.Toolchains.InProcess;
 using BenchmarkDotNet.Validators;
 
-namespace Grpc.AspNetCore.Performance
+namespace Grpc.AspNetCore.Microbenchmarks
 {
     internal class DefaultCoreConfig : ManualConfig
     {
