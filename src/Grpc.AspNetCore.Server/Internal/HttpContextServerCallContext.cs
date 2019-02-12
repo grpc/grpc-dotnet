@@ -153,9 +153,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return HttpContext.Response.Body.FlushAsync();
         }
-		
+
         public void Initialize()
         {
+            GrpcProtocolHelpers.CheckStatus(HttpContext);
+
             var timeout = GrpcProtocolHelpers.GetTimeout(HttpContext);
 
             if (timeout != TimeSpan.MaxValue)

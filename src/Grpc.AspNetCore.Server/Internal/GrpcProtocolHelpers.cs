@@ -65,5 +65,21 @@ namespace Grpc.AspNetCore.Server.Internal
 
             throw new InvalidOperationException("Error reading grpc-timeout value.");
         }
+
+        public static void CheckStatus(HttpContext httpContext)
+        {
+            //TODO: is status like " 0" valid?
+            const string ValidRequestGrpcStatus = "0";
+
+            if (!httpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.StatusTrailer, out var values))
+            {
+                return;
+            }
+
+            if (values.Count > 1 || !ValidRequestGrpcStatus.Equals(values.ToString()))
+            {
+                throw new InvalidOperationException("Invalid request status");
+            }
+        }
     }
 }

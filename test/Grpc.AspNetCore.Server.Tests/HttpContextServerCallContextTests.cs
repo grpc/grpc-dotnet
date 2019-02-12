@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -240,7 +241,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             public IHeaderDictionary Trailers { get; set; } = new HttpResponseTrailers();
         }
-		
+
         private static readonly ISystemClock TestClock = new TestSystemClock(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         private const long TicksPerMicrosecond = 10;
         private const long NanosecondsPerTick = 100;
@@ -335,6 +336,39 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual("A timeout greater than 2147483647 milliseconds is not supported.", ex.Message);
+        }
+
+        [Test]
+        public void GrpcStatus_SetToZero_IsValid()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.StatusTrailer] = "0";
+            var context = new HttpContextServerCallContext(httpContext);
+
+            // Act
+            context.Initialize();
+
+            // Assert
+            Assert.AreEqual("0",
+                context.RequestHeaders.Single(m => GrpcProtocolConstants.StatusTrailer.Equals(m.Key)).Value);
+        }
+
+        [TestCase("test-status")]
+        [TestCase("1")]
+        [TestCase("2")]
+        public void GrpcStatus_NonZero_Invalid(string statusHeader)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.StatusTrailer] = statusHeader;
+            var context = new HttpContextServerCallContext(httpContext);
+
+            // Act
+            var ex = Assert.Catch<InvalidOperationException>(() => context.Initialize());
+
+            // Assert
+            Assert.AreEqual("Invalid request status", ex.Message);
         }
 
         [Test]
