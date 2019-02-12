@@ -16,13 +16,15 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using BenchmarkDotNet.Configs;
 
-namespace Grpc.AspNetCore.Performance.Internal
+namespace Grpc.AspNetCore.Microbenchmarks
 {
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
+    public class DefaultCoreConfigAttribute : Attribute, IConfigSource
     {
-        public IHeaderDictionary Trailers { get; set; }
+        public IConfig Config => new DefaultCoreConfig();
     }
 }
