@@ -122,10 +122,11 @@ namespace Grpc.AspNetCore.Server.Internal
         // TODO(JunTaoLuo, JamesNK): implement this
         protected override AuthContext AuthContextCore => throw new NotImplementedException();
 
-        // TODO(JunTaoLuo, JamesNK): implement this
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
-            throw new NotImplementedException();
+            // TODO(JunTaoLuo, JamesNK): Currently blocked on ContextPropagationToken implementation in Grpc.Core.Api
+            // https://github.com/grpc/grpc-dotnet/issues/40
+            throw new NotImplementedException("CreatePropagationToken will be implemented in a future version.");
         }
 
         protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
