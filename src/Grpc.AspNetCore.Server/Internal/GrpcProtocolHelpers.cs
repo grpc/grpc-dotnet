@@ -66,6 +66,10 @@ namespace Grpc.AspNetCore.Server.Internal
             throw new InvalidOperationException("Error reading grpc-timeout value.");
         }
 
+        /// <summary>
+        /// Check if grpc-status header in the request is valid
+        /// </summary>
+        /// <param name="httpContext">Http context of the request.</param>
         public static void CheckStatus(HttpContext httpContext)
         {
             //TODO: is status like " 0" valid?
