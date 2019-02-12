@@ -17,53 +17,53 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal static class GrpcProtocolHelpers
     {
-        public static TimeSpan GetTimeout(HttpContext httpContext)
+        public static bool TryDecodeTimeout(StringValues values, out TimeSpan timeout)
         {
             const long TicksPerMicrosecond = 10; // 1 microsecond = 10 ticks
             const long NanosecondsPerTick = 100; // 1 nanosecond = 0.01 ticks
 
-            if (!httpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
-            {
-                return TimeSpan.MaxValue;
-            }
-
             if (values.Count == 1)
             {
-                var timeout = values.ToString();
-                if (timeout.Length >= 2)
+                var timeoutHeader = values.ToString();
+                if (timeoutHeader.Length >= 2)
                 {
-                    var timeoutUnit = timeout[timeout.Length - 1];
-                    if (int.TryParse(timeout.AsSpan(0, timeout.Length - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var timeoutValue))
+                    var timeoutUnit = timeoutHeader[timeoutHeader.Length - 1];
+                    if (int.TryParse(timeoutHeader.AsSpan(0, timeoutHeader.Length - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var timeoutValue))
                     {
                         switch (timeoutUnit)
                         {
                             case 'H':
-                                return TimeSpan.FromHours(timeoutValue);
+                                timeout = TimeSpan.FromHours(timeoutValue);
+                                return true;
                             case 'M':
-                                return TimeSpan.FromMinutes(timeoutValue);
+                                timeout = TimeSpan.FromMinutes(timeoutValue);
+                                return true;
                             case 'S':
-                                return TimeSpan.FromSeconds(timeoutValue);
+                                timeout = TimeSpan.FromSeconds(timeoutValue);
+                                return true;
                             case 'm':
-                                return TimeSpan.FromMilliseconds(timeoutValue);
+                                timeout = TimeSpan.FromMilliseconds(timeoutValue);
+                                return true;
                             case 'u':
-                                return TimeSpan.FromTicks(timeoutValue * TicksPerMicrosecond);
+                                timeout = TimeSpan.FromTicks(timeoutValue * TicksPerMicrosecond);
+                                return true;
                             case 'n':
-                                return TimeSpan.FromTicks(timeoutValue / NanosecondsPerTick);
+                                timeout = TimeSpan.FromTicks(timeoutValue / NanosecondsPerTick);
+                                return true;
                         }
                     }
                 }
             }
 
-            throw new InvalidOperationException("Error reading grpc-timeout value.");
+            timeout = TimeSpan.Zero;
+            return false;
         }
     }
 }
