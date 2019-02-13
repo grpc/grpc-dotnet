@@ -61,7 +61,7 @@ if [ ! -f "$grpc_lock_path" ] || [ "$upgrade" = true ]; then
     nupkg_path=${nupkg_path%"index.xml"}
 
     # write to lock file
-    echo "$package_version $nupkg_path" > $grpc_lock_path
+    printf "$package_version $nupkg_path\n" > $grpc_lock_path
 
     # update dependencies
     for package in ${packages[@]};
