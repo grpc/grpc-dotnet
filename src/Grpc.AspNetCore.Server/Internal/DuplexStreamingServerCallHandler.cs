@@ -48,21 +48,28 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
+            // Setup ServerCallContext
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            serverCallContext.Initialize();
+
             // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
-            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer);
 
-            serverCallContext.Initialize();
-
-            using (serverCallContext)
+            try
             {
-                await _invoker(
-                    service,
-                    new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
-                    streamWriter,
-                    serverCallContext);
+                using (serverCallContext)
+                {
+                    await _invoker(
+                        service,
+                        new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
+            }
+            finally
+            {
+                activator.Release(service);
             }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);

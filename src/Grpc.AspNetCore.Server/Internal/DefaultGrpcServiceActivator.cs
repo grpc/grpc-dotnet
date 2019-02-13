@@ -50,6 +50,17 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public void Release(TGrpcService service)
         {
+            if (service == null)
+            {
+                throw new ArgumentNullException(nameof(service));
+            }
+
+            Debug.Assert(_created.HasValue, "Services must be released with the service activator they were created");
+
+            if (service is IDisposable disposableService && _created.Value)
+            {
+                disposableService.Dispose();
+            }
         }
     }
 }
