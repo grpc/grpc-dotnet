@@ -2,9 +2,9 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <GoogleProtobufPackageVersion>3.6.1</GoogleProtobufPackageVersion>
-    <GrpcCorePackageVersion>1.19.0-dev</GrpcCorePackageVersion>
-    <GrpcCoreApiPackageVersion>1.19.0-dev</GrpcCoreApiPackageVersion>
-    <GrpcToolsPackageVersion>1.19.0-dev</GrpcToolsPackageVersion>
+    <GrpcCorePackageVersion>1.19.0-dev201902121041</GrpcCorePackageVersion>
+    <GrpcCoreApiPackageVersion>1.19.0-dev201902121041</GrpcCoreApiPackageVersion>
+    <GrpcToolsPackageVersion>1.19.0-dev201902121041</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
