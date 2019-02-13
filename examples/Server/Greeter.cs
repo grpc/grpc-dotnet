@@ -16,12 +16,13 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
-using Grpc.Core;
 using Greet;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
 
-class GreeterService : Greeter.GreeterBase
+class GreeterService : Greeter.GreeterBase, IDisposable
 {
     private readonly ILogger _logger;
 
@@ -56,5 +57,10 @@ class GreeterService : Greeter.GreeterBase
 
         _logger.LogInformation("Sending goodbye");
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
+    }
+
+    public void Dispose()
+    {
+        _logger.LogInformation("Cleaning up");
     }
 }

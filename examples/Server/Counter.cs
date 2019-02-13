@@ -16,16 +16,17 @@
 
 #endregion
 
+using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Count;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Count;
 using Microsoft.Extensions.Logging;
-using System.Threading;
 
 namespace GRPCServer
 {
-    public class CounterService : Counter.CounterBase
+    public class CounterService : Counter.CounterBase, IDisposable
     {
         private readonly ILogger _logger;
         private readonly IncrementingCounter _counter;
@@ -59,6 +60,11 @@ namespace GRPCServer
             }
 
             return new CounterReply { Count = _counter.Count };
+        }
+
+        public void Dispose()
+        {
+            _logger.LogInformation("Cleaning up");
         }
     }
 }

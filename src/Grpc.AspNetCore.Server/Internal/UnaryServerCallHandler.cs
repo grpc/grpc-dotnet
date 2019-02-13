@@ -50,24 +50,33 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
+            // Decode request
             var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(ServiceOptions);
-
             var request = Method.RequestMarshaller.Deserializer(requestPayload);
+
+            // Setup ServerCallContext
+            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            serverCallContext.Initialize();
 
             // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             var service = activator.Create();
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
-
-            serverCallContext.Initialize();
 
             TResponse response;
-            using (serverCallContext)
+
+            try
             {
-                response = await _invoker(
-                    service,
-                    request,
-                    serverCallContext);
+                using (serverCallContext)
+                {
+                    response = await _invoker(
+                        service,
+                        request,
+                        serverCallContext);
+                }
+            }
+            finally
+            {
+                activator.Release(service);
             }
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null

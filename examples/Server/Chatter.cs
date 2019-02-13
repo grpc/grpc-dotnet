@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Chat;
@@ -24,7 +25,7 @@ using Microsoft.Extensions.Logging;
 
 namespace GRPCServer
 {
-    public class ChatterService : Chatter.ChatterBase
+    public class ChatterService : Chatter.ChatterBase, IDisposable
     {
         private readonly ILogger _logger;
 
@@ -69,6 +70,11 @@ namespace GRPCServer
                 logger.LogInformation($"Broadcasting: {message.Name} - {message.Message}");
                 await subscriber.WriteAsync(message);
             }
+        }
+
+        public void Dispose()
+        {
+            _logger.LogInformation("Cleaning up");
         }
     }
 }
