@@ -29,6 +29,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.AspNetCore.Microbenchmarks
 {
@@ -45,7 +46,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
             var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
-            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method, new GrpcServiceOptions());
+            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method, new GrpcServiceOptions(), NullLoggerFactory.Instance);
 
             _trailers = new HeaderDictionary();
 

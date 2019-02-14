@@ -25,7 +25,7 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Extensions.DependencyInjection
 {
     /// <summary>
-    /// Extension methods for the Grpc services.
+    /// Extension methods for the gRPC services.
     /// </summary>
     public static class GrpcServicesExtensions
     {
@@ -63,6 +63,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddRouting();
             services.AddOptions();
             services.TryAddSingleton<GrpcMarkerService>();
+            services.TryAddSingleton(typeof(ServerCallHandlerFactory<>));
             services.TryAddScoped(typeof(IGrpcServiceActivator<>), typeof(DefaultGrpcServiceActivator<>));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<GrpcServiceOptions>, GrpcServiceOptionsSetup>());
 

@@ -6,6 +6,7 @@
     <GrpcCoreApiPackageVersion>1.19.0-dev201902121041</GrpcCoreApiPackageVersion>
     <GrpcToolsPackageVersion>1.19.0-dev201902121041</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
+    <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NunitPackageVersion>3.11.0</NunitPackageVersion>
