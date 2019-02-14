@@ -64,6 +64,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
             services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
@@ -89,6 +90,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
             services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());

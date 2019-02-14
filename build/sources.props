@@ -3,6 +3,7 @@
     <RestoreSources>
       $(RestoreSources);
       https://api.nuget.org/v3/index.json;
+      https://dotnet.myget.org/F/aspnetcore-dev/api/v3/index.json;
     </RestoreSources>
     <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)feed')">
       $(RestoreSources);

@@ -17,12 +17,11 @@
 #endregion
 
 using System;
-using System.Buffers;
-using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -38,7 +37,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private readonly UnaryServerMethod _invoker;
 
-        public UnaryServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions) : base(method, serviceOptions)
+        public UnaryServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
@@ -55,7 +54,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
             // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
             serverCallContext.Initialize();
 
             // Activate the implementation type via DI.

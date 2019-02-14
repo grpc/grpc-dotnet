@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -84,6 +85,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             await readTask.DefaultTimeout();
 
             Assert.AreNotEqual(0, messageCount);
+
+            Assert.AreEqual(StatusCode.DeadlineExceeded.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Deadline Exceeded", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
     }
 }

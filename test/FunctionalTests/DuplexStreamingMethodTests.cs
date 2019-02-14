@@ -25,6 +25,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Chat;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -90,6 +92,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             requestStream.AddData(Array.Empty<byte>());
             await finishedTask.DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]
@@ -147,6 +151,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("Hello John", message2.Message);
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout());
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }

@@ -24,6 +24,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -164,6 +166,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("Goodbye World!", goodbye.Message);
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout());
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }

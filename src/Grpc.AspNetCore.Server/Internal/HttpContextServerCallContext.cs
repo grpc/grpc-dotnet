@@ -23,22 +23,27 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed class HttpContextServerCallContext : ServerCallContext, IDisposable
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable
     {
+        private readonly ILogger _logger;
+
         // Override the current time for unit testing
         internal ISystemClock Clock = SystemClock.Instance;
+
         private string _peer;
         private Metadata _requestHeaders;
         private Metadata _responseTrailers;
         private DateTime _deadline;
-        private CancellationTokenSource _cts;
+        private Timer _deadlineTimer;
 
-        internal HttpContextServerCallContext(HttpContext httpContext)
+        internal HttpContextServerCallContext(HttpContext httpContext, ILogger logger)
         {
             HttpContext = httpContext;
+            _logger = logger;
         }
 
         internal HttpContext HttpContext { get; }
@@ -100,7 +105,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        protected override CancellationToken CancellationTokenCore => _cts.Token;
+        protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -154,26 +159,20 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return HttpContext.Response.Body.FlushAsync();
         }
-		
+
         public void Initialize()
         {
             var timeout = GetTimeout();
 
             if (timeout != TimeSpan.Zero)
             {
-                // CancellationTokenSource does not support greater than int.MaxValue milliseconds
-                if (timeout.TotalMilliseconds > int.MaxValue)
-                {
-                    throw new InvalidOperationException("A timeout greater than 2147483647 milliseconds is not supported.");
-                }
-
                 _deadline = Clock.UtcNow.Add(timeout);
-                _cts = new CancellationTokenSource(timeout);
+
+                _deadlineTimer = new Timer(DeadlineExceeded, timeout, timeout, Timeout.InfiniteTimeSpan);
             }
             else
             {
                 _deadline = DateTime.MaxValue;
-                _cts = new CancellationTokenSource();
             }
         }
 
@@ -181,21 +180,33 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
             {
-                if (GrpcProtocolHelpers.TryDecodeTimeout(values, out var timeout))
+                // CancellationTokenSource does not support greater than int.MaxValue milliseconds
+                if (GrpcProtocolHelpers.TryDecodeTimeout(values, out var timeout) &&
+                    timeout > TimeSpan.Zero &&
+                    timeout.TotalMilliseconds <= int.MaxValue)
                 {
                     return timeout;
                 }
 
-                // TODO(JamesNK): Log that the bad timeout value is being ignored
-                // https://github.com/grpc/grpc/blob/da09b1fd083a80e3ebca927eb5ff6bc2cfe23cb5/src/core/ext/transport/chttp2/transport/parsing.cc#L441
+                InvalidTimeoutIgnored(_logger, values);
             }
 
             return TimeSpan.Zero;
         }
 
+        private void DeadlineExceeded(object state)
+        {
+            DeadlineExceeded(_logger, (TimeSpan)state);
+
+            StatusCore = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+            // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
+            HttpContext.Abort();
+        }
+
         public void Dispose()
         {
-            _cts?.Dispose();
+            _deadlineTimer?.Dispose();
         }
     }
 }

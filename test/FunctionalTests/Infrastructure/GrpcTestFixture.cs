@@ -18,8 +18,10 @@
 
 using System;
 using System.Net.Http;
+using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -29,7 +31,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public GrpcTestFixture()
         {
+            TrailersContainer = new TrailersContainer();
+
+            Action<IServiceCollection> configureServices = services =>
+            {
+                // Register trailers container so tests can assert trailer headers
+                // Not thread safe for parallel calls
+                services.AddSingleton(TrailersContainer);
+            };
+
             var builder = new WebHostBuilder()
+                .ConfigureServices(configureServices)
                 .UseStartup<TStartup>();
 
             _server = new TestServer(builder);
@@ -37,6 +49,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Client = _server.CreateClient();
             Client.BaseAddress = new Uri("http://localhost");
         }
+
+        public TrailersContainer TrailersContainer { get; }
 
         public HttpClient Client { get; }
 
