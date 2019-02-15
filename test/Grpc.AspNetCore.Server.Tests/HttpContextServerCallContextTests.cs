@@ -163,9 +163,9 @@ namespace Grpc.AspNetCore.Server.Tests
         public void Base64Binaryheader_WithNoPadding(string base64)
         {
             // Arrange
-            // strip the padding from the base64, assume that '='s are only at the end
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
+            // strip the padding from base64, assuming that '='s are only at the end
             var headerValue = base64.Replace("=", "");
 
             var httpContext = new DefaultHttpContext();
@@ -176,7 +176,7 @@ namespace Grpc.AspNetCore.Server.Tests
             context.Initialize();
 
             // Assert
-            context.RequestHeaders[0].ValueBytes.SequenceEqual(Convert.FromBase64String(base64));
+            Assert.IsTrue(context.RequestHeaders[0].ValueBytes.SequenceEqual(Convert.FromBase64String(base64)));
         }
 
         [TestCase("trailer-name", "trailer-value", "trailer-name", "trailer-value")]
