@@ -92,7 +92,7 @@ namespace Grpc.AspNetCore.Server.Internal
                         }
                         else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
                         {
-                            _requestHeaders.Add(header.Key, Convert.FromBase64String(header.Value));
+                            _requestHeaders.Add(header.Key, GrpcProtocolHelpers.ParseBinaryHeader(header.Value));
                         }
                         else
                         {
