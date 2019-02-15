@@ -92,7 +92,7 @@ namespace Grpc.AspNetCore.Server.Internal
                         }
                         else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
                         {
-                            _requestHeaders.Add(header.Key, Convert.FromBase64String(header.Value));
+                            _requestHeaders.Add(header.Key, ParseBinaryHeader(header.Value));
                         }
                         else
                         {
@@ -207,6 +207,30 @@ namespace Grpc.AspNetCore.Server.Internal
         public void Dispose()
         {
             _deadlineTimer?.Dispose();
+        }
+
+        private static byte[] ParseBinaryHeader(string base64)
+        {
+            string decodable;
+            switch (base64.Length % 4)
+            {
+                case 0:
+                    // no padding
+                    decodable = base64;
+                    break;
+                case 2:
+                    // 2 chars
+                    decodable = base64 + "==";
+                    break;
+                case 3:
+                    decodable = base64 + "=";
+                    break;
+                default:
+                    // length%4 == 1 should be illegal
+                    throw new FormatException("Invalid base64 header value");
+            }
+
+            return Convert.FromBase64String(decodable);
         }
     }
 }
