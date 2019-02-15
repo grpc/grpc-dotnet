@@ -15,7 +15,8 @@
 
 set -ex
 
-./build/get-grpc.sh
+# Required with using nightly builds
+# ./build/get-grpc.sh
 
 dotnet build
 
