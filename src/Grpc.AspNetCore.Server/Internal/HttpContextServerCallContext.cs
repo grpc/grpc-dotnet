@@ -39,14 +39,17 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata _responseTrailers;
         private DateTime _deadline;
         private Timer _deadlineTimer;
+        private Status _status;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, ILogger logger)
+        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
             HttpContext = httpContext;
+            ServiceOptions = serviceOptions;
             _logger = logger;
         }
 
         internal HttpContext HttpContext { get; }
+        internal GrpcServiceOptions ServiceOptions { get; }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
@@ -105,6 +108,33 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
+        internal void ProcessHandlerError(Exception ex, string method)
+        {
+            if (ex is RpcException rpcException)
+            {
+                RpcConnectionError(_logger, rpcException.StatusCode, ex);
+
+                // There are two sources of metadata entries on the server-side:
+                // 1. serverCallContext.ResponseTrailers
+                // 2. trailers in RpcException thrown by user code in server side handler.
+                // As metadata allows duplicate keys, the logical thing to do is
+                // to just merge trailers from RpcException into serverCallContext.ResponseTrailers.
+                foreach (var entry in rpcException.Trailers)
+                {
+                    ResponseTrailers.Add(entry);
+                }
+
+                _status = rpcException.Status;
+            }
+            else
+            {
+                ErrorExecutingServiceMethod(_logger, method, ex);
+
+                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
+                _status = new Status(StatusCode.Unknown, message);
+            }
+        }
+
         protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
@@ -120,7 +150,11 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        protected override Status StatusCore { get; set; }
+        protected override Status StatusCore
+        {
+            get => _status;
+            set => _status = value;
+        }
 
         protected override WriteOptions WriteOptionsCore { get; set; }
 
@@ -139,7 +173,7 @@ namespace Grpc.AspNetCore.Server.Internal
             // Headers can only be written once. Throw on subsequent call to write response header instead of silent no-op.
             if (HttpContext.Response.HasStarted)
             {
-                throw new InvalidOperationException("Response headers can only be sent once per call.");
+                throw new RpcException(new Status(StatusCode.Unknown, "Response headers can only be sent once per call."));
             }
 
             if (responseHeaders != null)
@@ -198,7 +232,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             DeadlineExceeded(_logger, (TimeSpan)state);
 
-            StatusCore = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+            _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
             // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
             HttpContext.Abort();

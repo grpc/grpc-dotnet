@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -30,7 +31,7 @@ namespace Grpc.AspNetCore.Server.Tests
     [TestFixture]
     public class PipeExtensionsTests
     {
-        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
+        private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
         [Test]
         public async Task ReadMessageAsync_EmptyMessage_ReturnNoData()
@@ -48,7 +49,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
 
             // Assert
             Assert.AreEqual(0, messageData.Length);
@@ -71,7 +72,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
 
             // Assert
             Assert.AreEqual(1, messageData.Length);
@@ -82,6 +83,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task ReadMessageAsync_UnderReceiveSize_ReturnData()
         {
             // Arrange
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -95,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(new GrpcServiceOptions { SendMaxMessageSize = 1 });
+            var messageData = await pipeReader.ReadSingleMessageAsync(context);
 
             // Assert
             Assert.AreEqual(1, messageData.Length);
@@ -106,6 +108,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void ReadMessageAsync_ExceedReceiveSize_ReturnData()
         {
             // Arrange
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { ReceiveMaxMessageSize = 1 });
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -120,10 +123,11 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(() => pipeReader.ReadSingleMessageAsync(new GrpcServiceOptions { ReceiveMaxMessageSize = 1 }).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context).AsTask());
 
             // Assert
-            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Message);
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
         }
 
         [Test]
@@ -147,7 +151,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
 
             // Assert
             Assert.AreEqual(449, messageData.Length);
@@ -175,7 +179,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var messageData = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert
             Assert.AreEqual(449, messageData.Length);
@@ -199,19 +203,19 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act 1
-            var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
+            var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 1
             Assert.AreEqual(0, messageData1.Length);
 
             // Act 2
-            var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
+            var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 2
             Assert.AreEqual(0, messageData2.Length);
 
             // Act 3
-            var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
+            var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 3
             Assert.IsNull(messageData3);
@@ -231,11 +235,12 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServiceOptions).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
 
             // Assert
-            Assert.AreEqual("Incomplete message.", ex.Message);
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
         [Test]
@@ -255,11 +260,12 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServiceOptions).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
 
             // Assert
-            Assert.AreEqual("Incomplete message.", ex.Message);
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
         [Test]
@@ -280,11 +286,12 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServiceOptions).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
 
             // Assert
-            Assert.AreEqual("Additional data after the message received.", ex.Message);
+            Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
         [Test]
@@ -301,11 +308,12 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServiceOptions).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
 
             // Assert
-            Assert.AreEqual("Incomplete message.", ex.Message);
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
         [Test]
@@ -325,11 +333,12 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(
-                () => pipeReader.ReadStreamMessageAsync(TestServiceOptions).AsTask());
+            var ex = Assert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask());
 
             // Assert
-            Assert.AreEqual("Incomplete message.", ex.Message);
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
         }
 
         [Test]
@@ -340,7 +349,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServiceOptions);
+            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServerCallContext);
 
             // Assert
             var messageData = ms.ToArray();
@@ -355,7 +364,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServiceOptions, flush: true);
+            await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServerCallContext, flush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -380,7 +389,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServiceOptions, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServerCallContext, flush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -410,7 +419,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 + "nisl, vitae tincidunt purus vestibulum sit amet. Interdum et malesuada fames ac ante ipsum primis in faucibus.");
 
             // Act
-            await pipeWriter.WriteMessageAsync(content, TestServiceOptions, flush: true);
+            await pipeWriter.WriteMessageAsync(content, TestServerCallContext, flush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -431,11 +440,12 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_UnderSendSize_WriteData()
         {
             // Arrange
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
             var ms = new MemoryStream();
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, new GrpcServiceOptions { SendMaxMessageSize = 1 }, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -457,14 +467,16 @@ namespace Grpc.AspNetCore.Server.Tests
         public void WriteMessageAsync_ExceedSendSize_ThrowError()
         {
             // Arrange
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
             var ms = new MemoryStream();
             var pipeWriter = new StreamPipeWriter(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, new GrpcServiceOptions { SendMaxMessageSize = 1 }, flush: true));
+            var ex = Assert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, flush: true));
 
             // Assert
-            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Message);
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
         }
     }
 }

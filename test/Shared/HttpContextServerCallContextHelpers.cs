@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,27 +16,24 @@
 
 #endregion
 
-using System.IO;
-using System.IO.Pipelines;
-using Google.Protobuf;
-using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Server.Tests
 {
-    internal static class MessageHelpers
+    internal static class HttpContextServerCallContextHelper
     {
-        private static readonly HttpContextServerCallContext TestServerCallContext = new HttpContextServerCallContext(new DefaultHttpContext(), new GrpcServiceOptions(), NullLogger.Instance);
-
-        public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
+        public static HttpContextServerCallContext CreateServerCallContext(
+            HttpContext httpContext = null,
+            GrpcServiceOptions serviceOptions = null,
+            ILogger logger = null)
         {
-            var messageData = message.ToByteArray();
-
-            var pipeWriter = new StreamPipeWriter(stream);
-
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
+            return new HttpContextServerCallContext(
+                httpContext ?? new DefaultHttpContext(),
+                serviceOptions ?? new GrpcServiceOptions(),
+                logger ?? NullLogger.Instance);
         }
     }
 }

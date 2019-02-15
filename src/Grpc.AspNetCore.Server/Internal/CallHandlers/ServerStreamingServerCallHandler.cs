@@ -25,23 +25,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class DuplexStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
+    internal class ServerStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
         where TResponse : class
         where TService : class
     {
         // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
-        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to DuplexStreamingServerMethod<TRequest, TResponse>
+        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to ServerStreamingServerMethod<TRequest, TResponse>
         // with an instance parameter.
-        private delegate Task DuplexStreamingServerMethod(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
+        private delegate Task ServerStreamingServerMethod(TService service, TRequest request, IServerStreamWriter<TResponse> stream, ServerCallContext serverCallContext);
 
-        private readonly DuplexStreamingServerMethod _invoker;
+        private readonly ServerStreamingServerMethod _invoker;
 
-        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
 
-            _invoker = (DuplexStreamingServerMethod)Delegate.CreateDelegate(typeof(DuplexStreamingServerMethod), handlerMethod);
+            _invoker = (ServerStreamingServerMethod)Delegate.CreateDelegate(typeof(ServerStreamingServerMethod), handlerMethod);
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
@@ -49,28 +49,38 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
-            serverCallContext.Initialize();
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
 
-            // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service = null;
 
             try
             {
-                using (serverCallContext)
-                {
-                    await _invoker(
-                        service,
-                        new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer),
-                        serverCallContext);
-                }
+                serverCallContext.Initialize();
+
+                // Decode request
+                var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(serverCallContext);
+                var request = Method.RequestMarshaller.Deserializer(requestPayload);
+
+                service = activator.Create();
+
+                await _invoker(
+                    service,
+                    request,
+                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                    serverCallContext);
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
             }
             finally
             {
-                activator.Release(service);
+                serverCallContext.Dispose();
+                if (service != null)
+                {
+                    activator.Release(service);
+                }
             }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);

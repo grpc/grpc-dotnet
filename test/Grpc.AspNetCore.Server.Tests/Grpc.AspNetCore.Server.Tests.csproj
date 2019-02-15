@@ -10,6 +10,10 @@
     <Protobuf Include="Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
 
     <None Remove="@(Protobuf)" />
+
+    <Compile Include="..\Shared\HttpContextServerCallContextHelpers.cs" Link="Infrastructure\HttpContextServerCallContextHelpers.cs" />
+
+    <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
     <Content Include="@(Protobuf)" LinkBase="" />
   </ItemGroup>
 

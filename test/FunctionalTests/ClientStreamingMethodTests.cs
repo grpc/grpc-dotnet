@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Count;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -102,12 +103,34 @@ namespace Grpc.AspNetCore.FunctionalTests
             await requestStream.AddDataAndWait(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).DefaultTimeout();
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
-            // TODO - this should return a response with a gRPC status object
-            var ex = Assert.ThrowsAsync<InvalidDataException>(async () =>
+            await responseTask.DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Assert.AreEqual("Incomplete message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+        }
+
+        [Test]
+        public async Task ServerMethodReturnsNull_FailureResponse()
+        {
+            // Arrange
+            var requestMessage = new CounterRequest
             {
-                await responseTask.DefaultTimeout();
-            });
-            Assert.AreEqual("Incomplete message.", ex.Message);
+                Count = 1
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "Count.Counter/IncrementCountReturnNull",
+                new StreamContent(ms)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Cancelled", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
     }
 }

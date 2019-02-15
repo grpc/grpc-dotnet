@@ -46,7 +46,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
             var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
-            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method, new GrpcServiceOptions(), NullLoggerFactory.Instance);
+            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method, new GrpcServiceOptions<TestService>(), NullLoggerFactory.Instance);
 
             _trailers = new HeaderDictionary();
 

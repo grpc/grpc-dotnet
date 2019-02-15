@@ -20,14 +20,15 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests
 {
     internal static class MessageHelpers
     {
-        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
+        private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
         public static T AssertReadMessage<T>(byte[] messageData) where T : IMessage, new()
         {
@@ -40,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var pipeReader = new StreamPipeReader(stream);
 
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
 
             var message = new T();
             message.MergeFrom(messageData);
@@ -48,9 +49,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return message;
         }
 
+        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream) where T : IMessage, new()
+        {
+            var pipeReader = new StreamPipeReader(stream);
+
+            return AssertReadStreamMessageAsync<T>(pipeReader);
+        }
+
         public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader) where T : IMessage, new()
         {
-            var messageData = await pipeReader.ReadStreamMessageAsync(TestServiceOptions);
+            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             if (messageData == null)
             {
@@ -69,7 +77,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var pipeWriter = new StreamPipeWriter(stream);
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServiceOptions, flush: true).GetAwaiter().GetResult();
+            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
         }
     }
 }
