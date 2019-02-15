@@ -143,18 +143,40 @@ namespace Grpc.AspNetCore.Server.Tests
             CollectionAssert.AreEqual(headerBytes, header.ValueBytes);
         }
 
-        [Test]
-        public void RequestHeaders_ThrowsForNonBase64EncodedBinaryHeader()
+        [TestCase("a;b")]
+        [TestCase("ZG9uZ")]
+        public void RequestHeaders_ThrowsForNonBase64EncodedBinaryHeader(string header)
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers["test-bin"] = "a;b";
+            httpContext.Request.Headers["test-bin"] = header;
 
             // Act
             var serverCallContext = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.Throws<FormatException>(() => serverCallContext.RequestHeaders.Clear());
+        }
+
+        [TestCase("ZG9uZQ==")]
+        [TestCase("AADQA7MnHnYTan7LCInL3K+EAfkpLdnnVVO1AgA=")]
+        public void Base64Binaryheader_WithNoPadding(string base64)
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+            // strip the padding from base64, assuming that '='s are only at the end
+            var headerValue = base64.Replace("=", "");
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers["header-bin"] = headerValue;
+            var context = CreateServerCallContext(httpContext, testLogger);
+
+            // Act
+            context.Initialize();
+
+            // Assert
+            Assert.IsTrue(context.RequestHeaders[0].ValueBytes.SequenceEqual(Convert.FromBase64String(base64)));
         }
 
         [TestCase("trailer-name", "trailer-value", "trailer-name", "trailer-value")]
@@ -245,7 +267,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             public IHeaderDictionary Trailers { get; set; } = new HttpResponseTrailers();
         }
-		
+
         private static readonly ISystemClock TestClock = new TestSystemClock(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         private const long TicksPerMicrosecond = 10;
         private const long NanosecondsPerTick = 100;
