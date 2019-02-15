@@ -21,6 +21,7 @@ using System.Runtime.InteropServices;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 
 namespace InteropTestsWebsite
 {
@@ -31,29 +32,25 @@ namespace InteropTestsWebsite
             CreateWebHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args)
-        {
-            var builder = WebHost.CreateDefaultBuilder(args);
-
-            // Support --port and --use_tls cmdline arguments normally supported
-            // by gRPC interop servers.
-            int port = int.Parse(builder.GetSetting("port") ?? "50052");
-            bool useTls = bool.Parse(builder.GetSetting("use_tls") ?? "false");
-
-            builder.ConfigureKestrel(options =>
-            {
-                options.Limits.MinRequestBodyDataRate = null;
-                options.ListenAnyIP(port, listenOptions =>
+        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+            WebHost.CreateDefaultBuilder(args)
+                .ConfigureKestrel((context, options) =>
                 {
-                    if (useTls)
+                    // Support --port and --use_tls cmdline arguments normally supported
+                    // by gRPC interop servers.
+                    int port = context.Configuration.GetValue<int>("port", 50052);
+                    bool useTls = context.Configuration.GetValue<bool>("use_tls", false);
+
+                    options.Limits.MinRequestBodyDataRate = null;
+                    options.ListenAnyIP(port, listenOptions =>
                     {
-                        listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
-                    }
-                    listenOptions.Protocols = HttpProtocols.Http2;
-                });
-            })
-            .UseStartup<Startup>();
-            return builder;
-        }
+                        if (useTls)
+                        {
+                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                        }
+                        listenOptions.Protocols = HttpProtocols.Http2;
+                    });
+                })
+                .UseStartup<Startup>();
     }
 }
