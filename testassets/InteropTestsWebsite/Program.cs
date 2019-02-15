@@ -16,9 +16,12 @@
 
 #endregion
 
+using System.Runtime.InteropServices;
+
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 
 namespace InteropTestsWebsite
 {
@@ -31,11 +34,20 @@ namespace InteropTestsWebsite
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .ConfigureKestrel(options =>
+                .ConfigureKestrel((context, options) =>
                 {
+                    // Support --port and --use_tls cmdline arguments normally supported
+                    // by gRPC interop servers.
+                    int port = context.Configuration.GetValue<int>("port", 50052);
+                    bool useTls = context.Configuration.GetValue<bool>("use_tls", false);
+
                     options.Limits.MinRequestBodyDataRate = null;
-                    options.ListenLocalhost(50052, listenOptions =>
+                    options.ListenAnyIP(port, listenOptions =>
                     {
+                        if (useTls)
+                        {
+                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                        }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });
                 })
