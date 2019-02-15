@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -40,11 +41,31 @@ namespace Grpc.AspNetCore.Server.Internal
             return new UnaryServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
         }
 
+        public UnaryServerCallHandler<TRequest, TResponse, TService> CreateUnary<TRequest, TResponse>(
+            Method<TRequest, TResponse> method,
+            Func<IServiceProvider, TService> createService,
+            Action<TService> releaseService)
+                where TRequest : class
+                where TResponse : class
+        {
+            return new UnaryServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory, createService, releaseService);
+        }
+
         public ClientStreamingServerCallHandler<TRequest, TResponse, TService> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
             return new ClientStreamingServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
+        }
+
+        public ClientStreamingServerCallHandler<TRequest, TResponse, TService> CreateClientStreaming<TRequest, TResponse>(
+            Method<TRequest, TResponse> method,
+            Func<IServiceProvider, TService> createService,
+            Action<TService> releaseService)
+            where TRequest : class
+            where TResponse : class
+        {
+            return new ClientStreamingServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory, createService, releaseService);
         }
 
         public DuplexStreamingServerCallHandler<TRequest, TResponse, TService> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)

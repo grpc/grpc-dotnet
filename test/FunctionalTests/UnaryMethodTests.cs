@@ -26,6 +26,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Moq;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -33,6 +34,133 @@ namespace Grpc.AspNetCore.FunctionalTests
     [TestFixture]
     public class UnaryMethodTests : FunctionalTestBase
     {
+        class ConcreteGreeterService : Greeter.GreeterBase
+        {
+            public const string ReplyMessage = nameof(ConcreteGreeterService);
+
+            public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+            {
+                return Task.FromResult(new HelloReply { Message = ReplyMessage });
+            }
+        }
+
+        [Test]
+        public async Task LambdaTestServer()
+        {
+            // Arrange
+            const string message = "Lambda";
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var gMock = new Mock<Greet.Greeter.GreeterBase>();
+            gMock
+                .Setup(g => g.SayHello(It.IsAny<HelloRequest>(), It.IsAny<ServerCallContext>()))
+                .Returns((HelloRequest r, ServerCallContext ctx) =>
+                {
+                    return Task.FromResult(new HelloReply { Message = message });
+                });
+            var obj = gMock.Object;
+            var server = UniversalTestServerBuilder.WithServices(r =>
+            {
+                r.Register(() => obj);
+            }).Build();
+
+            // Act
+            using (server)
+            using (var client = server.CreateClient())
+            {
+                var response = await client.PostAsync(
+                    "Greet.Greeter/SayHello",
+                    new StreamContent(ms)).DefaultTimeout();
+
+                // Assert
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+                Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+                var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+                Assert.AreEqual(message, responseMessage.Message);
+            }
+        }
+
+        [TestCase("Hello world")]
+        [TestCase("Foobar")]
+        public async Task LambdaTestServer_Echo(string message)
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = message
+            };
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var gMock = new Mock<Greet.Greeter.GreeterBase>();
+            gMock
+                .Setup(g => g.SayHello(It.IsAny<HelloRequest>(), It.IsAny<ServerCallContext>()))
+                .Returns((HelloRequest r, ServerCallContext ctx) =>
+                {
+                    return Task.FromResult(new HelloReply { Message = message });
+                });
+            var obj = gMock.Object;
+            var server = UniversalTestServerBuilder.WithServices(r =>
+            {
+                r.Register(() => obj);
+            }).Build();
+
+            // Act
+            using (server)
+            using (var client = server.CreateClient())
+            {
+                var response = await client.PostAsync(
+                    "Greet.Greeter/SayHello",
+                    new StreamContent(ms)).DefaultTimeout();
+
+                // Assert
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+                Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+                var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+                Assert.AreEqual(message, responseMessage.Message);
+            }
+        }
+
+        [Test]
+        public async Task LambdaTestServer_ConcreteImpl()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "foo"
+            };
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var server = UniversalTestServerBuilder.WithServices(r =>
+            {
+                r.Register(() => new ConcreteGreeterService());
+            }).Build();
+
+            // Act
+            using (server)
+            using (var client = server.CreateClient())
+            {
+                var response = await client.PostAsync(
+                    "Greet.Greeter/SayHello",
+                    new StreamContent(ms)).DefaultTimeout();
+
+                // Assert
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+                Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+                var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+                Assert.AreEqual(ConcreteGreeterService.ReplyMessage, responseMessage.Message);
+            }
+        }
+
         [Test]
         public async Task SendValidRequest_SuccessResponse()
         {

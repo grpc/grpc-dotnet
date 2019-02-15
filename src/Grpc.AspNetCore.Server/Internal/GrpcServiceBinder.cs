@@ -29,6 +29,9 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly IEndpointRouteBuilder _builder;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
 
+        private readonly Func<IServiceProvider, TService> _createService;
+        private readonly Action<TService> _releaseService;
+
         internal IList<IEndpointConventionBuilder> EndpointConventionBuilders { get; } = new List<IEndpointConventionBuilder>();
 
         internal GrpcServiceBinder(IEndpointRouteBuilder builder, ServerCallHandlerFactory<TService> serverCallHandlerFactory)
@@ -37,9 +40,21 @@ namespace Grpc.AspNetCore.Server.Internal
             _serverCallHandlerFactory = serverCallHandlerFactory;
         }
 
+        internal GrpcServiceBinder(
+            IEndpointRouteBuilder builder,
+            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+            Func<IServiceProvider, TService> createService,
+            Action<TService> releaseService) : this(builder, serverCallHandlerFactory)
+        {
+            _createService = createService;
+            _releaseService = releaseService;
+        }
+
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateClientStreaming(method);
+            var callHandler = _createService == null
+                ? _serverCallHandlerFactory.CreateClientStreaming(method)
+                : _serverCallHandlerFactory.CreateClientStreaming(method, _createService, _releaseService);
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
 
@@ -57,7 +72,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateUnary(method);
+            var callHandler = _createService == null
+                ? _serverCallHandlerFactory.CreateUnary(method)
+                : _serverCallHandlerFactory.CreateUnary(method, _createService, _releaseService);
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
     }

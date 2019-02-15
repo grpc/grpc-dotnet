@@ -28,6 +28,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using NUnit.Framework;
+using Moq;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
@@ -37,6 +38,8 @@ namespace Grpc.AspNetCore.FunctionalTests
         [Test]
         public async Task MultipleMessagesFromOneClient_SuccessResponses()
         {
+            var moq = new Mock<Greet.Greeter.GreeterBase>();
+
             // Arrange
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage

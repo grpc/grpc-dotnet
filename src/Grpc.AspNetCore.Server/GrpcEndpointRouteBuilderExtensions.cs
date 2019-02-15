@@ -76,6 +76,60 @@ namespace Microsoft.AspNetCore.Builder
             }
         }
 
+        public static IEndpointConventionBuilder MapGrpcService<TService>(
+            this IEndpointRouteBuilder builder,
+            Func<IServiceProvider, TService> createService,
+            Action<TService> releaseService = null) where TService : class
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            //the service creation function must exist
+            if (createService == null)
+            {
+                throw new ArgumentNullException(nameof(createService));
+            }
+
+            ValidateServicesRegistered(builder.ServiceProvider);
+
+            // Unlike the mapping for a concrete server implementation, TService could be inferred as the TServiceBase
+            // type itself, so we trace up the tree from there.
+            var baseType = typeof(TService);
+            while (baseType?.BaseType?.BaseType != null)
+            {
+                baseType = baseType.BaseType;
+            }
+
+            try
+            {
+                // We need to call Foo.BindService from the declaring type.
+                var declaringType = baseType?.DeclaringType;
+
+                // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
+                var bindService = declaringType?.GetMethod("BindService", new[] { typeof(ServiceBinderBase), baseType });
+
+                if (bindService == null)
+                {
+                    throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {baseType.FullName}. The type must be an implementation of a gRPC service.");
+                }
+
+                var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
+
+                var serviceBinder = new GrpcServiceBinder<TService>(builder, callHandlerFactory, createService, releaseService);
+
+                // Invoke
+                bindService.Invoke(null, new object[] { serviceBinder, null });
+
+                return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Unable to map gRPC service '{baseType.Name}'.", ex);
+            }
+        }
+
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
         {
             var marker = serviceProvider.GetService(typeof(GrpcMarkerService));

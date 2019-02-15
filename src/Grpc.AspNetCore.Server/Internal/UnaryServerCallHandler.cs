@@ -36,12 +36,25 @@ namespace Grpc.AspNetCore.Server.Internal
         private delegate Task<TResponse> UnaryServerMethod(TService service, TRequest request, ServerCallContext serverCallContext);
 
         private readonly UnaryServerMethod _invoker;
+        private readonly Func<IServiceProvider, TService> _createService;
+        private readonly Action<TService> _releaseService;
 
         public UnaryServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
             var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
             _invoker = (UnaryServerMethod)Delegate.CreateDelegate(typeof(UnaryServerMethod), handlerMethod);
+        }
+
+        public UnaryServerCallHandler(
+            Method<TRequest, TResponse> method,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory,
+            Func<IServiceProvider, TService> createService,
+            Action<TService> releaseService)
+                : this(method, serviceOptions, loggerFactory)
+        {
+            _createService = createService;
+            _releaseService = releaseService;
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
@@ -57,9 +70,21 @@ namespace Grpc.AspNetCore.Server.Internal
             var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
             serverCallContext.Initialize();
 
-            // Activate the implementation type via DI.
-            var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service;
+            IGrpcServiceActivator<TService> activator = null;
+            
+            if (_createService != null)
+            {
+                // create the service instance via lambda function
+                service = _createService(httpContext.RequestServices);
+                //TODO check service is null
+            }
+            else
+            {
+                // Activate the implementation type via DI.
+                activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                service = activator.Create();
+            }
 
             TResponse response;
 
@@ -75,7 +100,14 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                activator.Release(service);
+                if (activator != null)
+                {
+                    activator.Release(service);
+                }
+                else if (_releaseService != null)
+                {
+                    _releaseService(service);
+                }
             }
 
             // TODO(JunTaoLuo, JamesNK): make sure the response is not null
