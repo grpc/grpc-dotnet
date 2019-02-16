@@ -31,5 +31,4 @@ export PATH="$PWD/dotnet:$PATH"
 
 mkdir -p artifacts
 
-# TODO(jtattermusch): set the package version in csproj files.
-(cd src/Grpc.AspNetCore.Server && dotnet pack -p:PackageVersion=0.0.1-dev --configuration Release --output ../../artifacts)
+(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts)
