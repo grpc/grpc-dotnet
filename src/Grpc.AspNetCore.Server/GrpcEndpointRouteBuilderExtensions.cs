@@ -36,12 +36,10 @@ namespace Microsoft.AspNetCore.Builder
                 throw new ArgumentNullException(nameof(builder));
             }
 
-            ValidateServicesRegistered(builder.ServiceProvider);
-
-            var service = typeof(TService);
-
-            try
+            return builder.MapGrpcService<TService>(binder =>
             {
+                var service = typeof(TService);
+
                 // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
                 // We need to access the static BindService method on Foo which implicitly derives from Object.
                 var baseType = service.BaseType;
@@ -58,15 +56,37 @@ namespace Microsoft.AspNetCore.Builder
 
                 if (bindService == null)
                 {
-                    throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {service.FullName}. The type must be an implementation of a gRPC service.");
+                    throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {service.FullName}.");
                 }
 
+                // Invoke
+                bindService.Invoke(null, new object[] { binder, null });
+            });
+        }
+
+        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder, Action<ServiceBinderBase> bindService) where TService : class
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (bindService == null)
+            {
+                throw new ArgumentNullException(nameof(bindService));
+            }
+
+            ValidateServicesRegistered(builder.ServiceProvider);
+
+            var service = typeof(TService);
+
+            try
+            {
                 var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
 
                 var serviceBinder = new GrpcServiceBinder<TService>(builder, callHandlerFactory);
 
-                // Invoke
-                bindService.Invoke(null, new object[] { serviceBinder, null });
+                bindService(serviceBinder);
 
                 return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
             }

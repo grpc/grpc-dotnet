@@ -38,6 +38,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 // Register trailers container so tests can assert trailer headers
                 // Not thread safe for parallel calls
                 services.AddSingleton(TrailersContainer);
+
+                // Registers a service for tests to add new methods
+                services.AddSingleton<DynamicGrpcService>();
             };
 
             var builder = new WebHostBuilder()
@@ -46,11 +49,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             _server = new TestServer(builder);
 
+            DynamicGrpc = _server.Host.Services.GetRequiredService<DynamicGrpcService>();
+
             Client = _server.CreateClient();
             Client.BaseAddress = new Uri("http://localhost");
         }
 
         public TrailersContainer TrailersContainer { get; }
+
+        public DynamicGrpcService DynamicGrpc { get; }
 
         public HttpClient Client { get; }
 

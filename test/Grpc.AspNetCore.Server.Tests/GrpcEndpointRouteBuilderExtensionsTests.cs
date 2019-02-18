@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<object>());
             Assert.AreEqual("Unable to map gRPC service 'Object'.", ex.Message);
-            Assert.AreEqual($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(object).FullName}. The type must be an implementation of a gRPC service.", ex.InnerException.Message);
+            Assert.AreEqual($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(object).FullName}.", ex.InnerException.Message);
         }
 
         [Test]

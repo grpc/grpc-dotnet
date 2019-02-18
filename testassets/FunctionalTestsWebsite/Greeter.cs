@@ -116,20 +116,4 @@ class GreeterService : Greeter.GreeterBase
         _logger.LogInformation("Sending goodbye");
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
     }
-
-    public override Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)
-    {
-        context.WriteResponseHeadersAsync(null);
-
-        try
-        {
-            context.WriteResponseHeadersAsync(null);
-        }
-        catch (InvalidOperationException e) when (e.Message == "Response headers can only be sent once per call.")
-        {
-            return Task.FromResult(new HelloReply { Message = "Exception validated" });
-        }
-
-        return Task.FromResult(new HelloReply { Message = "No exception thrown" });
-    }
 }
