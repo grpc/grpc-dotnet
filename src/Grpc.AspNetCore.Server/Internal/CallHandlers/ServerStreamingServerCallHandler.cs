@@ -25,23 +25,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal class ServerStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
+    internal class ServerStreamingServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class
     {
-        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
-        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to ServerStreamingServerMethod<TRequest, TResponse>
-        // with an instance parameter.
-        private delegate Task ServerStreamingServerMethod(TService service, TRequest request, IServerStreamWriter<TResponse> stream, ServerCallContext serverCallContext);
+        private readonly ServerStreamingServerMethod<TService, TRequest, TResponse> _invoker;
 
-        private readonly ServerStreamingServerMethod _invoker;
-
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
-            var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
-            _invoker = (ServerStreamingServerMethod)Delegate.CreateDelegate(typeof(ServerStreamingServerMethod), handlerMethod);
+            _invoker = invoker;
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)

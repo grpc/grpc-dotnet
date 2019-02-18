@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
 {
     public class UnaryServerCallHandlerBenchmark
     {
-        private UnaryServerCallHandler<ChatMessage, ChatMessage, TestService> _callHandler;
+        private UnaryServerCallHandler<TestService, ChatMessage, ChatMessage> _callHandler;
         private ServiceProvider _requestServices;
         private DefaultHttpContext _httpContext;
         private HeaderDictionary _trailers;
@@ -46,7 +46,12 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
             var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
-            _callHandler = new UnaryServerCallHandler<ChatMessage, ChatMessage, TestService>(method, new GrpcServiceOptions<TestService>(), NullLoggerFactory.Instance);
+            var result = Task.FromResult(new ChatMessage());
+            _callHandler = new UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>(
+                method,
+                (service, request, context) => result,
+                new GrpcServiceOptions(),
+                NullLoggerFactory.Instance);
 
             _trailers = new HeaderDictionary();
 

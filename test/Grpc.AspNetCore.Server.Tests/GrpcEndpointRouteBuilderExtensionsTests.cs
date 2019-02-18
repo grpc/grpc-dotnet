@@ -49,14 +49,15 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
             services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<object>());
-            Assert.AreEqual("Unable to map gRPC service 'Object'.", ex.Message);
-            Assert.AreEqual($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(object).FullName}. The type must be an implementation of a gRPC service.", ex.InnerException.Message);
+            Assert.AreEqual("Error binding gRPC service 'Object'.", ex.Message);
+            Assert.AreEqual($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(object).FullName}.", ex.InnerException.Message);
         }
 
         [Test]

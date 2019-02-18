@@ -24,40 +24,46 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
+    /// <summary>
+    /// Service binder that is passed to ServiceImpl.BindService(ServiceBinderBase, ServiceImpl).
+    /// This will execute the call handler factory and create call handlers.
+    /// </summary>
     internal class GrpcServiceBinder<TService> : ServiceBinderBase where TService : class
     {
         private readonly IEndpointRouteBuilder _builder;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
+        private readonly IGrpcMethodInvokerFactory<TService> _serviceInvokerFactory;
 
         internal IList<IEndpointConventionBuilder> EndpointConventionBuilders { get; } = new List<IEndpointConventionBuilder>();
 
-        internal GrpcServiceBinder(IEndpointRouteBuilder builder, ServerCallHandlerFactory<TService> serverCallHandlerFactory)
+        internal GrpcServiceBinder(IEndpointRouteBuilder builder, ServerCallHandlerFactory<TService> serverCallHandlerFactory, IGrpcMethodInvokerFactory<TService> serviceInvoker)
         {
             _builder = builder;
             _serverCallHandlerFactory = serverCallHandlerFactory;
+            _serviceInvokerFactory = serviceInvoker;
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateClientStreaming(method);
+            var callHandler = _serverCallHandlerFactory.CreateClientStreaming(method, _serviceInvokerFactory.CreateClientStreamingInvoker(method));
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming(method);
+            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming(method, _serviceInvokerFactory.CreateDuplexStreamingInvoker(method));
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateServerStreaming(method);
+            var callHandler = _serverCallHandlerFactory.CreateServerStreaming(method, _serviceInvokerFactory.CreateServerStreamingInvoker(method));
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateUnary(method);
+            var callHandler = _serverCallHandlerFactory.CreateUnary(method, _serviceInvokerFactory.CreateUnaryInvoker(method));
             EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, callHandler.HandleCallAsync));
         }
     }

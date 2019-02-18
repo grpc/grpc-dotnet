@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal abstract class ServerCallHandlerBase<TRequest, TResponse, TService> : IServerCallHandler
+    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }

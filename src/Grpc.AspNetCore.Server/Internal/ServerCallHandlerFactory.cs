@@ -23,6 +23,9 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
+    /// <summary>
+    /// Creates server call handlers. Provides a place to get services that call handlers will use.
+    /// </summary>
     internal class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
@@ -45,32 +48,32 @@ namespace Grpc.AspNetCore.Server.Internal
             };
         }
 
-        public UnaryServerCallHandler<TRequest, TResponse, TService> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method)
+        public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
         }
 
-        public ClientStreamingServerCallHandler<TRequest, TResponse, TService> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
+        public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
+            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
         }
 
-        public DuplexStreamingServerCallHandler<TRequest, TResponse, TService> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
+        public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
+            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
         }
 
-        public ServerStreamingServerCallHandler<TRequest, TResponse, TService> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
+        public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
+            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
         }
     }
 }

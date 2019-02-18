@@ -25,23 +25,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal class DuplexStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
+    internal class DuplexStreamingServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class
     {
-        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
-        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to DuplexStreamingServerMethod<TRequest, TResponse>
-        // with an instance parameter.
-        private delegate Task DuplexStreamingServerMethod(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
+        private readonly DuplexStreamingServerMethod<TService, TRequest, TResponse> _invoker;
 
-        private readonly DuplexStreamingServerMethod _invoker;
-
-        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
-            var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
-            _invoker = (DuplexStreamingServerMethod)Delegate.CreateDelegate(typeof(DuplexStreamingServerMethod), handlerMethod);
+            _invoker = invoker;
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)
