@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal class ClientStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
@@ -68,6 +68,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (response == null)
                 {
+                    // This is consistent with Grpc.Core when a null value is returned
                     throw new RpcException(new Status(StatusCode.Cancelled, "Cancelled"));
                 }
 

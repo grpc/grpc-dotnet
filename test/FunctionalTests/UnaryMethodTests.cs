@@ -193,7 +193,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
 
             Assert.AreEqual(StatusCode.Unknown.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("Response headers can only be sent once per call.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            Assert.AreEqual("Exception was thrown by handler. InvalidOperationException: Response headers can only be sent once per call.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]

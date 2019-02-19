@@ -159,7 +159,15 @@ namespace Grpc.AspNetCore.Server.Internal
         protected override WriteOptions WriteOptionsCore { get; set; }
 
         // TODO(JunTaoLuo, JamesNK): implement this
-        protected override AuthContext AuthContextCore => throw new NotImplementedException();
+        protected override AuthContext AuthContextCore
+        {
+            get
+            {
+                // TODO(JunTaoLuo, JamesNK): Currently blocked on AuthContext constructor being internal
+                // https://github.com/grpc/grpc-dotnet/issues/72
+                throw new NotImplementedException("AuthContext will be implemented in a future version.");
+            }
+        }
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
@@ -173,7 +181,7 @@ namespace Grpc.AspNetCore.Server.Internal
             // Headers can only be written once. Throw on subsequent call to write response header instead of silent no-op.
             if (HttpContext.Response.HasStarted)
             {
-                throw new RpcException(new Status(StatusCode.Unknown, "Response headers can only be sent once per call."));
+                throw new InvalidOperationException("Response headers can only be sent once per call.");
             }
 
             if (responseHeaders != null)

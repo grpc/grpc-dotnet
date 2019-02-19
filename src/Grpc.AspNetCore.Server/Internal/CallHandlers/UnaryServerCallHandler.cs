@@ -72,6 +72,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (response == null)
                 {
+                    // This is consistent with Grpc.Core when a null value is returned
                     throw new RpcException(new Status(StatusCode.Cancelled, "Cancelled"));
                 }
 
