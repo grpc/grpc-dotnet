@@ -27,13 +27,13 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest>
     {
         private readonly HttpContext _httpContext;
-        private readonly GrpcServiceOptions _serviceOptions;
+        private readonly HttpContextServerCallContext _serverCallContext;
         private readonly Func<byte[], TRequest> _deserializer;
 
-        public HttpContextStreamReader(HttpContext context, GrpcServiceOptions serviceOptions, Func<byte[], TRequest> deserializer)
+        public HttpContextStreamReader(HttpContext context, HttpContextServerCallContext serverCallContext, Func<byte[], TRequest> deserializer)
         {
             _httpContext = context;
-            _serviceOptions = serviceOptions;
+            _serverCallContext = serverCallContext;
             _deserializer = deserializer;
         }
 
@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public async Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            var requestPayload = await _httpContext.Request.BodyPipe.ReadStreamMessageAsync(_serviceOptions);
+            var requestPayload = await _httpContext.Request.BodyPipe.ReadStreamMessageAsync(_serverCallContext);
 
             // Stream is complete
             if (requestPayload == null)

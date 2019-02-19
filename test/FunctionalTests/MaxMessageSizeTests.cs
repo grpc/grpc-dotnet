@@ -24,6 +24,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests;
+using Grpc.Core;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -32,7 +35,7 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class MaxMessageSizeTests : FunctionalTestBase
     {
         [Test]
-        public void ReceivedMessageExceedsSize_ThrowError()
+        public async Task ReceivedMessageExceedsSize_ThrowError()
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -44,16 +47,17 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidDataException>(() => Fixture.Client.PostAsync(
+            await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
-                new StreamContent(ms)).DefaultTimeout());
+                new StreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Message);
+            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]
-        public void SentMessageExceedsSize_ThrowError()
+        public async Task SentMessageExceedsSize_ThrowError()
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -65,12 +69,13 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(() => Fixture.Client.PostAsync(
+            await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloSendLargeReply",
-                new StreamContent(ms)).DefaultTimeout());
+                new StreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Message);
+            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
     }
 }

@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal class ServerStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
@@ -49,34 +49,39 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            // Decode request
-            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(ServiceOptions);
-            var request = Method.RequestMarshaller.Deserializer(requestPayload);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
 
-            // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
-            serverCallContext.Initialize();
-
-            // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service = null;
 
             try
             {
-                using (serverCallContext)
-                {
-                    await _invoker(
-                        service,
-                        request,
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer),
-                        serverCallContext);
-                }
+                serverCallContext.Initialize();
+
+                // Decode request
+                var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(serverCallContext);
+                var request = Method.RequestMarshaller.Deserializer(requestPayload);
+
+                service = activator.Create();
+
+                await _invoker(
+                    service,
+                    request,
+                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                    serverCallContext);
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
             }
             finally
             {
-                activator.Release(service);
+                serverCallContext.Dispose();
+                if (service != null)
+                {
+                    activator.Release(service);
+                }
             }
-
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
