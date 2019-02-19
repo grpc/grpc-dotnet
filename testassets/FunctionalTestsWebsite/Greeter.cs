@@ -58,6 +58,19 @@ class GreeterService : Greeter.GreeterBase
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
+    public override Task<HelloReply> SayHelloReturnNull(HelloRequest request, ServerCallContext context)
+    {
+        return Task.FromResult<HelloReply>(null);
+    }
+
+    public override Task<HelloReply> SayHelloThrowExceptionWithTrailers(HelloRequest request, ServerCallContext context)
+    {
+        var trailers = new Metadata();
+        trailers.Add(new Metadata.Entry("test-trailer", "A value!"));
+
+        return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
+    }
+
     public override Task<HelloReply> SayHelloSendLargeReply(HelloRequest request, ServerCallContext context)
     {
         _logger.LogInformation($"Sending hello to {request.Name}");
@@ -136,19 +149,13 @@ class GreeterService : Greeter.GreeterBase
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
     }
 
-    public override Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)
+    public override async Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)
     {
-        context.WriteResponseHeadersAsync(null);
+        await context.WriteResponseHeadersAsync(null);
 
-        try
-        {
-            context.WriteResponseHeadersAsync(null);
-        }
-        catch (InvalidOperationException e) when (e.Message == "Response headers can only be sent once per call.")
-        {
-            return Task.FromResult(new HelloReply { Message = "Exception validated" });
-        }
+        // This will throw an error
+        await context.WriteResponseHeadersAsync(null);
 
-        return Task.FromResult(new HelloReply { Message = "No exception thrown" });
+        return new HelloReply { Message = "Should never reach here." };
     }
 }

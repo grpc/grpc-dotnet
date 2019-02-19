@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal class ClientStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
@@ -49,34 +49,44 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
-            serverCallContext.Initialize();
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
 
-            // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service = null;
 
-            TResponse response;
-
+            TResponse response = null;
             try
             {
-                using (serverCallContext)
+                serverCallContext.Initialize();
+
+                service = activator.Create();
+
+                response = await _invoker(
+                    service,
+                    new HttpContextStreamReader<TRequest>(httpContext, serverCallContext, Method.RequestMarshaller.Deserializer),
+                    serverCallContext);
+
+                if (response == null)
                 {
-                    response = await _invoker(
-                        service,
-                        new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
-                        serverCallContext);
+                    // This is consistent with Grpc.Core when a null value is returned
+                    throw new RpcException(new Status(StatusCode.Cancelled, "Cancelled"));
                 }
+
+                var responseBodyPipe = httpContext.Response.BodyPipe;
+                await responseBodyPipe.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
             }
             finally
             {
-                activator.Release(service);
+                serverCallContext.Dispose();
+                if (service != null)
+                {
+                    activator.Release(service);
+                }
             }
-
-            // TODO(JunTaoLuo, JamesNK): make sure the response is not null
-            var responseBodyPipe = httpContext.Response.BodyPipe;
-            await responseBodyPipe.WriteMessageAsync(response, ServiceOptions, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 

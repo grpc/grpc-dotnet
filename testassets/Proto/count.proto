@@ -21,6 +21,7 @@ package Count;
 service Counter {
   // Get current count
   rpc IncrementCount (google.protobuf.Empty) returns (CounterReply) {}
+  rpc IncrementCountReturnNull (google.protobuf.Empty) returns (CounterReply) {}
   // Increment count through multiple counts
   rpc AccumulateCount (stream CounterRequest) returns (CounterReply) {}
 }

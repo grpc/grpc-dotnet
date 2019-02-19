@@ -391,7 +391,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger logger = null)
         {
-            return new HttpContextServerCallContext(httpContext, logger ?? NullLogger.Instance);
+            return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
         }
 
         private class TestHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature

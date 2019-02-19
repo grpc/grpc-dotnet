@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,40 +26,51 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly GrpcServiceOptions<TService> _serviceOptions;
+        private readonly GrpcServiceOptions _resolvedOptions;
 
-        public ServerCallHandlerFactory(ILoggerFactory loggerFactory, IOptions<GrpcServiceOptions<TService>> serviceOptions)
+        public ServerCallHandlerFactory(ILoggerFactory loggerFactory, IOptions<GrpcServiceOptions> globalOptions, IOptions<GrpcServiceOptions<TService>> serviceOptions)
         {
             _loggerFactory = loggerFactory;
-            _serviceOptions = serviceOptions.Value;
+
+            var so = serviceOptions.Value;
+            var go = globalOptions.Value;
+
+            // This is required to get ensure that service methods without any explicit configuration
+            // will continue to get the global configuration options
+            _resolvedOptions = new GrpcServiceOptions
+            {
+                EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
+                ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
+                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize
+            };
         }
 
         public UnaryServerCallHandler<TRequest, TResponse, TService> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
+            return new UnaryServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
         }
 
         public ClientStreamingServerCallHandler<TRequest, TResponse, TService> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
+            return new ClientStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
         }
 
         public DuplexStreamingServerCallHandler<TRequest, TResponse, TService> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
+            return new DuplexStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
         }
 
         public ServerStreamingServerCallHandler<TRequest, TResponse, TService> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TRequest, TResponse, TService>(method, _serviceOptions, _loggerFactory);
+            return new ServerStreamingServerCallHandler<TRequest, TResponse, TService>(method, _resolvedOptions, _loggerFactory);
         }
     }
 }

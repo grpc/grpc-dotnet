@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal class DuplexStreamingServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
         where TRequest : class
@@ -49,28 +49,34 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
-            serverCallContext.Initialize();
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
 
-            // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service = null;
 
             try
             {
-                using (serverCallContext)
-                {
-                    await _invoker(
-                        service,
-                        new HttpContextStreamReader<TRequest>(httpContext, ServiceOptions, Method.RequestMarshaller.Deserializer),
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, ServiceOptions, Method.ResponseMarshaller.Serializer),
-                        serverCallContext);
-                }
+                serverCallContext.Initialize();
+
+                service = activator.Create();
+
+                await _invoker(
+                    service,
+                    new HttpContextStreamReader<TRequest>(httpContext, serverCallContext, Method.RequestMarshaller.Deserializer),
+                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                    serverCallContext);
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
             }
             finally
             {
-                activator.Release(service);
+                serverCallContext.Dispose();
+                if (service != null)
+                {
+                    activator.Release(service);
+                }
             }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);

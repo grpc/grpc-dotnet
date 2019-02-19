@@ -23,10 +23,8 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -34,8 +32,6 @@ namespace Grpc.AspNetCore.Server.Tests
     [TestFixture]
     public class HttpContextStreamWriterTests
     {
-        private static readonly GrpcServiceOptions TestServiceOptions = new GrpcServiceOptions();
-
         [Test]
         public async Task WriteAsync_DefaultWriteOptions_Flushes()
         {
@@ -44,8 +40,8 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
-            var serverCallContext = new HttpContextServerCallContext(httpContext, NullLogger.Instance);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, TestServiceOptions, (message) => message.ToByteArray());
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
 
             // Act 1
             await writer.WriteAsync(new HelloReply
@@ -82,8 +78,8 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
-            var serverCallContext = new HttpContextServerCallContext(httpContext, NullLogger.Instance);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, TestServiceOptions, (message) => message.ToByteArray());
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
             serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
 
             // Act 1 

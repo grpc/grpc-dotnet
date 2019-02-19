@@ -49,38 +49,48 @@ namespace Grpc.AspNetCore.Server.Internal
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
 
-            // Decode request
-            var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(ServiceOptions);
-            var request = Method.RequestMarshaller.Deserializer(requestPayload);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
 
-            // Setup ServerCallContext
-            var serverCallContext = new HttpContextServerCallContext(httpContext, Logger);
-            serverCallContext.Initialize();
-
-            // Activate the implementation type via DI.
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            var service = activator.Create();
+            TService service = null;
 
-            TResponse response;
-
+            TResponse response = null;
             try
             {
-                using (serverCallContext)
+                serverCallContext.Initialize();
+
+                var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(serverCallContext);
+
+                var request = Method.RequestMarshaller.Deserializer(requestPayload);
+
+                service = activator.Create();
+
+                response = await _invoker(
+                    service,
+                    request,
+                    serverCallContext);
+
+                if (response == null)
                 {
-                    response = await _invoker(
-                        service,
-                        request,
-                        serverCallContext);
+                    // This is consistent with Grpc.Core when a null value is returned
+                    throw new RpcException(new Status(StatusCode.Cancelled, "Cancelled"));
                 }
+
+                var responseBodyPipe = httpContext.Response.BodyPipe;
+                await responseBodyPipe.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
             }
             finally
             {
-                activator.Release(service);
+                serverCallContext.Dispose();
+                if (service != null)
+                {
+                    activator.Release(service);
+                }
             }
-
-            // TODO(JunTaoLuo, JamesNK): make sure the response is not null
-            var responseBodyPipe = httpContext.Response.BodyPipe;
-            await responseBodyPipe.WriteMessageAsync(response, ServiceOptions, Method.ResponseMarshaller.Serializer, serverCallContext.WriteOptions);
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
