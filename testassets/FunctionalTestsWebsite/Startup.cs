@@ -38,6 +38,8 @@ namespace FunctionalTestsWebsite
                     options.SendMaxMessageSize = 64 * 1024;
                     options.ReceiveMaxMessageSize = 64 * 1024;
                 });
+            services.AddHttpContextAccessor();
+
             services.AddScoped<IncrementingCounter>();
 
             // When the site is run from the test project a signaler will already be registered

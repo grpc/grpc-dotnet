@@ -21,21 +21,40 @@ using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 class GreeterService : Greeter.GreeterBase
 {
     private readonly ILogger _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public GreeterService(ILoggerFactory loggerFactory)
+    public GreeterService(ILoggerFactory loggerFactory, IHttpContextAccessor httpContextAccessor)
     {
         _logger = loggerFactory.CreateLogger<GreeterService>();
+        _httpContextAccessor = httpContextAccessor;
     }
 
     //Server side handler of the SayHello RPC
     public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {
         _logger.LogInformation($"Sending hello to {request.Name}");
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+    }
+
+    public override Task<HelloReply> SayHelloWithHttpContextAccessor(HelloRequest request, ServerCallContext context)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
+
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+    }
+
+    public override Task<HelloReply> SayHelloWithHttpContextExtensionMethod(HelloRequest request, ServerCallContext context)
+    {
+        var httpContext = context.GetHttpContext();
+        context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
+
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 

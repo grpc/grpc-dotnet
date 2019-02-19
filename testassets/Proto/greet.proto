@@ -20,6 +20,8 @@ package Greet;
 service Greeter {
   // Sends a greeting
   rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc SayHelloWithHttpContextAccessor (HelloRequest) returns (HelloReply) {}
+  rpc SayHelloWithHttpContextExtensionMethod (HelloRequest) returns (HelloReply) {}
   rpc SayHelloSendLargeReply (HelloRequest) returns (HelloReply) {}
   rpc SayHelloSendHeadersTwice (HelloRequest) returns (HelloReply) {}
   rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
