@@ -27,7 +27,11 @@ Documentation and guides are coming soon! In the mean time we suggest referring 
 
 ## To develop gRPC for ASP.NET Core
 
-Install [.NET Core SDK 3 preview 2](https://dotnet.microsoft.com/download/dotnet-core/3.0).
+Installing .NET Core SDK:
+```
+# Run this script before building the project.
+./build/get-dotnet.sh or ./build/get-dotnet.ps1
+```
 
 Setting up local feed with unreleased Grpc.* packages:
 ```
