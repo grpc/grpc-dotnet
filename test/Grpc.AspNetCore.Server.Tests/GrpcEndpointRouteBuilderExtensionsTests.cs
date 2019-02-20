@@ -82,7 +82,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
-            Assert.AreEqual("POST", ((IHttpMethodMetadata)routeEndpoint2.Metadata.Single(m => m is HttpMethodMetadata)).HttpMethods.Single());
+            Assert.AreEqual("POST", routeEndpoint2.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
         }
 
         [Test]
