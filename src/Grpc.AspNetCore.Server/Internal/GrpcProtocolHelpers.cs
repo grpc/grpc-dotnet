@@ -71,6 +71,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public static bool IsGrpcContentType(string contentType)
         {
+            if (contentType == null)
+            {
+                return false;
+            }
+
             if (!contentType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
@@ -145,6 +150,18 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             return Convert.FromBase64String(decodable);
+        }
+
+        public static void AddProtocolHeaders(HttpResponse response)
+        {
+            response.ContentType = "application/grpc";
+            response.Headers.Append("grpc-encoding", "identity");
+        }
+
+        public static void AppendStatusTrailers(HttpResponse response, Status status)
+        {
+            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
+            response.AppendTrailer(GrpcProtocolConstants.MessageTrailer, status.Detail);
         }
     }
 }

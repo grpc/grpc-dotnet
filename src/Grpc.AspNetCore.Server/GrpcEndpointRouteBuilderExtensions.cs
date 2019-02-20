@@ -70,7 +70,9 @@ namespace Microsoft.AspNetCore.Builder
             configureOptions?.Invoke(options);
 
             var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, callHandlerFactory, options.InvokerFactory);
+            var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
+
+            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.InvokerFactory, callHandlerFactory, serviceMethodsRegistry);
 
             try
             {
@@ -80,6 +82,8 @@ namespace Microsoft.AspNetCore.Builder
             {
                 throw new InvalidOperationException($"Error binding gRPC service '{typeof(TService).Name}'.", ex);
             }
+
+            serviceBinder.CreateUnimplementedEndpoints();
 
             return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
         }
@@ -109,6 +113,7 @@ namespace Microsoft.AspNetCore.Builder
                 throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {serviceType.FullName}.");
             }
 
+            // Invoke BindService(ServiceBinderBase, BaseType)
             bindService.Invoke(null, new object[] { binder, service });
         }
 

@@ -63,6 +63,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddRouting();
             services.AddOptions();
             services.TryAddSingleton<GrpcMarkerService>();
+            services.TryAddSingleton<ServiceMethodsRegistry>();
             services.TryAddSingleton(typeof(ServerCallHandlerFactory<>));
             services.TryAddScoped(typeof(IGrpcServiceActivator<>), typeof(DefaultGrpcServiceActivator<>));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<GrpcServiceOptions>, GrpcServiceOptionsSetup>());

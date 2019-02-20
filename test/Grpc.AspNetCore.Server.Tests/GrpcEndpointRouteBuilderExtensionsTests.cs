@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Greet;
+using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -91,16 +92,21 @@ namespace Grpc.AspNetCore.Server.Tests
             routeBuilder.MapGrpcService<TService>();
 
             // Assert
-            var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .ToList();
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
             Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint1.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.Metadata.GetMetadata<IMethod>().FullName);
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint2.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
+            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<IMethod>().FullName);
         }
 
         [Test]
@@ -120,14 +126,17 @@ namespace Grpc.AspNetCore.Server.Tests
             });
 
             // Assert
-            var dataSource = routeBuilder.DataSources.Single();
-            Assert.AreEqual(2, dataSource.Endpoints.Count);
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .ToList();
+            Assert.AreEqual(2, endpoints.Count);
 
-            var routeEndpoint1 = (RouteEndpoint)dataSource.Endpoints[0];
+            var routeEndpoint1 = (RouteEndpoint)endpoints[0];
             Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint1.Metadata.GetMetadata<CustomMetadata>());
 
-            var routeEndpoint2 = (RouteEndpoint)dataSource.Endpoints[1];
+            var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
         }

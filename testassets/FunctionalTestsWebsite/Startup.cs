@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -80,11 +81,19 @@ namespace FunctionalTestsWebsite
                 // Bind via reflection
                 builder.MapGrpcService<ChatterService>();
                 builder.MapGrpcService<CounterService>();
+				
+				builder.MapGrpcService<SecondGreeterService>();
 
                 // Bind via configure method
                 builder.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
 
                 builder.DataSources.Add(builder.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
+
+                builder.Map("{FirstSegment}/{SecondSegment}", context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status418ImATeapot;
+                    return Task.CompletedTask;
+                });
             });
 
             app.Use(async (context, next) =>
