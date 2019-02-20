@@ -35,7 +35,7 @@ Installing .NET Core SDK:
 
 Setting up local feed with unreleased Grpc.* packages:
 ```
-# For the time being, we are depending on unreleased Grpc.* packages.
+# We may depend on unreleased Grpc.* packages.
 # Run this script before building the project.
 ./build/get-grpc.sh or ./build/get-grpc.ps1
 ```
