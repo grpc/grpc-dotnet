@@ -55,6 +55,24 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromException(new RpcException(SendingMessageExceedsLimitStatus));
             }
 
+            if (!serverCallContext.HttpContext.Response.HasStarted)
+            {
+                return pipeWriter.WriteMessageCoreInitialAsync(messageData, serverCallContext, flush);
+            }
+
+            return pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
+        }
+
+        private static async Task WriteMessageCoreInitialAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
+        {
+            // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
+            await serverCallContext.HttpContext.Response.StartAsync();
+
+            await pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
+        }
+
+        private static Task WriteMessageCoreAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
+        {
             WriteHeader(pipeWriter, messageData.Length);
             pipeWriter.Write(messageData);
 
@@ -77,7 +95,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static void WriteHeader(PipeWriter pipeWriter, int length)
         {
-            Span<byte> headerData = pipeWriter.GetSpan(HeaderSize);
+            var headerData = pipeWriter.GetSpan(HeaderSize);
             // Messages are currently always uncompressed
             headerData[0] = 0;
             EncodeMessageLength(length, headerData.Slice(1));
