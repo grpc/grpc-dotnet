@@ -9,5 +9,6 @@ branches:
   only:
     - master
 script:
-  - source build/get-dotnet.sh
+  - ./build/get-dotnet.sh
+  - export PATH="~/.dotnet/:$PATH"
   - ./build_and_test.sh
