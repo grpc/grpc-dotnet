@@ -56,14 +56,10 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
-            var response = serverCallContext.HttpContext.Response;
-            if (!response.HasStarted)
+            var startAsyncTask = serverCallContext.HttpContext.Response.StartAsync();
+            if (!startAsyncTask.IsCompletedSuccessfully)
             {
-                var startAsyncTask = response.StartAsync();
-                if (!startAsyncTask.IsCompletedSuccessfully)
-                {
-                    return pipeWriter.WriteMessageCoreAsyncAwaited(messageData, serverCallContext, flush, startAsyncTask);
-                }
+                return pipeWriter.WriteMessageCoreAsyncAwaited(messageData, serverCallContext, flush, startAsyncTask);
             }
 
             return pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
