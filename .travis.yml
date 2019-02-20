@@ -9,5 +9,5 @@ branches:
   only:
     - master
 script:
-  - ./build/get-dotnet.sh
+  - source build/get-dotnet.sh
   - ./build_and_test.sh
