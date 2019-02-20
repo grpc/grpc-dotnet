@@ -199,7 +199,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
             }
 
-            return HttpContext.Response.StartAsync();
+            return HttpContext.Response.Body.FlushAsync();
         }
 
         public void Initialize()

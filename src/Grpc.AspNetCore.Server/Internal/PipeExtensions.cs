@@ -55,19 +55,23 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromException(new RpcException(SendingMessageExceedsLimitStatus));
             }
 
-            if (!serverCallContext.HttpContext.Response.HasStarted)
+            // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
+            var response = serverCallContext.HttpContext.Response;
+            if (!response.HasStarted)
             {
-                return pipeWriter.WriteMessageCoreInitialAsync(messageData, serverCallContext, flush);
+                var startAsyncTask = response.StartAsync();
+                if (!startAsyncTask.IsCompletedSuccessfully)
+                {
+                    return pipeWriter.WriteMessageCoreAsyncAwaited(messageData, serverCallContext, flush, startAsyncTask);
+                }
             }
 
             return pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
         }
 
-        private static async Task WriteMessageCoreInitialAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
+        private static async Task WriteMessageCoreAsyncAwaited(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush, Task startAsyncTask)
         {
-            // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
-            await serverCallContext.HttpContext.Response.StartAsync();
-
+            await startAsyncTask;
             await pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
         }
 
