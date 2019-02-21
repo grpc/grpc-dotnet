@@ -20,6 +20,7 @@ using System;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
