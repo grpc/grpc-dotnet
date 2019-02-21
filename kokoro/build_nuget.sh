@@ -18,12 +18,12 @@ set -ex
 # change to grpc repo root
 cd $(dirname $0)/..
 
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+
 # Install dotnet SDK
-# copied from .travis.yml
-curl -o dotnet-sdk.tar.gz -sSL https://download.visualstudio.microsoft.com/download/pr/efa6dde9-a5ee-4322-b13c-a2a02d3980f0/dad445eba341c1d806bae5c8afb47015/dotnet-sdk-3.0.100-preview-010184-linux-x64.tar.gz
-mkdir -p $PWD/dotnet
-tar zxf dotnet-sdk.tar.gz -C $PWD/dotnet
-export PATH="$PWD/dotnet:$PATH"
+sudo apt-get install -y jq
+./build/get-dotnet.sh
+export PATH="$HOME/.dotnet/:$PATH"
 
 # TODO(jtattermusch): remove this before release, otherwise 
 # references will be broken.
