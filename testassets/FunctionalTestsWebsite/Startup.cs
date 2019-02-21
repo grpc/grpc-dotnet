@@ -67,6 +67,8 @@ namespace FunctionalTestsWebsite
 
                 // Workaround for https://github.com/aspnet/AspNetCore/issues/7449
                 context.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
+                // Workaround for https://github.com/aspnet/AspNetCore/issues/7780
+                context.Features.Set<IHttpResponseStartFeature>(new TestHttpResponseStartFeature());
 
                 return next();
             });
