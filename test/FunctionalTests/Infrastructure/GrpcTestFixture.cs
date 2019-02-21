@@ -46,8 +46,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 .UseStartup<TStartup>();
 
             _server = new TestServer(builder);
-            // Temporary workaround, this should be added to the TestServer by default
-            _server.Features.Set<IHttpResponseStartFeature>(new TestHttpResponseStartFeature());
 
             Client = _server.CreateClient();
             Client.BaseAddress = new Uri("http://localhost");

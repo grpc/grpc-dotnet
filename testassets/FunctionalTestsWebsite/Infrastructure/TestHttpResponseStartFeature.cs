@@ -20,11 +20,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace FunctionalTestsWebsite.Infrastructure
 {
     internal class TestHttpResponseStartFeature : IHttpResponseStartFeature
     {
-        public Task StartAsync(CancellationToken token = default)
+        public Task StartAsync(CancellationToken token = default(CancellationToken))
         {
             return Task.CompletedTask;
         }
