@@ -20,19 +20,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Chat;
-using Microsoft.Extensions.Logging;
 
 namespace FunctionalTestsWebsite
 {
     public class ChatterService : Chatter.ChatterBase
     {
-        private readonly ILogger _logger;
-
-        public ChatterService(ILoggerFactory loggerFactory)
-        {
-            _logger = loggerFactory.CreateLogger<ChatterService>();
-        }
-
         private static HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
 
         public override Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
@@ -40,14 +32,7 @@ namespace FunctionalTestsWebsite
             return ChatCore(requestStream, responseStream);
         }
 
-        public override Task ChatBufferHint(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
-        {
-            context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
-
-            return ChatCore(requestStream, responseStream);
-        }
-
-        private async Task ChatCore(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream)
+        public static async Task ChatCore(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream)
         {
             if (!await requestStream.MoveNext())
             {
@@ -55,27 +40,21 @@ namespace FunctionalTestsWebsite
                 return;
             }
 
-            var user = requestStream.Current.Name;
-
-            // Warning, the following is very racy but good enough for a proof of concept
-            // Register subscriber
-            _logger.LogInformation($"{user} connected");
+            // Warning, the following is very racy
             _subscribers.Add(responseStream);
 
             do
             {
-                await BroadcastMessageAsync(requestStream.Current, _logger);
+                await BroadcastMessageAsync(requestStream.Current);
             } while (await requestStream.MoveNext());
 
             _subscribers.Remove(responseStream);
-            _logger.LogInformation($"{user} disconnected");
         }
 
-        private static async Task BroadcastMessageAsync(ChatMessage message, ILogger logger)
+        private static async Task BroadcastMessageAsync(ChatMessage message)
         {
             foreach (var subscriber in _subscribers)
             {
-                logger.LogInformation($"Broadcasting: {message.Name} - {message.Message}");
                 await subscriber.WriteAsync(message);
             }
         }

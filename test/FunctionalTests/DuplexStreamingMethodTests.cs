@@ -24,6 +24,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Chat;
+using FunctionalTestsWebsite;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests;
@@ -100,7 +101,16 @@ namespace Grpc.AspNetCore.FunctionalTests
         [Test]
         public async Task BufferHint_SuccessResponses()
         {
+            static Task ChatBufferHint(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
+            {
+                context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+
+                return ChatterService.ChatCore(requestStream, responseStream);
+            }
+
             // Arrange
+            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<UnaryMethodTests, ChatMessage, ChatMessage>(ChatBufferHint);
+
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage
             {
@@ -110,7 +120,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var requestStream = new SyncPointMemoryStream();
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Chat.Chatter/ChatBufferHint");
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Content = new StreamContent(requestStream);
 
             // Act

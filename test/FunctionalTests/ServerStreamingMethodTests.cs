@@ -129,7 +129,16 @@ namespace Grpc.AspNetCore.FunctionalTests
         [Test]
         public async Task Buffering_SuccessResponsesStreamed()
         {
+            static Task SayHellosBufferHint(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+
+                return GreeterService.SayHellosCore(request, responseStream);
+            }
+
             // Arrange
+            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<UnaryMethodTests, HelloRequest, HelloReply>(SayHellosBufferHint);
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -138,7 +147,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellosBufferHint");
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Content = new StreamContent(requestStream);
 
             // Act
