@@ -148,14 +148,4 @@ class GreeterService : Greeter.GreeterBase
         _logger.LogInformation("Sending goodbye");
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
     }
-
-    public override async Task<HelloReply> SayHelloSendHeadersTwice(HelloRequest request, ServerCallContext context)
-    {
-        await context.WriteResponseHeadersAsync(null);
-
-        // This will throw an error
-        await context.WriteResponseHeadersAsync(null);
-
-        return new HelloReply { Message = "Should never reach here." };
-    }
 }
