@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(new PipeReaderFixStream(responseStream));
+            var pipeReader = new StreamPipeReader(responseStream);
 
             var messageCount = 0;
 
