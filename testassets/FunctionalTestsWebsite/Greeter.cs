@@ -24,7 +24,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-class GreeterService : Greeter.GreeterBase
+public class GreeterService : Greeter.GreeterBase
 {
     private readonly ILogger _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -87,18 +87,11 @@ class GreeterService : Greeter.GreeterBase
         await SayHellosCore(request, responseStream);
     }
 
-    public override Task SayHellosBufferHint(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    public override async Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
-        context.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+        await context.WriteResponseHeadersAsync(null);
 
-        return SayHellosCore(request, responseStream);
-    }
-
-    public override Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-    {
-        context.WriteResponseHeadersAsync(null);
-
-        return SayHellosCore(request, responseStream);
+        await SayHellosCore(request, responseStream);
     }
 
     public override async Task SayHellosDeadline(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
@@ -130,7 +123,7 @@ class GreeterService : Greeter.GreeterBase
         }
     }
 
-    private async Task SayHellosCore(HelloRequest request, IServerStreamWriter<HelloReply> responseStream)
+    public static async Task SayHellosCore(HelloRequest request, IServerStreamWriter<HelloReply> responseStream)
     {
         for (var i = 0; i < 3; i++)
         {
@@ -138,14 +131,12 @@ class GreeterService : Greeter.GreeterBase
             await Task.Delay(100);
 
             var message = $"How are you {request.Name}? {i}";
-            _logger.LogInformation($"Sending greeting {message}");
             await responseStream.WriteAsync(new HelloReply { Message = message });
         }
 
         // Gotta look busy
         await Task.Delay(100);
 
-        _logger.LogInformation("Sending goodbye");
         await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
     }
 }
