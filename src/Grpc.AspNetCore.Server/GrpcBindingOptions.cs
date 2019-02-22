@@ -16,24 +16,23 @@
 
 #endregion
 
+using System;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
+
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// A <see cref="TGrpcService"/> activator abstraction.
+    /// Options used to configure the binding of a gRPC service.
     /// </summary>
-    /// <typeparam name="TGrpcService">The service type.</typeparam>
-    public interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    public class GrpcBindingOptions<TService>
     {
         /// <summary>
-        /// Creates a service.
+        /// The action invoked to get service metadata via <see cref="ServiceBinderBase"/>.
         /// </summary>
-        /// <returns>The created service.</returns>
-        TGrpcService Create();
+        public Action<ServiceBinderBase, TService> BindAction { get; set; }
 
-        /// <summary>
-        /// Releases the specified service.
-        /// </summary>
-        /// <param name="hub">The service to release.</param>
-        void Release(TGrpcService service);
+        // Currently internal. It is set in tests via InternalVisibleTo. Can be made public if there is demand for it
+        internal IGrpcMethodInvokerFactory<TService> InvokerFactory { get; set; }
     }
 }

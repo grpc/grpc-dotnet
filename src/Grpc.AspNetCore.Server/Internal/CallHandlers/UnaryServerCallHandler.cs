@@ -25,23 +25,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class UnaryServerCallHandler<TRequest, TResponse, TService> : ServerCallHandlerBase<TRequest, TResponse, TService>
+    internal class UnaryServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class
     {
-        // We're using an open delegate (the first argument is the TService instance) to represent the call here since the instance is create per request.
-        // This is the reason we're not using the delegates defined in Grpc.Core. This delegate maps to UnaryServerMethod<TRequest, TResponse>
-        // with an instance parameter.
-        private delegate Task<TResponse> UnaryServerMethod(TService service, TRequest request, ServerCallContext serverCallContext);
 
-        private readonly UnaryServerMethod _invoker;
+        private readonly UnaryServerMethod<TService, TRequest, TResponse> _invoker;
 
-        public UnaryServerCallHandler(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public UnaryServerCallHandler(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
         {
-            var handlerMethod = typeof(TService).GetMethod(Method.Name);
-
-            _invoker = (UnaryServerMethod)Delegate.CreateDelegate(typeof(UnaryServerMethod), handlerMethod);
+            _invoker = invoker;
         }
 
         public override async Task HandleCallAsync(HttpContext httpContext)

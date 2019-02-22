@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
@@ -173,6 +174,15 @@ namespace Grpc.AspNetCore.FunctionalTests
         [Test]
         public async Task SendHeadersTwice_ThrowsException()
         {
+            static async Task<HelloReply> ReturnHeadersTwice(HelloRequest request, ServerCallContext context)
+            {
+                await context.WriteResponseHeadersAsync(null);
+
+                await context.WriteResponseHeadersAsync(null);
+
+                return new HelloReply { Message = "Should never reach here" };
+            }
+
             // Arrange
             var requestMessage = new HelloRequest
             {
@@ -182,9 +192,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(ReturnHeadersTwice);
+
             // Act
             var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHelloSendHeadersTwice",
+                url,
                 new StreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -243,6 +255,50 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(StatusCode.Unknown.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
             Assert.AreEqual("User error", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
             Assert.AreEqual("A value!", Fixture.TrailersContainer.Trailers["test-trailer"].Single());
+        }
+
+        [Test]
+        public async Task ValidRequest_ReturnContextInfoInTrailers()
+        {
+            static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
+            {
+                context.ResponseTrailers.Add("Test-Method", context.Method);
+                context.ResponseTrailers.Add("Test-Peer", context.Peer ?? string.Empty); // null because there is not a remote ip address
+                context.ResponseTrailers.Add("Test-Host", context.Host);
+
+                return Task.FromResult(new Empty());
+            }
+
+            // Arrange
+            var requestMessage = new Empty();
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, Empty, Empty>(ReturnContextInfoInTrailers);
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                url,
+                new StreamContent(ms)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<Empty>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            Assert.IsNotNull(responseMessage);
+
+            var methodParts = Fixture.TrailersContainer.Trailers["Test-Method"].ToString().Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var serviceName = methodParts[0];
+            var methodName = methodParts[1];
+
+            Assert.AreEqual("UnaryMethodTests", serviceName);
+            Assert.IsTrue(Guid.TryParse(methodName, out var _));
+
+            Assert.AreEqual(string.Empty, Fixture.TrailersContainer.Trailers["Test-Peer"].ToString());
+            Assert.AreEqual("localhost", Fixture.TrailersContainer.Trailers["Test-Host"].ToString());
         }
     }
 }

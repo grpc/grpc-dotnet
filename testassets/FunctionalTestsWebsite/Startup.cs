@@ -49,6 +49,8 @@ namespace FunctionalTestsWebsite
             // When the site is run from the test project a signaler will already be registered
             // This will add a default one if the site is run standalone
             services.TryAddSingleton<TrailersContainer>();
+
+            services.TryAddSingleton<DynamicEndpointDataSource>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -75,9 +77,14 @@ namespace FunctionalTestsWebsite
 
             app.UseRouting(builder =>
             {
+                // Bind via reflection
                 builder.MapGrpcService<ChatterService>();
                 builder.MapGrpcService<CounterService>();
-                builder.MapGrpcService<GreeterService>();
+
+                // Bind via configure method
+                builder.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
+
+                builder.DataSources.Add(builder.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
             });
 
             app.Use(async (context, next) =>
