@@ -63,6 +63,23 @@ namespace Grpc.AspNetCore.Server.Tests
         [Test]
         public void MapGrpcService_CanBind_CreatesEndpoints()
         {
+            BindServiceCore<GreeterService>();
+        }
+
+        [Test]
+        public void MapGrpcService_CanBindSubclass_CreatesEndpoints()
+        {
+            BindServiceCore<GreeterServiceSubClass>();
+        }
+
+        [Test]
+        public void MapGrpcService_CanBindSubSubclass_CreatesEndpoints()
+        {
+            BindServiceCore<GreeterServiceSubSubClass>();
+        }
+
+        private void BindServiceCore<TService>() where TService : class
+        {
             // Arrange
             ServiceCollection services = new ServiceCollection();
             services.AddLogging();
@@ -71,7 +88,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterService>();
+            routeBuilder.MapGrpcService<TService>();
 
             // Assert
             var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
@@ -116,6 +133,14 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         private class GreeterService : Greeter.GreeterBase
+        {
+        }
+
+        private class GreeterServiceSubClass : GreeterService
+        {
+        }
+
+        private class GreeterServiceSubSubClass : GreeterServiceSubClass
         {
         }
 
