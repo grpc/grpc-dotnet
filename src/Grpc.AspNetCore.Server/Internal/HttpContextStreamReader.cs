@@ -20,19 +20,19 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest>
     {
-        private readonly HttpContext _httpContext;
+        private static readonly Task<bool> True = Task.FromResult(true);
+        private static readonly Task<bool> False = Task.FromResult(false);
+
         private readonly HttpContextServerCallContext _serverCallContext;
         private readonly Func<byte[], TRequest> _deserializer;
 
-        public HttpContextStreamReader(HttpContext context, HttpContextServerCallContext serverCallContext, Func<byte[], TRequest> deserializer)
+        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<byte[], TRequest> deserializer)
         {
-            _httpContext = context;
             _serverCallContext = serverCallContext;
             _deserializer = deserializer;
         }
@@ -41,10 +41,29 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public void Dispose() { }
 
-        public async Task<bool> MoveNext(CancellationToken cancellationToken)
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            var requestPayload = await _httpContext.Request.BodyPipe.ReadStreamMessageAsync(_serverCallContext);
+            async Task<bool> MoveNextAsync(ValueTask<byte[]> readStreamTask)
+            {
+                return ProcessPayload(await readStreamTask);
+            }
 
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Task.FromCanceled<bool>(cancellationToken);
+            }
+
+            var readStreamTask = _serverCallContext.HttpContext.Request.BodyPipe.ReadStreamMessageAsync(_serverCallContext, cancellationToken);
+            if (!readStreamTask.IsCompletedSuccessfully)
+            {
+                return MoveNextAsync(readStreamTask);
+            }
+
+            return ProcessPayload(readStreamTask.Result) ? True : False;
+        }
+
+        private bool ProcessPayload(byte[] requestPayload)
+        {
             // Stream is complete
             if (requestPayload == null)
             {

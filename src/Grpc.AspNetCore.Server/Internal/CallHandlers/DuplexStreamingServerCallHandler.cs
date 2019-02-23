@@ -55,7 +55,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 await _invoker(
                     service,
-                    new HttpContextStreamReader<TRequest>(httpContext, serverCallContext, Method.RequestMarshaller.Deserializer),
+                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
                     new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
                     serverCallContext);
             }

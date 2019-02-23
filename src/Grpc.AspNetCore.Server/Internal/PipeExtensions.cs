@@ -22,6 +22,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
@@ -234,11 +235,11 @@ namespace Grpc.AspNetCore.Server.Internal
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context)
+        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context, CancellationToken cancellationToken = default)
         {
             while (true)
             {
-                var result = await input.ReadAsync();
+                var result = await input.ReadAsync(cancellationToken);
                 var buffer = result.Buffer;
 
                 try

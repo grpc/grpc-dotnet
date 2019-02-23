@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 response = await _invoker(
                     service,
-                    new HttpContextStreamReader<TRequest>(httpContext, serverCallContext, Method.RequestMarshaller.Deserializer),
+                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
                     serverCallContext);
 
                 if (response == null)
