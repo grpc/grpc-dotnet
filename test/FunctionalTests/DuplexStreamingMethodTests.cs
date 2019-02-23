@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Chat.Chatter/Chat");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -121,7 +121,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -129,7 +129,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
 
-            await requestStream.AddDataAndWait(ms.ToArray());
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response");
 
             ms = new MemoryStream();
@@ -139,10 +139,10 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Message = "Hello John"
             });
 
-            await requestStream.AddDataAndWait(ms.ToArray());
+            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response");
 
-            await requestStream.AddDataAndWait(Array.Empty<byte>());
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
 

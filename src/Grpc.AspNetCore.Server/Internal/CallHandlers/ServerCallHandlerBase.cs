@@ -22,7 +22,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
     {
@@ -37,6 +37,16 @@ namespace Grpc.AspNetCore.Server.Internal
             Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 
-        public abstract Task HandleCallAsync(HttpContext httpContext);
+        public Task HandleCallAsync(HttpContext httpContext)
+        {
+            if (!GrpcProtocolHelpers.IsValidContentType(httpContext, out var error))
+            {
+                return GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCode.Internal, error);
+            }
+
+            return HandleCallAsyncCore(httpContext);
+        }
+
+        protected abstract Task HandleCallAsyncCore(HttpContext httpContext);
     }
 }

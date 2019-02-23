@@ -16,14 +16,21 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Internal
-{
-    internal static class GrpcProtocolConstants
-    {
-        internal const string GrpcContentType = "application/grpc";
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using Grpc.AspNetCore.Server.Internal;
 
-        internal const string TimeoutHeader = "grpc-timeout";
-        internal const string StatusTrailer = "grpc-status";
-        internal const string MessageTrailer = "grpc-message";
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+{
+    public class GrpcStreamContent : StreamContent
+    {
+        public GrpcStreamContent(Stream content) : base(content)
+        {
+            Headers.ContentType = new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
+        }
     }
 }
