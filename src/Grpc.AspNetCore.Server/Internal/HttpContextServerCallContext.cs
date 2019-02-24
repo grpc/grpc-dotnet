@@ -41,6 +41,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private DateTime _deadline;
         private Timer _deadlineTimer;
         private Status _status;
+        private string _grpcEncoding;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -218,6 +219,13 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = DateTime.MaxValue;
             }
+
+            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageEncodingHeader, out var values))
+            {
+                _grpcEncoding = values;
+            }
+
+            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, GetGrpcEncoding() ?? GrpcProtocolConstants.IdentityGrpcEncoding);
         }
 
         private TimeSpan GetTimeout()
@@ -251,6 +259,66 @@ namespace Grpc.AspNetCore.Server.Internal
         public void Dispose()
         {
             _deadlineTimer?.Dispose();
+        }
+
+        internal string GetGrpcEncoding()
+        {
+            // In order of precedence:
+            // 1. Compression algorithm of request
+            // 2. Compression algorithm configured on server
+            return _grpcEncoding ?? ServiceOptions.DefaultCompressionAlgorithm;
+        }
+
+        internal bool GrpcAcceptEncodingMatch(string encoding)
+        {
+            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageAcceptEncodingHeader, out var values))
+            {
+                var acceptEncoding = values.ToString().AsSpan();
+
+                while (true)
+                {
+                    var separatorIndex = acceptEncoding.IndexOf(',');
+                    if (separatorIndex == -1)
+                    {
+                        break;
+                    }
+
+                    var segment = acceptEncoding.Slice(0, separatorIndex);
+                    acceptEncoding = acceptEncoding.Slice(separatorIndex);
+
+                    // Check segment
+                    if (segment.SequenceEqual(encoding))
+                    {
+                        return true;
+                    }
+                }
+
+                // Check remainder
+                if (acceptEncoding.SequenceEqual(encoding))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal void ValidateGrpcAcceptEncoding()
+        {
+            if (_grpcEncoding != null)
+            {
+                if (!GrpcAcceptEncodingMatch(_grpcEncoding))
+                {
+                    Log.EncodingNotInAcceptEncoding(_logger, _grpcEncoding);
+                }
+            }
+        }
+
+        internal bool CanWriteCompressed()
+        {
+            var canCompress = ((WriteOptions?.Flags ?? default) & WriteFlags.NoCompress) != WriteFlags.NoCompress;
+
+            return canCompress;
         }
     }
 }

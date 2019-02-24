@@ -38,6 +38,9 @@ namespace Grpc.AspNetCore.Server.Internal
             private static readonly Action<ILogger, StatusCode, Exception> _rpcConnectionError =
                 LoggerMessage.Define<StatusCode>(LogLevel.Information, new EventId(4, "RpcConnectionError"), "Error status code '{StatusCode}' raised.");
 
+            private static readonly Action<ILogger, string, Exception> _encodingNotInAcceptEncoding =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "EncodingNotInAcceptEncoding"), "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.");
+
             public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
             {
                 _deadlineExceeded(logger, timeout, null);
@@ -56,6 +59,11 @@ namespace Grpc.AspNetCore.Server.Internal
             public static void RpcConnectionError(ILogger logger, StatusCode statusCode, Exception ex)
             {
                 _rpcConnectionError(logger, statusCode, ex);
+            }
+
+            public static void EncodingNotInAcceptEncoding(ILogger logger, string grpcEncoding)
+            {
+                _encodingNotInAcceptEncoding(logger, grpcEncoding, null);
             }
         }
     }

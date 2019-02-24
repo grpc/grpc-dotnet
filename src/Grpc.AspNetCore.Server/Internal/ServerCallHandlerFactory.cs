@@ -48,7 +48,9 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
                 ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
-                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize
+                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
+                DefaultCompressionAlgorithm = so.DefaultCompressionAlgorithm ?? go.DefaultCompressionAlgorithm,
+                CompressionProviders = so._compressionProviders ?? go._compressionProviders
             };
         }
 
@@ -86,7 +88,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, encoding: null);
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString();
                 Log.MethodUnimplemented(logger, unimplementedMethod);
@@ -102,7 +104,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, encoding: null);
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString();
                 Log.ServiceUnimplemented(logger, unimplementedService);

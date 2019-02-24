@@ -16,20 +16,17 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Internal
+using System.Threading.Tasks;
+using Compression;
+using Grpc.Core;
+
+namespace FunctionalTestsWebsite
 {
-    internal static class GrpcProtocolConstants
+    public class CompressionService : Compression.CompressionService.CompressionServiceBase
     {
-        internal const string GrpcContentType = "application/grpc";
-
-        internal const string TimeoutHeader = "grpc-timeout";
-        internal const string MessageEncodingHeader = "grpc-encoding";
-
-        internal const string StatusTrailer = "grpc-status";
-        internal const string MessageTrailer = "grpc-message";
-
-        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
-
-        internal const string IdentityGrpcEncoding = "identity";
+        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        {
+            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        }
     }
 }

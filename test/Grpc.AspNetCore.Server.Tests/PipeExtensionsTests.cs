@@ -18,11 +18,13 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using NUnit.Framework;
@@ -478,6 +480,33 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task WriteMessageAsync_GzipCompressed_WriteCompressedData()
+        {
+            // Arrange
+            var serviceOptions = new GrpcServiceOptions
+            {
+                DefaultCompressionAlgorithm = "gzip",
+                CompressionProviders =
+                {
+                    new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+                }
+            };
+
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: serviceOptions);
+            var ms = new MemoryStream();
+            var pipeWriter = new StreamPipeWriter(ms);
+
+            // Act
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+
+            // Assert
+            var messageData = ms.ToArray();
+
+            Assert.AreEqual(1, messageData[0]); // compression
+            Assert.AreEqual(21, messageData[4]); // message length
         }
     }
 }

@@ -17,8 +17,12 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -119,10 +123,10 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        public static Task SendHttpError(HttpResponse response, StatusCode statusCode, string message)
+        public static Task SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
-            response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, statusCode.ToTrailerString());
+            response.StatusCode = httpStatusCode;
+            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.ToTrailerString());
             response.AppendTrailer(GrpcProtocolConstants.MessageTrailer, message);
             return response.WriteAsync(message);
         }
@@ -152,10 +156,49 @@ namespace Grpc.AspNetCore.Server.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        public static void AddProtocolHeaders(HttpResponse response)
+        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
         {
-            response.ContentType = "application/grpc";
-            response.Headers.Append("grpc-encoding", "identity");
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    var output = new MemoryStream();
+                    var compressionStream = compressionProvider.CreateStream(new MemoryStream(messageData), CompressionMode.Decompress);
+                    compressionStream.CopyTo(output);
+
+                    result = output.ToArray();
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        internal static bool TryCompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
+        {
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    var output = new MemoryStream();
+                    using (var compressionStream = compressionProvider.CreateStream(output, CompressionMode.Compress))
+                    {
+                        compressionStream.Write(messageData, 0, messageData.Length);
+                    }
+
+                    result = output.ToArray();
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        public static void AddProtocolHeaders(HttpResponse response, string encoding)
+        {
+            response.ContentType = GrpcProtocolConstants.GrpcContentType;
         }
 
         public static void AppendStatusTrailers(HttpResponse response, Status status)
