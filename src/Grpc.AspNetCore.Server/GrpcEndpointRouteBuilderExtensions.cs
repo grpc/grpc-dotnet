@@ -92,6 +92,12 @@ namespace Microsoft.AspNetCore.Builder
             // We need to access the static BindService method on Foo which implicitly derives from Object.
             var baseType = serviceType.BaseType;
 
+            // Handle services that have multiple levels of inheritence
+            while (baseType?.BaseType?.BaseType != null)
+            {
+                baseType = baseType.BaseType;
+            }
+
             // We need to call Foo.BindService from the declaring type.
             var declaringType = baseType?.DeclaringType;
 
