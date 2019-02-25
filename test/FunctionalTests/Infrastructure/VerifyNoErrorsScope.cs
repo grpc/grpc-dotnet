@@ -17,24 +17,24 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Testing;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
+    /// <summary>
+    /// Attaches a log sink to a logger factory and captures all log messages.
+    /// Disposing the scope will verify only expected errors were logged.
+    /// </summary>
     public class VerifyNoErrorsScope : IDisposable
     {
         private readonly IDisposable _wrappedDisposable;
         private readonly LogSinkProvider _sink;
 
-        public Func<WriteContext, bool> ExpectedErrorsFilter { get; set; }
+        public Func<LogRecord, bool> ExpectedErrorsFilter { get; set; }
         public ILoggerFactory LoggerFactory { get; }
 
-        public VerifyNoErrorsScope(ILoggerFactory loggerFactory = null, IDisposable wrappedDisposable = null, Func<WriteContext, bool> expectedErrorsFilter = null)
+        public VerifyNoErrorsScope(ILoggerFactory loggerFactory = null, IDisposable wrappedDisposable = null, Func<LogRecord, bool> expectedErrorsFilter = null)
         {
             _wrappedDisposable = wrappedDisposable;
             ExpectedErrorsFilter = expectedErrorsFilter;
@@ -48,11 +48,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             _wrappedDisposable?.Dispose();
 
-            var results = _sink.GetLogs().Where(w => w.Write.LogLevel >= LogLevel.Error || w.Write.EventId.Name == "RpcConnectionError").ToList();
+            var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error || w.EventId.Name == "RpcConnectionError").ToList();
 
             if (ExpectedErrorsFilter != null)
             {
-                results = results.Where(w => !ExpectedErrorsFilter(w.Write)).ToList();
+                results = results.Where(w => !ExpectedErrorsFilter(w)).ToList();
             }
 
             if (results.Count > 0)
@@ -61,15 +61,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 errorMessage += Environment.NewLine;
                 errorMessage += string.Join(Environment.NewLine, results.Select(record =>
                 {
-                    var r = record.Write;
-
-                    string lineMessage = r.LoggerName + " - " + r.EventId.ToString() + " - " + r.Formatter(r.State, r.Exception);
-                    if (r.Exception != null)
+                    string lineMessage = record.LoggerName + " - " + record.EventId.ToString() + " - " + record.Formatter(record.State, record.Exception);
+                    if (record.Exception != null)
                     {
                         lineMessage += Environment.NewLine;
                         lineMessage += "===================";
                         lineMessage += Environment.NewLine;
-                        lineMessage += r.Exception;
+                        lineMessage += record.Exception;
                         lineMessage += Environment.NewLine;
                         lineMessage += "===================";
                     }

@@ -112,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                RpcConnectionError(_logger, rpcException.StatusCode, rpcException.Status.Detail, ex);
+                RpcConnectionError(_logger, rpcException.StatusCode, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers

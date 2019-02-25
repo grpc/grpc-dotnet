@@ -20,25 +20,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Testing;
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    public class LogRecord
-    {
-        public DateTime Timestamp { get; }
-        public WriteContext Write { get; }
-
-        public LogRecord(DateTime timestamp, WriteContext write)
-        {
-            Timestamp = timestamp;
-            Write = write;
-        }
-    }
-
     public class LogSinkProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentQueue<LogRecord> _logs = new ConcurrentQueue<LogRecord>();
@@ -60,25 +45,16 @@ namespace FunctionalTestsWebsite.Infrastructure
 
         public void Log<TState>(string categoryName, LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            var sb = new StringBuilder();
-            _scopeProvider.ForEachScope((scope, builder) =>
+            var record = new LogRecord
             {
-                builder.AppendLine(scope?.ToString());
-            }, sb);
-
-            var stringsds = sb.ToString();
-
-            var record = new LogRecord(
-                DateTime.Now,
-                new WriteContext
-                {
-                    LoggerName = categoryName,
-                    LogLevel = logLevel,
-                    EventId = eventId,
-                    State = state,
-                    Exception = exception,
-                    Formatter = (o, e) => formatter((TState)o, e),
-                });
+                Timestamp = DateTime.Now,
+                LoggerName = categoryName,
+                LogLevel = logLevel,
+                EventId = eventId,
+                State = state,
+                Exception = exception,
+                Formatter = (o, e) => formatter((TState)o, e),
+            };
             _logs.Enqueue(record);
 
             RecordLogged?.Invoke(record);

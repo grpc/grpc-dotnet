@@ -19,8 +19,6 @@
 using System;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -52,7 +50,13 @@ namespace Grpc.AspNetCore.FunctionalTests
         [TearDown]
         public void TearDown()
         {
+            // This will verify only expected errors were logged on the server for the previous test.
             _scope?.Dispose();
+        }
+
+        protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
+        {
+            _scope.ExpectedErrorsFilter = expectedErrorsFilter;
         }
 
         protected static string GetRpcExceptionDetail(Exception ex)
@@ -63,11 +67,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             return null;
-        }
-
-        protected void SetExpectedErrorsFilter(Func<WriteContext, bool> expectedErrorsFilter)
-        {
-            _scope.ExpectedErrorsFilter = expectedErrorsFilter;
         }
     }
 }

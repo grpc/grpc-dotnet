@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Internal
             _errorExecutingServiceMethod(logger, serviceMethod, ex);
         }
 
-        public static void RpcConnectionError(ILogger logger, StatusCode statusCode, string detail, Exception ex)
+        public static void RpcConnectionError(ILogger logger, StatusCode statusCode, Exception ex)
         {
             _rpcConnectionError(logger, statusCode, ex);
         }
