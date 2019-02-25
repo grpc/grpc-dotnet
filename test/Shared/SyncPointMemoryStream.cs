@@ -22,7 +22,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests
 {
     /// <summary>
     /// A memory stream that waits for data when reading and allows the sender of data to wait for it to be read.
@@ -74,6 +74,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             {
                 return ReadInternalBuffer(buffer, offset, count);
             }
+
+            cancellationToken.Register(() =>
+            {
+                _syncPoint.CancelWaitForSyncPoint(cancellationToken);
+            });
 
             // Wait until data is provided by AddDataAndWait
             await _syncPoint.WaitForSyncPoint();
