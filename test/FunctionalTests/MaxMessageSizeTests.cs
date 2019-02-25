@@ -43,7 +43,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             {
                 return writeContext.LoggerName == typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised.";
+                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.";
             });
 
             var requestMessage = new HelloRequest
@@ -72,7 +73,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             {
                 return writeContext.LoggerName == typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised.";
+                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.";
             });
 
             var requestMessage = new HelloRequest
