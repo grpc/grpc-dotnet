@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var messageCount = 0;
 
-            var readTask = Task.Run(async() =>
+            var readTask = Task.Run(async () =>
             {
                 while (true)
                 {
@@ -89,6 +89,85 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.AreEqual(StatusCode.DeadlineExceeded.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
             Assert.AreEqual("Deadline Exceeded", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+        }
+
+        [Test]
+        public async Task WriteMessageAfterDeadline()
+        {
+            static async Task WriteUntilError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                var i = 0;
+                while (true)
+                {
+                    var message = $"How are you {request.Name}? {i}";
+                    await responseStream.WriteAsync(new HelloReply { Message = message });
+                    i++;
+
+                    await Task.Delay(10);
+                }
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(DeadlineTests).FullName &&
+                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                       writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                       writeContext.Exception.Message == "Cannot write message after request is complete.";
+            });
+
+            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<DeadlineTests, HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = new StreamPipeReader(responseStream);
+
+            var messageCount = 0;
+
+            var readTask = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
+
+                    if (greeting != null)
+                    {
+                        Assert.AreEqual($"How are you World? {messageCount}", greeting.Message);
+                        messageCount++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+            });
+
+            await readTask.DefaultTimeout();
+
+            Assert.AreNotEqual(0, messageCount);
+
+            Assert.AreEqual(StatusCode.Unknown.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Exception was thrown by handler. InvalidOperationException: Cannot write message after request is complete.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
     }
 }

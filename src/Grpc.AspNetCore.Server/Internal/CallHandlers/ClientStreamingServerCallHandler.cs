@@ -66,7 +66,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 if (response == null)
                 {
                     // This is consistent with Grpc.Core when a null value is returned
-                    throw new RpcException(new Status(StatusCode.Cancelled, "Cancelled"));
+                    throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
                 }
 
                 var responseBodyPipe = httpContext.Response.BodyPipe;

@@ -112,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                RpcConnectionError(_logger, rpcException.StatusCode, ex);
+                RpcConnectionError(_logger, rpcException.StatusCode, rpcException.Status.Detail, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers
@@ -158,7 +158,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override WriteOptions WriteOptionsCore { get; set; }
 
-        // TODO(JunTaoLuo, JamesNK): implement this
         protected override AuthContext AuthContextCore
         {
             get

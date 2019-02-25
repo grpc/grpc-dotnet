@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using FunctionalTestsWebsite;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
@@ -38,6 +39,13 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ReceivedMessageExceedsSize_ThrowError()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World" + new string('!', 64 * 1024)
@@ -60,6 +68,13 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task SentMessageExceedsSize_ThrowError()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"

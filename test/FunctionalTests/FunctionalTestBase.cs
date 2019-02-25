@@ -16,25 +16,58 @@
 
 #endregion
 
+using System;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.Core;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
     public class FunctionalTestBase
     {
+        private VerifyNoErrorsScope _scope;
+
         protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; }
 
         [OneTimeSetUp]
-        public void SetUp()
+        public void OneTimeSetUp()
         {
             Fixture = new GrpcTestFixture<FunctionalTestsWebsite.Startup>();
         }
 
         [OneTimeTearDown]
-        public void TearDown()
+        public void OneTimeTearDown()
         {
             Fixture?.Dispose();
+        }
+
+        [SetUp]
+        public void SetUp()
+        {
+            _scope = new VerifyNoErrorsScope(Fixture.LoggerFactory, wrappedDisposable: null, expectedErrorsFilter: null);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _scope?.Dispose();
+        }
+
+        protected static string GetRpcExceptionDetail(Exception ex)
+        {
+            if (ex is RpcException rpcException)
+            {
+                return rpcException.Status.Detail;
+            }
+
+            return null;
+        }
+
+        protected void SetExpectedErrorsFilter(Func<WriteContext, bool> expectedErrorsFilter)
+        {
+            _scope.ExpectedErrorsFilter = expectedErrorsFilter;
         }
     }
 }
