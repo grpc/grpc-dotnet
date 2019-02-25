@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Count;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -131,6 +132,84 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
             Assert.AreEqual("Cancelled", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+        }
+
+        [Test]
+        public async Task ServerCancellationToken_ReturnsResponse()
+        {
+            static async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
+            {
+                var cts = new CancellationTokenSource();
+
+                var counter = 0;
+                while (true)
+                {
+                    try
+                    {
+                        var hasNext = await requestStream.MoveNext(cts.Token);
+
+                        if (!hasNext)
+                        {
+                            break;
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+
+                    counter += requestStream.Current.Count;
+
+                    if (counter >= 3)
+                    {
+                        cts.Cancel();
+                    }
+                }
+
+                return new CounterReply { Count = counter };
+            }
+
+            // Arrange
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<UnaryMethodTests, CounterRequest, CounterReply>(AccumulateCount);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new CounterRequest
+            {
+                Count = 1
+            });
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = new StreamContent(requestStream);
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+            _ = Task.Run(async () =>
+            {
+                while (!responseTask.IsCompleted)
+                {
+                    await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+                }
+            });
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            var response = await responseTask.DefaultTimeout();
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
+            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+
+            var replyTask = MessageHelpers.AssertReadMessageAsync<CounterReply>(responseStream);
+            Assert.IsTrue(replyTask.IsCompleted);
+            var reply = await replyTask.DefaultTimeout();
+            Assert.AreEqual(3, reply.Count);
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }

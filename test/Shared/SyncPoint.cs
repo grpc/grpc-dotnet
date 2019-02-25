@@ -17,9 +17,10 @@
 #endregion
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests
 {
     public class SyncPoint
     {
@@ -31,6 +32,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         /// </summary>
         /// <returns></returns>
         public Task WaitForSyncPoint() => _atSyncPoint.Task;
+
+        /// <summary>
+        /// Cancel waiting for the code-under-test to reach <see cref="WaitToContinue"/>.
+        /// </summary>
+        /// <param name="cancellationToken">A cancellation token.</param>
+        public void CancelWaitForSyncPoint(CancellationToken cancellationToken) => _atSyncPoint.TrySetCanceled(cancellationToken);
 
         /// <summary>
         /// Releases the code-under-test to continue past where it waited for <see cref="WaitToContinue"/>.
