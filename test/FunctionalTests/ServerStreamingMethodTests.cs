@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellos");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
@@ -93,7 +93,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellosSendHeadersFirst");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
@@ -149,7 +149,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();

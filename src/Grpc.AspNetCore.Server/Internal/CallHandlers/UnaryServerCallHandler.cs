@@ -23,7 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal class UnaryServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.Server.Internal
             _invoker = invoker;
         }
 
-        public override async Task HandleCallAsync(HttpContext httpContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
         {
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");
