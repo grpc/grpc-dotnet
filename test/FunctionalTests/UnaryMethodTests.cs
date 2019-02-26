@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite;
 using Google.Protobuf.WellKnownTypes;
@@ -51,7 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -79,7 +80,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -122,7 +123,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -161,7 +162,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -220,7 +221,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 url,
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -254,7 +255,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloReturnNull",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -286,7 +287,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloThrowExceptionWithTrailers",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -319,7 +320,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 url,
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -338,6 +339,69 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.AreEqual(string.Empty, Fixture.TrailersContainer.Trailers["Test-Peer"].ToString());
             Assert.AreEqual("localhost", Fixture.TrailersContainer.Trailers["Test-Host"].ToString());
+        }
+
+        [TestCase(null, "Content-Type is missing from the request.")]
+        [TestCase("application/json", "Content-Type 'application/json' is not supported.")]
+        [TestCase("application/binary", "Content-Type 'application/binary' is not supported.")]
+        [TestCase("application/grpc-web", "Content-Type 'application/grpc-web' is not supported.")]
+        public async Task InvalidContentType_Return415Response(string contentType, string responseMessage)
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var streamContent = new StreamContent(ms);
+            streamContent.Headers.ContentType = contentType != null ? new MediaTypeHeaderValue(contentType) : null;
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "Greet.Greeter/SayHello",
+                streamContent).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+
+            var content = await response.Content.ReadAsStringAsync().DefaultTimeout();
+            Assert.AreEqual(responseMessage, content);
+
+            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual(responseMessage, Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+        }
+
+        [TestCase("application/grpc")]
+        [TestCase("APPLICATION/GRPC")]
+        [TestCase("application/grpc+proto")]
+        [TestCase("APPLICATION/GRPC+PROTO")]
+        [TestCase("application/grpc+json")] // Accept any message format. A Method+marshaller may have been set that reads and writes JSON
+        [TestCase("application/grpc; param=one")]
+        public async Task ValidContentType_ReturnValidResponse(string contentType)
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var streamContent = new StreamContent(ms);
+            streamContent.Headers.ContentType = contentType != null ? MediaTypeHeaderValue.Parse(contentType) : null;
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "Greet.Greeter/SayHello",
+                streamContent).DefaultTimeout();
+
+            // Assert
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            Assert.AreEqual("Hello World", responseMessage.Message);
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }

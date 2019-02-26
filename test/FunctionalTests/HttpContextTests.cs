@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
@@ -72,7 +72,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHelloWithHttpContextExtensionMethod?query=extra");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();

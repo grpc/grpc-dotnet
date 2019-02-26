@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
@@ -128,7 +128,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();

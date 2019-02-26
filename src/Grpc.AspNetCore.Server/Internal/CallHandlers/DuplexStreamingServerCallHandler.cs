@@ -37,7 +37,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             _invoker = invoker;
         }
 
-        public override async Task HandleCallAsync(HttpContext httpContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
         {
             httpContext.Response.ContentType = "application/grpc";
             httpContext.Response.Headers.Append("grpc-encoding", "identity");

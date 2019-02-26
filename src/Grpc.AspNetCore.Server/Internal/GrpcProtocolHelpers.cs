@@ -18,6 +18,9 @@
 
 using System;
 using System.Globalization;
+using System.Threading.Tasks;
+using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -64,6 +67,59 @@ namespace Grpc.AspNetCore.Server.Internal
 
             timeout = TimeSpan.Zero;
             return false;
+        }
+
+        public static bool IsGrpcContentType(string contentType)
+        {
+            if (!contentType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (contentType.Length == GrpcProtocolConstants.GrpcContentType.Length)
+            {
+                // Exact match
+                return true;
+            }
+
+            // Support variations on the content-type (e.g. +proto, +json)
+            char nextChar = contentType[GrpcProtocolConstants.GrpcContentType.Length];
+            if (nextChar == ';')
+            {
+                return true;
+            }
+            if (nextChar == '+')
+            {
+                // Accept any message format. Marshaller could be set to support third-party formats
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsValidContentType(HttpContext httpContext, out string error)
+        {
+            if (httpContext.Request.ContentType == null)
+            {
+                error = "Content-Type is missing from the request.";
+                return false;
+            }
+            else if (!IsGrpcContentType(httpContext.Request.ContentType))
+            {
+                error = $"Content-Type '{httpContext.Request.ContentType}' is not supported.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        public static Task SendHttpError(HttpResponse response, StatusCode statusCode, string message)
+        {
+            response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, statusCode.ToTrailerString());
+            response.AppendTrailer(GrpcProtocolConstants.MessageTrailer, message);
+            return response.WriteAsync(message);
         }
 
         public static byte[] ParseBinaryHeader(string base64)

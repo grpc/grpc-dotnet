@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
@@ -88,7 +88,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloSendLargeReply",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());

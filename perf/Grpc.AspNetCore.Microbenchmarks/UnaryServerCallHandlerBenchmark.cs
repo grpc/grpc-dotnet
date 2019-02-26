@@ -23,7 +23,7 @@ using Chat;
 using Google.Protobuf;
 using Grpc.AspNetCore.Microbenchmarks.Internal;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;

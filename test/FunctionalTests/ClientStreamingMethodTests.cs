@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -98,7 +98,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -142,7 +142,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Act
             var response = await Fixture.Client.PostAsync(
                 "Count.Counter/IncrementCountReturnNull",
-                new StreamContent(ms)).DefaultTimeout();
+                new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -198,7 +198,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new SyncPointMemoryStream();
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            httpRequest.Content = new StreamContent(requestStream);
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
