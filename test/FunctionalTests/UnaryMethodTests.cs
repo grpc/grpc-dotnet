@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using FunctionalTestsWebsite;
 using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -103,6 +104,13 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task AdditionalDataAfterStreamedMessage_ErrorResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Internal' raised.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -135,6 +143,13 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task MessageSentInMultipleChunks_SuccessResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Internal' raised.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -184,6 +199,14 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(UnaryMethodTests).FullName &&
+                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                       writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
+                       writeContext.Exception.Message == "Response headers can only be sent once per call.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -192,7 +215,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(ReturnHeadersTwice);
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
 
             // Act
             var response = await Fixture.Client.PostAsync(
@@ -212,6 +235,14 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -229,13 +260,21 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("Cancelled", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            Assert.AreEqual("No message returned from method.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]
         public async Task ServerMethodThrowsExceptionWithTrailers_FailureResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Unknown' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "User error";
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"

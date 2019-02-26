@@ -158,7 +158,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override WriteOptions WriteOptionsCore { get; set; }
 
-        // TODO(JunTaoLuo, JamesNK): implement this
         protected override AuthContext AuthContextCore
         {
             get

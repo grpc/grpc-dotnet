@@ -34,7 +34,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Method = method;
             ServiceOptions = serviceOptions;
-            Logger = loggerFactory.CreateLogger(GetType());
+            Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 
         public abstract Task HandleCallAsync(HttpContext httpContext);

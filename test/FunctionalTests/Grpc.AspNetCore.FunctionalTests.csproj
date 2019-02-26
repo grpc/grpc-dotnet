@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj" />
 
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreTestHostPackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsLoggingTestingPackageVersion)" />
   </ItemGroup>
 
 </Project>
