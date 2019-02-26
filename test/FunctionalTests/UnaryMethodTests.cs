@@ -345,8 +345,6 @@ namespace Grpc.AspNetCore.FunctionalTests
         [TestCase("application/json", "Content-Type 'application/json' is not supported.")]
         [TestCase("application/binary", "Content-Type 'application/binary' is not supported.")]
         [TestCase("application/grpc-web", "Content-Type 'application/grpc-web' is not supported.")]
-        [TestCase("application/grpc+", "Content-Type 'application/grpc+' is not supported.")]
-        [TestCase("application/grpc+json", "Content-Type 'application/grpc+json' is not supported.")]
         public async Task InvalidContentType_Return415Response(string contentType, string responseMessage)
         {
             // Arrange
@@ -379,6 +377,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         [TestCase("APPLICATION/GRPC")]
         [TestCase("application/grpc+proto")]
         [TestCase("APPLICATION/GRPC+PROTO")]
+        [TestCase("application/grpc+json")] // Accept any message format. A Method+marshaller may have been set that reads and writes JSON
         [TestCase("application/grpc; param=one")]
         public async Task ValidContentType_ReturnValidResponse(string contentType)
         {

@@ -90,13 +90,8 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             if (nextChar == '+')
             {
-                // Currently only +proto is supported
-                if (contentType
-                    .AsSpan(GrpcProtocolConstants.GrpcContentType.Length)
-                    .Equals("+proto", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
+                // Accept any message format. Marshaller could be set to support third-party formats
+                return true;
             }
 
             return false;
