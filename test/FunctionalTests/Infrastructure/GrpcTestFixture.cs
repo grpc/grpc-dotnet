@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -34,6 +35,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             TrailersContainer = new TrailersContainer();
 
+            LoggerFactory = new LoggerFactory();
+
             Action<IServiceCollection> configureServices = services =>
             {
                 // Register trailers container so tests can assert trailer headers
@@ -42,6 +45,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
                 // Registers a service for tests to add new methods
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
+
+                services.AddSingleton<ILoggerFactory>(LoggerFactory);
             };
 
             var builder = new WebHostBuilder()
@@ -57,7 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         }
 
         public TrailersContainer TrailersContainer { get; }
-
+        public LoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
         public HttpClient Client { get; }

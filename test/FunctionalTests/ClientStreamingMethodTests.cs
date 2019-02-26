@@ -24,6 +24,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Count;
+using FunctionalTestsWebsite;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests;
@@ -80,6 +81,14 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task CompleteThenIncompleteMessage_ErrorResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(CounterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Internal' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.";
+            });
+
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new CounterRequest
             {
@@ -114,6 +123,14 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(CounterService).FullName &&
+                       writeContext.EventId.Name == "RpcConnectionError" &&
+                       writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
+                       GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
+            });
+
             var requestMessage = new CounterRequest
             {
                 Count = 1
@@ -131,7 +148,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("Cancelled", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            Assert.AreEqual("No message returned from method.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]

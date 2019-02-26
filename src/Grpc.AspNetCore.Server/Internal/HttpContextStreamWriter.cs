@@ -46,6 +46,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new ArgumentNullException(nameof(message));
             }
 
+            if (_context.CancellationToken.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("Cannot write message after request is complete.");
+            }
+
             return _context.HttpContext.Response.BodyPipe.WriteMessageAsync(message, _context, _serializer);
         }
     }
