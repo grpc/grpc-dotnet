@@ -177,6 +177,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Read a single message from the pipe reader. Ensure the reader completes without additional data.
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
+        /// <param name="context">The request context.</param>
         /// <returns>Complete message data.</returns>
         public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input, HttpContextServerCallContext context)
         {
@@ -234,6 +235,8 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Read a message in a stream from the pipe reader. Additional message data is left in the reader.
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
+        /// <param name="context">The request content.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
         public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context, CancellationToken cancellationToken = default)
         {
