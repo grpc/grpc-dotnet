@@ -81,8 +81,8 @@ namespace FunctionalTestsWebsite
                 // Bind via reflection
                 builder.MapGrpcService<ChatterService>();
                 builder.MapGrpcService<CounterService>();
-				
-				builder.MapGrpcService<SecondGreeterService>();
+
+                builder.MapGrpcService<SecondGreeterService>();
 
                 // Bind via configure method
                 builder.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
