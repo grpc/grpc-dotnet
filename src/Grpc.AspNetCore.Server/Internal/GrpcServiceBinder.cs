@@ -77,50 +77,52 @@ namespace Grpc.AspNetCore.Server.Internal
         private void AddMethodCore(IMethod method, RequestDelegate requestDelegate)
         {
             ServiceMethods.Add(method);
-            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, requestDelegate, new object[] { method }));
+
+            // IMethod is added as metadata for the endpoint
+            var methodata = new object[] { method };
+
+            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, $"gRPC - {method.FullName}", requestDelegate, methodata));
         }
 
         internal void CreateUnimplementedEndpoints()
         {
-            // Return UNIMPLEMENTED status for requests with a URL that has two segments and a grpc/application content-type
-
             // Return UNIMPLEMENTED status for missing service:
-            // - /{service}/{method}
+            // - /{service}/{method} + content-type header = grpc/application
             if (_serviceMethodsRegistry.Methods.Count == 0)
             {
-                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint("{unimplementedService}/{unimplementedMethod}", _serverCallHandlerFactory.CreateUnimplementedService()));
+                // Only one unimplemented service endpoint is needed for the application
+                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint("{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service", _serverCallHandlerFactory.CreateUnimplementedService()));
             }
 
             // Return UNIMPLEMENTED status for missing method:
-            // - /Package.Service/{method}
+            // - /Package.Service/{method} + content-type header = grpc/application
+            var serviceNames = ServiceMethods.Select(m => m.ServiceName).Distinct().ToList();
 
             // Typically there should be one service name for a type
             // In case the bind method sets up multiple services in one call we'll loop over them
-            var serviceNames = ServiceMethods.Select(m => m.ServiceName).Distinct().ToList();
-
             foreach (var serviceName in serviceNames)
             {
                 if (_serviceMethodsRegistry.Methods.Any(m => string.Equals(m.ServiceName, serviceName, StringComparison.Ordinal)))
                 {
-                    // Unimplemented endpoint has already been added for this service
+                    // Only one unimplemented method endpoint is need for the service
                     continue;
                 }
 
-                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint(serviceName + "/{unimplementedMethod}", _serverCallHandlerFactory.CreateUnimplementedMethod()));
+                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint(serviceName + "/{unimplementedMethod}", $"gRPC - Unimplemented method for {serviceName}", _serverCallHandlerFactory.CreateUnimplementedMethod()));
             }
 
             _serviceMethodsRegistry.Methods.AddRange(ServiceMethods);
         }
 
-        private IEndpointConventionBuilder CreateUnimplementedEndpoint(string pattern, RequestDelegate requestDelegate)
+        private IEndpointConventionBuilder CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
         {
-            var routePattern = RoutePatternFactory.Parse(pattern, null, new { contentType = GrpcContentTypeContraint.Instance });
-            return _builder.Map(routePattern, requestDelegate, new HttpMethodMetadata(new[] { "POST" }));
+            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
+            return _builder.Map(routePattern, displayName, requestDelegate, new HttpMethodMetadata(new[] { "POST" }));
         }
 
-        private class GrpcContentTypeContraint : IRouteConstraint
+        private class GrpcContentTypeConstraint : IRouteConstraint
         {
-            public static readonly GrpcContentTypeContraint Instance = new GrpcContentTypeContraint();
+            public static readonly GrpcContentTypeConstraint Instance = new GrpcContentTypeConstraint();
 
             public bool Match(HttpContext httpContext, IRouter route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
             {
@@ -132,7 +134,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return GrpcProtocolHelpers.IsGrpcContentType(httpContext.Request.ContentType);
             }
 
-            private GrpcContentTypeContraint()
+            private GrpcContentTypeConstraint()
             {
             }
         }
