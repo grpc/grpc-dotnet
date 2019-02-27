@@ -19,7 +19,7 @@
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// A <see cref="TGrpcService"/> activator abstraction.
+    /// A <typeparamref name="TGrpcService"/> activator abstraction.
     /// </summary>
     /// <typeparam name="TGrpcService">The service type.</typeparam>
     public interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Releases the specified service.
         /// </summary>
-        /// <param name="hub">The service to release.</param>
+        /// <param name="service">The service to release.</param>
         void Release(TGrpcService service);
     }
 }
