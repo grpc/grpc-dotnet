@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.Builder
     public static class GrpcEndpointRouteBuilderExtensions
     {
         /// <summary>
-        /// Maps incoming requests to the specified <see cref="TService"/> type.
+        /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
         /// </summary>
         /// <typeparam name="TService">The service type to map requests to.</typeparam>
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Builder
         }
 
         /// <summary>
-        /// Maps incoming requests to the specified <see cref="TService"/> type.
+        /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
         /// </summary>
         /// <typeparam name="TService">The service type to map requests to.</typeparam>
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>

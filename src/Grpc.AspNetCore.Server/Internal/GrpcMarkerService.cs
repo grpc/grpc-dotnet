@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Grpc.AspNetCore.Server.Internal
 {
     /// <summary>
