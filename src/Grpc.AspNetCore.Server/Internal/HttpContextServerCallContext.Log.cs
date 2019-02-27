@@ -17,48 +17,46 @@
 #endregion
 
 using System;
-using System.Globalization;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal sealed partial class HttpContextServerCallContext
     {
-        private static readonly Action<ILogger, TimeSpan, Exception> _deadlineExceeded =
-            LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(1, "DeadlineExceeded"), "Request with timeout of {Timeout} has exceeded its deadline.");
-
-        private static readonly Action<ILogger, string, Exception> _invalidTimeoutIgnored =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "InvalidTimeoutIgnored"), "Invalid grpc-timeout header value '{Timeout}' has been ignored.");
-
-        private static readonly Action<ILogger, string, Exception> _errorExecutingServiceMethod =
-            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ErrorExecutingServiceMethod"), "Error when executing service method '{ServiceMethod}'.");
-
-        private static readonly Action<ILogger, StatusCode, Exception> _rpcConnectionError =
-            LoggerMessage.Define<StatusCode>(LogLevel.Information, new EventId(4, "RpcConnectionError"), "Error status code '{StatusCode}' raised.");
-
-        public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
+        private static class Log
         {
-            _deadlineExceeded(logger, timeout, null);
-        }
+            private static readonly Action<ILogger, TimeSpan, Exception> _deadlineExceeded =
+                LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(1, "DeadlineExceeded"), "Request with timeout of {Timeout} has exceeded its deadline.");
 
-        public static void InvalidTimeoutIgnored(ILogger logger, string timeout)
-        {
-            _invalidTimeoutIgnored(logger, timeout, null);
-        }
+            private static readonly Action<ILogger, string, Exception> _invalidTimeoutIgnored =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "InvalidTimeoutIgnored"), "Invalid grpc-timeout header value '{Timeout}' has been ignored.");
 
-        public static void ErrorExecutingServiceMethod(ILogger logger, string serviceMethod, Exception ex)
-        {
-            _errorExecutingServiceMethod(logger, serviceMethod, ex);
-        }
+            private static readonly Action<ILogger, string, Exception> _errorExecutingServiceMethod =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ErrorExecutingServiceMethod"), "Error when executing service method '{ServiceMethod}'.");
 
-        public static void RpcConnectionError(ILogger logger, StatusCode statusCode, Exception ex)
-        {
-            _rpcConnectionError(logger, statusCode, ex);
+            private static readonly Action<ILogger, StatusCode, Exception> _rpcConnectionError =
+                LoggerMessage.Define<StatusCode>(LogLevel.Information, new EventId(4, "RpcConnectionError"), "Error status code '{StatusCode}' raised.");
+
+            public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
+            {
+                _deadlineExceeded(logger, timeout, null);
+            }
+
+            public static void InvalidTimeoutIgnored(ILogger logger, string timeout)
+            {
+                _invalidTimeoutIgnored(logger, timeout, null);
+            }
+
+            public static void ErrorExecutingServiceMethod(ILogger logger, string serviceMethod, Exception ex)
+            {
+                _errorExecutingServiceMethod(logger, serviceMethod, ex);
+            }
+
+            public static void RpcConnectionError(ILogger logger, StatusCode statusCode, Exception ex)
+            {
+                _rpcConnectionError(logger, statusCode, ex);
+            }
         }
     }
 }

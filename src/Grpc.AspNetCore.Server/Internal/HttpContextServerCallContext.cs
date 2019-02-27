@@ -112,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                RpcConnectionError(_logger, rpcException.StatusCode, ex);
+                Log.RpcConnectionError(_logger, rpcException.StatusCode, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers
@@ -128,7 +128,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                ErrorExecutingServiceMethod(_logger, method, ex);
+                Log.ErrorExecutingServiceMethod(_logger, method, ex);
 
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
@@ -229,7 +229,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return timeout;
                 }
 
-                InvalidTimeoutIgnored(_logger, values);
+                Log.InvalidTimeoutIgnored(_logger, values);
             }
 
             return TimeSpan.Zero;
@@ -237,7 +237,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void DeadlineExceeded(object state)
         {
-            DeadlineExceeded(_logger, (TimeSpan)state);
+            Log.DeadlineExceeded(_logger, (TimeSpan)state);
 
             _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 

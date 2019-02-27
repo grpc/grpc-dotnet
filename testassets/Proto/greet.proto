@@ -31,6 +31,11 @@ service Greeter {
   rpc SayHellosDeadlineCancellationToken (HelloRequest) returns (stream HelloReply) {}
 }
 
+// Test multiple services in one package
+service SecondGreeter {
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+}
+
 // The request message containing the user's name.
 message HelloRequest {
   string name = 1;

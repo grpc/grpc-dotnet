@@ -16,8 +16,12 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,7 +30,7 @@ namespace Grpc.AspNetCore.Server.Internal
     /// <summary>
     /// Creates server call handlers. Provides a place to get services that call handlers will use.
     /// </summary>
-    internal class ServerCallHandlerFactory<TService> where TService : class
+    internal partial class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly GrpcServiceOptions _resolvedOptions;
@@ -74,6 +78,57 @@ namespace Grpc.AspNetCore.Server.Internal
             where TResponse : class
         {
             return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+        }
+
+        public RequestDelegate CreateUnimplementedMethod()
+        {
+            var logger = _loggerFactory.CreateLogger<ServerCallHandlerFactory<TService>>();
+
+            return httpContext =>
+            {
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+                var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString();
+                Log.MethodUnimplemented(logger, unimplementedMethod);
+
+                GrpcProtocolHelpers.AppendStatusTrailers(httpContext.Response, new Status(StatusCode.Unimplemented, "Method is unimplemented."));
+                return Task.CompletedTask;
+            };
+        }
+
+        public RequestDelegate CreateUnimplementedService()
+        {
+            var logger = _loggerFactory.CreateLogger<ServerCallHandlerFactory<TService>>();
+
+            return httpContext =>
+            {
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+                var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString();
+                Log.ServiceUnimplemented(logger, unimplementedService);
+
+                GrpcProtocolHelpers.AppendStatusTrailers(httpContext.Response, new Status(StatusCode.Unimplemented, "Service is unimplemented."));
+                return Task.CompletedTask;
+            };
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, string, Exception> _serviceUnimplemented =
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "ServiceUnimplemented"), "Service '{ServiceName}' is unimplemented.");
+
+            private static readonly Action<ILogger, string, Exception> _methodUnimplemented =
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "MethodUnimplemented"), "Method '{MethodName}' is unimplemented.");
+
+            public static void ServiceUnimplemented(ILogger logger, string serviceName)
+            {
+                _serviceUnimplemented(logger, serviceName, null);
+            }
+
+            public static void MethodUnimplemented(ILogger logger, string methodName)
+            {
+                _methodUnimplemented(logger, methodName, null);
+            }
         }
     }
 }
