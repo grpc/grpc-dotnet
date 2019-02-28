@@ -37,17 +37,17 @@ namespace FunctionalTestsWebsite.Services
             _scopedValueProvider = scopedValueProvider;
         }
 
-        public override Task<ValueResponse> GetSingletonValue(ValueResponse request, ServerCallContext context)
+        public override Task<ValueResponse> GetSingletonValue(Empty request, ServerCallContext context)
         {
             return Task.FromResult(CreateValueResponse(_singletonValueProvider));
         }
 
-        public override Task<ValueResponse> GetScopedValue(ValueResponse request, ServerCallContext context)
+        public override Task<ValueResponse> GetScopedValue(Empty request, ServerCallContext context)
         {
             return Task.FromResult(CreateValueResponse(_scopedValueProvider));
         }
 
-        public override Task<ValueResponse> GetTransientValue(ValueResponse request, ServerCallContext context)
+        public override Task<ValueResponse> GetTransientValue(Empty request, ServerCallContext context)
         {
             return Task.FromResult(CreateValueResponse(_transientValueProvider));
         }

@@ -80,7 +80,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         private async Task<ValueResponse> CallLifetimeService(string path)
         {
             var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, new ValueResponse());
+            MessageHelpers.WriteMessage(requestStream, new Empty());
 
             var response = await Fixture.Client.PostAsync(path, new GrpcStreamContent(requestStream)).DefaultTimeout();
 
