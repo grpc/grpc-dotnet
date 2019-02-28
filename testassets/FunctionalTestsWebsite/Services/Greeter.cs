@@ -24,7 +24,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace FunctionalTestsWebsite
+namespace FunctionalTestsWebsite.Services
 {
     public class GreeterService : Greeter.GreeterBase
     {

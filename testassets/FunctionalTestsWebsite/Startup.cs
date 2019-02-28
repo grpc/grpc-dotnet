@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
+using FunctionalTestsWebsite.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -46,6 +47,10 @@ namespace FunctionalTestsWebsite
             services.AddHttpContextAccessor();
 
             services.AddScoped<IncrementingCounter>();
+
+            services.AddSingleton<SingletonValueProvider>();
+            services.AddTransient<TransientValueProvider>();
+            services.AddScoped<ScopedValueProvider>();
 
             // When the site is run from the test project a signaler will already be registered
             // This will add a default one if the site is run standalone
@@ -81,6 +86,7 @@ namespace FunctionalTestsWebsite
                 // Bind via reflection
                 builder.MapGrpcService<ChatterService>();
                 builder.MapGrpcService<CounterService>();
+                builder.MapGrpcService<LifetimeService>();
 
                 builder.MapGrpcService<SecondGreeterService>();
 

@@ -16,15 +16,27 @@
 
 #endregion
 
-namespace FunctionalTestsWebsite
+namespace FunctionalTestsWebsite.Infrastructure
 {
-    public class IncrementingCounter
+    public abstract class ValueProvider
     {
-        public void Increment(int amount)
-        {
-            Count += amount;
-        }
+        private int _value;
 
-        public int Count { get; private set; }
+        public int GetNext()
+        {
+            return ++_value;
+        }
+    }
+
+    public class TransientValueProvider : ValueProvider
+    {
+    }
+
+    public class ScopedValueProvider : ValueProvider
+    {
+    }
+
+    public class SingletonValueProvider : ValueProvider
+    {
     }
 }
