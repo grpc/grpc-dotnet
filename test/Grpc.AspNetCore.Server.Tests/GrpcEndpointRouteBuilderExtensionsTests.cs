@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
@@ -141,8 +142,96 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
         }
 
+        [Test]
+        public void MapGrpcService_ServiceWithAttribute_AddsAttributesAsMetadata()
+        {
+            // Arrange
+            ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
+            services.AddGrpc();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterServiceWithAttributes>();
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .ToList();
+            Assert.AreEqual(2, endpoints.Count);
+
+            var routeEndpoint1 = (RouteEndpoint)endpoints[0];
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("Method", routeEndpoint1.Metadata.GetMetadata<CustomAttribute>().Value);
+
+            var routeEndpoint2 = (RouteEndpoint)endpoints[1];
+            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("Class", routeEndpoint2.Metadata.GetMetadata<CustomAttribute>().Value);
+        }
+
+        [Test]
+        public void MapGrpcService_ServiceWithAttributeAndBuilder_TestMetdataPrecedence()
+        {
+            // Arrange
+            ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
+            services.AddGrpc();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterServiceWithAttributes>().Add(builder =>
+            {
+                builder.Metadata.Add(new CustomAttribute("Builder"));
+            });
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .ToList();
+            Assert.AreEqual(2, endpoints.Count);
+
+            var routeEndpoint1 = (RouteEndpoint)endpoints[0];
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+
+            var orderedMetadata = routeEndpoint1.Metadata.GetOrderedMetadata<CustomAttribute>().ToList();
+            Assert.AreEqual("Class", orderedMetadata[0].Value);
+            Assert.AreEqual("Method", orderedMetadata[1].Value);
+            Assert.AreEqual("Builder", orderedMetadata[2].Value);
+
+            Assert.AreEqual("Builder", routeEndpoint1.Metadata.GetMetadata<CustomAttribute>().Value);
+        }
+
         private class GreeterService : Greeter.GreeterBase
         {
+        }
+
+        [Custom("Class")]
+        private class GreeterServiceWithAttributes : Greeter.GreeterBase
+        {
+            [Custom("Method")]
+            public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+            {
+                return base.SayHello(request, context);
+            }
+
+            public override Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                return base.SayHellos(request, responseStream, context);
+            }
+        }
+
+        private class CustomAttribute : Attribute
+        {
+            public CustomAttribute(string value)
+            {
+                Value = value;
+            }
+
+            public string Value { get; }
         }
 
         private class GreeterServiceSubClass : GreeterService

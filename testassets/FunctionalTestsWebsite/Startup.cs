@@ -16,15 +16,20 @@
 
 #endregion
 
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
 
 namespace FunctionalTestsWebsite
 {
@@ -45,6 +50,42 @@ namespace FunctionalTestsWebsite
                     options.ReceiveMaxMessageSize = 64 * 1024;
                 });
             services.AddHttpContextAccessor();
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
+                {
+                    policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+                    policy.RequireClaim(ClaimTypes.NameIdentifier);
+                });
+            });
+            services.AddAuthorizationPolicyEvaluator();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters =
+                        new TokenValidationParameters
+                        {
+                            ValidateAudience = false,
+                            ValidateIssuer = false,
+                            ValidateActor = false,
+                            ValidateLifetime = true,
+                            IssuerSigningKey = SecurityKey
+                        };
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var token = context.Request.Headers["access_token"];
+                            if (!string.IsNullOrEmpty(token))
+                            {
+                                context.Token = token;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
 
             services.AddScoped<IncrementingCounter>();
 
@@ -81,26 +122,33 @@ namespace FunctionalTestsWebsite
                 return next();
             });
 
-            app.UseRouting(builder =>
+            app.UseRouting(routes =>
             {
                 // Bind via reflection
-                builder.MapGrpcService<ChatterService>();
-                builder.MapGrpcService<CounterService>();
-                builder.MapGrpcService<LifetimeService>();
-
-                builder.MapGrpcService<SecondGreeterService>();
+                routes.MapGrpcService<ChatterService>();
+                routes.MapGrpcService<CounterService>();
+				routes.MapGrpcService<AuthorizedGreeter>();
+				routes.MapGrpcService<SecondGreeterService>();
+				routes.MapGrpcService<LifetimeService>();
 
                 // Bind via configure method
-                builder.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
+                routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
 
-                builder.DataSources.Add(builder.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
+                routes.DataSources.Add(routes.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 
-                builder.Map("{FirstSegment}/{SecondSegment}", context =>
+                routes.Map("{FirstSegment}/{SecondSegment}", context =>
                 {
                     context.Response.StatusCode = StatusCodes.Status418ImATeapot;
                     return Task.CompletedTask;
                 });
+
+                routes.MapGet("/generateJwtToken", context =>
+                {
+                    return context.Response.WriteAsync(GenerateJwtToken());
+                });
             });
+
+            app.UseAuthorization();
 
             app.Use(async (context, next) =>
             {
@@ -117,5 +165,16 @@ namespace FunctionalTestsWebsite
                 }
             });
         }
+
+        private string GenerateJwtToken()
+        {
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "testuser") };
+            var credentials = new SigningCredentials(SecurityKey, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken("FunctionalTestServer", "FunctionalTests", claims, expires: DateTime.Now.AddSeconds(5), signingCredentials: credentials);
+            return JwtTokenHandler.WriteToken(token);
+        }
+
+        private readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
+        private readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
     }
 }
