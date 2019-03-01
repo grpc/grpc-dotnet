@@ -5,6 +5,7 @@
     <GrpcCorePackageVersion>1.19.0-pre1</GrpcCorePackageVersion>
     <GrpcCoreApiPackageVersion>1.19.0-pre1</GrpcCoreApiPackageVersion>
     <GrpcToolsPackageVersion>1.19.0-pre1</GrpcToolsPackageVersion>
+    <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>

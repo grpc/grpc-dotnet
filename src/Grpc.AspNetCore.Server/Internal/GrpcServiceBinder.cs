@@ -37,51 +37,58 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly IEndpointRouteBuilder _builder;
         private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
-        private readonly IGrpcMethodInvokerFactory<TService> _serviceInvokerFactory;
+        private readonly IGrpcMethodModelFactory<TService> _serviceModelFactory;
 
         internal IList<IEndpointConventionBuilder> EndpointConventionBuilders { get; } = new List<IEndpointConventionBuilder>();
         internal IList<IMethod> ServiceMethods { get; } = new List<IMethod>();
 
-        internal GrpcServiceBinder(IEndpointRouteBuilder builder, IGrpcMethodInvokerFactory<TService> serviceInvokerFactory, ServerCallHandlerFactory<TService> serverCallHandlerFactory, ServiceMethodsRegistry serviceMethodsRegistry)
+        internal GrpcServiceBinder(IEndpointRouteBuilder builder, IGrpcMethodModelFactory<TService> serviceModelFactory, ServerCallHandlerFactory<TService> serverCallHandlerFactory, ServiceMethodsRegistry serviceMethodsRegistry)
         {
             _builder = builder;
             _serviceMethodsRegistry = serviceMethodsRegistry;
             _serverCallHandlerFactory = serverCallHandlerFactory;
-            _serviceInvokerFactory = serviceInvokerFactory;
+            _serviceModelFactory = serviceModelFactory;
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateClientStreaming(method, _serviceInvokerFactory.CreateClientStreamingInvoker(method));
-            AddMethodCore(method, callHandler.HandleCallAsync);
+            var model = _serviceModelFactory.CreateClientStreamingModel(method);
+            var callHandler = _serverCallHandlerFactory.CreateClientStreaming(method, model.Invoker);
+            AddMethodCore(method, callHandler.HandleCallAsync, model.Metadata);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming(method, _serviceInvokerFactory.CreateDuplexStreamingInvoker(method));
-            AddMethodCore(method, callHandler.HandleCallAsync);
+            var model = _serviceModelFactory.CreateDuplexStreamingModel(method);
+            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming(method, model.Invoker);
+            AddMethodCore(method, callHandler.HandleCallAsync, model.Metadata);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateServerStreaming(method, _serviceInvokerFactory.CreateServerStreamingInvoker(method));
-            AddMethodCore(method, callHandler.HandleCallAsync);
+            var model = _serviceModelFactory.CreateServerStreamingModel(method);
+            var callHandler = _serverCallHandlerFactory.CreateServerStreaming(method, model.Invoker);
+            AddMethodCore(method, callHandler.HandleCallAsync, model.Metadata);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
         {
-            var callHandler = _serverCallHandlerFactory.CreateUnary(method, _serviceInvokerFactory.CreateUnaryInvoker(method));
-            AddMethodCore(method, callHandler.HandleCallAsync);
+            var model = _serviceModelFactory.CreateUnaryModel(method);
+            var callHandler = _serverCallHandlerFactory.CreateUnary(method, model.Invoker);
+            AddMethodCore(method, callHandler.HandleCallAsync, model.Metadata);
         }
 
-        private void AddMethodCore(IMethod method, RequestDelegate requestDelegate)
+        private void AddMethodCore(IMethod method, RequestDelegate requestDelegate, List<object> metadata)
         {
             ServiceMethods.Add(method);
 
-            // IMethod is added as metadata for the endpoint
-            var methodata = new object[] { method };
+            var resolvedMetadata = new List<object>();
 
-            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, $"gRPC - {method.FullName}", requestDelegate, methodata));
+            // IMethod is added as metadata for the endpoint
+            resolvedMetadata.Add(method);
+            resolvedMetadata.AddRange(metadata);
+
+            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, $"gRPC - {method.FullName}", requestDelegate, resolvedMetadata.ToArray()));
         }
 
         internal void CreateUnimplementedEndpoints()
@@ -91,7 +98,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (_serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
-                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint("{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service", _serverCallHandlerFactory.CreateUnimplementedService()));
+                CreateUnimplementedEndpoint("{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service", _serverCallHandlerFactory.CreateUnimplementedService());
             }
 
             // Return UNIMPLEMENTED status for missing method:
@@ -108,16 +115,16 @@ namespace Grpc.AspNetCore.Server.Internal
                     continue;
                 }
 
-                EndpointConventionBuilders.Add(CreateUnimplementedEndpoint(serviceName + "/{unimplementedMethod}", $"gRPC - Unimplemented method for {serviceName}", _serverCallHandlerFactory.CreateUnimplementedMethod()));
+                CreateUnimplementedEndpoint(serviceName + "/{unimplementedMethod}", $"gRPC - Unimplemented method for {serviceName}", _serverCallHandlerFactory.CreateUnimplementedMethod());
             }
 
             _serviceMethodsRegistry.Methods.AddRange(ServiceMethods);
         }
 
-        private IEndpointConventionBuilder CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
+        private void CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
         {
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
-            return _builder.Map(routePattern, displayName, requestDelegate, new HttpMethodMetadata(new[] { "POST" }));
+            _builder.Map(routePattern, displayName, requestDelegate, new HttpMethodMetadata(new[] { "POST" }));
         }
 
         private class GrpcContentTypeConstraint : IRouteConstraint
