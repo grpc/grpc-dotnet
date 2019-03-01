@@ -98,6 +98,9 @@ namespace BenchmarkWorkerWebsite
                throw new ArgumentException("Unsupported ServerType");
             }
 
+            // Don't log requests handled by the benchmarking service
+            webHostBuilder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
+
             var webHost = webHostBuilder.Build();
             webHost.Start();
             return new ServerRunnerImpl(webHost, logger, port);
