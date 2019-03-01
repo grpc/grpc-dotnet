@@ -1,4 +1,4 @@
-#region Copyright notice and license
+﻿#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -16,14 +16,15 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using Greet;
-using Grpc.Core;
-
-class SecondGreeterService : SecondGreeter.SecondGreeterBase
+namespace FunctionalTestsWebsite.Infrastructure
 {
-    public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    public class IncrementingCounter
     {
-        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        public void Increment(int amount)
+        {
+            Count += amount;
+        }
+
+        public int Count { get; private set; }
     }
 }

@@ -78,6 +78,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = new StreamPipeWriter(stream);
 
             PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
+            stream.Seek(0, SeekOrigin.Begin);
         }
     }
 }
