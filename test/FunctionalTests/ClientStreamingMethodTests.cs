@@ -25,6 +25,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Count;
 using FunctionalTestsWebsite;
+using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests;

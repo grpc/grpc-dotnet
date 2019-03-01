@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Chat;
 
-namespace FunctionalTestsWebsite
+namespace FunctionalTestsWebsite.Services
 {
     public class ChatterService : Chatter.ChatterBase
     {
