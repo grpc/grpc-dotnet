@@ -45,6 +45,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _serviceProvider = serviceProvider;
         }
 
+        private static GrpcEndpointModel<TInvoker> CreateModel<TInvoker>(TInvoker invoker) where TInvoker : Delegate
+        {
+            return new GrpcEndpointModel<TInvoker>(invoker, new List<object>());
+        }
+
         public string AddUnaryMethod<TService, TRequest, TResponse>(UnaryServerMethod<TRequest, TResponse> callHandler, string methodName = null)
             where TService : class
             where TRequest : class, IMessage, new()
@@ -52,10 +57,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TService, TRequest, TResponse>(MethodType.Unary, methodName ?? Guid.NewGuid().ToString());
 
-            Mock<IGrpcMethodInvokerFactory<TService>> mockInvoker = new Mock<IGrpcMethodInvokerFactory<TService>>();
-            mockInvoker.Setup(m => m.CreateUnaryInvoker(method)).Returns(() => new UnaryServerMethod<TService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
+            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
+            mockFactory.Setup(m => m.CreateUnaryModel(method)).Returns(() => CreateModel(new UnaryServerMethod<TService, TRequest, TResponse>((service, request, context) => callHandler(request, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (UnaryServerMethod<TRequest, TResponse>)null), mockInvoker.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (UnaryServerMethod<TRequest, TResponse>)null), mockFactory.Object);
 
             return method.FullName;
         }
@@ -67,10 +72,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TService, TRequest, TResponse>(MethodType.ServerStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            Mock<IGrpcMethodInvokerFactory<TService>> mockInvoker = new Mock<IGrpcMethodInvokerFactory<TService>>();
-            mockInvoker.Setup(m => m.CreateServerStreamingInvoker(method)).Returns(() => new ServerStreamingServerMethod<TService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
+            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
+            mockFactory.Setup(m => m.CreateServerStreamingModel(method)).Returns(() => CreateModel(new ServerStreamingServerMethod<TService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ServerStreamingServerMethod<TRequest, TResponse>)null), mockInvoker.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (ServerStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
 
             return method.FullName;
         }
@@ -82,10 +87,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TService, TRequest, TResponse>(MethodType.ClientStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            Mock<IGrpcMethodInvokerFactory<TService>> mockInvoker = new Mock<IGrpcMethodInvokerFactory<TService>>();
-            mockInvoker.Setup(m => m.CreateClientStreamingInvoker(method)).Returns(() => new ClientStreamingServerMethod<TService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
+            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
+            mockFactory.Setup(m => m.CreateClientStreamingModel(method)).Returns(() => CreateModel(new ClientStreamingServerMethod<TService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ClientStreamingServerMethod<TRequest, TResponse>)null), mockInvoker.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (ClientStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
 
             return method.FullName;
         }
@@ -97,22 +102,22 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TService, TRequest, TResponse>(MethodType.DuplexStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            Mock<IGrpcMethodInvokerFactory<TService>> mockInvoker = new Mock<IGrpcMethodInvokerFactory<TService>>();
-            mockInvoker.Setup(m => m.CreateDuplexStreamingInvoker(method)).Returns(() => new DuplexStreamingServerMethod<TService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
+            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
+            mockFactory.Setup(m => m.CreateDuplexStreamingModel(method)).Returns(() => CreateModel(new DuplexStreamingServerMethod<TService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (DuplexStreamingServerMethod<TRequest, TResponse>)null), mockInvoker.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (DuplexStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
 
             return method.FullName;
         }
 
-        private void AddServiceCore<TService>(Action<ServiceBinderBase, TService> bindAction, IGrpcMethodInvokerFactory<TService> invokerFactory)
+        private void AddServiceCore<TService>(Action<ServiceBinderBase, TService> bindAction, IGrpcMethodModelFactory<TService> modelFactory)
             where TService : class
         {
             var routeBuilder = new DynamicEndpointRouteBuilder(_serviceProvider);
             routeBuilder.MapGrpcService<TService>(options =>
             {
                 options.BindAction = bindAction;
-                options.InvokerFactory = invokerFactory;
+                options.ModelFactory = modelFactory;
             });
 
             var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();

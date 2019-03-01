@@ -64,15 +64,15 @@ namespace Microsoft.AspNetCore.Builder
             ValidateServicesRegistered(builder.ServiceProvider);
 
             var options = new GrpcBindingOptions<TService>();
-            options.BindAction = ReflectionBind<TService>;
-            options.InvokerFactory = new ReflectionMethodInvokerFactory<TService>();
+            options.BindAction = ReflectionBind;
+            options.ModelFactory = new ReflectionMethodModelFactory<TService>();
 
             configureOptions?.Invoke(options);
 
             var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
             var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
 
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.InvokerFactory, callHandlerFactory, serviceMethodsRegistry);
+            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry);
 
             try
             {
