@@ -17,11 +17,14 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Common;
 using Count;
 using Grpc.Core;
+using Grpc.NetCore.HttpClient;
 
 namespace Sample.Clients
 {
@@ -32,9 +35,8 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             // Server will only support Https on Windows and Linux
-            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
-            var channel = new Channel("localhost:50051", credentials);
-            var client = new Counter.CounterClient(channel);
+            var certificate = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? null : new X509Certificate2(Path.Combine(Resources.CertDir, "client.crt"));
+            var client = GrpcClientFactory.Create<Counter.CounterClient>(@"https://localhost:50051", certificate);
 
             var reply = client.IncrementCount(new Google.Protobuf.WellKnownTypes.Empty());
             Console.WriteLine("Count: " + reply.Count);
@@ -54,7 +56,7 @@ namespace Sample.Clients
             }
 
             Console.WriteLine("Shutting down");
-            channel.ShutdownAsync().Wait();
+            //channel.ShutdownAsync().Wait();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }

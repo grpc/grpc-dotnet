@@ -22,6 +22,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
+using Greet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -49,6 +50,10 @@ namespace FunctionalTestsWebsite
                     options.ReceiveMaxMessageSize = 64 * 1024;
                 });
             services.AddHttpContextAccessor();
+
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(options => options.BaseAddress = new Uri("https://localhost:8080"))
+                .UsePrimaryMessageHandlerProvider();
 
             services.AddAuthorization(options =>
             {
@@ -79,10 +84,10 @@ namespace FunctionalTestsWebsite
             services.AddTransient<TransientValueProvider>();
             services.AddScoped<ScopedValueProvider>();
 
-            // When the site is run from the test project a signaler will already be registered
-            // This will add a default one if the site is run standalone
+            // When the site is run from the test project these types will be injected
+            // This will add a default types if the site is run standalone
             services.TryAddSingleton<TrailersContainer>();
-
+            services.TryAddSingleton<IPrimaryMessageHandlerProvider, HttpPrimaryMessageHandlerProvider>();
             services.TryAddSingleton<DynamicEndpointDataSource>();
 
             // Add a Singleton service
@@ -120,6 +125,7 @@ namespace FunctionalTestsWebsite
                 routes.MapGrpcService<SecondGreeterService>();
                 routes.MapGrpcService<LifetimeService>();
                 routes.MapGrpcService<SingletonCounterService>();
+                routes.MapGrpcService<NestedService>();
 
                 // Bind via configure method
                 routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
