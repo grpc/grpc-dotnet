@@ -12,7 +12,7 @@ Here are some key features:
 - API compatible with the existing gRPC C# implementation (your existing service implementations should work with minimal adjustments)
 - Fully interoperable with other gRPC implementations (in other languages and other platforms)
 - Good integration with the rest of ASP.NET Core ecosystem
-- High-performance (we plan to utilize some of the cutting edge performance features from ASP.NET Core and in .NET plaform itself)
+- High-performance (we plan to utilize some of the cutting edge performance features from ASP.NET Core and in .NET platform itself)
 - We plan to provide a managed .NET Core client as well (possibly with limited feature set at first)
 
 We are committed to delivering the managed server experience Microsoft.AspNetCore.Server functionalities in ASP.NET Core 3.0 timeframe. We will strive to also deliver the mananged client experience in 3.0.
