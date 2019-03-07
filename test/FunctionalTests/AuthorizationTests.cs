@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Authorize.AuthorizedGreeter/SayHello");
-            httpRequest.Headers.Add("access_token", token);
+            httpRequest.Headers.Add("Authorization", $"Bearer {token}");
             httpRequest.Content = new GrpcStreamContent(ms);
 
             // Act
@@ -86,6 +86,30 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("Hello World", responseMessage.Message);
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+        }
+
+        [Test]
+        public async Task CallAuthorizedServiceWithInvalidToken_ReturnUnauthorized()
+        {
+            // Arrange
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Authorize.AuthorizedGreeter/SayHello");
+            httpRequest.Headers.Add("Authorization", $"Bearer SomeInvalidTokenHere");
+            httpRequest.Content = new GrpcStreamContent(ms);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest);
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         }
     }
 }
