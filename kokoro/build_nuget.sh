@@ -25,9 +25,8 @@ sudo apt-get install -y jq
 ./build/get-dotnet.sh
 export PATH="$HOME/.dotnet/:$PATH"
 
-# TODO(jtattermusch): remove this before release, otherwise 
-# references will be broken.
-./build/get-grpc.sh
+# Required when using nightly builds of gRPC packages
+# ./build/get-grpc.sh
 
 mkdir -p artifacts
 
