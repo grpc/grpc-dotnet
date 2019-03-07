@@ -72,19 +72,6 @@ namespace FunctionalTestsWebsite
                             ValidateLifetime = true,
                             IssuerSigningKey = SecurityKey
                         };
-
-                    options.Events = new JwtBearerEvents
-                    {
-                        OnMessageReceived = context =>
-                        {
-                            var token = context.Request.Headers["access_token"];
-                            if (!string.IsNullOrEmpty(token))
-                            {
-                                context.Token = token;
-                            }
-                            return Task.CompletedTask;
-                        }
-                    };
                 });
 
             services.AddScoped<IncrementingCounter>();
