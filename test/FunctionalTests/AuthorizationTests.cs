@@ -89,7 +89,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         }
 
         [Test]
-        public async Task CallAuthorizedServiceWithInvalidToken_Success()
+        public async Task CallAuthorizedServiceWithInvalidToken_ReturnUnauthorized()
         {
             // Arrange
 
