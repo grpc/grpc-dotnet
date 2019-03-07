@@ -2,9 +2,9 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <GoogleProtobufPackageVersion>3.6.1</GoogleProtobufPackageVersion>
-    <GrpcCorePackageVersion>1.19.0-pre1</GrpcCorePackageVersion>
-    <GrpcCoreApiPackageVersion>1.19.0-pre1</GrpcCoreApiPackageVersion>
-    <GrpcToolsPackageVersion>1.19.0-pre1</GrpcToolsPackageVersion>
+    <GrpcCorePackageVersion>1.19.0</GrpcCorePackageVersion>
+    <GrpcCoreApiPackageVersion>1.19.0</GrpcCoreApiPackageVersion>
+    <GrpcToolsPackageVersion>1.19.0</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
