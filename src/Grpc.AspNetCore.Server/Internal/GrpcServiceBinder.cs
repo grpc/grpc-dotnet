@@ -38,16 +38,23 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
         private readonly IGrpcMethodModelFactory<TService> _serviceModelFactory;
+        private readonly string _basePath;
 
         internal IList<IEndpointConventionBuilder> EndpointConventionBuilders { get; } = new List<IEndpointConventionBuilder>();
         internal IList<IMethod> ServiceMethods { get; } = new List<IMethod>();
 
-        internal GrpcServiceBinder(IEndpointRouteBuilder builder, IGrpcMethodModelFactory<TService> serviceModelFactory, ServerCallHandlerFactory<TService> serverCallHandlerFactory, ServiceMethodsRegistry serviceMethodsRegistry)
+        internal GrpcServiceBinder(
+            IEndpointRouteBuilder builder,
+            IGrpcMethodModelFactory<TService> serviceModelFactory,
+            string basePath,
+            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+            ServiceMethodsRegistry serviceMethodsRegistry)
         {
             _builder = builder;
             _serviceMethodsRegistry = serviceMethodsRegistry;
             _serverCallHandlerFactory = serverCallHandlerFactory;
             _serviceModelFactory = serviceModelFactory;
+            _basePath = basePath;
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
@@ -82,13 +89,24 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             ServiceMethods.Add(method);
 
+            var pattern = string.IsNullOrEmpty(_basePath)
+                ? method.FullName
+                : Combine(_basePath, method.FullName);
+
             var resolvedMetadata = new List<object>();
 
             // IMethod is added as metadata for the endpoint
             resolvedMetadata.Add(method);
             resolvedMetadata.AddRange(metadata);
 
-            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, $"gRPC - {method.FullName}", requestDelegate, resolvedMetadata.ToArray()));
+            EndpointConventionBuilders.Add(_builder.MapPost(pattern, $"gRPC - {pattern}", requestDelegate, resolvedMetadata.ToArray()));
+        }
+
+        private static string Combine(string uri1, string uri2)
+        {
+            uri1 = uri1.TrimEnd('/');
+            uri2 = uri2.TrimStart('/');
+            return uri1 + "/" + uri2;
         }
 
         internal void CreateUnimplementedEndpoints()

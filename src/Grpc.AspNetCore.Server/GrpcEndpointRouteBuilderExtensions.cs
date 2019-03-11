@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.Builder
             var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
             var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
 
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry);
+            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, options.BasePath, callHandlerFactory, serviceMethodsRegistry);
 
             try
             {

@@ -117,6 +117,7 @@ namespace FunctionalTestsWebsite
 				routes.MapGrpcService<AuthorizedGreeter>();
 				routes.MapGrpcService<SecondGreeterService>();
 				routes.MapGrpcService<LifetimeService>();
+                routes.MapGrpcService<GreeterService>(options => options.BasePath = "NestedPath");
 
                 // Bind via configure method
                 routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);

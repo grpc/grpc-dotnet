@@ -28,6 +28,11 @@ namespace Grpc.AspNetCore.Server
     public class GrpcBindingOptions<TService>
     {
         /// <summary>
+        /// The base path of the gRPC service.
+        /// </summary>
+        public string BasePath { get; set; }
+
+        /// <summary>
         /// The action invoked to get service metadata via <see cref="ServiceBinderBase"/>.
         /// </summary>
         public Action<ServiceBinderBase, TService> BindAction { get; set; }

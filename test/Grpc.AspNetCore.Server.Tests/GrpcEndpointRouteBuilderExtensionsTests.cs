@@ -111,6 +111,33 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void MapGrpcService_BasePath_IncludedInPattern()
+        {
+            // Arrange
+            ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
+            services.AddGrpc();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterService>(options => options.BasePath = "TestBasePath");
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .ToList();
+            Assert.AreEqual(2, endpoints.Count);
+
+            var routeEndpoint1 = (RouteEndpoint)endpoints[0];
+            Assert.AreEqual("TestBasePath/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+
+            var routeEndpoint2 = (RouteEndpoint)endpoints[1];
+            Assert.AreEqual("TestBasePath/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+        }
+
+        [Test]
         public void MapGrpcService_ConventionBuilder_AddsMetadata()
         {
             // Arrange
