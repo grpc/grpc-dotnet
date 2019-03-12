@@ -85,6 +85,9 @@ namespace FunctionalTestsWebsite
             services.TryAddSingleton<TrailersContainer>();
 
             services.TryAddSingleton<DynamicEndpointDataSource>();
+
+            // Add a Singleton service
+            services.AddSingleton<SingletonCounterService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -114,9 +117,10 @@ namespace FunctionalTestsWebsite
                 // Bind via reflection
                 routes.MapGrpcService<ChatterService>();
                 routes.MapGrpcService<CounterService>();
-				routes.MapGrpcService<AuthorizedGreeter>();
-				routes.MapGrpcService<SecondGreeterService>();
-				routes.MapGrpcService<LifetimeService>();
+                routes.MapGrpcService<AuthorizedGreeter>();
+                routes.MapGrpcService<SecondGreeterService>();
+                routes.MapGrpcService<LifetimeService>();
+                routes.MapGrpcService<SingletonCounterService>();
 
                 // Bind via configure method
                 routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);

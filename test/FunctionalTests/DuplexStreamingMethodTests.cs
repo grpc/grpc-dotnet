@@ -20,11 +20,9 @@ using System;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Chat;
-using FunctionalTestsWebsite;
 using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
@@ -61,10 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             requestStream.AddData(ms.ToArray());
 
             var response = await responseTask.DefaultTimeout();
-
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);
@@ -146,10 +141,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
-
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);

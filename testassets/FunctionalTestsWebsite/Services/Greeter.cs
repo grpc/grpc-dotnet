@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -52,27 +50,6 @@ namespace FunctionalTestsWebsite.Services
             return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
         }
 
-        public override Task<HelloReply> SayHelloWithHttpContextExtensionMethod(HelloRequest request, ServerCallContext context)
-        {
-            var httpContext = context.GetHttpContext();
-            context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
-
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
-        }
-
-        public override Task<HelloReply> SayHelloReturnNull(HelloRequest request, ServerCallContext context)
-        {
-            return Task.FromResult<HelloReply>(null);
-        }
-
-        public override Task<HelloReply> SayHelloThrowExceptionWithTrailers(HelloRequest request, ServerCallContext context)
-        {
-            var trailers = new Metadata();
-            trailers.Add(new Metadata.Entry("test-trailer", "A value!"));
-
-            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
-        }
-
         public override Task<HelloReply> SayHelloSendLargeReply(HelloRequest request, ServerCallContext context)
         {
             _logger.LogInformation($"Sending hello to {request.Name}");
@@ -94,39 +71,6 @@ namespace FunctionalTestsWebsite.Services
             await context.WriteResponseHeadersAsync(null);
 
             await SayHellosCore(request, responseStream);
-        }
-
-        public override async Task SayHellosDeadline(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            var i = 0;
-            while (DateTime.UtcNow < context.Deadline)
-            {
-                var message = $"How are you {request.Name}? {i}";
-                await responseStream.WriteAsync(new HelloReply { Message = message });
-
-                i++;
-
-                await Task.Delay(110);
-            }
-
-            // Ensure deadline timer has run
-            var tcs = new TaskCompletionSource<object>();
-            context.CancellationToken.Register(() => tcs.SetResult(null));
-            await tcs.Task;
-        }
-
-        public override async Task SayHellosDeadlineCancellationToken(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            var i = 0;
-            while (!context.CancellationToken.IsCancellationRequested)
-            {
-                var message = $"How are you {request.Name}? {i}";
-                await responseStream.WriteAsync(new HelloReply { Message = message });
-
-                i++;
-
-                await Task.Delay(110);
-            }
         }
 
         public static async Task SayHellosCore(HelloRequest request, IServerStreamWriter<HelloReply> responseStream)

@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.IO;
 using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +23,6 @@ using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 

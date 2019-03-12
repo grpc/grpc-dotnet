@@ -19,7 +19,6 @@
 using System;
 using Grpc.AspNetCore.Server.Internal;
 using Moq;
-using Moq.Protected;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
