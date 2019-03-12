@@ -17,9 +17,6 @@
 #endregion
 
 using System.IO;
-using System.IO.Pipelines;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
@@ -53,7 +50,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            response.AssertIsSuccessfulGrpcRequest();
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
             Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
@@ -63,6 +60,14 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task HttpContextExtensionMethod_ReturnContextInTrailer()
         {
             // Arrange
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<HttpContextTests, HelloRequest, HelloReply>((request, context) =>
+            {
+                var httpContext = context.GetHttpContext();
+                context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
+
+                return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            });
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -71,17 +76,17 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHelloWithHttpContextExtensionMethod?query=extra");
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{url}?query=extra");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            response.AssertIsSuccessfulGrpcRequest();
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextExtensionMethod?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
+            Assert.AreEqual($"{url}?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
         }
     }
 }

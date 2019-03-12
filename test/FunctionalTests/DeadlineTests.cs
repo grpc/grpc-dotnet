@@ -16,16 +16,15 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -34,11 +33,49 @@ namespace Grpc.AspNetCore.FunctionalTests
     [TestFixture]
     public class DeadlineTests : FunctionalTestBase
     {
-        [TestCase("Greet.Greeter/SayHellosDeadline")]
-        [TestCase("Greet.Greeter/SayHellosDeadlineCancellationToken")]
-        public async Task WriteUntilDeadline_SuccessResponsesStreamed(string requestUri)
+        [Test]
+        public Task WriteUntilDeadline_SuccessResponsesStreamed_Deadline() =>
+            WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(async (request, responseStream, context) =>
+            {
+                var i = 0;
+                while (DateTime.UtcNow < context.Deadline)
+                {
+                    var message = $"How are you {request.Name}? {i}";
+                    await responseStream.WriteAsync(new HelloReply { Message = message });
+
+                    i++;
+
+                    await Task.Delay(110);
+                }
+
+                // Ensure deadline timer has run
+                var tcs = new TaskCompletionSource<object>();
+                context.CancellationToken.Register(() => tcs.SetResult(null));
+                await tcs.Task;
+            });
+
+        [Test]
+        public Task WriteUntilDeadline_SuccessResponsesStreamed_Token() =>
+            WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(async (request, responseStream, context) =>
+            {
+                var i = 0;
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    var message = $"How are you {request.Name}? {i}";
+                    await responseStream.WriteAsync(new HelloReply { Message = message });
+
+                    i++;
+
+                    await Task.Delay(110);
+                }
+            });
+
+
+        public async Task WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(ServerStreamingServerMethod<HelloRequest, HelloReply> method)
         {
             // Arrange
+            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<DeadlineTests, HelloRequest, HelloReply>(method);
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -47,7 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -55,9 +92,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);
@@ -134,9 +169,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);

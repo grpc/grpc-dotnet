@@ -21,10 +21,8 @@ using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     internal static class MessageHelpers
     {

@@ -16,12 +16,9 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
 using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure

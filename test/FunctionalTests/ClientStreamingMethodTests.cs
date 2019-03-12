@@ -19,13 +19,12 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Count;
-using FunctionalTestsWebsite;
 using FunctionalTestsWebsite.Services;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests;
@@ -64,13 +63,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var response = await responseTask.DefaultTimeout();
 
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
-
-            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-
-            var reply = await MessageHelpers.AssertReadMessageAsync<CounterReply>(responseStream);
+            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(2, reply.Count);
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
@@ -122,9 +115,11 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<ClientStreamingMethodTests, Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null));
+
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(CounterService).FullName &&
+                return writeContext.LoggerName == typeof(ClientStreamingMethodTests).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -140,11 +135,11 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                "Count.Counter/IncrementCountReturnNull",
+                url,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            response.AssertIsSuccessfulGrpcRequest();
 
             Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
             Assert.AreEqual("No message returned from method.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
@@ -213,14 +208,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
             var response = await responseTask.DefaultTimeout();
-
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
-
-            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-
-            var reply = await MessageHelpers.AssertReadMessageAsync<CounterReply>(responseStream);
+            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(3, reply.Count);
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());

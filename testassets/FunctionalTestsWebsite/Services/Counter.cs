@@ -44,11 +44,6 @@ namespace FunctionalTestsWebsite.Services
             return Task.FromResult(new CounterReply { Count = _counter.Count });
         }
 
-        public override Task<CounterReply> IncrementCountReturnNull(Empty request, ServerCallContext context)
-        {
-            return Task.FromResult<CounterReply>(null);
-        }
-
         public override async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
             while (await requestStream.MoveNext(CancellationToken.None))

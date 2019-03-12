@@ -19,15 +19,12 @@
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using FunctionalTestsWebsite;
 using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -55,9 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);
@@ -100,9 +95,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);
@@ -159,10 +152,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
 
             var response = await responseTask;
-
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = new StreamPipeReader(responseStream);
