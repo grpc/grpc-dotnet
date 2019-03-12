@@ -17,8 +17,6 @@
 #endregion
 
 using System.IO;
-using System.IO.Pipelines;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -26,7 +24,6 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -54,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            response.AssertIsSuccessfulGrpcRequest();
 
             Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
             Assert.AreEqual("Method is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
@@ -79,7 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            response.AssertIsSuccessfulGrpcRequest();
 
             Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
             Assert.AreEqual("Service is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
