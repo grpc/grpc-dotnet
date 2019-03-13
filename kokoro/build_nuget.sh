@@ -30,4 +30,4 @@ export PATH="$HOME/.dotnet/:$PATH"
 
 mkdir -p artifacts
 
-(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts)
+(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release /p:SourceLinkCreate=true --output ../../artifacts)

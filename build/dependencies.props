@@ -12,5 +12,6 @@
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NunitPackageVersion>3.11.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
+    <SourceLinkCreateCommandLinePackageVersion>2.8.3</SourceLinkCreateCommandLinePackageVersion>
   </PropertyGroup>
 </Project>

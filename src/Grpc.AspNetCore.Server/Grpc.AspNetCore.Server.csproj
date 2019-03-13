@@ -24,4 +24,8 @@
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcCorePackageVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SourceLink.Create.CommandLine" PrivateAssets="All" Version="$(SourceLinkCreateCommandLinePackageVersion)"/>
+  </ItemGroup>
+
 </Project>
