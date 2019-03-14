@@ -17,39 +17,65 @@
 #endregion
 
 using System;
-using System.Buffers;
-using System.Buffers.Binary;
-using System.IO;
-using System.IO.Pipelines;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
 namespace Grpc.NetCore.HttpClient
 {
+    /// <summary>
+    /// A client-side RPC invocation using HttpClient.
+    /// </summary>
     public class HttpClientCallInvoker : CallInvoker
     {
         private System.Net.Http.HttpClient _client;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
+        /// </summary>
+        /// <param name="handler">The primary client handler to use for gRPC requests.</param>
+        /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
         public HttpClientCallInvoker(HttpClientHandler handler, Uri baseAddress)
         {
             _client = new System.Net.Http.HttpClient(handler);
             _client.BaseAddress = baseAddress;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
+        /// </summary>
+        /// <param name="client">The HttpClient to use for gRPC requests.</param>
         public HttpClientCallInvoker(System.Net.Http.HttpClient client)
         {
             _client = client;
         }
 
-        // TODO(JamesNK): Use these values in calls
+        /// <summary>
+        /// Token that can be used for cancelling the call on the client side.
+        /// Cancelling the token will request cancellation
+        /// of the remote call. Best effort will be made to deliver the cancellation
+        /// notification to the server and interaction of the call with the server side
+        /// will be terminated. Unless the call finishes before the cancellation could
+        /// happen (there is an inherent race),
+        /// the call will finish with <c>StatusCode.Cancelled</c> status.
+        /// </summary>
         public CancellationToken CancellationToken { get; set; }
-        public DateTime Deadline { get; set; }
-        public ContextPropagationToken ContextPropagationToken { get; set; }
 
+        /// <summary>
+        /// The call deadline.
+        /// </summary>
+        public DateTime Deadline { get; set; }
+
+        /// <summary>
+        /// Token for propagating parent call context.
+        /// </summary>
+        public ContextPropagationToken PropagationToken { get; set; }
+
+        /// <summary>
+        /// Invokes a client streaming call asynchronously.
+        /// In client streaming scenario, client sends a stream of requests and server responds with a single response.
+        /// </summary>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var pipeContent = new PipeContent();
@@ -70,6 +96,11 @@ namespace Grpc.NetCore.HttpClient
                 disposeAction: () => { });
         }
 
+        /// <summary>
+        /// Invokes a duplex streaming call asynchronously.
+        /// In duplex streaming scenario, client sends a stream of requests and server responds with a stream of responses.
+        /// The response stream is completely independent and both side can be sending messages at the same time.
+        /// </summary>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var pipeContent = new PipeContent();
@@ -90,6 +121,10 @@ namespace Grpc.NetCore.HttpClient
                 disposeAction: () => { });
         }
 
+        /// <summary>
+        /// Invokes a server streaming call asynchronously.
+        /// In server streaming scenario, client sends on request and server responds with a stream of responses.
+        /// </summary>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var content = new PipeContent();
@@ -116,6 +151,9 @@ namespace Grpc.NetCore.HttpClient
                 disposeAction: () => { });
         }
 
+        /// <summary>
+        /// Invokes a simple remote call asynchronously.
+        /// </summary>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var content = new PipeContent();
@@ -142,6 +180,9 @@ namespace Grpc.NetCore.HttpClient
                 disposeAction: () => { });
         }
 
+        /// <summary>
+        /// Invokes a simple remote call in a blocking fashion.
+        /// </summary>
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             return AsyncUnaryCall(method, host, options, request)?.GetAwaiter().GetResult();

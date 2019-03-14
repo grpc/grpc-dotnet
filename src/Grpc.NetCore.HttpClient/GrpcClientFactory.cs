@@ -25,8 +25,18 @@ using Grpc.Core;
 
 namespace Grpc.NetCore.HttpClient
 {
+    /// <summary>
+    /// Factory for creating gRPC clients that will use HttpClient to make gRPC calls.
+    /// </summary>
     public static class GrpcClientFactory
     {
+        /// <summary>
+        /// Creates a gRPC client using the specified address.
+        /// </summary>
+        /// <typeparam name="TClient">The type of the gRPC client. This type will typically be defined using generated code from a *.proto file.</typeparam>
+        /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
+        /// <param name="certificate">The client certificate to use when making gRPC requests.</param>
+        /// <returns>A gRPC client.</returns>
         public static TClient Create<TClient>(string baseAddress, X509Certificate certificate = null) where TClient : ClientBase<TClient>
         {
             // Needs to be set before creating the HttpClientHandler
