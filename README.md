@@ -1,8 +1,9 @@
-# gRPC for dotnet
+# gRPC for .NET
 
-## Coming soon!
+## Preview out!
 
-This repository is currently under active development. We will be releasing previews shortly.
+A preview of gRPC for ASP.NET Core is on [NuGet](https://www.nuget.org/packages/Grpc.AspNetCore.Server). A template using the preview [shipped with .NET Core 3.0 Preview 3](https://devblogs.microsoft.com/aspnet/asp-net-core-updates-in-net-core-3-0-preview-3/).
+
 See https://github.com/grpc/grpc for the official version of gRPC C# (ready for production workloads).
 
 ## The Plan
@@ -23,7 +24,7 @@ Please note that we plan both implementations (gRPC C# native and fully-managed 
 
 ## To start using gRPC for ASP.NET Core
 
-Documentation and guides are coming soon! In the mean time we suggest referring to the examples at https://github.com/grpc/grpc-dotnet/tree/master/examples/Server.
+Documentation and guides are coming soon! In the mean time we suggest creating a basic website using the gRPC for ASP.NET template that comes with .NET Core 3.0 and refer to the examples at https://github.com/grpc/grpc-dotnet/tree/master/examples/Server.
 
 ## To develop gRPC for ASP.NET Core
 
