@@ -22,6 +22,7 @@ using Grpc.AspNetCore.Server.GrpcClient;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -99,24 +100,18 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureClient));
             }
 
+            // HttpContextAccessor is used to resolve the cancellation token, deadline and other request details to use with nested gRPC requests
+            services.AddHttpContextAccessor();
+
             services.TryAdd(ServiceDescriptor.Transient(typeof(ITypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Transient(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
 
             services.Configure(configureClient);
 
-            // Accessing the client options here allows the HttpContextAccessor to be added as needed
-            // Is there a way to get the value from services.Configure now?
-            var clientOptions = new GrpcClientOptions<TClient>();
-            configureClient(clientOptions);
-
-            // HttpContextAccessor has performance overhead. Only add it when required
-            if (RequireHttpContextAccessor(clientOptions))
+            Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
             {
-                services.AddHttpContextAccessor();
-            }
+                var clientOptions = s.GetRequiredService<IOptions<GrpcClientOptions<TClient>>>().Value;
 
-            Action<HttpClient> configureTypedClient = httpClient =>
-            {
                 httpClient.BaseAddress = clientOptions.BaseAddress;
             };
 
@@ -124,16 +119,18 @@ namespace Microsoft.Extensions.DependencyInjection
                 ? services.AddHttpClient<TClient>(configureTypedClient)
                 : services.AddHttpClient<TClient>(name, configureTypedClient);
 
-            if (clientOptions.Certificate != null)
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(s =>
             {
-                clientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    var handler = new HttpClientHandler();
-                    handler.ClientCertificates.Add(clientOptions.Certificate);
+                var clientOptions = s.GetRequiredService<IOptions<GrpcClientOptions<TClient>>>().Value;
 
-                    return handler;
-                });
-            }
+                var handler = new HttpClientHandler();
+                if (clientOptions.Certificate != null)
+                {
+                    handler.ClientCertificates.Add(clientOptions.Certificate);
+                }
+
+                return handler;
+            });
 
             return clientBuilder;
         }
