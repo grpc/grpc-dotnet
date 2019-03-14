@@ -2,7 +2,7 @@
 
 ## Preview out!
 
-A preview of gRPC for ASP.NET Core has been [published on NuGet](https://www.nuget.org/packages/Grpc.AspNetCore.Server) and template using the preview [shipped with .NET Core 3.0 Preview 3](https://devblogs.microsoft.com/aspnet/asp-net-core-updates-in-net-core-3-0-preview-3/).
+A preview of gRPC for ASP.NET Core is on [NuGet](https://www.nuget.org/packages/Grpc.AspNetCore.Server). A template using the preview [shipped with .NET Core 3.0 Preview 3](https://devblogs.microsoft.com/aspnet/asp-net-core-updates-in-net-core-3-0-preview-3/). Documentation for setting up and using gRPC on ASP.NET Core is coming soon.
 
 See https://github.com/grpc/grpc for the official version of gRPC C# (ready for production workloads).
 
