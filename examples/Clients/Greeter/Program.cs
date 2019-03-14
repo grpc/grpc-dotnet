@@ -17,16 +17,12 @@
 #endregion
 
 using System;
-using System.IO;
-using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Common;
 using Greet;
 using Grpc.Core;
-using Grpc.NetCore.HttpClient;
 
 namespace Sample.Clients
 {
@@ -35,8 +31,9 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             // Server will only support Https on Windows and Linux
-            var certificate = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? null : new X509Certificate2(Path.Combine(Resources.CertDir, "client.crt"));
-            var client = GrpcClientFactory.Create<Greeter.GreeterClient>(@"https://localhost:50051", certificate);
+            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
+            var channel = new Channel("localhost:50051", credentials);
+            var client = new Greeter.GreeterClient(channel);
 
             var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
@@ -48,7 +45,7 @@ namespace Sample.Clients
             }
 
             Console.WriteLine("Shutting down");
-            //client.Dispose();
+            await channel.ShutdownAsync();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }

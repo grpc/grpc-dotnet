@@ -20,15 +20,74 @@ using System;
 using System.Net.Http;
 using Grpc.AspNetCore.Server.GrpcClient;
 using Grpc.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
+    /// <summary>
+    /// Extensions methods to configure an <see cref="IServiceCollection"/> for <see cref="IHttpClientFactory"/> with gRPC.
+    /// </summary>
     public static class GrpcClientServiceExtensions
     {
+        /// <summary>
+        /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
+        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// </summary>
+        /// <typeparam name="TClient">
+        /// The type of the typed client. The type must inherit from <see cref="ClientBase{TClient}"/>. The type specified will be registered in the service collection as
+        /// a transient service.
+        /// </typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configureClient">A delegate that is used to configure the gRPC client.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        /// <remarks>
+        /// <para>
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using 
+        /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
+        /// </para>
+        /// <para>
+        /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
+        /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
+        /// <typeparamref name="TClient"/> as the service type. 
+        /// </para>
+        /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
+        {
+            return services.AddGrpcClientCore(name: null, configureClient);
+        }
+
+        /// <summary>
+        /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
+        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// </summary>
+        /// <typeparam name="TClient">
+        /// The type of the typed client. The type must inherit from <see cref="ClientBase{TClient}"/>. The type specified will be registered in the service collection as
+        /// a transient service.
+        /// </typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
+        /// <param name="configureClient">A delegate that is used to configure the gRPC client.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        /// <remarks>
+        /// <para>
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using 
+        /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
+        /// </para>
+        /// <para>
+        /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
+        /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
+        /// <typeparamref name="TClient"/> as the service type. 
+        /// </para>
+        /// </remarks>
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
+        {
+            return services.AddGrpcClientCore(name, configureClient);
+        }
+
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
         {
             if (services == null)
             {
@@ -56,10 +115,14 @@ namespace Microsoft.Extensions.DependencyInjection
                 services.AddHttpContextAccessor();
             }
 
-            var clientBuilder = services.AddHttpClient<TClient>(httpClient =>
+            Action<HttpClient> configureTypedClient = httpClient =>
             {
                 httpClient.BaseAddress = clientOptions.BaseAddress;
-            });
+            };
+
+            var clientBuilder = (name == null)
+                ? services.AddHttpClient<TClient>(configureTypedClient)
+                : services.AddHttpClient<TClient>(name, configureTypedClient);
 
             if (clientOptions.Certificate != null)
             {
