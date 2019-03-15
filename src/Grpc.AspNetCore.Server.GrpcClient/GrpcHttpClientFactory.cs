@@ -33,9 +33,9 @@ namespace Grpc.AspNetCore.Server.GrpcClient
         private readonly Cache _cache;
         private readonly IServiceProvider _services;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly GrpcClientOptions<TClient> _clientOptions;
+        private readonly GrpcClientOptions _clientOptions;
 
-        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptions<GrpcClientOptions<TClient>> clientOptions)
+        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptions<GrpcClientOptions> clientOptions)
         {
             if (cache == null)
             {

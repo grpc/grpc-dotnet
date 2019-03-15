@@ -22,11 +22,29 @@ using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.GrpcClient
 {
-    public class GrpcClientOptions<TClient> where TClient : ClientBase<TClient>
+    /// <summary>
+    /// Options used to configure a gRPC client.
+    /// </summary>
+    public class GrpcClientOptions
     {
+        /// <summary>
+        /// The base address to use when making gRPC requests.
+        /// </summary>
         public Uri BaseAddress { get; set; }
+
+        /// <summary>
+        /// The client certificate to use when making gRPC requests.
+        /// </summary>
         public X509Certificate Certificate { get; set; }
+
+        /// <summary>
+        /// A flag that indicates whether the request cancellation token should be propagated to client calls. Defaults to true.
+        /// </summary>
         public bool UseRequestCancellationToken { get; set; } = true;
+
+        /// <summary>
+        /// A flag that indicates whether the request deadline should be propagated to client calls. Defaults to true.
+        /// </summary>
         public bool UseRequestDeadline { get; set; } = true;
     }
 }

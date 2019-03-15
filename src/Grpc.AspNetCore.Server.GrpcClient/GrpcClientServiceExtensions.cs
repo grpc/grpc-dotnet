@@ -54,9 +54,11 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type. 
         /// </para>
         /// </remarks>
-        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientOptions> configureClient) where TClient : ClientBase<TClient>
         {
-            return services.AddGrpcClientCore(name: null, configureClient);
+            var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
+
+            return services.AddGrpcClientCore<TClient>(name, configureClient);
         }
 
         /// <summary>
@@ -83,16 +85,21 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type. 
         /// </para>
         /// </remarks>
-        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions> configureClient) where TClient : ClientBase<TClient>
         {
-            return services.AddGrpcClientCore(name, configureClient);
+            return services.AddGrpcClientCore<TClient>(name, configureClient);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions<TClient>> configureClient) where TClient : ClientBase<TClient>
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions> configureClient) where TClient : ClientBase<TClient>
         {
             if (services == null)
             {
                 throw new ArgumentNullException(nameof(services));
+            }
+
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
             }
 
             if (configureClient == null)
@@ -106,22 +113,18 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAdd(ServiceDescriptor.Transient(typeof(ITypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Transient(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
 
-            services.Configure(configureClient);
-
             Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
             {
-                var clientOptions = s.GetRequiredService<IOptions<GrpcClientOptions<TClient>>>().Value;
+                var os = s.GetRequiredService<IOptionsSnapshot<GrpcClientOptions>>();
+                var clientOptions = os.Get(name);
 
                 httpClient.BaseAddress = clientOptions.BaseAddress;
             };
 
-            var clientBuilder = (name == null)
-                ? services.AddHttpClient<TClient>(configureTypedClient)
-                : services.AddHttpClient<TClient>(name, configureTypedClient);
-
-            clientBuilder.ConfigurePrimaryHttpMessageHandler(s =>
+            Func<IServiceProvider, HttpMessageHandler> configurePrimaryHttpMessageHandler = s =>
             {
-                var clientOptions = s.GetRequiredService<IOptions<GrpcClientOptions<TClient>>>().Value;
+                var os = s.GetRequiredService<IOptionsSnapshot<GrpcClientOptions>>();
+                var clientOptions = os.Get(name);
 
                 var handler = new HttpClientHandler();
                 if (clientOptions.Certificate != null)
@@ -130,14 +133,14 @@ namespace Microsoft.Extensions.DependencyInjection
                 }
 
                 return handler;
-            });
+            };
+
+            services.Configure(name, configureClient);
+            IHttpClientBuilder clientBuilder = services.AddHttpClient<TClient>(name, configureTypedClient);
+
+            clientBuilder.ConfigurePrimaryHttpMessageHandler(configurePrimaryHttpMessageHandler);
 
             return clientBuilder;
-        }
-
-        private static bool RequireHttpContextAccessor<TClient>(GrpcClientOptions<TClient> clientOptions) where TClient : ClientBase<TClient>
-        {
-            return clientOptions.UseRequestCancellationToken || clientOptions.UseRequestDeadline;
         }
     }
 }
