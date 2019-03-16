@@ -16,12 +16,12 @@
 
 #endregion
 
-using System.Net.Http;
+using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.GrpcClient
 {
-    interface INamedTypedHttpClientFactory<TClient>
+    public interface IGrpcClientFactory
     {
-        TClient CreateClient(HttpClient httpClient, string name);
+        TClient CreateClient<TClient>(string name) where TClient : ClientBase;
     }
 }

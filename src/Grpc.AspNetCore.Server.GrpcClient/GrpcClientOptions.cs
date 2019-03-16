@@ -46,5 +46,8 @@ namespace Grpc.AspNetCore.Server.GrpcClient
         /// A flag that indicates whether the request deadline should be propagated to client calls. Defaults to true.
         /// </summary>
         public bool UseRequestDeadline { get; set; } = true;
+
+        // This property is set internally. It is used to check whether named configuration was explicitly set by the user
+        internal bool ExplicitlySet { get; set; }
     }
 }

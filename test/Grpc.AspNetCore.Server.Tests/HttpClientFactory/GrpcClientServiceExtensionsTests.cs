@@ -16,16 +16,16 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
-using Grpc.Core;
-using Grpc.NetCore.HttpClient;
+using Grpc.AspNetCore.Server.Feature;
+using Grpc.AspNetCore.Server.GrpcClient;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using System;
+using System.Threading;
 using static Greet.Greeter;
 
 namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             var ex = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<TestGreeterClient>());
 
             // Assert
-            Assert.AreEqual("Cannot set the request cancellation token because there is no HttpContext.", ex.Message);
+            Assert.AreEqual("Cannot set the request cancellation token on the client because there is no HttpContext.", ex.Message);
         }
 
         [Test]
@@ -58,14 +58,9 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var httpContext = new DefaultHttpContext();
-            httpContext.RequestAborted = cts.Token;
 
             var services = new ServiceCollection();
-            services.AddSingleton<IHttpContextAccessor>(new TestHttpContextAccessor
-            {
-                HttpContext = httpContext
-            });
+            HttpContextHelpers.SetupHttpContext(services, cts.Token);
             services.AddGrpcClient<TestGreeterClient>(options =>
             {
                 options.UseRequestCancellationToken = true;
@@ -77,65 +72,41 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             var client = provider.GetRequiredService<TestGreeterClient>();
 
             // Assert
-            var callInvoker = client.GetCallInvoker();
-
-            Assert.AreEqual(httpContext.RequestAborted, callInvoker.CancellationToken);
+            Assert.AreEqual(cts.Token, client.GetCallInvoker().CancellationToken);
         }
 
         [Test]
-        public void MultipleNamedClients()
+        public void ResolveDefaultAndNamedClients_ClientsUseCorrectConfiguration()
         {
             // Arrange
-            var cts = new CancellationTokenSource();
-            var httpContext = new DefaultHttpContext();
-            httpContext.RequestAborted = cts.Token;
-
             var services = new ServiceCollection();
-            services.AddSingleton<IHttpContextAccessor>(new TestHttpContextAccessor
+            HttpContextHelpers.SetupHttpContext(services);
+            services.AddGrpcClient<TestGreeterClient>(options =>
             {
-                HttpContext = httpContext
+                options.BaseAddress = new Uri("http://testgreeterclient");
             });
-            services.AddGrpcClient<TestGreeterClient>("contoso", options =>
+            services.AddGrpcClient<TestSecondGreeterClient>("contoso", options =>
             {
                 options.BaseAddress = new Uri("http://contoso");
             });
-            services.AddGrpcClient<TestGreeterClient>("adventureworks", options =>
+            services.AddGrpcClient<TestSecondGreeterClient>(options =>
             {
-                options.BaseAddress = new Uri("http://adventureworks");
+                options.BaseAddress = new Uri("http://testsecondgreeterclient");
             });
 
             var provider = services.BuildServiceProvider();
 
             // Act
-            var client = provider.GetRequiredService<IHttpClientFactory>();
+            var client = provider.GetRequiredService<TestGreeterClient>();
+            var secondClient = provider.GetRequiredService<TestSecondGreeterClient>();
 
-            client.CreateClient("contoso");
+            var factory = provider.GetRequiredService<IGrpcClientFactory>();
+            var contosoClient = factory.CreateClient<TestSecondGreeterClient>("contoso");
 
             // Assert
-            var callInvoker = client.GetCallInvoker();
-
-            Assert.AreEqual(httpContext.RequestAborted, callInvoker.CancellationToken);
-        }
-
-
-        private class TestGreeterClient : GreeterClient
-        {
-            private CallInvoker _callInvoker;
-
-            public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
-            {
-                _callInvoker = callInvoker;
-            }
-
-            public HttpClientCallInvoker GetCallInvoker()
-            {
-                return (HttpClientCallInvoker)_callInvoker;
-            }
-        }
-
-        private class TestHttpContextAccessor : IHttpContextAccessor
-        {
-            public HttpContext HttpContext { get; set; }
+            Assert.AreEqual("http://testgreeterclient", client.GetCallInvoker().BaseAddress.OriginalString);
+            Assert.AreEqual("http://testsecondgreeterclient", secondClient.GetCallInvoker().BaseAddress.OriginalString);
+            Assert.AreEqual("http://contoso", contosoClient.GetCallInvoker().BaseAddress.OriginalString);
         }
     }
 }

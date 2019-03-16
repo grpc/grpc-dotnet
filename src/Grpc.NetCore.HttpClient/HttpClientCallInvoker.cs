@@ -51,6 +51,8 @@ namespace Grpc.NetCore.HttpClient
             _client = client;
         }
 
+        internal Uri BaseAddress => _client.BaseAddress;
+
         /// <summary>
         /// Token that can be used for cancelling the call on the client side.
         /// Cancelling the token will request cancellation

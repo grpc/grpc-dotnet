@@ -16,12 +16,12 @@
 
 #endregion
 
-using System.Net.Http;
+using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.Server.GrpcClient
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
-    interface INamedTypedHttpClientFactory<TClient>
+    internal class TestHttpContextAccessor : IHttpContextAccessor
     {
-        TClient CreateClient(HttpClient httpClient, string name);
+        public HttpContext HttpContext { get; set; }
     }
 }

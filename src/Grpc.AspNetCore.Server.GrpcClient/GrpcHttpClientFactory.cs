@@ -19,6 +19,7 @@
 using System;
 using System.Net.Http;
 using System.Threading;
+using Grpc.AspNetCore.Server.Feature;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient;
 using Microsoft.AspNetCore.Http;
@@ -65,22 +66,30 @@ namespace Grpc.AspNetCore.Server.GrpcClient
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
+            var httpContext = _httpContextAccessor.HttpContext;
+            var serverCallContext = httpContext?.Features.Get<IServerCallContextFeature>().ServerCallContext;
+
             var namedOptions = _clientOptions.Get(name);
 
             var callInvoker = new HttpClientCallInvoker(httpClient);
             if (namedOptions.UseRequestCancellationToken)
             {
-                var httpContext = _httpContextAccessor.HttpContext;
-                if (httpContext == null)
+                if (serverCallContext == null)
                 {
-                    throw new InvalidOperationException("Cannot set the request cancellation token because there is no HttpContext.");
+                    throw new InvalidOperationException("Cannot set the request cancellation token on the client because there is no HttpContext.");
                 }
 
-                callInvoker.CancellationToken = httpContext.RequestAborted;
+                callInvoker.CancellationToken = serverCallContext.CancellationToken;
             }
+            if (namedOptions.UseRequestDeadline)
+            {
+                if (serverCallContext == null)
+                {
+                    throw new InvalidOperationException("Cannot set the request deadline on the client because there is no HttpContext.");
+                }
 
-            // TODO(JamesNK): Need to set deadline and context propagation token
-            // Either add HttpContextServerCallContext to HttpContext.Items or provide equivilent of IHttpContextAccessor
+                callInvoker.Deadline = serverCallContext.Deadline;
+            }
 
             return (TClient)_cache.Activator(_services, new object[] { callInvoker });
         }

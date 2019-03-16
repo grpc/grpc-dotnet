@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             TService service = null;

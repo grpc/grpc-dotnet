@@ -16,12 +16,24 @@
 
 #endregion
 
-using System.Net.Http;
+using Grpc.Core;
+using Grpc.NetCore.HttpClient;
+using static Greet.Greeter;
 
-namespace Grpc.AspNetCore.Server.GrpcClient
+namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 {
-    interface INamedTypedHttpClientFactory<TClient>
+    internal class TestGreeterClient : GreeterClient
     {
-        TClient CreateClient(HttpClient httpClient, string name);
+        private CallInvoker _callInvoker;
+
+        public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
+        {
+            _callInvoker = callInvoker;
+        }
+
+        public HttpClientCallInvoker GetCallInvoker()
+        {
+            return (HttpClientCallInvoker)_callInvoker;
+        }
     }
 }
