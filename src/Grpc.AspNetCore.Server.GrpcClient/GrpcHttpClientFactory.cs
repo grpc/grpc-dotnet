@@ -28,14 +28,14 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.GrpcClient
 {
-    internal class GrpcHttpClientFactory<TClient> : ITypedHttpClientFactory<TClient> where TClient : ClientBase<TClient>
+    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
     {
         private readonly Cache _cache;
         private readonly IServiceProvider _services;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly GrpcClientOptions _clientOptions;
+        private readonly IOptionsMonitor<GrpcClientOptions> _clientOptions;
 
-        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptions<GrpcClientOptions> clientOptions)
+        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptionsMonitor<GrpcClientOptions> clientOptions)
         {
             if (cache == null)
             {
@@ -55,20 +55,28 @@ namespace Grpc.AspNetCore.Server.GrpcClient
             _cache = cache;
             _services = services;
             _httpContextAccessor = services.GetService<IHttpContextAccessor>();
-            _clientOptions = clientOptions.Value;
+            _clientOptions = clientOptions;
         }
 
-        public TClient CreateClient(HttpClient httpClient)
+        public TClient CreateClient(HttpClient httpClient, string name)
         {
             if (httpClient == null)
             {
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
+            var namedOptions = _clientOptions.Get(name);
+
             var callInvoker = new HttpClientCallInvoker(httpClient);
-            if (_clientOptions.UseRequestCancellationToken)
+            if (namedOptions.UseRequestCancellationToken)
             {
-                callInvoker.CancellationToken = _httpContextAccessor.HttpContext.RequestAborted;
+                var httpContext = _httpContextAccessor.HttpContext;
+                if (httpContext == null)
+                {
+                    throw new InvalidOperationException("Cannot set the request cancellation token because there is no HttpContext.");
+                }
+
+                callInvoker.CancellationToken = httpContext.RequestAborted;
             }
 
             // TODO(JamesNK): Need to set deadline and context propagation token
