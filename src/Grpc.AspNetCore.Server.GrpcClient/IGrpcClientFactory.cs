@@ -20,8 +20,18 @@ using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.GrpcClient
 {
+    /// <summary>
+    /// A factory abstraction for a component that can create gRPC client instances with custom
+    /// configuration for a given logical name.
+    /// </summary>
     public interface IGrpcClientFactory
     {
+        /// <summary>
+        /// Create a gRPC client instance for the specified <typeparamref name="TClient"/> and configuration name.
+        /// </summary>
+        /// <typeparam name="TClient">The gRPC client type.</typeparam>
+        /// <param name="name">The configuration name.</param>
+        /// <returns>A gRPC client instance.</returns>
         TClient CreateClient<TClient>(string name) where TClient : ClientBase;
     }
 }
