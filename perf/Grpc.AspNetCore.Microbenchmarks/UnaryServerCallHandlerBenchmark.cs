@@ -16,13 +16,17 @@
 
 #endregion
 
+using System;
+using System.Buffers;
 using System.IO;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Chat;
 using Google.Protobuf;
 using Grpc.AspNetCore.Microbenchmarks.Internal;
 using Grpc.AspNetCore.Server;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -39,7 +43,8 @@ namespace Grpc.AspNetCore.Microbenchmarks
         private ServiceProvider _requestServices;
         private DefaultHttpContext _httpContext;
         private HeaderDictionary _trailers;
-        private MemoryStream _requestStream;
+        private byte[] _requestMessage;
+        private TestPipeReader _requestPipe;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -60,8 +65,11 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 Name = "Joe"
             };
 
-            _requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(_requestStream, message);
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, message);
+            _requestMessage = ms.ToArray();
+
+            _requestPipe = new TestPipeReader();
 
             var services = new ServiceCollection();
             services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));
@@ -69,7 +77,9 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;
-            _httpContext.Request.Body = _requestStream;
+            _httpContext.Request.BodyPipe = _requestPipe;
+            _httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
+            _httpContext.Response.BodyPipe = new TestPipeWriter();
 
             _httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
             {
@@ -77,11 +87,16 @@ namespace Grpc.AspNetCore.Microbenchmarks
             });
         }
 
+        private void ResetRequest()
+        {
+            _requestPipe.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage), false, true)));
+        }
+
         [Benchmark]
         public Task HandleCallAsync()
         {
             _httpContext.Response.Headers.Clear();
-            _requestStream.Seek(0, SeekOrigin.Begin);
+            ResetRequest();
             _trailers.Clear();
 
             return _callHandler.HandleCallAsync(_httpContext);

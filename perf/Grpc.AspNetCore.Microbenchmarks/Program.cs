@@ -17,14 +17,39 @@
 #endregion
 
 using BenchmarkDotNet.Running;
+using System;
+using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Microbenchmarks
 {
     public class Program
     {
+#if !PROFILE
         static void Main(string[] args)
         {
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
+#else
+        // Profiling option. This will call methods explicitly, in-process
+        static async Task Main(string[] args)
+        {
+            UnaryServerCallHandlerBenchmark benchmark = new UnaryServerCallHandlerBenchmark();
+            benchmark.GlobalSetup();
+            for (int i = 0; i < 100; i++)
+            {
+                await benchmark.HandleCallAsync();
+            }
+
+            Console.WriteLine("Press any key to start.");
+            Console.ReadKey();
+            for (int i = 0; i < 1; i++)
+            {
+                await benchmark.HandleCallAsync();
+            }
+
+            Console.WriteLine("Done. Press any key to exit.");
+            Console.ReadKey();
+        }
+#endif
     }
 }
