@@ -77,9 +77,9 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;
-            _httpContext.Request.BodyPipe = _requestPipe;
+            _httpContext.Request.BodyReader = _requestPipe;
             _httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
-            _httpContext.Response.BodyPipe = new TestPipeWriter();
+            _httpContext.Response.BodyWriter = new TestPipeWriter();
 
             _httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
             {
