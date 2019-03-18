@@ -38,8 +38,11 @@ namespace Sample.Clients
             var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
 
-            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });
-            while (await replies.ResponseStream.MoveNext(CancellationToken.None))
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
+
+            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token);
+            while (await MoveNextSafe(replies.ResponseStream, cts.Token))
             {
                 Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
             }
@@ -48,6 +51,16 @@ namespace Sample.Clients
             await channel.ShutdownAsync();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
+        }
+
+        private static async Task<bool> MoveNextSafe<T>(IAsyncStreamReader<T> reader, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(false), tcs);
+
+            Task<bool> completedTask = await Task.WhenAny(reader.MoveNext(cancellationToken), tcs.Task);
+
+            return await completedTask;
         }
     }
 }

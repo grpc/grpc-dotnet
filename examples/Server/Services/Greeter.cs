@@ -46,17 +46,17 @@ class GreeterService : Greeter.GreeterBase, IDisposable
         var httpContext = context.GetHttpContext();
         _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
 
-        for (int i = 0; i < 3; i++)
+        var i = 0;
+        while (!context.CancellationToken.IsCancellationRequested)
         {
-            var message = $"How are you {request.Name}? {i}";
-            _logger.LogInformation($"Sending greeting {message}");
+            var message = $"How are you {request.Name}? {++i}";
+            _logger.LogInformation($"Sending greeting {message}.");
+
             await responseStream.WriteAsync(new HelloReply { Message = message });
+
             // Gotta look busy
             await Task.Delay(1000);
         }
-
-        _logger.LogInformation("Sending goodbye");
-        await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
     }
 
     public void Dispose()
