@@ -88,7 +88,12 @@ namespace Grpc.AspNetCore.Server.Internal
             resolvedMetadata.Add(method);
             resolvedMetadata.AddRange(metadata);
 
-            EndpointConventionBuilders.Add(_builder.MapPost(method.FullName, $"gRPC - {method.FullName}", requestDelegate, resolvedMetadata.ToArray()));
+            var endpointBuilder = _builder
+                .MapPost(method.FullName, requestDelegate)
+                .WithDisplayName($"gRPC - {method.FullName}")
+                .WithMetadata(resolvedMetadata.ToArray());
+
+            EndpointConventionBuilders.Add(endpointBuilder);
         }
 
         internal void CreateUnimplementedEndpoints()
@@ -124,7 +129,9 @@ namespace Grpc.AspNetCore.Server.Internal
         private void CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
         {
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
-            _builder.Map(routePattern, displayName, requestDelegate, new HttpMethodMetadata(new[] { "POST" }));
+            _builder.Map(routePattern, requestDelegate)
+                .WithDisplayName(displayName)
+                .WithMetadata(new HttpMethodMetadata(new[] { "POST" }));
         }
 
         private class GrpcContentTypeConstraint : IRouteConstraint
