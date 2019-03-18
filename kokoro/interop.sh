@@ -24,6 +24,5 @@ git clone https://github.com/grpc/grpc ./../grpc
 cd ../grpc
 
 source tools/internal_ci/helper_scripts/prepare_build_linux_rc
-source tools/internal_ci/helper_scripts/prepare_build_interop_rc
 
 tools/run_tests/run_interop_tests.py -l csharp -s aspnetcore --use_docker --internal_ci -t -j 8
