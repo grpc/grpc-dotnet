@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             {
                 serverCallContext.Initialize();
 
-                var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(serverCallContext);
+                var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
 
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
@@ -69,8 +69,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
                 }
 
-                var responseBodyPipe = httpContext.Response.BodyPipe;
-                await responseBodyPipe.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
+                var responseBodyWriter = httpContext.Response.BodyWriter;
+                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
             }
             catch (Exception ex)
             {
@@ -88,7 +88,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Flush any buffered content
-            await httpContext.Response.BodyPipe.FlushAsync();
+            await httpContext.Response.BodyWriter.FlushAsync();
         }
     }
 }

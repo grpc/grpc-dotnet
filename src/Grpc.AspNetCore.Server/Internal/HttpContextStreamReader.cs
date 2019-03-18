@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromCanceled<bool>(cancellationToken);
             }
 
-            var readStreamTask = _serverCallContext.HttpContext.Request.BodyPipe.ReadStreamMessageAsync(_serverCallContext, cancellationToken);
+            var readStreamTask = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, cancellationToken);
             if (!readStreamTask.IsCompletedSuccessfully)
             {
                 return MoveNextAsync(readStreamTask);

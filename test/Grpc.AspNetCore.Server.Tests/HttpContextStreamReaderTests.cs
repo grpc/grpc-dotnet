@@ -61,7 +61,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new SyncPointMemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.BodyPipe = new StreamPipeReader(ms);
+            httpContext.Request.BodyReader = new StreamPipeReader(ms);
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
             var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, (data) =>
             {
