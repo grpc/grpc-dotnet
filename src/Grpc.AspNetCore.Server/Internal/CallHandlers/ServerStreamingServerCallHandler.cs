@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 serverCallContext.Initialize();
 
                 // Decode request
-                var requestPayload = await httpContext.Request.BodyPipe.ReadSingleMessageAsync(serverCallContext);
+                var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
                 service = activator.Create();
@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Flush any buffered content
-            await httpContext.Response.BodyPipe.FlushAsync();
+            await httpContext.Response.BodyWriter.FlushAsync();
         }
     }
 }

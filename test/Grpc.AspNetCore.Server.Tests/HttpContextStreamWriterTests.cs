@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new MemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
+            httpContext.Response.BodyWriter = new StreamPipeWriter(ms);
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
             var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
 
@@ -77,7 +77,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new MemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Response.BodyPipe = new StreamPipeWriter(ms);
+            httpContext.Response.BodyWriter = new StreamPipeWriter(ms);
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
             var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
             serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
@@ -100,7 +100,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert 2
             Assert.AreEqual(0, ms.Length);
 
-            await httpContext.Response.BodyPipe.FlushAsync();
+            await httpContext.Response.BodyWriter.FlushAsync();
 
             ms.Seek(0, SeekOrigin.Begin);
             var pipeReader = new StreamPipeReader(ms);

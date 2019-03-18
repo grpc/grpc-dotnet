@@ -74,7 +74,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Flush any buffered content
-            await httpContext.Response.BodyPipe.FlushAsync();
+            await httpContext.Response.BodyWriter.FlushAsync();
         }
     }
 }
