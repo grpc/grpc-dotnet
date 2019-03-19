@@ -49,12 +49,6 @@ namespace InteropTestsWebsite
                         }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });
-
-                    // Tweak flow control options to make large_unary test pass.
-                    // TODO(jtattermusch): remove this hack once https://github.com/aspnet/AspNetCore/pull/8200
-                    // is fixed.
-                    options.Limits.Http2.InitialConnectionWindowSize = 4 * 1024 * 1024;
-                    options.Limits.Http2.InitialStreamWindowSize = 4 * 1024 * 1024;
                 })
                 .UseStartup<Startup>();
     }
