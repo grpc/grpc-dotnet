@@ -12,16 +12,10 @@
     },
     "Port": 50051
   },
-  "unary-1-connection": {
+  "unary-connection": {
     "ClientProperties": {
       "Scenario": "Unary"
     },
     "Connections": 1
-  },
-  "unary-16-connection": {
-    "ClientProperties": {
-      "Scenario": "Unary"
-    },
-    "Connections": 16
   }
 }
