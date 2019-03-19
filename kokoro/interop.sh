@@ -15,8 +15,16 @@
 
 set -ex
 
-# change to grpc repo root
+# change to grpc-dotnet repo root
 cd $(dirname $0)/..
 
-# TODO(jtattermusch): run interop tests
-echo "Interop tests not yet setup."
+# The run_interop_tests.py testing scripts lives in the main gRPC repository
+# and runs tests for other languages from there.
+git clone https://github.com/grpc/grpc ./../grpc
+
+# change to grpc/grpc repo root
+cd ../grpc
+
+source tools/internal_ci/helper_scripts/prepare_build_linux_rc
+
+tools/run_tests/run_interop_tests.py -l csharp -s aspnetcore --use_docker --internal_ci -t -j 8
