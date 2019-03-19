@@ -12,7 +12,7 @@
     },
     "Port": 50051
   },
-  "unary-connection": {
+  "GrpcUnaryAspNetCore": {
     "ClientProperties": {
       "Scenario": "Unary"
     }

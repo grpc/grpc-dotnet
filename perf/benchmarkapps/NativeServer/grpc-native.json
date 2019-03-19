@@ -12,10 +12,9 @@
     },
     "Port": 50051
   },
-  "unary-connection": {
+  "GrpcUnaryNative": {
     "ClientProperties": {
       "Scenario": "Unary"
-    },
-    "Connections": 1
+    }
   }
 }
