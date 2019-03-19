@@ -18,6 +18,8 @@ set -ex
 # change to grpc-dotnet repo root
 cd $(dirname $0)/..
 
+# The run_interop_tests.py testing scripts lives in the main gRPC repository
+# and runs tests for other languages from there.
 git clone https://github.com/grpc/grpc ./../grpc
 
 # change to grpc/grpc repo root
