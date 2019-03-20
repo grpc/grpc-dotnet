@@ -56,9 +56,8 @@ namespace Grpc.NetCore.HttpClient
                 Current = _responseStream.ReadSingleMessage(_deserializer);
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                ex.StackTrace.ToString();
                 return false;
             }
         }

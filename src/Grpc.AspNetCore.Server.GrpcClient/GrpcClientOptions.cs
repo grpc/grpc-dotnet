@@ -18,7 +18,6 @@
 
 using System;
 using System.Security.Cryptography.X509Certificates;
-using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.GrpcClient
 {
@@ -28,24 +27,24 @@ namespace Grpc.AspNetCore.Server.GrpcClient
     public class GrpcClientOptions
     {
         /// <summary>
-        /// The base address to use when making gRPC requests.
+        /// The base address to use when making gRPC calls.
         /// </summary>
         public Uri BaseAddress { get; set; }
 
         /// <summary>
-        /// The client certificate to use when making gRPC requests.
+        /// The client certificate to use when making gRPC calls.
         /// </summary>
         public X509Certificate Certificate { get; set; }
 
         /// <summary>
-        /// A flag that indicates whether the request cancellation token should be propagated to client calls. Defaults to true.
+        /// A flag that indicates whether the call cancellation token should be propagated to client calls. Defaults to true.
         /// </summary>
-        public bool UseRequestCancellationToken { get; set; } = true;
+        public bool PropagateCancellationToken { get; set; } = true;
 
         /// <summary>
-        /// A flag that indicates whether the request deadline should be propagated to client calls. Defaults to true.
+        /// A flag that indicates whether the call deadline should be propagated to client calls. Defaults to true.
         /// </summary>
-        public bool UseRequestDeadline { get; set; } = true;
+        public bool PropagateDeadline { get; set; } = true;
 
         // This property is set internally. It is used to check whether named configuration was explicitly set by the user
         internal bool ExplicitlySet { get; set; }

@@ -16,12 +16,11 @@
 
 #endregion
 
+using System;
 using Grpc.AspNetCore.Server.GrpcClient;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System;
 
 namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 {

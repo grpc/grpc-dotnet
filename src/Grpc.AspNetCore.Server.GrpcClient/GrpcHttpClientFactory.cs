@@ -72,20 +72,20 @@ namespace Grpc.AspNetCore.Server.GrpcClient
             var namedOptions = _clientOptions.Get(name);
 
             var callInvoker = new HttpClientCallInvoker(httpClient);
-            if (namedOptions.UseRequestCancellationToken)
+            if (namedOptions.PropagateCancellationToken)
             {
                 if (serverCallContext == null)
                 {
-                    throw new InvalidOperationException("Cannot set the request cancellation token on the client because there is no HttpContext.");
+                    throw new InvalidOperationException("Cannot propagate the call cancellation token to the client. Cannot find the current gRPC ServerCallContext.");
                 }
 
                 callInvoker.CancellationToken = serverCallContext.CancellationToken;
             }
-            if (namedOptions.UseRequestDeadline)
+            if (namedOptions.PropagateDeadline)
             {
                 if (serverCallContext == null)
                 {
-                    throw new InvalidOperationException("Cannot set the request deadline on the client because there is no HttpContext.");
+                    throw new InvalidOperationException("Cannot propagate the call request deadline to the client. Cannot find the current gRPC ServerCallContext.");
                 }
 
                 callInvoker.Deadline = serverCallContext.Deadline;

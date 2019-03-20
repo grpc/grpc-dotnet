@@ -16,17 +16,12 @@
 
 #endregion
 
-using Grpc.AspNetCore.Server.Feature;
-using Grpc.AspNetCore.Server.GrpcClient;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests.Infrastructure;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
-using NUnit.Framework;
 using System;
 using System.Threading;
-using static Greet.Greeter;
+using Grpc.AspNetCore.Server.GrpcClient;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 {
@@ -41,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 
             services.AddGrpcClient<TestGreeterClient>(options =>
             {
-                options.UseRequestCancellationToken = true;
+                options.PropagateCancellationToken = true;
             });
 
             var provider = services.BuildServiceProvider();
@@ -50,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             var ex = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<TestGreeterClient>());
 
             // Assert
-            Assert.AreEqual("Cannot set the request cancellation token on the client because there is no HttpContext.", ex.Message);
+            Assert.AreEqual("Cannot propagate the call cancellation token to the client. Cannot find the current gRPC ServerCallContext.", ex.Message);
         }
 
         [Test]
@@ -63,7 +58,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             HttpContextHelpers.SetupHttpContext(services, cts.Token);
             services.AddGrpcClient<TestGreeterClient>(options =>
             {
-                options.UseRequestCancellationToken = true;
+                options.PropagateCancellationToken = true;
             });
 
             var provider = services.BuildServiceProvider();
