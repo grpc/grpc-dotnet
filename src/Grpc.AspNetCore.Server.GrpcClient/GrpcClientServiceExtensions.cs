@@ -176,7 +176,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return builder;
         }
 
-        internal class DefaultHttpClientBuilder : IHttpClientBuilder
+        private class DefaultHttpClientBuilder : IHttpClientBuilder
         {
             public DefaultHttpClientBuilder(IServiceCollection services, string name)
             {
