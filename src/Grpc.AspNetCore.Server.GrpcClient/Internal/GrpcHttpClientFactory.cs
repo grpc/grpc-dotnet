@@ -65,12 +65,13 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
+            var callInvoker = new HttpClientCallInvoker(httpClient);
+
             var httpContext = _httpContextAccessor.HttpContext;
             var serverCallContext = httpContext?.Features.Get<IServerCallContextFeature>().ServerCallContext;
 
             var namedOptions = _clientOptions.Get(name);
 
-            var callInvoker = new HttpClientCallInvoker(httpClient);
             if (namedOptions.PropagateCancellationToken)
             {
                 if (serverCallContext == null)
@@ -80,6 +81,7 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
 
                 callInvoker.CancellationToken = serverCallContext.CancellationToken;
             }
+
             if (namedOptions.PropagateDeadline)
             {
                 if (serverCallContext == null)
