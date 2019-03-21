@@ -50,7 +50,7 @@ namespace GRPCServer
 }
 
 [ServiceContract(Name = "Greet.Greeter")] // only needed to explicitly specify service name
-class MyService
+class MyService // (otherwise, the type's full name is used, i.e. {namespace}.{typename})
 {
     // note: currently only very specific API signatures are supported, as it needs to match
     // the signature that the underlying google API uses; a +1 feature would be to support
