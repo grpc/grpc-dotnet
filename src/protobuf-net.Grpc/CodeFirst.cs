@@ -1,10 +1,12 @@
-﻿using Grpc.Core;
+﻿// this is just me thinking aloud; "how would someone expect to use this?"
+
+using Grpc.Core;
 using ProtoBuf;
 using System;
 using System.ServiceModel;
 using System.Threading.Tasks;
 
-namespace protobuf_net.Grpc
+namespace BrainDumpOfIdeas
 {
     [ProtoContract]
     class HelloRequest

@@ -20,7 +20,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using ProtoBuf;
-using protobuf_net.Grpc;
+using ProtoBuf.Grpc;
 using System.ServiceModel;
 using System.Threading.Tasks;
 

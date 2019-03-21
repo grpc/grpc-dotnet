@@ -1,7 +1,6 @@
 ﻿using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using ProtoBuf;
 using System;
 using System.IO;
 using System.Linq;
@@ -9,9 +8,9 @@ using System.Reflection;
 using System.ServiceModel;
 using System.Threading.Tasks;
 
-namespace protobuf_net.Grpc
+namespace ProtoBuf.Grpc
 {
-    public static class FunBinder
+    public static class RouteBuilderExtensions
     {
         public static IEndpointConventionBuilder MapCodeFirstGrpcService<TService>(this IEndpointRouteBuilder builder)
             where TService : class
@@ -93,7 +92,7 @@ namespace protobuf_net.Grpc
             }
         }
 
-        static readonly MethodInfo s_addMethod = typeof(FunBinder).GetMethod(
+        static readonly MethodInfo s_addMethod = typeof(RouteBuilderExtensions).GetMethod(
             nameof(AddMethod), BindingFlags.Static | BindingFlags.NonPublic);
         static void AddMethod<TService, TRequest, TResponse>(
             string serviceName, MethodInfo method, MethodType methodType,
