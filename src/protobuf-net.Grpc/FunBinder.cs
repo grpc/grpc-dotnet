@@ -51,16 +51,8 @@ namespace protobuf_net.Grpc
                     .Invoke(null, argsBuffer);
             }
         }
-        static readonly MethodInfo s_addMethod = typeof(FunBinder).GetMethod(
-            nameof(AddMethod), BindingFlags.Static | BindingFlags.NonPublic);
-        static void AddMethod<TService, TRequest, TResponse>(
-            string serviceName, MethodInfo method,
-            ServiceBinderBase binder, TService service)
-            where TService : class
-            where TRequest : class
-            where TResponse : class
+        static string GetName(MethodInfo method)
         {
-            UnaryServerMethod<TRequest, TResponse> handler = null;
             var oca = (OperationContractAttribute)Attribute.GetCustomAttribute(method, typeof(OperationContractAttribute));
             var name = oca?.Name;
             if (string.IsNullOrWhiteSpace(name))
@@ -68,11 +60,41 @@ namespace protobuf_net.Grpc
                 name = method.Name;
                 if (name.EndsWith("Async")) name = name.Substring(0, name.Length - 5);
             }
-
-            binder.AddMethod(new Method<TRequest, TResponse>(
-                MethodType.Unary, serviceName, name,
+            return name;
+        }
+        static readonly MethodInfo s_addMethod = typeof(FunBinder).GetMethod(
+            nameof(AddUnaryMethod), BindingFlags.Static | BindingFlags.NonPublic);
+        static void AddUnaryMethod<TService, TRequest, TResponse>(
+            string serviceName, MethodInfo method,
+            ServiceBinderBase binder, TService _)
+            where TService : class
+            where TRequest : class
+            where TResponse : class
+        {
+            binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
+                serviceName + "/" + GetName(method),
+                MethodType.Unary, serviceName, method.Name,
                 MarshallerCache<TRequest>.Instance,
-                MarshallerCache<TResponse>.Instance), handler);
+                MarshallerCache<TResponse>.Instance), (UnaryServerMethod<TRequest, TResponse>)null);
+        }
+
+        public class FullyNamedMethod<TRequest, TResponse> : Method<TRequest, TResponse>, IMethod
+        {
+            private readonly string _fullName;
+
+            public FullyNamedMethod(
+                string fullName,
+                MethodType type,
+                string serviceName,
+                string name,
+                Marshaller<TRequest> requestMarshaller,
+                Marshaller<TResponse> responseMarshaller)
+                : base(type, serviceName, name, requestMarshaller, responseMarshaller)
+            {
+                _fullName = fullName;
+            }
+
+            string IMethod.FullName => _fullName;
         }
 
         static class MarshallerCache<T>
