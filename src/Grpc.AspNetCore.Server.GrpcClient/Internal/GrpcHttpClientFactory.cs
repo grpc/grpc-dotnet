@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
             {
                 if (serverCallContext == null)
                 {
-                    throw new InvalidOperationException("Cannot propagate the call request deadline to the client. Cannot find the current gRPC ServerCallContext.");
+                    throw new InvalidOperationException("Cannot propagate the call deadline to the client. Cannot find the current gRPC ServerCallContext.");
                 }
 
                 callInvoker.Deadline = serverCallContext.Deadline;
