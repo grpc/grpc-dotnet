@@ -70,7 +70,7 @@ namespace protobuf_net.Grpc
             }
 
             binder.AddMethod(new Method<TRequest, TResponse>(
-                MethodType.Unary, serviceName, method.Name,
+                MethodType.Unary, serviceName, name,
                 MarshallerCache<TRequest>.Instance,
                 MarshallerCache<TResponse>.Instance), handler);
         }
