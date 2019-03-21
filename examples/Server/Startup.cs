@@ -16,8 +16,13 @@
 
 #endregion
 
+using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using ProtoBuf;
+using protobuf_net.Grpc;
+using System.ServiceModel;
+using System.Threading.Tasks;
 
 namespace GRPCServer
 {
@@ -38,8 +43,33 @@ namespace GRPCServer
             {
                 routes.MapGrpcService<ChatterService>();
                 routes.MapGrpcService<CounterService>();
-                routes.MapGrpcService<GreeterService>();
+                routes.MapCodeFirstGrpcService<MyService>();
             });
         }
+    }
+}
+
+[ServiceContract(Name = "whatever")]
+class MyService
+{
+    [OperationContract(Name = "SayHello")]
+    public Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    {
+        // async Task<
+        await Task.Yield();
+        return new HelloReply { Message = "Hello " + request.Name };
+    }
+
+    [ProtoContract]
+    public class HelloRequest
+    {
+        [ProtoMember(1)]
+        public string Name { get; set; }
+    }
+    [ProtoContract]
+    public class HelloReply
+    {
+        [ProtoMember(1)]
+        public string Message { get; set; }
     }
 }

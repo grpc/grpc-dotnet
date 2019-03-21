@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <RootNamespace>protobuf_net.Grpc</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcCorePackageVersion)" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+    <PackageReference Include="protobuf-net" Version="2.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+  </ItemGroup>
+
+</Project>
