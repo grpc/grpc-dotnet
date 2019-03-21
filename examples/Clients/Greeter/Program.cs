@@ -38,13 +38,12 @@ namespace Sample.Clients
             var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
 
-            //var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });
-            //while (await replies.ResponseStream.MoveNext(CancellationToken.None))
-            //{
-            //    Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
-            //}
-            await Task.Yield();
-
+            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });
+            while (await replies.ResponseStream.MoveNext(CancellationToken.None))
+            {
+                Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+            }
+            
             Console.WriteLine("Shutting down");
             channel.ShutdownAsync().Wait();
             Console.WriteLine("Press any key to exit...");

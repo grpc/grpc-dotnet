@@ -54,7 +54,15 @@ class MyService
 {
     public Task<HelloReply> SayHelloAsync(HelloRequest request, ServerCallContext context)
     {
-        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        return Task.FromResult(new HelloReply { Message = $"Hello, {request.Name}" });
+    }
+
+    public async Task SayHellosAsync(HelloRequest request, IServerStreamWriter<HelloReply> stream, ServerCallContext serverCallContext)
+    {
+        for(int i = 0; i < 5; i++)
+        {
+            await stream.WriteAsync(new HelloReply { Message = $"Hellos {i}, {request.Name}" });
+        }
     }
 
     [ProtoContract]

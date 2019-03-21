@@ -30,25 +30,51 @@ namespace protobuf_net.Grpc
             if (string.IsNullOrWhiteSpace(serviceName)) serviceName = svcType.Name;
 
             object[] argsBuffer = null;
-            foreach (var method in svcType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            Type[] typesBuffer = null;
+            Type[] WithTypes(Type @in, Type @out)
             {
-
-                var args = method.GetParameters();
-                if (args.Length != 2 || args[1].ParameterType != typeof(ServerCallContext)) continue;
-                var inType = args[0].ParameterType;
-
-                var outType = method.ReturnType;
-                if (outType == null || !outType.IsGenericType || outType.GetGenericTypeDefinition() != typeof(Task<>))
-                    continue; // expect Task<T> result - we want the T
-                outType = outType.GetGenericArguments().Single();
-
-                if(argsBuffer == null)
+                if (typesBuffer == null)
+                {
+                    typesBuffer = new Type[] { typeof(TService), null, null };
+                }
+                typesBuffer[1] = @in;
+                typesBuffer[2] = @out;
+                return typesBuffer;
+            }
+            object[] WithMethod(MethodInfo m)
+            {
+                if (argsBuffer == null)
                 {
                     argsBuffer = new object[] { serviceName, null, binder, service };
                 }
-                argsBuffer[1] = method;
-                s_addMethod.MakeGenericMethod(typeof(TService), inType, outType)
-                    .Invoke(null, argsBuffer);
+                argsBuffer[1] = m;
+                return argsBuffer;
+            }
+            foreach (var method in svcType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                var outType = method.ReturnType;
+                if (outType == null) continue;
+                var args = method.GetParameters();
+                if (args.Length == 2 && args[1].ParameterType == typeof(ServerCallContext))
+                {
+                    var inType = args[0].ParameterType;
+                    if (outType.IsGenericType && outType.GetGenericTypeDefinition() == typeof(Task<>))
+                    {
+                        outType = outType.GetGenericArguments().Single();
+                        s_addUnaryMethod.MakeGenericMethod(WithTypes(inType, outType)).Invoke(null, WithMethod(method));
+                    }
+                }
+                else if (args.Length == 3 && args[2].ParameterType == typeof(ServerCallContext) && outType == typeof(Task))
+                {
+                    var inType = args[0].ParameterType;
+                    outType = args[1].ParameterType;
+                    if (outType.IsGenericType && outType.GetGenericTypeDefinition() == typeof(IServerStreamWriter<>))
+                    {
+                        outType = outType.GetGenericArguments().Single();
+                        s_addServerStreamingMethod.MakeGenericMethod(WithTypes(inType, outType)).Invoke(null, WithMethod(method));
+                    }
+                }
+                
             }
         }
         static string GetName(MethodInfo method)
@@ -62,8 +88,10 @@ namespace protobuf_net.Grpc
             }
             return name;
         }
-        static readonly MethodInfo s_addMethod = typeof(FunBinder).GetMethod(
+        static readonly MethodInfo s_addUnaryMethod = typeof(FunBinder).GetMethod(
             nameof(AddUnaryMethod), BindingFlags.Static | BindingFlags.NonPublic);
+        static readonly MethodInfo s_addServerStreamingMethod = typeof(FunBinder).GetMethod(
+            nameof(AddServerStreamingMethod), BindingFlags.Static | BindingFlags.NonPublic);
         static void AddUnaryMethod<TService, TRequest, TResponse>(
             string serviceName, MethodInfo method,
             ServiceBinderBase binder, TService _)
@@ -76,6 +104,19 @@ namespace protobuf_net.Grpc
                 MethodType.Unary, serviceName, method.Name,
                 MarshallerCache<TRequest>.Instance,
                 MarshallerCache<TResponse>.Instance), (UnaryServerMethod<TRequest, TResponse>)null);
+        }
+        static void AddServerStreamingMethod<TService, TRequest, TResponse>(
+            string serviceName, MethodInfo method,
+            ServiceBinderBase binder, TService _)
+            where TService : class
+            where TRequest : class
+            where TResponse : class
+        {
+            binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
+                serviceName + "/" + GetName(method),
+                MethodType.ServerStreaming, serviceName, method.Name,
+                MarshallerCache<TRequest>.Instance,
+                MarshallerCache<TResponse>.Instance), (ServerStreamingServerMethod<TRequest, TResponse>)null);
         }
 
         public class FullyNamedMethod<TRequest, TResponse> : Method<TRequest, TResponse>, IMethod
