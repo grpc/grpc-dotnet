@@ -52,6 +52,19 @@ namespace GRPCServer
 [ServiceContract(Name = "Greet.Greeter")] // only needed to explicitly specify service name
 class MyService
 {
+    // note: currently only very specific API signatures are supported, as it needs to match
+    // the signature that the underlying google API uses; a +1 feature would be to support
+    // alternative signatures, for example:
+    // a) ValueTask<HelloReply> SayHelloAsync(HelloRequest request) - ValueTask and no context
+    // b) HelloReply SayHelloAsync(ServerCallContext context) - sync and no context
+    // c) IAsyncEnumerable<HelloReply> SayHellosAsync(HelloRequest request, ServerCallContext context) - IAsyncEnumerable<T>
+    // (or is it Channel<T> ?)
+
+    // The tool would generate the corresponding proxy server/client wrapper to make the magic happens
+    // In particular, the intention here is that the API *could* be identical between server and client
+    // (although that is not a hard requirement or expectation)
+    // 
+
     public Task<HelloReply> SayHelloAsync(HelloRequest request, ServerCallContext context)
     {
         return Task.FromResult(new HelloReply { Message = $"Hello, {request.Name}" });
@@ -59,7 +72,7 @@ class MyService
 
     public async Task SayHellosAsync(HelloRequest request, IServerStreamWriter<HelloReply> stream, ServerCallContext serverCallContext)
     {
-        for(int i = 0; i < 5; i++)
+        for (int i = 0; i < 5; i++)
         {
             await stream.WriteAsync(new HelloReply { Message = $"Hellos {i}, {request.Name}" });
         }
