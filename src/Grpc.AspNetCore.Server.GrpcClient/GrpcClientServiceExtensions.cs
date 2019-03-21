@@ -19,9 +19,9 @@
 using System;
 using System.Net.Http;
 using Grpc.AspNetCore.Server.GrpcClient;
+using Grpc.AspNetCore.Server.GrpcClient.Internal;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
