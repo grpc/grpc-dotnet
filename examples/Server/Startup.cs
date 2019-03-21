@@ -49,15 +49,12 @@ namespace GRPCServer
     }
 }
 
-[ServiceContract(Name = "whatever")]
+[ServiceContract(Name = "Greet.Greeter")] // only needed to explicitly specify service name
 class MyService
 {
-    [OperationContract(Name = "SayHello")]
-    public Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    public Task<HelloReply> SayHelloAsync(HelloRequest request, ServerCallContext context)
     {
-        // async Task<
-        await Task.Yield();
-        return new HelloReply { Message = "Hello " + request.Name };
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }
 
     [ProtoContract]
