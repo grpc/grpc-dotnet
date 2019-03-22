@@ -20,8 +20,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using BrainDumpOfIdeas;
 using Common;
-using Greet;
 using Grpc.Core;
 
 namespace Sample.Clients
@@ -33,9 +33,9 @@ namespace Sample.Clients
             // Server will only support Https on Windows and Linux
             var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
             var channel = new Channel("localhost:50051", credentials);
-            var client = new Greeter.GreeterClient(channel);
+            var client = ClientFactory.CreateClient<IGreeter>(channel);
 
-            var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
+            var reply = await client.SayHello(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
 
             var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });

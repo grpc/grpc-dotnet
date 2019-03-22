@@ -102,37 +102,33 @@ namespace ProtoBuf.Grpc
             where TResponse : class
         {
             var oca = (OperationContractAttribute)Attribute.GetCustomAttribute(method, typeof(OperationContractAttribute));
-            var endpointName = oca?.Name;
-            if (string.IsNullOrWhiteSpace(endpointName))
+            var operationName = oca?.Name;
+            if (string.IsNullOrWhiteSpace(operationName))
             {
-                endpointName = method.Name;
-                if (endpointName.EndsWith("Async")) endpointName = endpointName.Substring(0, endpointName.Length - 5);
+                operationName = method.Name;
+                if (operationName.EndsWith("Async")) operationName = operationName.Substring(0, operationName.Length - 5);
             }
-            var fullName = serviceName + "/" + endpointName;
+            
             switch (methodType)
             {
                 case MethodType.Unary:
                     binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
-                        fullName, methodType, serviceName, method.Name,
-                        MarshallerCache<TRequest>.Instance, MarshallerCache<TResponse>.Instance),
+                        operationName, methodType, serviceName, method.Name),
                         (UnaryServerMethod<TRequest, TResponse>)null);
                     break;
                 case MethodType.ClientStreaming:
                     binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
-                        fullName, methodType, serviceName, method.Name,
-                        MarshallerCache<TRequest>.Instance, MarshallerCache<TResponse>.Instance),
+                        operationName, methodType, serviceName, method.Name),
                         (ClientStreamingServerMethod<TRequest, TResponse>)null);
                     break;
                 case MethodType.ServerStreaming:
                     binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
-                        fullName, methodType, serviceName, method.Name,
-                        MarshallerCache<TRequest>.Instance, MarshallerCache<TResponse>.Instance),
+                        operationName, methodType, serviceName, method.Name),
                         (ServerStreamingServerMethod<TRequest, TResponse>)null);
                     break;
                 case MethodType.DuplexStreaming:
                     binder.AddMethod(new FullyNamedMethod<TRequest, TResponse>(
-                        fullName, methodType, serviceName, method.Name,
-                        MarshallerCache<TRequest>.Instance, MarshallerCache<TResponse>.Instance),
+                        operationName, methodType, serviceName, method.Name),
                         (DuplexStreamingServerMethod<TRequest, TResponse>)null);
                     break;
                 default:
@@ -146,21 +142,23 @@ namespace ProtoBuf.Grpc
             private readonly string _fullName;
 
             public FullyNamedMethod(
-                string fullName,
+                string operationName,
                 MethodType type,
                 string serviceName,
-                string name,
-                Marshaller<TRequest> requestMarshaller,
-                Marshaller<TResponse> responseMarshaller)
-                : base(type, serviceName, name, requestMarshaller, responseMarshaller)
+                string methodName,
+                Marshaller<TRequest> requestMarshaller = null,
+                Marshaller<TResponse> responseMarshaller = null)
+                : base(type, serviceName, methodName,
+                      requestMarshaller ?? MarshallerCache<TRequest>.Instance,
+                      responseMarshaller ?? MarshallerCache<TResponse>.Instance)
             {
-                _fullName = fullName;
+                _fullName = serviceName + "/" + operationName;
             }
 
             string IMethod.FullName => _fullName;
         }
 
-        static class MarshallerCache<T>
+        internal static class MarshallerCache<T>
         {
             public static Marshaller<T> Instance { get; }
                 = new Marshaller<T>(Serialize, Deserialize);
