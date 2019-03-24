@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,24 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Greet;
+using Grpc.Core;
+using Grpc.NetCore.HttpClient;
+using static Greet.Greeter;
 
-service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
+namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
+{
+    internal class TestGreeterClient : GreeterClient
+    {
+        private CallInvoker _callInvoker;
 
-service SecondGreeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
+        public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
+        {
+            _callInvoker = callInvoker;
+        }
 
-message HelloRequest {
-  string name = 1;
-}
-
-message HelloReply {
-  string message = 1;
+        public HttpClientCallInvoker GetCallInvoker()
+        {
+            return (HttpClientCallInvoker)_callInvoker;
+        }
+    }
 }

@@ -21,13 +21,14 @@ using System.Globalization;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
     {
         private readonly ILogger _logger;
 
@@ -167,6 +168,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new NotImplementedException("AuthContext will be implemented in a future version.");
             }
         }
+
+        public ServerCallContext ServerCallContext => this;
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {

@@ -45,7 +45,7 @@ namespace Sample.Clients
             }
 
             Console.WriteLine("Shutting down");
-            channel.ShutdownAsync().Wait();
+            await channel.ShutdownAsync();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }

@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,24 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Greet;
+using Grpc.Core;
 
-service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
-
-service SecondGreeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
-
-message HelloRequest {
-  string name = 1;
-}
-
-message HelloReply {
-  string message = 1;
+namespace Grpc.AspNetCore.Server.Features
+{
+    /// <summary>
+    /// Provides access to the gRPC server call context for the current HTTP request.
+    /// </summary>
+    public interface IServerCallContextFeature
+    {
+        /// <summary>
+        /// Gets the gRPC server call context for the current HTTP request.
+        /// </summary>
+        ServerCallContext ServerCallContext { get; }
+    }
 }
