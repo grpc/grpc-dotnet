@@ -19,7 +19,7 @@
 using System;
 using System.Net.Http;
 using System.Threading;
-using Grpc.AspNetCore.Server.Feature;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient;
 using Microsoft.AspNetCore.Http;

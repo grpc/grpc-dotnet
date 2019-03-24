@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             var client = provider.GetRequiredService<TestGreeterClient>();
             var secondClient = provider.GetRequiredService<TestSecondGreeterClient>();
 
-            var factory = provider.GetRequiredService<IGrpcClientFactory>();
+            var factory = provider.GetRequiredService<GrpcClientFactory>();
             var contosoClient = factory.CreateClient<TestSecondGreeterClient>("contoso");
 
             // Assert

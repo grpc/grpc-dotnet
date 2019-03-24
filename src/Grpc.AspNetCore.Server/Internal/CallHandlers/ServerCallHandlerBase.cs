@@ -18,7 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Feature;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

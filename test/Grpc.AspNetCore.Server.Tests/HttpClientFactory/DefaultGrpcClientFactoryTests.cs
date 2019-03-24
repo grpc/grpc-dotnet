@@ -45,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
             var provider = services.BuildServiceProvider();
 
             // Act
-            var clientFactory = provider.GetRequiredService<IGrpcClientFactory>();
+            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
             var adventureworksClient = clientFactory.CreateClient<TestGreeterClient>("adventureworks");
@@ -68,7 +68,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 
             var provider = services.BuildServiceProvider();
 
-            var clientFactory = provider.GetRequiredService<IGrpcClientFactory>();
+            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
 
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>("DOES_NOT_EXIST"));

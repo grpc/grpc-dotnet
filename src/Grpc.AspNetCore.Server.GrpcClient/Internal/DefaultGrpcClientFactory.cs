@@ -24,7 +24,7 @@ using System.Net.Http;
 
 namespace Grpc.AspNetCore.Server.GrpcClient.Internal
 {
-    internal class DefaultGrpcClientFactory : IGrpcClientFactory
+    internal class DefaultGrpcClientFactory : GrpcClientFactory
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -37,7 +37,7 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
             _clientOptionsMonitor = clientOptionsMonitor;
         }
 
-        public TClient CreateClient<TClient>(string name) where TClient : ClientBase
+        public override TClient CreateClient<TClient>(string name)
         {
             var options = _clientOptionsMonitor.Get(name);
             if (!options.ExplicitlySet)

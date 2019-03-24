@@ -112,7 +112,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             // HttpContextAccessor is used to resolve the cancellation token, deadline and other request details to use with nested gRPC requests
             services.AddHttpContextAccessor();
-            services.TryAddSingleton<IGrpcClientFactory, DefaultGrpcClientFactory>();
+            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
 
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Transient(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));

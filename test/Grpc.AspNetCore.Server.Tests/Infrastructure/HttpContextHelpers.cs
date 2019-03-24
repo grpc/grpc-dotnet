@@ -16,7 +16,7 @@
 
 #endregion
 
-using Grpc.AspNetCore.Server.Feature;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
