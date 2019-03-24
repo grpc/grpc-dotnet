@@ -47,6 +47,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
 
                 services.AddSingleton<ILoggerFactory>(LoggerFactory);
+
+                services.AddSingleton<IPrimaryMessageHandlerProvider, TestPrimaryMessageHandlerProvider>(s => new TestPrimaryMessageHandlerProvider(_server));
             };
 
             var builder = new WebHostBuilder()

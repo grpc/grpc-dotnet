@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,24 +14,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Greet;
+using System.Net.Http;
+using FunctionalTestsWebsite.Infrastructure;
+using Microsoft.AspNetCore.TestHost;
 
-service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+{
+    public class TestPrimaryMessageHandlerProvider : IPrimaryMessageHandlerProvider
+    {
+        private readonly TestServer _server;
 
-service SecondGreeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
+        public TestPrimaryMessageHandlerProvider(TestServer server)
+        {
+            _server = server;
+        }
 
-message HelloRequest {
-  string name = 1;
-}
-
-message HelloReply {
-  string message = 1;
+        public HttpMessageHandler GetPrimaryMessageHandler()
+        {
+            return _server.CreateHandler();
+        }
+    }
 }

@@ -14,16 +14,10 @@
 
 syntax = "proto3";
 
-package Greet;
+package Nested;
 
-service Greeter {
+service NestedService {
   rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
-}
-
-service SecondGreeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc SayHellos (HelloRequest) returns (stream HelloReply) {}
 }
 
 message HelloRequest {
