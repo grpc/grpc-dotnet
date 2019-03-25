@@ -23,6 +23,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -71,8 +72,9 @@ namespace Microsoft.AspNetCore.Builder
 
             var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
             var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
+            var loggerFactory = builder.ServiceProvider.GetRequiredService<ILoggerFactory>();
 
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry);
+            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry, loggerFactory);
 
             try
             {
