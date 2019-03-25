@@ -25,6 +25,10 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
+using Moq;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -108,6 +112,36 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint2.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<IMethod>().FullName);
+        }
+
+        [Test]
+        public void MapGrpcService_LoggerAttached_AddsLogForBoundMethod()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var loggerName = "Grpc.AspNetCore.Server.Internal.GrpcServiceBinder";
+            var mockLoggerFactory = new Mock<ILoggerFactory>();
+            mockLoggerFactory
+                .Setup(m => m.CreateLogger(It.IsAny<string>()))
+                .Returns((string categoryName) => (categoryName == loggerName) ? (ILogger)testLogger : NullLogger.Instance);
+
+            var services = new ServiceCollection();
+            services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
+            services.AddGrpc();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterService>();
+
+            // Assert
+            var s1 = testSink.Writes[0].State.ToString();
+            Assert.AreEqual("Added gRPC method 'SayHello' to service 'Greet.Greeter'. Method type: 'Unary', route pattern: '/Greet.Greeter/SayHello'.", s1);
+
+            var s2 = testSink.Writes[1].State.ToString();
+            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'Greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/Greet.Greeter/SayHellos'.", s2);
         }
 
         [Test]
