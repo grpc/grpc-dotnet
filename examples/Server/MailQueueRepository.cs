@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Chat;
+using System.Collections.Concurrent;
 
-// The greeting service definition.
-service Chatter {
-  // Sends a greeting
-  rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
-}
+namespace GRPCServer
+{
+    public class MailQueueRepository
+    {
+        private ConcurrentDictionary<string, MailQueue> _mailQueues = new ConcurrentDictionary<string, MailQueue>();
 
-// The chat message.
-message ChatMessage {
-  string name = 1;
-  string message = 2;
+        public MailQueue GetMailQueue(string name)
+        {
+            return _mailQueues.GetOrAdd(name, (n) => new MailQueue(n));
+        }
+    }
 }

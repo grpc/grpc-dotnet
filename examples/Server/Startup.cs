@@ -29,6 +29,7 @@ namespace GRPCServer
         {
             services.AddGrpc();
             services.AddSingleton<IncrementingCounter>();
+            services.AddSingleton<MailQueueRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -36,7 +37,7 @@ namespace GRPCServer
         {
             app.UseRouting(routes =>
             {
-                routes.MapGrpcService<ChatterService>();
+                routes.MapGrpcService<MailerService>();
                 routes.MapGrpcService<CounterService>();
                 routes.MapGrpcService<GreeterService>();
             });
