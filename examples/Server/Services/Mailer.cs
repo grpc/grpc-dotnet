@@ -46,19 +46,9 @@ namespace GRPCServer
 
             var mailQueue = _messageQueueRepository.GetMailQueue(mailboxName);
 
-            Func<(int totalCount, int fowardCount, MailboxMessage.Types.Reason reason), Task> reportChanges = async (state) =>
-            {
-                await responseStream.WriteAsync(new MailboxMessage
-                {
-                    Forwarded = state.fowardCount,
-                    New = state.totalCount - state.fowardCount,
-                    Reason = state.reason
-                });
-            };
-            
             _logger.LogInformation($"Connected to {mailboxName}");
 
-            mailQueue.Changed += reportChanges;
+            mailQueue.Changed += ReportChanges;
 
             try
             {
@@ -70,16 +60,26 @@ namespace GRPCServer
                     }
                     else
                     {
-                        _logger.LogInformation("No mail to forward.");
+                        _logger.LogWarning("No mail to forward.");
                     }
                 }
             }
             finally
             {
-                mailQueue.Changed -= reportChanges;
+                mailQueue.Changed -= ReportChanges;
             }
 
             _logger.LogInformation($"{mailboxName} disconnected");
+
+            async Task ReportChanges((int totalCount, int fowardCount, MailboxMessage.Types.Reason reason) state)
+            {
+                await responseStream.WriteAsync(new MailboxMessage
+                {
+                    Forwarded = state.fowardCount,
+                    New = state.totalCount - state.fowardCount,
+                    Reason = state.reason
+                });
+            }
         }
     }
 }

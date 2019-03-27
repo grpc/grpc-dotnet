@@ -28,14 +28,16 @@ namespace Sample.Clients
 {
     class Program
     {
-        static async Task<int> Main(string[] args)
+        static async Task Main(string[] args)
         {
+            var mailboxName = GetMailboxName(args);
+
             // Server will only support Https on Windows and Linux
             var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
 
             var channel = new Channel("localhost:50051", credentials);
 
-            Console.WriteLine("Connecting to mailbox...");
+            Console.WriteLine($"Connecting to mailbox '{mailboxName}'");
             Console.WriteLine();
 
             await channel.ConnectAsync();
@@ -44,7 +46,7 @@ namespace Sample.Clients
             Console.WriteLine("Press escape to exit. Press any other key to forward mail.");
 
             var client = new Mailer.MailerClient(channel);
-            using (var mailbox = client.Mailbox(headers: new Metadata { new Metadata.Entry("mailbox-name", "DefaultMailBox") }))
+            using (var mailbox = client.Mailbox(headers: new Metadata { new Metadata.Entry("mailbox-name", mailboxName) }))
             {
                 _ = Task.Run(async () =>
                 {
@@ -76,8 +78,17 @@ namespace Sample.Clients
 
             Console.WriteLine("Disconnecting");
             await channel.ShutdownAsync();
+        }
 
-            return 0;
+        private static string GetMailboxName(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                Console.WriteLine("No mailbox name provided. Using default name. Usage: dotnet run <name>.");
+                return "DefaultMailbox";
+            }
+
+            return args[0];
         }
     }
 }
