@@ -9,9 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8C62055F-8CD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{AC41B2B2-62D9-454E-8521-F71E331B07F3}"
 	ProjectSection(SolutionItems) = preProject
-		examples\Proto\chat.proto = examples\Proto\chat.proto
 		examples\Proto\count.proto = examples\Proto\count.proto
 		examples\Proto\greet.proto = examples\Proto\greet.proto
+		examples\Proto\mail.proto = examples\Proto\mail.proto
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clients", "Clients", "{F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}"
@@ -45,8 +45,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.FunctionalTests", "test\FunctionalTests\Grpc.AspNetCore.FunctionalTests.csproj", "{B190F61D-854C-4EE1-9532-B81AB3215F90}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "perf", "perf", "{4163E1B3-4D75-46B4-9107-9A158FD708FC}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chatter", "examples\Clients\Chatter\Chatter.csproj", "{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Counter", "examples\Clients\Counter\Counter.csproj", "{F65AE56A-E6C8-467D-A097-3766D51720C0}"
 EndProject
@@ -87,11 +85,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsWebsite", "test
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", "{D4F0A67C-935C-429A-8785-22AE92FD37F6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BenchmarkWorkerWebsite", "testassets\BenchmarkWorkerWebsite\BenchmarkWorkerWebsite.csproj", "{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkWorkerWebsite", "testassets\BenchmarkWorkerWebsite\BenchmarkWorkerWebsite.csproj", "{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.NetCore.HttpClient", "src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj", "{FA2EF163-D774-4A28-94D7-F0A5D1A11892}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.AspNetCore.Server.GrpcClient", "src\Grpc.AspNetCore.Server.GrpcClient\Grpc.AspNetCore.Server.GrpcClient.csproj", "{9624FEEF-872F-4598-B634-0FE15414190C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.GrpcClient", "src\Grpc.AspNetCore.Server.GrpcClient\Grpc.AspNetCore.Server.GrpcClient.csproj", "{9624FEEF-872F-4598-B634-0FE15414190C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mailer", "examples\Clients\Mailer\Mailer.csproj", "{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,10 +111,6 @@ Global
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -163,6 +159,10 @@ Global
 		{9624FEEF-872F-4598-B634-0FE15414190C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9624FEEF-872F-4598-B634-0FE15414190C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9624FEEF-872F-4598-B634-0FE15414190C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -176,7 +176,6 @@ Global
 		{89ED416F-92F1-4425-9379-D4E76A285860} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{278B1311-41BF-4345-947E-7B70E277FC3C} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{B190F61D-854C-4EE1-9532-B81AB3215F90} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{F65AE56A-E6C8-467D-A097-3766D51720C0} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{265BE0B1-9002-441B-BA96-5C9E01115840} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{CD6E11AE-34B2-4054-AD14-A27653131762} = {A7E09CBD-853F-4C42-B4C4-A1C2CBA10C0B}
@@ -193,6 +192,7 @@ Global
 		{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25} = {D4F0A67C-935C-429A-8785-22AE92FD37F6}
 		{FA2EF163-D774-4A28-94D7-F0A5D1A11892} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{9624FEEF-872F-4598-B634-0FE15414190C} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
