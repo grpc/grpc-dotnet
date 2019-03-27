@@ -15,7 +15,7 @@
     <Protobuf Include="..\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
 
     <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="" />
+    <Content Include="@(Protobuf)" LinkBase="Protos" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\Shared\Resources.cs" />
 
