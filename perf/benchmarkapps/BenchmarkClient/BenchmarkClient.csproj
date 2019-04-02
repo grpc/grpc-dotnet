@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Shared\data.proto" GrpcServices="Client" Link="Protos\data.proto" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 

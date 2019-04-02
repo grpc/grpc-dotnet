@@ -13,13 +13,15 @@
 
   <ItemGroup>
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Shared\data.proto" GrpcServices="Server" Link="Protos\data.proto" />
 
     <None Include="..\..\..\examples\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
     <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
-    <Compile Include="..\Shared\Greeter.cs" Link="Greeter.cs" />
+    <Compile Include="..\Shared\GreetService.cs" Link="Services\GreetService.cs" />
+    <Compile Include="..\Shared\DataService.cs" Link="Services\DataService.cs" />
 
     <Content Update="hosting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

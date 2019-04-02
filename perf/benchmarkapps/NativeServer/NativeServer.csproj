@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Shared\data.proto" GrpcServices="Server" Link="Protos\data.proto" />
 
     <None Remove="hosting.json" />
     <Content Include="hosting.json">
@@ -15,7 +16,8 @@
     </Content>
 
     <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
-    <Compile Include="..\Shared\Greeter.cs" Link="Greeter.cs" />
+    <Compile Include="..\Shared\GreetService.cs" Link="Services\GreetService.cs" />
+    <Compile Include="..\Shared\DataService.cs" Link="Services\DataService.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
@@ -34,6 +36,10 @@
     <None Include="..\Shared\Certs\server.key" Link="Certs\server.key">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Common\Grpc.Net.Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,6 +12,19 @@
     },
     "Port": 50051
   },
+
+  "GrpcUnaryNative-h2load": {
+    "Client": "h2load",
+    "Path": "/Greet.Greeter/SayHello",
+    "Headers": {
+      "content-type": "application/grpc"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "AAAAAAcKBVdvcmxk"
+    }
+  },
+
   "GrpcUnaryNative": {
     "ClientProperties": {
       "Scenario": "Unary"
