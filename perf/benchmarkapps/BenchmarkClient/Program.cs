@@ -17,18 +17,32 @@
 #endregion
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using Greet;
 using Grpc.Core;
+#if false
+using BenchmarkClient.Internal;
+using Common;
+using Grpc.NetCore.HttpClient;
+#endif
+using Newtonsoft.Json;
 
 namespace BenchmarkClient
 {
     class Program
     {
-        private const int Connections = 2;
+        private const int Connections = 32;
         private const int DurationSeconds = 20;
         private const string Target = "127.0.0.1:50051";
         private readonly static bool StopOnError = false;
@@ -36,6 +50,8 @@ namespace BenchmarkClient
 
         static async Task Main(string[] args)
         {
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
+
             if (LogGrpc)
             {
                 Environment.SetEnvironmentVariable("GRPC_VERBOSITY", "DEBUG");
@@ -67,8 +83,9 @@ namespace BenchmarkClient
                 {
                     Log($"{id}: Starting");
 
-                    var client = new Greeter.GreeterClient(channels[id]);
                     var requests = 0;
+#if false
+                    var client = new Greeter.GreeterClient(channels[id]);
 
                     while (!cts.IsCancellationRequested)
                     {
@@ -93,8 +110,85 @@ namespace BenchmarkClient
                             }
                         }
                     }
+#else
+                    var handler = new HttpClientHandler();
+                    handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
 
-                    channelRequests[id] = requests;
+                    HttpClient client = new HttpClient(handler);
+
+                    while (!cts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            var message = new HelloRequest
+                            {
+                                Name = "World"
+                            };
+
+#if true
+                            var messageSize = message.CalculateSize();
+                            var messageBytes = new byte[messageSize];
+                            message.WriteTo(new CodedOutputStream(messageBytes));
+
+                            var data = new byte[messageSize + 5];
+                            data[0] = 0;
+                            BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(1, 4), (uint)messageSize);
+                            messageBytes.CopyTo(data.AsSpan(5));
+
+                            var request = new HttpRequestMessage(HttpMethod.Post, "https://" + Target + "/Greet.Greeter/SayHello");
+                            request.Version = new Version(2, 0);
+                            request.Content = new StreamContent(new MemoryStream(data));
+                            request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
+
+                            var response = await client.SendAsync(request);
+                            response.EnsureSuccessStatusCode();
+
+                            await response.Content.ReadAsByteArrayAsync();
+#elif NetcoreGrpcClient
+                            var certificate = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? null : new X509Certificate2(Path.Combine(Resources.CertDir, "client.crt"));
+
+                            var c = GrpcClientFactory.Create<Greeter.GreeterClient>("https://" + Target, null);
+                            var r = await c.SayHelloAsync(message);
+#elif JsonPost
+                            var json = JsonConvert.SerializeObject(message);
+                            var data = Encoding.UTF8.GetBytes(json);
+
+                            var request = new HttpRequestMessage(HttpMethod.Post, "https://" + Target + "/JsonGreeter");
+                            request.Version = new Version(1, 0);
+                            request.Content = new StreamContent(new MemoryStream(data));
+
+                            var response = await client.SendAsync(request);
+                            var responseContent = await response.Content.ReadAsStringAsync();
+
+                            response.EnsureSuccessStatusCode();
+#else
+                            var request = new HttpRequestMessage(HttpMethod.Get, "https://" + Target + "/JsonGreeter");
+                            request.Version = new Version(2, 0);
+
+                            var response = await client.SendAsync(request);
+                            var responseContent = await response.Content.ReadAsStringAsync();
+
+                            response.EnsureSuccessStatusCode();
+#endif
+
+
+
+
+                            requests++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"{id}: Error message: {ex.ToString()}");
+                            if (StopOnError)
+                            {
+                                cts.Cancel();
+                                break;
+                            }
+                        }
+                    }
+#endif
+
+                            channelRequests[id] = requests;
 
                     Log($"{id}: Finished");
                 }));
@@ -123,7 +217,8 @@ namespace BenchmarkClient
                 var channel = new Channel(Target, ChannelCredentials.Insecure);
 
                 Log($"Connecting channel '{i}'");
-                await channel.ConnectAsync();
+                await Task.Delay(0);
+                //await channel.ConnectAsync();
 
                 channels.Add(channel);
                 requests.Add(0);
