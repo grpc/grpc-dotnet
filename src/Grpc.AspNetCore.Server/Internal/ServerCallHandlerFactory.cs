@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
@@ -57,7 +56,8 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (_resolvedOptions.ResponseCompressionAlgorithm != null)
             {
-                if (!_resolvedOptions.CompressionProviders?.Any(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal)) ?? false)
+                var responseCompressionProvider = _resolvedOptions.CompressionProviders?.FirstOrDefault(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal));
+                if (responseCompressionProvider == null)
                 {
                     throw new InvalidOperationException($"The configured response compression algorithm '{_resolvedOptions.ResponseCompressionAlgorithm}' does not have a matching compression provider.");
                 }
