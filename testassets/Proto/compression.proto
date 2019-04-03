@@ -18,6 +18,7 @@ package Compression;
 
 service CompressionService {
   rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc WriteMessageWithoutCompression (HelloRequest) returns (HelloReply) {}
 }
 
 message HelloRequest {

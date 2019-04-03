@@ -88,7 +88,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, encoding: null);
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString();
                 Log.MethodUnimplemented(logger, unimplementedMethod);
@@ -104,7 +104,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, encoding: null);
+                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString();
                 Log.ServiceUnimplemented(logger, unimplementedService);

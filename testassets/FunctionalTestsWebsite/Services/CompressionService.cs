@@ -20,12 +20,19 @@ using System.Threading.Tasks;
 using Compression;
 using Grpc.Core;
 
-namespace FunctionalTestsWebsite
+namespace FunctionalTestsWebsite.Services
 {
     public class CompressionService : Compression.CompressionService.CompressionServiceBase
     {
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
+            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        }
+
+        public override Task<HelloReply> WriteMessageWithoutCompression(HelloRequest request, ServerCallContext context)
+        {
+            context.WriteOptions = new WriteOptions(WriteFlags.NoCompress);
+
             return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
         }
     }

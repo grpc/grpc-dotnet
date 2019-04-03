@@ -196,7 +196,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static void AddProtocolHeaders(HttpResponse response, string encoding)
+        public static void AddProtocolHeaders(HttpResponse response)
         {
             response.ContentType = GrpcProtocolConstants.GrpcContentType;
         }

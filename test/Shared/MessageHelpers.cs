@@ -25,6 +25,7 @@ using Google.Protobuf;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
+using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -48,11 +49,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var pipeReader = new StreamPipeReader(stream);
 
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
-            {
-                DefaultCompressionAlgorithm = compressionEncoding,
-                CompressionProviders = compressionProviders
-            });
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                serviceOptions: new GrpcServiceOptions
+                {
+                    DefaultCompressionAlgorithm = compressionEncoding,
+                    CompressionProviders = compressionProviders
+                });
 
             var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext);
 
@@ -106,11 +112,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var pipeWriter = new StreamPipeWriter(stream);
 
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
-            {
-                DefaultCompressionAlgorithm = compressionEncoding,
-                CompressionProviders = compressionProviders
-            });
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = compressionEncoding;
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                serviceOptions: new GrpcServiceOptions
+                {
+                    DefaultCompressionAlgorithm = compressionEncoding,
+                    CompressionProviders = compressionProviders
+                });
+            serverCallContext.Initialize();
 
             PipeExtensions.WriteMessageAsync(pipeWriter, messageData, serverCallContext, flush: true).GetAwaiter().GetResult();
 			stream.Seek(0, SeekOrigin.Begin);

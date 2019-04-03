@@ -86,19 +86,14 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static Task WriteMessageCoreAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
         {
-            var canCompress = serverCallContext.CanWriteCompressed();
-
-            // If compression has not been disabled by WriteFlags.NoCompress then
-            //   1. Use compression algorithm of request
-            //   2. Use default compression algorithm configured on server
-            var compressionEncoding = canCompress
-                ? serverCallContext.GetGrpcEncoding()
-                : null;
-            var isCompressed = compressionEncoding != null && !string.Equals(compressionEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
+            var isCompressed =
+                serverCallContext.CanWriteCompressed() &&
+                serverCallContext.ResponseGrpcEncoding != null &&
+                !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 
             if (isCompressed)
             {
-                if (!GrpcProtocolHelpers.TryCompressMessage(compressionEncoding, serverCallContext.ServiceOptions.CompressionProviders, messageData, out var compressedData))
+                if (!GrpcProtocolHelpers.TryCompressMessage(serverCallContext.ResponseGrpcEncoding, serverCallContext.ServiceOptions.CompressionProviders, messageData, out var compressedData))
                 {
                     // It is not an error if the server doesn't support the incoming compression algorithm
                 }
@@ -346,7 +341,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (compressed)
             {
-                string encoding = context.GetGrpcEncoding();
+                string encoding = context.GetRequestGrpcEncoding();
                 if (encoding == null)
                 {
                     throw new RpcException(NoMessageEncodingMessageStatus);

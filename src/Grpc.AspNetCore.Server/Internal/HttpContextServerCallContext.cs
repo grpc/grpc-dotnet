@@ -41,7 +41,6 @@ namespace Grpc.AspNetCore.Server.Internal
         private DateTime _deadline;
         private Timer _deadlineTimer;
         private Status _status;
-        private string _grpcEncoding;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -52,6 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
+        internal string ResponseGrpcEncoding { get; private set; }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
@@ -220,12 +220,19 @@ namespace Grpc.AspNetCore.Server.Internal
                 _deadline = DateTime.MaxValue;
             }
 
-            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageEncodingHeader, out var values))
+            var serviceDefaultCompression = ServiceOptions.DefaultCompressionAlgorithm;
+            if (serviceDefaultCompression != null &&
+                !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
+                GrpcAcceptEncodingMatch(serviceDefaultCompression))
             {
-                _grpcEncoding = values;
+                ResponseGrpcEncoding = serviceDefaultCompression;
+            }
+            else
+            {
+                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
             }
 
-            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, GetGrpcEncoding() ?? GrpcProtocolConstants.IdentityGrpcEncoding);
+            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
         }
 
         private TimeSpan GetTimeout()
@@ -261,12 +268,14 @@ namespace Grpc.AspNetCore.Server.Internal
             _deadlineTimer?.Dispose();
         }
 
-        internal string GetGrpcEncoding()
+        internal string GetRequestGrpcEncoding()
         {
-            // In order of precedence:
-            // 1. Compression algorithm of request
-            // 2. Compression algorithm configured on server
-            return _grpcEncoding ?? ServiceOptions.DefaultCompressionAlgorithm;
+            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageEncodingHeader, out var values))
+            {
+                return values;
+            }
+
+            return null;
         }
 
         internal bool GrpcAcceptEncodingMatch(string encoding)
@@ -305,11 +314,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal void ValidateGrpcAcceptEncoding()
         {
-            if (_grpcEncoding != null)
+            if (ResponseGrpcEncoding != null)
             {
-                if (!GrpcAcceptEncodingMatch(_grpcEncoding))
+                if (!GrpcAcceptEncodingMatch(ResponseGrpcEncoding))
                 {
-                    Log.EncodingNotInAcceptEncoding(_logger, _grpcEncoding);
+                    Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
                 }
             }
         }

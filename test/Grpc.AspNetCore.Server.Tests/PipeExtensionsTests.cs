@@ -27,6 +27,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -495,7 +496,12 @@ namespace Grpc.AspNetCore.Server.Tests
                 }
             };
 
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: serviceOptions);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "gzip";
+
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            context.Initialize();
+
             var ms = new MemoryStream();
             var pipeWriter = new StreamPipeWriter(ms);
 
