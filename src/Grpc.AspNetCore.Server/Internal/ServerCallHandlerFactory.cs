@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
@@ -53,6 +54,14 @@ namespace Grpc.AspNetCore.Server.Internal
                 ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
                 CompressionProviders = so._compressionProviders ?? go._compressionProviders
             };
+
+            if (_resolvedOptions.ResponseCompressionAlgorithm != null)
+            {
+                if (!_resolvedOptions.CompressionProviders?.Any(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal)) ?? false)
+                {
+                    throw new InvalidOperationException($"The configured response compression algorithm '{_resolvedOptions.ResponseCompressionAlgorithm}' does not have a matching compression provider.");
+                }
+            }
         }
 
         public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
