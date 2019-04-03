@@ -51,7 +51,7 @@ namespace FunctionalTestsWebsite
                 })
                 .AddServiceOptions<CompressionService>(options =>
                 {
-                    options.DefaultCompressionAlgorithm = "gzip";
+                    options.ResponseCompressionAlgorithm = "gzip";
                 });
             services.AddHttpContextAccessor();
 

@@ -220,10 +220,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 _deadline = DateTime.MaxValue;
             }
 
-            var serviceDefaultCompression = ServiceOptions.DefaultCompressionAlgorithm;
+            var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
             if (serviceDefaultCompression != null &&
                 !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
-                GrpcAcceptEncodingMatch(serviceDefaultCompression))
+                IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
             {
                 ResponseGrpcEncoding = serviceDefaultCompression;
             }
@@ -278,7 +278,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return null;
         }
 
-        internal bool GrpcAcceptEncodingMatch(string encoding)
+        internal bool IsEncodingInRequestAcceptEncoding(string encoding)
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageAcceptEncodingHeader, out var values))
             {
@@ -312,11 +312,11 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        internal void ValidateGrpcAcceptEncoding()
+        internal void ValidateAcceptEncodingContainsResponseEncoding()
         {
             if (ResponseGrpcEncoding != null)
             {
-                if (!GrpcAcceptEncodingMatch(ResponseGrpcEncoding))
+                if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
                 {
                     Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
                 }

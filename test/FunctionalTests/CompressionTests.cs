@@ -97,7 +97,6 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
             Assert.AreEqual("Request sent 'identity' grpc-encoding value with compressed message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
-            
         }
 
         [Test]
@@ -170,7 +169,12 @@ namespace Grpc.AspNetCore.FunctionalTests
         {
             public string EncodingName => "DOES_NOT_EXIST";
 
-            public Stream CreateStream(Stream stream, CompressionMode compressionMode)
+            public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+            {
+                return stream;
+            }
+
+            public Stream CreateDecompressionStream(Stream stream)
             {
                 return stream;
             }
@@ -270,7 +274,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         }
 
         [Test]
-        public async Task SendIdentityGrpcEncodingToServiceWithCompression_ResponseUncompressed()
+        public async Task SendIdentityGrpcAcceptEncodingToServiceWithCompression_ResponseUncompressed()
         {
             // Arrange
             var requestMessage = new HelloRequest

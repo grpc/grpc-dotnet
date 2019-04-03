@@ -34,12 +34,16 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <summary>
         /// Create a new compression stream.
         /// </summary>
-        /// <param name="stream">
-        /// The stream where the compressed data is written when <paramref name="compressionMode"/> is <c>Compress</c>,
-        /// and where compressed data is copied from when <paramref name="compressionMode"/> is <c>Decompress</c>.
-        /// </param>
-        /// <param name="compressionMode">The compression mode.</param>
-        /// <returns>A stream used to compress or decompress data.</returns>
-        Stream CreateStream(Stream stream, CompressionMode compressionMode);
+        /// <param name="stream">The stream that compressed data is written to.</param>
+        /// <param name="compressionLevel">The compression level.</param>
+        /// <returns>A stream used to compress data.</returns>
+        Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel);
+
+        /// <summary>
+        /// Create a new decompression stream.
+        /// </summary>
+        /// <param name="stream">The stream that compressed data is copied from.</param>
+        /// <returns>A stream used to decompress data.</returns>
+        Stream CreateDecompressionStream(Stream stream);
     }
 }

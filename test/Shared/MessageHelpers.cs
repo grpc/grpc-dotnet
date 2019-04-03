@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 httpContext: httpContext,
                 serviceOptions: new GrpcServiceOptions
                 {
-                    DefaultCompressionAlgorithm = compressionEncoding,
+                    ResponseCompressionAlgorithm = compressionEncoding,
                     CompressionProviders = compressionProviders
                 });
 
@@ -84,7 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
             {
-                DefaultCompressionAlgorithm = compressionEncoding,
+                ResponseCompressionAlgorithm = compressionEncoding,
                 CompressionProviders = compressionProviders
             });
 
@@ -119,7 +119,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 httpContext: httpContext,
                 serviceOptions: new GrpcServiceOptions
                 {
-                    DefaultCompressionAlgorithm = compressionEncoding,
+                    ResponseCompressionAlgorithm = compressionEncoding,
                     CompressionProviders = compressionProviders
                 });
             serverCallContext.Initialize();

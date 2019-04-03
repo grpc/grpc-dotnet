@@ -49,7 +49,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
                 ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
                 SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
-                DefaultCompressionAlgorithm = so.DefaultCompressionAlgorithm ?? go.DefaultCompressionAlgorithm,
+                ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
+                ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
                 CompressionProviders = so._compressionProviders ?? go._compressionProviders
             };
         }

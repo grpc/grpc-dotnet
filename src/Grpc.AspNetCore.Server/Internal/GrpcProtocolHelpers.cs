@@ -163,7 +163,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
                 {
                     var output = new MemoryStream();
-                    var compressionStream = compressionProvider.CreateStream(new MemoryStream(messageData), CompressionMode.Decompress);
+                    var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
                     compressionStream.CopyTo(output);
 
                     result = output.ToArray();
@@ -175,14 +175,14 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        internal static bool TryCompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
+        internal static bool TryCompressMessage(string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
         {
             foreach (var compressionProvider in compressionProviders)
             {
                 if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
                 {
                     var output = new MemoryStream();
-                    using (var compressionStream = compressionProvider.CreateStream(output, CompressionMode.Compress))
+                    using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
                     {
                         compressionStream.Write(messageData, 0, messageData.Length);
                     }

@@ -56,7 +56,8 @@ namespace Grpc.AspNetCore.Server.Internal
             options.ReceiveMaxMessageSize = _options.ReceiveMaxMessageSize;
             options.SendMaxMessageSize = _options.SendMaxMessageSize;
             options.EnableDetailedErrors = _options.EnableDetailedErrors;
-            options.DefaultCompressionAlgorithm = _options.DefaultCompressionAlgorithm;
+            options.ResponseCompressionAlgorithm = _options.ResponseCompressionAlgorithm;
+            options.ResponseCompressionLevel = _options.ResponseCompressionLevel;
             options.CompressionProviders = _options.CompressionProviders;
         }
     }

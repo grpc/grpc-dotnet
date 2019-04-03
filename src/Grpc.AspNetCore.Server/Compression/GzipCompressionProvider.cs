@@ -26,15 +26,15 @@ namespace Grpc.AspNetCore.Server.Compression
     /// </summary>
     public class GzipCompressionProvider : ICompressionProvider
     {
-        private readonly CompressionLevel _compressionLevel;
+        private readonly CompressionLevel _defaultCompressionLevel;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
         /// </summary>
-        /// <param name="compressionLevel">The compression level to use when compressing data.</param>
-        public GzipCompressionProvider(CompressionLevel compressionLevel)
+        /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
+        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
         {
-            _compressionLevel = compressionLevel;
+            _defaultCompressionLevel = defaultCompressionLevel;
         }
 
         /// <summary>
@@ -45,19 +45,21 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <summary>
         /// Create a new compression stream.
         /// </summary>
-        /// <param name="stream">
-        /// The stream where the compressed data is written when <paramref name="compressionMode"/> is <c>Compress</c>,
-        /// and where compressed data is copied from when <paramref name="compressionMode"/> is <c>Decompress</c>.
-        /// </param>
-        /// <param name="compressionMode">The compression mode.</param>
-        /// <returns>A stream used to compress or decompress data.</returns>
-        public Stream CreateStream(Stream stream, CompressionMode compressionMode)
+        /// <param name="stream">The stream that compressed data is written to.</param>
+        /// <param name="compressionLevel">The compression level.</param>
+        /// <returns>A stream used to compress data.</returns>
+        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
         {
-            if (compressionMode == CompressionMode.Compress)
-            {
-                return new GZipStream(stream, _compressionLevel);
-            }
+            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel);
+        }
 
+        /// <summary>
+        /// Create a new decompression stream.
+        /// </summary>
+        /// <param name="stream">The stream that compressed data is copied from.</param>
+        /// <returns>A stream used to decompress data.</returns>
+        public Stream CreateDecompressionStream(Stream stream)
+        {
             return new GZipStream(stream, CompressionMode.Decompress);
         }
     }

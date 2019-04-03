@@ -489,7 +489,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var serviceOptions = new GrpcServiceOptions
             {
-                DefaultCompressionAlgorithm = "gzip",
+                ResponseCompressionAlgorithm = "gzip",
                 CompressionProviders =
                 {
                     new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
@@ -513,6 +513,61 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(1, messageData[0]); // compression
             Assert.AreEqual(21, messageData[4]); // message length
+        }
+
+        [Test]
+        public async Task WriteMessageAsync_HasCustomCompressionLevel_WriteCompressedDataWithLevel()
+        {
+            // Arrange
+            var mockCompressionProvider = new MockCompressionProvider();
+            var serviceOptions = new GrpcServiceOptions
+            {
+                ResponseCompressionAlgorithm = "Mock",
+                ResponseCompressionLevel = System.IO.Compression.CompressionLevel.Optimal,
+                CompressionProviders =
+                {
+                    mockCompressionProvider
+                }
+            };
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "Mock";
+
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            context.Initialize();
+
+            var ms = new MemoryStream();
+            var pipeWriter = new StreamPipeWriter(ms);
+
+            // Act
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+
+            // Assert
+            Assert.AreEqual(System.IO.Compression.CompressionLevel.Optimal, mockCompressionProvider.ArgumentCompression);
+
+            var messageData = ms.ToArray();
+
+            Assert.AreEqual(1, messageData[0]); // compression
+            Assert.AreEqual(21, messageData[4]); // message length
+        }
+
+        public class MockCompressionProvider : ICompressionProvider
+        {
+            private readonly GzipCompressionProvider _inner = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Optimal);
+
+            public string EncodingName => "Mock";
+            public System.IO.Compression.CompressionLevel? ArgumentCompression { get; set; }
+
+            public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+            {
+                ArgumentCompression = compressionLevel;
+                return _inner.CreateCompressionStream(stream, compressionLevel);
+            }
+
+            public Stream CreateDecompressionStream(Stream stream)
+            {
+                return _inner.CreateDecompressionStream(stream);
+            }
         }
     }
 }

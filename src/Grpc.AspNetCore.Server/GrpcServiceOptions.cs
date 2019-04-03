@@ -46,10 +46,17 @@ namespace Grpc.AspNetCore.Server
         public bool? EnableDetailedErrors { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets the default compression algorithm used to compress messages sent from the server.
-        /// The grpc-encoding header value in a request will override this setting.
+        /// Gets or sets the compression algorithm used to compress messages sent from the server.
+        /// The request grpc-accept-encoding header value must contain this algorithm for it to
+        /// be used.
         /// </summary>
-        public string DefaultCompressionAlgorithm { get; set; }
+        public string ResponseCompressionAlgorithm { get; set; }
+
+        /// <summary>
+        /// Gets or sets the compression level used to compress messages sent from the server.
+        /// The compression level will be passed to the compression provider.
+        /// </summary>
+        public CompressionLevel? ResponseCompressionLevel { get; set; }
 
         /// <summary>
         /// Gets or sets the list of compression providers used to compress and decompress gRPC messages.

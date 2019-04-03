@@ -93,7 +93,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (isCompressed)
             {
-                if (!GrpcProtocolHelpers.TryCompressMessage(serverCallContext.ResponseGrpcEncoding, serverCallContext.ServiceOptions.CompressionProviders, messageData, out var compressedData))
+                if (!GrpcProtocolHelpers.TryCompressMessage(
+                    serverCallContext.ResponseGrpcEncoding,
+                    serverCallContext.ServiceOptions.ResponseCompressionLevel,
+                    serverCallContext.ServiceOptions.CompressionProviders,
+                    messageData,
+                    out var compressedData))
                 {
                     // It is not an error if the server doesn't support the incoming compression algorithm
                 }
@@ -368,7 +373,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     throw new RpcException(CreateUnknownMessageEncodingMessageStatus(encoding, supportedEncodings));
                 }
 
-                context.ValidateGrpcAcceptEncoding();
+                context.ValidateAcceptEncodingContainsResponseEncoding();
 
                 message = decompressedMessage;
             }
