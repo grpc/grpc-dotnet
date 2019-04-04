@@ -199,6 +199,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("0", responseTrailers[GrpcProtocolConstants.StatusTrailer]);
         }
 
+        [Test]
         public void ConsolidateTrailers_AppendsStatus()
         {
             // Arrange
@@ -218,6 +219,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
         }
 
+        [Test]
         public void ConsolidateTrailers_StatusOverwritesTrailers()
         {
             // Arrange
