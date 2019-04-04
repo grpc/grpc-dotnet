@@ -35,13 +35,23 @@ namespace Sample.Clients
             var channel = new Channel("localhost:50051", credentials);
             var client = new Greeter.GreeterClient(channel);
 
-            var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
+            var reply = client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+            Console.WriteLine("Greeting: " + (await reply.ResponseAsync).Message);
 
-            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });
-            while (await replies.ResponseStream.MoveNext(CancellationToken.None))
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
+
+            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token);
+            try
             {
-                Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                while (await replies.ResponseStream.MoveNext(cts.Token))
+                {
+                    Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                Console.WriteLine("Stream cancelled.");
             }
 
             Console.WriteLine("Shutting down");
