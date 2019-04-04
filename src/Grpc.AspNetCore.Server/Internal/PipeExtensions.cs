@@ -86,26 +86,19 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static Task WriteMessageCoreAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
         {
+            Debug.Assert(serverCallContext.ResponseGrpcEncoding != null);
+
             var isCompressed =
                 serverCallContext.CanWriteCompressed() &&
-                serverCallContext.ResponseGrpcEncoding != null &&
                 !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 
             if (isCompressed)
             {
-                if (!GrpcProtocolHelpers.TryCompressMessage(
+                messageData = GrpcProtocolHelpers.CompressMessage(
                     serverCallContext.ResponseGrpcEncoding,
                     serverCallContext.ServiceOptions.ResponseCompressionLevel,
                     serverCallContext.ServiceOptions.CompressionProviders,
-                    messageData,
-                    out var compressedData))
-                {
-                    // It is not an error if the server doesn't support the incoming compression algorithm
-                }
-                else
-                {
-                    messageData = compressedData;
-                }
+                    messageData);
             }
 
             WriteHeader(pipeWriter, messageData.Length, isCompressed);

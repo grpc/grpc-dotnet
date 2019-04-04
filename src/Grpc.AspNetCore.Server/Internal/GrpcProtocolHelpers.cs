@@ -175,7 +175,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        internal static bool TryCompressMessage(string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
+        internal static byte[] CompressMessage(string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData)
         {
             foreach (var compressionProvider in compressionProviders)
             {
@@ -187,13 +187,12 @@ namespace Grpc.AspNetCore.Server.Internal
                         compressionStream.Write(messageData, 0, messageData.Length);
                     }
 
-                    result = output.ToArray();
-                    return true;
+                    return output.ToArray();
                 }
             }
 
-            result = null;
-            return false;
+            // Should never reach here
+            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
         }
 
         public static void AddProtocolHeaders(HttpResponse response)

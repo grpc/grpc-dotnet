@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using System.Threading;
@@ -314,12 +315,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal void ValidateAcceptEncodingContainsResponseEncoding()
         {
-            if (ResponseGrpcEncoding != null)
+            Debug.Assert(ResponseGrpcEncoding != null);
+
+            if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
             {
-                if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
-                {
-                    Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
-                }
+                Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
             }
         }
 
