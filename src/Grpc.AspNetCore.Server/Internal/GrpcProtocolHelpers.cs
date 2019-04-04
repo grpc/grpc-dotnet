@@ -21,6 +21,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -158,10 +159,22 @@ namespace Grpc.AspNetCore.Server.Internal
             response.Headers.Append("grpc-encoding", "identity");
         }
 
-        public static void AppendStatusTrailers(HttpResponse response, Status status)
+        public static void SetStatusTrailers(HttpResponse response, Status status)
         {
-            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
-            response.AppendTrailer(GrpcProtocolConstants.MessageTrailer, status.Detail);
+            // Use SetTrailer here because we want to overwrite any that was set earlier
+            SetTrailer(response, GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
+            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, status.Detail);
+        }
+
+        private static void SetTrailer(HttpResponse response, string trailerName, StringValues trailerValues)
+        {
+            var feature = response.HttpContext.Features.Get<IHttpResponseTrailersFeature>();
+            if (feature?.Trailers == null || feature.Trailers.IsReadOnly)
+            {
+                throw new InvalidOperationException("Trailers are not supported for this response.");
+            }
+
+            feature.Trailers[trailerName] = trailerValues;
         }
     }
 }

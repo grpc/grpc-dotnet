@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             // Append status trailers, these overwrite any existing status trailers set via ServerCallContext.ResponseTrailers
-            GrpcProtocolHelpers.AppendStatusTrailers(httpResponse, context.Status);
+            GrpcProtocolHelpers.SetStatusTrailers(httpResponse, context.Status);
         }
     }
 }
