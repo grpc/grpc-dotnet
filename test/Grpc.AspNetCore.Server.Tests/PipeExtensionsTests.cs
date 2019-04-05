@@ -18,13 +18,16 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -478,6 +481,93 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task WriteMessageAsync_GzipCompressed_WriteCompressedData()
+        {
+            // Arrange
+            var serviceOptions = new GrpcServiceOptions
+            {
+                ResponseCompressionAlgorithm = "gzip",
+                CompressionProviders =
+                {
+                    new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+                }
+            };
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "gzip";
+
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            context.Initialize();
+
+            var ms = new MemoryStream();
+            var pipeWriter = new StreamPipeWriter(ms);
+
+            // Act
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+
+            // Assert
+            var messageData = ms.ToArray();
+
+            Assert.AreEqual(1, messageData[0]); // compression
+            Assert.AreEqual(21, messageData[4]); // message length
+        }
+
+        [Test]
+        public async Task WriteMessageAsync_HasCustomCompressionLevel_WriteCompressedDataWithLevel()
+        {
+            // Arrange
+            var mockCompressionProvider = new MockCompressionProvider();
+            var serviceOptions = new GrpcServiceOptions
+            {
+                ResponseCompressionAlgorithm = "Mock",
+                ResponseCompressionLevel = System.IO.Compression.CompressionLevel.Optimal,
+                CompressionProviders =
+                {
+                    mockCompressionProvider
+                }
+            };
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "Mock";
+
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            context.Initialize();
+
+            var ms = new MemoryStream();
+            var pipeWriter = new StreamPipeWriter(ms);
+
+            // Act
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+
+            // Assert
+            Assert.AreEqual(System.IO.Compression.CompressionLevel.Optimal, mockCompressionProvider.ArgumentCompression);
+
+            var messageData = ms.ToArray();
+
+            Assert.AreEqual(1, messageData[0]); // compression
+            Assert.AreEqual(21, messageData[4]); // message length
+        }
+
+        public class MockCompressionProvider : ICompressionProvider
+        {
+            private readonly GzipCompressionProvider _inner = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Optimal);
+
+            public string EncodingName => "Mock";
+            public System.IO.Compression.CompressionLevel? ArgumentCompression { get; set; }
+
+            public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+            {
+                ArgumentCompression = compressionLevel;
+                return _inner.CreateCompressionStream(stream, compressionLevel);
+            }
+
+            public Stream CreateDecompressionStream(Stream stream)
+            {
+                return _inner.CreateDecompressionStream(stream);
+            }
         }
     }
 }

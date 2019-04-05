@@ -23,7 +23,13 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string GrpcContentType = "application/grpc";
 
         internal const string TimeoutHeader = "grpc-timeout";
+        internal const string MessageEncodingHeader = "grpc-encoding";
+
         internal const string StatusTrailer = "grpc-status";
         internal const string MessageTrailer = "grpc-message";
+
+        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
+
+        internal const string IdentityGrpcEncoding = "identity";
     }
 }

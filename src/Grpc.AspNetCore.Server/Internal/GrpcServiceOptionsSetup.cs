@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.IO.Compression;
+using Grpc.AspNetCore.Server.Compression;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -32,6 +34,10 @@ namespace Grpc.AspNetCore.Server.Internal
             if (options.ReceiveMaxMessageSize == null)
             {
                 options.ReceiveMaxMessageSize = DefaultReceiveMaxMessageSize;
+            }
+            if (options._compressionProviders == null || options._compressionProviders.Count == 0)
+            {
+                options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
             }
         }
     }
@@ -50,6 +56,9 @@ namespace Grpc.AspNetCore.Server.Internal
             options.ReceiveMaxMessageSize = _options.ReceiveMaxMessageSize;
             options.SendMaxMessageSize = _options.SendMaxMessageSize;
             options.EnableDetailedErrors = _options.EnableDetailedErrors;
+            options.ResponseCompressionAlgorithm = _options.ResponseCompressionAlgorithm;
+            options.ResponseCompressionLevel = _options.ResponseCompressionLevel;
+            options.CompressionProviders = _options.CompressionProviders;
         }
     }
 }

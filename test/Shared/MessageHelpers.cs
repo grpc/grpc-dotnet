@@ -16,11 +16,16 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.Server;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
+using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -28,18 +33,34 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
-        public static T AssertReadMessage<T>(byte[] messageData) where T : IMessage, new()
+        public static T AssertReadMessage<T>(byte[] messageData, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
         {
             var ms = new MemoryStream(messageData);
 
-            return AssertReadMessageAsync<T>(ms).GetAwaiter().GetResult();
+            return AssertReadMessageAsync<T>(ms, compressionEncoding, compressionProviders).GetAwaiter().GetResult();
         }
 
-        public static async Task<T> AssertReadMessageAsync<T>(Stream stream) where T : IMessage, new()
+        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
         {
+            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
+            {
+                new GzipCompressionProvider(CompressionLevel.Fastest)
+            };
+
             var pipeReader = new StreamPipeReader(stream);
 
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                serviceOptions: new GrpcServiceOptions
+                {
+                    ResponseCompressionAlgorithm = compressionEncoding,
+                    CompressionProviders = compressionProviders
+                });
+
+            var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext);
 
             var message = new T();
             message.MergeFrom(messageData);
@@ -47,16 +68,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return message;
         }
 
-        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream) where T : IMessage, new()
+        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
         {
             var pipeReader = new StreamPipeReader(stream);
 
-            return AssertReadStreamMessageAsync<T>(pipeReader);
+            return AssertReadStreamMessageAsync<T>(pipeReader, compressionEncoding, compressionProviders);
         }
 
-        public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader) where T : IMessage, new()
+        public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
         {
-            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
+            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
+            {
+                new GzipCompressionProvider(CompressionLevel.Fastest)
+            };
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
+            {
+                ResponseCompressionAlgorithm = compressionEncoding,
+                CompressionProviders = compressionProviders
+            });
+
+            var messageData = await pipeReader.ReadStreamMessageAsync(serverCallContext);
 
             if (messageData == null)
             {
@@ -69,14 +101,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return message;
         }
 
-        public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
+        public static void WriteMessage<T>(Stream stream, T message, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage
         {
+            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
+            {
+                new GzipCompressionProvider(CompressionLevel.Fastest)
+            };
+
             var messageData = message.ToByteArray();
 
             var pipeWriter = new StreamPipeWriter(stream);
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
-            stream.Seek(0, SeekOrigin.Begin);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = compressionEncoding;
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                serviceOptions: new GrpcServiceOptions
+                {
+                    ResponseCompressionAlgorithm = compressionEncoding,
+                    CompressionProviders = compressionProviders
+                });
+            serverCallContext.Initialize();
+
+            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, serverCallContext, flush: true).GetAwaiter().GetResult();
+			stream.Seek(0, SeekOrigin.Begin);
         }
     }
 }
