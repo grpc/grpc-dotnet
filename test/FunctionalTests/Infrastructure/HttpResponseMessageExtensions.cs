@@ -30,7 +30,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public static void AssertIsSuccessfulGrpcRequest(this HttpResponseMessage response)
         {
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues("grpc-encoding").Single());
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
         }
 

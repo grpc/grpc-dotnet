@@ -19,9 +19,11 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -38,6 +40,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Status IncompleteMessageStatus = new Status(StatusCode.Internal, "Incomplete message.");
         private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+        private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
+        private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
+        private static Status CreateUnknownMessageEncodingMessageStatus(string unsupportedEncoding, IEnumerable<string> supportedEncodings)
+        {
+            return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
+        }
 
         public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Func<TResponse, byte[]> serializer)
         {
@@ -78,7 +86,22 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static Task WriteMessageCoreAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
         {
-            WriteHeader(pipeWriter, messageData.Length);
+            Debug.Assert(serverCallContext.ResponseGrpcEncoding != null);
+
+            var isCompressed =
+                serverCallContext.CanWriteCompressed() &&
+                !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
+
+            if (isCompressed)
+            {
+                messageData = GrpcProtocolHelpers.CompressMessage(
+                    serverCallContext.ResponseGrpcEncoding,
+                    serverCallContext.ServiceOptions.ResponseCompressionLevel,
+                    serverCallContext.ServiceOptions.CompressionProviders,
+                    messageData);
+            }
+
+            WriteHeader(pipeWriter, messageData.Length, isCompressed);
             pipeWriter.Write(messageData);
 
             if (flush)
@@ -98,11 +121,14 @@ namespace Grpc.AspNetCore.Server.Internal
             return Task.CompletedTask;
         }
 
-        private static void WriteHeader(PipeWriter pipeWriter, int length)
+        private static void WriteHeader(PipeWriter pipeWriter, int length, bool compress)
         {
             var headerData = pipeWriter.GetSpan(HeaderSize);
-            // Messages are currently always uncompressed
-            headerData[0] = 0;
+
+            // Compression flag
+            headerData[0] = compress ? (byte)1 : (byte)0;
+
+            // Message length
             EncodeMessageLength(length, headerData.Slice(1));
 
             pipeWriter.Advance(HeaderSize);
@@ -301,12 +327,6 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new RpcException(ReceivedMessageExceedsLimitStatus);
             }
 
-            if (compressed)
-            {
-                // TODO(jtattermusch): support compressed messages
-                throw new InvalidDataException("Compressed messages are not yet supported.");
-            }
-
             if (buffer.Length < HeaderSize + messageLength)
             {
                 message = null;
@@ -316,6 +336,40 @@ namespace Grpc.AspNetCore.Server.Internal
             // Convert message to byte array
             var messageBuffer = buffer.Slice(HeaderSize, messageLength);
             message = messageBuffer.ToArray();
+
+            if (compressed)
+            {
+                string encoding = context.GetRequestGrpcEncoding();
+                if (encoding == null)
+                {
+                    throw new RpcException(NoMessageEncodingMessageStatus);
+                }
+                if (string.Equals(encoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal))
+                {
+                    throw new RpcException(IdentityMessageEncodingMessageStatus);
+                }
+
+                // Performance improvement would be to decompress without converting to an intermediary byte array
+                if (!GrpcProtocolHelpers.TryDecompressMessage(encoding, context.ServiceOptions.CompressionProviders, message, out var decompressedMessage))
+                {
+                    // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
+                    // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
+                    // its associated description indicating the unsupported condition as well as the supported ones. The returned
+                    // grpc-accept-encoding header MUST NOT contain the compression method (encoding) used.
+                    var supportedEncodings = context.ServiceOptions.CompressionProviders.Select(p => p.EncodingName).ToList();
+
+                    if (!context.HttpContext.Response.HasStarted)
+                    {
+                        context.HttpContext.Response.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = string.Join(",", supportedEncodings);
+                    }
+
+                    throw new RpcException(CreateUnknownMessageEncodingMessageStatus(encoding, supportedEncodings));
+                }
+
+                context.ValidateAcceptEncodingContainsResponseEncoding();
+
+                message = decompressedMessage;
+            }
 
             // Update buffer to remove message
             buffer = buffer.Slice(HeaderSize + messageLength);

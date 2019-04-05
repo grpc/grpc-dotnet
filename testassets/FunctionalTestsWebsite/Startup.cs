@@ -48,6 +48,10 @@ namespace FunctionalTestsWebsite
                 {
                     options.SendMaxMessageSize = 64 * 1024;
                     options.ReceiveMaxMessageSize = 64 * 1024;
+                })
+                .AddServiceOptions<CompressionService>(options =>
+                {
+                    options.ResponseCompressionAlgorithm = "gzip";
                 });
             services.AddHttpContextAccessor();
 
@@ -126,6 +130,7 @@ namespace FunctionalTestsWebsite
                 routes.MapGrpcService<LifetimeService>();
                 routes.MapGrpcService<SingletonCounterService>();
                 routes.MapGrpcService<NestedService>();
+                routes.MapGrpcService<CompressionService>();
 
                 // Bind via configure method
                 routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);

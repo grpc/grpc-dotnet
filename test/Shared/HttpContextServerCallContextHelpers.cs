@@ -31,10 +31,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             GrpcServiceOptions serviceOptions = null,
             ILogger logger = null)
         {
-            return new HttpContextServerCallContext(
+            var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),
                 serviceOptions ?? new GrpcServiceOptions(),
                 logger ?? NullLogger.Instance);
+            context.Initialize();
+
+            return context;
         }
     }
 }

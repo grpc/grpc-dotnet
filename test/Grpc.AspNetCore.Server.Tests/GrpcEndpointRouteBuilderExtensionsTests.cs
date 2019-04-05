@@ -239,6 +239,29 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Builder", routeEndpoint1.Metadata.GetMetadata<CustomAttribute>().Value);
         }
 
+        [Test]
+        public void MapGrpcService_NoMatchingCompressionProvider_ThrowError()
+        {
+            // Arrange
+            ServiceCollection services = new ServiceCollection();
+            services.AddLogging();
+            services.AddGrpc(options =>
+            {
+                options.ResponseCompressionAlgorithm = "DOES_NOT_EXIST";
+            });
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+            {
+                routeBuilder.MapGrpcService<GreeterService>();
+            });
+
+            // Assert
+            Assert.AreEqual("The configured response compression algorithm 'DOES_NOT_EXIST' does not have a matching compression provider.", ex.Message);
+        }
+
         private class GreeterService : Greeter.GreeterBase
         {
         }

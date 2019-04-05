@@ -16,6 +16,10 @@
 
 #endregion
 
+using System.Collections.Generic;
+using System.IO.Compression;
+using Grpc.AspNetCore.Server.Compression;
+
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
@@ -23,6 +27,8 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class GrpcServiceOptions
     {
+        internal List<ICompressionProvider> _compressionProviders;
+
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
         /// </summary>
@@ -38,6 +44,35 @@ namespace Grpc.AspNetCore.Server
         /// Detailed error messages include details from exceptions thrown on the server.
         /// </summary>
         public bool? EnableDetailedErrors { get; set; } = null;
+
+        /// <summary>
+        /// Gets or sets the compression algorithm used to compress messages sent from the server.
+        /// The request grpc-accept-encoding header value must contain this algorithm for it to
+        /// be used.
+        /// </summary>
+        public string ResponseCompressionAlgorithm { get; set; }
+
+        /// <summary>
+        /// Gets or sets the compression level used to compress messages sent from the server.
+        /// The compression level will be passed to the compression provider.
+        /// </summary>
+        public CompressionLevel? ResponseCompressionLevel { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of compression providers used to compress and decompress gRPC messages.
+        /// </summary>
+        public List<ICompressionProvider> CompressionProviders
+        {
+            get
+            {
+                if (_compressionProviders == null)
+                {
+                    _compressionProviders = new List<ICompressionProvider>();
+                }
+                return _compressionProviders;
+            }
+            set => _compressionProviders = value;
+        }
     }
 
     /// <summary>
