@@ -16,8 +16,15 @@
 
 #endregion
 
+using System;
+using System.IO;
+using System.Text;
+using Google.Protobuf.WellKnownTypes;
+using Greet;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace BenchmarkServer
 {
@@ -28,6 +35,7 @@ namespace BenchmarkServer
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
+            services.AddControllers();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -37,6 +45,29 @@ namespace BenchmarkServer
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<GreeterService>();
+
+                endpoints.MapPost("/raw/greeter", async context =>
+                {
+                    MemoryStream ms = new MemoryStream();
+                    await context.Request.Body.CopyToAsync(ms);
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    JsonSerializer serializer = new JsonSerializer();
+                    var message = serializer.Deserialize<HelloRequest>(new JsonTextReader(new StreamReader(ms)));
+
+                    ms.Seek(0, SeekOrigin.Begin);
+                    using (var writer = new JsonTextWriter(new StreamWriter(ms, Encoding.UTF8, 1024, true)))
+                    {
+                        serializer.Serialize(writer, new HelloReply { Message = "Hello " + message.Name, Timestamp = Timestamp.FromDateTime(DateTime.UtcNow) });
+                    }
+
+                    context.Response.StatusCode = StatusCodes.Status200OK;
+
+                    ms.Seek(0, SeekOrigin.Begin);
+                    await ms.CopyToAsync(context.Response.Body);
+                });
+
+                endpoints.MapControllers();
             });
         }
     }

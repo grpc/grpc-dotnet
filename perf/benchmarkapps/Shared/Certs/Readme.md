@@ -1,0 +1,1 @@
+These certs are generated via openssl according to https://stackoverflow.com/questions/37714558/how-to-enable-server-side-ssl-for-grpc. The server.crt and server.key were combined into server.pfx. The password is 1111. These certs are not secure, do not use in production.
