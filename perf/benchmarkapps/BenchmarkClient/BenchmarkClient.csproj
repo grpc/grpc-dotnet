@@ -35,4 +35,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
+  </ItemGroup>
 </Project>

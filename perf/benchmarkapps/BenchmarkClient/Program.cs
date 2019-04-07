@@ -27,8 +27,8 @@ namespace BenchmarkClient
 {
     class Program
     {
-        private const int Connections = 8;
-        private const int DurationSeconds = 10;
+        private const int Connections = 1;
+        private const int DurationSeconds = 5;
         private const string Target = "localhost:50051";
         private readonly static bool StopOnError = false;
 
@@ -38,6 +38,7 @@ namespace BenchmarkClient
 
             var benchmarkResults = new List<BenchmarkResult>();
 
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcHttpClientUnary", id => new GrpcHttpClientUnaryWorker(id, Target)));
             benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, "/raw/greeter")));
             benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, "/api/greeter")));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcCoreUnary", id => new GrpcCoreUnaryWorker(id, Target, useClientCertificate: true)));
