@@ -61,14 +61,7 @@ namespace BenchmarkClient.Workers
 
             var content = await response.Content.ReadAsStringAsync();
 
-            try
-            {
-                response.EnsureSuccessStatusCode();
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+            response.EnsureSuccessStatusCode();
         }
 
         public Task ConnectAsync()
