@@ -120,34 +120,7 @@ namespace FunctionalTestsWebsite
                 return next();
             });
 
-            app.UseRouting(routes =>
-            {
-                // Bind via reflection
-                routes.MapGrpcService<ChatterService>();
-                routes.MapGrpcService<CounterService>();
-                routes.MapGrpcService<AuthorizedGreeter>();
-                routes.MapGrpcService<SecondGreeterService>();
-                routes.MapGrpcService<LifetimeService>();
-                routes.MapGrpcService<SingletonCounterService>();
-                routes.MapGrpcService<NestedService>();
-                routes.MapGrpcService<CompressionService>();
-
-                // Bind via configure method
-                routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
-
-                routes.DataSources.Add(routes.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
-
-                routes.Map("{FirstSegment}/{SecondSegment}", context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status418ImATeapot;
-                    return Task.CompletedTask;
-                });
-
-                routes.MapGet("/generateJwtToken", context =>
-                {
-                    return context.Response.WriteAsync(GenerateJwtToken());
-                });
-            });
+            app.UseRouting();
 
             app.UseAuthorization();
 
@@ -164,6 +137,35 @@ namespace FunctionalTestsWebsite
                 {
                     trailersContainer.Trailers[trailer.Key] = trailer.Value;
                 }
+            });
+
+            app.UseEndpoints(endpoints =>
+            {
+                // Bind via reflection
+                endpoints.MapGrpcService<ChatterService>();
+                endpoints.MapGrpcService<CounterService>();
+                endpoints.MapGrpcService<AuthorizedGreeter>();
+                endpoints.MapGrpcService<SecondGreeterService>();
+                endpoints.MapGrpcService<LifetimeService>();
+                endpoints.MapGrpcService<SingletonCounterService>();
+                endpoints.MapGrpcService<NestedService>();
+                endpoints.MapGrpcService<CompressionService>();
+
+                // Bind via configure method
+                endpoints.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
+
+                endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
+
+                endpoints.Map("{FirstSegment}/{SecondSegment}", context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status418ImATeapot;
+                    return Task.CompletedTask;
+                });
+
+                endpoints.MapGet("/generateJwtToken", context =>
+                {
+                    return context.Response.WriteAsync(GenerateJwtToken());
+                });
             });
         }
 
