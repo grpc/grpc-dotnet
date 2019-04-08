@@ -390,6 +390,21 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
         }
 
+        [Test]
+        public void UserState_ValueSet_AddedToHttpContextItems()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            serverCallContext.UserState["TestKey"] = "TestValue";
+
+            // Assert
+            Assert.AreEqual("TestValue", serverCallContext.UserState["TestKey"]);
+            Assert.AreEqual("TestValue", httpContext.Items["TestKey"]);
+        }
+
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger logger = null)
         {
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
