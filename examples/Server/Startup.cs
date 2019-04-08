@@ -35,11 +35,12 @@ namespace GRPCServer
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
-            app.UseRouting(routes =>
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapGrpcService<MailerService>();
-                routes.MapGrpcService<CounterService>();
-                routes.MapGrpcService<GreeterService>();
+                endpoints.MapGrpcService<MailerService>();
+                endpoints.MapGrpcService<CounterService>();
+                endpoints.MapGrpcService<GreeterService>();
             });
         }
     }
