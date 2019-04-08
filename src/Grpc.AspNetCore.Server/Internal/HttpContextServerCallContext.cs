@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
@@ -172,6 +173,8 @@ namespace Grpc.AspNetCore.Server.Internal
         }
 
         public ServerCallContext ServerCallContext => this;
+
+        protected override IDictionary<object, object> UserStateCore => HttpContext.Items;
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
