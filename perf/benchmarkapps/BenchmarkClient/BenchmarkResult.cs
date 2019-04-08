@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace BenchmarkClient
 {
     public class BenchmarkResult

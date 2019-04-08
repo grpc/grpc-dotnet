@@ -29,6 +29,7 @@ namespace BenchmarkClient
     {
         private const int Connections = 1;
         private const int DurationSeconds = 5;
+        // The host name is tied to some certificates
         private const string Target = "localhost:50051";
         private readonly static bool StopOnError = false;
 
