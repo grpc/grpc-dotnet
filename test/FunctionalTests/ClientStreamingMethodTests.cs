@@ -196,6 +196,10 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
             _ = Task.Run(async () =>
             {
                 while (!responseTask.IsCompleted)
@@ -203,9 +207,6 @@ namespace Grpc.AspNetCore.FunctionalTests
                     await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
                 }
             });
-
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
             var response = await responseTask.DefaultTimeout();
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
