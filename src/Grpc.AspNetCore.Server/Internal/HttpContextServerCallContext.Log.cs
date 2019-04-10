@@ -41,6 +41,9 @@ namespace Grpc.AspNetCore.Server.Internal
             private static readonly Action<ILogger, string, Exception> _encodingNotInAcceptEncoding =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "EncodingNotInAcceptEncoding"), "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.");
 
+            private static readonly Action<ILogger, Exception> _deadlineCancellationError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(6, "DeadlineCancellationError"), "Error occurred while trying to cancel the request due to deadline exceeded.");
+
             public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
             {
                 _deadlineExceeded(logger, timeout, null);
@@ -64,6 +67,11 @@ namespace Grpc.AspNetCore.Server.Internal
             public static void EncodingNotInAcceptEncoding(ILogger logger, string grpcEncoding)
             {
                 _encodingNotInAcceptEncoding(logger, grpcEncoding, null);
+            }
+
+            public static void DeadlineCancellationError(ILogger logger, Exception ex)
+            {
+                _deadlineCancellationError(logger, ex);
             }
         }
     }
