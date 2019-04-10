@@ -28,7 +28,7 @@ Documentation and guides are coming soon! In the mean time we suggest creating a
 
 ## To develop gRPC for ASP.NET Core
 
-Setting up local feed with unreleased Grpc.* packages (May not be necessary):
+Setting up local feed with unreleased Grpc.* packages:
 ```
 # We may depend on unreleased Grpc.* packages.
 # Run this script before building the project.
