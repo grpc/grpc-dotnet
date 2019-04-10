@@ -41,13 +41,14 @@ Installing .NET Core SDK:
 ./build/get-dotnet.sh or ./build/get-dotnet.ps1
 ```
 
-Activate the development environment:
+Set up the development environment to use the installed .NET Core SDK:
 ```
 # Source this script to use the installed .NET Core SDK.
-source activate.sh or . activate.ps1
+source ./activate.sh or . ./activate.ps1
 ```
 To launch Visual Studio with the installed SDK:
 ```
+# activate.sh or activate.ps1 must be sourced first, see previous step
 startvs.cmd Grpc.AspNetCore.sln
 ```
 
