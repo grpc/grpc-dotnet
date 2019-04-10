@@ -10,6 +10,5 @@ branches:
     - master
 install:
   - ./build/get-dotnet.sh
-  - source ./activate.sh
 script:
   - ./build_and_test.sh
