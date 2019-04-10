@@ -391,6 +391,35 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public async Task CancellationToken_WithDeadlineAndNoLifetimeFeature_ErrorLogged()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature(throwError: true));
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            context.Initialize();
+
+            // Act
+            while (context.Status.StatusCode != StatusCode.DeadlineExceeded)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+            }
+
+            // Assert
+            Assert.IsFalse(context.CancellationToken.IsCancellationRequested);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
+
+            write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
+            Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", write.State.ToString());
+        }
+
+        [Test]
         public void UserState_ValueSet_AddedToHttpContextItems()
         {
             // Arrange
@@ -413,10 +442,12 @@ namespace Grpc.AspNetCore.Server.Tests
         private class TestHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
         {
             private readonly CancellationTokenSource _cts;
+            private readonly bool _throwError;
 
-            public TestHttpRequestLifetimeFeature()
+            public TestHttpRequestLifetimeFeature(bool throwError = false)
             {
                 _cts = new CancellationTokenSource();
+                _throwError = throwError;
             }
 
             public CancellationToken RequestAborted
@@ -427,6 +458,11 @@ namespace Grpc.AspNetCore.Server.Tests
 
             public void Abort()
             {
+                if (_throwError)
+                {
+                    throw new Exception("Error thrown.");
+                }
+
                 _cts.Cancel();
             }
         }

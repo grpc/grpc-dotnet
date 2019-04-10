@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "EncodingNotInAcceptEncoding"), "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.");
 
             private static readonly Action<ILogger, Exception> _deadlineCancellationError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(6, "DeadlineCancellationError"), "Error canceling request because of the deadline.");
+                LoggerMessage.Define(LogLevel.Error, new EventId(6, "DeadlineCancellationError"), "Error occurred while trying to cancel the request due to deadline exceeded.");
 
             public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
             {
