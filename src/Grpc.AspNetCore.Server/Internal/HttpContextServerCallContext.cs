@@ -263,8 +263,15 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
-            // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-            HttpContext.Abort();
+            try
+            {
+                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
+                HttpContext.Abort();
+            }
+            catch (Exception ex)
+            {
+                Log.DeadlineCancellationError(_logger, ex);
+            }
         }
 
         public void Dispose()
