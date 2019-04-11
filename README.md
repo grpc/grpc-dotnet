@@ -49,7 +49,7 @@ source ./activate.sh or . ./activate.ps1
 To launch Visual Studio with the installed SDK:
 ```
 # activate.sh or activate.ps1 must be sourced first, see previous step
-startvs.cmd Grpc.AspNetCore.sln
+startvs.cmd
 ```
 
 To build from the command line:
