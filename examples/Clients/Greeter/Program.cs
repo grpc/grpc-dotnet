@@ -35,9 +35,9 @@ namespace Sample.Clients
             var channel = new Channel("localhost:50051", credentials);
             var client = new Greeter.GreeterClient(channel);
 
-            await UnaryCall(client);
+            await UnaryCallExample(client);
 
-            await ServerStreamingCall(client);
+            await ServerStreamingCallExample(client);
 
             Console.WriteLine("Shutting down");
             await channel.ShutdownAsync();
@@ -45,13 +45,13 @@ namespace Sample.Clients
             Console.ReadKey();
         }
 
-        private static async Task UnaryCall(Greeter.GreeterClient client)
+        private static async Task UnaryCallExample(Greeter.GreeterClient client)
         {
             var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
         }
 
-        private static async Task ServerStreamingCall(Greeter.GreeterClient client)
+        private static async Task ServerStreamingCallExample(Greeter.GreeterClient client)
         {
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(3.5));
