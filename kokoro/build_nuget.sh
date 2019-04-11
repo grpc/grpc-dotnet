@@ -23,7 +23,7 @@ export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
 # Install dotnet SDK
 sudo apt-get install -y jq
 ./build/get-dotnet.sh
-export PATH="$HOME/.dotnet/:$PATH"
+source ./activate.sh
 
 # Required when using nightly builds of gRPC packages
 # ./build/get-grpc.sh

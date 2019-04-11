@@ -28,12 +28,6 @@ Documentation and guides are coming soon! In the mean time we suggest creating a
 
 ## To develop gRPC for ASP.NET Core
 
-Installing .NET Core SDK:
-```
-# Run this script before building the project.
-./build/get-dotnet.sh or ./build/get-dotnet.ps1
-```
-
 Setting up local feed with unreleased Grpc.* packages:
 ```
 # We may depend on unreleased Grpc.* packages.
@@ -41,12 +35,29 @@ Setting up local feed with unreleased Grpc.* packages:
 ./build/get-grpc.sh or ./build/get-grpc.ps1
 ```
 
-To build:
+Installing .NET Core SDK:
+```
+# Run this script before building the project.
+./build/get-dotnet.sh or ./build/get-dotnet.ps1
+```
+
+Set up the development environment to use the installed .NET Core SDK:
+```
+# Source this script to use the installed .NET Core SDK.
+source ./activate.sh or . ./activate.ps1
+```
+To launch Visual Studio with the installed SDK:
+```
+# activate.sh or activate.ps1 must be sourced first, see previous step
+startvs.cmd
+```
+
+To build from the command line:
 ```
 dotnet build Grpc.AspNetCore.sln
 ```
 
-To run tests:
+To run tests from the command line:
 ```
 dotnet test Grpc.AspNetCore.sln
 ```
