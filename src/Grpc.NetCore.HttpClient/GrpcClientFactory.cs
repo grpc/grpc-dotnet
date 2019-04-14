@@ -49,7 +49,10 @@ namespace Grpc.NetCore.HttpClient
                 handler.ClientCertificates.Add(certificate);
             }
 
-            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(handler, new Uri(baseAddress, UriKind.RelativeOrAbsolute)));
+            var httpClient = new System.Net.Http.HttpClient(handler);
+            httpClient.BaseAddress = new Uri(baseAddress, UriKind.RelativeOrAbsolute);
+
+            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient));
         }
 
         private class Cache<TClient>

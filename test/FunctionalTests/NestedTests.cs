@@ -24,7 +24,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
+using Grpc.Tests;
 using Grpc.Core;
 using Nested;
 using NUnit.Framework;

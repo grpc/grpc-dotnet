@@ -27,7 +27,7 @@ using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
+using Grpc.Tests;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -157,7 +157,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 {
                     try
                     {
-                        var hasNext = await requestStream.MoveNext(cts.Token);
+                        var hasNext = await requestStream.MoveNext(cts.Token).DefaultTimeout();
 
                         if (!hasNext)
                         {
@@ -209,7 +209,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             });
 
             var response = await responseTask.DefaultTimeout();
-            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
+            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
             Assert.AreEqual(3, reply.Count);
 
             Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());

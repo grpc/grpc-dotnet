@@ -110,6 +110,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.AspNetCore.Server.Refl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reflector", "examples\Clients\Reflector\Reflector.csproj", "{86AD33E9-2C07-45BD-B599-420C2618188D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.NetCore.HttpClient.Tests", "test\Grpc.NetCore.HttpClient.Tests\Grpc.NetCore.HttpClient.Tests.csproj", "{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -188,6 +190,10 @@ Global
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -221,6 +227,7 @@ Global
 		{39320CA8-D8F0-45B6-B704-A04C16870226} = {310E5783-455A-4D09-A7AE-39DC2AB09504}
 		{55813F20-1269-4B19-B03E-7E4A90148F92} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{86AD33E9-2C07-45BD-B599-420C2618188D} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

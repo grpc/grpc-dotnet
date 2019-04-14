@@ -7,12 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\*.proto" GrpcServices="Server,Client" Generator="MSBuild:Compile" />
+    <Protobuf Include="Proto\*.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="" />
 
-    <Compile Include="..\Shared\HttpContextServerCallContextHelpers.cs" Link="Infrastructure\HttpContextServerCallContextHelpers.cs" />
-    <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
+    <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
     <Compile Include="..\Shared\SyncPoint.cs" Link="Infrastructure\SyncPoint.cs" />
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
   </ItemGroup>
@@ -20,9 +19,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.GrpcClient\Grpc.AspNetCore.Server.GrpcClient.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsLoggingTestingPackageVersion)" />

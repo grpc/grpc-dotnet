@@ -43,7 +43,7 @@ namespace Sample.Clients
             await channel.ConnectAsync();
 
             Console.WriteLine("Connected");
-            Console.WriteLine("Press escape to exit. Press any other key to forward mail.");
+            Console.WriteLine("Press escape to disconnect. Press any other key to forward mail.");
 
             var client = new Mailer.MailerClient(channel);
             using (var mailbox = client.Mailbox(headers: new Metadata { new Metadata.Entry("mailbox-name", mailboxName) }))
@@ -78,6 +78,9 @@ namespace Sample.Clients
 
             Console.WriteLine("Disconnecting");
             await channel.ShutdownAsync();
+
+            Console.WriteLine("Disconnected. Press any key to exit.");
+            Console.ReadKey();
         }
 
         private static string GetMailboxName(string[] args)

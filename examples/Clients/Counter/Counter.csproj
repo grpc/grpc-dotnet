@@ -22,4 +22,5 @@
     <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
+  
 </Project>
