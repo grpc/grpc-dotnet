@@ -8,7 +8,7 @@
 
 ### Grpc.AspNetCore
 
-We envision shipping both a managed client and managed server. Since gRPC services often act as both client and server, we want to make the consumption of both components as frictionless as possible. In addition to the server and client packages, the metapackage will also take dependencies on tooling support (code gen from Grpc.Tools and ServiceReference support from Microsoft.Extensions.ApiDescription.Design) and the default message protocol (Google.Protobuf).
+We envision shipping both a managed client and managed server. Since gRPC services often act as both client and server, we want to make the consumption of both components as frictionless as possible. In addition to the server and client packages, the metapackage will also take dependencies on tooling support (code gen from Grpc.Tools) and the default message protocol (Google.Protobuf).
 
 We want to distinguish these from the native clients and server so the package names will be prefixed with Grpc.AspNetCore/Grpc.NetCore. We don't expect most users to take a direct dependency on these packages so we will use a three-part name.
 
