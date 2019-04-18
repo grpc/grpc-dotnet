@@ -1,5 +1,5 @@
 {
   "urls": "",
   "server.urls": "",
-  "UseTls": "true"
+  "UseTls": "false" // Changing this will impact benchmarks run in ASP.NET perf lab
 }
