@@ -17,41 +17,44 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// Represents a gRPC service registered with the application.
+    /// Metadata for a gRPC method endpoint.
     /// </summary>
-    public class GrpcServiceDefinition
+    public class GrpcMethodMetadata
     {
-        internal GrpcServiceDefinition(Type serviceType, IEnumerable<IMethod> methods)
+        /// <summary>
+        /// Creates a new instance of <see cref="GrpcMethodMetadata"/> with the provided service type and method.
+        /// </summary>
+        /// <param name="serviceType">The implementing service type.</param>
+        /// <param name="method">The method representation.</param>
+        public GrpcMethodMetadata(Type serviceType, IMethod method)
         {
             if (serviceType == null)
             {
                 throw new ArgumentNullException(nameof(serviceType));
             }
 
-            if (methods == null)
+            if (method == null)
             {
-                throw new ArgumentNullException(nameof(methods));
+                throw new ArgumentNullException(nameof(method));
             }
 
             ServiceType = serviceType;
-            Methods = methods.ToList();
+            Method = method;
         }
 
         /// <summary>
-        /// Gets the gRPC service type.
+        /// Gets the implementing service type.
         /// </summary>
         public Type ServiceType { get; }
 
         /// <summary>
-        /// Gets the service's methods.
+        /// Gets the method representation.
         /// </summary>
-        public IReadOnlyList<IMethod> Methods { get; }
+        public IMethod Method { get; }
     }
 }

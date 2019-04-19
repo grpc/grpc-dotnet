@@ -85,9 +85,6 @@ namespace Microsoft.AspNetCore.Builder
                 throw new InvalidOperationException($"Error binding gRPC service '{typeof(TService).Name}'.", ex);
             }
 
-            var registry = builder.ServiceProvider.GetRequiredService<GrpcServiceDefinitionRegistry>();
-            registry.AddServiceDefinition(new GrpcServiceDefinition(typeof(TService), serviceBinder.ServiceMethods));
-
             serviceBinder.CreateUnimplementedEndpoints();
 
             return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);

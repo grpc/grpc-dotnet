@@ -18,22 +18,26 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using Grpc.Core;
 using Grpc.Reflection;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Reflection.Internal
 {
     internal class ReflectionGrpcServiceActivator : IGrpcServiceActivator<ReflectionServiceImpl>
     {
-        private readonly GrpcServiceDefinitionRegistry _serviceDefinitionRegistry;
+        private readonly RouteOptions _routeOptions;
         private readonly ILogger<ReflectionGrpcServiceActivator> _logger;
 
         private ReflectionServiceImpl _instance;
 
-        public ReflectionGrpcServiceActivator(GrpcServiceDefinitionRegistry serviceDefinitionRegistry, ILoggerFactory loggerFactory)
+        public ReflectionGrpcServiceActivator(IOptions<RouteOptions> routeOptions, ILoggerFactory loggerFactory)
         {
-            _serviceDefinitionRegistry = serviceDefinitionRegistry;
+            _routeOptions = routeOptions.Value;
             _logger = loggerFactory.CreateLogger<ReflectionGrpcServiceActivator>();
         }
 
@@ -41,11 +45,19 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
         {
             if (_instance == null)
             {
+                var grpcEndpointMetadata = _routeOptions.EndpointDataSources
+                    .SelectMany(ds => ds.Endpoints)
+                    .Select(ep => ep.Metadata.GetMetadata<GrpcMethodMetadata>())
+                    .Where(m => m != null)
+                    .ToList();
+
+                var serviceTypes = grpcEndpointMetadata.Select(m => m.ServiceType).Distinct().ToList();
+
                 var serviceDescriptors = new List<Google.Protobuf.Reflection.ServiceDescriptor>();
 
-                foreach (var serviceDefinition in _serviceDefinitionRegistry.ServiceDefinitions)
+                foreach (var serviceType in serviceTypes)
                 {
-                    var baseType = GetServiceBaseType(serviceDefinition.ServiceType);
+                    var baseType = GetServiceBaseType(serviceType);
                     var definitionType = baseType?.DeclaringType;
 
                     var descriptorPropertyInfo = definitionType?.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
@@ -59,12 +71,11 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
                         }
                     }
 
-                    Log.ServiceDescriptorNotResolved(_logger, serviceDefinition.ServiceType);
+                    Log.ServiceDescriptorNotResolved(_logger, serviceType);
                 }
 
                 _instance = new ReflectionServiceImpl(serviceDescriptors);
             }
-
 
             return _instance;
         }

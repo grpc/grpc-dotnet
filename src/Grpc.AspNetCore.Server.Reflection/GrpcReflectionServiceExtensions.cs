@@ -41,7 +41,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
-            services.TryAddScoped<IGrpcServiceActivator<ReflectionServiceImpl>, ReflectionGrpcServiceActivator>();
+            services.TryAddSingleton<IGrpcServiceActivator<ReflectionServiceImpl>, ReflectionGrpcServiceActivator>();
 
             return services;
         }
