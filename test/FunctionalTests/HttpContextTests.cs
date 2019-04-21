@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
             Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
         }
 
@@ -83,7 +83,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
             Assert.AreEqual($"{url}?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
         }
     }

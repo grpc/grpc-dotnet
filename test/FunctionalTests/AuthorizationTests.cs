@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]

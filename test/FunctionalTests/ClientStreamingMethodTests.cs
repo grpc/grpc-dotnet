@@ -65,7 +65,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(2, reply.Count);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -207,7 +207,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await responseTask.DefaultTimeout();
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(3, reply.Count);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
     }
 }

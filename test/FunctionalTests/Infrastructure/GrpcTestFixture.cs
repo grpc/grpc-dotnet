@@ -78,16 +78,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _server.Dispose();
         }
 
+        public void AssertTrailerStatus() => AssertTrailerStatus(StatusCode.OK, string.Empty);
+
         public void AssertTrailerStatus(StatusCode statusCode, string details)
         {
-            Assert.AreEqual(statusCode.ToTrailerString(), TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            var trailerValueString = TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString();
+            Assert.AreEqual(statusCode.ToTrailerString(), trailerValueString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(trailerValueString)}");
             Assert.AreEqual(Uri.EscapeDataString(details), TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
-        }
-
-        public void AssertSuccessTrailerStatus()
-        {
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual(StringValues.Empty, TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer]);
         }
     }
 }

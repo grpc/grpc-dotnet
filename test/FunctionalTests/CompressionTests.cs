@@ -62,7 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -118,7 +118,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -234,8 +234,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -263,7 +262,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout(), "gzip");
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -292,7 +291,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
     }
 }

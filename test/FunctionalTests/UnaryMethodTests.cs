@@ -27,7 +27,6 @@ using FunctionalTestsWebsite. Services;
 using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
@@ -57,7 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -171,7 +170,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
 
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -345,7 +344,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert 1
             var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
             Assert.AreEqual(1, total.Count);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
 
             // Act 2
             response = await Fixture.Client.PostAsync(
@@ -355,7 +354,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert 2
             total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
             Assert.AreEqual(2, total.Count);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
 
         [TestCase(null, "Content-Type is missing from the request.")]
@@ -416,7 +415,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertSuccessTrailerStatus();
+            Fixture.AssertTrailerStatus();
         }
     }
 }
