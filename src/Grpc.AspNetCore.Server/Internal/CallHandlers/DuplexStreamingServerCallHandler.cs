@@ -19,6 +19,7 @@
 using System;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,8 +32,20 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly DuplexStreamingServerMethod<TService, TRequest, TResponse> _invoker;
+        private static readonly Func<Interceptor, DuplexStreamingServerMethod<TRequest, TResponse>, DuplexStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptor, next) =>
+        {
+            return (requestStream, responseStream, context) =>
+            {
+                return interceptor.DuplexStreamingServerHandler(requestStream, responseStream, context, next);
+            };
+        };
 
-        public DuplexStreamingServerCallHandler(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public DuplexStreamingServerCallHandler(
+            Method<TRequest, TResponse> method, 
+            DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker, 
+            GrpcServiceOptions serviceOptions, 
+            ILoggerFactory loggerFactory) 
+            : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
         }
@@ -52,11 +65,37 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 service = activator.Create();
 
-                await _invoker(
-                    service,
-                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
-                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                    serverCallContext);
+                if (ServiceOptions.Interceptors.IsEmpty)
+                {
+                    await _invoker(
+                        service,
+                        new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
+                else
+                {
+                    DuplexStreamingServerMethod<TRequest, TResponse> resolvedInvoker = (requestStream, responseStream, resolvedContext) =>
+                    {
+                        return _invoker(
+                        service,
+                        requestStream,
+                        responseStream,
+                        resolvedContext);
+                    };
+
+                    // The list is reversed during construction so the first interceptor is invoked first
+                    for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
+                    {
+                        var interceptor = CreateInterceptor(ServiceOptions.Interceptors[i], httpContext.RequestServices);
+                        resolvedInvoker = BuildInvoker(interceptor, resolvedInvoker);
+                    }
+
+                    await resolvedInvoker(
+                        new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
             }
             catch (Exception ex)
             {

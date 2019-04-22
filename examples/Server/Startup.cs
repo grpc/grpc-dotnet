@@ -18,6 +18,8 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Server.Interceptors;
+using System;
 
 namespace GRPCServer
 {
@@ -27,8 +29,21 @@ namespace GRPCServer
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
-            services.AddGrpcReflection();
+            services
+                .AddGrpc(options =>
+                {
+                    // This registers a global interceptor with a Singleton lifetime. The interceptor must be added to the service collection in addition to being registered here.
+                    options.Interceptors.Add<MaxConcurrentCallsInterceptor>();
+                    // This registers a global interceptor with a Scoped lifetime.
+                    options.Interceptors.Add<MaxStreamingRequestTimeoutInterceptor>(TimeSpan.FromSeconds(30));
+                })
+                .AddServiceOptions<GreeterService>(options =>
+                {
+                    // This registers an interceptor for the Greeter service with a Scoped lifetime.
+                    // NOTE: Not all calls should be cached. Since the response of this service only depends on the request and no other state, adding caching here is acceptable.
+                    options.Interceptors.Add<UnaryCachingInterceptor>();
+                });
+            services.AddSingleton(new MaxConcurrentCallsInterceptor(200));
             services.AddSingleton<IncrementingCounter>();
             services.AddSingleton<MailQueueRepository>();
         }

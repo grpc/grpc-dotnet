@@ -35,7 +35,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         private readonly TestServer _server;
 
-        public GrpcTestFixture()
+        public GrpcTestFixture() : this(null) { }
+
+        public GrpcTestFixture(Action<IServiceCollection> initialConfigureServices)
         {
             LoggerFactory = new LoggerFactory();
 
@@ -50,7 +52,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             };
 
             var builder = new WebHostBuilder()
-                .ConfigureServices(configureServices)
+                .ConfigureServices(services =>
+                {
+                    initialConfigureServices?.Invoke(services);
+                    configureServices(services);
+                })
                 .UseStartup<TStartup>();
 
             _server = new TestServer(builder);

@@ -19,6 +19,7 @@
 using System;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,8 +32,20 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly ServerStreamingServerMethod<TService, TRequest, TResponse> _invoker;
+        private static readonly Func<Interceptor, ServerStreamingServerMethod<TRequest, TResponse>, ServerStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptor, next) =>
+        {
+            return (request, responseStream, context) =>
+            {
+                return interceptor.ServerStreamingServerHandler(request, responseStream, context, next);
+            };
+        };
 
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public ServerStreamingServerCallHandler(
+            Method<TRequest, TResponse> method, 
+            ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, 
+            GrpcServiceOptions serviceOptions, 
+            ILoggerFactory loggerFactory) 
+            : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
         }
@@ -56,11 +69,37 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 service = activator.Create();
 
-                await _invoker(
-                    service,
-                    request,
-                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                    serverCallContext);
+                if (ServiceOptions.Interceptors.IsEmpty)
+                {
+                    await _invoker(
+                        service,
+                        request,
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
+                else
+                {
+                    ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = (request, responseStream, resolvedContext) =>
+                    {
+                        return _invoker(
+                        service,
+                        request,
+                        responseStream,
+                        resolvedContext);
+                    };
+
+                    // The list is reversed during construction so the first interceptor is invoked first
+                    for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
+                    {
+                        var interceptor = CreateInterceptor(ServiceOptions.Interceptors[i], httpContext.RequestServices);
+                        resolvedInvoker = BuildInvoker(interceptor, resolvedInvoker);
+                    }
+
+                    await resolvedInvoker(
+                        request,
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
             }
             catch (Exception ex)
             {

@@ -20,7 +20,9 @@ using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
@@ -56,6 +58,19 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             return serverCallContext;
+        }
+
+        protected Interceptor CreateInterceptor(InterceptorRegistration registration, IServiceProvider serviceProvider)
+        {
+            var interceptorActivator = (IGrpcInterceptorActivator)serviceProvider.GetRequiredService(registration.ActivatorType);
+            var interceptorInstance = interceptorActivator.Create(registration.Args);
+
+            if (interceptorInstance == null)
+            {
+                throw new InvalidOperationException($"Could not construct Interceptor instance for type {registration.Type.FullName}");
+            }
+
+            return interceptorInstance;
         }
     }
 }
