@@ -200,13 +200,14 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ConsolidateTrailers_AppendsStatus()
+        public void ConsolidateTrailers_AppendsStatus_PercentEncodesMessage()
         {
             // Arrange
+            var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
             var serverCallContext = CreateServerCallContext(httpContext);
-            serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
+            serverCallContext.Status = new Status(StatusCode.Internal, errorMessage);
 
             // Act
             httpContext.Response.ConsolidateTrailers(serverCallContext);
@@ -216,19 +217,20 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
-            Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
+            Assert.AreEqual(Uri.EscapeDataString(errorMessage), responseTrailers[GrpcProtocolConstants.MessageTrailer]);
         }
 
         [Test]
-        public void ConsolidateTrailers_StatusOverwritesTrailers()
+        public void ConsolidateTrailers_StatusOverwritesTrailers_PercentEncodesMessage()
         {
             // Arrange
+            var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.MessageTrailer, "All is good");
-            serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
+            serverCallContext.Status = new Status(StatusCode.Internal, errorMessage);
 
             // Act
             httpContext.Response.ConsolidateTrailers(serverCallContext);
@@ -238,7 +240,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
-            Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
+            Assert.AreEqual(Uri.EscapeDataString(errorMessage), responseTrailers[GrpcProtocolConstants.MessageTrailer]);
         }
 
         [TestCase("trailer-bin")]
