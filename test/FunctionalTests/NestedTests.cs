@@ -56,8 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello Nested: World", responseMessage.Message);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Fixture.AssertTrailerStatus();
         }
     }
 }
