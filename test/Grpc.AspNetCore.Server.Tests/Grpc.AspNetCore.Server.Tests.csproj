@@ -34,8 +34,4 @@
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Reflection\" />
-  </ItemGroup>
-
 </Project>

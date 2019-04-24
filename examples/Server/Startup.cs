@@ -42,7 +42,7 @@ namespace GRPCServer
                 endpoints.MapGrpcService<MailerService>();
                 endpoints.MapGrpcService<CounterService>();
                 endpoints.MapGrpcService<GreeterService>();
-				endpoints.MapGrpcReflectionService();
+                endpoints.MapGrpcReflectionService();
             });
         }
     }

@@ -33,7 +33,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// Adds gRPC reflection services to the specified <see cref="IServiceCollection" />.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> for adding services.</param>
-        /// <returns>An <see cref="IGrpcServerBuilder"/> that can be used to further configure the gRPC services.</returns>
+        /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
         public static IServiceCollection AddGrpcReflection(this IServiceCollection services)
         {
             if (services == null)
