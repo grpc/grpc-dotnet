@@ -65,7 +65,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(2, reply.Count);
-            Fixture.AssertTrailerStatus();
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]
@@ -106,7 +107,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             await responseTask.DefaultTimeout();
 
-            Fixture.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
+            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Assert.AreEqual("Incomplete message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
 
         [Test]
@@ -138,7 +140,9 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-            Fixture.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+
+            Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("No message returned from method.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]
@@ -207,7 +211,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await responseTask.DefaultTimeout();
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(3, reply.Count);
-            Fixture.AssertTrailerStatus();
+
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }

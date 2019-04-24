@@ -19,14 +19,11 @@
 using System;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
-using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -76,15 +73,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             Client.Dispose();
             _server.Dispose();
-        }
-
-        public void AssertTrailerStatus() => AssertTrailerStatus(StatusCode.OK, string.Empty);
-
-        public void AssertTrailerStatus(StatusCode statusCode, string details)
-        {
-            var trailerValueString = TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString();
-            Assert.AreEqual(statusCode.ToTrailerString(), trailerValueString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(trailerValueString)}");
-            Assert.AreEqual(Uri.EscapeDataString(details), TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
     }
 }
