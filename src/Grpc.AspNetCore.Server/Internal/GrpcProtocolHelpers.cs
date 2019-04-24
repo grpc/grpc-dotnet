@@ -127,7 +127,8 @@ namespace Grpc.AspNetCore.Server.Internal
         public static Task SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
             response.StatusCode = httpStatusCode;
-            SetStatusTrailers(response, new Status(grpcStatusCode, message));
+            response.AppendTrailer(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.ToTrailerString());
+            response.AppendTrailer(GrpcProtocolConstants.MessageTrailer, message);
             return response.WriteAsync(message);
         }
 
@@ -204,17 +205,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             // Use SetTrailer here because we want to overwrite any that was set earlier
             SetTrailer(response, GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
-
-            var escapedDetail = status.Detail;
-            if (!string.IsNullOrEmpty(status.Detail))
-            {
-                // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
-                // The value portion of Status-Message is conceptually a Unicode string description of the error,
-                // physically encoded as UTF-8 followed by percent-encoding.
-                escapedDetail = Uri.EscapeDataString(status.Detail);
-            }
-
-            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, escapedDetail);
+            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, status.Detail);
         }
 
         private static void SetTrailer(HttpResponse response, string trailerName, StringValues trailerValues)

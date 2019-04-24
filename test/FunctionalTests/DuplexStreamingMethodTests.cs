@@ -91,7 +91,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             requestStream.AddData(Array.Empty<byte>());
             await finishedTask.DefaultTimeout();
 
-            Fixture.AssertTrailerStatus();
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
 
         [Test]
@@ -156,7 +156,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout());
 
-            Fixture.AssertTrailerStatus();
+            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
         }
     }
 }
