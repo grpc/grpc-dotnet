@@ -58,7 +58,8 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Fixture.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
 
         [Test]
@@ -87,7 +88,8 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Fixture.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
+            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
         }
     }
 }

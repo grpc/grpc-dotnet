@@ -53,7 +53,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Method is unimplemented.");
+            Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Assert.AreEqual("Method is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
 
         [Test]
@@ -77,7 +78,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
+            Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Assert.AreEqual("Service is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
 
         [TestCase("application/grpc", HttpStatusCode.OK, StatusCode.Unimplemented)]
@@ -102,6 +104,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(httpStatusCode, response.StatusCode);
+
             Assert.AreEqual(grpcStatusCode?.ToTrailerString() ?? string.Empty, Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
         }
     }
