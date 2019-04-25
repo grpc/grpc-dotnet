@@ -99,19 +99,19 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var endpoints = routeBuilder.DataSources
                 .SelectMany(ds => ds.Endpoints)
-                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)
                 .ToList();
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
             Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint1.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.Metadata.GetMetadata<IMethod>().FullName);
+            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint2.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
-            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<IMethod>().FullName);
+            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
         }
 
         [Test]
@@ -163,7 +163,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var endpoints = routeBuilder.DataSources
                 .SelectMany(ds => ds.Endpoints)
-                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)
                 .ToList();
             Assert.AreEqual(2, endpoints.Count);
 
@@ -192,7 +192,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var endpoints = routeBuilder.DataSources
                 .SelectMany(ds => ds.Endpoints)
-                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)
                 .ToList();
             Assert.AreEqual(2, endpoints.Count);
 
@@ -224,7 +224,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var endpoints = routeBuilder.DataSources
                 .SelectMany(ds => ds.Endpoints)
-                .Where(e => e.Metadata.GetMetadata<IMethod>() != null)
+                .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)
                 .ToList();
             Assert.AreEqual(2, endpoints.Count);
 

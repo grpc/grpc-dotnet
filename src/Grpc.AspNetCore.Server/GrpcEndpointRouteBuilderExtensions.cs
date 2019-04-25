@@ -90,19 +90,24 @@ namespace Microsoft.AspNetCore.Builder
             return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
         }
 
-        private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
+        private static Type GetServiceBaseType(Type serviceImplementation)
         {
-            var serviceType = typeof(TService);
-
             // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
             // We need to access the static BindService method on Foo which implicitly derives from Object.
-            var baseType = serviceType.BaseType;
+            var baseType = serviceImplementation.BaseType;
 
             // Handle services that have multiple levels of inheritence
             while (baseType?.BaseType?.BaseType != null)
             {
                 baseType = baseType.BaseType;
             }
+
+            return baseType;
+        }
+
+        private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
+        {
+            var baseType = GetServiceBaseType(typeof(TService));
 
             // We need to call Foo.BindService from the declaring type.
             var declaringType = baseType?.DeclaringType;
@@ -112,7 +117,7 @@ namespace Microsoft.AspNetCore.Builder
 
             if (bindService == null)
             {
-                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {serviceType.FullName}.");
+                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(TService).FullName}.");
             }
 
             // Invoke BindService(ServiceBinderBase, BaseType)

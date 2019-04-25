@@ -28,6 +28,7 @@ namespace GRPCServer
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
+            services.AddGrpcReflection();
             services.AddSingleton<IncrementingCounter>();
             services.AddSingleton<MailQueueRepository>();
         }
@@ -41,6 +42,7 @@ namespace GRPCServer
                 endpoints.MapGrpcService<MailerService>();
                 endpoints.MapGrpcService<CounterService>();
                 endpoints.MapGrpcService<GreeterService>();
+                endpoints.MapGrpcReflectionService();
             });
         }
     }
