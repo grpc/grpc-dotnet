@@ -61,7 +61,6 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             // Assert
             Assert.AreSame(trailers1, trailers2);
-            Assert.AreEqual(1, trailers1.Count);
             Assert.AreEqual("value", trailers1.Single(t => t.Key == "custom-header").Value);
         }
 
@@ -85,7 +84,6 @@ namespace Grpc.NetCore.HttpClient.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual(1, trailers.Count);
             Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
         }
 
@@ -236,7 +234,6 @@ namespace Grpc.NetCore.HttpClient.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual(1, trailers.Count);
             Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
         }
 
@@ -277,7 +274,6 @@ namespace Grpc.NetCore.HttpClient.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual(1, trailers.Count);
             Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
         }
 

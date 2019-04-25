@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -43,6 +44,8 @@ namespace InteropTestsWebsite
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(port, listenOptions =>
                     {
+                        Console.WriteLine($"Enabling connection encryption: {useTls}");
+
                         if (useTls)
                         {
                             listenOptions.UseHttps(Resources.ServerPFXPath, "1111");

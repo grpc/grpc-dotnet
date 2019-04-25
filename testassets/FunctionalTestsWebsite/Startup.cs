@@ -67,7 +67,6 @@ namespace FunctionalTestsWebsite
                     policy.RequireClaim(ClaimTypes.NameIdentifier);
                 });
             });
-            services.AddAuthorizationPolicyEvaluator();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {

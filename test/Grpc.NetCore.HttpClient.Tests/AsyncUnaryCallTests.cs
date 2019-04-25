@@ -101,5 +101,23 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             Assert.AreEqual("World", requestMessage.Name);
         }
+
+        [Test]
+        public void AsyncUnaryCall_NonOkStatusTrailer_ThrowRpcError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), StatusCode.Unimplemented);
+                return Task.FromResult(response);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest()));
+
+            // Assert
+            Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
+        }
     }
 }

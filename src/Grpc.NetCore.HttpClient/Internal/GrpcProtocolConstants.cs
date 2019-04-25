@@ -24,6 +24,13 @@ namespace Grpc.NetCore.HttpClient.Internal
     {
         internal const string GrpcContentType = "application/grpc";
         internal static readonly MediaTypeHeaderValue GrpcContentTypeHeaderValue = new MediaTypeHeaderValue("application/grpc");
+        internal static readonly EmptyContent EmptyGrpcContent;
+
+        static GrpcProtocolConstants()
+        {
+            EmptyGrpcContent = new EmptyContent();
+            EmptyGrpcContent.Headers.ContentType = GrpcContentTypeHeaderValue;
+        }
 
         internal const string TimeoutHeader = "grpc-timeout";
         internal const string MessageEncodingHeader = "grpc-encoding";

@@ -36,7 +36,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         private Metadata _trailers;
 
         public bool Disposed { get; private set; }
-        public bool ResponseFinished { get; set; }
+        public bool ResponseFinished { get; private set; }
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
         public Task<HttpResponseMessage> SendTask { get; private set; }
@@ -60,15 +60,18 @@ namespace Grpc.NetCore.HttpClient.Internal
         public void SendUnary(System.Net.Http.HttpClient client, TRequest request)
         {
             HttpRequestMessage message = CreateHttpRequestMessage();
+            SetMessageContent(request, message);
+            SendCore(client, message);
+        }
 
+        private void SetMessageContent(TRequest request, HttpRequestMessage message)
+        {
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
                     return SerialiationHelpers.WriteMessage<TRequest>(stream, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
-
-            SendCore(client, message);
         }
 
         public void SendClientStreaming(System.Net.Http.HttpClient client)
@@ -79,10 +82,10 @@ namespace Grpc.NetCore.HttpClient.Internal
             SendCore(client, message);
         }
 
-        public void SendServerStreaming(System.Net.Http.HttpClient client)
+        public void SendServerStreaming(System.Net.Http.HttpClient client, TRequest request)
         {
             HttpRequestMessage message = CreateHttpRequestMessage();
-
+            SetMessageContent(request, message);
             SendCore(client, message);
 
             StreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
@@ -176,13 +179,38 @@ namespace Grpc.NetCore.HttpClient.Internal
         public async Task<TResponse> GetResponseAsync()
         {
             _httpResponse = await SendTask.ConfigureAwait(false);
-            var responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
+            // Server might have returned a status without any response body. For example, an unimplemented status
+            // Check for the trailer status before attempting to read the body and failing
+            if (_httpResponse.TrailingHeaders.Contains(GrpcProtocolConstants.StatusTrailer))
+            {
+                FinishResponse(_httpResponse);
+            }
+
+            var responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
             var message = await responseStream.ReadSingleMessageAsync(Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
-            ResponseFinished = true;
+            FinishResponse(_httpResponse);
 
             // The task of this method is cached so there is no need to cache the message here
             return message;
+        }
+
+        internal void FinishResponse(HttpResponseMessage httpResponseMessage)
+        {
+            if (ResponseFinished)
+            {
+                return;
+            }
+
+            ResponseFinished = true;
+
+            _httpResponse = httpResponseMessage;
+
+            var status = GetStatusCore(_httpResponse);
+            if (status.StatusCode != StatusCode.OK)
+            {
+                throw new RpcException(status);
+            }
         }
 
         public async Task<Metadata> GetResponseHeadersAsync()
@@ -197,17 +225,28 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             ValidateTrailersAvailable();
 
-            var grpcStatus = SendTask.Result.TrailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).FirstOrDefault();
-            var grpcMessage = SendTask.Result.TrailingHeaders.GetValues(GrpcProtocolConstants.MessageTrailer).FirstOrDefault();
+            return GetStatusCore(_httpResponse);
+        }
 
-            int statusValue;
-            if (grpcStatus == null)
+        private static Status GetStatusCore(HttpResponseMessage httpResponseMessage)
+        {
+            string grpcStatus;
+            if (!httpResponseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out var grpcStatusValues) ||
+                (grpcStatus = grpcStatusValues.FirstOrDefault()) == null)
             {
                 throw new InvalidOperationException("Response did not have a grpc-status trailer.");
             }
-            else if (!int.TryParse(grpcStatus, out statusValue))
+
+            int statusValue;
+            if (!int.TryParse(grpcStatus, out statusValue))
             {
                 throw new InvalidOperationException("Unexpected grpc-status value: " + grpcStatus);
+            }
+
+            string grpcMessage = null;
+            if (httpResponseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.MessageTrailer, out var grpcMessageValues))
+            {
+                grpcMessage = grpcMessageValues.FirstOrDefault();
             }
 
             return new Status((StatusCode)statusValue, grpcMessage);

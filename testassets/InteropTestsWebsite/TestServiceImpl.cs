@@ -39,6 +39,7 @@ namespace Grpc.Testing
         {
             await EnsureEchoMetadataAsync(context);
             EnsureEchoStatus(request.ResponseStatus, context);
+            EnsureCompression(request.ExpectCompressed, context);
 
             var response = new SimpleResponse { Payload = CreateZerosPayload(request.ResponseSize) };
             return response;
@@ -63,6 +64,8 @@ namespace Grpc.Testing
             int sum = 0;
             await requestStream.ForEachAsync(request =>
             {
+                EnsureCompression(request.ExpectCompressed, context);
+
                 sum += request.Payload.Body.Length;
                 return Task.CompletedTask;
             });
@@ -114,6 +117,21 @@ namespace Grpc.Testing
             {
                 var statusCode = (StatusCode)responseStatus.Code;
                 context.Status = new Status(statusCode, responseStatus.Message);
+            }
+        }
+
+        private static void EnsureCompression(BoolValue expectCompressed, ServerCallContext context)
+        {
+            if (expectCompressed != null)
+            {
+                string encoding = context.RequestHeaders.SingleOrDefault(h => h.Key == "grpc-encoding")?.Value;
+                if (expectCompressed.Value)
+                {
+                    if (encoding == null || encoding == "identity")
+                    {
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, string.Empty));
+                    }
+                }
             }
         }
     }

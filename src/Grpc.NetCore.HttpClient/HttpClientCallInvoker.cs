@@ -111,7 +111,7 @@ namespace Grpc.NetCore.HttpClient
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.SendServerStreaming(_client);
+            call.SendServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.StreamReader,
@@ -142,7 +142,8 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            return AsyncUnaryCall(method, host, options, request)?.GetAwaiter().GetResult();
+            var call = AsyncUnaryCall(method, host, options, request);
+            return call.ResponseAsync.GetAwaiter().GetResult();
         }
 
         private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(Method<TRequest, TResponse> method, CallOptions options)

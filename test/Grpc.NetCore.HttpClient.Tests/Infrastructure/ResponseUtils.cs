@@ -24,6 +24,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
 using System.Buffers.Binary;
+using Grpc.NetCore.HttpClient.Internal;
+using Grpc.Core;
 
 namespace Grpc.NetCore.HttpClient.Tests.Infrastructure
 {
@@ -38,12 +40,16 @@ namespace Grpc.NetCore.HttpClient.Tests.Infrastructure
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, byte[] payload) =>
             CreateResponse(statusCode, new ByteArrayContent(payload));
 
-        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload)
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode grpcStatusCode = StatusCode.OK)
         {
-            return new HttpResponseMessage(statusCode)
+            var message = new HttpResponseMessage(statusCode)
             {
                 Content = payload
             };
+
+            message.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.ToString("D"));
+
+            return message;
         }
 
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"

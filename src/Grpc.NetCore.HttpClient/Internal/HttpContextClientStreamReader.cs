@@ -28,6 +28,7 @@ namespace Grpc.NetCore.HttpClient.Internal
     internal class HttpContextClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     {
         private readonly GrpcCall<TRequest, TResponse> _call;
+        private HttpResponseMessage _httpResponse;
         private Stream _responseStream;
 
         public HttpContextClientStreamReader(GrpcCall<TRequest, TResponse> call)
@@ -66,10 +67,13 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (_httpResponse == null)
+            {
+                _httpResponse = await _call.SendTask.ConfigureAwait(false);
+            }
             if (_responseStream == null)
             {
-                var responseMessage = await _call.SendTask.ConfigureAwait(false);
-                _responseStream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
             }
 
             using (cts)
@@ -78,7 +82,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 if (Current == null)
                 {
                     // No more content in response so mark as finished
-                    _call.ResponseFinished = true;
+                    _call.FinishResponse(_httpResponse);
                     return false;
                 }
 
