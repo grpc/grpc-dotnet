@@ -4,6 +4,7 @@
     <GoogleProtobufPackageVersion>3.7.0</GoogleProtobufPackageVersion>
     <GrpcCorePackageVersion>1.20.0-pre3</GrpcCorePackageVersion>
     <GrpcCoreApiPackageVersion>1.20.0-pre3</GrpcCoreApiPackageVersion>
+    <GrpcReflectionPackageVersion>1.20.0-pre3</GrpcReflectionPackageVersion>
     <GrpcToolsPackageVersion>1.20.0-pre3</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>

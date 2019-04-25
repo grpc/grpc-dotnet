@@ -93,7 +93,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var resolvedMetadata = new List<object>();
 
             // IMethod is added as metadata for the endpoint
-            resolvedMetadata.Add(method);
+            resolvedMetadata.Add(new GrpcMethodMetadata(typeof(TService), method));
             resolvedMetadata.AddRange(metadata);
 
             var pattern = method.FullName;
