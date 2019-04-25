@@ -51,13 +51,9 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             var endpointRouteBuilder = new TestEndpointRouteBuilder(serviceProvider);
             endpointRouteBuilder.MapGrpcService<GreeterService>();
 
-            var options = serviceProvider.GetRequiredService<IOptions<RouteOptions>>();
-            foreach (var dataSource in endpointRouteBuilder.DataSources)
-            {
-                options.Value.EndpointDataSources.Add(dataSource);
-            }
+            var dataSource = new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
 
-            var activator = new ReflectionGrpcServiceActivator(options, NullLoggerFactory.Instance);
+            var activator = new ReflectionGrpcServiceActivator(dataSource, NullLoggerFactory.Instance);
 
             // Act
             var service = activator.Create();

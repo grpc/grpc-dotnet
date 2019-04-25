@@ -30,23 +30,22 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
 {
     internal class ReflectionGrpcServiceActivator : IGrpcServiceActivator<ReflectionServiceImpl>
     {
-        private readonly RouteOptions _routeOptions;
         private readonly ILogger<ReflectionGrpcServiceActivator> _logger;
+        private readonly EndpointDataSource _endpointDataSource;
 
         private ReflectionServiceImpl _instance;
 
-        public ReflectionGrpcServiceActivator(IOptions<RouteOptions> routeOptions, ILoggerFactory loggerFactory)
+        public ReflectionGrpcServiceActivator(EndpointDataSource endpointDataSource, ILoggerFactory loggerFactory)
         {
-            _routeOptions = routeOptions.Value;
             _logger = loggerFactory.CreateLogger<ReflectionGrpcServiceActivator>();
+            _endpointDataSource = endpointDataSource;
         }
 
         public ReflectionServiceImpl Create()
         {
             if (_instance == null)
             {
-                var grpcEndpointMetadata = _routeOptions.EndpointDataSources
-                    .SelectMany(ds => ds.Endpoints)
+                var grpcEndpointMetadata = _endpointDataSource.Endpoints
                     .Select(ep => ep.Metadata.GetMetadata<GrpcMethodMetadata>())
                     .Where(m => m != null)
                     .ToList();
