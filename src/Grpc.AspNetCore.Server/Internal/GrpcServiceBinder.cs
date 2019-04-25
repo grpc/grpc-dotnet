@@ -98,10 +98,16 @@ namespace Grpc.AspNetCore.Server.Internal
 
             var pattern = method.FullName;
 
-            var endpointBuilder = _builder
-                .MapPost(pattern, requestDelegate)
-                .WithDisplayName($"gRPC - {method.FullName}")
-                .WithMetadata(resolvedMetadata.ToArray());
+            var endpointBuilder = _builder.MapPost(pattern, requestDelegate);
+
+            endpointBuilder.Add(ep =>
+            {
+                ep.DisplayName = $"gRPC - {method.FullName}";
+                foreach (var item in resolvedMetadata)
+                {
+                    ep.Metadata.Add(item);
+                }
+            });
 
             EndpointConventionBuilders.Add(endpointBuilder);
 
