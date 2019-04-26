@@ -53,40 +53,52 @@ namespace Grpc.NetCore.HttpClient.Internal
             // User could have disposed call
             _call.EnsureNotDisposed();
 
-            // Linking tokens is expensive. Only create a linked token is passed in cancellation token requires it
-            CancellationTokenSource cts = null;
-            if (cancellationToken.CanBeCanceled)
+            if (_call.CancellationToken.IsCancellationRequested)
             {
-                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
-                cancellationToken = cts.Token;
-            }
-            else
-            {
-                cancellationToken = _call.CancellationToken;
+                throw _call.CreateCanceledStatusException();
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (_httpResponse == null)
+            try
             {
-                _httpResponse = await _call.SendTask.ConfigureAwait(false);
-            }
-            if (_responseStream == null)
-            {
-                _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            }
-
-            using (cts)
-            {
-                Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
-                if (Current == null)
+                // Linking tokens is expensive. Only create a linked token is passed in cancellation token requires it
+                CancellationTokenSource cts = null;
+                if (cancellationToken.CanBeCanceled)
                 {
-                    // No more content in response so mark as finished
-                    _call.FinishResponse(_httpResponse);
-                    return false;
+                    cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
+                    cancellationToken = cts.Token;
+                }
+                else
+                {
+                    cancellationToken = _call.CancellationToken;
                 }
 
-                return true;
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (_httpResponse == null)
+                {
+                    _httpResponse = await _call.SendTask.ConfigureAwait(false);
+                }
+                if (_responseStream == null)
+                {
+                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                }
+
+                using (cts)
+                {
+                    Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                    if (Current == null)
+                    {
+                        // No more content in response so mark as finished
+                        _call.FinishResponse(_httpResponse);
+                        return false;
+                    }
+
+                    return true;
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                throw _call.CreateCanceledStatusException();
             }
         }
     }

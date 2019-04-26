@@ -85,7 +85,8 @@ namespace Grpc.NetCore.HttpClient.Tests
             call.Dispose();
 
             // Assert
-            Assert.ThrowsAsync<TaskCanceledException>(async () => await call.ResponseAsync.DefaultTimeout());
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync.DefaultTimeout());
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
             var header = responseHeaders.Single(h => h.Key == "custom");
             Assert.AreEqual("value!", header.Value);

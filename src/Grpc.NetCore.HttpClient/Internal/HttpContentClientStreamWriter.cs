@@ -74,6 +74,10 @@ namespace Grpc.NetCore.HttpClient.Internal
                 {
                     return Task.FromException(new InvalidOperationException("Cannot write message because the client stream writer is complete."));
                 }
+                else if (_completeTcs.Task.IsCanceled)
+                {
+                    throw _call.CreateCanceledStatusException();
+                }
 
                 // Pending writes need to be awaited first
                 if (IsWriteInProgress)
@@ -94,10 +98,17 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private async Task WriteAsyncCore(TRequest message)
         {
-            // Wait until the client stream has started
-            var writeStream = await _writeStreamTask.ConfigureAwait(false);
+            try
+            {
+                // Wait until the client stream has started
+                var writeStream = await _writeStreamTask.ConfigureAwait(false);
 
-            await SerialiationHelpers.WriteMessage<TRequest>(writeStream, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
+                await SerialiationHelpers.WriteMessage<TRequest>(writeStream, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+                throw _call.CreateCanceledStatusException();
+            }
         }
 
         private bool IsWriteInProgress

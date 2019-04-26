@@ -40,14 +40,17 @@ namespace Grpc.NetCore.HttpClient.Tests.Infrastructure
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, byte[] payload) =>
             CreateResponse(statusCode, new ByteArrayContent(payload));
 
-        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode grpcStatusCode = StatusCode.OK)
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK)
         {
             var message = new HttpResponseMessage(statusCode)
             {
                 Content = payload
             };
 
-            message.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.ToString("D"));
+            if (grpcStatusCode != null)
+            {
+                message.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.Value.ToString("D"));
+            }
 
             return message;
         }

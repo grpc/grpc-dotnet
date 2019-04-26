@@ -55,7 +55,7 @@ namespace InteropTestsClient
             [Option("server_port", Default = 50052)]
             public int ServerPort { get; set; }
 
-            [Option("test_case", Default = "unimplemented_method")]
+            [Option("test_case", Default = "timeout_on_sleeping_server")]
             public string TestCase { get; set; }
 
             // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)

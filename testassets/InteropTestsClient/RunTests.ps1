@@ -11,9 +11,9 @@
   #"oauth2_auth_token",
   #"per_rpc_creds",
 
-  #"cancel_after_begin",
+  "cancel_after_begin",
   #"cancel_after_first_response",
-  #"timeout_on_sleeping_server",
+  "timeout_on_sleeping_server",
   "custom_metadata",
   "status_code_and_message",
   "unimplemented_service",

@@ -285,7 +285,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             {
                 var stream = new SyncPointMemoryStream();
 
-                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(stream));
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(stream), grpcStatusCode: null);
                 return Task.FromResult(response);
             });
             var invoker = new HttpClientCallInvoker(httpClient);

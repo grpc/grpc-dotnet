@@ -30,11 +30,16 @@ namespace Grpc.NetCore.HttpClient.Internal
     internal class GrpcCall<TRequest, TResponse>
     {
         private readonly CancellationTokenSource _callCts;
+        private readonly CancellationTokenRegistration? _ctsRegistration;
         private readonly ISystemClock _clock;
+        private readonly TimeSpan? _timeout;
+        private readonly Timer _deadlineTimer;
 
         private HttpResponseMessage _httpResponse;
         private Metadata _trailers;
+        private CancellationTokenRegistration? _writerCtsRegistration;
 
+        public bool DeadlineReached { get; private set; }
         public bool Disposed { get; private set; }
         public bool ResponseFinished { get; private set; }
         public CallOptions Options { get; }
@@ -50,6 +55,36 @@ namespace Grpc.NetCore.HttpClient.Internal
             Method = method;
             Options = options;
             _clock = clock;
+
+            if (options.CancellationToken.CanBeCanceled)
+            {
+                _ctsRegistration = options.CancellationToken.Register(CancelCall);
+            }
+
+            if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
+            {
+                var timeout = options.Deadline.Value - _clock.UtcNow;
+                _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
+            }
+
+            if (_timeout != null)
+            {
+                _deadlineTimer = new Timer(ReachDeadline, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        private void ReachDeadline(object state)
+        {
+            if (!_callCts.IsCancellationRequested)
+            {
+                DeadlineReached = true;
+                _callCts.Cancel();
+            }
+        }
+
+        private void CancelCall()
+        {
+            _callCts.Cancel();
         }
 
         public CancellationToken CancellationToken
@@ -109,6 +144,9 @@ namespace Grpc.NetCore.HttpClient.Internal
 
                 _callCts.Cancel();
                 _callCts.Dispose();
+                _ctsRegistration?.Dispose();
+                _writerCtsRegistration?.Dispose();
+                _deadlineTimer?.Dispose();
                 _httpResponse?.Dispose();
                 StreamReader?.Dispose();
                 ClientStreamWriter?.Dispose();
@@ -124,6 +162,11 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             TaskCompletionSource<Stream> writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
             TaskCompletionSource<bool> completeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _writerCtsRegistration = _callCts.Token.Register(() =>
+            {
+                completeTcs.TrySetCanceled();
+                writeStreamTcs.TrySetCanceled();
+            });
 
             message.Content = new PushStreamContent(
                 (stream) =>
@@ -157,12 +200,10 @@ namespace Grpc.NetCore.HttpClient.Internal
                 }
             }
 
-            if (Options.Deadline != null && Options.Deadline != DateTime.MaxValue)
+            if (_timeout != null)
             {
-                var deadline = Options.Deadline.Value - _clock.UtcNow;
-
                 // JamesNK(todo) - Replicate C core's logic for formatting grpc-timeout
-                message.Headers.Add(GrpcProtocolConstants.TimeoutHeader, Convert.ToInt64(deadline.TotalMilliseconds) + "m");
+                message.Headers.Add(GrpcProtocolConstants.TimeoutHeader, Convert.ToInt64(_timeout.Value.TotalMilliseconds) + "m");
             }
 
             return message;
@@ -178,21 +219,38 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public async Task<TResponse> GetResponseAsync()
         {
-            _httpResponse = await SendTask.ConfigureAwait(false);
-
-            // Server might have returned a status without any response body. For example, an unimplemented status
-            // Check for the trailer status before attempting to read the body and failing
-            if (_httpResponse.TrailingHeaders.Contains(GrpcProtocolConstants.StatusTrailer))
+            try
             {
+                _httpResponse = await SendTask.ConfigureAwait(false);
+
+                // Server might have returned a status without any response body. For example, an unimplemented status
+                // Check for the trailer status before attempting to read the body and failing
+                if (_httpResponse.TrailingHeaders.Contains(GrpcProtocolConstants.StatusTrailer))
+                {
+                    FinishResponse(_httpResponse);
+                }
+
+                var responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var message = await responseStream.ReadSingleMessageAsync(Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
                 FinishResponse(_httpResponse);
+
+                // The task of this method is cached so there is no need to cache the message here
+                return message;
             }
+            catch (TaskCanceledException)
+            {
+                throw CreateCanceledStatusException();
+            }
+            catch (OperationCanceledException)
+            {
+                throw CreateCanceledStatusException();
+            }
+        }
 
-            var responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            var message = await responseStream.ReadSingleMessageAsync(Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
-            FinishResponse(_httpResponse);
-
-            // The task of this method is cached so there is no need to cache the message here
-            return message;
+        internal RpcException CreateCanceledStatusException()
+        {
+            var statusCode = DeadlineReached ? StatusCode.DeadlineExceeded : StatusCode.Cancelled;
+            return new RpcException(new Status(statusCode, string.Empty));
         }
 
         internal void FinishResponse(HttpResponseMessage httpResponseMessage)

@@ -120,6 +120,90 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual("1000m", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
         }
 
+        [Test]
+        public void AsyncClientStreamingCall_DeadlineDuringSend_ResponseThrowsDeadlineExceededStatus()
+        {
+            // Arrange
+            PushStreamContent content = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                content = (PushStreamContent)request.Content;
+                await content.PushComplete.DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
+
+            // Assert
+            var responseTask = call.ResponseAsync;
+            Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
+
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_DeadlineBeforeWrite_ResponseThrowsDeadlineExceededStatus()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow));
+
+            // Assert
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest()).DefaultTimeout());
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_DeadlineDuringWrite_ResponseThrowsDeadlineExceededStatus()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
+
+            // Assert
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest()).DefaultTimeout());
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncServerStreamingCall_DeadlineDuringWrite_ResponseThrowsDeadlineExceededStatus()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)), new HelloRequest());
+
+            // Assert
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None));
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.Status.StatusCode);
+        }
+
         private class TestSystemClock : ISystemClock
         {
             public TestSystemClock(DateTime utcNow)
