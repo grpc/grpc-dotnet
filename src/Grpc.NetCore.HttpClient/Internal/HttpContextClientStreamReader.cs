@@ -60,7 +60,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             try
             {
-                // Linking tokens is expensive. Only create a linked token is passed in cancellation token requires it
+                // Linking tokens is expensive. Only create a linked token if the token passed in requires it
                 CancellationTokenSource cts = null;
                 if (cancellationToken.CanBeCanceled)
                 {
@@ -96,7 +96,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                     return true;
                 }
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 throw _call.CreateCanceledStatusException();
             }

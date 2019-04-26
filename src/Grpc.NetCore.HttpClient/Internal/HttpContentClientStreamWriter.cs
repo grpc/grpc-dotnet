@@ -103,7 +103,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // Wait until the client stream has started
                 var writeStream = await _writeStreamTask.ConfigureAwait(false);
 
-                await SerialiationHelpers.WriteMessage<TRequest>(writeStream, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
+                await SerializationHelpers.WriteMessage<TRequest>(writeStream, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
             {
@@ -111,6 +111,10 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
         }
 
+        /// <summary>
+        /// A value indicating whether there is an async write already in progress.
+        /// Should only check this property when holding the write lock.
+        /// </summary>
         private bool IsWriteInProgress
         {
             get

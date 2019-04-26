@@ -32,7 +32,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Linq;
 using Grpc.NetCore.HttpClient.Internal;
-using Grpc.Tests;
+using Grpc.Tests.Shared;
 
 namespace Grpc.NetCore.HttpClient.Tests
 {

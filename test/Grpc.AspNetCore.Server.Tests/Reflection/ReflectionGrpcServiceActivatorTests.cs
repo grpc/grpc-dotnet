@@ -26,6 +26,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Reflection.Internal;
 using Grpc.Core;
 using Grpc.Reflection.V1Alpha;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;

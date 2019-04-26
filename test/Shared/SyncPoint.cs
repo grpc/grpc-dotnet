@@ -20,7 +20,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.Tests
+namespace Grpc.Tests.Shared
 {
     public class SyncPoint
     {

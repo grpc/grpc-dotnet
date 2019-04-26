@@ -28,7 +28,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
-using Grpc.Tests;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
@@ -186,8 +186,6 @@ namespace Grpc.NetCore.HttpClient.Tests
         public void AsyncServerStreamingCall_DeadlineDuringWrite_ResponseThrowsDeadlineExceededStatus()
         {
             // Arrange
-            var cts = new CancellationTokenSource();
-
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
                 var stream = new SyncPointMemoryStream();

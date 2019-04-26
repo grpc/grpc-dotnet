@@ -97,7 +97,7 @@ namespace Grpc.NetCore.HttpClient
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
-                responseStream: call.StreamReader,
+                responseStream: call.ClientStreamReader,
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
@@ -114,7 +114,7 @@ namespace Grpc.NetCore.HttpClient
             call.SendServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
-                responseStream: call.StreamReader,
+                responseStream: call.ClientStreamReader,
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,

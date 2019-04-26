@@ -27,9 +27,9 @@ using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.Tests;
 using Grpc.Core;
 using NUnit.Framework;
+using Grpc.Tests.Shared;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {

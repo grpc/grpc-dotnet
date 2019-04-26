@@ -27,7 +27,7 @@ using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class MessageHelpers
     {

@@ -46,8 +46,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         public Method<TRequest, TResponse> Method { get; }
         public Task<HttpResponseMessage> SendTask { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse> ClientStreamWriter { get; private set; }
-
-        public HttpContextClientStreamReader<TRequest, TResponse> StreamReader { get; private set; }
+        public HttpContextClientStreamReader<TRequest, TResponse> ClientStreamReader { get; private set; }
 
         public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock)
         {
@@ -94,7 +93,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public void SendUnary(System.Net.Http.HttpClient client, TRequest request)
         {
-            HttpRequestMessage message = CreateHttpRequestMessage();
+            var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
             SendCore(client, message);
         }
@@ -104,7 +103,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
-                    return SerialiationHelpers.WriteMessage<TRequest>(stream, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
+                    return SerializationHelpers.WriteMessage<TRequest>(stream, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
@@ -119,11 +118,11 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public void SendServerStreaming(System.Net.Http.HttpClient client, TRequest request)
         {
-            HttpRequestMessage message = CreateHttpRequestMessage();
+            var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
             SendCore(client, message);
 
-            StreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
+            ClientStreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
         }
 
         public void SendDuplexStreaming(System.Net.Http.HttpClient client)
@@ -133,7 +132,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             SendCore(client, message);
 
-            StreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
+            ClientStreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
         }
 
         public void Dispose()
@@ -148,7 +147,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 _writerCtsRegistration?.Dispose();
                 _deadlineTimer?.Dispose();
                 _httpResponse?.Dispose();
-                StreamReader?.Dispose();
+                ClientStreamReader?.Dispose();
                 ClientStreamWriter?.Dispose();
             }
         }
@@ -160,8 +159,8 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private HttpContentClientStreamWriter<TRequest, TResponse> CreateWriter(HttpRequestMessage message)
         {
-            TaskCompletionSource<Stream> writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
-            TaskCompletionSource<bool> completeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var completeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _writerCtsRegistration = _callCts.Token.Register(() =>
             {
                 completeTcs.TrySetCanceled();
@@ -237,10 +236,6 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // The task of this method is cached so there is no need to cache the message here
                 return message;
             }
-            catch (TaskCanceledException)
-            {
-                throw CreateCanceledStatusException();
-            }
             catch (OperationCanceledException)
             {
                 throw CreateCanceledStatusException();
@@ -304,6 +299,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             string grpcMessage = null;
             if (httpResponseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.MessageTrailer, out var grpcMessageValues))
             {
+                // TODO(JamesNK): Unescape percent encoding
                 grpcMessage = grpcMessageValues.FirstOrDefault();
             }
 

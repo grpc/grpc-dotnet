@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
-using Grpc.Tests;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
@@ -151,6 +151,9 @@ namespace Grpc.NetCore.HttpClient.Tests
             await streamContent.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             Assert.IsFalse(await moveNextTask3.DefaultTimeout());
+
+            var moveNextTask4 = responseStream.MoveNext(CancellationToken.None);
+            Assert.IsTrue(moveNextTask4.IsCompleted);
             Assert.IsFalse(await moveNextTask3.DefaultTimeout());
         }
     }

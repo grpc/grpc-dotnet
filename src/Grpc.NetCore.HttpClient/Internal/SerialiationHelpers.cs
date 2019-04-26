@@ -25,7 +25,7 @@ using System.Threading.Tasks;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
-    internal static class SerialiationHelpers
+    internal static class SerializationHelpers
     {
         public static async Task WriteMessage<TMessage>(Stream stream, TMessage message, Func<TMessage, byte[]> serializer, CancellationToken cancellationToken)
         {
