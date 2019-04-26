@@ -201,8 +201,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             if (_timeout != null)
             {
-                // JamesNK(todo) - Replicate C core's logic for formatting grpc-timeout
-                message.Headers.Add(GrpcProtocolConstants.TimeoutHeader, Convert.ToInt64(_timeout.Value.TotalMilliseconds) + "m");
+                message.Headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(Convert.ToInt64(_timeout.Value.TotalMilliseconds)));
             }
 
             return message;

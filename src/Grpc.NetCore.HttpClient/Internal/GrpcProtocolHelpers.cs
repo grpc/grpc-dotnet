@@ -107,5 +107,82 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             return headers;
         }
+
+        private const int MillisecondsPerSecond = 1000;
+
+        /* round an integer up to the next value with three significant figures */
+        private static long TimeoutRoundUpToThreeSignificantFigures(long x)
+        {
+            if (x < 1000) return x;
+            if (x < 10000) return RoundUp(x, 10);
+            if (x < 100000) return RoundUp(x, 100);
+            if (x < 1000000) return RoundUp(x, 1000);
+            if (x < 10000000) return RoundUp(x, 10000);
+            if (x < 100000000) return RoundUp(x, 100000);
+            if (x < 1000000000) return RoundUp(x, 1000000);
+            return RoundUp(x, 10000000);
+
+            static long RoundUp(long x, long divisor)
+            {
+                return (x / divisor + Convert.ToInt32(x % divisor != 0)) * divisor;
+            }
+        }
+
+        private static string FormatTimeout(long value, char ext)
+        {
+            return value.ToString() + ext;
+        }
+
+        private static string EncodeTimeoutSeconds(long sec)
+        {
+            if (sec % 3600 == 0)
+            {
+                return FormatTimeout(sec / 3600, 'H');
+            }
+            else if (sec % 60 == 0)
+            {
+                return FormatTimeout(sec / 60, 'M');
+            }
+            else
+            {
+                return FormatTimeout(sec, 'S');
+            }
+        }
+
+        private static string EncodeTimeoutMilliseconds(long x)
+        {
+            x = TimeoutRoundUpToThreeSignificantFigures(x);
+            if (x < MillisecondsPerSecond)
+            {
+                return FormatTimeout(x, 'm');
+            }
+            else
+            {
+                if (x % MillisecondsPerSecond == 0)
+                {
+                    return EncodeTimeoutSeconds(x / MillisecondsPerSecond);
+                }
+                else
+                {
+                    return FormatTimeout(x, 'm');
+                }
+            }
+        }
+
+        public static string EncodeTimeout(long timeout)
+        {
+            if (timeout <= 0)
+            {
+                return "1n";
+            }
+            else if (timeout < 1000 * MillisecondsPerSecond)
+            {
+                return EncodeTimeoutMilliseconds(timeout);
+            }
+            else
+            {
+                return EncodeTimeoutSeconds(timeout / MillisecondsPerSecond + Convert.ToInt32(timeout % MillisecondsPerSecond != 0));
+            }
+        }
     }
 }

@@ -58,7 +58,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Assert
             Assert.IsNotNull(httpRequestMessage);
             Assert.AreEqual(1, httpRequestMessage.Headers.Count());
-            Assert.AreEqual("1000m", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
+            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
         }
 
         [Test]
@@ -117,7 +117,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             Assert.IsNotNull(httpRequestMessage);
             Assert.AreEqual(1, httpRequestMessage.Headers.Count());
-            Assert.AreEqual("1000m", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
+            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
         }
 
         [Test]
