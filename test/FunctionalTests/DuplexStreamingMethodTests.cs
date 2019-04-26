@@ -65,7 +65,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             var pipeReader = new StreamPipeReader(responseStream);
 
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
-            Assert.IsTrue(message1Task.IsCompleted);
             var message1 = await message1Task.DefaultTimeout();
             Assert.AreEqual("John", message1.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
