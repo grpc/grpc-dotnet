@@ -10,7 +10,7 @@
     <!-- Don't make missing XML docs a fatal build error, but still surface so we have visibility into undocumented APIs. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591</WarningsNotAsErrors>
 
-    <!-- static local methods are an C# 8.0 feature -->
+    <!-- static local methods are a C# 8.0 feature -->
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
