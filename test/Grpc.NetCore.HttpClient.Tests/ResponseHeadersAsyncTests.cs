@@ -180,7 +180,46 @@ namespace Grpc.NetCore.HttpClient.Tests
             tcs.TrySetResult(true);
 
             // Assert
-            Assert.CatchAsync<OperationCanceledException>(() => call.ResponseHeadersAsync);
+            Assert.ThrowsAsync<ObjectDisposedException>(() => call.ResponseHeadersAsync);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_NotFoundStatus_ThrowsError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
+                return Task.FromResult(response);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseHeadersAsync.DefaultTimeout());
+
+            // Assert
+            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_InvalidContentType_ThrowsError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+                return Task.FromResult(response);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseHeadersAsync.DefaultTimeout());
+
+            // Assert
+            Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Message);
         }
     }
 }

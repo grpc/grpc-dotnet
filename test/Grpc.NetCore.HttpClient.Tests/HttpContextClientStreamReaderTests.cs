@@ -47,7 +47,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             });
 
             var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
-            call.SendServerStreaming(httpClient, new HelloRequest());
+            call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
             var moveNextTask1 = call.ClientStreamReader.MoveNext(cts.Token);
@@ -72,7 +72,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             });
 
             var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
-            call.SendServerStreaming(httpClient, new HelloRequest());
+            call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
             var moveNextTask1 = call.ClientStreamReader.MoveNext(cts.Token);

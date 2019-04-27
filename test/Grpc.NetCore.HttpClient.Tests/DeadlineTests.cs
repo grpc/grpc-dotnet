@@ -170,7 +170,9 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
-                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcStatusCode: null));
             });
             var invoker = new HttpClientCallInvoker(httpClient);
 
@@ -200,6 +202,39 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Assert
             var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None));
             Assert.AreEqual(StatusCode.DeadlineExceeded, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_SuccessAndReadValuesAfterDeadline_ValuesReturned()
+        {
+            // Arrange
+            HttpRequestMessage httpRequestMessage = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+            invoker.Clock = new TestSystemClock(new DateTime(2019, 11, 29, 1, 1, 1, DateTimeKind.Utc));
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: invoker.Clock.UtcNow.AddSeconds(0.5)), new HelloRequest());
+
+            // Assert
+            var result = await call;
+            Assert.IsNotNull(result);
+
+            // Wait for deadline to trigger
+            await Task.Delay(1000);
+
+            Assert.IsNotNull(await call.ResponseHeadersAsync);
+
+            Assert.IsNotNull(call.GetTrailers());
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
 
         private class TestSystemClock : ISystemClock

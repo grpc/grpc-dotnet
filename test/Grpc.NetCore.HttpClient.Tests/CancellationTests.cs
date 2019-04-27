@@ -44,16 +44,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            PushStreamContent content = null;
-
-            var httpClient = TestHelpers.CreateTestClient(async request =>
-            {
-                content = (PushStreamContent)request.Content;
-                await content.PushComplete.DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
-            });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = CreateTimedoutCallInvoker();
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(cancellationToken: cts.Token));
@@ -66,6 +57,59 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var invoker = CreateTimedoutCallInvoker();
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(cancellationToken: cts.Token));
+
+            // Assert
+            var responseHeadersTask = call.ResponseHeadersAsync;
+            Assert.IsFalse(responseHeadersTask.IsCompleted, "Headers not returned until client stream is complete.");
+
+            cts.Cancel();
+
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseHeadersTask.DefaultTimeout());
+            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_CancellationDuringSend_TrailersThrowsCancelledStatus()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var invoker = CreateTimedoutCallInvoker();
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(cancellationToken: cts.Token));
+
+            // Assert
+            cts.Cancel();
+
+            var ex = Assert.Throws<RpcException>(() => call.GetTrailers());
+
+            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+        }
+
+        private static HttpClientCallInvoker CreateTimedoutCallInvoker()
+        {
+            PushStreamContent content = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                content = (PushStreamContent)request.Content;
+                await content.PushComplete.DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+            return invoker;
         }
     }
 }

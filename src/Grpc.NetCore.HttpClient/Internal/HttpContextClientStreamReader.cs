@@ -50,10 +50,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 return false;
             }
 
-            // User could have disposed call
-            _call.EnsureNotDisposed();
-
-            if (_call.CancellationToken.IsCancellationRequested)
+            if (_call.IsCancellationRequested)
             {
                 throw _call.CreateCanceledStatusException();
             }
@@ -76,7 +73,8 @@ namespace Grpc.NetCore.HttpClient.Internal
 
                 if (_httpResponse == null)
                 {
-                    _httpResponse = await _call.SendTask.ConfigureAwait(false);
+                    await _call.SendTask.ConfigureAwait(false);
+                    _httpResponse = _call.HttpResponse;
                 }
                 if (_responseStream == null)
                 {

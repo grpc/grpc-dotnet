@@ -37,11 +37,10 @@ namespace Grpc.NetCore.HttpClient.Tests.Infrastructure
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string payload) =>
             CreateResponse(statusCode, new StringContent(payload));
 
-        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, byte[] payload) =>
-            CreateResponse(statusCode, new ByteArrayContent(payload));
-
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK)
         {
+            payload.Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
+
             var message = new HttpResponseMessage(statusCode)
             {
                 Content = payload

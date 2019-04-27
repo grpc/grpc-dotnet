@@ -270,7 +270,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
             await call.RequestStream.CompleteAsync().DefaultTimeout();
-            await Task.WhenAll(call.ResponseAsync.DefaultTimeout(), trailingHeadersWrittenTcs.Task);
+            await Task.WhenAll(call.ResponseAsync, trailingHeadersWrittenTcs.Task).DefaultTimeout();
             var trailers = call.GetTrailers();
 
             // Assert
@@ -296,6 +296,45 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call is not complete.", ex.Message);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_NotFoundStatus_ThrowsError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
+                return Task.FromResult(response);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+
+            // Assert
+            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_InvalidContentType_ThrowsError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+                return Task.FromResult(response);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+
+            // Assert
+            Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Message);
         }
     }
 }

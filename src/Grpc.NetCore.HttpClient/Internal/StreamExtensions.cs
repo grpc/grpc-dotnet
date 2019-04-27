@@ -28,15 +28,15 @@ namespace Grpc.NetCore.HttpClient
     {
         public static Task<TResponse> ReadSingleMessageAsync<TResponse>(this Stream responseStream, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
         {
-            return responseStream.ReadMessageCoreAsync(deserializer, cancellationToken, true);
+            return responseStream.ReadMessageCoreAsync(deserializer, cancellationToken, true, true);
         }
 
         public static Task<TResponse> ReadStreamedMessageAsync<TResponse>(this Stream responseStream, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
         {
-            return responseStream.ReadMessageCoreAsync(deserializer, cancellationToken, false);
+            return responseStream.ReadMessageCoreAsync(deserializer, cancellationToken, true, false);
         }
 
-        private static async Task<TResponse> ReadMessageCoreAsync<TResponse>(this Stream responseStream, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken, bool singleMessage)
+        private static async Task<TResponse> ReadMessageCoreAsync<TResponse>(this Stream responseStream, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken, bool canBeEmpty, bool singleMessage)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -56,7 +56,7 @@ namespace Grpc.NetCore.HttpClient
 
             if (received < header.Length)
             {
-                if (received == 0 && !singleMessage)
+                if (received == 0 && canBeEmpty)
                 {
                     return default;
                 }

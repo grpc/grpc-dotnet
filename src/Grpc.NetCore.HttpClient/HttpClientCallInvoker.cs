@@ -74,7 +74,7 @@ namespace Grpc.NetCore.HttpClient
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.SendClientStreaming(_client);
+            call.StartClientStreaming(_client);
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -93,7 +93,7 @@ namespace Grpc.NetCore.HttpClient
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.SendDuplexStreaming(_client);
+            call.StartDuplexStreaming(_client);
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -111,7 +111,7 @@ namespace Grpc.NetCore.HttpClient
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.SendServerStreaming(_client, request);
+            call.StartServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.ClientStreamReader,
@@ -127,7 +127,7 @@ namespace Grpc.NetCore.HttpClient
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.SendUnary(_client, request);
+            call.StartUnary(_client, request);
 
             return new AsyncUnaryCall<TResponse>(
                 responseAsync: call.GetResponseAsync(),

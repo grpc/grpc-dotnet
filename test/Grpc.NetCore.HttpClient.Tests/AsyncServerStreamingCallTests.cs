@@ -156,5 +156,25 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.IsTrue(moveNextTask4.IsCompleted);
             Assert.IsFalse(await moveNextTask3.DefaultTimeout());
         }
+
+        [Test]
+        public void ClientStreamReader_WriteWithInvalidHttpStatus_ErrorThrown()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var streamContent = new StreamContent(new SyncPointMemoryStream());
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NotFound, streamContent));
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+
+            // Assert
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+
+            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+        }
     }
 }
