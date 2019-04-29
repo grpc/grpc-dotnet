@@ -18,18 +18,17 @@ set -ex
 # change to grpc repo root
 cd $(dirname $0)/..
 
-export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+kokoro/build_nuget.sh
 
-# Install dotnet SDK
-sudo apt-get install -y jq
-./build/get-dotnet.sh
 source ./activate.sh
 
-# Required when using nightly builds of gRPC packages
-# ./build/get-grpc.sh
+# publish the nugets to nuget dev feed
+cd artifacts
+for nugetfile in *.nupkg
+do
+  echo "Going to push $nugetfile"
+  set +x  # IMPORTANT: avoid revealing the nuget api key by the command echo
+  dotnet nuget push $nugetfile -k $(cat ${KOKORO_GFILE_DIR}/artifactory_grpc_nuget_dev_api_key) --source https://grpc.jfrog.io/grpc/api/nuget/v3/grpc-nuget-dev
+  set -ex
+done
 
-mkdir -p artifacts
-
-build/expand_dev_version.sh
-
-(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts)
