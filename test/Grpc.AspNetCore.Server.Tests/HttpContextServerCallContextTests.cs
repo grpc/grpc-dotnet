@@ -26,9 +26,11 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -432,6 +434,30 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual("TestValue", serverCallContext.UserState["TestKey"]);
             Assert.AreEqual("TestValue", httpContext.Items["TestKey"]);
+        }
+
+        [TestCase(GrpcProtocolConstants.MessageAcceptEncodingHeader, false)]
+        [TestCase(GrpcProtocolConstants.MessageEncodingHeader, false)]
+        [TestCase(GrpcProtocolConstants.TimeoutHeader, false)]
+        [TestCase("content-type", false)]
+        [TestCase("te", false)]
+        [TestCase("host", false)]
+        [TestCase("accept-encoding", false)]
+        [TestCase("user-agent", true)]
+        public void RequestHeaders_ManyHttpRequestHeaders_HeadersFiltered(string headerName, bool addedToRequestHeaders)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var httpRequest = new DefaultHttpRequest(httpContext);
+            httpRequest.Headers[headerName] = "value";
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var headers = serverCallContext.RequestHeaders;
+
+            // Assert
+            var headerAdded = serverCallContext.RequestHeaders.Any(k => string.Equals(k.Key, headerName, StringComparison.OrdinalIgnoreCase));
+            Assert.AreEqual(addedToRequestHeaders, headerAdded);
         }
 
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger logger = null)

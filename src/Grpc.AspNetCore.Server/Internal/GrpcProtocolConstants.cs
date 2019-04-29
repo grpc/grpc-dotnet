@@ -16,6 +16,10 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
+using Microsoft.Net.Http.Headers;
+
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal static class GrpcProtocolConstants
@@ -31,5 +35,16 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
 
         internal const string IdentityGrpcEncoding = "identity";
+
+        internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            MessageEncodingHeader,
+            MessageAcceptEncodingHeader,
+            TimeoutHeader,
+            HeaderNames.ContentType,
+            HeaderNames.TE,
+            HeaderNames.Host,
+            HeaderNames.AcceptEncoding
+        };
     }
 }
