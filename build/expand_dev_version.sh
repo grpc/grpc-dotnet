@@ -13,23 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+# Updates the GrpcSharpVersion property so that we can build
+# dev nuget packages differentiated by timestamp.
 
-# change to grpc repo root
-cd $(dirname $0)/..
+set -e
 
-export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+cd "$(dirname "$0")"
 
-# Install dotnet SDK
-sudo apt-get install -y jq
-./build/get-dotnet.sh
-source ./activate.sh
-
-# Required when using nightly builds of gRPC packages
-# ./build/get-grpc.sh
-
-mkdir -p artifacts
-
-build/expand_dev_version.sh
-
-(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts)
+DEV_DATETIME_SUFFIX=$(date -u "+%Y%m%d%H%M")
+# expand the -dev suffix to contain current timestamp
+sed -ibak "s/-dev<\/GrpcDotnetVersion>/-dev${DEV_DATETIME_SUFFIX}<\/GrpcDotnetVersion>/" version.props
