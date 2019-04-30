@@ -28,6 +28,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
@@ -67,7 +68,6 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(2, httpRequestMessage.Headers.Count());
             Assert.AreEqual("ascii", httpRequestMessage.Headers.GetValues("custom").Single());
             Assert.AreEqual("Hello world", Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestMessage.Headers.GetValues("custom-bin").Single())));
         }
@@ -102,7 +102,9 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(0, httpRequestMessage.Headers.Count());
+
+            // User-Agent is always sent
+            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h => !string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }

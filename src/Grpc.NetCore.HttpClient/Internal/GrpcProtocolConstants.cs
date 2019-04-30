@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Diagnostics;
+using System.Linq;
 using System.Net.Http.Headers;
+using System.Reflection;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
@@ -32,5 +35,28 @@ namespace Grpc.NetCore.HttpClient.Internal
         internal const string MessageTrailer = "grpc-message";
 
         internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
+
+        internal static readonly ProductInfoHeaderValue UserAgentHeader;
+
+        static GrpcProtocolConstants()
+        {
+            var userAgent = "grpc-dotnet";
+
+            var assemblyVersion = typeof(GrpcProtocolConstants)
+                .Assembly
+                .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault();
+
+            Debug.Assert(assemblyVersion != null);
+
+            // assembly version attribute should always be present
+            // but in case it isn't then don't include version in user-agent
+            if (assemblyVersion != null)
+            {
+                userAgent += "/" + assemblyVersion.InformationalVersion;
+            }
+
+            UserAgentHeader = ProductInfoHeaderValue.Parse(userAgent);
+        }
     }
 }

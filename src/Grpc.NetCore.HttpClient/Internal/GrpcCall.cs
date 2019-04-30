@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -50,6 +51,9 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock)
         {
+            // Validate deadline before creating any objects that require cleanup
+            ValidateDeadline(options.Deadline);
+
             _callCts = new CancellationTokenSource();
             Method = method;
             Options = options;
@@ -71,6 +75,14 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 // Deadline timer will cancel the call CTS
                 _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        private void ValidateDeadline(DateTime? deadline)
+        {
+            if (deadline != null && deadline != DateTime.MaxValue && deadline != DateTime.MinValue && deadline.Value.Kind != DateTimeKind.Utc)
+            {
+                throw new InvalidOperationException("Deadline must have a kind DateTimeKind.Utc or be equal to DateTime.MaxValue or DateTime.MinValue.");
             }
         }
 
@@ -326,6 +338,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             var message = new HttpRequestMessage(HttpMethod.Post, Method.FullName);
             message.Version = new Version(2, 0);
+            message.Headers.UserAgent.Add(GrpcProtocolConstants.UserAgentHeader);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {

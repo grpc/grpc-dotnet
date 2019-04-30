@@ -27,13 +27,19 @@ namespace Grpc.NetCore.HttpClient.Internal
 {
     internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     {
+        private static readonly Task<bool> FinishedTask = Task.FromResult(false);
+
         private readonly GrpcCall<TRequest, TResponse> _call;
+        private readonly object _moveNextLock;
+
         private HttpResponseMessage _httpResponse;
         private Stream _responseStream;
+        private Task<bool> _moveNextTask;
 
         public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
         {
             _call = call;
+            _moveNextLock = new object();
         }
 
         public TResponse Current { get; private set; }
@@ -42,12 +48,12 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
         }
 
-        public async Task<bool> MoveNext(CancellationToken cancellationToken)
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
             // HTTP response has finished
             if (_call.ResponseFinished)
             {
-                return false;
+                return FinishedTask;
             }
 
             if (_call.IsCancellationRequested)
@@ -55,6 +61,23 @@ namespace Grpc.NetCore.HttpClient.Internal
                 throw _call.CreateCanceledStatusException();
             }
 
+            lock (_moveNextLock)
+            {
+                // Pending move next need to be awaited first
+                if (IsMoveNextInProgressUnsynchronized)
+                {
+                    return Task.FromException<bool>(new InvalidOperationException("Cannot read next message because the previous read is in progress."));
+                }
+
+                // Save move next task to track whether it is complete
+                _moveNextTask = MoveNextCore(cancellationToken);
+            }
+
+            return _moveNextTask;
+        }
+
+        private async Task<bool> MoveNextCore(CancellationToken cancellationToken)
+        {
             CancellationTokenSource cts = null;
             try
             {
@@ -98,6 +121,19 @@ namespace Grpc.NetCore.HttpClient.Internal
             finally
             {
                 cts?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// A value indicating whether there is an async move next already in progress.
+        /// Should only check this property when holding the move next lock.
+        /// </summary>
+        private bool IsMoveNextInProgressUnsynchronized
+        {
+            get
+            {
+                var moveNextTask = _moveNextTask;
+                return moveNextTask != null && !moveNextTask.IsCompleted;
             }
         }
     }

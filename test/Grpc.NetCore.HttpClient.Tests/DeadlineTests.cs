@@ -57,8 +57,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             // Assert
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(1, httpRequestMessage.Headers.Count());
-            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
+            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.TimeoutHeader).Single());
         }
 
         [Test]
@@ -81,7 +80,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             // Assert
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(0, httpRequestMessage.Headers.Count());
+            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h => string.Equals(h.Key, GrpcProtocolConstants.TimeoutHeader, StringComparison.OrdinalIgnoreCase)));
         }
 
         [Test]
@@ -116,8 +115,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(1, httpRequestMessage.Headers.Count());
-            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues("grpc-timeout").Single());
+            Assert.AreEqual("1S", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.TimeoutHeader).Single());
         }
 
         [Test]
@@ -235,6 +233,28 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.IsNotNull(call.GetTrailers());
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+        }
+
+        [Test]
+        public void AsyncUnaryCall_SetNonUtcDeadline_ThrowError()
+        {
+            // Arrange
+            HttpRequestMessage httpRequestMessage = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: new DateTime(2000, DateTimeKind.Local)), new HelloRequest()));
+
+            // Assert
+            Assert.AreEqual("Deadline must have a kind DateTimeKind.Utc or be equal to DateTime.MaxValue or DateTime.MinValue.", ex.Message);
         }
 
         private class TestSystemClock : ISystemClock

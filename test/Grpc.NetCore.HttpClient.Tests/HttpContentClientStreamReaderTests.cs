@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -30,7 +31,7 @@ using NUnit.Framework;
 namespace Grpc.NetCore.HttpClient.Tests
 {
     [TestFixture]
-    public class HttpContextClientStreamReaderTests
+    public class HttpContentClientStreamReaderTests
     {
         [Test]
         public void MoveNext_TokenCanceledBeforeCall_ThrowError()
@@ -84,6 +85,31 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             var ex = Assert.ThrowsAsync<RpcException>(async () => await moveNextTask1.DefaultTimeout());
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
+
+        [Test]
+        public void MoveNext_MultipleCallsWithoutAwait_ThrowError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+
+            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
+            call.StartServerStreaming(httpClient, new HelloRequest());
+
+            // Act
+            var moveNextTask1 = call.ClientStreamReader.MoveNext(CancellationToken.None);
+            var moveNextTask2 = call.ClientStreamReader.MoveNext(CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(moveNextTask1.IsCompleted);
+
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await moveNextTask2.DefaultTimeout());
+            Assert.AreEqual("Cannot read next message because the previous read is in progress.", ex.Message);
         }
     }
 }
