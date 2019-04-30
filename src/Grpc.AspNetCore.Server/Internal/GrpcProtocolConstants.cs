@@ -28,11 +28,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal const string TimeoutHeader = "grpc-timeout";
         internal const string MessageEncodingHeader = "grpc-encoding";
-
+        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
+		
         internal const string StatusTrailer = "grpc-status";
         internal const string MessageTrailer = "grpc-message";
-
-        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
 
         internal const string IdentityGrpcEncoding = "identity";
 
@@ -46,5 +45,9 @@ namespace Grpc.AspNetCore.Server.Internal
             HeaderNames.Host,
             HeaderNames.AcceptEncoding
         };
+		
+        internal const string X509SubjectAlternativeNameId = "2.5.29.17";
+        internal const string X509SubjectAlternativeNameKey = "x509_subject_alternative_name";
+        internal const string X509CommonNameKey = "x509_common_name";
     }
 }
