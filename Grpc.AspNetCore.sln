@@ -76,8 +76,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{310E5783-455A-4D09-A7AE-39DC2AB09504}"
 	ProjectSection(SolutionItems) = preProject
 		perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs = perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs
+		perf\benchmarkapps\Shared\ca.crt = perf\benchmarkapps\Shared\ca.crt
+		perf\benchmarkapps\Shared\client.crt = perf\benchmarkapps\Shared\client.crt
+		perf\benchmarkapps\Shared\client.key = perf\benchmarkapps\Shared\client.key
 		perf\benchmarkapps\Shared\greet.proto = perf\benchmarkapps\Shared\greet.proto
 		perf\benchmarkapps\Shared\Greeter.cs = perf\benchmarkapps\Shared\Greeter.cs
+		perf\benchmarkapps\Shared\server.pfx = perf\benchmarkapps\Shared\server.pfx
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Microbenchmarks", "perf\Grpc.AspNetCore.Microbenchmarks\Grpc.AspNetCore.Microbenchmarks.csproj", "{98500D54-FC3F-4A42-B74D-51930C19B175}"

@@ -31,6 +31,7 @@ namespace Grpc.AspNetCore.Server.Internal
 {
     internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
     {
+        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
 
         // Override the current time for unit testing
@@ -42,6 +43,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private DateTime _deadline;
         private Timer _deadlineTimer;
         private Status _status;
+        private AuthContext _authContext;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -164,9 +166,20 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             get
             {
-                // TODO(JunTaoLuo, JamesNK): Currently blocked on AuthContext constructor being internal
-                // https://github.com/grpc/grpc-dotnet/issues/72
-                throw new NotImplementedException("AuthContext will be implemented in a future version.");
+                if (_authContext == null)
+                {
+                    var clientCertificate = HttpContext.Connection.ClientCertificate;
+                    if (clientCertificate == null)
+                    {
+                        _authContext = UnauthenticatedContext;
+                    }
+                    else
+                    {
+                        _authContext = GrpcProtocolHelpers.CreateAuthContext(clientCertificate);
+                    }
+                }
+
+                return _authContext;
             }
         }
 

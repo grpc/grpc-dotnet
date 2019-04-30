@@ -19,10 +19,12 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -422,7 +424,37 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void UserState_ValueSet_AddedToHttpContextItems()
+        public void AuthContext_NoClientCertificate_Unauthenticated()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var authContext = serverCallContext.AuthContext;
+
+            // Assert
+            Assert.AreEqual(false, authContext.IsPeerAuthenticated);
+        }
+
+        [Test]
+        public void AuthContext_HasClientCertificate_Authenticated()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
+            httpContext.Connection.ClientCertificate = certificate;
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var authContext = serverCallContext.AuthContext;
+
+            // Assert
+            Assert.AreEqual(true, authContext.IsPeerAuthenticated);
+        }
+
+        [Test]
+        public void UserState_AddState_AddedToHttpContextItems()
         {
             // Arrange
             var httpContext = new DefaultHttpContext();

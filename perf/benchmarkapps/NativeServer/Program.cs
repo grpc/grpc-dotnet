@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using Common;
 using Grpc.Core;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +27,9 @@ namespace NativeServer
 {
     class Program
     {
+        private const bool UseCertificate = false;
+        private const bool RequireClientCertificate = false;
+
         public static void Main(string[] args)
         {
             var config = new ConfigurationBuilder()
@@ -43,7 +48,7 @@ namespace NativeServer
                 Services = { Greet.Greeter.BindService(new GreeterService()) },
                 Ports =
                 {
-                    { host, endpoint.Port, ServerCredentials.Insecure }
+                    { host, endpoint.Port, UseCertificate ? GetCertificateCredentials() : ServerCredentials.Insecure }
                 }
             };
             server.Start();
@@ -53,6 +58,18 @@ namespace NativeServer
             Console.ReadKey();
 
             server.ShutdownAsync().Wait();
+        }
+
+        private static ServerCredentials GetCertificateCredentials()
+        {
+            var pair = new List<KeyCertificatePair>
+                {
+                    new KeyCertificatePair(File.ReadAllText(@"Certs\server.crt"), File.ReadAllText(@"Certs\server.key"))
+                };
+            
+            return RequireClientCertificate
+                ? new SslServerCredentials(pair, File.ReadAllText(@"Certs\ca.crt"), SslClientCertificateRequestType.RequestAndRequireAndVerify)
+                : new SslServerCredentials(pair);
         }
     }
 }
