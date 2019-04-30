@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,10 +89,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     foreach (var header in HttpContext.Request.Headers)
                     {
-                        // ASP.NET Core includes pseudo headers in the set of request headers
-                        // whereas, they are not in gRPC implementations. We will filter them
-                        // out when we construct the list of headers on the context.
-                        if (header.Key.StartsWith(':'))
+                        // gRPC metadata contains a subset of the request headers
+                        // Filter out pseudo headers (start with :) and other known headers
+                        if (header.Key.StartsWith(':') || GrpcProtocolConstants.FilteredHeaders.Contains(header.Key))
                         {
                             continue;
                         }
