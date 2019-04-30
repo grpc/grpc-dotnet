@@ -21,14 +21,13 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
-    internal class GrpcCall<TRequest, TResponse>
+    internal class GrpcCall<TRequest, TResponse> : IDisposable
     {
         private readonly CancellationTokenSource _callCts;
         private readonly CancellationTokenRegistration? _ctsRegistration;
@@ -180,12 +179,14 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             ResponseFinished = true;
 
+            // Get status from response before dispose
+            var status = GetStatusCore(HttpResponse);
+
             // Clean up call resources once this call is finished
             // Call may not be explicitly disposed when used with unary methods
             // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
             Dispose();
 
-            var status = GetStatusCore(HttpResponse);
             if (status.StatusCode != StatusCode.OK)
             {
                 throw new RpcException(status);
