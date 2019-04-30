@@ -48,7 +48,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             lock (_writeLock)
             {
                 // Pending writes need to be awaited first
-                if (IsWriteInProgress)
+                if (IsWriteInProgressUnsynchronized)
                 {
                     return Task.FromException(new InvalidOperationException("Cannot complete client stream writer because the previous write is in progress."));
                 }
@@ -80,7 +80,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 }
 
                 // Pending writes need to be awaited first
-                if (IsWriteInProgress)
+                if (IsWriteInProgressUnsynchronized)
                 {
                     return Task.FromException(new InvalidOperationException("Cannot write message because the previous write is in progress."));
                 }
@@ -115,7 +115,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         /// A value indicating whether there is an async write already in progress.
         /// Should only check this property when holding the write lock.
         /// </summary>
-        private bool IsWriteInProgress
+        private bool IsWriteInProgressUnsynchronized
         {
             get
             {

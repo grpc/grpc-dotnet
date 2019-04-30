@@ -46,7 +46,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         public Method<TRequest, TResponse> Method { get; }
         public Task SendTask { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse> ClientStreamWriter { get; private set; }
-        public HttpContextClientStreamReader<TRequest, TResponse> ClientStreamReader { get; private set; }
+        public HttpContentClientStreamReader<TRequest, TResponse> ClientStreamReader { get; private set; }
 
         public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock)
         {
@@ -103,7 +103,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
             StartSend(client, message);
-            ClientStreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
+            ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
         public void StartDuplexStreaming(System.Net.Http.HttpClient client)
@@ -111,7 +111,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             var message = CreateHttpRequestMessage();
             ClientStreamWriter = CreateWriter(message);
             StartSend(client, message);
-            ClientStreamReader = new HttpContextClientStreamReader<TRequest, TResponse>(this);
+            ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
         public void Dispose()
@@ -121,13 +121,14 @@ namespace Grpc.NetCore.HttpClient.Internal
                 Disposed = true;
 
                 _callCts.Cancel();
-                _callCts.Dispose();
                 _ctsRegistration?.Dispose();
                 _writerCtsRegistration?.Dispose();
                 _deadlineTimer?.Dispose();
                 HttpResponse?.Dispose();
                 ClientStreamReader?.Dispose();
                 ClientStreamWriter?.Dispose();
+
+                _callCts.Dispose();
             }
         }
 
@@ -158,7 +159,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             return new RpcException(new Status(statusCode, string.Empty));
         }
 
-        public void FinishResponse(HttpResponseMessage httpResponseMessage)
+        public void FinishResponse()
         {
             if (ResponseFinished)
             {
@@ -171,8 +172,6 @@ namespace Grpc.NetCore.HttpClient.Internal
             // Call may not be explicitly disposed when used with unary methods
             // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
             Dispose();
-
-            HttpResponse = httpResponseMessage;
 
             var status = GetStatusCore(HttpResponse);
             if (status.StatusCode != StatusCode.OK)
@@ -213,7 +212,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // Trailers are only available once the response body had been read
                 var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 var message = await responseStream.ReadSingleMessageAsync(Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
-                FinishResponse(HttpResponse);
+                FinishResponse();
 
                 if (message == null)
                 {
@@ -314,7 +313,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
-                    writeStreamTcs.SetResult(stream);
+                    writeStreamTcs.TrySetResult(stream);
                     return completeTcs.Task;
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
@@ -355,7 +354,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             if (!_callCts.IsCancellationRequested)
             {
-                // Flag is used to determin status code when generating exceptions
+                // Flag is used to determine status code when generating exceptions
                 DeadlineReached = true;
 
                 _callCts.Cancel();

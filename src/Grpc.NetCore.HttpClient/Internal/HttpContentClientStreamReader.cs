@@ -25,13 +25,13 @@ using Grpc.Core;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
-    internal class HttpContextClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
+    internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
     {
         private readonly GrpcCall<TRequest, TResponse> _call;
         private HttpResponseMessage _httpResponse;
         private Stream _responseStream;
 
-        public HttpContextClientStreamReader(GrpcCall<TRequest, TResponse> call)
+        public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
         {
             _call = call;
         }
@@ -55,10 +55,10 @@ namespace Grpc.NetCore.HttpClient.Internal
                 throw _call.CreateCanceledStatusException();
             }
 
+            CancellationTokenSource cts = null;
             try
             {
                 // Linking tokens is expensive. Only create a linked token if the token passed in requires it
-                CancellationTokenSource cts = null;
                 if (cancellationToken.CanBeCanceled)
                 {
                     cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
@@ -81,22 +81,23 @@ namespace Grpc.NetCore.HttpClient.Internal
                     _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 }
 
-                using (cts)
+                Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                if (Current == null)
                 {
-                    Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
-                    if (Current == null)
-                    {
-                        // No more content in response so mark as finished
-                        _call.FinishResponse(_httpResponse);
-                        return false;
-                    }
-
-                    return true;
+                    // No more content in response so mark as finished
+                    _call.FinishResponse();
+                    return false;
                 }
+
+                return true;
             }
             catch (OperationCanceledException)
             {
                 throw _call.CreateCanceledStatusException();
+            }
+            finally
+            {
+                cts?.Dispose();
             }
         }
     }
