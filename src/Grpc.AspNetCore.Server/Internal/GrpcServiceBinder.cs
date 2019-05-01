@@ -147,9 +147,13 @@ namespace Grpc.AspNetCore.Server.Internal
         private void CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
         {
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
-            _builder.Map(routePattern, requestDelegate)
-                .WithDisplayName(displayName)
-                .WithMetadata(new HttpMethodMetadata(new[] { "POST" }));
+            var endpointBuilder = _builder.Map(routePattern, requestDelegate);
+
+            endpointBuilder.Add(ep =>
+            {
+                ep.DisplayName = $"gRPC - {displayName}";
+                ep.Metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
+            });
         }
 
         private class GrpcContentTypeConstraint : IRouteConstraint
