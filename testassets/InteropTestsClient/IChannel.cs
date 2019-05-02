@@ -16,6 +16,8 @@
 
 #endregion
 
+using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Core;
 
@@ -28,8 +30,16 @@ namespace InteropTestsClient
 
     public class HttpClientChannel : IChannel
     {
+        public HttpClientHandler HttpClientHandler { get; }
+
+        public HttpClientChannel(HttpClientHandler httpClient)
+        {
+            HttpClientHandler = httpClient;
+        }
+
         public Task ShutdownAsync()
         {
+            HttpClientHandler.Dispose();
             return Task.CompletedTask;
         }
     }

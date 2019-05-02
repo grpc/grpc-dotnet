@@ -28,7 +28,7 @@ Write-Host
 foreach ($test in $allTests)
 {
   Write-Host "Running $test" -ForegroundColor Cyan
-  dotnet run --use_tls true --server_port 50052 --client_type HttpClient --test_case $test
+  dotnet run --use_tls false --server_port 50052 --client_type httpclient --test_case $test
   Write-Host
 }
 

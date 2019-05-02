@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
@@ -43,7 +44,11 @@ namespace InteropTestsClient
 
         private class ClientOptions
         {
-            [Option("client_type", Default = "httpclient")]
+            [Option("client_type"
+#if DEBUG
+                , Default = "httpclient"
+#endif
+                )]
             public string ClientType { get; set; }
 
             [Option("server_host", Default = "localhost")]
@@ -52,10 +57,18 @@ namespace InteropTestsClient
             [Option("server_host_override")]
             public string ServerHostOverride { get; set; }
 
-            [Option("server_port", Default = 50052)]
+            [Option("server_port"
+#if DEBUG
+                , Default = 50052
+#endif
+                )]
             public int ServerPort { get; set; }
 
-            [Option("test_case", Default = "timeout_on_sleeping_server")]
+            [Option("test_case"
+#if DEBUG
+                , Default = "large_unary"
+#endif
+                )]
             public string TestCase { get; set; }
 
             // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
@@ -108,7 +121,13 @@ namespace InteropTestsClient
 
         private Task<IChannel> HttpClientCreateChannel()
         {
-            return Task.FromResult<IChannel>(new HttpClientChannel());
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
+
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
+
+            return Task.FromResult<IChannel>(new HttpClientChannel(httpClientHandler));
         }
 
         private async Task<IChannel> CoreCreateChannel()
@@ -124,6 +143,7 @@ namespace InteropTestsClient
                 };
             }
             var channel = new Channel(options.ServerHost, options.ServerPort, credentials, channelOptions);
+            await channel.ConnectAsync();
             return new CoreChannel(channel);
         }
 
@@ -159,10 +179,13 @@ namespace InteropTestsClient
             {
                 return (TClient)Activator.CreateInstance(typeof(TClient), coreChannel.Channel);
             }
+            else if (channel is HttpClientChannel httpClientChannel)
+            {
+                return GrpcClientFactory.Create<TClient>($"http://{options.ServerHost}:{options.ServerPort}", certificate: null);
+            }
             else
             {
-                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-                return GrpcClientFactory.Create<TClient>($"http://{options.ServerHost}:{options.ServerPort}");
+                throw new Exception("Unexpected channel type.");
             }
         }
 
