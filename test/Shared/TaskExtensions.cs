@@ -22,7 +22,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class TaskExtensions
     {

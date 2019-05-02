@@ -207,7 +207,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             // Use SetTrailer here because we want to overwrite any that was set earlier
             SetTrailer(response, GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
-            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, status.Detail);
+            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, !string.IsNullOrEmpty(status.Detail) ? status.Detail : null);
         }
 
         private static void SetTrailer(HttpResponse response, string trailerName, StringValues trailerValues)

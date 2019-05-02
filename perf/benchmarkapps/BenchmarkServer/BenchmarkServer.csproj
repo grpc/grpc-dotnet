@@ -4,7 +4,6 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
-    <LangVersion>latest</LangVersion>
     
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <!-- Uncomment line below to automatically compile .proto files in the project directory -->
@@ -35,5 +34,6 @@
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
   </ItemGroup>
 </Project>

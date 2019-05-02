@@ -28,8 +28,8 @@ using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests

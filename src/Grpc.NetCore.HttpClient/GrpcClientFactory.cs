@@ -42,14 +42,37 @@ namespace Grpc.NetCore.HttpClient
             // Needs to be set before creating the HttpClientHandler
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
 
-            var handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
             if (certificate != null)
             {
-                handler.ClientCertificates.Add(certificate);
+                httpClientHandler.ClientCertificates.Add(certificate);
             }
 
-            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(handler, new Uri(baseAddress, UriKind.RelativeOrAbsolute)));
+            return CreateCore<TClient>(baseAddress, httpClientHandler);
+        }
+
+        /// <summary>
+        /// Creates a gRPC client using the specified address and handler.
+        /// </summary>
+        /// <typeparam name="TClient">The type of the gRPC client. This type will typically be defined using generated code from a *.proto file.</typeparam>
+        /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
+        /// <param name="httpClientHandler">The <see cref="HttpClientHandler"/>.</param>
+        /// <returns>A gRPC client.</returns>
+        public static TClient Create<TClient>(string baseAddress, HttpClientHandler httpClientHandler) where TClient : ClientBase<TClient>
+        {
+            return CreateCore<TClient>(baseAddress, httpClientHandler);
+        }
+
+        private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler) where TClient : ClientBase<TClient>
+        {
+            // Needs to be set before creating the HttpClientHandler
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
+
+            var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
+            httpClient.BaseAddress = new Uri(baseAddress, UriKind.RelativeOrAbsolute);
+
+            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient));
         }
 
         private class Cache<TClient>

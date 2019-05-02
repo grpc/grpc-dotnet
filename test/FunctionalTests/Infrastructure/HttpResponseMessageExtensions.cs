@@ -16,11 +16,11 @@
 
 #endregion
 
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure

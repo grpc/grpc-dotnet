@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class HttpContextServerCallContextHelper
     {

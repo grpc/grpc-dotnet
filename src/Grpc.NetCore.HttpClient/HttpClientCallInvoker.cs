@@ -21,6 +21,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.NetCore.HttpClient.Internal;
 
 namespace Grpc.NetCore.HttpClient
 {
@@ -31,16 +32,8 @@ namespace Grpc.NetCore.HttpClient
     {
         private System.Net.Http.HttpClient _client;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
-        /// </summary>
-        /// <param name="handler">The primary client handler to use for gRPC requests.</param>
-        /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
-        public HttpClientCallInvoker(HttpClientHandler handler, Uri baseAddress)
-        {
-            _client = new System.Net.Http.HttpClient(handler);
-            _client.BaseAddress = baseAddress;
-        }
+        // Override the current time for unit testing
+        internal ISystemClock Clock = SystemClock.Instance;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
@@ -80,22 +73,16 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var pipeContent = new PipeContent();
-            var message = new HttpRequestMessage(HttpMethod.Post, method.FullName);
-            message.Content = pipeContent;
-            message.Version = new Version(2, 0);
-
-            var sendTask = SendRequestMessageAsync<TRequest>(() => Task.CompletedTask, _client, message);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            call.StartClientStreaming(_client);
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
-                requestStream: new PipeClientStreamWriter<TRequest>(pipeContent.PipeWriter, method.RequestMarshaller.Serializer, options.WriteOptions),
-                responseAsync: GetResponseAsync(sendTask, method.ResponseMarshaller.Deserializer),
-                responseHeadersAsync: GetResponseHeadersAsync(sendTask),
-                // Cannot implement due to trailers being unimplemented
-                getStatusFunc: () => new Status(),
-                // Cannot implement due to trailers being unimplemented
-                getTrailersFunc: () => new Metadata(),
-                disposeAction: () => { });
+                requestStream: call.ClientStreamWriter,
+                responseAsync: call.GetResponseAsync(),
+                responseHeadersAsync: call.GetResponseHeadersAsync(),
+                getStatusFunc: call.GetStatus,
+                getTrailersFunc: call.GetTrailers,
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -105,22 +92,16 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var pipeContent = new PipeContent();
-            var message = new HttpRequestMessage(HttpMethod.Post, method.FullName);
-            message.Content = pipeContent;
-            message.Version = new Version(2, 0);
-
-            var sendTask = SendRequestMessageAsync<TRequest>(() => Task.CompletedTask, _client, message);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            call.StartDuplexStreaming(_client);
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
-                requestStream: new PipeClientStreamWriter<TRequest>(pipeContent.PipeWriter, method.RequestMarshaller.Serializer, options.WriteOptions),
-                responseStream: new ClientAsyncStreamReader<TResponse>(sendTask, method.ResponseMarshaller.Deserializer),
-                responseHeadersAsync: GetResponseHeadersAsync(sendTask),
-                // Cannot implement due to trailers being unimplemented
-                getStatusFunc: () => new Status(),
-                // Cannot implement due to trailers being unimplemented
-                getTrailersFunc: () => new Metadata(),
-                disposeAction: () => { });
+                requestStream: call.ClientStreamWriter,
+                responseStream: call.ClientStreamReader,
+                responseHeadersAsync: call.GetResponseHeadersAsync(),
+                getStatusFunc: call.GetStatus,
+                getTrailersFunc: call.GetTrailers,
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -129,28 +110,15 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var content = new PipeContent();
-            var message = new HttpRequestMessage(HttpMethod.Post, method.FullName);
-            message.Content = content;
-            message.Version = new Version(2, 0);
-
-            // Write request body
-            var sendTask = SendRequestMessageAsync<TRequest>(
-                async () =>
-                {
-                    await content.PipeWriter.WriteMessageCoreAsync(method.RequestMarshaller.Serializer(request), true);
-                    content.PipeWriter.Complete();
-                },
-                _client, message);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            call.StartServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
-                responseStream: new ClientAsyncStreamReader<TResponse>(sendTask, method.ResponseMarshaller.Deserializer),
-                responseHeadersAsync: GetResponseHeadersAsync(sendTask),
-                // Cannot implement due to trailers being unimplemented
-                getStatusFunc: () => new Status(),
-                // Cannot implement due to trailers being unimplemented
-                getTrailersFunc: () => new Metadata(),
-                disposeAction: () => { });
+                responseStream: call.ClientStreamReader,
+                responseHeadersAsync: call.GetResponseHeadersAsync(),
+                getStatusFunc: call.GetStatus,
+                getTrailersFunc: call.GetTrailers,
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -158,28 +126,15 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var content = new PipeContent();
-            var message = new HttpRequestMessage(HttpMethod.Post, method.FullName);
-            message.Content = content;
-            message.Version = new Version(2, 0);
-
-            // Write request body
-            var sendTask = SendRequestMessageAsync<TRequest>(
-                async () =>
-                {
-                    await content.PipeWriter.WriteMessageCoreAsync(method.RequestMarshaller.Serializer(request), true);
-                    content.PipeWriter.Complete();
-                },
-                _client, message);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            call.StartUnary(_client, request);
 
             return new AsyncUnaryCall<TResponse>(
-                responseAsync: GetResponseAsync(sendTask, method.ResponseMarshaller.Deserializer),
-                responseHeadersAsync: GetResponseHeadersAsync(sendTask),
-                // Cannot implement due to trailers being unimplemented
-                getStatusFunc: () => new Status(),
-                // Cannot implement due to trailers being unimplemented
-                getTrailersFunc: () => new Metadata(),
-                disposeAction: () => { });
+                responseAsync: call.GetResponseAsync(),
+                responseHeadersAsync: call.GetResponseHeadersAsync(),
+                getStatusFunc: call.GetStatus,
+                getTrailersFunc: call.GetTrailers,
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -187,74 +142,13 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            return AsyncUnaryCall(method, host, options, request)?.GetAwaiter().GetResult();
+            var call = AsyncUnaryCall(method, host, options, request);
+            return call.ResponseAsync.GetAwaiter().GetResult();
         }
 
-        private static async Task<HttpResponseMessage> SendRequestMessageAsync<TRequest>(Func<Task> writeMessageTask, System.Net.Http.HttpClient client, HttpRequestMessage message)
+        private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(Method<TRequest, TResponse> method, CallOptions options)
         {
-            await writeMessageTask();
-            return await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead);
-        }
-
-        private static async Task<TResponse> GetResponseAsync<TResponse>(Task<HttpResponseMessage> sendTask, Func<byte[], TResponse> deserializer)
-        {
-            // We can't use pipes here since we can't control how much is read and response trailers causes InvalidOperationException
-            var response = await sendTask;
-            var responseStream = await response.Content.ReadAsStreamAsync();
-
-            return responseStream.ReadSingleMessage(deserializer);
-        }
-
-        private static async Task<Metadata> GetResponseHeadersAsync(Task<HttpResponseMessage> sendTask)
-        {
-            var response = await sendTask;
-
-            var headers = new Metadata();
-
-            foreach (var header in response.Headers)
-            {
-                // ASP.NET Core includes pseudo headers in the set of request headers
-                // whereas, they are not in gRPC implementations. We will filter them
-                // out when we construct the list of headers on the context.
-                if (header.Key.StartsWith(":", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-                else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
-                {
-                    headers.Add(header.Key, ParseBinaryHeader(string.Join(",", header.Value)));
-                }
-                else
-                {
-                    headers.Add(header.Key, string.Join(",", header.Value));
-                }
-            }
-            return null;
-        }
-
-        private static byte[] ParseBinaryHeader(string base64)
-        {
-            string decodable;
-            switch (base64.Length % 4)
-            {
-                case 0:
-                    // base64 has the required padding 
-                    decodable = base64;
-                    break;
-                case 2:
-                    // 2 chars padding
-                    decodable = base64 + "==";
-                    break;
-                case 3:
-                    // 3 chars padding
-                    decodable = base64 + "=";
-                    break;
-                default:
-                    // length%4 == 1 should be illegal
-                    throw new FormatException("Invalid base64 header value");
-            }
-
-            return Convert.FromBase64String(decodable);
+            return new GrpcCall<TRequest, TResponse>(method, options, Clock);
         }
     }
 }
