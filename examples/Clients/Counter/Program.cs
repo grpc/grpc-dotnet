@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Common;
@@ -36,9 +37,24 @@ namespace Sample.Clients
             var channel = new Channel("localhost:50051", credentials);
             var client = new Counter.CounterClient(channel);
 
-            var reply = client.IncrementCount(new Google.Protobuf.WellKnownTypes.Empty());
-            Console.WriteLine("Count: " + reply.Count);
+            await UnaryCallExample(client);
 
+            await ClientStreamingCallExample(client);
+
+            Console.WriteLine("Shutting down");
+            await channel.ShutdownAsync();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
+
+        private static async Task UnaryCallExample(Counter.CounterClient client)
+        {
+            var reply = await client.IncrementCountAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            Console.WriteLine("Count: " + reply.Count);
+        }
+
+        private static async Task ClientStreamingCallExample(Counter.CounterClient client)
+        {
             using (var call = client.AccumulateCount())
             {
                 for (int i = 0; i < 3; i++)
@@ -50,13 +66,10 @@ namespace Sample.Clients
                 }
 
                 await call.RequestStream.CompleteAsync();
-                Console.WriteLine($"Count: {(await call.ResponseAsync).Count}");
-            }
 
-            Console.WriteLine("Shutting down");
-            await channel.ShutdownAsync();
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+                var response = await call;
+                Console.WriteLine($"Count: {response.Count}");
+            }
         }
     }
 }

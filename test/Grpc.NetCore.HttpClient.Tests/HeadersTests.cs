@@ -1,0 +1,110 @@
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Greet;
+using Grpc.Core;
+using Grpc.NetCore.HttpClient.Tests.Infrastructure;
+using Grpc.Tests.Shared;
+using Microsoft.Net.Http.Headers;
+using NUnit.Framework;
+
+namespace Grpc.NetCore.HttpClient.Tests
+{
+    [TestFixture]
+    public class HeadersTests
+    {
+        [Test]
+        public async Task AsyncUnaryCall_SendHeaders_RequestMessageContainsHeaders()
+        {
+            // Arrange
+            HttpRequestMessage httpRequestMessage = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                HelloReply reply = new HelloReply
+                {
+                    Message = "Hello world"
+                };
+
+                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            var headers = new Metadata();
+            headers.Add("custom", "ascii");
+            headers.Add("custom-bin", Encoding.UTF8.GetBytes("Hello world"));
+
+            // Act
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(headers: headers), new HelloRequest());
+
+            // Assert
+            Assert.AreEqual("Hello world", rs.Message);
+
+            Assert.IsNotNull(httpRequestMessage);
+            Assert.AreEqual("ascii", httpRequestMessage.Headers.GetValues("custom").Single());
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestMessage.Headers.GetValues("custom-bin").Single())));
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_NoHeaders_RequestMessageHasNoHeaders()
+        {
+            // Arrange
+            HttpRequestMessage httpRequestMessage = null;
+
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                HelloReply reply = new HelloReply
+                {
+                    Message = "Hello world"
+                };
+
+                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            var headers = new Metadata();
+
+            // Act
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(headers: headers), new HelloRequest());
+
+            // Assert
+            Assert.AreEqual("Hello world", rs.Message);
+
+            Assert.IsNotNull(httpRequestMessage);
+
+            // User-Agent is always sent
+            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h => !string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+}

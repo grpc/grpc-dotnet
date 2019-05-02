@@ -26,8 +26,8 @@ using Chat;
 using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -65,7 +65,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             var pipeReader = new StreamPipeReader(responseStream);
 
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
-            Assert.IsTrue(message1Task.IsCompleted);
             var message1 = await message1Task.DefaultTimeout();
             Assert.AreEqual("John", message1.Name);
             Assert.AreEqual("Hello Jill", message1.Message);

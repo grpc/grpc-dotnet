@@ -34,9 +34,6 @@ class GreeterService : Greeter.GreeterBase, IDisposable
     //Server side handler of the SayHello RPC
     public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
     {
-        var httpContext = context.GetHttpContext();
-        _logger.LogInformation($"Connection id: {httpContext.Connection.Id}");
-
         _logger.LogInformation($"Sending hello to {request.Name}");
         return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
     }

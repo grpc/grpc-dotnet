@@ -24,7 +24,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
+using Grpc.Tests.Shared;
 using Grpc.Core;
 using Nested;
 using NUnit.Framework;
@@ -35,6 +35,7 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class NestedTests : FunctionalTestBase
     {
         [Test]
+        [Ignore("Failing because TestHost does not return trailers. Blocked on https://github.com/aspnet/AspNetCore/issues/6880")]
         public async Task CallNestedService_SuccessResponse()
         {
             // Arrange

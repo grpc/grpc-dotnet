@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
+    <ConfigureAwaitCheckerAnalyzerPackageVersion>3.0.0</ConfigureAwaitCheckerAnalyzerPackageVersion>
     <GoogleProtobufPackageVersion>3.7.0</GoogleProtobufPackageVersion>
     <GrpcCorePackageVersion>1.20.0-pre3</GrpcCorePackageVersion>
     <GrpcCoreApiPackageVersion>1.20.0-pre3</GrpcCoreApiPackageVersion>
@@ -12,7 +13,7 @@
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
-    <NewtonsoftJsonPackageVersion>12.0.1</NewtonsoftJsonPackageVersion>
+    <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.11.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
     <SystemIOPipelinesPackageVersion>4.6.0-preview.19073.11</SystemIOPipelinesPackageVersion>
