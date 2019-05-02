@@ -65,6 +65,53 @@ namespace Grpc.NetCore.HttpClient.Tests
         }
 
         [Test]
+        public void AsyncUnaryCall_PercentEncodedMessage_MessageDecoded()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
+                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "%C2%A3");
+                return response;
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+
+            // Assert
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync.DefaultTimeout());
+            Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
+
+            var status = call.GetStatus();
+            Assert.AreEqual(StatusCode.Aborted, status.StatusCode);
+            Assert.AreEqual("£", status.Detail);
+        }
+
+        [Test]
+        public void AsyncUnaryCall_MultipleStatusHeaders_ThrowError()
+        {
+            // Arrange
+            var httpClient = TestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
+                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "one");
+                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "two");
+                return response;
+            });
+            var invoker = new HttpClientCallInvoker(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+
+            // Assert
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseAsync.DefaultTimeout());
+            Assert.AreEqual("Multiple grpc-message headers.", ex.Message);
+        }
+
+        [Test]
         public void AsyncUnaryCall_MissingStatus_ThrowError()
         {
             // Arrange

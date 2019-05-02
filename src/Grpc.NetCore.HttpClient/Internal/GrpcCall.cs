@@ -21,6 +21,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -125,13 +126,30 @@ namespace Grpc.NetCore.HttpClient.Internal
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
+        /// <summary>
+        /// Dispose can be called by:
+        /// 1. The user. AsyncUnaryCall.Dispose et al will call this Dispose
+        /// 2. <see cref="ValidateHeaders"/> will call dispose if errors fail validation
+        /// 3. <see cref="FinishResponse"/> will call dispose
+        /// </summary>
         public void Dispose()
         {
             if (!Disposed)
             {
                 Disposed = true;
 
-                _callCts.Cancel();
+                if (!ResponseFinished)
+                {
+                    // If the response is not finished then cancel any pending actions:
+                    // 1. Call HttpClient.SendAsync
+                    // 2. Response Stream.ReadAsync
+                    // 3. Client stream
+                    //    - Getting the Stream from the Request.HttpContent
+                    //    - Holding the Request.HttpContent.SerializeToStream open
+                    //    - Writing to the client stream
+                    _callCts.Cancel();
+                }
+
                 _ctsRegistration?.Dispose();
                 _writerCtsRegistration?.Dispose();
                 _deadlineTimer?.Dispose();
@@ -139,7 +157,10 @@ namespace Grpc.NetCore.HttpClient.Internal
                 ClientStreamReader?.Dispose();
                 ClientStreamWriter?.Dispose();
 
-                _callCts.Dispose();
+                // To avoid racing with Dispose, skip disposing the call CTS
+                // This avoid Dispose potentially calling cancel on a disposed CTS
+                // The call CTS is not exposed externally and all dependent registrations
+                // are cleaned up
             }
         }
 
@@ -170,26 +191,33 @@ namespace Grpc.NetCore.HttpClient.Internal
             return new RpcException(new Status(statusCode, string.Empty));
         }
 
+        /// <summary>
+        /// Marks the response as finished, i.e. all response content has been read and trailers are available.
+        /// Can be called by <see cref="GetResponseAsync"/> for unary and client streaming calls, or
+        /// <see cref="HttpContentClientStreamReader{TRequest,TResponse}.MoveNextCore(CancellationToken)"/>
+        /// for server streaming and duplex streaming calls.
+        /// </summary>
         public void FinishResponse()
         {
-            if (ResponseFinished)
-            {
-                return;
-            }
-
             ResponseFinished = true;
 
-            // Get status from response before dispose
-            var status = GetStatusCore(HttpResponse);
-
-            // Clean up call resources once this call is finished
-            // Call may not be explicitly disposed when used with unary methods
-            // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
-            Dispose();
-
-            if (status.StatusCode != StatusCode.OK)
+            try
             {
-                throw new RpcException(status);
+                // Get status from response before dispose
+                // This may throw an error if the grpc-status is missing or malformed
+                var status = GetStatusCore(HttpResponse);
+
+                if (status.StatusCode != StatusCode.OK)
+                {
+                    throw new RpcException(status);
+                }
+            }
+            finally
+            {
+                // Clean up call resources once this call is finished
+                // Call may not be explicitly disposed when used with unary methods
+                // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
+                Dispose();
             }
         }
 
@@ -366,7 +394,9 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private void DeadlineExceeded(object state)
         {
-            if (!_callCts.IsCancellationRequested)
+            // Deadline is only exceeded if the timeout has passed and
+            // the response has not been finished or canceled
+            if (!_callCts.IsCancellationRequested && !ResponseFinished)
             {
                 // Flag is used to determine status code when generating exceptions
                 DeadlineReached = true;
@@ -377,10 +407,9 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private static Status GetStatusCore(HttpResponseMessage httpResponseMessage)
         {
+            string grpcStatus = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.StatusTrailer);
             // grpc-status is a required trailer
-            string grpcStatus;
-            if (!httpResponseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out var grpcStatusValues) ||
-                (grpcStatus = grpcStatusValues.FirstOrDefault()) == null)
+            if (grpcStatus == null)
             {
                 throw new InvalidOperationException("Response did not have a grpc-status trailer.");
             }
@@ -392,14 +421,37 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             // grpc-message is optional
-            string grpcMessage = null;
-            if (httpResponseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.MessageTrailer, out var grpcMessageValues))
+            string grpcMessage = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.MessageTrailer);
+            if (!string.IsNullOrEmpty(grpcMessage))
             {
-                // TODO(JamesNK): Unescape percent encoding
-                grpcMessage = grpcMessageValues.FirstOrDefault();
+                // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
+                // The value portion of Status-Message is conceptually a Unicode string description of the error,
+                // physically encoded as UTF-8 followed by percent-encoding.
+                grpcMessage = Uri.UnescapeDataString(grpcMessage);
             }
 
             return new Status((StatusCode)statusValue, grpcMessage);
+        }
+
+        private static string GetHeaderValue(HttpHeaders headers, string name)
+        {
+            if (!headers.TryGetValues(name, out var values))
+            {
+                return null;
+            }
+
+            // HttpHeaders appears to always return an array, but fallback to converting values to one just in case
+            var valuesArray = values as string[] ?? values.ToArray();
+
+            switch (valuesArray.Length)
+            {
+                case 0:
+                    return null;
+                case 1:
+                    return valuesArray[0];
+                default:
+                    throw new InvalidOperationException($"Multiple {name} headers.");
+            }
         }
 
         private void ValidateTrailersAvailable()
