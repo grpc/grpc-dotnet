@@ -34,10 +34,11 @@ namespace Grpc.NetCore.HttpClient.Internal
         private readonly CancellationTokenRegistration? _ctsRegistration;
         private readonly ISystemClock _clock;
         private readonly TimeSpan? _timeout;
-        private readonly Timer _deadlineTimer;
+        private Timer _deadlineTimer;
         private Metadata _trailers;
-        private CancellationTokenRegistration? _writerCtsRegistration;
         private string _headerValidationError;
+        private TaskCompletionSource<Stream> _writeStreamTcs;
+        private TaskCompletionSource<bool> _completeTcs;
 
         public bool DeadlineReached { get; private set; }
         public bool Disposed { get; private set; }
@@ -69,12 +70,6 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 var timeout = options.Deadline.Value - _clock.UtcNow;
                 _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
-            }
-
-            if (_timeout != null)
-            {
-                // Deadline timer will cancel the call CTS
-                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -147,11 +142,15 @@ namespace Grpc.NetCore.HttpClient.Internal
                     //    - Getting the Stream from the Request.HttpContent
                     //    - Holding the Request.HttpContent.SerializeToStream open
                     //    - Writing to the client stream
-                    _callCts.Cancel();
+                    CancelCall();
+                }
+                else
+                {
+                    _writeStreamTcs?.TrySetCanceled();
+                    _completeTcs?.TrySetCanceled();
                 }
 
                 _ctsRegistration?.Dispose();
-                _writerCtsRegistration?.Dispose();
                 _deadlineTimer?.Dispose();
                 HttpResponse?.Dispose();
                 ClientStreamReader?.Dispose();
@@ -326,10 +325,22 @@ namespace Grpc.NetCore.HttpClient.Internal
         private void CancelCall()
         {
             _callCts.Cancel();
+
+            // Canceling call will cancel pending writes to the stream
+            _completeTcs?.TrySetCanceled();
+            _writeStreamTcs?.TrySetCanceled();
         }
 
         private void StartSend(System.Net.Http.HttpClient client, HttpRequestMessage message)
         {
+            if (_timeout != null)
+            {
+                // Deadline timer will cancel the call CTS
+                // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
+                // the call CTS before they are created and leave them in a non-canceled state
+                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+            }
+
             SendTask = SendAsync(client, message);
         }
 
@@ -341,25 +352,18 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private HttpContentClientStreamWriter<TRequest, TResponse> CreateWriter(HttpRequestMessage message)
         {
-            var writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var completeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Canceling call will cancel pending writes to the stream
-            _writerCtsRegistration = _callCts.Token.Register(() =>
-            {
-                completeTcs.TrySetCanceled();
-                writeStreamTcs.TrySetCanceled();
-            });
+            _writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _completeTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
-                    writeStreamTcs.TrySetResult(stream);
-                    return completeTcs.Task;
+                    _writeStreamTcs.TrySetResult(stream);
+                    return _completeTcs.Task;
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
 
-            var writer = new HttpContentClientStreamWriter<TRequest, TResponse>(this, writeStreamTcs.Task, completeTcs);
+            var writer = new HttpContentClientStreamWriter<TRequest, TResponse>(this, _writeStreamTcs.Task, _completeTcs);
             return writer;
         }
 
@@ -401,7 +405,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // Flag is used to determine status code when generating exceptions
                 DeadlineReached = true;
 
-                _callCts.Cancel();
+                CancelCall();
             }
         }
 
