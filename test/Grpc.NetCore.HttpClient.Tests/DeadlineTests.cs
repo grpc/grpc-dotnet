@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -150,12 +151,15 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
-                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
             var invoker = new HttpClientCallInvoker(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow));
+
 
             // Assert
             var ex = Assert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest()).DefaultTimeout());
