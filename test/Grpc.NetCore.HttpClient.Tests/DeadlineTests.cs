@@ -17,12 +17,9 @@
 #endregion
 
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -159,7 +156,6 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow));
-
 
             // Assert
             var ex = Assert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest()).DefaultTimeout());
