@@ -34,7 +34,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         private readonly CancellationTokenRegistration? _ctsRegistration;
         private readonly ISystemClock _clock;
         private readonly TimeSpan? _timeout;
-        private readonly Timer _deadlineTimer;
+        private Timer _deadlineTimer;
         private Metadata _trailers;
         private string _headerValidationError;
         private TaskCompletionSource<Stream> _writeStreamTcs;
@@ -70,12 +70,6 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 var timeout = options.Deadline.Value - _clock.UtcNow;
                 _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
-            }
-
-            if (_timeout != null)
-            {
-                // Deadline timer will cancel the call CTS
-                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -339,6 +333,14 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private void StartSend(System.Net.Http.HttpClient client, HttpRequestMessage message)
         {
+            if (_timeout != null)
+            {
+                // Deadline timer will cancel the call CTS
+                // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
+                // the call CTS before they are created and leave them in a non-canceled state
+                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+            }
+
             SendTask = SendAsync(client, message);
         }
 
