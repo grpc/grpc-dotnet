@@ -10,6 +10,10 @@
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="Proto" />
+    
+    <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 
     <PackageReference Include="CommandLineParser" Version="2.3.0" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />

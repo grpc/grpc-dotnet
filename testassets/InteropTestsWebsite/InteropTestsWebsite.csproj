@@ -16,6 +16,10 @@
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="" />
+    
+    <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 

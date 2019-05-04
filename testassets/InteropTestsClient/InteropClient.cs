@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
@@ -44,11 +45,7 @@ namespace InteropTestsClient
 
         private class ClientOptions
         {
-            [Option("client_type"
-#if DEBUG
-                , Default = "httpclient"
-#endif
-                )]
+            [Option("client_type", Default = "httpclient")]
             public string ClientType { get; set; }
 
             [Option("server_host", Default = "localhost")]
@@ -104,6 +101,8 @@ namespace InteropTestsClient
                 .WithParsed(options =>
                 {
                     Console.WriteLine("Use TLS: " + options.UseTls);
+                    Console.WriteLine("Use Test CA: " + options.UseTestCa);
+                    Console.WriteLine("Client type: " + options.ClientType);
                     Console.WriteLine("Server host: " + options.ServerHost);
                     Console.WriteLine("Server port: " + options.ServerPort);
 
@@ -121,13 +120,31 @@ namespace InteropTestsClient
 
         private Task<IChannel> HttpClientCreateChannel()
         {
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
+            string scheme;
+            if (!(options.UseTls ?? false))
+            {
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+                scheme = "http";
+            }
+            else
+            {
+                scheme = "https";
+            }
 
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
 
-            return Task.FromResult<IChannel>(new HttpClientChannel(httpClientHandler));
+            if (options.UseTestCa ?? false)
+            {
+                var pem = File.ReadAllText("Certs/ca.pem");
+                var certData = GetBytesFromPem(pem, "CERTIFICATE");
+                var cert = new X509Certificate2(certData);
+
+                httpClientHandler.ClientCertificates.Add(cert);
+            }
+
+            return Task.FromResult<IChannel>(new HttpClientChannel($"{scheme}://{options.ServerHost}:{options.ServerPort}", httpClientHandler));
         }
 
         private async Task<IChannel> CoreCreateChannel()
@@ -181,7 +198,7 @@ namespace InteropTestsClient
             }
             else if (channel is HttpClientChannel httpClientChannel)
             {
-                return GrpcClientFactory.Create<TClient>($"http://{options.ServerHost}:{options.ServerPort}", certificate: null);
+                return GrpcClientFactory.Create<TClient>(httpClientChannel.BaseAddress, httpClientChannel.HttpClientHandler);
             }
             else
             {
@@ -767,6 +784,31 @@ namespace InteropTestsClient
                 {"x-grpc-test-echo-initial", "test_initial_metadata_value"},
                 {"x-grpc-test-echo-trailing-bin", new byte[] {0xab, 0xab, 0xab}}
             };
+        }
+
+        // TODO(JamesNK): PEM loading logic from https://stackoverflow.com/a/10498045/11829
+        // .NET does not have a built-in API for loading pem files
+        // Consider providing ca file in a different format and removing method
+        private byte[] GetBytesFromPem(string pemString, string section)
+        {
+            var header = string.Format("-----BEGIN {0}-----", section);
+            var footer = string.Format("-----END {0}-----", section);
+
+            var start = pemString.IndexOf(header, StringComparison.Ordinal);
+            if (start == -1)
+            {
+                return null;
+            }
+
+            start += header.Length;
+            var end = pemString.IndexOf(footer, start, StringComparison.Ordinal) - start;
+
+            if (end == -1)
+            {
+                return null;
+            }
+
+            return Convert.FromBase64String(pemString.Substring(start, end));
         }
     }
 }

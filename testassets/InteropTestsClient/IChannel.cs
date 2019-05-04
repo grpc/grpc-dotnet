@@ -30,10 +30,12 @@ namespace InteropTestsClient
 
     public class HttpClientChannel : IChannel
     {
+        public string BaseAddress { get; }
         public HttpClientHandler HttpClientHandler { get; }
 
-        public HttpClientChannel(HttpClientHandler httpClient)
+        public HttpClientChannel(string baseAddress, HttpClientHandler httpClient)
         {
+            BaseAddress = baseAddress;
             HttpClientHandler = httpClient;
         }
 

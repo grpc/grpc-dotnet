@@ -66,9 +66,6 @@ namespace Grpc.NetCore.HttpClient
 
         private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler) where TClient : ClientBase<TClient>
         {
-            // Needs to be set before creating the HttpClientHandler
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
-
             var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
             httpClient.BaseAddress = new Uri(baseAddress, UriKind.RelativeOrAbsolute);
 
