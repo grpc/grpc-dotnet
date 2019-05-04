@@ -39,7 +39,7 @@ namespace InteropTestsWebsite
                     // Support --port and --use_tls cmdline arguments normally supported
                     // by gRPC interop servers.
                     int port = context.Configuration.GetValue<int>("port", 50052);
-                    bool useTls = context.Configuration.GetValue<bool>("use_tls", true);
+                    bool useTls = context.Configuration.GetValue<bool>("use_tls", false);
 
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(port, listenOptions =>

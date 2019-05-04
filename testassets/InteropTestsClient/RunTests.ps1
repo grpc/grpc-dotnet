@@ -41,6 +41,7 @@ foreach ($test in $allTests)
   }
   else
   {
+    # Certificate is for test.google.com host. To run locally, setup the host file to point test.google.com to 127.0.0.1
     dotnet run --use_tls true --server_port 50052 --client_type httpclient --test_case $test --server_host test.google.com
   }
 
