@@ -45,11 +45,7 @@ namespace InteropTestsClient
 
         private class ClientOptions
         {
-            [Option("client_type"
-#if DEBUG
-                , Default = "httpclient"
-#endif
-                )]
+            [Option("client_type", Default = "httpclient")]
             public string ClientType { get; set; }
 
             [Option("server_host", Default = "localhost")]
@@ -105,6 +101,8 @@ namespace InteropTestsClient
                 .WithParsed(options =>
                 {
                     Console.WriteLine("Use TLS: " + options.UseTls);
+                    Console.WriteLine("Use Test CA: " + options.UseTestCa);
+                    Console.WriteLine("Client type: " + options.ClientType);
                     Console.WriteLine("Server host: " + options.ServerHost);
                     Console.WriteLine("Server port: " + options.ServerPort);
 
