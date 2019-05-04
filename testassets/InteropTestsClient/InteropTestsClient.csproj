@@ -10,6 +10,10 @@
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="Proto" />
+    
+    <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 
     <PackageReference Include="CommandLineParser" Version="2.3.0" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
@@ -19,24 +23,6 @@
     <PackageReference Include="nunit" Version="$(NunitPackageVersion)" />
 
     <ProjectReference Include="..\..\src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Certs\ca.pem">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Certs\README.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Certs\server1.key">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Certs\server1.pem">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Certs\server1.pfx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   
 </Project>

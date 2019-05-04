@@ -137,7 +137,7 @@ namespace InteropTestsClient
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
 
-            if (!(options.UseTestCa ?? false))
+            if (options.UseTestCa ?? false)
             {
                 var pem = File.ReadAllText("Certs/ca.pem");
                 var certData = GetBytesFromPem(pem, "CERTIFICATE");
@@ -788,6 +788,9 @@ namespace InteropTestsClient
             };
         }
 
+        // TODO(JamesNK): PEM loading logic from https://stackoverflow.com/a/10498045/11829
+        // .NET does not have a built-in API for loading pem files
+        // Consider providing ca file in a different format and removing method
         private byte[] GetBytesFromPem(string pemString, string section)
         {
             var header = string.Format("-----BEGIN {0}-----", section);

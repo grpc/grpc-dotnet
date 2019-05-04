@@ -17,7 +17,7 @@
 #endregion
 
 using System;
-using System.Runtime.InteropServices;
+using System.IO;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -39,7 +39,7 @@ namespace InteropTestsWebsite
                     // Support --port and --use_tls cmdline arguments normally supported
                     // by gRPC interop servers.
                     int port = context.Configuration.GetValue<int>("port", 50052);
-                    bool useTls = context.Configuration.GetValue<bool>("use_tls", false);
+                    bool useTls = context.Configuration.GetValue<bool>("use_tls", true);
 
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(port, listenOptions =>
@@ -48,7 +48,10 @@ namespace InteropTestsWebsite
 
                         if (useTls)
                         {
-                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                            var certPath = Path.Combine(basePath, "Certs/server1.pfx");
+
+                            listenOptions.UseHttps(certPath, "1111");
                         }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });

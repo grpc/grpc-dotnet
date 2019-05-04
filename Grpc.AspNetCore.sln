@@ -117,13 +117,24 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Certs", "Certs", "{39320CA8
 		perf\benchmarkapps\Shared\Certs\server.pfx = perf\benchmarkapps\Shared\Certs\server.pfx
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.AspNetCore.Server.Reflection", "src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj", "{55813F20-1269-4B19-B03E-7E4A90148F92}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Reflection", "src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj", "{55813F20-1269-4B19-B03E-7E4A90148F92}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reflector", "examples\Clients\Reflector\Reflector.csproj", "{86AD33E9-2C07-45BD-B599-420C2618188D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InteropTestsClient", "testassets\InteropTestsClient\InteropTestsClient.csproj", "{291E5BA5-608D-406D-A2DB-389412D907F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsClient", "testassets\InteropTestsClient\InteropTestsClient.csproj", "{291E5BA5-608D-406D-A2DB-389412D907F3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.NetCore.HttpClient.Tests", "test\Grpc.NetCore.HttpClient.Tests\Grpc.NetCore.HttpClient.Tests.csproj", "{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Certs", "Certs", "{743F8EC2-004E-4640-B04F-5BAFDA8BF112}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InteropTests", "InteropTests", "{50CF39FF-2644-4B5F-BE1A-B57487B9723B}"
+	ProjectSection(SolutionItems) = preProject
+		testassets\Certs\InteropTests\ca.pem = testassets\Certs\InteropTests\ca.pem
+		testassets\Certs\InteropTests\README.md = testassets\Certs\InteropTests\README.md
+		testassets\Certs\InteropTests\server1.key = testassets\Certs\InteropTests\server1.key
+		testassets\Certs\InteropTests\server1.pem = testassets\Certs\InteropTests\server1.pem
+		testassets\Certs\InteropTests\server1.pfx = testassets\Certs\InteropTests\server1.pfx
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -203,14 +214,14 @@ Global
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
 		{291E5BA5-608D-406D-A2DB-389412D907F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{291E5BA5-608D-406D-A2DB-389412D907F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{291E5BA5-608D-406D-A2DB-389412D907F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{291E5BA5-608D-406D-A2DB-389412D907F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -244,8 +255,10 @@ Global
 		{39320CA8-D8F0-45B6-B704-A04C16870226} = {310E5783-455A-4D09-A7AE-39DC2AB09504}
 		{55813F20-1269-4B19-B03E-7E4A90148F92} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{86AD33E9-2C07-45BD-B599-420C2618188D} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
-		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{291E5BA5-608D-406D-A2DB-389412D907F3} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{743F8EC2-004E-4640-B04F-5BAFDA8BF112} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
+		{50CF39FF-2644-4B5F-BE1A-B57487B9723B} = {743F8EC2-004E-4640-B04F-5BAFDA8BF112}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
