@@ -43,7 +43,7 @@ namespace BenchmarkClient.Workers
 
         public Task ConnectAsync()
         {
-            _client = GrpcClientFactory.Create<Greeter.GreeterClient>("https://" + Target);
+            _client = GrpcClientFactory.Create<Greeter.GreeterClient>("http://" + Target);
             return Task.CompletedTask;
         }
 

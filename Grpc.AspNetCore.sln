@@ -136,6 +136,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InteropTests", "InteropTest
 		testassets\Certs\InteropTests\server1.pfx = testassets\Certs\InteropTests\server1.pfx
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsNativeWebsite", "testassets\InteropTestsNativeWebsite\InteropTestsNativeWebsite.csproj", "{7D43EA69-2E90-4DE8-B53F-0EAF34233010}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -222,6 +224,10 @@ Global
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D43EA69-2E90-4DE8-B53F-0EAF34233010}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D43EA69-2E90-4DE8-B53F-0EAF34233010}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D43EA69-2E90-4DE8-B53F-0EAF34233010}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D43EA69-2E90-4DE8-B53F-0EAF34233010}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -259,6 +265,7 @@ Global
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{743F8EC2-004E-4640-B04F-5BAFDA8BF112} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{50CF39FF-2644-4B5F-BE1A-B57487B9723B} = {743F8EC2-004E-4640-B04F-5BAFDA8BF112}
+		{7D43EA69-2E90-4DE8-B53F-0EAF34233010} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

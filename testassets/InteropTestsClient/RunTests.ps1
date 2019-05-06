@@ -37,7 +37,7 @@ foreach ($test in $allTests)
 
   if (!$use_tls)
   {
-    dotnet run --use_tls false --server_port 50052 --client_type httpclient --test_case $test
+    dotnet run --use_tls false --server_port 8070 --client_type httpclient --test_case $test
   }
   else
   {
