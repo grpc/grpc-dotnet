@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
@@ -66,7 +67,9 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // Pending move next need to be awaited first
                 if (IsMoveNextInProgressUnsynchronized)
                 {
-                    return Task.FromException<bool>(new InvalidOperationException("Cannot read next message because the previous read is in progress."));
+                    var ex = new InvalidOperationException("Cannot read next message because the previous read is in progress.");
+                    Log.ReadMessageError(_call.Logger, ex);
+                    return Task.FromException<bool>(ex);
                 }
 
                 // Save move next task to track whether it is complete
@@ -81,38 +84,41 @@ namespace Grpc.NetCore.HttpClient.Internal
             CancellationTokenSource cts = null;
             try
             {
-                // Linking tokens is expensive. Only create a linked token if the token passed in requires it
-                if (cancellationToken.CanBeCanceled)
+                using (_call.StartScope())
                 {
-                    cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
-                    cancellationToken = cts.Token;
-                }
-                else
-                {
-                    cancellationToken = _call.CancellationToken;
-                }
+                    // Linking tokens is expensive. Only create a linked token if the token passed in requires it
+                    if (cancellationToken.CanBeCanceled)
+                    {
+                        cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
+                        cancellationToken = cts.Token;
+                    }
+                    else
+                    {
+                        cancellationToken = _call.CancellationToken;
+                    }
 
-                cancellationToken.ThrowIfCancellationRequested();
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (_httpResponse == null)
-                {
-                    await _call.SendTask.ConfigureAwait(false);
-                    _httpResponse = _call.HttpResponse;
-                }
-                if (_responseStream == null)
-                {
-                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                }
+                    if (_httpResponse == null)
+                    {
+                        await _call.SendTask.ConfigureAwait(false);
+                        _httpResponse = _call.HttpResponse;
+                    }
+                    if (_responseStream == null)
+                    {
+                        _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    }
 
-                Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
-                if (Current == null)
-                {
-                    // No more content in response so mark as finished
-                    _call.FinishResponse();
-                    return false;
-                }
+                    Current = await _responseStream.ReadStreamedMessageAsync(_call.Logger, _call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                    if (Current == null)
+                    {
+                        // No more content in response so mark as finished
+                        _call.FinishResponse();
+                        return false;
+                    }
 
-                return true;
+                    return true;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -134,6 +140,17 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 var moveNextTask = _moveNextTask;
                 return moveNextTask != null && !moveNextTask.IsCompleted;
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception> _readMessageError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(1, "ReadMessageError"), "Error reading message.");
+
+            public static void ReadMessageError(ILogger logger, Exception ex)
+            {
+                _readMessageError(logger, ex);
             }
         }
     }

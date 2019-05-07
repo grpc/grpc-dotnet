@@ -26,6 +26,7 @@ using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
@@ -47,7 +48,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -72,7 +73,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -98,7 +99,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act

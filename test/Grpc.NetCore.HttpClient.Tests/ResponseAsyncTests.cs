@@ -48,7 +48,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest { Name = "World" });
@@ -78,7 +78,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.Headers.Add("custom", "value!");
                 return Task.FromResult(response);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest { Name = "World" });
@@ -100,7 +100,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             {
                 return Task.FromException<HttpResponseMessage>(new Exception("An error!"));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -119,7 +119,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.NotFound);
                 return Task.FromResult(response);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -139,7 +139,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
                 return Task.FromResult(response);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());

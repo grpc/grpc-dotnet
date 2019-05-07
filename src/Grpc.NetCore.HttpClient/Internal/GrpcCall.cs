@@ -25,15 +25,19 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
-    internal class GrpcCall<TRequest, TResponse> : IDisposable
+    internal partial class GrpcCall<TRequest, TResponse> : IDisposable
     {
         private readonly CancellationTokenSource _callCts;
         private readonly CancellationTokenRegistration? _ctsRegistration;
         private readonly ISystemClock _clock;
         private readonly TimeSpan? _timeout;
+        private readonly Uri _uri;
+        private readonly GrpcCallScope _logScope;
+
         private Timer _deadlineTimer;
         private Metadata _trailers;
         private string _headerValidationError;
@@ -46,19 +50,24 @@ namespace Grpc.NetCore.HttpClient.Internal
         public HttpResponseMessage HttpResponse { get; private set; }
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
+
+        public ILogger Logger { get; }
         public Task SendTask { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse> ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse> ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock)
+        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock, ILoggerFactory loggerFactory)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
 
             _callCts = new CancellationTokenSource();
             Method = method;
+            _uri = new Uri(method.FullName, UriKind.Relative);
+            _logScope = new GrpcCallScope(method.Type, _uri);
             Options = options;
             _clock = clock;
+            Logger = loggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
 
             if (options.CancellationToken.CanBeCanceled)
             {
@@ -208,11 +217,14 @@ namespace Grpc.NetCore.HttpClient.Internal
 
                 if (status.StatusCode != StatusCode.OK)
                 {
+                    Log.GrpcStatusError(Logger, status.StatusCode, status.Detail);
                     throw new RpcException(status);
                 }
             }
             finally
             {
+                Log.FinishedCall(Logger);
+
                 // Clean up call resources once this call is finished
                 // Call may not be explicitly disposed when used with unary methods
                 // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
@@ -224,10 +236,13 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             try
             {
-                await SendTask.ConfigureAwait(false);
+                using (StartScope())
+                {
+                    await SendTask.ConfigureAwait(false);
 
-                // The task of this method is cached so there is no need to cache the headers here
-                return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
+                    // The task of this method is cached so there is no need to cache the headers here
+                    return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -238,29 +253,36 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public Status GetStatus()
         {
-            ValidateTrailersAvailable();
+            using (StartScope())
+            {
+                ValidateTrailersAvailable();
 
-            return GetStatusCore(HttpResponse);
+                return GetStatusCore(HttpResponse);
+            }
         }
 
         public async Task<TResponse> GetResponseAsync()
         {
             try
             {
-                await SendTask.ConfigureAwait(false);
-
-                // Trailers are only available once the response body had been read
-                var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var message = await responseStream.ReadSingleMessageAsync(Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
-                FinishResponse();
-
-                if (message == null)
+                using (StartScope())
                 {
-                    throw new InvalidOperationException("Call did not return a response message");
-                }
+                    await SendTask.ConfigureAwait(false);
 
-                // The task of this method is cached so there is no need to cache the message here
-                return message;
+                    // Trailers are only available once the response body had been read
+                    var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    var message = await responseStream.ReadSingleMessageAsync(Logger, Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
+                    FinishResponse();
+
+                    if (message == null)
+                    {
+                        Log.MessageNotReturned(Logger);
+                        throw new InvalidOperationException("Call did not return a response message");
+                    }
+
+                    // The task of this method is cached so there is no need to cache the message here
+                    return message;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -271,6 +293,8 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private void ValidateHeaders()
         {
+            Log.ResponseHeadersReceived(Logger);
+
             if (HttpResponse.StatusCode != HttpStatusCode.OK)
             {
                 _headerValidationError = "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode;
@@ -302,14 +326,17 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public Metadata GetTrailers()
         {
-            if (_trailers == null)
+            using (StartScope())
             {
-                ValidateTrailersAvailable();
+                if (_trailers == null)
+                {
+                    ValidateTrailersAvailable();
 
-                _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
+                    _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
+                }
+
+                return _trailers;
             }
-
-            return _trailers;
         }
 
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
@@ -317,13 +344,15 @@ namespace Grpc.NetCore.HttpClient.Internal
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
-                    return SerializationHelpers.WriteMessage<TRequest>(stream, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
+                    return stream.WriteMessage<TRequest>(Logger, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
 
         private void CancelCall()
         {
+            Log.CanceledCall(Logger);
+
             _callCts.Cancel();
 
             // Canceling call will cancel pending writes to the stream
@@ -331,22 +360,50 @@ namespace Grpc.NetCore.HttpClient.Internal
             _writeStreamTcs?.TrySetCanceled();
         }
 
-        private void StartSend(System.Net.Http.HttpClient client, HttpRequestMessage message)
+        internal IDisposable StartScope()
         {
-            if (_timeout != null)
+            // Only return a scope if the logger is enabled to log 
+            // in at least Critical level for performance
+            if (Logger.IsEnabled(LogLevel.Critical))
             {
-                // Deadline timer will cancel the call CTS
-                // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
-                // the call CTS before they are created and leave them in a non-canceled state
-                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+                return Logger.BeginScope(_logScope);
             }
 
-            SendTask = SendAsync(client, message);
+            return null;
+        }
+
+        private void StartSend(System.Net.Http.HttpClient client, HttpRequestMessage message)
+        {
+            using (StartScope())
+            {
+                if (_timeout != null)
+                {
+                    Log.StartingDeadlineTimeout(Logger, _timeout.Value);
+
+                    // Deadline timer will cancel the call CTS
+                    // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
+                    // the call CTS before they are created and leave them in a non-canceled state
+                    _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+                }
+
+                SendTask = SendAsync(client, message);
+            }
         }
 
         private async Task SendAsync(System.Net.Http.HttpClient client, HttpRequestMessage message)
         {
-            HttpResponse = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
+            Log.StartingCall(Logger, Method.Type, message.RequestUri);
+
+            try
+            {
+                HttpResponse = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorStartingCall(Logger, ex);
+                throw;
+            }
+
             ValidateHeaders();
         }
 
@@ -369,7 +426,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private HttpRequestMessage CreateHttpRequestMessage()
         {
-            var message = new HttpRequestMessage(HttpMethod.Post, Method.FullName);
+            var message = new HttpRequestMessage(HttpMethod.Post, _uri);
             message.Version = new Version(2, 0);
             // User agent is optional but recommended
             message.Headers.UserAgent.Add(GrpcProtocolConstants.UserAgentHeader);
@@ -406,6 +463,8 @@ namespace Grpc.NetCore.HttpClient.Internal
             // the response has not been finished or canceled
             if (!_callCts.IsCancellationRequested && !ResponseFinished)
             {
+                Log.DeadlineExceeded(Logger);
+
                 // Flag is used to determine status code when generating exceptions
                 DeadlineReached = true;
 

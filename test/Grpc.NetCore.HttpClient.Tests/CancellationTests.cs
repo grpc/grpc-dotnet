@@ -108,7 +108,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
             return invoker;
         }
     }

@@ -27,6 +27,7 @@ using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
@@ -52,7 +53,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -91,7 +92,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -111,9 +112,9 @@ namespace Grpc.NetCore.HttpClient.Tests
             await call.RequestStream.CompleteAsync().DefaultTimeout();
 
             var requestContent = await streamTask.DefaultTimeout();
-            var requestMessage = await requestContent.ReadStreamedMessageAsync(TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
+            var requestMessage = await requestContent.ReadStreamedMessageAsync(NullLogger.Instance, TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
             Assert.AreEqual("1", requestMessage.Name);
-            requestMessage = await requestContent.ReadStreamedMessageAsync(TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
+            requestMessage = await requestContent.ReadStreamedMessageAsync(NullLogger.Instance, TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
             Assert.AreEqual("2", requestMessage.Name);
 
             var responseMessage = await responseTask.DefaultTimeout();
@@ -129,7 +130,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = new StreamContent(new SyncPointMemoryStream());
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -153,7 +154,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = new StreamContent(new SyncPointMemoryStream());
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -177,7 +178,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = new StreamContent(new SyncPointMemoryStream());
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -198,7 +199,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = new StreamContent(new SyncPointMemoryStream());
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NotFound, streamContent));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
@@ -217,7 +218,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             {
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());

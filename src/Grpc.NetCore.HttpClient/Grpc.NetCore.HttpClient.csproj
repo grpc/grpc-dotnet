@@ -24,6 +24,8 @@
     <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="$(ConfigureAwaitCheckerAnalyzerPackageVersion)" PrivateAssets="All" />
     
     <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
 
 </Project>

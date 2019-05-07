@@ -34,6 +34,8 @@ using Grpc.Core.Logging;
 using Grpc.Core.Utils;
 using Grpc.NetCore.HttpClient;
 using Grpc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -86,11 +88,23 @@ namespace InteropTestsClient
             public string ServiceAccountKeyFile { get; set; }
         }
 
-        ClientOptions options;
+        private ILoggerFactory loggerFactory;
+        private ClientOptions options;
 
         private InteropClient(ClientOptions options)
         {
             this.options = options;
+
+            var services = new ServiceCollection();
+            services.AddLogging(configure =>
+            {
+                configure.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
+            });
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         }
 
         public static void Run(string[] args)
@@ -198,7 +212,7 @@ namespace InteropTestsClient
             }
             else if (channel is HttpClientChannel httpClientChannel)
             {
-                return GrpcClientFactory.Create<TClient>(httpClientChannel.BaseAddress, httpClientChannel.HttpClientHandler);
+                return GrpcClientFactory.Create<TClient>(httpClientChannel.BaseAddress, httpClientChannel.HttpClientHandler, loggerFactory);
             }
             else
             {
