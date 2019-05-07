@@ -60,14 +60,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4
 		testassets\Proto\chat.proto = testassets\Proto\chat.proto
 		testassets\Proto\compression.proto = testassets\Proto\compression.proto
 		testassets\Proto\count.proto = testassets\Proto\count.proto
-		testassets\Proto\empty.proto = testassets\Proto\empty.proto
 		testassets\Proto\greet.proto = testassets\Proto\greet.proto
 		testassets\Proto\lifetime.proto = testassets\Proto\lifetime.proto
 		testassets\Proto\message.proto = testassets\Proto\message.proto
-		testassets\Proto\messages.proto = testassets\Proto\messages.proto
 		testassets\Proto\nested.proto = testassets\Proto\nested.proto
 		testassets\Proto\singleton.proto = testassets\Proto\singleton.proto
-		testassets\Proto\test.proto = testassets\Proto\test.proto
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{7B95289B-4992-4C0D-B26F-8EC58F81FC96}"
@@ -135,6 +132,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InteropTests", "InteropTest
 		testassets\Certs\InteropTests\server1.pem = testassets\Certs\InteropTests\server1.pem
 		testassets\Certs\InteropTests\server1.pfx = testassets\Certs\InteropTests\server1.pfx
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "grpc", "grpc", "{6DC078D2-8FB1-4685-B9BE-61F1C0ED8053}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testing", "testing", "{88AC787E-603C-48C3-AEBA-D90F3E2142CA}"
+	ProjectSection(SolutionItems) = preProject
+		testassets\Proto\grpc\testing\empty.proto = testassets\Proto\grpc\testing\empty.proto
+		testassets\Proto\grpc\testing\messages.proto = testassets\Proto\grpc\testing\messages.proto
+		testassets\Proto\grpc\testing\test.proto = testassets\Proto\grpc\testing\test.proto
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsNativeServer", "testassets\InteropTestsNativeServer\InteropTestsNativeServer.csproj", "{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -222,6 +230,10 @@ Global
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -259,6 +271,9 @@ Global
 		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{743F8EC2-004E-4640-B04F-5BAFDA8BF112} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{50CF39FF-2644-4B5F-BE1A-B57487B9723B} = {743F8EC2-004E-4640-B04F-5BAFDA8BF112}
+		{6DC078D2-8FB1-4685-B9BE-61F1C0ED8053} = {BF1393D4-6099-4EF9-85BB-7EE6CBEB920C}
+		{88AC787E-603C-48C3-AEBA-D90F3E2142CA} = {6DC078D2-8FB1-4685-B9BE-61F1C0ED8053}
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

@@ -26,14 +26,14 @@ namespace BenchmarkClient.Workers
     {
         private Greeter.GreeterClient _client;
 
-        public GrpcHttpClientUnaryWorker(int id, string target)
+        public GrpcHttpClientUnaryWorker(int id, string baseUri)
         {
             Id = id;
-            Target = target;
+            BaseUri = baseUri;
         }
 
         public int Id { get; }
-        public string Target { get; }
+        public string BaseUri { get; }
 
         public async Task CallAsync()
         {
@@ -43,7 +43,7 @@ namespace BenchmarkClient.Workers
 
         public Task ConnectAsync()
         {
-            _client = GrpcClientFactory.Create<Greeter.GreeterClient>("https://" + Target);
+            _client = GrpcClientFactory.Create<Greeter.GreeterClient>(BaseUri);
             return Task.CompletedTask;
         }
 

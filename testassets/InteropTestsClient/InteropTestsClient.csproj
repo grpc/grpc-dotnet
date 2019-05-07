@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Proto\*.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
+    <Protobuf Include="..\Proto\grpc\testing\*.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="Proto" />
