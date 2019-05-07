@@ -17,9 +17,19 @@
 #endregion
 
 using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Greet;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.GrpcClient;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
@@ -75,6 +85,84 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 
             // Assert
             Assert.AreEqual("No gRPC client configured with name 'DOES_NOT_EXIST'.", ex.Message);
+        }
+
+        [Test]
+        public async Task CreateClient_LoggingSetup_ClientLogsToTestSink()
+        {
+            // Arrange
+            var testSink = new TestSink();
+
+            var services = new ServiceCollection();
+            HttpContextHelpers.SetupHttpContext(services);
+            var clientBuilder = services.AddGrpcClient<TestGreeterClient>("contoso", options =>
+            {
+                options.BaseAddress = new Uri("http://contoso");
+            }).AddHttpMessageHandler(() => new TestDelegatingHandler());
+            services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
+
+            var provider = services.BuildServiceProvider();
+
+            // Act
+            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
+
+            var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
+
+            var response = await contosoClient.SayHelloAsync(new HelloRequest());
+
+            // Assert
+            Assert.AreEqual("http://contoso", contosoClient.GetCallInvoker().BaseAddress.OriginalString);
+
+            Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "StartingCall"));
+        }
+    }
+
+    public class TestDelegatingHandler : DelegatingHandler
+    {
+        public TestDelegatingHandler()
+        {
+        }
+
+        protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            HelloReply reply = new HelloReply
+            {
+                Message = "Hello world"
+            };
+
+            var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }
+    }
+
+    public class TestLoggerProvider : ILoggerProvider
+    {
+        private readonly Func<LogLevel, bool> _filter;
+
+        public TestLoggerProvider(TestSink testSink, bool isEnabled) :
+            this(testSink, _ => isEnabled)
+        {
+        }
+
+        public TestLoggerProvider(TestSink testSink, Func<LogLevel, bool> filter)
+        {
+            Sink = testSink;
+            _filter = filter;
+        }
+
+        public TestSink Sink { get; }
+
+        public bool DisposeCalled { get; private set; }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new TestLogger(categoryName, Sink, _filter);
+        }
+
+        public void Dispose()
+        {
+            DisposeCalled = true;
         }
     }
 }

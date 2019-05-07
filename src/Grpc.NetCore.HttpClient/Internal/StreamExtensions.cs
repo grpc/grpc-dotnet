@@ -48,6 +48,9 @@ namespace Grpc.NetCore.HttpClient
                 Log.ReadingMessage(logger);
                 cancellationToken.ThrowIfCancellationRequested();
 
+                // Read the header first
+                // - 4 bytes for the content length
+                // - 1 byte flag for compression
                 var header = new byte[HeaderSize];
 
                 int read;
@@ -79,6 +82,7 @@ namespace Grpc.NetCore.HttpClient
                     throw new InvalidDataException("Message too large.");
                 }
 
+                // Read message content until content length is reached
                 byte[] messageData;
                 if (length > 0)
                 {
@@ -131,6 +135,7 @@ namespace Grpc.NetCore.HttpClient
             {
                 Log.SendingMessage(logger);
 
+                // Serialize message first. Need to know size to prefix the length in the header
                 var data = serializer(message);
 
                 Log.SerializedMessage(logger, typeof(TMessage), data.Length);
