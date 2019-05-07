@@ -1,5 +1,6 @@
+﻿#region Copyright notice and license
 
-// Copyright 2015 gRPC authors.
+// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package grpc.testing;
-
-// An empty message that you can re-use to avoid defining duplicated empty
-// messages in your project. A typical example is to use it as argument or the
-// return value of a service API. For instance:
-//
-//   service Foo {
-//     rpc Bar (grpc.testing.Empty) returns (grpc.testing.Empty) { };
-//   };
-//
-message Empty {}
+namespace InteropTestsNativeWebsite
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            InteropServer.Run(args);
+        }
+    }
+}
