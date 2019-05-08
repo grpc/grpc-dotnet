@@ -67,6 +67,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
+            Assert.AreEqual(GrpcProtocolConstants.TEHeader, httpRequestMessage.Headers.TE.Single());
 
             var userAgent = httpRequestMessage.Headers.UserAgent.Single();
             Assert.AreEqual(GrpcProtocolConstants.UserAgentHeader, userAgent);
