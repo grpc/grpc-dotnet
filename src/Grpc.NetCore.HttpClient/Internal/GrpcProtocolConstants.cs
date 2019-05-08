@@ -37,6 +37,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
 
         internal static readonly ProductInfoHeaderValue UserAgentHeader;
+        internal static readonly TransferCodingWithQualityHeaderValue TEHeader;
 
         static GrpcProtocolConstants()
         {
@@ -57,6 +58,8 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             UserAgentHeader = ProductInfoHeaderValue.Parse(userAgent);
+
+            TEHeader = new TransferCodingWithQualityHeaderValue("trailers");
         }
     }
 }

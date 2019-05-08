@@ -371,7 +371,11 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             var message = new HttpRequestMessage(HttpMethod.Post, Method.FullName);
             message.Version = new Version(2, 0);
+            // User agent is optional but recommended
             message.Headers.UserAgent.Add(GrpcProtocolConstants.UserAgentHeader);
+            // TE is required by some servers, e.g. C Core
+            // A missing TE header results in servers aborting the gRPC call
+            message.Headers.TE.Add(GrpcProtocolConstants.TEHeader);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {
