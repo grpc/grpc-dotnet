@@ -104,7 +104,20 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.IsNotNull(httpRequestMessage);
 
             // User-Agent is always sent
-            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h => !string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase)));
+            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h =>
+            {
+                if (string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (string.Equals(h.Key, HeaderNames.TE, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                return true;
+            }));
         }
     }
 }
