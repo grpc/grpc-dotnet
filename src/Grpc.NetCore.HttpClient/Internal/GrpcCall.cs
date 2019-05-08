@@ -72,7 +72,13 @@ namespace Grpc.NetCore.HttpClient.Internal
             if (options.CancellationToken.CanBeCanceled)
             {
                 // The cancellation token will cancel the call CTS
-                _ctsRegistration = options.CancellationToken.Register(CancelCall);
+                _ctsRegistration = options.CancellationToken.Register(() =>
+                {
+                    using (StartScope())
+                    {
+                        CancelCall();
+                    }
+                });
             }
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
@@ -137,6 +143,14 @@ namespace Grpc.NetCore.HttpClient.Internal
         /// 3. <see cref="FinishResponse"/> will call dispose
         /// </summary>
         public void Dispose()
+        {
+            using (StartScope())
+            {
+                DisposeCore();
+            }
+        }
+
+        private void DisposeCore()
         {
             if (!Disposed)
             {
@@ -228,7 +242,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // Clean up call resources once this call is finished
                 // Call may not be explicitly disposed when used with unary methods
                 // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
-                Dispose();
+                DisposeCore();
             }
         }
 
@@ -316,7 +330,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 // Response is not valid gRPC
                 // Clean up/cancel any pending operations
-                Dispose();
+                DisposeCore();
 
                 throw new InvalidOperationException(_headerValidationError);
             }
@@ -351,13 +365,20 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private void CancelCall()
         {
-            Log.CanceledCall(Logger);
+            // Checking if cancellation has already happened isn't threadsafe
+            // but there is no adverse effect other than an extra log message
+            if (!_callCts.IsCancellationRequested)
+            {
+                System.Diagnostics.Debugger.Launch();
 
-            _callCts.Cancel();
+                Log.CanceledCall(Logger);
 
-            // Canceling call will cancel pending writes to the stream
-            _completeTcs?.TrySetCanceled();
-            _writeStreamTcs?.TrySetCanceled();
+                _callCts.Cancel();
+
+                // Canceling call will cancel pending writes to the stream
+                _completeTcs?.TrySetCanceled();
+                _writeStreamTcs?.TrySetCanceled();
+            }
         }
 
         internal IDisposable StartScope()

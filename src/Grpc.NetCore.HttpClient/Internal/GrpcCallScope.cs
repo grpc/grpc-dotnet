@@ -70,7 +70,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             if (_cachedToString == null)
             {
-                _cachedToString = FormattableString.Invariant($"{GrpcMethodTypeKey}:{_methodType},{GrpcUriKey}:{_uri}");
+                _cachedToString = FormattableString.Invariant($"{GrpcMethodTypeKey}:{_methodType} {GrpcUriKey}:{_uri}");
             }
 
             return _cachedToString;

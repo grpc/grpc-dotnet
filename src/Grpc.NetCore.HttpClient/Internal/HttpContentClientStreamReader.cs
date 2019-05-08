@@ -64,16 +64,19 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             lock (_moveNextLock)
             {
-                // Pending move next need to be awaited first
-                if (IsMoveNextInProgressUnsynchronized)
+                using (_call.StartScope())
                 {
-                    var ex = new InvalidOperationException("Cannot read next message because the previous read is in progress.");
-                    Log.ReadMessageError(_call.Logger, ex);
-                    return Task.FromException<bool>(ex);
-                }
+                    // Pending move next need to be awaited first
+                    if (IsMoveNextInProgressUnsynchronized)
+                    {
+                        var ex = new InvalidOperationException("Cannot read next message because the previous read is in progress.");
+                        Log.ReadMessageError(_call.Logger, ex);
+                        return Task.FromException<bool>(ex);
+                    }
 
-                // Save move next task to track whether it is complete
-                _moveNextTask = MoveNextCore(cancellationToken);
+                    // Save move next task to track whether it is complete
+                    _moveNextTask = MoveNextCore(cancellationToken);
+                }
             }
 
             return _moveNextTask;
@@ -84,41 +87,38 @@ namespace Grpc.NetCore.HttpClient.Internal
             CancellationTokenSource cts = null;
             try
             {
-                using (_call.StartScope())
+                // Linking tokens is expensive. Only create a linked token if the token passed in requires it
+                if (cancellationToken.CanBeCanceled)
                 {
-                    // Linking tokens is expensive. Only create a linked token if the token passed in requires it
-                    if (cancellationToken.CanBeCanceled)
-                    {
-                        cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
-                        cancellationToken = cts.Token;
-                    }
-                    else
-                    {
-                        cancellationToken = _call.CancellationToken;
-                    }
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    if (_httpResponse == null)
-                    {
-                        await _call.SendTask.ConfigureAwait(false);
-                        _httpResponse = _call.HttpResponse;
-                    }
-                    if (_responseStream == null)
-                    {
-                        _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    }
-
-                    Current = await _responseStream.ReadStreamedMessageAsync(_call.Logger, _call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
-                    if (Current == null)
-                    {
-                        // No more content in response so mark as finished
-                        _call.FinishResponse();
-                        return false;
-                    }
-
-                    return true;
+                    cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _call.CancellationToken);
+                    cancellationToken = cts.Token;
                 }
+                else
+                {
+                    cancellationToken = _call.CancellationToken;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (_httpResponse == null)
+                {
+                    await _call.SendTask.ConfigureAwait(false);
+                    _httpResponse = _call.HttpResponse;
+                }
+                if (_responseStream == null)
+                {
+                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                }
+
+                Current = await _responseStream.ReadStreamedMessageAsync(_call.Logger, _call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                if (Current == null)
+                {
+                    // No more content in response so mark as finished
+                    _call.FinishResponse();
+                    return false;
+                }
+
+                return true;
             }
             catch (OperationCanceledException)
             {
