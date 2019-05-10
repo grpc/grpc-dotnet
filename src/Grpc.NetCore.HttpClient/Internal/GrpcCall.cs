@@ -493,7 +493,11 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private static Status GetStatusCore(HttpResponseMessage httpResponseMessage)
         {
-            string grpcStatus = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.StatusTrailer);
+            // A gRPC server may return trailers in the headers when the response stream is empty
+            // For example, C Core server returns them together in the empty_stream interop test
+            var grpcStatus = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.StatusTrailer)
+                ?? GetHeaderValue(httpResponseMessage.Headers, GrpcProtocolConstants.StatusTrailer);
+
             // grpc-status is a required trailer
             if (grpcStatus == null)
             {
@@ -507,7 +511,9 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             // grpc-message is optional
-            string grpcMessage = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.MessageTrailer);
+            var grpcMessage = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.MessageTrailer)
+                ?? GetHeaderValue(httpResponseMessage.Headers, GrpcProtocolConstants.MessageTrailer);
+
             if (!string.IsNullOrEmpty(grpcMessage))
             {
                 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
