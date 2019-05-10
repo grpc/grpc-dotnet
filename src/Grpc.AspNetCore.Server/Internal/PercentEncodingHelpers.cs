@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.Server.Internal
         public static string PercentEncode(string value)
         {
             // Count the number of bytes needed to output this string
-            var encodedLength = 0;
+            var encodedLength = 0L;
             for (var i = 0; i < value.Length; i++)
             {
                 var c = value[i];
@@ -53,18 +53,18 @@ namespace Grpc.AspNetCore.Server.Internal
                     var unicodeCharCount = GetCountOfNonAsciiUtf16CodeUnits(value, i, maxCount: int.MaxValue);
 
                     var utf8ByteCount = Encoding.UTF8.GetByteCount(value.AsSpan(i, unicodeCharCount));
-                    encodedLength += utf8ByteCount * 3;
+                    encodedLength += (long)utf8ByteCount * 3;
                     i += unicodeCharCount - 1;
                 }
                 else
                 {
                     encodedLength += IsUnreservedCharacter(c) ? 1 : 3;
                 }
+            }
 
-                if (encodedLength < 0)
-                {
-                    throw new InvalidOperationException("Value is too large to encode.");
-                }
+            if (encodedLength > int.MaxValue)
+            {
+                throw new InvalidOperationException("Value is too large to encode.");
             }
 
             // Return the original string if no encoding is required
@@ -74,7 +74,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             // Encode
-            return string.Create(encodedLength, value, Encode);
+            return string.Create((int) encodedLength, value, Encode);
 
             static void Encode(Span<char> span, string s)
             {
