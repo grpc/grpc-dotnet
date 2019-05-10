@@ -122,7 +122,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static int GetCountOfNonAsciiUtf16CodeUnits(string value, int currentIndex, int maxCount)
         {
-            var unicodeCharCount = 0;
+            // We know we have started with a UTF-16 character
+            var unicodeCharCount = 1;
+
             var maxSize = Math.Min(value.Length - currentIndex, maxCount); 
             for (; unicodeCharCount < maxSize && value[currentIndex + unicodeCharCount] > AsciiMaxValue; unicodeCharCount++)
             {
