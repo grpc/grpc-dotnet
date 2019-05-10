@@ -50,20 +50,24 @@ namespace Grpc.AspNetCore.Server.Internal
                 if (c > AsciiMaxValue)
                 {
                     // Get additional unicode characters
-                    var unicodeCharCount = GetUnicodeCharCount(value, i);
+                    var unicodeCharCount = GetCountOfNonAsciiUtf16CodeUnits(value, i, maxCount: int.MaxValue);
 
-                    var unicodeCharacters = Encoding.UTF8.GetByteCount(value.AsSpan(i, unicodeCharCount));
-                    encodedLength += unicodeCharacters * 3;
+                    var utf8ByteCount = Encoding.UTF8.GetByteCount(value.AsSpan(i, unicodeCharCount));
+                    encodedLength += utf8ByteCount * 3;
                     i += unicodeCharCount - 1;
                 }
                 else
                 {
-                    bool unres = IsUnreservedCharacter(c);
-                    encodedLength += unres ? 1 : 3;
+                    encodedLength += IsUnreservedCharacter(c) ? 1 : 3;
+                }
+
+                if (encodedLength < 0)
+                {
+                    throw new InvalidOperationException("Value is too large to encode.");
                 }
             }
 
-            // Return the string if no encoding is required
+            // Return the original string if no encoding is required
             if (value.Length == encodedLength)
             {
                 return value;
@@ -82,9 +86,13 @@ namespace Grpc.AspNetCore.Server.Internal
                     var current = s[i];
                     if (current > AsciiMaxValue)
                     {
-                        // Get additional unicode characters
-                        var unicodeCharCount = GetUnicodeCharCount(s, i);
+                        // Leave a character for possible low surrogate
+                        const int MaxCount = MaxUnicodeCharsReallocate -1;
 
+                        // Get additional unicode characters
+                        var unicodeCharCount = GetCountOfNonAsciiUtf16CodeUnits(s, i, MaxCount);
+
+                        // Note that invalid UTF-16 data, e.g. unpaired surrogates, will be converted to EF BF BD (unicode replacement character)
                         var numberOfBytes = Encoding.UTF8.GetBytes(s.AsSpan(i, unicodeCharCount), unicodeBytesBuffer);
 
                         for (var count = 0; count < numberOfBytes; count++)
@@ -112,10 +120,10 @@ namespace Grpc.AspNetCore.Server.Internal
             span[writePosition++] = HexChars[current & 15];
         }
 
-        private static int GetUnicodeCharCount(string value, int currentIndex)
+        private static int GetCountOfNonAsciiUtf16CodeUnits(string value, int currentIndex, int maxCount)
         {
             var unicodeCharCount = 0;
-            var maxSize = Math.Min(value.Length - currentIndex, MaxUnicodeCharsReallocate - 1); // Leave a character for possible low surrogate
+            var maxSize = Math.Min(value.Length - currentIndex, maxCount); 
             for (; unicodeCharCount < maxSize && value[currentIndex + unicodeCharCount] > AsciiMaxValue; unicodeCharCount++)
             {
             }
@@ -137,82 +145,5 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             return ((PercentEncodingUnreservedBitField[c / 8] >> (c % 8)) & 1) != 0;
         }
-
-        // TODO(JamesNK): Remove WIP decode once we are certain Uri.UnescapeData works correctly
-#if Decode
-        public static string PercentDecode(string value)
-        {
-            var writeLength = 0;
-            var readIndex = 0;
-            while (readIndex < value.Length)
-            {
-                if (value[readIndex] == '%')
-                {
-                    if (readIndex + 2 < value.Length && IsValidHex(value[readIndex + 1]) && IsValidHex(value[readIndex + 2]))
-                    {
-                        readIndex += 3;
-                        writeLength++;
-                    }
-                    else
-                    {
-                        readIndex++;
-                        writeLength++;
-                    }
-                }
-                else
-                {
-                    readIndex++;
-                    writeLength++;
-                }
-            }
-
-            if (writeLength == value.Length)
-            {
-                return value;
-            }
-
-            return string.Create(writeLength, value, Decode);
-
-            static void Decode(Span<char> span, string s)
-            {
-                var readIndex = 0;
-                var writeIndex = 0;
-                while (readIndex < s.Length)
-                {
-                    if (s[readIndex] == '%')
-                    {
-                        if (readIndex + 2 < s.Length && IsValidHex(s[readIndex + 1]) && IsValidHex(s[readIndex + 1]))
-                        {
-                            span[writeIndex++] = (char)((DecodeHex(s[readIndex + 1]) << 4) | DecodeHex(s[readIndex + 2]));
-                            readIndex += 3;
-                        }
-                        else
-                        {
-                            span[writeIndex++] = s[readIndex++];
-                        }
-                    }
-                    else
-                    {
-                        span[writeIndex++] = s[readIndex++];
-                    }
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static bool IsValidHex(char c)
-        {
-            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static char DecodeHex(char c)
-        {
-            if (c >= '0' && c <= '9') return (char)(c - '0');
-            if (c >= 'A' && c <= 'F') return (char)(c - 'A' + 10);
-            if (c >= 'a' && c <= 'f') return (char)(c - 'a' + 10);
-            return (char)255;
-        }
-#endif
     }
 }

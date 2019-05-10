@@ -66,33 +66,60 @@ namespace Grpc.AspNetCore.Server.Tests
         [Test]
         public void PercentEncode_UnmatchedHighSurrogate_ReplacementCharacter()
         {
+            // Arrange & Act
             var escaped = PercentEncodingHelpers.PercentEncode("unmatchedHighSurrogate " + ((char)0xD801));
+
+            // Assert
             Assert.AreEqual("unmatchedHighSurrogate %EF%BF%BD", escaped);
         }
 
         [Test]
         public void PercentEncode_UnmatchedHighSurrogatesFollowedByAscii_AsciiNotEncoded()
         {
+            // Arrange & Act
             var escaped = PercentEncodingHelpers.PercentEncode("unmatchedHighSurrogate " + ((char)0xD801) + ((char)0xD801) + "a");
+
+            // Assert
             Assert.AreEqual("unmatchedHighSurrogate %EF%BF%BD%EF%BF%BDa", escaped);
         }
 
         [Test]
         public void PercentEncode_UnmatchedLowSurrogate_ReplacementCharacter()
         {
+            // Arrange & Act
             var escaped = PercentEncodingHelpers.PercentEncode("unmatchedLowSurrogate " + ((char)0xDC37));
+
+            // Assert
             Assert.AreEqual("unmatchedLowSurrogate %EF%BF%BD", escaped);
         }
 
         [Test]
         public void PercentEncode_TrailingHighSurrogate_SurrogatePairCorrectlyEncoded()
         {
+            // Arrange
             var originalText = "unmatchedLowSurrogate " + new string('£', PercentEncodingHelpers.MaxUnicodeCharsReallocate - 2) + "😀";
 
+            // Act
             var escaped = PercentEncodingHelpers.PercentEncode(originalText);
-            Assert.IsTrue(escaped.EndsWith("%F0%9F%98%80"), escaped);
 
+            // Assert
+            Assert.IsTrue(escaped.EndsWith("%F0%9F%98%80"), escaped);
             Assert.AreEqual(originalText, Uri.UnescapeDataString(escaped));
+        }
+
+        // This test allocates a very large string
+        // If it breaks on some environments then feel free to remove it
+        [Test]
+        public void PercentEncode_LargeUnicodeString_OverflowErrorThrown()
+        {
+            // Arrange
+            var originalText = new string('元', int.MaxValue / 8);
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => PercentEncodingHelpers.PercentEncode(originalText));
+
+            // Assert
+            Assert.AreEqual("Value is too large to encode.", ex.Message);
         }
 
         private static TestCaseData[] ValidPercentEncodingTestCases =
