@@ -62,8 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -95,8 +94,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Request sent 'identity' grpc-encoding value with compressed message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            Fixture.AssertTrailerStatus(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
         }
 
         [Test]
@@ -120,8 +118,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -161,8 +158,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             Assert.AreEqual("gzip", response.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
-            Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip");
         }
 
         private class DoesNotExistCompressionProvider : ICompressionProvider
@@ -207,9 +203,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-
-            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Request did not include grpc-encoding value with compressed message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            Fixture.AssertTrailerStatus(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         }
 
         [Test]
@@ -240,8 +234,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -269,8 +262,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout(), "gzip");
             Assert.AreEqual("Hello World", responseMessage.Message);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Fixture.AssertTrailerStatus();
         }
 
         [Test]
@@ -299,8 +291,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            Fixture.AssertTrailerStatus();
         }
     }
 }
