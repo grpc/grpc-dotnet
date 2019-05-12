@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
@@ -36,16 +37,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public GrpcTestFixture()
         {
-            TrailersContainer = new TrailersContainer();
-
             LoggerFactory = new LoggerFactory();
 
             Action<IServiceCollection> configureServices = services =>
             {
-                // Register trailers container so tests can assert trailer headers
-                // Not thread safe for parallel calls
-                services.AddSingleton(TrailersContainer);
-
                 // Registers a service for tests to add new methods
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
 
@@ -66,7 +61,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Client.BaseAddress = new Uri("http://localhost");
         }
 
-        public TrailersContainer TrailersContainer { get; }
         public LoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
@@ -76,15 +70,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             Client.Dispose();
             _server.Dispose();
-        }
-
-        public void AssertTrailerStatus() => AssertTrailerStatus(StatusCode.OK, string.Empty);
-
-        public void AssertTrailerStatus(StatusCode statusCode, string details)
-        {
-            var trailerValueString = TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString();
-            Assert.AreEqual(statusCode.ToTrailerString(), trailerValueString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(trailerValueString)}");
-            Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
     }
 }

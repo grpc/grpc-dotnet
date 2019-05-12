@@ -53,12 +53,12 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            await Fixture.Client.PostAsync(
+            var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Fixture.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         }
 
         [Test]
@@ -82,12 +82,12 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            await Fixture.Client.PostAsync(
+            var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloSendLargeReply",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Fixture.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         }
     }
 }

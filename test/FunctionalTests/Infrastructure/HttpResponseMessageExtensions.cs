@@ -16,10 +16,14 @@
 
 #endregion
 
+using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -37,6 +41,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             response.AssertIsSuccessfulGrpcRequest();
             return MessageHelpers.AssertReadMessage<T>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+        }
+
+        public static void AssertTrailerStatus(this HttpResponseMessage response) => response.AssertTrailerStatus(StatusCode.OK, string.Empty);
+
+        public static void AssertTrailerStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
+        {
+            var trailerValueString = response.TrailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).Single();
+            Assert.AreEqual(statusCode.ToTrailerString(), trailerValueString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(trailerValueString)}");
+
+            if (response.TrailingHeaders.TryGetValues(GrpcProtocolConstants.MessageTrailer, out var values))
+            {
+                Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), values.Single());
+            }
+            else
+            {
+                Assert.IsTrue(string.IsNullOrEmpty(details));
+            }
         }
     }
 }
