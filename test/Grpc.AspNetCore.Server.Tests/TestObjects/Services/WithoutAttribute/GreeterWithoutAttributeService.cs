@@ -18,7 +18,7 @@
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute
 {
-    public class GreeterWithoutAttributeService : Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute.GreeterWithoutAttribute.GreeterBase
+    public class GreeterWithoutAttributeService : GreeterWithoutAttribute.GreeterBase
     {
     }
 }
