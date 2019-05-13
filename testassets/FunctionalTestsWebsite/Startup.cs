@@ -89,7 +89,6 @@ namespace FunctionalTestsWebsite
 
             // When the site is run from the test project these types will be injected
             // This will add a default types if the site is run standalone
-            services.TryAddSingleton<TrailersContainer>();
             services.TryAddSingleton<IPrimaryMessageHandlerProvider, HttpPrimaryMessageHandlerProvider>();
             services.TryAddSingleton<DynamicEndpointDataSource>();
 
@@ -102,17 +101,6 @@ namespace FunctionalTestsWebsite
         {
             app.Use((context, next) =>
             {
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/6880
-                if (!context.Response.SupportsTrailers())
-                {
-                    context.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
-                    {
-                        Trailers = new HeaderDictionary()
-                    });
-                }
-
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/7449
-                context.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
                 // Workaround for https://github.com/aspnet/AspNetCore/issues/7780
                 context.Features.Set<IHttpResponseStartFeature>(new TestHttpResponseStartFeature());
 
@@ -122,21 +110,6 @@ namespace FunctionalTestsWebsite
             app.UseRouting();
 
             app.UseAuthorization();
-
-            app.Use(async (context, next) =>
-            {
-                await next();
-
-                var trailers = context.Features.Get<IHttpResponseTrailersFeature>().Trailers;
-
-                var trailersContainer = context.RequestServices.GetRequiredService<TrailersContainer>();
-
-                trailersContainer.Trailers.Clear();
-                foreach (var trailer in trailers)
-                {
-                    trailersContainer.Trailers[trailer.Key] = trailer.Value;
-                }
-            });
 
             app.UseEndpoints(endpoints =>
             {

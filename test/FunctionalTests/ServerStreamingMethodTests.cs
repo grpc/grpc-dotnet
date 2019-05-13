@@ -170,7 +170,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout());
 
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
     }
 }

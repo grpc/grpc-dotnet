@@ -62,7 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -94,7 +94,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-            Fixture.AssertTrailerStatus(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
+            response.AssertTrailerStatus(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
         }
 
         [Test]
@@ -118,7 +118,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -158,7 +158,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             Assert.AreEqual("gzip", response.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
-            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip");
         }
 
         private class DoesNotExistCompressionProvider : ICompressionProvider
@@ -203,7 +203,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Fixture.AssertTrailerStatus(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
+            response.AssertTrailerStatus(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -262,7 +262,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout(), "gzip");
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -291,7 +291,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
-            Fixture.AssertTrailerStatus();
+            response.AssertTrailerStatus();
         }
     }
 }
