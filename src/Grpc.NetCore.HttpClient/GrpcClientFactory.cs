@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.NetCore.HttpClient
 {
@@ -36,8 +37,9 @@ namespace Grpc.NetCore.HttpClient
         /// <typeparam name="TClient">The type of the gRPC client. This type will typically be defined using generated code from a *.proto file.</typeparam>
         /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
         /// <param name="certificate">The client certificate to use when making gRPC requests.</param>
+        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(string baseAddress, X509Certificate certificate = null) where TClient : ClientBase<TClient>
+        public static TClient Create<TClient>(string baseAddress, X509Certificate certificate = null, ILoggerFactory loggerFactory = null) where TClient : ClientBase<TClient>
         {
             // Needs to be set before creating the HttpClientHandler
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
@@ -49,7 +51,7 @@ namespace Grpc.NetCore.HttpClient
                 httpClientHandler.ClientCertificates.Add(certificate);
             }
 
-            return CreateCore<TClient>(baseAddress, httpClientHandler);
+            return CreateCore<TClient>(baseAddress, httpClientHandler, loggerFactory);
         }
 
         /// <summary>
@@ -58,18 +60,19 @@ namespace Grpc.NetCore.HttpClient
         /// <typeparam name="TClient">The type of the gRPC client. This type will typically be defined using generated code from a *.proto file.</typeparam>
         /// <param name="baseAddress">The base address to use when making gRPC requests.</param>
         /// <param name="httpClientHandler">The <see cref="HttpClientHandler"/>.</param>
+        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(string baseAddress, HttpClientHandler httpClientHandler) where TClient : ClientBase<TClient>
+        public static TClient Create<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory loggerFactory) where TClient : ClientBase<TClient>
         {
-            return CreateCore<TClient>(baseAddress, httpClientHandler);
+            return CreateCore<TClient>(baseAddress, httpClientHandler, loggerFactory);
         }
 
-        private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler) where TClient : ClientBase<TClient>
+        private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory loggerFactory) where TClient : ClientBase<TClient>
         {
             var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
             httpClient.BaseAddress = new Uri(baseAddress, UriKind.RelativeOrAbsolute);
 
-            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient));
+            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient, loggerFactory));
         }
 
         private class Cache<TClient>

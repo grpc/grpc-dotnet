@@ -22,15 +22,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.NetCore.HttpClient
 {
     /// <summary>
     /// A client-side RPC invocation using HttpClient.
     /// </summary>
-    public class HttpClientCallInvoker : CallInvoker
+    public sealed class HttpClientCallInvoker : CallInvoker
     {
-        private System.Net.Http.HttpClient _client;
+        private readonly System.Net.Http.HttpClient _client;
+        private readonly ILoggerFactory _loggerFactory;
 
         // Override the current time for unit testing
         internal ISystemClock Clock = SystemClock.Instance;
@@ -39,9 +42,16 @@ namespace Grpc.NetCore.HttpClient
         /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
         /// </summary>
         /// <param name="client">The HttpClient to use for gRPC requests.</param>
-        public HttpClientCallInvoker(System.Net.Http.HttpClient client)
+        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
+        public HttpClientCallInvoker(System.Net.Http.HttpClient client, ILoggerFactory loggerFactory)
         {
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+
             _client = client;
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
         }
 
         internal Uri BaseAddress => _client.BaseAddress;
@@ -148,7 +158,7 @@ namespace Grpc.NetCore.HttpClient
 
         private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(Method<TRequest, TResponse> method, CallOptions options)
         {
-            return new GrpcCall<TRequest, TResponse>(method, options, Clock);
+            return new GrpcCall<TRequest, TResponse>(method, options, Clock, _loggerFactory);
         }
     }
 }

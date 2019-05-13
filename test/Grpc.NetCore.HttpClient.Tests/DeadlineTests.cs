@@ -47,7 +47,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
             invoker.Clock = new TestSystemClock(new DateTime(2019, 11, 29, 1, 1, 1, DateTimeKind.Utc));
 
             // Act
@@ -71,7 +71,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.MaxValue), new HelloRequest());
@@ -100,7 +100,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
             invoker.Clock = new TestSystemClock(new DateTime(2019, 11, 29, 1, 1, 1, DateTimeKind.Utc));
 
             var headers = new Metadata();
@@ -129,7 +129,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
@@ -152,7 +152,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow));
@@ -172,7 +172,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcStatusCode: null));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
@@ -192,7 +192,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)), new HelloRequest());
@@ -215,7 +215,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
             invoker.Clock = new TestSystemClock(new DateTime(2019, 11, 29, 1, 1, 1, DateTimeKind.Utc));
 
             // Act
@@ -248,7 +248,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = await TestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(deadline: new DateTime(2000, DateTimeKind.Local)), new HelloRequest()));

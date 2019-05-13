@@ -24,6 +24,7 @@ using Grpc.Core;
 using Grpc.NetCore.HttpClient;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.GrpcClient.Internal
@@ -34,8 +35,9 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
         private readonly IServiceProvider _services;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IOptionsMonitor<GrpcClientOptions> _clientOptions;
+        private readonly ILoggerFactory _loggerFactory;
 
-        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptionsMonitor<GrpcClientOptions> clientOptions)
+        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptionsMonitor<GrpcClientOptions> clientOptions, ILoggerFactory loggerFactory)
         {
             if (cache == null)
             {
@@ -52,10 +54,16 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
                 throw new ArgumentNullException(nameof(clientOptions));
             }
 
+            if (loggerFactory == null)
+            {
+                throw new ArgumentNullException(nameof(loggerFactory));
+            }
+
             _cache = cache;
             _services = services;
             _httpContextAccessor = services.GetService<IHttpContextAccessor>();
             _clientOptions = clientOptions;
+            _loggerFactory = loggerFactory;
         }
 
         public TClient CreateClient(HttpClient httpClient, string name)
@@ -65,7 +73,7 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
-            var callInvoker = new HttpClientCallInvoker(httpClient);
+            var callInvoker = new HttpClientCallInvoker(httpClient, _loggerFactory);
 
             var httpContext = _httpContextAccessor.HttpContext;
             var serverCallContext = httpContext?.Features.Get<IServerCallContextFeature>().ServerCallContext;

@@ -16,23 +16,42 @@
 
 #endregion
 
+using System.Net.Http;
 using System;
-using System.Buffers.Binary;
-using System.Diagnostics;
+using System.Net;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Threading;
+using System.Diagnostics;
+using System.Buffers.Binary;
+using Grpc.NetCore.HttpClient.Internal;
+using Grpc.Core;
 
-namespace Grpc.NetCore.HttpClient.Internal
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
-    internal static class SerializationHelpers
+    internal static class ResponseUtils
     {
-        public static async Task WriteMessage<TMessage>(Stream stream, TMessage message, Func<TMessage, byte[]> serializer, CancellationToken cancellationToken)
-        {
-            var data = serializer(message);
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode) =>
+            CreateResponse(statusCode, string.Empty);
 
-            await WriteHeaderAsync(stream, data.Length, false, cancellationToken).ConfigureAwait(false);
-            await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string payload) =>
+            CreateResponse(statusCode, new StringContent(payload));
+
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK)
+        {
+            payload.Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
+
+            var message = new HttpResponseMessage(statusCode)
+            {
+                Content = payload
+            };
+
+            if (grpcStatusCode != null)
+            {
+                message.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.Value.ToString("D"));
+            }
+
+            return message;
         }
 
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"

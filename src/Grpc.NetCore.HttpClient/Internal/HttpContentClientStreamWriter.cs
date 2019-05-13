@@ -18,9 +18,9 @@
 
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
@@ -45,16 +45,23 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public Task CompleteAsync()
         {
-            lock (_writeLock)
+            using (_call.StartScope())
             {
-                // Pending writes need to be awaited first
-                if (IsWriteInProgressUnsynchronized)
-                {
-                    return Task.FromException(new InvalidOperationException("Cannot complete client stream writer because the previous write is in progress."));
-                }
+                Log.CompletingClientStream(_call.Logger);
 
-                // Notify that the client stream is complete
-                _completeTcs.TrySetResult(true);
+                lock (_writeLock)
+                {
+                    // Pending writes need to be awaited first
+                    if (IsWriteInProgressUnsynchronized)
+                    {
+                        var ex = new InvalidOperationException("Cannot complete client stream writer because the previous write is in progress.");
+                        Log.CompleteClientStreamError(_call.Logger, ex);
+                        return Task.FromException(ex);
+                    }
+
+                    // Notify that the client stream is complete
+                    _completeTcs.TrySetResult(true);
+                }
             }
 
             return Task.CompletedTask;
@@ -69,24 +76,31 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             lock (_writeLock)
             {
-                // CompleteAsync has already been called
-                if (_completeTcs.Task.IsCompletedSuccessfully)
+                using (_call.StartScope())
                 {
-                    return Task.FromException(new InvalidOperationException("Cannot write message because the client stream writer is complete."));
-                }
-                else if (_completeTcs.Task.IsCanceled)
-                {
-                    throw _call.CreateCanceledStatusException();
-                }
+                    // CompleteAsync has already been called
+                    if (_completeTcs.Task.IsCompletedSuccessfully)
+                    {
+                        var ex = new InvalidOperationException("Cannot write message because the client stream writer is complete.");
+                        Log.WriteMessageError(_call.Logger, ex);
+                        return Task.FromException(ex);
+                    }
+                    else if (_completeTcs.Task.IsCanceled)
+                    {
+                        throw _call.CreateCanceledStatusException();
+                    }
 
-                // Pending writes need to be awaited first
-                if (IsWriteInProgressUnsynchronized)
-                {
-                    return Task.FromException(new InvalidOperationException("Cannot write message because the previous write is in progress."));
-                }
+                    // Pending writes need to be awaited first
+                    if (IsWriteInProgressUnsynchronized)
+                    {
+                        var ex = new InvalidOperationException("Cannot write message because the previous write is in progress.");
+                        Log.WriteMessageError(_call.Logger, ex);
+                        return Task.FromException(ex);
+                    }
 
-                // Save write task to track whether it is complete
-                _writeTask = WriteAsyncCore(message);
+                    // Save write task to track whether it is complete
+                    _writeTask = WriteAsyncCore(message);
+                }
             }
 
             return _writeTask;
@@ -100,10 +114,10 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             try
             {
-                // Wait until the client stream has started
-                var writeStream = await _writeStreamTask.ConfigureAwait(false);
+                    // Wait until the client stream has started
+                    var writeStream = await _writeStreamTask.ConfigureAwait(false);
 
-                await SerializationHelpers.WriteMessage<TRequest>(writeStream, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
+                    await writeStream.WriteMessage<TRequest>(_call.Logger, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
             {
@@ -121,6 +135,33 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 var writeTask = _writeTask;
                 return writeTask != null && !writeTask.IsCompleted;
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception> _completingClientStream =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "CompletingClientStream"), "Completing client stream.");
+
+            private static readonly Action<ILogger, Exception> _writeMessageError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(2, "WriteMessageError"), "Error writing message.");
+
+            private static readonly Action<ILogger, Exception> _completeClientStreamError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(3, "CompleteClientStreamError"), "Error completing client stream.");
+
+            public static void CompletingClientStream(ILogger logger)
+            {
+                _completingClientStream(logger, null);
+            }
+
+            public static void WriteMessageError(ILogger logger, Exception ex)
+            {
+                _writeMessageError(logger, ex);
+            }
+
+            public static void CompleteClientStreamError(ILogger logger, Exception ex)
+            {
+                _completeClientStreamError(logger, ex);
             }
         }
     }
