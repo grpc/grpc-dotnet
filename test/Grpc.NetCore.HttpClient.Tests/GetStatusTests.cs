@@ -50,7 +50,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return response;
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -75,7 +75,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "%C2%A3");
                 return response;
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -101,7 +101,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "two");
                 return response;
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -121,7 +121,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: null);
                 return response;
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -144,7 +144,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 response.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, "value");
                 return response;
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());

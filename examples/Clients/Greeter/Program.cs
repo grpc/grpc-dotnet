@@ -56,17 +56,19 @@ namespace Sample.Clients
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(3.5));
 
-            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token);
-            try
+            using (var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
             {
-                while (await replies.ResponseStream.MoveNext(cts.Token))
+                try
                 {
-                    Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                    while (await replies.ResponseStream.MoveNext(cts.Token))
+                    {
+                        Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                    }
                 }
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-            {
-                Console.WriteLine("Stream cancelled.");
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+                {
+                    Console.WriteLine("Stream cancelled.");
+                }
             }
         }
     }

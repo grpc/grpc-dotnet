@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.NetCore.HttpClient.Internal
 {
@@ -63,14 +64,19 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             lock (_moveNextLock)
             {
-                // Pending move next need to be awaited first
-                if (IsMoveNextInProgressUnsynchronized)
+                using (_call.StartScope())
                 {
-                    return Task.FromException<bool>(new InvalidOperationException("Cannot read next message because the previous read is in progress."));
-                }
+                    // Pending move next need to be awaited first
+                    if (IsMoveNextInProgressUnsynchronized)
+                    {
+                        var ex = new InvalidOperationException("Cannot read next message because the previous read is in progress.");
+                        Log.ReadMessageError(_call.Logger, ex);
+                        return Task.FromException<bool>(ex);
+                    }
 
-                // Save move next task to track whether it is complete
-                _moveNextTask = MoveNextCore(cancellationToken);
+                    // Save move next task to track whether it is complete
+                    _moveNextTask = MoveNextCore(cancellationToken);
+                }
             }
 
             return _moveNextTask;
@@ -104,7 +110,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                     _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 }
 
-                Current = await _responseStream.ReadStreamedMessageAsync(_call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                Current = await _responseStream.ReadStreamedMessageAsync(_call.Logger, _call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
                 if (Current == null)
                 {
                     // No more content in response so mark as finished
@@ -134,6 +140,17 @@ namespace Grpc.NetCore.HttpClient.Internal
             {
                 var moveNextTask = _moveNextTask;
                 return moveNextTask != null && !moveNextTask.IsCompleted;
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception> _readMessageError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(1, "ReadMessageError"), "Error reading message.");
+
+            public static void ReadMessageError(ILogger logger, Exception ex)
+            {
+                _readMessageError(logger, ex);
             }
         }
     }

@@ -49,7 +49,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>())));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -80,7 +80,7 @@ namespace Grpc.NetCore.HttpClient.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -111,7 +111,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             {
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(streamContent)));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
@@ -166,7 +166,7 @@ namespace Grpc.NetCore.HttpClient.Tests
                 var streamContent = new StreamContent(new SyncPointMemoryStream());
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NotFound, streamContent));
             });
-            var invoker = new HttpClientCallInvoker(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());

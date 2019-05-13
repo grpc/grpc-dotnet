@@ -10,6 +10,7 @@
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
+    <MicrosoftExtensionsPackageVersion>3.0.0-preview4.19216.2</MicrosoftExtensionsPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
