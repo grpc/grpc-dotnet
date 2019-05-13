@@ -20,6 +20,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
@@ -43,21 +44,34 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return MessageHelpers.AssertReadMessage<T>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
         }
 
-        public static void AssertTrailerStatus(this HttpResponseMessage response) => response.AssertTrailerStatus(StatusCode.OK, string.Empty);
+        public static void AssertStatus(this HttpResponseMessage response) => response.AssertStatus(StatusCode.OK, string.Empty);
 
-        public static void AssertTrailerStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
+        public static void AssertStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
         {
-            var trailerValueString = response.TrailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).Single();
-            Assert.AreEqual(statusCode.ToTrailerString(), trailerValueString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(trailerValueString)}");
+            var statusString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.StatusTrailer)
+                ?? GetStatusValue(response.Headers, GrpcProtocolConstants.StatusTrailer);
+            Assert.AreEqual(statusCode.ToTrailerString(), statusString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(statusString)}");
 
-            if (response.TrailingHeaders.TryGetValues(GrpcProtocolConstants.MessageTrailer, out var values))
+            var messageString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.MessageTrailer)
+                ?? GetStatusValue(response.Headers, GrpcProtocolConstants.MessageTrailer);
+            if (messageString != null)
             {
-                Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), values.Single());
+                Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), messageString);
             }
             else
             {
                 Assert.IsTrue(string.IsNullOrEmpty(details));
             }
+        }
+
+        private static string GetStatusValue(HttpResponseHeaders headers, string name)
+        {
+            if (headers.TryGetValues(name, out var values))
+            {
+                return values.Single();
+            }
+
+            return null;
         }
     }
 }

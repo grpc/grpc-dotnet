@@ -90,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             requestStream.AddData(Array.Empty<byte>());
             await finishedTask.DefaultTimeout();
 
-            response.AssertTrailerStatus();
+            response.AssertStatus();
         }
 
         [Test]
@@ -155,7 +155,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout());
 
-            response.AssertTrailerStatus();
+            response.AssertStatus();
         }
     }
 }

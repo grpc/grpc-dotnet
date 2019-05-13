@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -130,7 +129,8 @@ namespace Grpc.AspNetCore.Server.Internal
         public static Task SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
             response.StatusCode = httpStatusCode;
-            SetStatusTrailers(response, new Status(grpcStatusCode, message));
+            // Write status before writing message to response body so the status can return with headers
+            SetStatus(GetTrailersDestination(response), new Status(grpcStatusCode, message));
             return response.WriteAsync(message);
         }
 
@@ -203,10 +203,10 @@ namespace Grpc.AspNetCore.Server.Internal
             response.ContentType = GrpcProtocolConstants.GrpcContentType;
         }
 
-        public static void SetStatusTrailers(HttpResponse response, Status status)
+        public static void SetStatus(IHeaderDictionary destination, Status status)
         {
             // Use SetTrailer here because we want to overwrite any that was set earlier
-            SetTrailer(response, GrpcProtocolConstants.StatusTrailer, status.StatusCode.ToTrailerString());
+            destination[GrpcProtocolConstants.StatusTrailer] = status.StatusCode.ToTrailerString();
 
             string escapedDetail;
             if (!string.IsNullOrEmpty(status.Detail))
@@ -221,18 +221,28 @@ namespace Grpc.AspNetCore.Server.Internal
 			    escapedDetail = null;
 			}
 
-            SetTrailer(response, GrpcProtocolConstants.MessageTrailer, escapedDetail);
+            destination[GrpcProtocolConstants.MessageTrailer] = escapedDetail;
         }
 
-        private static void SetTrailer(HttpResponse response, string trailerName, StringValues trailerValues)
+        public static IHeaderDictionary GetTrailersDestination(HttpResponse response)
         {
-            var feature = response.HttpContext.Features.Get<IHttpResponseTrailersFeature>();
-            if (feature?.Trailers == null || feature.Trailers.IsReadOnly)
+            if (response.HasStarted)
             {
-                throw new InvalidOperationException("Trailers are not supported for this response.");
-            }
+                // The response has content so write trailers to a trailing HEADERS frame
+                var feature = response.HttpContext.Features.Get<IHttpResponseTrailersFeature>();
+                if (feature?.Trailers == null || feature.Trailers.IsReadOnly)
+                {
+                    throw new InvalidOperationException("Trailers are not supported for this response.");
+                }
 
-            feature.Trailers[trailerName] = trailerValues;
+                return feature.Trailers;
+            }
+            else
+            {
+                // The response is "Trailers-Only". There are no gRPC messages in the response so the status
+                // and other trailers can be placed in the header HEADERS frame
+                return response.Headers;
+            }
         }
 
         public static AuthContext CreateAuthContext(X509Certificate2 clientCertificate)

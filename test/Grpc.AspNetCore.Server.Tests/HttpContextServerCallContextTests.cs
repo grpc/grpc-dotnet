@@ -189,6 +189,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerValue);
 
@@ -210,6 +211,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Status = new Status(StatusCode.Internal, errorMessage);
 
@@ -225,12 +227,34 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void ConsolidateTrailers_ResponseNotStarted_ReturnTrailersInHeaders()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: false));
+            var serverCallContext = CreateServerCallContext(httpContext);
+            serverCallContext.Status = new Status(StatusCode.Internal, "Test message");
+
+            // Act
+            httpContext.Response.ConsolidateTrailers(serverCallContext);
+
+            // Assert
+            var headers = httpContext.Response.Headers;
+
+            Assert.AreEqual(2, headers.Count);
+            Assert.AreEqual(StatusCode.Internal.ToString("D"), headers[GrpcProtocolConstants.StatusTrailer]);
+            Assert.AreEqual("Test message", headers[GrpcProtocolConstants.MessageTrailer].ToString());
+        }
+
+        [Test]
         public void ConsolidateTrailers_StatusOverwritesTrailers_PercentEncodesMessage()
         {
             // Arrange
             var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.MessageTrailer, "All is good");
@@ -256,6 +280,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var trailerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerBytes);
 
@@ -273,6 +298,18 @@ namespace Grpc.AspNetCore.Server.Tests
         private class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
         {
             public IHeaderDictionary Trailers { get; set; } = new HeaderDictionary();
+        }
+
+        private class TestHttpResponseFeature : HttpResponseFeature
+        {
+            private readonly bool _hasStarted;
+
+            public TestHttpResponseFeature(bool hasStarted = false)
+            {
+                _hasStarted = hasStarted;
+            }
+
+            public override bool HasStarted => _hasStarted;
         }
 
         private static readonly ISystemClock TestClock = new TestSystemClock(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
