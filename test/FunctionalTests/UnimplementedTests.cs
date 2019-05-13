@@ -17,6 +17,7 @@
 #endregion
 
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -54,7 +55,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Method is unimplemented.");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Method is unimplemented.");
         }
 
         [Test]
@@ -78,7 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Fixture.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
         }
 
         [TestCase("application/grpc", HttpStatusCode.OK, StatusCode.Unimplemented)]
@@ -103,7 +104,14 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(httpStatusCode, response.StatusCode);
-            Assert.AreEqual(grpcStatusCode?.ToTrailerString() ?? string.Empty, Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            if (grpcStatusCode != null)
+            {
+                Assert.AreEqual(grpcStatusCode.Value.ToTrailerString(), response.TrailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).Single());
+            }
+            else
+            {
+                Assert.IsFalse(response.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _));
+            }
         }
     }
 }

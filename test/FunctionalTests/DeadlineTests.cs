@@ -123,7 +123,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.AreNotEqual(0, messageCount);
 
-            Fixture.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
         }
 
         [Test]
@@ -198,7 +198,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             await readTask.DefaultTimeout();
 
             Assert.AreNotEqual(0, messageCount);
-            Fixture.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Cannot write message after request is complete.");
+            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Cannot write message after request is complete.");
         }
     }
 }
