@@ -200,7 +200,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         }
 
         [Test]
-        public async Task AsyncServerStreamingCall_TrailerInFooterAndStatusMessageInHeader_IgnoreStatusMessage()
+        public async Task AsyncServerStreamingCall_StatusInFooterAndMessageInHeader_IgnoreMessage()
         {
             // Arrange
             HttpResponseMessage responseMessage = null;
