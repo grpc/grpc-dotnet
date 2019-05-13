@@ -369,8 +369,6 @@ namespace Grpc.NetCore.HttpClient.Internal
             // but there is no adverse effect other than an extra log message
             if (!_callCts.IsCancellationRequested)
             {
-                System.Diagnostics.Debugger.Launch();
-
                 Log.CanceledCall(Logger);
 
                 _callCts.Cancel();
