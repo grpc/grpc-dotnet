@@ -55,7 +55,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            response.AssertStatus(StatusCode.Unimplemented, "Method is unimplemented.");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Method is unimplemented.");
         }
 
         [Test]
@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            response.AssertStatus(StatusCode.Unimplemented, "Service is unimplemented.");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
         }
 
         [TestCase("application/grpc", HttpStatusCode.OK, StatusCode.Unimplemented)]

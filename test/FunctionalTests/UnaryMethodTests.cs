@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -129,7 +129,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Read to end of response so headers are available
             await response.Content.CopyToAsync(new MemoryStream());
 
-            response.AssertStatus(StatusCode.Internal, "Additional data after the message received.");
+            response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
         }
 
         [Test]
@@ -173,7 +173,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
 
             Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -215,7 +215,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            response.AssertStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Response headers can only be sent once per call.");
+            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Response headers can only be sent once per call.");
         }
 
         [Test]
@@ -249,7 +249,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            response.AssertStatus(StatusCode.Cancelled, "No message returned from method.");
+            response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
         }
 
         [Test]
@@ -288,7 +288,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            response.AssertStatus(StatusCode.Unknown, "User error");
+            response.AssertTrailerStatus(StatusCode.Unknown, "User error");
             // Trailer is written to the header because this is a Trailers-Only response
             Assert.AreEqual("A value!", response.Headers.GetValues("test-trailer").Single());
         }
@@ -348,7 +348,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert 1
             var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
             Assert.AreEqual(1, total.Count);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
 
             // Act 2
             response = await Fixture.Client.PostAsync(
@@ -358,7 +358,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert 2
             total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
             Assert.AreEqual(2, total.Count);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
         }
 
         [TestCase(null, "Content-Type is missing from the request.")]
@@ -389,7 +389,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var content = await response.Content.ReadAsStringAsync().DefaultTimeout();
             Assert.AreEqual(responseMessage, content);
 
-            response.AssertStatus(StatusCode.Internal, responseMessage);
+            response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
         }
 
         [TestCase("application/grpc")]
@@ -419,7 +419,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
         }
     }
 }

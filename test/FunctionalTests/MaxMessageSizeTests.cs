@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            response.AssertStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         }
 
         [Test]
@@ -87,7 +87,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            response.AssertStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         }
     }
 }

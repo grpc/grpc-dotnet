@@ -44,9 +44,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return MessageHelpers.AssertReadMessage<T>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
         }
 
-        public static void AssertStatus(this HttpResponseMessage response) => response.AssertStatus(StatusCode.OK, string.Empty);
+        public static void AssertTrailerStatus(this HttpResponseMessage response) => response.AssertTrailerStatus(StatusCode.OK, string.Empty);
 
-        public static void AssertStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
+        public static void AssertTrailerStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
         {
             var statusString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.StatusTrailer)
                 ?? GetStatusValue(response.Headers, GrpcProtocolConstants.StatusTrailer);

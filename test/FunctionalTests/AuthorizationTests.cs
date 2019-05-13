@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertStatus();
+            response.AssertTrailerStatus();
         }
 
         [Test]
