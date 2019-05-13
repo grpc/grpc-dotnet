@@ -524,6 +524,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             // grpc-message is optional
+            // Always read the gRPC message from the same headers collection as the status
             var grpcMessage = GetHeaderValue(statusHeaders, GrpcProtocolConstants.MessageTrailer);
 
             if (!string.IsNullOrEmpty(grpcMessage))
