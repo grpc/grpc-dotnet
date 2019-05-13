@@ -205,7 +205,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public static void SetStatus(IHeaderDictionary destination, Status status)
         {
-            // Use SetTrailer here because we want to overwrite any that was set earlier
+            // Overwrite any previously set status
             destination[GrpcProtocolConstants.StatusTrailer] = status.StatusCode.ToTrailerString();
 
             string escapedDetail;
