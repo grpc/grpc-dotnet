@@ -39,11 +39,13 @@ namespace GRPCServer
                 })
                 .AddServiceOptions<GreeterService>(options =>
                 {
-                    // This registers an interceptor for the Greeter service with a Scoped lifetime.
+                    // This registers an interceptor for the Greeter service with a Singleton lifetime.
                     // NOTE: Not all calls should be cached. Since the response of this service only depends on the request and no other state, adding caching here is acceptable.
                     options.Interceptors.Add<UnaryCachingInterceptor>();
                 });
+            services.AddGrpcReflection();
             services.AddSingleton(new MaxConcurrentCallsInterceptor(200));
+            services.AddSingleton<UnaryCachingInterceptor>();
             services.AddSingleton<IncrementingCounter>();
             services.AddSingleton<MailQueueRepository>();
         }

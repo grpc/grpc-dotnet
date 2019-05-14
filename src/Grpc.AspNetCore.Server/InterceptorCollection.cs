@@ -57,6 +57,20 @@ namespace Grpc.AspNetCore.Server
         }
 
         /// <summary>
+        /// Add a registration for an interceptor to the end of the pipeline.
+        /// </summary>
+        /// <param name="registration">The registration for the interceptor to add.</param>
+        public void Add(InterceptorRegistration registration)
+        {
+            if (_store == null)
+            {
+                _store = new List<InterceptorRegistration>();
+            }
+
+            _store.Add(registration);
+        }
+
+        /// <summary>
         /// Append a set of interceptors to the end of the pipeline.
         /// </summary>
         /// <param name="collection">The set of interceptors to add.</param>

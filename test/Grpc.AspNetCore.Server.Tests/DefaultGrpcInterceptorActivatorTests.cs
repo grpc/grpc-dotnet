@@ -136,6 +136,18 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void DisposeNotCalledForDisposableServicesNotCreatedByActivator()
+        {
+            var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>(Mock.Of<IServiceProvider>());
+            var interceptor = (DisposableGrpcInterceptor)interceptorActivator.Create();
+            var anotherInterceptor = new DisposableGrpcInterceptor();
+            interceptorActivator.Release(anotherInterceptor);
+
+            Assert.False(interceptor.Disposed);
+            Assert.False(anotherInterceptor.Disposed);
+        }
+
+        [Test]
         public void CannotReleaseNullService()
         {
             Assert.AreEqual("interceptor",

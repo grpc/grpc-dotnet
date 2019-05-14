@@ -27,6 +27,7 @@ namespace Server.Interceptors
 {
     public class UnaryCachingInterceptor : Interceptor
     {
+        // Using a static cache so this interceptor can be registered with a Scoped or Singleton lifetime
         private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
         private readonly ILogger _logger;
 

@@ -17,9 +17,9 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,11 +32,26 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly DuplexStreamingServerMethod<TService, TRequest, TResponse> _invoker;
-        private static readonly Func<Interceptor, DuplexStreamingServerMethod<TRequest, TResponse>, DuplexStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptor, next) =>
+        private static readonly Func<InterceptorRegistration, DuplexStreamingServerMethod<TRequest, TResponse>, DuplexStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptorRegistration, next) =>
         {
-            return (requestStream, responseStream, context) =>
+            return async (requestStream, responseStream, context) =>
             {
-                return interceptor.DuplexStreamingServerHandler(requestStream, responseStream, context, next);
+                var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
+                var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
+
+                if (interceptorInstance == null)
+                {
+                    throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
+                }
+
+                try
+                {
+                    await interceptorInstance.DuplexStreamingServerHandler(requestStream, responseStream, context, next);
+                }
+                finally
+                {
+                    interceptorActivator.Release(interceptorInstance);
+                }
             };
         };
 
@@ -84,11 +99,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                         resolvedContext);
                     };
 
-                    // The list is reversed during construction so the first interceptor is invoked first
+                    // The list is reversed during construction so the first interceptor is built last and invoked first
                     for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
                     {
-                        var interceptor = CreateInterceptor(ServiceOptions.Interceptors[i], httpContext.RequestServices);
-                        resolvedInvoker = BuildInvoker(interceptor, resolvedInvoker);
+                        resolvedInvoker = BuildInvoker(ServiceOptions.Interceptors[i], resolvedInvoker);
                     }
 
                     await resolvedInvoker(
