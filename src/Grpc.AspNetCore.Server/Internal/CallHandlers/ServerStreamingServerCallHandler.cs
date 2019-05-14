@@ -82,25 +82,46 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
-                service = activator.Create();
 
                 if (ServiceOptions.Interceptors.IsEmpty)
                 {
-                    await _invoker(
-                        service,
-                        request,
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                        serverCallContext);
+                    try
+                    {
+                        service = activator.Create();
+                        await _invoker(
+                            service,
+                            request,
+                            new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                            serverCallContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
                 }
                 else
                 {
-                    ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = (request, responseStream, resolvedContext) =>
+                    ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (request, responseStream, resolvedContext) =>
                     {
-                        return _invoker(
-                        service,
-                        request,
-                        responseStream,
-                        resolvedContext);
+                        try
+                        {
+                            service = activator.Create();
+                            await _invoker(
+                                service,
+                                request,
+                                responseStream,
+                                resolvedContext);
+                        }
+                        finally
+                        {
+                            if (service != null)
+                            {
+                                activator.Release(service);
+                            }
+                        }
                     };
 
                     // The list is reversed during construction so the first interceptor is built last and invoked first

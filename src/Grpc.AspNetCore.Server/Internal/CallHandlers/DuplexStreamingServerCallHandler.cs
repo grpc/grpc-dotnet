@@ -78,25 +78,45 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             {
                 serverCallContext.Initialize();
 
-                service = activator.Create();
-
                 if (ServiceOptions.Interceptors.IsEmpty)
                 {
-                    await _invoker(
-                        service,
-                        new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                        serverCallContext);
+                    try
+                    {
+                        service = activator.Create();
+                        await _invoker(
+                            service,
+                            new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                            new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                            serverCallContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
                 }
                 else
                 {
-                    DuplexStreamingServerMethod<TRequest, TResponse> resolvedInvoker = (requestStream, responseStream, resolvedContext) =>
+                    DuplexStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (requestStream, responseStream, resolvedContext) =>
                     {
-                        return _invoker(
-                        service,
-                        requestStream,
-                        responseStream,
-                        resolvedContext);
+                        try
+                        {
+                            service = activator.Create();
+                            await _invoker(
+                                service,
+                                requestStream,
+                                responseStream,
+                                resolvedContext);
+                        }
+                        finally
+                        {
+                            if (service != null)
+                            {
+                                activator.Release(service);
+                            }
+                        }
                     };
 
                     // The list is reversed during construction so the first interceptor is built last and invoked first
@@ -118,10 +138,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             finally
             {
                 serverCallContext.Dispose();
-                if (service != null)
-                {
-                    activator.Release(service);
-                }
             }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);

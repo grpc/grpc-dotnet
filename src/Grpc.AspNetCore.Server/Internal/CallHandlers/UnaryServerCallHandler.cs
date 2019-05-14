@@ -77,25 +77,40 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             try
             {
                 serverCallContext.Initialize();
-
                 var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
-
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
-
-                service = activator.Create();
 
                 if (ServiceOptions.Interceptors.IsEmpty)
                 {
-                    response = await _invoker(service, request, serverCallContext);
+                    try
+                    {
+                        service = activator.Create();
+                        response = await _invoker(service, request, serverCallContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
                 }
                 else
                 {
-                    UnaryServerMethod<TRequest, TResponse> resolvedInvoker = (resolvedRequest, resolvedContext) =>
+                    UnaryServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequest, resolvedContext) =>
                     {
-                        return _invoker(
-                        service,
-                        resolvedRequest,
-                        resolvedContext);
+                        try
+                        {
+                            service = activator.Create();
+                            return await _invoker(service, resolvedRequest, resolvedContext);
+                        }
+                        finally
+                        {
+                            if (service != null)
+                            {
+                                activator.Release(service);
+                            }
+                        }
                     };
 
                     // The list is reversed during construction so the first interceptor is built last and invoked first
@@ -123,10 +138,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             finally
             {
                 serverCallContext.Dispose();
-                if (service != null)
-                {
-                    activator.Release(service);
-                }
             }
 
             httpContext.Response.ConsolidateTrailers(serverCallContext);
