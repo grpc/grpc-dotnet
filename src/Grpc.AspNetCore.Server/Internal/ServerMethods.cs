@@ -24,11 +24,53 @@ namespace Grpc.AspNetCore.Server.Internal
     // Open delegate (the first argument is the TService instance) versions of the service call types.
     // Needed because methods are executed with a new service instance each request.
 
-    internal delegate Task<TResponse> UnaryServerMethod<TService, TRequest, TResponse>(TService service, TRequest request, ServerCallContext serverCallContext);
+    /// <summary>
+    /// Defines a delegate that can be used to invoke a unary operation on a .NET method.
+    /// </summary>
+    /// <typeparam name="TService">The service type.</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="service">Target service instance.</param>
+    /// <param name="request">Request data</param>
+    /// <param name="serverCallContext">Context for the server side call.</param>
+    /// <returns>The operation response.</returns>
+    public delegate Task<TResponse> UnaryServerMethod<TService, TRequest, TResponse>(TService service, TRequest request, ServerCallContext serverCallContext);
 
-    internal delegate Task<TResponse> ClientStreamingServerMethod<TService, TRequest, TResponse>(TService service, IAsyncStreamReader<TRequest> stream, ServerCallContext serverCallContext);
+    /// <summary>
+    /// Defines a delegate that can be used to invoke a client streaming operation on a .NET method.
+    /// </summary>
+    /// <typeparam name="TService">The service type.</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="service">Target service instance.</param>
+    /// <param name="stream">Request stream.</param>
+    /// <param name="serverCallContext">Context for the server side call.</param>
+    /// <returns>The operation response.</returns>
+    public delegate Task<TResponse> ClientStreamingServerMethod<TService, TRequest, TResponse>(TService service, IAsyncStreamReader<TRequest> stream, ServerCallContext serverCallContext);
 
-    internal delegate Task ServerStreamingServerMethod<TService, TRequest, TResponse>(TService service, TRequest request, IServerStreamWriter<TResponse> stream, ServerCallContext serverCallContext);
+    /// <summary>
+    /// Defines a delegate that can be used to invoke a server streaming operation on a .NET method.
+    /// </summary>
+    /// <typeparam name="TService">The service type.</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="service">Target service instance.</param>
+    /// <param name="request">Request data</param>
+    /// <param name="stream">Response stream</param>
+    /// <param name="serverCallContext">Context for the server side call.</param>
+    /// <returns>The operation response.</returns>
+    public delegate Task ServerStreamingServerMethod<TService, TRequest, TResponse>(TService service, TRequest request, IServerStreamWriter<TResponse> stream, ServerCallContext serverCallContext);
 
-    internal delegate Task DuplexStreamingServerMethod<TService, TRequest, TResponse>(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
+    /// <summary>
+    /// Defines a delegate that can be used to invoke a duplex streaming operation on a .NET method.
+    /// </summary>
+    /// <typeparam name="TService">The service type.</typeparam>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">The response type.</typeparam>
+    /// <param name="service">Target service instance.</param>
+    /// <param name="input">Request stream.</param>
+    /// <param name="output">Response stream.</param>
+    /// <param name="serverCallContext">Context for the server side call.</param>
+    /// <returns>The operation response.</returns>
+    public delegate Task DuplexStreamingServerMethod<TService, TRequest, TResponse>(TService service, IAsyncStreamReader<TRequest> input, IServerStreamWriter<TResponse> output, ServerCallContext serverCallContext);
 }

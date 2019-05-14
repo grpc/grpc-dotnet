@@ -26,23 +26,71 @@ namespace Grpc.AspNetCore.Server.Internal
     /// An interface for creating models that describe and invoke service methods on .NET types.
     /// </summary>
     /// <typeparam name="TService">The service type.</typeparam>
-    internal interface IGrpcMethodModelFactory<TService>
+    public interface IGrpcMethodModelFactory<TService>
     {
+        /// <summary>
+        /// Creates a model that describe and invoke a unary operation.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="method">Unary remote method description.</param>
+        /// <returns>A model that describe and invoke a unary operation.</returns>
         GrpcEndpointModel<UnaryServerMethod<TService, TRequest, TResponse>> CreateUnaryModel<TRequest, TResponse>(Method<TRequest, TResponse> method);
+
+
+        /// <summary>
+        /// Creates a model that describe and invoke a client streaming operation.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="method">Client streaming remote method description.</param>
+        /// <returns>A model that describe and invoke a client streaming operation.</returns>
         GrpcEndpointModel<ClientStreamingServerMethod<TService, TRequest, TResponse>> CreateClientStreamingModel<TRequest, TResponse>(Method<TRequest, TResponse> method);
+
+        /// <summary>
+        /// Creates a model that describe and invoke a server streaming operation.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="method">Server streaming remote method description.</param>
+        /// <returns>A model that describe and invoke a server streaming operation.</returns>
         GrpcEndpointModel<ServerStreamingServerMethod<TService, TRequest, TResponse>> CreateServerStreamingModel<TRequest, TResponse>(Method<TRequest, TResponse> method);
+
+        /// <summary>
+        /// Creates a model that describe and invoke a duplex streaming operation.
+        /// </summary>
+        /// <typeparam name="TRequest">The request type.</typeparam>
+        /// <typeparam name="TResponse">The response type.</typeparam>
+        /// <param name="method">Duplex streaming remote method description.</param>
+        /// <returns>A model that describe and invoke a duplex streaming operation.</returns>
         GrpcEndpointModel<DuplexStreamingServerMethod<TService, TRequest, TResponse>> CreateDuplexStreamingModel<TRequest, TResponse>(Method<TRequest, TResponse> method);
     }
 
-    internal class GrpcEndpointModel<TInvoker> where TInvoker : Delegate
+    /// <summary>
+    /// Describes a service method on a .NET type and provides a method invoker.
+    /// </summary>
+    /// <typeparam name="TInvoker">The method invoker delegate.</typeparam>
+    public class GrpcEndpointModel<TInvoker> where TInvoker : Delegate
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="invoker"></param>
+        /// <param name="metadata"></param>
         public GrpcEndpointModel(TInvoker invoker, List<object> metadata)
         {
             Invoker = invoker;
             Metadata = metadata;
         }
 
+        /// <summary>
+        /// Gets a delegate that invokes the .NET method. 
+        /// </summary>
         public TInvoker Invoker { get; }
+        
+        /// <summary>
+        /// Gets metadata related to the service method.
+        /// </summary>
         public List<object> Metadata { get; }
     }
 }

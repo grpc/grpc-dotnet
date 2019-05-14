@@ -32,7 +32,9 @@ namespace Grpc.AspNetCore.Server
         /// </summary>
         public Action<ServiceBinderBase, TService?>? BindAction { get; set; }
 
-        // Currently internal. It is set in tests via InternalVisibleTo. Can be made public if there is demand for it
-        internal IGrpcMethodModelFactory<TService>? ModelFactory { get; set; }
+        /// <summary>
+        /// Gets or sets a factory for creating models that describe and invoke service methods on .NET types.
+        /// </summary>
+        public IGrpcMethodModelFactory<TService>? ModelFactory { get; set; }
     }
 }
