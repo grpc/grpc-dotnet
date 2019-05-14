@@ -91,7 +91,12 @@ namespace Grpc.NetCore.HttpClient.Internal
                 // ASP.NET Core includes pseudo headers in the set of request headers
                 // whereas, they are not in gRPC implementations. We will filter them
                 // out when we construct the list of headers on the context.
-                if (header.Key.StartsWith(":", StringComparison.Ordinal))
+                if (header.Key.StartsWith(':'))
+                {
+                    continue;
+                }
+                // Exclude grpc related headers
+                if (header.Key.StartsWith("grpc-", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

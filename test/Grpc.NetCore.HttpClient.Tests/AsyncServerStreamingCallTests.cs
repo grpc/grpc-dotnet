@@ -17,12 +17,14 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.NetCore.HttpClient.Internal;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -36,17 +38,8 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncServerStreamingCall_NoContent_NoMessagesReturned()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
-
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
-                httpRequestMessage = request;
-
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>())));
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -175,6 +168,63 @@ namespace Grpc.NetCore.HttpClient.Tests
             var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
 
             Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+        }
+
+        [Test]
+        public async Task AsyncServerStreamingCall_TrailersOnly_TrailersReturnedWithHeaders()
+        {
+            // Arrange
+            HttpResponseMessage responseMessage = null;
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
+                responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
+                responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, "Detail!");
+                return Task.FromResult(responseMessage);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var headers = await call.ResponseHeadersAsync;
+            await call.ResponseStream.MoveNext(CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(responseMessage.TrailingHeaders.Any()); // sanity check that there are no trailers
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+            Assert.AreEqual("Detail!", call.GetStatus().Detail);
+
+            Assert.AreEqual(0, headers.Count);
+            Assert.AreEqual(0, call.GetTrailers().Count);
+        }
+
+        [Test]
+        public async Task AsyncServerStreamingCall_StatusInFooterAndMessageInHeader_IgnoreMessage()
+        {
+            // Arrange
+            HttpResponseMessage responseMessage = null;
+            var httpClient = TestHelpers.CreateTestClient(request =>
+            {
+                responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()));
+                responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, "Ignored detail!");
+                return Task.FromResult(responseMessage);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var headers = await call.ResponseHeadersAsync;
+            await call.ResponseStream.MoveNext(CancellationToken.None);
+
+            // Assert
+            Assert.IsTrue(responseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+            Assert.AreEqual(null, call.GetStatus().Detail);
+
+            Assert.AreEqual(0, headers.Count);
+            Assert.AreEqual(0, call.GetTrailers().Count);
         }
     }
 }

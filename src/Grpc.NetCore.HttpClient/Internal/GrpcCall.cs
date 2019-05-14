@@ -493,11 +493,28 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private static Status GetStatusCore(HttpResponseMessage httpResponseMessage)
         {
-            string grpcStatus = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.StatusTrailer);
-            // grpc-status is a required trailer
-            if (grpcStatus == null)
+            // A gRPC server may return gRPC status in the headers when the response stream is empty
+            // For example, C Core server returns them together in the empty_stream interop test
+            HttpResponseHeaders statusHeaders;
+
+            var grpcStatus = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.StatusTrailer);
+            if (grpcStatus != null)
             {
-                throw new InvalidOperationException("Response did not have a grpc-status trailer.");
+                statusHeaders = httpResponseMessage.TrailingHeaders;
+            }
+            else
+            {
+                grpcStatus = GetHeaderValue(httpResponseMessage.Headers, GrpcProtocolConstants.StatusTrailer);
+
+                // grpc-status is a required trailer
+                if (grpcStatus != null)
+                {
+                    statusHeaders = httpResponseMessage.Headers;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Response did not have a grpc-status trailer.");
+                }
             }
 
             int statusValue;
@@ -507,7 +524,9 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             // grpc-message is optional
-            string grpcMessage = GetHeaderValue(httpResponseMessage.TrailingHeaders, GrpcProtocolConstants.MessageTrailer);
+            // Always read the gRPC message from the same headers collection as the status
+            var grpcMessage = GetHeaderValue(statusHeaders, GrpcProtocolConstants.MessageTrailer);
+
             if (!string.IsNullOrEmpty(grpcMessage))
             {
                 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
