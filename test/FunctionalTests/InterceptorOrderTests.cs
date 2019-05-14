@@ -18,11 +18,9 @@
 
 using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Tests.Shared;
@@ -217,9 +215,5 @@ namespace Grpc.AspNetCore.FunctionalTests
                 items[OrderHeaderKey] = _expectedOrder - 1;
             }
         }
-    }
-
-    class InterceptorTestStartupBase
-    {
     }
 }

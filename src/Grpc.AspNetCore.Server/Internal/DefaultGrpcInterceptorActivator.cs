@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -16,10 +16,10 @@
 
 #endregion
 
-using Grpc.Core.Interceptors;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server
 {
@@ -32,8 +32,10 @@ namespace Grpc.AspNetCore.Server
 
         private List<InterceptorRegistration> _store;
 
-        /// <inheritdoc />
-        public bool IsEmpty => _store == null;
+        /// <summary>
+        /// Get whether the collection contains any interceptors.
+        /// </summary>
+        public bool IsEmpty => _store == null || _store.Count == 0;
 
         /// <inheritdoc />
         public int Count => _store?.Count ?? 0;
@@ -54,20 +56,6 @@ namespace Grpc.AspNetCore.Server
             }
 
             _store.Add(new InterceptorRegistration(typeof(TInterceptor), args));
-        }
-
-        /// <summary>
-        /// Add a registration for an interceptor to the end of the pipeline.
-        /// </summary>
-        /// <param name="registration">The registration for the interceptor to add.</param>
-        public void Add(InterceptorRegistration registration)
-        {
-            if (_store == null)
-            {
-                _store = new List<InterceptorRegistration>();
-            }
-
-            _store.Add(registration);
         }
 
         /// <summary>

@@ -16,12 +16,12 @@
 
 #endregion
 
+using System;
+using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace Server.Interceptors
 {

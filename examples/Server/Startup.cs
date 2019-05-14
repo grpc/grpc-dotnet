@@ -16,10 +16,10 @@
 
 #endregion
 
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Server.Interceptors;
-using System;
 
 namespace GRPCServer
 {

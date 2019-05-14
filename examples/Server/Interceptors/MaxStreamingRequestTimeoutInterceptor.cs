@@ -16,12 +16,12 @@
 
 #endregion
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
 using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
 
 namespace Server.Interceptors
 {
