@@ -27,4 +27,4 @@ cd ../grpc
 
 source tools/internal_ci/helper_scripts/prepare_build_linux_rc
 
-tools/run_tests/run_interop_tests.py -l csharp -s aspnetcore --use_docker --internal_ci -t -j 8
+tools/run_tests/run_interop_tests.py -l csharp aspnetcore -s aspnetcore --use_docker --internal_ci -t -j 8
