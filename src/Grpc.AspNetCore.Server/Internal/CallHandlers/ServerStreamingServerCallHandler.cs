@@ -135,6 +135,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                         new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
                         serverCallContext);
                 }
+
+                await serverCallContext.EndCallAsync();
             }
             catch (Exception ex)
             {
@@ -148,11 +150,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     activator.Release(service);
                 }
             }
-
-            httpContext.Response.ConsolidateTrailers(serverCallContext);
-
-            // Flush any buffered content
-            await httpContext.Response.BodyWriter.FlushAsync();
         }
     }
 }

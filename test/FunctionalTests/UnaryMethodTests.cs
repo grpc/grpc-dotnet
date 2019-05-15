@@ -289,7 +289,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             response.AssertIsSuccessfulGrpcRequest();
 
             response.AssertTrailerStatus(StatusCode.Unknown, "User error");
-            Assert.AreEqual("A value!", response.TrailingHeaders.GetValues("test-trailer").Single());
+            // Trailer is written to the header because this is a Trailers-Only response
+            Assert.AreEqual("A value!", response.Headers.GetValues("test-trailer").Single());
         }
 
         [Test]
@@ -384,9 +385,6 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
-
-            var content = await response.Content.ReadAsStringAsync().DefaultTimeout();
-            Assert.AreEqual(responseMessage, content);
 
             response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
         }
