@@ -48,12 +48,26 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public static void AssertTrailerStatus(this HttpResponseMessage response, StatusCode statusCode, string details)
         {
-            var statusString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.StatusTrailer)
-                ?? GetStatusValue(response.Headers, GrpcProtocolConstants.StatusTrailer);
+            HttpResponseHeaders statusHeadersCollection;
+            var statusString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.StatusTrailer);
+            if (statusString != null)
+            {
+                statusHeadersCollection = response.TrailingHeaders;
+            }
+            else
+            {
+                statusString = GetStatusValue(response.Headers, GrpcProtocolConstants.StatusTrailer);
+                statusHeadersCollection = response.Headers;
+                if (statusString == null)
+                {
+                    Assert.Fail($"Count not get {GrpcProtocolConstants.StatusTrailer} from response.");
+                }
+            }
+
             Assert.AreEqual(statusCode.ToTrailerString(), statusString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(statusString)}");
 
-            var messageString = GetStatusValue(response.TrailingHeaders, GrpcProtocolConstants.MessageTrailer)
-                ?? GetStatusValue(response.Headers, GrpcProtocolConstants.MessageTrailer);
+            // Get message from the same collection as the status
+            var messageString = GetStatusValue(statusHeadersCollection, GrpcProtocolConstants.MessageTrailer);
             if (messageString != null)
             {
                 Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), messageString);
