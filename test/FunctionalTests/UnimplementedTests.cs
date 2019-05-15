@@ -106,10 +106,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual(httpStatusCode, response.StatusCode);
             if (grpcStatusCode != null)
             {
-                Assert.AreEqual(grpcStatusCode.Value.ToTrailerString(), response.TrailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).Single());
+                Assert.AreEqual(grpcStatusCode.Value.ToTrailerString(), response.Headers.GetValues(GrpcProtocolConstants.StatusTrailer).Single());
             }
             else
             {
+                Assert.IsFalse(response.Headers.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _));
                 Assert.IsFalse(response.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _));
             }
         }

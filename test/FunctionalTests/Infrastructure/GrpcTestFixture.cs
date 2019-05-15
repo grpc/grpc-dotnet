@@ -17,17 +17,12 @@
 #endregion
 
 using System;
-using System.Linq;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
-using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {

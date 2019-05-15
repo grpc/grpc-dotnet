@@ -137,6 +137,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
             }
+
+            HttpContext.Response.ConsolidateTrailers(this);
         }
 
         protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
@@ -158,6 +160,21 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             get => _status;
             set => _status = value;
+        }
+
+        internal Task EndCallAsync()
+        {
+            HttpContext.Response.ConsolidateTrailers(this);
+
+            if (HasBufferedMessage)
+            {
+                // Flush any buffered content
+                return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
         }
 
         protected override WriteOptions WriteOptionsCore { get; set; }
@@ -186,6 +203,8 @@ namespace Grpc.AspNetCore.Server.Internal
         public ServerCallContext ServerCallContext => this;
 
         protected override IDictionary<object, object> UserStateCore => HttpContext.Items;
+
+        internal bool HasBufferedMessage { get; set; }
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
