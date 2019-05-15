@@ -17,16 +17,16 @@
 #endregion
 
 using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Microbenchmarks
+namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
-    public class UnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    internal class UnaryAwaitInterceptor : Interceptor
     {
-        [Benchmark]
-        public Task HandleCallAsync()
+        public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation)
         {
-            return InvokeUnaryRequestAsync();
+            return await continuation(request, context);
         }
     }
 }

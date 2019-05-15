@@ -26,7 +26,7 @@ $BuildsPath = Join-Path $TempDir 'builds.xml'
 $GrpcLockPath = Join-Path $WorkingDir 'grpc-lock.txt'
 $FeedPath = Join-Path $WorkingDir 'feed'
 $DependenciesPath = Join-Path $WorkingDir 'dependencies.props'
-$Packages = "Grpc.Core", "Grpc.Core.Api", "Grpc.Tools"
+$Packages = "Grpc.Core", "Grpc.Core.Api", "Grpc.Tools", "Grpc.Reflection", "Grpc.Auth"
 
 # Functions
 
@@ -37,6 +37,9 @@ function Ensure-Dir([string]$path) {
 }
 
 # Main
+
+# This speeds up Invoke-WebRequest
+$ProgressPreference = "SilentlyContinue"
 
 if ($Upgrade -or !(Test-Path $GrpcLockPath))
 {

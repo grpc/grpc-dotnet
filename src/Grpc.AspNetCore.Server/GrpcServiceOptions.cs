@@ -16,9 +16,12 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.IO.Compression;
+using System.Linq;
 using Grpc.AspNetCore.Server.Compression;
+using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server
 {
@@ -73,6 +76,11 @@ namespace Grpc.AspNetCore.Server
             }
             set => _compressionProviders = value;
         }
+
+        /// <summary>
+        /// Get a collection of interceptors to be executed with every call. Interceptors are executed in order.
+        /// </summary>
+        public InterceptorCollection Interceptors { get; } = new InterceptorCollection();
     }
 
     /// <summary>

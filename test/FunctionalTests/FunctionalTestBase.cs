@@ -19,6 +19,7 @@
 using System;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -29,10 +30,12 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; }
 
+        protected virtual void ConfigureServices(IServiceCollection services) { }
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            Fixture = new GrpcTestFixture<FunctionalTestsWebsite.Startup>();
+            Fixture = new GrpcTestFixture<FunctionalTestsWebsite.Startup>(ConfigureServices);
         }
 
         [OneTimeTearDown]

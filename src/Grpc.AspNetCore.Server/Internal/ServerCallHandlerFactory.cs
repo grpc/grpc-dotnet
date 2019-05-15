@@ -54,6 +54,9 @@ namespace Grpc.AspNetCore.Server.Internal
                 CompressionProviders = so._compressionProviders ?? go._compressionProviders
             };
 
+            _resolvedOptions.Interceptors.AddRange(go.Interceptors);
+            _resolvedOptions.Interceptors.AddRange(so.Interceptors);
+
             if (_resolvedOptions.ResponseCompressionAlgorithm != null)
             {
                 var responseCompressionProvider = _resolvedOptions.CompressionProviders?.FirstOrDefault(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal));

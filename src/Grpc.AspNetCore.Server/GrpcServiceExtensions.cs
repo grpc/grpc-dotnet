@@ -66,6 +66,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddSingleton<ServiceMethodsRegistry>();
             services.TryAddSingleton(typeof(ServerCallHandlerFactory<>));
             services.TryAddScoped(typeof(IGrpcServiceActivator<>), typeof(DefaultGrpcServiceActivator<>));
+            services.TryAddScoped(typeof(IGrpcInterceptorActivator<>), typeof(DefaultGrpcInterceptorActivator<>));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<GrpcServiceOptions>, GrpcServiceOptionsSetup>());
 
             return new GrpcServerBuilder(services);
