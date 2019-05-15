@@ -1,6 +1,6 @@
 ﻿#region Copyright notice and license
 
-// Copyright 2019 The gRPC Authors
+// Copyright 2018 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,17 +16,29 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
+using System;
 
-namespace Grpc.AspNetCore.Microbenchmarks
+namespace Grpc.AspNetCore.Server
 {
-    public class UnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    /// <summary>
+    /// Representation of a registration of the interceptor in the pipeline.
+    /// </summary>
+    public class InterceptorRegistration
     {
-        [Benchmark]
-        public Task HandleCallAsync()
+        internal InterceptorRegistration(Type type, object[] args)
         {
-            return InvokeUnaryRequestAsync();
+            Type = type;
+            ActivatorType = typeof(IGrpcInterceptorActivator<>).MakeGenericType(Type);
+            Args = args;
         }
+
+        /// <summary>
+        /// The type of the interceptor.
+        /// </summary>
+        public Type Type { get; }
+
+        internal Type ActivatorType { get; }
+
+        internal object[] Args { get; }
     }
 }

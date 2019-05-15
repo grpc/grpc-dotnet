@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;

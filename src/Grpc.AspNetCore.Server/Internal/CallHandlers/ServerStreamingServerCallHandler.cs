@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -31,8 +32,35 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly ServerStreamingServerMethod<TService, TRequest, TResponse> _invoker;
+        private static readonly Func<InterceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse>, ServerStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptorRegistration, next) =>
+        {
+            return async (request, responseStream, context) =>
+            {
+                var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
+                var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
 
-        public ServerStreamingServerCallHandler(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+                if (interceptorInstance == null)
+                {
+                    throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
+                }
+
+                try
+                {
+                    await interceptorInstance.ServerStreamingServerHandler(request, responseStream, context, next);
+                }
+                finally
+                {
+                    interceptorActivator.Release(interceptorInstance);
+                }
+            };
+        };
+
+        public ServerStreamingServerCallHandler(
+            Method<TRequest, TResponse> method, 
+            ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, 
+            GrpcServiceOptions serviceOptions, 
+            ILoggerFactory loggerFactory) 
+            : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
         }
@@ -54,13 +82,59 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
-                service = activator.Create();
 
-                await _invoker(
-                    service,
-                    request,
-                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                    serverCallContext);
+                if (ServiceOptions.Interceptors.IsEmpty)
+                {
+                    try
+                    {
+                        service = activator.Create();
+                        await _invoker(
+                            service,
+                            request,
+                            new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                            serverCallContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
+                }
+                else
+                {
+                    ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (request, responseStream, resolvedContext) =>
+                    {
+                        try
+                        {
+                            service = activator.Create();
+                            await _invoker(
+                                service,
+                                request,
+                                responseStream,
+                                resolvedContext);
+                        }
+                        finally
+                        {
+                            if (service != null)
+                            {
+                                activator.Release(service);
+                            }
+                        }
+                    };
+
+                    // The list is reversed during construction so the first interceptor is built last and invoked first
+                    for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
+                    {
+                        resolvedInvoker = BuildInvoker(ServiceOptions.Interceptors[i], resolvedInvoker);
+                    }
+
+                    await resolvedInvoker(
+                        request,
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        serverCallContext);
+                }
             }
             catch (Exception ex)
             {

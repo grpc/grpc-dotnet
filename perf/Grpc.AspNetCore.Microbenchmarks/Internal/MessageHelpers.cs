@@ -30,6 +30,11 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
     {
         private static readonly HttpContextServerCallContext TestServerCallContext = new HttpContextServerCallContext(new DefaultHttpContext(), new GrpcServiceOptions(), NullLogger.Instance);
 
+        static MessageHelpers()
+        {
+            TestServerCallContext.Initialize();
+        }
+
         public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
         {
             var messageData = message.ToByteArray();

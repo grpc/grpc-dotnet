@@ -16,13 +16,13 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
+using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Server
 {
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
-    {
-        public IHeaderDictionary Trailers { get; set; }
-    }
+    /// <summary>
+    /// A <typeparamref name="TInterceptor"/> activator abstraction.
+    /// </summary>
+    /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
+    public interface IGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator where TInterceptor : Interceptor { }
 }
