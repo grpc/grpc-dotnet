@@ -8,7 +8,7 @@
     <GrpcReflectionPackageVersion>1.21.0-pre1</GrpcReflectionPackageVersion>
     <GrpcToolsPackageVersion>1.21.0-pre1</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
-    <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview6-19260-04</MicrosoftAspNetCoreTestHostPackageVersion>
+    <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview6-19264-08</MicrosoftAspNetCoreTestHostPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftExtensionsPackageVersion>3.0.0-preview4.19216.2</MicrosoftExtensionsPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>

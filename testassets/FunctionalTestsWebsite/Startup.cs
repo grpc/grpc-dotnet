@@ -99,14 +99,6 @@ namespace FunctionalTestsWebsite
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
-            app.Use((context, next) =>
-            {
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/7780
-                context.Features.Set<IHttpResponseStartFeature>(new TestHttpResponseStartFeature());
-
-                return next();
-            });
-
             app.UseRouting();
 
             app.UseAuthorization();
