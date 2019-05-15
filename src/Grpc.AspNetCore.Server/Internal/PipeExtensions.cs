@@ -106,16 +106,13 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (flush)
             {
-                var valueTask = pipeWriter.FlushAsync();
-
-                if (valueTask.IsCompletedSuccessfully)
-                {
-                    // We do this to reset the underlying value task (which happens in GetResult())
-                    valueTask.GetAwaiter().GetResult();
-                    return Task.CompletedTask;
-                }
-
-                return valueTask.AsTask();
+                serverCallContext.HasBufferedMessage = false;
+                return pipeWriter.FlushAsync().GetAsTask();
+            }
+            else
+            {
+                // Set flag so buffered message will be written at the end
+                serverCallContext.HasBufferedMessage = true;
             }
 
             return Task.CompletedTask;

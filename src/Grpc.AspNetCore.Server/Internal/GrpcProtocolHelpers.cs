@@ -126,12 +126,10 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        public static Task SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
+        public static void SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
             response.StatusCode = httpStatusCode;
-            // Write status before writing message to response body so the status can return with headers
             SetStatus(GetTrailersDestination(response), new Status(grpcStatusCode, message));
-            return response.WriteAsync(message);
         }
 
         public static byte[] ParseBinaryHeader(string base64)

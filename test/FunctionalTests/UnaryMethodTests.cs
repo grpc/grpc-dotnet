@@ -386,9 +386,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.AreEqual(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
-            var content = await response.Content.ReadAsStringAsync().DefaultTimeout();
-            Assert.AreEqual(responseMessage, content);
-
             response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
         }
 
