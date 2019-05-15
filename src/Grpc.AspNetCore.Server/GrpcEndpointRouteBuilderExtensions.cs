@@ -90,38 +90,12 @@ namespace Microsoft.AspNetCore.Builder
             return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
         }
 
-        private static Type GetServiceBaseType(Type serviceImplementation)
-        {
-            // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
-            // We need to access the static BindService method on Foo which implicitly derives from Object.
-            var baseType = serviceImplementation.BaseType;
-
-            // Handle services that have multiple levels of inheritence
-            while (baseType?.BaseType?.BaseType != null)
-            {
-                baseType = baseType.BaseType;
-            }
-
-            return baseType;
-        }
-
         private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
         {
-            var baseType = GetServiceBaseType(typeof(TService));
-
-            // We need to call Foo.BindService from the declaring type.
-            var declaringType = baseType?.DeclaringType;
-
-            // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
-            var bindService = declaringType?.GetMethod("BindService", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(ServiceBinderBase), baseType }, Array.Empty<ParameterModifier>());
-
-            if (bindService == null)
-            {
-                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(TService).FullName}.");
-            }
+            var bindMethodInfo = BindMethodFinder.GetBindMethod(typeof(TService));
 
             // Invoke BindService(ServiceBinderBase, BaseType)
-            bindService.Invoke(null, new object[] { binder, service });
+            bindMethodInfo.Invoke(null, new object[] { binder, service });
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
