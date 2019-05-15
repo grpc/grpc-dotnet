@@ -17,11 +17,10 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Greet;
-using Grpc.Core;
+using Grpc.AspNetCore.Server.Tests.TestObjects;
+using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,19 +68,19 @@ namespace Grpc.AspNetCore.Server.Tests
         [Test]
         public void MapGrpcService_CanBind_CreatesEndpoints()
         {
-            BindServiceCore<GreeterService>();
+            BindServiceCore<GreeterWithAttributeService>();
         }
 
         [Test]
         public void MapGrpcService_CanBindSubclass_CreatesEndpoints()
         {
-            BindServiceCore<GreeterServiceSubClass>();
+            BindServiceCore<GreeterWithAttributeServiceSubClass>();
         }
 
         [Test]
         public void MapGrpcService_CanBindSubSubclass_CreatesEndpoints()
         {
-            BindServiceCore<GreeterServiceSubSubClass>();
+            BindServiceCore<GreeterWithAttributeServiceSubSubClass>();
         }
 
         private void BindServiceCore<TService>() where TService : class
@@ -134,7 +133,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterService>();
+            routeBuilder.MapGrpcService<GreeterWithAttributeService>();
 
             // Assert
             var s1 = testSink.Writes[0].State.ToString();
@@ -155,7 +154,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterService>().Add(builder =>
+            routeBuilder.MapGrpcService<GreeterWithAttributeService>().Add(builder =>
             {
                 builder.Metadata.Add(new CustomMetadata());
             });
@@ -187,7 +186,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterServiceWithAttributes>();
+            routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>();
 
             // Assert
             var endpoints = routeBuilder.DataSources
@@ -216,7 +215,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act
-            routeBuilder.MapGrpcService<GreeterServiceWithAttributes>().Add(builder =>
+            routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>().Add(builder =>
             {
                 builder.Metadata.Add(new CustomAttribute("Builder"));
             });
@@ -255,72 +254,19 @@ namespace Grpc.AspNetCore.Server.Tests
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() =>
             {
-                routeBuilder.MapGrpcService<GreeterService>();
+                routeBuilder.MapGrpcService<GreeterWithAttributeService>();
             });
 
             // Assert
             Assert.AreEqual("The configured response compression algorithm 'DOES_NOT_EXIST' does not have a matching compression provider.", ex.Message);
         }
 
-        private class GreeterService : Greeter.GreeterBase
-        {
-        }
-
-        [Custom("Class")]
-        private class GreeterServiceWithAttributes : Greeter.GreeterBase
-        {
-            [Custom("Method")]
-            public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-            {
-                return base.SayHello(request, context);
-            }
-
-            public override Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-            {
-                return base.SayHellos(request, responseStream, context);
-            }
-        }
-
-        private class CustomAttribute : Attribute
-        {
-            public CustomAttribute(string value)
-            {
-                Value = value;
-            }
-
-            public string Value { get; }
-        }
-
-        private class GreeterServiceSubClass : GreeterService
-        {
-        }
-
-        private class GreeterServiceSubSubClass : GreeterServiceSubClass
-        {
-        }
-
-        private class CustomMetadata
-        {
-        }
-
-        private IEndpointRouteBuilder CreateTestEndpointRouteBuilder(IServiceProvider serviceProvider)
+        public IEndpointRouteBuilder CreateTestEndpointRouteBuilder(IServiceProvider serviceProvider)
         {
             return new TestEndpointRouteBuilder
             {
                 ServiceProvider = serviceProvider
             };
-        }
-
-        private class TestEndpointRouteBuilder : IEndpointRouteBuilder
-        {
-            public IServiceProvider ServiceProvider { get; set; }
-
-            public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
-
-            public IApplicationBuilder CreateApplicationBuilder()
-            {
-                throw new NotImplementedException();
-            }
         }
     }
 }
