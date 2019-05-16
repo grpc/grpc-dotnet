@@ -32,8 +32,8 @@ namespace GRPCServer
             Content = content;
         }
 
-        public int Id { get; set; }
-        public string Content { get; set; }
+        public int Id { get; }
+        public string Content { get; }
     }
 
     public class MailQueue
