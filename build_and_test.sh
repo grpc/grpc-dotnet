@@ -17,9 +17,6 @@ set -ex
 
 source activate.sh
 
-# Required when using nightly builds of gRPC packages
-# ./build/get-grpc.sh
-
 dotnet build
 
 dotnet test
