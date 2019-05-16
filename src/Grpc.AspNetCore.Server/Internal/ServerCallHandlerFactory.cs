@@ -17,7 +17,7 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
@@ -48,8 +48,23 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
                 ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
-                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize
+                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
+                ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
+                ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
+                CompressionProviders = so._compressionProviders ?? go._compressionProviders
             };
+
+            _resolvedOptions.Interceptors.AddRange(go.Interceptors);
+            _resolvedOptions.Interceptors.AddRange(so.Interceptors);
+
+            if (_resolvedOptions.ResponseCompressionAlgorithm != null)
+            {
+                var responseCompressionProvider = _resolvedOptions.CompressionProviders?.FirstOrDefault(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal));
+                if (responseCompressionProvider == null)
+                {
+                    throw new InvalidOperationException($"The configured response compression algorithm '{_resolvedOptions.ResponseCompressionAlgorithm}' does not have a matching compression provider.");
+                }
+            }
         }
 
         public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
@@ -91,7 +106,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString();
                 Log.MethodUnimplemented(logger, unimplementedMethod);
 
-                GrpcProtocolHelpers.AppendStatusTrailers(httpContext.Response, new Status(StatusCode.Unimplemented, "Method is unimplemented."));
+                GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
                 return Task.CompletedTask;
             };
         }
@@ -107,7 +122,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString();
                 Log.ServiceUnimplemented(logger, unimplementedService);
 
-                GrpcProtocolHelpers.AppendStatusTrailers(httpContext.Response, new Status(StatusCode.Unimplemented, "Service is unimplemented."));
+                GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
                 return Task.CompletedTask;
             };
         }

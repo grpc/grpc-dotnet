@@ -12,7 +12,7 @@ builds_path="$OBJDIR/builds.xml"
 grpc_lock_path="$DIR/grpc-lock.txt"
 feed_path="$DIR/feed/"
 dependencies_path="$DIR/dependencies.props"
-packages=("Grpc.Core" "Grpc.Core.Api" "Grpc.Tools")
+packages=("Grpc.Core" "Grpc.Core.Api" "Grpc.Tools" "Grpc.Auth" "Grpc.Reflection")
 upgrade=false
 
 # functions

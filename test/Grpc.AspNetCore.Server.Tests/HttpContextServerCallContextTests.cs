@@ -19,16 +19,20 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -185,6 +189,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerValue);
 
@@ -199,13 +204,16 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("0", responseTrailers[GrpcProtocolConstants.StatusTrailer]);
         }
 
-        public void ConsolidateTrailers_AppendsStatus()
+        [Test]
+        public void ConsolidateTrailers_AppendsStatus_PercentEncodesMessage()
         {
             // Arrange
+            var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
-            serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
+            serverCallContext.Status = new Status(StatusCode.Internal, errorMessage);
 
             // Act
             httpContext.Response.ConsolidateTrailers(serverCallContext);
@@ -215,18 +223,42 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
-            Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
+            Assert.AreEqual(PercentEncodingHelpers.PercentEncode(errorMessage), responseTrailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
 
-        public void ConsolidateTrailers_StatusOverwritesTrailers()
+        [Test]
+        public void ConsolidateTrailers_ResponseNotStarted_ReturnTrailersInHeaders()
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: false));
+            var serverCallContext = CreateServerCallContext(httpContext);
+            serverCallContext.Status = new Status(StatusCode.Internal, "Test message");
+
+            // Act
+            httpContext.Response.ConsolidateTrailers(serverCallContext);
+
+            // Assert
+            var headers = httpContext.Response.Headers;
+
+            Assert.AreEqual(2, headers.Count);
+            Assert.AreEqual(StatusCode.Internal.ToString("D"), headers[GrpcProtocolConstants.StatusTrailer]);
+            Assert.AreEqual("Test message", headers[GrpcProtocolConstants.MessageTrailer].ToString());
+        }
+
+        [Test]
+        public void ConsolidateTrailers_StatusOverwritesTrailers_PercentEncodesMessage()
+        {
+            // Arrange
+            var errorMessage = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n";
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
             serverCallContext.ResponseTrailers.Add(GrpcProtocolConstants.MessageTrailer, "All is good");
-            serverCallContext.Status = new Status(StatusCode.Internal, "Error message");
+            serverCallContext.Status = new Status(StatusCode.Internal, errorMessage);
 
             // Act
             httpContext.Response.ConsolidateTrailers(serverCallContext);
@@ -236,7 +268,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
-            Assert.AreEqual("Error message", responseTrailers[GrpcProtocolConstants.MessageTrailer]);
+            Assert.AreEqual(PercentEncodingHelpers.PercentEncode(errorMessage), responseTrailers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
 
         [TestCase("trailer-bin")]
@@ -248,6 +280,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var trailerBytes = new byte[] { 0x01, 0x02, 0x03, 0x04 };
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
+            httpContext.Features.Set<IHttpResponseFeature>(new TestHttpResponseFeature(hasStarted: true));
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.ResponseTrailers.Add(trailerName, trailerBytes);
 
@@ -265,6 +298,18 @@ namespace Grpc.AspNetCore.Server.Tests
         private class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
         {
             public IHeaderDictionary Trailers { get; set; } = new HeaderDictionary();
+        }
+
+        private class TestHttpResponseFeature : HttpResponseFeature
+        {
+            private readonly bool _hasStarted;
+
+            public TestHttpResponseFeature(bool hasStarted = false)
+            {
+                _hasStarted = hasStarted;
+            }
+
+            public override bool HasStarted => _hasStarted;
         }
 
         private static readonly ISystemClock TestClock = new TestSystemClock(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
@@ -388,6 +433,104 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
         }
 
+        [Test]
+        public async Task CancellationToken_WithDeadlineAndNoLifetimeFeature_ErrorLogged()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature(throwError: true));
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            context.Initialize();
+
+            // Act
+            while (context.Status.StatusCode != StatusCode.DeadlineExceeded)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+            }
+
+            // Assert
+            Assert.IsFalse(context.CancellationToken.IsCancellationRequested);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
+
+            write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
+            Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", write.State.ToString());
+        }
+
+        [Test]
+        public void AuthContext_NoClientCertificate_Unauthenticated()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var authContext = serverCallContext.AuthContext;
+
+            // Assert
+            Assert.AreEqual(false, authContext.IsPeerAuthenticated);
+        }
+
+        [Test]
+        public void AuthContext_HasClientCertificate_Authenticated()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
+            httpContext.Connection.ClientCertificate = certificate;
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var authContext = serverCallContext.AuthContext;
+
+            // Assert
+            Assert.AreEqual(true, authContext.IsPeerAuthenticated);
+        }
+
+        [Test]
+        public void UserState_AddState_AddedToHttpContextItems()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            serverCallContext.UserState["TestKey"] = "TestValue";
+
+            // Assert
+            Assert.AreEqual("TestValue", serverCallContext.UserState["TestKey"]);
+            Assert.AreEqual("TestValue", httpContext.Items["TestKey"]);
+        }
+
+        [TestCase(GrpcProtocolConstants.MessageAcceptEncodingHeader, false)]
+        [TestCase(GrpcProtocolConstants.MessageEncodingHeader, false)]
+        [TestCase(GrpcProtocolConstants.TimeoutHeader, false)]
+        [TestCase("content-type", false)]
+        [TestCase("te", false)]
+        [TestCase("host", false)]
+        [TestCase("accept-encoding", false)]
+        [TestCase("user-agent", true)]
+        public void RequestHeaders_ManyHttpRequestHeaders_HeadersFiltered(string headerName, bool addedToRequestHeaders)
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            var httpRequest = new DefaultHttpRequest(httpContext);
+            httpRequest.Headers[headerName] = "value";
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            // Act
+            var headers = serverCallContext.RequestHeaders;
+
+            // Assert
+            var headerAdded = serverCallContext.RequestHeaders.Any(k => string.Equals(k.Key, headerName, StringComparison.OrdinalIgnoreCase));
+            Assert.AreEqual(addedToRequestHeaders, headerAdded);
+        }
+
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger logger = null)
         {
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
@@ -396,10 +539,12 @@ namespace Grpc.AspNetCore.Server.Tests
         private class TestHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
         {
             private readonly CancellationTokenSource _cts;
+            private readonly bool _throwError;
 
-            public TestHttpRequestLifetimeFeature()
+            public TestHttpRequestLifetimeFeature(bool throwError = false)
             {
                 _cts = new CancellationTokenSource();
+                _throwError = throwError;
             }
 
             public CancellationToken RequestAborted
@@ -410,6 +555,11 @@ namespace Grpc.AspNetCore.Server.Tests
 
             public void Abort()
             {
+                if (_throwError)
+                {
+                    throw new Exception("Error thrown.");
+                }
+
                 _cts.Cancel();
             }
         }

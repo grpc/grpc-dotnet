@@ -23,6 +23,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -71,8 +72,9 @@ namespace Microsoft.AspNetCore.Builder
 
             var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
             var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
+            var loggerFactory = builder.ServiceProvider.GetRequiredService<ILoggerFactory>();
 
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry);
+            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry, loggerFactory);
 
             try
             {
@@ -90,31 +92,10 @@ namespace Microsoft.AspNetCore.Builder
 
         private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
         {
-            var serviceType = typeof(TService);
-
-            // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
-            // We need to access the static BindService method on Foo which implicitly derives from Object.
-            var baseType = serviceType.BaseType;
-
-            // Handle services that have multiple levels of inheritence
-            while (baseType?.BaseType?.BaseType != null)
-            {
-                baseType = baseType.BaseType;
-            }
-
-            // We need to call Foo.BindService from the declaring type.
-            var declaringType = baseType?.DeclaringType;
-
-            // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
-            var bindService = declaringType?.GetMethod("BindService", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(ServiceBinderBase), baseType }, Array.Empty<ParameterModifier>());
-
-            if (bindService == null)
-            {
-                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {serviceType.FullName}.");
-            }
+            var bindMethodInfo = BindMethodFinder.GetBindMethod(typeof(TService));
 
             // Invoke BindService(ServiceBinderBase, BaseType)
-            bindService.Invoke(null, new object[] { binder, service });
+            bindMethodInfo.Invoke(null, new object[] { binder, service });
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)

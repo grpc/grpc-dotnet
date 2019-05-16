@@ -22,7 +22,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.Tests.Shared
 {
     /// <summary>
     /// A memory stream that waits for data when reading and allows the sender of data to wait for it to be read.

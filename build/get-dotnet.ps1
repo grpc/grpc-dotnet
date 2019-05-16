@@ -22,6 +22,7 @@ $TempDir = Join-Path $WorkingDir 'obj'
 $InstallScriptUrl = 'https://dot.net/v1/dotnet-install.ps1'
 $InstallScriptPath = Join-Path $TempDir 'dotnet-install.ps1'
 $GlobalJsonPath = Join-Path $WorkingDir '..' | Join-Path -ChildPath 'global.json'
+$DotnetInstallPath = Join-Path $WorkingDir '..' | Join-Path -ChildPath '.dotnet'
 
 # Functions
 
@@ -41,4 +42,4 @@ $SDKVersion = $GlobalJson.sdk.version
 Ensure-Dir $TempDir
 Write-Host "Downloading install script: $InstallScriptUrl => $InstallScriptPath"
 Invoke-WebRequest -Uri $InstallScriptUrl -OutFile $InstallScriptPath
-&$InstallScriptPath -Version $SDKVersion
+&$InstallScriptPath -Version $SDKVersion -InstallDir $DotnetInstallPath

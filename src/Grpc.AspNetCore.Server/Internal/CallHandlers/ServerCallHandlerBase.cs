@@ -16,8 +16,8 @@
 
 #endregion
 
-using System;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -41,12 +41,21 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             if (!GrpcProtocolHelpers.IsValidContentType(httpContext, out var error))
             {
-                return GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCode.Internal, error);
+                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                return Task.CompletedTask;
             }
 
             return HandleCallAsyncCore(httpContext);
         }
 
         protected abstract Task HandleCallAsyncCore(HttpContext httpContext);
+
+        protected HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext)
+        {
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
+
+            return serverCallContext;
+        }
     }
 }

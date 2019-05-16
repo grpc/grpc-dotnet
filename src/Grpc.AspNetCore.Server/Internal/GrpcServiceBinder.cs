@@ -21,10 +21,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -36,16 +38,23 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private readonly IEndpointRouteBuilder _builder;
         private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
+        private readonly ILogger _logger;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
         private readonly IGrpcMethodModelFactory<TService> _serviceModelFactory;
 
         internal IList<IEndpointConventionBuilder> EndpointConventionBuilders { get; } = new List<IEndpointConventionBuilder>();
         internal IList<IMethod> ServiceMethods { get; } = new List<IMethod>();
 
-        internal GrpcServiceBinder(IEndpointRouteBuilder builder, IGrpcMethodModelFactory<TService> serviceModelFactory, ServerCallHandlerFactory<TService> serverCallHandlerFactory, ServiceMethodsRegistry serviceMethodsRegistry)
+        internal GrpcServiceBinder(
+            IEndpointRouteBuilder builder,
+            IGrpcMethodModelFactory<TService> serviceModelFactory,
+            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+            ServiceMethodsRegistry serviceMethodsRegistry,
+            ILoggerFactory loggerFactory)
         {
             _builder = builder;
             _serviceMethodsRegistry = serviceMethodsRegistry;
+            _logger = loggerFactory.CreateLogger(GetType());
             _serverCallHandlerFactory = serverCallHandlerFactory;
             _serviceModelFactory = serviceModelFactory;
         }
@@ -85,15 +94,25 @@ namespace Grpc.AspNetCore.Server.Internal
             var resolvedMetadata = new List<object>();
 
             // IMethod is added as metadata for the endpoint
-            resolvedMetadata.Add(method);
+            resolvedMetadata.Add(new GrpcMethodMetadata(typeof(TService), method));
             resolvedMetadata.AddRange(metadata);
 
-            var endpointBuilder = _builder
-                .MapPost(method.FullName, requestDelegate)
-                .WithDisplayName($"gRPC - {method.FullName}")
-                .WithMetadata(resolvedMetadata.ToArray());
+            var pattern = method.FullName;
+
+            var endpointBuilder = _builder.MapPost(pattern, requestDelegate);
+
+            endpointBuilder.Add(ep =>
+            {
+                ep.DisplayName = $"gRPC - {method.FullName}";
+                foreach (var item in resolvedMetadata)
+                {
+                    ep.Metadata.Add(item);
+                }
+            });
 
             EndpointConventionBuilders.Add(endpointBuilder);
+
+            Log.ServiceMethodAdded(_logger, method.Name, method.ServiceName, method.Type, pattern);
         }
 
         internal void CreateUnimplementedEndpoints()
@@ -129,9 +148,13 @@ namespace Grpc.AspNetCore.Server.Internal
         private void CreateUnimplementedEndpoint(string pattern, string displayName, RequestDelegate requestDelegate)
         {
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
-            _builder.Map(routePattern, requestDelegate)
-                .WithDisplayName(displayName)
-                .WithMetadata(new HttpMethodMetadata(new[] { "POST" }));
+            var endpointBuilder = _builder.Map(routePattern, requestDelegate);
+
+            endpointBuilder.Add(ep =>
+            {
+                ep.DisplayName = $"gRPC - {displayName}";
+                ep.Metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
+            });
         }
 
         private class GrpcContentTypeConstraint : IRouteConstraint
@@ -150,6 +173,17 @@ namespace Grpc.AspNetCore.Server.Internal
 
             private GrpcContentTypeConstraint()
             {
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, string, string, MethodType, string, Exception> _serviceMethodAdded =
+                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Debug, new EventId(1, "ServiceMethodAdded"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+
+            public static void ServiceMethodAdded(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
+            {
+                _serviceMethodAdded(logger, methodName, serviceName, methodType, routePattern, null);
             }
         }
     }

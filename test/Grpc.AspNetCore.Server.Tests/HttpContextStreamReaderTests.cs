@@ -23,6 +23,7 @@ using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 

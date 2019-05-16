@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class HttpContextServerCallContextHelper
     {
@@ -31,10 +31,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             GrpcServiceOptions serviceOptions = null,
             ILogger logger = null)
         {
-            return new HttpContextServerCallContext(
+            var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),
                 serviceOptions ?? new GrpcServiceOptions(),
                 logger ?? NullLogger.Instance);
+            context.Initialize();
+
+            return context;
         }
     }
 }

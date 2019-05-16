@@ -17,6 +17,7 @@
 #endregion
 
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -25,6 +26,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -53,8 +55,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Method is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Method is unimplemented.");
         }
 
         [Test]
@@ -78,8 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            Assert.AreEqual(StatusCode.Unimplemented.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Service is unimplemented.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
         }
 
         [TestCase("application/grpc", HttpStatusCode.OK, StatusCode.Unimplemented)]
@@ -104,8 +104,15 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             Assert.AreEqual(httpStatusCode, response.StatusCode);
-
-            Assert.AreEqual(grpcStatusCode?.ToTrailerString() ?? string.Empty, Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
+            if (grpcStatusCode != null)
+            {
+                Assert.AreEqual(grpcStatusCode.Value.ToTrailerString(), response.Headers.GetValues(GrpcProtocolConstants.StatusTrailer).Single());
+            }
+            else
+            {
+                Assert.IsFalse(response.Headers.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _));
+                Assert.IsFalse(response.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _));
+            }
         }
     }
 }

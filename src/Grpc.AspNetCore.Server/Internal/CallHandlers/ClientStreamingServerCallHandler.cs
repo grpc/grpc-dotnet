@@ -31,36 +31,103 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly ClientStreamingServerMethod<TService, TRequest, TResponse> _invoker;
+        private static readonly Func<InterceptorRegistration, ClientStreamingServerMethod<TRequest, TResponse>, ClientStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptorRegistration, next) =>
+        {
+            return async (requestStream, context) =>
+            {
+                var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
+                var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
+
+                if (interceptorInstance == null)
+                {
+                    throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
+                }
+
+                try
+                {
+                    return await interceptorInstance.ClientStreamingServerHandler(requestStream, context, next);
+                }
+                finally
+                {
+                    interceptorActivator.Release(interceptorInstance);
+                }
+            };
+        };
 
         public ClientStreamingServerCallHandler(
             Method<TRequest, TResponse> method,
             ClientStreamingServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+            ILoggerFactory loggerFactory) 
+            : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
         }
 
         protected override async Task HandleCallAsyncCore(HttpContext httpContext)
         {
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+            var serverCallContext = CreateServerCallContext(httpContext);
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
             TService service = null;
-
             TResponse response = null;
+
             try
             {
                 serverCallContext.Initialize();
 
-                service = activator.Create();
+                if (ServiceOptions.Interceptors.IsEmpty)
+                {
+                    try
+                    {
+                        service = activator.Create();
+                        response = await _invoker(
+                            service,
+                            new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                            serverCallContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
+                }
+                else
+                {
+                    ClientStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequestStream, resolvedContext) =>
+                    {
+                        try
+                        {
+                            service = activator.Create();
+                            return await _invoker(
+                                service,
+                                resolvedRequestStream,
+                                resolvedContext);
+                        }
+                        finally
+                        {
+                            if (service != null)
+                            {
+                                activator.Release(service);
+                            }
+                        }
+                        
+                    };
 
-                response = await _invoker(
-                    service,
-                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
-                    serverCallContext);
+                    // The list is reversed during construction so the first interceptor is built last and invoked first
+                    for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
+                    {
+                        resolvedInvoker = BuildInvoker(ServiceOptions.Interceptors[i], resolvedInvoker);
+                    }
+
+                    response = await resolvedInvoker(
+                        new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                        serverCallContext);
+                }
 
                 if (response == null)
                 {
@@ -70,6 +137,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 var responseBodyWriter = httpContext.Response.BodyWriter;
                 await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
+
+                await serverCallContext.EndCallAsync();
             }
             catch (Exception ex)
             {
@@ -78,16 +147,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             finally
             {
                 serverCallContext.Dispose();
-                if (service != null)
-                {
-                    activator.Release(service);
-                }
             }
-
-            httpContext.Response.ConsolidateTrailers(serverCallContext);
-
-            // Flush any buffered content
-            await httpContext.Response.BodyWriter.FlushAsync();
         }
     }
 }

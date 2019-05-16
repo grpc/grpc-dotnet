@@ -22,6 +22,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
+using Greet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -47,8 +48,16 @@ namespace FunctionalTestsWebsite
                 {
                     options.SendMaxMessageSize = 64 * 1024;
                     options.ReceiveMaxMessageSize = 64 * 1024;
+                })
+                .AddServiceOptions<CompressionService>(options =>
+                {
+                    options.ResponseCompressionAlgorithm = "gzip";
                 });
             services.AddHttpContextAccessor();
+
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(options => options.BaseAddress = new Uri("https://localhost:8080"))
+                .UsePrimaryMessageHandlerProvider();
 
             services.AddAuthorization(options =>
             {
@@ -58,7 +67,6 @@ namespace FunctionalTestsWebsite
                     policy.RequireClaim(ClaimTypes.NameIdentifier);
                 });
             });
-            services.AddAuthorizationPolicyEvaluator();
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -79,10 +87,9 @@ namespace FunctionalTestsWebsite
             services.AddTransient<TransientValueProvider>();
             services.AddScoped<ScopedValueProvider>();
 
-            // When the site is run from the test project a signaler will already be registered
-            // This will add a default one if the site is run standalone
-            services.TryAddSingleton<TrailersContainer>();
-
+            // When the site is run from the test project these types will be injected
+            // This will add a default types if the site is run standalone
+            services.TryAddSingleton<IPrimaryMessageHandlerProvider, HttpPrimaryMessageHandlerProvider>();
             services.TryAddSingleton<DynamicEndpointDataSource>();
 
             // Add a Singleton service
@@ -92,67 +99,37 @@ namespace FunctionalTestsWebsite
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
-            app.Use((context, next) =>
-            {
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/6880
-                if (!context.Response.SupportsTrailers())
-                {
-                    context.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
-                    {
-                        Trailers = new HeaderDictionary()
-                    });
-                }
+            app.UseRouting();
 
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/7449
-                context.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
-                // Workaround for https://github.com/aspnet/AspNetCore/issues/7780
-                context.Features.Set<IHttpResponseStartFeature>(new TestHttpResponseStartFeature());
+            app.UseAuthorization();
 
-                return next();
-            });
-
-            app.UseRouting(routes =>
+            app.UseEndpoints(endpoints =>
             {
                 // Bind via reflection
-                routes.MapGrpcService<ChatterService>();
-                routes.MapGrpcService<CounterService>();
-                routes.MapGrpcService<AuthorizedGreeter>();
-                routes.MapGrpcService<SecondGreeterService>();
-                routes.MapGrpcService<LifetimeService>();
-                routes.MapGrpcService<SingletonCounterService>();
+                endpoints.MapGrpcService<ChatterService>();
+                endpoints.MapGrpcService<CounterService>();
+                endpoints.MapGrpcService<AuthorizedGreeter>();
+                endpoints.MapGrpcService<SecondGreeterService>();
+                endpoints.MapGrpcService<LifetimeService>();
+                endpoints.MapGrpcService<SingletonCounterService>();
+                endpoints.MapGrpcService<NestedService>();
+                endpoints.MapGrpcService<CompressionService>();
 
                 // Bind via configure method
-                routes.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
+                endpoints.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
 
-                routes.DataSources.Add(routes.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
+                endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 
-                routes.Map("{FirstSegment}/{SecondSegment}", context =>
+                endpoints.Map("{FirstSegment}/{SecondSegment}", context =>
                 {
                     context.Response.StatusCode = StatusCodes.Status418ImATeapot;
                     return Task.CompletedTask;
                 });
 
-                routes.MapGet("/generateJwtToken", context =>
+                endpoints.MapGet("/generateJwtToken", context =>
                 {
                     return context.Response.WriteAsync(GenerateJwtToken());
                 });
-            });
-
-            app.UseAuthorization();
-
-            app.Use(async (context, next) =>
-            {
-                await next();
-
-                var trailers = context.Features.Get<IHttpResponseTrailersFeature>().Trailers;
-
-                var trailersContainer = context.RequestServices.GetRequiredService<TrailersContainer>();
-
-                trailersContainer.Trailers.Clear();
-                foreach (var trailer in trailers)
-                {
-                    trailersContainer.Trailers[trailer.Key] = trailer.Value;
-                }
             });
         }
 

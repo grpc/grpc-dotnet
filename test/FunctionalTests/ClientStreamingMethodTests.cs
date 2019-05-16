@@ -27,9 +27,9 @@ using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
 using NUnit.Framework;
+using Grpc.Tests.Shared;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
@@ -65,8 +65,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
             Assert.AreEqual(2, reply.Count);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -105,10 +104,12 @@ namespace Grpc.AspNetCore.FunctionalTests
             await requestStream.AddDataAndWait(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).DefaultTimeout();
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
-            await responseTask.DefaultTimeout();
+            var response = await responseTask.DefaultTimeout();
 
-            Assert.AreEqual(StatusCode.Internal.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("Incomplete message.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].ToString());
+            // Read to end of response so headers are available
+            await response.Content.CopyToAsync(new MemoryStream());
+
+            response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
         }
 
         [Test]
@@ -140,9 +141,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-
-            Assert.AreEqual(StatusCode.Cancelled.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("No message returned from method.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
         }
 
         [Test]
@@ -157,7 +156,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 {
                     try
                     {
-                        var hasNext = await requestStream.MoveNext(cts.Token);
+                        var hasNext = await requestStream.MoveNext(cts.Token).DefaultTimeout();
 
                         if (!hasNext)
                         {
@@ -196,6 +195,10 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
             _ = Task.Run(async () =>
             {
                 while (!responseTask.IsCompleted)
@@ -204,14 +207,10 @@ namespace Grpc.AspNetCore.FunctionalTests
                 }
             });
 
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
             var response = await responseTask.DefaultTimeout();
-            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
+            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
             Assert.AreEqual(3, reply.Count);
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            response.AssertTrailerStatus();
         }
     }
 }

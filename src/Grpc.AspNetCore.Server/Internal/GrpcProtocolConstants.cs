@@ -16,6 +16,10 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
+using Microsoft.Net.Http.Headers;
+
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal static class GrpcProtocolConstants
@@ -23,7 +27,27 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string GrpcContentType = "application/grpc";
 
         internal const string TimeoutHeader = "grpc-timeout";
+        internal const string MessageEncodingHeader = "grpc-encoding";
+        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
+		
         internal const string StatusTrailer = "grpc-status";
         internal const string MessageTrailer = "grpc-message";
+
+        internal const string IdentityGrpcEncoding = "identity";
+
+        internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            MessageEncodingHeader,
+            MessageAcceptEncodingHeader,
+            TimeoutHeader,
+            HeaderNames.ContentType,
+            HeaderNames.TE,
+            HeaderNames.Host,
+            HeaderNames.AcceptEncoding
+        };
+		
+        internal const string X509SubjectAlternativeNameId = "2.5.29.17";
+        internal const string X509SubjectAlternativeNameKey = "x509_subject_alternative_name";
+        internal const string X509CommonNameKey = "x509_common_name";
     }
 }

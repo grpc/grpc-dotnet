@@ -20,8 +20,8 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using BrainDumpOfIdeas;
 using Common;
+using Greet;
 using Grpc.Core;
 
 namespace Sample.Clients
@@ -33,21 +33,43 @@ namespace Sample.Clients
             // Server will only support Https on Windows and Linux
             var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
             var channel = new Channel("localhost:50051", credentials);
-            var client = ClientFactory.CreateClient<IGreeter>(channel);
+            var client = new Greeter.GreeterClient(channel);
 
-            var reply = await client.SayHello(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
+            await UnaryCallExample(client);
 
-            var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" });
-            while (await replies.ResponseStream.MoveNext(CancellationToken.None))
-            {
-                Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
-            }
-            
+            await ServerStreamingCallExample(client);
+
             Console.WriteLine("Shutting down");
-            channel.ShutdownAsync().Wait();
+            await channel.ShutdownAsync();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
+        }
+
+        private static async Task UnaryCallExample(Greeter.GreeterClient client)
+        {
+            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+            Console.WriteLine("Greeting: " + reply.Message);
+        }
+
+        private static async Task ServerStreamingCallExample(Greeter.GreeterClient client)
+        {
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
+
+            using (var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
+            {
+                try
+                {
+                    while (await replies.ResponseStream.MoveNext(cts.Token))
+                    {
+                        Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                    }
+                }
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+                {
+                    Console.WriteLine("Stream cancelled.");
+                }
+            }
         }
     }
 }

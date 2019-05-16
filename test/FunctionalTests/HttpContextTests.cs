@@ -22,9 +22,10 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
+using Grpc.Tests.Shared;
 using Grpc.Core;
 using NUnit.Framework;
+using System.Linq;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
@@ -51,9 +52,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
+            response.AssertTrailerStatus();
+            Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
         }
 
         [Test]
@@ -84,9 +84,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
-
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].ToString());
-            Assert.AreEqual($"{url}?query=extra", Fixture.TrailersContainer.Trailers["Test-HttpContext-PathAndQueryString"].ToString());
+            response.AssertTrailerStatus();
+            Assert.AreEqual($"{url}?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
         }
     }
 }

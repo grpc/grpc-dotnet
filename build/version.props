@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- version of all grpc-dotnet packages -->
+    <GrpcDotnetVersion>0.1.21-dev</GrpcDotnetVersion>
+  </PropertyGroup>
+</Project>

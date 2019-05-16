@@ -16,7 +16,8 @@
 
 #endregion
 
-using System.Runtime.InteropServices;
+using System;
+using System.IO;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -43,9 +44,14 @@ namespace InteropTestsWebsite
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(port, listenOptions =>
                     {
+                        Console.WriteLine($"Enabling connection encryption: {useTls}");
+
                         if (useTls)
                         {
-                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                            var certPath = Path.Combine(basePath, "Certs/server1.pfx");
+
+                            listenOptions.UseHttps(certPath, "1111");
                         }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });

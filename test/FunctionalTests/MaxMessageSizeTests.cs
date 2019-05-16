@@ -23,7 +23,7 @@ using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
+using Grpc.Tests.Shared;
 using Grpc.Core;
 using NUnit.Framework;
 
@@ -53,13 +53,12 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            await Fixture.Client.PostAsync(
+            var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHello",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("Received message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         }
 
         [Test]
@@ -83,13 +82,12 @@ namespace Grpc.AspNetCore.FunctionalTests
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            await Fixture.Client.PostAsync(
+            var response = await Fixture.Client.PostAsync(
                 "Greet.Greeter/SayHelloSendLargeReply",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(StatusCode.ResourceExhausted.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
-            Assert.AreEqual("Sending message exceeds the maximum configured message size.", Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.MessageTrailer].Single());
+            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         }
     }
 }

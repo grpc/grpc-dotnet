@@ -26,8 +26,8 @@ using Chat;
 using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
@@ -65,7 +65,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             var pipeReader = new StreamPipeReader(responseStream);
 
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
-            Assert.IsTrue(message1Task.IsCompleted);
             var message1 = await message1Task.DefaultTimeout();
             Assert.AreEqual("John", message1.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
@@ -91,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             requestStream.AddData(Array.Empty<byte>());
             await finishedTask.DefaultTimeout();
 
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -126,7 +125,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
 
             await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response");
+            Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 1");
 
             ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage
@@ -136,7 +135,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             });
 
             await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response");
+            Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 2");
 
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
@@ -156,7 +155,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout());
 
-            Assert.AreEqual(StatusCode.OK.ToTrailerString(), Fixture.TrailersContainer.Trailers[GrpcProtocolConstants.StatusTrailer].Single());
+            response.AssertTrailerStatus();
         }
     }
 }

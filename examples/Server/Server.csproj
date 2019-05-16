@@ -15,11 +15,12 @@
     <Protobuf Include="..\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
 
     <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="" />
+    <Content Include="@(Protobuf)" LinkBase="Protos" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\Shared\Resources.cs" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
 
     <ProjectReference Include="..\..\src\protobuf-net.Grpc\protobuf-net.Grpc.csproj" />
     <PackageReference Include="protobuf-net" Version="2.4.0" />

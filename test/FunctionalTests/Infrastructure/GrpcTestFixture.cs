@@ -20,7 +20,6 @@ using System;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,26 +30,28 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         private readonly TestServer _server;
 
-        public GrpcTestFixture()
-        {
-            TrailersContainer = new TrailersContainer();
+        public GrpcTestFixture() : this(null) { }
 
+        public GrpcTestFixture(Action<IServiceCollection> initialConfigureServices)
+        {
             LoggerFactory = new LoggerFactory();
 
             Action<IServiceCollection> configureServices = services =>
             {
-                // Register trailers container so tests can assert trailer headers
-                // Not thread safe for parallel calls
-                services.AddSingleton(TrailersContainer);
-
                 // Registers a service for tests to add new methods
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
 
                 services.AddSingleton<ILoggerFactory>(LoggerFactory);
+
+                services.AddSingleton<IPrimaryMessageHandlerProvider, TestPrimaryMessageHandlerProvider>(s => new TestPrimaryMessageHandlerProvider(_server));
             };
 
             var builder = new WebHostBuilder()
-                .ConfigureServices(configureServices)
+                .ConfigureServices(services =>
+                {
+                    initialConfigureServices?.Invoke(services);
+                    configureServices(services);
+                })
                 .UseStartup<TStartup>();
 
             _server = new TestServer(builder);
@@ -61,7 +62,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Client.BaseAddress = new Uri("http://localhost");
         }
 
-        public TrailersContainer TrailersContainer { get; }
         public LoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 

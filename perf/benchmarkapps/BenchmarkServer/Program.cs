@@ -23,6 +23,7 @@ using Common;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -83,7 +84,16 @@ namespace BenchmarkServer
 
                         if (useTls)
                         {
-                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
+                            var requireClientCertificate = Convert.ToBoolean(context.Configuration["RequireClientCertificate"]);
+                            Console.WriteLine($"Require client certificate: {requireClientCertificate}");
+
+                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111", httpsOptions =>
+                            {
+                                if (requireClientCertificate)
+                                {
+                                    httpsOptions.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
+                                }
+                            });
                         }
 
                         listenOptions.Protocols = HttpProtocols.Http2;

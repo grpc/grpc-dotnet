@@ -17,18 +17,21 @@
 #endregion
 
 using System;
-using System.Globalization;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
     {
+        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
 
         // Override the current time for unit testing
@@ -40,6 +43,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private DateTime _deadline;
         private Timer _deadlineTimer;
         private Status _status;
+        private AuthContext _authContext;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -50,6 +54,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
+        internal string ResponseGrpcEncoding { get; private set; }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
@@ -86,10 +91,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     foreach (var header in HttpContext.Request.Headers)
                     {
-                        // ASP.NET Core includes pseudo headers in the set of request headers
-                        // whereas, they are not in gRPC implementations. We will filter them
-                        // out when we construct the list of headers on the context.
-                        if (header.Key.StartsWith(':'))
+                        // gRPC metadata contains a subset of the request headers
+                        // Filter out pseudo headers (start with :) and other known headers
+                        if (header.Key.StartsWith(':') || GrpcProtocolConstants.FilteredHeaders.Contains(header.Key))
                         {
                             continue;
                         }
@@ -133,6 +137,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
             }
+
+            HttpContext.Response.ConsolidateTrailers(this);
         }
 
         protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
@@ -156,17 +162,49 @@ namespace Grpc.AspNetCore.Server.Internal
             set => _status = value;
         }
 
+        internal Task EndCallAsync()
+        {
+            HttpContext.Response.ConsolidateTrailers(this);
+
+            if (HasBufferedMessage)
+            {
+                // Flush any buffered content
+                return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+            }
+            else
+            {
+                return Task.CompletedTask;
+            }
+        }
+
         protected override WriteOptions WriteOptionsCore { get; set; }
 
         protected override AuthContext AuthContextCore
         {
             get
             {
-                // TODO(JunTaoLuo, JamesNK): Currently blocked on AuthContext constructor being internal
-                // https://github.com/grpc/grpc-dotnet/issues/72
-                throw new NotImplementedException("AuthContext will be implemented in a future version.");
+                if (_authContext == null)
+                {
+                    var clientCertificate = HttpContext.Connection.ClientCertificate;
+                    if (clientCertificate == null)
+                    {
+                        _authContext = UnauthenticatedContext;
+                    }
+                    else
+                    {
+                        _authContext = GrpcProtocolHelpers.CreateAuthContext(clientCertificate);
+                    }
+                }
+
+                return _authContext;
             }
         }
+
+        public ServerCallContext ServerCallContext => this;
+
+        protected override IDictionary<object, object> UserStateCore => HttpContext.Items;
+
+        internal bool HasBufferedMessage { get; set; }
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
@@ -215,6 +253,20 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = DateTime.MaxValue;
             }
+
+            var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
+            if (serviceDefaultCompression != null &&
+                !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
+                IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
+            {
+                ResponseGrpcEncoding = serviceDefaultCompression;
+            }
+            else
+            {
+                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
+            }
+
+            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
         }
 
         private TimeSpan GetTimeout()
@@ -241,13 +293,81 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
-            // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-            HttpContext.Abort();
+            try
+            {
+                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
+                HttpContext.Abort();
+            }
+            catch (Exception ex)
+            {
+                Log.DeadlineCancellationError(_logger, ex);
+            }
         }
 
         public void Dispose()
         {
             _deadlineTimer?.Dispose();
+        }
+
+        internal string GetRequestGrpcEncoding()
+        {
+            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageEncodingHeader, out var values))
+            {
+                return values;
+            }
+
+            return null;
+        }
+
+        internal bool IsEncodingInRequestAcceptEncoding(string encoding)
+        {
+            if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageAcceptEncodingHeader, out var values))
+            {
+                var acceptEncoding = values.ToString().AsSpan();
+
+                while (true)
+                {
+                    var separatorIndex = acceptEncoding.IndexOf(',');
+                    if (separatorIndex == -1)
+                    {
+                        break;
+                    }
+
+                    var segment = acceptEncoding.Slice(0, separatorIndex);
+                    acceptEncoding = acceptEncoding.Slice(separatorIndex);
+
+                    // Check segment
+                    if (segment.SequenceEqual(encoding))
+                    {
+                        return true;
+                    }
+                }
+
+                // Check remainder
+                if (acceptEncoding.SequenceEqual(encoding))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        internal void ValidateAcceptEncodingContainsResponseEncoding()
+        {
+            Debug.Assert(ResponseGrpcEncoding != null);
+
+            if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
+            {
+                Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
+            }
+        }
+
+        internal bool CanWriteCompressed()
+        {
+            var canCompress = ((WriteOptions?.Flags ?? default) & WriteFlags.NoCompress) != WriteFlags.NoCompress;
+
+            return canCompress;
         }
     }
 }

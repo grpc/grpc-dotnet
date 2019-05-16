@@ -9,9 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8C62055F-8CD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{AC41B2B2-62D9-454E-8521-F71E331B07F3}"
 	ProjectSection(SolutionItems) = preProject
-		examples\Proto\chat.proto = examples\Proto\chat.proto
 		examples\Proto\count.proto = examples\Proto\count.proto
 		examples\Proto\greet.proto = examples\Proto\greet.proto
+		examples\Proto\mail.proto = examples\Proto\mail.proto
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Clients", "Clients", "{F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}"
@@ -46,8 +46,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.FunctionalT
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "perf", "perf", "{4163E1B3-4D75-46B4-9107-9A158FD708FC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chatter", "examples\Clients\Chatter\Chatter.csproj", "{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Counter", "examples\Clients\Counter\Counter.csproj", "{F65AE56A-E6C8-467D-A097-3766D51720C0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Greeter", "examples\Clients\Greeter\Greeter.csproj", "{265BE0B1-9002-441B-BA96-5C9E01115840}"
@@ -58,10 +56,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4-6099-4EF9-85BB-7EE6CBEB920C}"
 	ProjectSection(SolutionItems) = preProject
+		testassets\Proto\authorize.proto = testassets\Proto\authorize.proto
 		testassets\Proto\chat.proto = testassets\Proto\chat.proto
+		testassets\Proto\compression.proto = testassets\Proto\compression.proto
 		testassets\Proto\count.proto = testassets\Proto\count.proto
 		testassets\Proto\greet.proto = testassets\Proto\greet.proto
+		testassets\Proto\lifetime.proto = testassets\Proto\lifetime.proto
 		testassets\Proto\message.proto = testassets\Proto\message.proto
+		testassets\Proto\nested.proto = testassets\Proto\nested.proto
+		testassets\Proto\singleton.proto = testassets\Proto\singleton.proto
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{7B95289B-4992-4C0D-B26F-8EC58F81FC96}"
@@ -77,8 +80,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{310E5783-455A-4D09-A7AE-39DC2AB09504}"
 	ProjectSection(SolutionItems) = preProject
 		perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs = perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs
+		perf\benchmarkapps\Shared\ca.crt = perf\benchmarkapps\Shared\ca.crt
+		perf\benchmarkapps\Shared\client.crt = perf\benchmarkapps\Shared\client.crt
+		perf\benchmarkapps\Shared\client.key = perf\benchmarkapps\Shared\client.key
 		perf\benchmarkapps\Shared\greet.proto = perf\benchmarkapps\Shared\greet.proto
 		perf\benchmarkapps\Shared\Greeter.cs = perf\benchmarkapps\Shared\Greeter.cs
+		perf\benchmarkapps\Shared\server.pfx = perf\benchmarkapps\Shared\server.pfx
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Microbenchmarks", "perf\Grpc.AspNetCore.Microbenchmarks\Grpc.AspNetCore.Microbenchmarks.csproj", "{98500D54-FC3F-4A42-B74D-51930C19B175}"
@@ -89,7 +96,55 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkWorkerWebsite", "testassets\BenchmarkWorkerWebsite\BenchmarkWorkerWebsite.csproj", "{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "protobuf-net.Grpc", "src\protobuf-net.Grpc\protobuf-net.Grpc.csproj", "{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.NetCore.HttpClient", "src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj", "{FA2EF163-D774-4A28-94D7-F0A5D1A11892}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.GrpcClient", "src\Grpc.AspNetCore.Server.GrpcClient\Grpc.AspNetCore.Server.GrpcClient.csproj", "{9624FEEF-872F-4598-B634-0FE15414190C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mailer", "examples\Clients\Mailer\Mailer.csproj", "{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Certs", "Certs", "{39320CA8-D8F0-45B6-B704-A04C16870226}"
+	ProjectSection(SolutionItems) = preProject
+		perf\benchmarkapps\Shared\Certs\ca.crt = perf\benchmarkapps\Shared\Certs\ca.crt
+		perf\benchmarkapps\Shared\Certs\ca.key = perf\benchmarkapps\Shared\Certs\ca.key
+		perf\benchmarkapps\Shared\Certs\client.crt = perf\benchmarkapps\Shared\Certs\client.crt
+		perf\benchmarkapps\Shared\Certs\client.key = perf\benchmarkapps\Shared\Certs\client.key
+		perf\benchmarkapps\Shared\Certs\Readme.md = perf\benchmarkapps\Shared\Certs\Readme.md
+		perf\benchmarkapps\Shared\Certs\server.crt = perf\benchmarkapps\Shared\Certs\server.crt
+		perf\benchmarkapps\Shared\Certs\server.key = perf\benchmarkapps\Shared\Certs\server.key
+		perf\benchmarkapps\Shared\Certs\server.pfx = perf\benchmarkapps\Shared\Certs\server.pfx
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Reflection", "src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj", "{55813F20-1269-4B19-B03E-7E4A90148F92}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reflector", "examples\Clients\Reflector\Reflector.csproj", "{86AD33E9-2C07-45BD-B599-420C2618188D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsClient", "testassets\InteropTestsClient\InteropTestsClient.csproj", "{291E5BA5-608D-406D-A2DB-389412D907F3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.NetCore.HttpClient.Tests", "test\Grpc.NetCore.HttpClient.Tests\Grpc.NetCore.HttpClient.Tests.csproj", "{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Certs", "Certs", "{743F8EC2-004E-4640-B04F-5BAFDA8BF112}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InteropTests", "InteropTests", "{50CF39FF-2644-4B5F-BE1A-B57487B9723B}"
+	ProjectSection(SolutionItems) = preProject
+		testassets\Certs\InteropTests\ca.pem = testassets\Certs\InteropTests\ca.pem
+		testassets\Certs\InteropTests\README.md = testassets\Certs\InteropTests\README.md
+		testassets\Certs\InteropTests\server1.key = testassets\Certs\InteropTests\server1.key
+		testassets\Certs\InteropTests\server1.pem = testassets\Certs\InteropTests\server1.pem
+		testassets\Certs\InteropTests\server1.pfx = testassets\Certs\InteropTests\server1.pfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "grpc", "grpc", "{6DC078D2-8FB1-4685-B9BE-61F1C0ED8053}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testing", "testing", "{88AC787E-603C-48C3-AEBA-D90F3E2142CA}"
+	ProjectSection(SolutionItems) = preProject
+		testassets\Proto\grpc\testing\empty.proto = testassets\Proto\grpc\testing\empty.proto
+		testassets\Proto\grpc\testing\messages.proto = testassets\Proto\grpc\testing\messages.proto
+		testassets\Proto\grpc\testing\test.proto = testassets\Proto\grpc\testing\test.proto
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InteropTestsNativeServer", "testassets\InteropTestsNativeServer\InteropTestsNativeServer.csproj", "{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "protobuf-net.Grpc", "src\protobuf-net.Grpc\protobuf-net.Grpc.csproj", "{CDF55014-B808-44BC-A025-02473BE8CCF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -109,10 +164,6 @@ Global
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B190F61D-854C-4EE1-9532-B81AB3215F90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F65AE56A-E6C8-467D-A097-3766D51720C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -153,10 +204,42 @@ Global
 		{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA2EF163-D774-4A28-94D7-F0A5D1A11892}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA2EF163-D774-4A28-94D7-F0A5D1A11892}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA2EF163-D774-4A28-94D7-F0A5D1A11892}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA2EF163-D774-4A28-94D7-F0A5D1A11892}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9624FEEF-872F-4598-B634-0FE15414190C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9624FEEF-872F-4598-B634-0FE15414190C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9624FEEF-872F-4598-B634-0FE15414190C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9624FEEF-872F-4598-B634-0FE15414190C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55813F20-1269-4B19-B03E-7E4A90148F92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55813F20-1269-4B19-B03E-7E4A90148F92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55813F20-1269-4B19-B03E-7E4A90148F92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55813F20-1269-4B19-B03E-7E4A90148F92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86AD33E9-2C07-45BD-B599-420C2618188D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86AD33E9-2C07-45BD-B599-420C2618188D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86AD33E9-2C07-45BD-B599-420C2618188D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{291E5BA5-608D-406D-A2DB-389412D907F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{291E5BA5-608D-406D-A2DB-389412D907F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{291E5BA5-608D-406D-A2DB-389412D907F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{291E5BA5-608D-406D-A2DB-389412D907F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDF55014-B808-44BC-A025-02473BE8CCF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDF55014-B808-44BC-A025-02473BE8CCF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDF55014-B808-44BC-A025-02473BE8CCF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDF55014-B808-44BC-A025-02473BE8CCF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -170,7 +253,6 @@ Global
 		{89ED416F-92F1-4425-9379-D4E76A285860} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{278B1311-41BF-4345-947E-7B70E277FC3C} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{B190F61D-854C-4EE1-9532-B81AB3215F90} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
-		{1AD4D7AC-9B2E-498B-BB78-BCAF15055B48} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{F65AE56A-E6C8-467D-A097-3766D51720C0} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{265BE0B1-9002-441B-BA96-5C9E01115840} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{CD6E11AE-34B2-4054-AD14-A27653131762} = {A7E09CBD-853F-4C42-B4C4-A1C2CBA10C0B}
@@ -185,7 +267,19 @@ Global
 		{98500D54-FC3F-4A42-B74D-51930C19B175} = {4163E1B3-4D75-46B4-9107-9A158FD708FC}
 		{A551D7B1-D75A-43F0-A8E3-BAEA5EDF616A} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{C3D6C3BD-4E56-4B0F-88FD-4F2D68F0CD25} = {D4F0A67C-935C-429A-8785-22AE92FD37F6}
-		{B9FF5FA0-C281-4468-A8DD-9E7AF41E244B} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{FA2EF163-D774-4A28-94D7-F0A5D1A11892} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{9624FEEF-872F-4598-B634-0FE15414190C} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{20B3B4DC-0BF1-406B-83EC-D105B6FA846A} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{39320CA8-D8F0-45B6-B704-A04C16870226} = {310E5783-455A-4D09-A7AE-39DC2AB09504}
+		{55813F20-1269-4B19-B03E-7E4A90148F92} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{86AD33E9-2C07-45BD-B599-420C2618188D} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{291E5BA5-608D-406D-A2DB-389412D907F3} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
+		{2D26FB7A-72AD-41B9-9B06-44F50A8F8A49} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{743F8EC2-004E-4640-B04F-5BAFDA8BF112} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
+		{50CF39FF-2644-4B5F-BE1A-B57487B9723B} = {743F8EC2-004E-4640-B04F-5BAFDA8BF112}
+		{6DC078D2-8FB1-4685-B9BE-61F1C0ED8053} = {BF1393D4-6099-4EF9-85BB-7EE6CBEB920C}
+		{88AC787E-603C-48C3-AEBA-D90F3E2142CA} = {6DC078D2-8FB1-4685-B9BE-61F1C0ED8053}
+		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

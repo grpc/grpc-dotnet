@@ -10,6 +10,5 @@ branches:
     - master
 install:
   - ./build/get-dotnet.sh
-  - export PATH="~/.dotnet/:$PATH"
 script:
   - ./build_and_test.sh

@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Authors>The gRPC Authors</Authors>
+    <Copyright>Copyright 2019 The gRPC Authors</Copyright>
+    <Description>.NET client for gRPC</Description>
+    <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
+    <PackageTags>gRPC RPC HTTP/2</PackageTags>
+    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- TODO(JamesNK): Potentially change to netstandard2.1 https://github.com/dotnet/standard/issues/1144 -->
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Roslyn analyzer that enforces ConfigureAwait(false) -->
+    <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="$(ConfigureAwaitCheckerAnalyzerPackageVersion)" PrivateAssets="All" />
+    
+    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
+  </ItemGroup>
+
+</Project>
