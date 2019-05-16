@@ -124,6 +124,8 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
                         ref _lock,
                         _createActivator);
 
+                    // TODO(JamesNK): Compiler thinks activator is nullable
+                    // Possibly remove in the future when compiler is fixed
                     return activator!;
                 }
             }

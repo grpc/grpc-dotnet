@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.Builder
 
             try
             {
-                options.BindAction(serviceBinder, null!);
+                options.BindAction(serviceBinder, null);
             }
             catch (Exception ex)
             {

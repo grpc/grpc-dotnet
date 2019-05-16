@@ -95,11 +95,21 @@ namespace Grpc.NetCore.HttpClient
             private bool _initialized;
             private object? _lock;
 
-            public Func<CallInvoker, TClient> Activator => LazyInitializer.EnsureInitialized(
-                ref _activator,
-                ref _initialized,
-                ref _lock,
-                _createActivator)!;
+            public Func<CallInvoker, TClient> Activator
+            {
+                get
+                {
+                    var activator = LazyInitializer.EnsureInitialized(
+                        ref _activator,
+                        ref _initialized,
+                        ref _lock,
+                        _createActivator);
+
+                    // TODO(JamesNK): Compiler thinks activator is nullable
+                    // Possibly remove in the future when compiler is fixed
+                    return activator!;
+                }
+            }
         }
     }
 }

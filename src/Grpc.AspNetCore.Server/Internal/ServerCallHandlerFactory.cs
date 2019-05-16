@@ -17,8 +17,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -51,9 +53,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
                 ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
                 ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
-#pragma warning disable CS8601 // Possible null reference assignment.
-                CompressionProviders = so._compressionProviders ?? go._compressionProviders
-#pragma warning restore CS8601 // Possible null reference assignment.
+                CompressionProviders = so._compressionProviders ?? go._compressionProviders ?? new List<ICompressionProvider>()
             };
 
             _resolvedOptions.Interceptors.AddRange(go.Interceptors);
