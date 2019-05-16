@@ -33,14 +33,14 @@ namespace Grpc.Tests.Shared
     {
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
-        public static T AssertReadMessage<T>(byte[] messageData, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static T AssertReadMessage<T>(byte[] messageData, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage, new()
         {
             var ms = new MemoryStream(messageData);
 
             return AssertReadMessageAsync<T>(ms, compressionEncoding, compressionProviders).GetAwaiter().GetResult();
         }
 
-        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage, new()
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
@@ -68,14 +68,14 @@ namespace Grpc.Tests.Shared
             return message;
         }
 
-        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static Task<T?> AssertReadStreamMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             var pipeReader = new StreamPipeReader(stream);
 
             return AssertReadStreamMessageAsync<T>(pipeReader, compressionEncoding, compressionProviders);
         }
 
-        public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static async Task<T?> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
@@ -101,7 +101,7 @@ namespace Grpc.Tests.Shared
             return message;
         }
 
-        public static void WriteMessage<T>(Stream stream, T message, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage
+        public static void WriteMessage<T>(Stream stream, T message, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {

@@ -26,22 +26,22 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private static class Log
         {
-            private static readonly Action<ILogger, TimeSpan, Exception> _deadlineExceeded =
+            private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineExceeded =
                 LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(1, "DeadlineExceeded"), "Request with timeout of {Timeout} has exceeded its deadline.");
 
-            private static readonly Action<ILogger, string, Exception> _invalidTimeoutIgnored =
+            private static readonly Action<ILogger, string, Exception?> _invalidTimeoutIgnored =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "InvalidTimeoutIgnored"), "Invalid grpc-timeout header value '{Timeout}' has been ignored.");
 
-            private static readonly Action<ILogger, string, Exception> _errorExecutingServiceMethod =
+            private static readonly Action<ILogger, string, Exception?> _errorExecutingServiceMethod =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ErrorExecutingServiceMethod"), "Error when executing service method '{ServiceMethod}'.");
 
-            private static readonly Action<ILogger, StatusCode, Exception> _rpcConnectionError =
+            private static readonly Action<ILogger, StatusCode, Exception?> _rpcConnectionError =
                 LoggerMessage.Define<StatusCode>(LogLevel.Information, new EventId(4, "RpcConnectionError"), "Error status code '{StatusCode}' raised.");
 
-            private static readonly Action<ILogger, string, Exception> _encodingNotInAcceptEncoding =
+            private static readonly Action<ILogger, string, Exception?> _encodingNotInAcceptEncoding =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "EncodingNotInAcceptEncoding"), "Request grpc-encoding header value '{GrpcEncoding}' is not in grpc-accept-encoding.");
 
-            private static readonly Action<ILogger, Exception> _deadlineCancellationError =
+            private static readonly Action<ILogger, Exception?> _deadlineCancellationError =
                 LoggerMessage.Define(LogLevel.Error, new EventId(6, "DeadlineCancellationError"), "Error occurred while trying to cancel the request due to deadline exceeded.");
 
             public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)

@@ -16,22 +16,11 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Routing;
-
-namespace Grpc.AspNetCore.Server.Tests.TestObjects
+namespace System.Runtime.CompilerServices
 {
-    public class TestEndpointRouteBuilder : IEndpointRouteBuilder
+    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+    internal class NotNullWhenTrueAttribute : Attribute
     {
-        public IServiceProvider? ServiceProvider { get; set; }
-
-        public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
-
-        public IApplicationBuilder CreateApplicationBuilder()
-        {
-            throw new NotImplementedException();
-        }
+        public NotNullWhenTrueAttribute() { }
     }
 }

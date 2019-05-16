@@ -30,7 +30,7 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class GrpcServiceOptions
     {
-        internal List<ICompressionProvider> _compressionProviders;
+        internal List<ICompressionProvider>? _compressionProviders;
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.Server
         /// The request grpc-accept-encoding header value must contain this algorithm for it to
         /// be used.
         /// </summary>
-        public string ResponseCompressionAlgorithm { get; set; }
+        public string? ResponseCompressionAlgorithm { get; set; }
 
         /// <summary>
         /// Gets or sets the compression level used to compress messages sent from the server.

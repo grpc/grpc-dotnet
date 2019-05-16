@@ -36,7 +36,7 @@ namespace Grpc.Tests.Shared
         public SyncPointMemoryStream()
         {
             _currentData = Array.Empty<byte>();
-            ResetSyncPoint();
+            _awaiter = SyncPoint.Create(out _syncPoint);
         }
 
         /// <summary>

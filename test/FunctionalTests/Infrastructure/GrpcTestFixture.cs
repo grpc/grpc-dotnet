@@ -32,7 +32,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public GrpcTestFixture() : this(null) { }
 
-        public GrpcTestFixture(Action<IServiceCollection> initialConfigureServices)
+        public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices)
         {
             LoggerFactory = new LoggerFactory();
 

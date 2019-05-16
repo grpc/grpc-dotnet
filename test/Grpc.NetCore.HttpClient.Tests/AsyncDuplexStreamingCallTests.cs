@@ -38,12 +38,8 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncDuplexStreamingCall_NoContent_NoMessagesReturned()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
-
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
-                httpRequestMessage = request;
-
                 HelloReply reply = new HelloReply
                 {
                     Message = "Hello world"
@@ -54,7 +50,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             var responseStream = call.ResponseStream;
 
@@ -68,12 +64,8 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncServerStreamingCall_MessagesReturnedTogether_MessagesReceived()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
-
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
-                httpRequestMessage = request;
-
                 HelloReply reply = new HelloReply
                 {
                     Message = "Hello world"
@@ -84,7 +76,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             var responseStream = call.ResponseStream;
 
@@ -100,7 +92,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             // Arrange
             var streamContent = new SyncPointMemoryStream();
 
-            PushStreamContent content = null;
+            PushStreamContent? content = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -112,7 +104,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             var requestStream = call.RequestStream;
             var responseStream = call.ResponseStream;
@@ -123,7 +115,8 @@ namespace Grpc.NetCore.HttpClient.Tests
 
             await call.RequestStream.CompleteAsync().DefaultTimeout();
 
-            var requestContent = await content.ReadAsStreamAsync().DefaultTimeout();
+            Assert.IsNotNull(content);
+            var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
             var requestMessage = await requestContent.ReadStreamedMessageAsync(NullLogger.Instance, TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
             Assert.AreEqual("1", requestMessage.Name);
             requestMessage = await requestContent.ReadStreamedMessageAsync(NullLogger.Instance, TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();

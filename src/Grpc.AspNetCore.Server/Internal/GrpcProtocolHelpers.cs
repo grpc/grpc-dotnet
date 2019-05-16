@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -109,21 +110,21 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static bool IsValidContentType(HttpContext httpContext, out string error)
+        public static bool IsInvalidContentType(HttpContext httpContext, [NotNullWhenTrue]out string? error)
         {
             if (httpContext.Request.ContentType == null)
             {
                 error = "Content-Type is missing from the request.";
-                return false;
+                return true;
             }
             else if (!IsGrpcContentType(httpContext.Request.ContentType))
             {
                 error = $"Content-Type '{httpContext.Request.ContentType}' is not supported.";
-                return false;
+                return true;
             }
 
             error = null;
-            return true;
+            return false;
         }
 
         public static void SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
@@ -157,7 +158,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, out byte[] result)
+        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhenTrue]out byte[]? result)
         {
             foreach (var compressionProvider in compressionProviders)
             {
@@ -206,7 +207,7 @@ namespace Grpc.AspNetCore.Server.Internal
             // Overwrite any previously set status
             destination[GrpcProtocolConstants.StatusTrailer] = status.StatusCode.ToTrailerString();
 
-            string escapedDetail;
+            string? escapedDetail;
             if (!string.IsNullOrEmpty(status.Detail))
             {
                 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
@@ -250,7 +251,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             var properties = new Dictionary<string, List<AuthProperty>>(StringComparer.Ordinal);
 
-            string peerIdentityPropertyName = null;
+            string? peerIdentityPropertyName = null;
 
             var dnsNames = X509CertificateHelpers.GetDnsFromExtensions(clientCertificate);
             foreach (var dnsName in dnsNames)

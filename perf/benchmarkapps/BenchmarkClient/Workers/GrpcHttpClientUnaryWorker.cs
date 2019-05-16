@@ -24,7 +24,7 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcHttpClientUnaryWorker : IWorker
     {
-        private Greeter.GreeterClient _client;
+        private Greeter.GreeterClient? _client;
 
         public GrpcHttpClientUnaryWorker(int id, string baseUri)
         {
@@ -37,7 +37,7 @@ namespace BenchmarkClient.Workers
 
         public async Task CallAsync()
         {
-            var call = _client.SayHelloAsync(new HelloRequest { Name = "World" });
+            var call = _client!.SayHelloAsync(new HelloRequest { Name = "World" });
             await call.ResponseAsync;
         }
 

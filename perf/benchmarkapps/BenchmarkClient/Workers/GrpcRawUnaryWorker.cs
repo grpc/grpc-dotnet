@@ -30,7 +30,7 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcRawUnaryWorker : IWorker
     {
-        private HttpClient _client;
+        private HttpClient? _client;
 
         public GrpcRawUnaryWorker(int id, string target)
         {
@@ -62,7 +62,7 @@ namespace BenchmarkClient.Workers
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
 
-            var response = await _client.SendAsync(request);
+            var response = await _client!.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             await response.Content.ReadAsByteArrayAsync();
@@ -85,7 +85,7 @@ namespace BenchmarkClient.Workers
 
         public Task DisconnectAsync()
         {
-            _client.Dispose();
+            _client?.Dispose();
             return Task.CompletedTask;
         }
     }

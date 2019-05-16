@@ -22,6 +22,6 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
     internal class TestHttpContextAccessor : IHttpContextAccessor
     {
-        public HttpContext HttpContext { get; set; }
+        public HttpContext? HttpContext { get; set; }
     }
 }

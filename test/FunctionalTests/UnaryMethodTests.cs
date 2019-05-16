@@ -223,7 +223,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         {
             // Arrange
             var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(
-                (requestStream, context) => Task.FromResult<HelloReply>(null));
+                (requestStream, context) => Task.FromResult<HelloReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {

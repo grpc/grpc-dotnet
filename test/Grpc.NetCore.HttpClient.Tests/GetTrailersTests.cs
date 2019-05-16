@@ -54,7 +54,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var message = await call;
             var trailers1 = call.GetTrailers();
             var trailers2 = call.GetTrailers();
@@ -79,7 +79,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
             var trailers = call.GetTrailers();
 
@@ -96,12 +96,12 @@ namespace Grpc.NetCore.HttpClient.Tests
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
                 await tcs.Task.DefaultTimeout();
-                return null;
+                throw new Exception("Test shouldn't reach here.");
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -121,7 +121,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -138,12 +138,12 @@ namespace Grpc.NetCore.HttpClient.Tests
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
                 await tcs.Task.DefaultTimeout();
-                return null;
+                throw new Exception("Test shouldn't reach here.");
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -159,12 +159,12 @@ namespace Grpc.NetCore.HttpClient.Tests
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
                 await tcs.Task.DefaultTimeout();
-                return null;
+                throw new Exception("Test shouldn't reach here.");
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -192,7 +192,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var responseStream = call.ResponseStream;
 
             Assert.IsTrue(await responseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -225,7 +225,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var responseStream = call.ResponseStream;
 
             Assert.IsTrue(await responseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -268,7 +268,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             await call.RequestStream.CompleteAsync().DefaultTimeout();
             await Task.WhenAll(call.ResponseAsync, trailingHeadersWrittenTcs.Task).DefaultTimeout();
             var trailers = call.GetTrailers();
@@ -291,7 +291,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -310,7 +310,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert
@@ -330,7 +330,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
             // Assert

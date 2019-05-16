@@ -40,7 +40,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncUnaryCall_SendHeaders_RequestMessageContainsHeaders()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
+            HttpRequestMessage? httpRequestMessage = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -62,13 +62,13 @@ namespace Grpc.NetCore.HttpClient.Tests
             headers.Add("custom-bin", Encoding.UTF8.GetBytes("Hello world"));
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(headers: headers), new HelloRequest());
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual("ascii", httpRequestMessage.Headers.GetValues("custom").Single());
+            Assert.AreEqual("ascii", httpRequestMessage!.Headers.GetValues("custom").Single());
             Assert.AreEqual("Hello world", Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestMessage.Headers.GetValues("custom-bin").Single())));
         }
 
@@ -76,7 +76,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncUnaryCall_NoHeaders_RequestMessageHasNoHeaders()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
+            HttpRequestMessage? httpRequestMessage = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -96,7 +96,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var headers = new Metadata();
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(headers: headers), new HelloRequest());
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
@@ -104,7 +104,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.IsNotNull(httpRequestMessage);
 
             // User-Agent is always sent
-            Assert.AreEqual(0, httpRequestMessage.Headers.Count(h =>
+            Assert.AreEqual(0, httpRequestMessage!.Headers.Count(h =>
             {
                 if (string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase))
                 {

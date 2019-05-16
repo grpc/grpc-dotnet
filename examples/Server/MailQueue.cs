@@ -26,6 +26,12 @@ namespace GRPCServer
 {
     public class Mail
     {
+        public Mail(int id, string content)
+        {
+            Id = id;
+            Content = content;
+        }
+
         public int Id { get; set; }
         public string Content { get; set; }
     }
@@ -52,11 +58,7 @@ namespace GRPCServer
                 while (true)
                 {
                     _totalMailCount++;
-                    var mail = new Mail
-                    {
-                        Id = _totalMailCount,
-                        Content = $"Message #{_totalMailCount}"
-                    };
+                    var mail = new Mail(_totalMailCount, $"Message #{_totalMailCount}");
                     await _incomingMail.Writer.WriteAsync(mail);
                     OnChange(MailboxMessage.Types.Reason.Received);
 

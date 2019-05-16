@@ -27,21 +27,21 @@ namespace Grpc.Tests.Shared
     internal static class TaskExtensions
     {
         public static Task<T> DefaultTimeout<T>(this Task<T> task,
-            [CallerFilePath] string filePath = null,
+            [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)
         {
             return task.TimeoutAfter(TimeSpan.FromSeconds(5), filePath, lineNumber);
         }
 
         public static Task DefaultTimeout(this Task task,
-            [CallerFilePath] string filePath = null,
+            [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)
         {
             return task.TimeoutAfter(TimeSpan.FromSeconds(5), filePath, lineNumber);
         }
 
         public static async Task<T> TimeoutAfter<T>(this Task<T> task, TimeSpan timeout,
-            [CallerFilePath] string filePath = null,
+            [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)
         {
             // Don't create a timer if the task is already completed
@@ -64,7 +64,7 @@ namespace Grpc.Tests.Shared
         }
 
         public static async Task TimeoutAfter(this Task task, TimeSpan timeout,
-            [CallerFilePath] string filePath = null,
+            [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)
         {
             // Don't create a timer if the task is already completed
@@ -87,7 +87,7 @@ namespace Grpc.Tests.Shared
             }
         }
 
-        private static string CreateMessage(TimeSpan timeout, string filePath, int lineNumber)
+        private static string CreateMessage(TimeSpan timeout, string? filePath, int lineNumber)
             => string.IsNullOrEmpty(filePath)
             ? $"The operation timed out after reaching the limit of {timeout.TotalMilliseconds}ms."
             : $"The operation at {filePath}:{lineNumber} timed out after reaching the limit of {timeout.TotalMilliseconds}ms.";

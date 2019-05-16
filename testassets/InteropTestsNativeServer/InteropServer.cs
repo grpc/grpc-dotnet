@@ -64,7 +64,7 @@ namespace InteropTestsNativeWebsite
 
             string host = "0.0.0.0";
             int port = options.Port;
-            if (options.UseTls.Value)
+            if (options.UseTls ?? false)
             {
                 server.Ports.Add(host, port, TestCredentials.CreateSslServerCredentials());
             }

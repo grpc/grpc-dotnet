@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 }
 
                 // Ensure deadline timer has run
-                var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 context.CancellationToken.Register(() => tcs.SetResult(null));
                 await tcs.Task;
             });
@@ -148,7 +148,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 return writeContext.LoggerName == typeof(DeadlineTests).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                       writeContext.Exception.Message == "Cannot write message after request is complete.";
+                       writeContext.Exception!.Message == "Cannot write message after request is complete.";
             });
 
             var url = Fixture.DynamicGrpc.AddServerStreamingMethod<DeadlineTests, HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));

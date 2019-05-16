@@ -124,7 +124,7 @@ namespace Grpc.Testing
         {
             if (expectCompressed != null)
             {
-                string encoding = context.RequestHeaders.SingleOrDefault(h => h.Key == "grpc-encoding")?.Value;
+                var encoding = context.RequestHeaders.SingleOrDefault(h => h.Key == "grpc-encoding")?.Value;
                 if (expectCompressed.Value)
                 {
                     if (encoding == null || encoding == "identity")

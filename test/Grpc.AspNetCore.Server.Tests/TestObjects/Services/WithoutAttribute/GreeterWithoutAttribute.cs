@@ -62,8 +62,8 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute
 
         public static void BindService(ServiceBinderBase serviceBinder, GreeterBase serviceImpl)
         {
-            serviceBinder.AddMethod(__Method_SayHello, (UnaryServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null);
-            serviceBinder.AddMethod(__Method_SayHellos, (ServerStreamingServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null);
+            serviceBinder.AddMethod(__Method_SayHello, (UnaryServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
+            serviceBinder.AddMethod(__Method_SayHellos, (ServerStreamingServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
         }
     }
 }

@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 
@@ -34,6 +35,14 @@ namespace Grpc.Core
         /// <param name="serverCallContext">The <see cref="ServerCallContext"/> to extract from.</param>
         /// <returns>The extracted <see cref="HttpContext"/>. If it cannot be extracted, null will be returned.</returns>
         public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
-            => (serverCallContext as HttpContextServerCallContext)?.HttpContext;
+        {
+            var httpContextServerCallContext = serverCallContext as HttpContextServerCallContext;
+            if (httpContextServerCallContext == null)
+            {
+                throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted on Kestrel.");
+            }
+
+            return httpContextServerCallContext.HttpContext;
+        }
     }
 }

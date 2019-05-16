@@ -14,6 +14,7 @@
     <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
     <Compile Include="..\Shared\SyncPoint.cs" Link="Infrastructure\SyncPoint.cs" />
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
+    <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

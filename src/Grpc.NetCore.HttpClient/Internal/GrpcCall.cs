@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -30,6 +31,8 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.NetCore.HttpClient.Internal
 {
     internal partial class GrpcCall<TRequest, TResponse> : IDisposable
+        where TRequest : class
+        where TResponse : class
     {
         private readonly CancellationTokenSource _callCts;
         private readonly CancellationTokenRegistration? _ctsRegistration;
@@ -38,23 +41,23 @@ namespace Grpc.NetCore.HttpClient.Internal
         private readonly Uri _uri;
         private readonly GrpcCallScope _logScope;
 
-        private Timer _deadlineTimer;
-        private Metadata _trailers;
-        private string _headerValidationError;
-        private TaskCompletionSource<Stream> _writeStreamTcs;
-        private TaskCompletionSource<bool> _completeTcs;
+        private Timer? _deadlineTimer;
+        private Metadata? _trailers;
+        private string? _headerValidationError;
+        private TaskCompletionSource<Stream>? _writeStreamTcs;
+        private TaskCompletionSource<bool>? _completeTcs;
 
         public bool DeadlineReached { get; private set; }
         public bool Disposed { get; private set; }
         public bool ResponseFinished { get; private set; }
-        public HttpResponseMessage HttpResponse { get; private set; }
+        public HttpResponseMessage? HttpResponse { get; private set; }
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
 
         public ILogger Logger { get; }
-        public Task SendTask { get; private set; }
-        public HttpContentClientStreamWriter<TRequest, TResponse> ClientStreamWriter { get; private set; }
-        public HttpContentClientStreamReader<TRequest, TResponse> ClientStreamReader { get; private set; }
+        public Task? SendTask { get; private set; }
+        public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
+        public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
         public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock, ILoggerFactory loggerFactory)
         {
@@ -83,7 +86,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
             {
-                var timeout = options.Deadline.Value - _clock.UtcNow;
+                var timeout = options.Deadline.GetValueOrDefault() - _clock.UtcNow;
                 _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
             }
         }
@@ -222,6 +225,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         public void FinishResponse()
         {
             ResponseFinished = true;
+            Debug.Assert(HttpResponse != null);
 
             try
             {
@@ -248,11 +252,14 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public async Task<Metadata> GetResponseHeadersAsync()
         {
+            Debug.Assert(SendTask != null);
+
             try
             {
                 using (StartScope())
                 {
                     await SendTask.ConfigureAwait(false);
+                    Debug.Assert(HttpResponse != null);
 
                     // The task of this method is cached so there is no need to cache the headers here
                     return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
@@ -267,6 +274,8 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public Status GetStatus()
         {
+            Debug.Assert(HttpResponse != null);
+
             using (StartScope())
             {
                 ValidateTrailersAvailable();
@@ -277,11 +286,14 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         public async Task<TResponse> GetResponseAsync()
         {
+            Debug.Assert(SendTask != null);
+
             try
             {
                 using (StartScope())
                 {
                     await SendTask.ConfigureAwait(false);
+                    Debug.Assert(HttpResponse != null);
 
                     // Trailers are only available once the response body had been read
                     var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -309,6 +321,7 @@ namespace Grpc.NetCore.HttpClient.Internal
         {
             Log.ResponseHeadersReceived(Logger);
 
+            Debug.Assert(HttpResponse != null);
             if (HttpResponse.StatusCode != HttpStatusCode.OK)
             {
                 _headerValidationError = "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode;
@@ -346,6 +359,7 @@ namespace Grpc.NetCore.HttpClient.Internal
                 {
                     ValidateTrailersAvailable();
 
+                    Debug.Assert(HttpResponse != null);
                     _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
                 }
 
@@ -379,7 +393,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
         }
 
-        internal IDisposable StartScope()
+        internal IDisposable? StartScope()
         {
             // Only return a scope if the logger is enabled to log 
             // in at least Critical level for performance
@@ -538,7 +552,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             return new Status((StatusCode)statusValue, grpcMessage);
         }
 
-        private static string GetHeaderValue(HttpHeaders headers, string name)
+        private static string? GetHeaderValue(HttpHeaders headers, string name)
         {
             if (!headers.TryGetValues(name, out var values))
             {
@@ -580,6 +594,7 @@ namespace Grpc.NetCore.HttpClient.Internal
             }
 
             // HttpClient.SendAsync could have failed
+            Debug.Assert(SendTask != null);
             if (SendTask.IsFaulted)
             {
                 throw new InvalidOperationException("Can't get the call trailers because an error occured when making the request.", SendTask.Exception);

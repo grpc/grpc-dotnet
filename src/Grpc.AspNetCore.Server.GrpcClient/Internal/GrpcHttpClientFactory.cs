@@ -110,15 +110,23 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
         {
             private readonly static Func<ObjectFactory> _createActivator = () => ActivatorUtilities.CreateFactory(typeof(TClient), new Type[] { typeof(CallInvoker), });
 
-            private ObjectFactory _activator;
+            private ObjectFactory? _activator;
             private bool _initialized;
-            private object _lock;
+            private object? _lock;
 
-            public ObjectFactory Activator => LazyInitializer.EnsureInitialized(
-                ref _activator,
-                ref _initialized,
-                ref _lock,
-                _createActivator);
+            public ObjectFactory Activator
+            {
+                get
+                {
+                    var activator = LazyInitializer.EnsureInitialized(
+                        ref _activator,
+                        ref _initialized,
+                        ref _lock,
+                        _createActivator);
+
+                    return activator!;
+                }
+            }
         }
     }
 }

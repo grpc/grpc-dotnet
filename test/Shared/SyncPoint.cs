@@ -24,8 +24,8 @@ namespace Grpc.Tests.Shared
 {
     public class SyncPoint
     {
-        private readonly TaskCompletionSource<object> _atSyncPoint = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<object> _continueFromSyncPoint = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _atSyncPoint = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _continueFromSyncPoint = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
         /// Waits for the code-under-test to reach <see cref="WaitToContinue"/>.

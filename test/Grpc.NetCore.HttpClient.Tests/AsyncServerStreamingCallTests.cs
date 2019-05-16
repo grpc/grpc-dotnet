@@ -45,7 +45,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             var responseStream = call.ResponseStream;
 
@@ -76,7 +76,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             var responseStream = call.ResponseStream;
 
@@ -107,7 +107,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             var responseStream = call.ResponseStream;
 
@@ -162,7 +162,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             // Assert
             var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -174,7 +174,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncServerStreamingCall_TrailersOnly_TrailersReturnedWithHeaders()
         {
             // Arrange
-            HttpResponseMessage responseMessage = null;
+            HttpResponseMessage? responseMessage = null;
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
                 responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
@@ -185,12 +185,13 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var headers = await call.ResponseHeadersAsync;
             await call.ResponseStream.MoveNext(CancellationToken.None);
 
             // Assert
-            Assert.IsFalse(responseMessage.TrailingHeaders.Any()); // sanity check that there are no trailers
+            Assert.NotNull(responseMessage);
+            Assert.IsFalse(responseMessage!.TrailingHeaders.Any()); // sanity check that there are no trailers
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
             Assert.AreEqual("Detail!", call.GetStatus().Detail);
@@ -203,7 +204,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncServerStreamingCall_StatusInFooterAndMessageInHeader_IgnoreMessage()
         {
             // Arrange
-            HttpResponseMessage responseMessage = null;
+            HttpResponseMessage? responseMessage = null;
             var httpClient = TestHelpers.CreateTestClient(request =>
             {
                 responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()));
@@ -213,12 +214,12 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var headers = await call.ResponseHeadersAsync;
             await call.ResponseStream.MoveNext(CancellationToken.None);
 
             // Assert
-            Assert.IsTrue(responseMessage.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers
+            Assert.IsTrue(responseMessage!.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
             Assert.AreEqual(null, call.GetStatus().Detail);

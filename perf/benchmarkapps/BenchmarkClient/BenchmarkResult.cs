@@ -20,7 +20,7 @@ namespace BenchmarkClient
 {
     public class BenchmarkResult
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int RequestCount { get; set; }
     }
 }

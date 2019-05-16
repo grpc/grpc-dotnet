@@ -29,7 +29,7 @@ namespace BenchmarkClient
         }
 
         /// <summary>Creates a console logger that logs messsage specific for given type.</summary>
-        private ConsoleOutLogger(Type forType) : base(() => Console.Out, forType)
+        private ConsoleOutLogger(Type? forType) : base(() => Console.Out, forType)
         {
         }
 

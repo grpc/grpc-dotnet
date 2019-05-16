@@ -26,9 +26,9 @@ namespace Grpc.AspNetCore.FunctionalTests
 {
     public class FunctionalTestBase
     {
-        private VerifyNoErrorsScope _scope;
+        private VerifyNoErrorsScope? _scope;
 
-        protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; }
+        protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; } = default!;
 
         protected virtual void ConfigureServices(IServiceCollection services) { }
 
@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
-            Fixture?.Dispose();
+            Fixture.Dispose();
         }
 
         [SetUp]
@@ -59,10 +59,10 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
         {
-            _scope.ExpectedErrorsFilter = expectedErrorsFilter;
+            _scope!.ExpectedErrorsFilter = expectedErrorsFilter;
         }
 
-        protected static string GetRpcExceptionDetail(Exception ex)
+        protected static string? GetRpcExceptionDetail(Exception? ex)
         {
             if (ex is RpcException rpcException)
             {

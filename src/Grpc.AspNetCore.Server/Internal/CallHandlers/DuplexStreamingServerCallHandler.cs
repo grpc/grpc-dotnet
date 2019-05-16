@@ -72,7 +72,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
             var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            TService service = null;
+            TService? service = null;
 
             try
             {

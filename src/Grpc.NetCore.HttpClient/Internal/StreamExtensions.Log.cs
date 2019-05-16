@@ -25,31 +25,31 @@ namespace Grpc.NetCore.HttpClient
     {
         private static class Log
         {
-            private static readonly Action<ILogger, Exception> _readingMessage =
+            private static readonly Action<ILogger, Exception?> _readingMessage =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(1, "ReadingMessage"), "Reading message.");
 
-            private static readonly Action<ILogger, Exception> _noMessageReturned =
+            private static readonly Action<ILogger, Exception?> _noMessageReturned =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(2, "NoMessageReturned"), "No message returned.");
 
-            private static readonly Action<ILogger, int, Type, Exception> _deserializingMessage =
+            private static readonly Action<ILogger, int, Type, Exception?> _deserializingMessage =
                 LoggerMessage.Define<int, Type>(LogLevel.Trace, new EventId(3, "DeserializingMessage"), "Deserializing {MessageLength} byte message to '{MessageType}'.");
 
-            private static readonly Action<ILogger, Exception> _receivedMessage =
+            private static readonly Action<ILogger, Exception?> _receivedMessage =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(4, "ReceivedMessage"), "Received message.");
 
-            private static readonly Action<ILogger, Exception> _errorReadingMessage =
+            private static readonly Action<ILogger, Exception?> _errorReadingMessage =
                 LoggerMessage.Define(LogLevel.Error, new EventId(5, "ErrorReadingMessage"), "Error reading message.");
 
-            private static readonly Action<ILogger, Exception> _sendingMessage =
+            private static readonly Action<ILogger, Exception?> _sendingMessage =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(6, "SendingMessage"), "Sending message.");
 
-            private static readonly Action<ILogger, Exception> _messageSent =
+            private static readonly Action<ILogger, Exception?> _messageSent =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(7, "MessageSent"), "Message sent.");
 
-            private static readonly Action<ILogger, Exception> _errorSendingMessage =
+            private static readonly Action<ILogger, Exception?> _errorSendingMessage =
                 LoggerMessage.Define(LogLevel.Error, new EventId(8, "ErrorSendingMessage"), "Error reading message.");
 
-            private static readonly Action<ILogger, Type, int, Exception> _serializedMessage =
+            private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
                 LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(9, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
 
             public static void ReadingMessage(ILogger logger)
