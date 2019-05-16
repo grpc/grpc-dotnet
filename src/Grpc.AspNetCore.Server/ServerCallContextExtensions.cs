@@ -33,13 +33,13 @@ namespace Grpc.Core
         /// when using gRPC with ASP.NET Core.
         /// </summary>
         /// <param name="serverCallContext">The <see cref="ServerCallContext"/> to extract from.</param>
-        /// <returns>The extracted <see cref="HttpContext"/>. If it cannot be extracted, null will be returned.</returns>
+        /// <returns>The extracted <see cref="HttpContext"/>. If it cannot be extracted, an error will be thrown.</returns>
         public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
         {
             var httpContextServerCallContext = serverCallContext as HttpContextServerCallContext;
             if (httpContextServerCallContext == null)
             {
-                throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted on Kestrel.");
+                throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by Kestrel.");
             }
 
             return httpContextServerCallContext.HttpContext;
