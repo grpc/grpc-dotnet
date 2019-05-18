@@ -14,7 +14,6 @@
   <PropertyGroup>
     <!-- TODO(JamesNK): Potentially change to netstandard2.1 https://github.com/dotnet/standard/issues/1144 -->
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <LangVersion>8.0</LangVersion>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>

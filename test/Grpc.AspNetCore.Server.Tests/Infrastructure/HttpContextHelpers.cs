@@ -35,10 +35,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
             var serverCallContext = new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), NullLogger.Instance);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
-            services.AddSingleton<IHttpContextAccessor>(new TestHttpContextAccessor
-            {
-                HttpContext = httpContext
-            });
+            services.AddSingleton<IHttpContextAccessor>(new TestHttpContextAccessor(httpContext));
         }
     }
 }

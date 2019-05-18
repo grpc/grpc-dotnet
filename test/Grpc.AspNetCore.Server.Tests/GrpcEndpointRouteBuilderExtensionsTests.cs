@@ -263,10 +263,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
         public IEndpointRouteBuilder CreateTestEndpointRouteBuilder(IServiceProvider serviceProvider)
         {
-            return new TestEndpointRouteBuilder
-            {
-                ServiceProvider = serviceProvider
-            };
+            return new TestEndpointRouteBuilder(serviceProvider);
         }
     }
 }

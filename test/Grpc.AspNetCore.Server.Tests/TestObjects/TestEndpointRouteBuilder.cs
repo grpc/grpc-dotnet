@@ -25,7 +25,12 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
     public class TestEndpointRouteBuilder : IEndpointRouteBuilder
     {
-        public IServiceProvider? ServiceProvider { get; set; }
+        public TestEndpointRouteBuilder(IServiceProvider serviceProvider)
+        {
+            ServiceProvider = serviceProvider;
+        }
+
+        public IServiceProvider ServiceProvider { get; set; }
 
         public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
 
