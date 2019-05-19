@@ -10,15 +10,15 @@
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="Proto" />
-    
+
     <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
     <PackageReference Include="CommandLineParser" Version="2.3.0" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
-    <PackageReference Include="Grpc.Auth" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Auth" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="nunit" Version="$(NunitPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
@@ -27,5 +27,5 @@
 
     <ProjectReference Include="..\..\src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
   </ItemGroup>
-  
+
 </Project>

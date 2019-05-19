@@ -10,6 +10,6 @@
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 </Project>

@@ -136,10 +136,12 @@ namespace Grpc.AspNetCore.Server.Tests
             routeBuilder.MapGrpcService<GreeterWithAttributeService>();
 
             // Assert
-            var s1 = testSink.Writes[0].State.ToString();
+            var writes = testSink.Writes.ToList();
+
+            var s1 = writes[0].State.ToString();
             Assert.AreEqual("Added gRPC method 'SayHello' to service 'Greet.Greeter'. Method type: 'Unary', route pattern: '/Greet.Greeter/SayHello'.", s1);
 
-            var s2 = testSink.Writes[1].State.ToString();
+            var s2 = writes[1].State.ToString();
             Assert.AreEqual("Added gRPC method 'SayHellos' to service 'Greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/Greet.Greeter/SayHellos'.", s2);
         }
 

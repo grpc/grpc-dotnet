@@ -22,8 +22,8 @@
   <ItemGroup>
     <!-- Roslyn analyzer that enforces ConfigureAwait(false) -->
     <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="$(ConfigureAwaitCheckerAnalyzerPackageVersion)" PrivateAssets="All" />
-    
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
+
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
 
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>

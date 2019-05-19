@@ -9,8 +9,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
-    <PackageReference Include="Grpc.Reflection" Version="$(GrpcReflectionPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Reflection" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 </Project>

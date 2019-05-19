@@ -15,7 +15,7 @@
 
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="Proto" />
-    
+
     <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -23,8 +23,8 @@
     <PackageReference Include="CommandLineParser" Version="2.5.0" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

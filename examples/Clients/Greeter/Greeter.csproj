@@ -17,9 +17,9 @@
 
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 
+    <ProjectReference Include="..\..\..\src\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcCorePackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
-  
+
 </Project>

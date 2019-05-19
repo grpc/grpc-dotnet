@@ -1,3 +1,0 @@
-# Using nightly gRPC builds
-
-Run the `get-grpc.sh` or `get-grpc.ps1` to update the Grpc.* dependencies in the local feed `{RepoRoot}/build/feed`. Note that the nuget cache may need to be cleared. Upgrade the dependencies to the latest versions at https://packages.grpc.io/ by passing the -Upgrade or --upgrade flags; this requires xmllint (brew install libxml2 on macOS and apt-get install libxml2-utils on linux).
