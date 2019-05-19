@@ -3,20 +3,14 @@
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <ConfigureAwaitCheckerAnalyzerPackageVersion>3.0.0</ConfigureAwaitCheckerAnalyzerPackageVersion>
     <GoogleProtobufPackageVersion>3.7.0</GoogleProtobufPackageVersion>
-    <GrpcCorePackageVersion>1.21.0-pre1</GrpcCorePackageVersion>
-    <GrpcCoreApiPackageVersion>1.21.0-pre1</GrpcCoreApiPackageVersion>
-    <GrpcReflectionPackageVersion>1.21.0-pre1</GrpcReflectionPackageVersion>
-    <GrpcToolsPackageVersion>1.21.0-pre1</GrpcToolsPackageVersion>
-    <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
-    <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview6-19264-08</MicrosoftAspNetCoreTestHostPackageVersion>
-    <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
-    <MicrosoftExtensionsPackageVersion>3.0.0-preview4.19216.2</MicrosoftExtensionsPackageVersion>
-    <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
+    <GrpcPackageVersion>1.21.0-pre1</GrpcPackageVersion>
+    <MicrosoftAspNetCorePackageVersion>3.0.0-preview6-19265-03</MicrosoftAspNetCorePackageVersion>
+    <MicrosoftExtensionsPackageVersion>3.0.0-preview6.19260.1</MicrosoftExtensionsPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>16.0.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.11.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
-    <SystemIOPipelinesPackageVersion>4.6.0-preview.19073.11</SystemIOPipelinesPackageVersion>
   </PropertyGroup>
 </Project>

@@ -25,9 +25,6 @@ sudo apt-get install -y jq
 ./build/get-dotnet.sh
 source ./activate.sh
 
-# Required when using nightly builds of gRPC packages
-# ./build/get-grpc.sh
-
 mkdir -p artifacts
 
 build/expand_dev_version.sh

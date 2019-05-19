@@ -52,13 +52,6 @@ Additional instructions for configuring a project to use a custom NuGet reposito
 
 ## To develop gRPC for ASP.NET Core
 
-Setting up local feed with unreleased Grpc.* packages:
-```
-# We may depend on unreleased Grpc.* packages.
-# Run this script before building the project.
-./build/get-grpc.sh or ./build/get-grpc.ps1
-```
-
 Installing .NET Core SDK:
 ```
 # Run this script before building the project.

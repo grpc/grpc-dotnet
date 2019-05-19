@@ -145,7 +145,6 @@ namespace InteropTestsClient
                 scheme = "https";
             }
 
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
 

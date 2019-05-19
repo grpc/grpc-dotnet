@@ -41,9 +41,6 @@ namespace Grpc.NetCore.HttpClient
         /// <returns>A gRPC client.</returns>
         public static TClient Create<TClient>(string baseAddress, X509Certificate certificate = null, ILoggerFactory loggerFactory = null) where TClient : ClientBase<TClient>
         {
-            // Needs to be set before creating the HttpClientHandler
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
-
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
             if (certificate != null)
