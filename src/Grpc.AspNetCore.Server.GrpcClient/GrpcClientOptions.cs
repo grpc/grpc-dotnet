@@ -29,12 +29,12 @@ namespace Grpc.AspNetCore.Server.GrpcClient
         /// <summary>
         /// The base address to use when making gRPC calls.
         /// </summary>
-        public Uri BaseAddress { get; set; }
+        public Uri? BaseAddress { get; set; }
 
         /// <summary>
         /// The client certificate to use when making gRPC calls.
         /// </summary>
-        public X509Certificate Certificate { get; set; }
+        public X509Certificate? Certificate { get; set; }
 
         /// <summary>
         /// A flag that indicates whether the call cancellation token should be propagated to client calls. Defaults to true.

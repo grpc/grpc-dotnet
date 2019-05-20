@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Builder
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
         /// <param name="configureOptions">A callback to configure binding options.</param>
         /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder, Action<GrpcBindingOptions<TService>> configureOptions) where TService : class
+        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder, Action<GrpcBindingOptions<TService>>? configureOptions) where TService : class
         {
             if (builder == null)
             {
@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.Builder
             var bindMethodInfo = BindMethodFinder.GetBindMethod(typeof(TService));
 
             // Invoke BindService(ServiceBinderBase, BaseType)
-            bindMethodInfo.Invoke(null, new object[] { binder, service });
+            bindMethodInfo.Invoke(null, new object?[] { binder, service });
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)

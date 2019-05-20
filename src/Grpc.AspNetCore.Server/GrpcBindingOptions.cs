@@ -25,14 +25,14 @@ namespace Grpc.AspNetCore.Server
     /// <summary>
     /// Options used to configure the binding of a gRPC service.
     /// </summary>
-    public class GrpcBindingOptions<TService>
+    public class GrpcBindingOptions<TService> where TService : class
     {
         /// <summary>
         /// The action invoked to get service metadata via <see cref="ServiceBinderBase"/>.
         /// </summary>
-        public Action<ServiceBinderBase, TService> BindAction { get; set; }
+        public Action<ServiceBinderBase, TService?>? BindAction { get; set; }
 
         // Currently internal. It is set in tests via InternalVisibleTo. Can be made public if there is demand for it
-        internal IGrpcMethodModelFactory<TService> ModelFactory { get; set; }
+        internal IGrpcMethodModelFactory<TService>? ModelFactory { get; set; }
     }
 }

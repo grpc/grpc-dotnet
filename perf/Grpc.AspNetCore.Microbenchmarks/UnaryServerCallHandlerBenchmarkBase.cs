@@ -38,12 +38,12 @@ namespace Grpc.AspNetCore.Microbenchmarks
 {
     public class UnaryServerCallHandlerBenchmarkBase
     {
-        private UnaryServerCallHandler<TestService, ChatMessage, ChatMessage> _callHandler;
-        private ServiceProvider _requestServices;
-        private DefaultHttpContext _httpContext;
-        private HeaderDictionary _trailers;
-        private byte[] _requestMessage;
-        private TestPipeReader _requestPipe;
+        private UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>? _callHandler;
+        private ServiceProvider? _requestServices;
+        private DefaultHttpContext? _httpContext;
+        private HeaderDictionary? _trailers;
+        private byte[]? _requestMessage;
+        private TestPipeReader? _requestPipe;
 
         internal GrpcServiceOptions ServiceOptions { get; } = new GrpcServiceOptions();
 
@@ -91,11 +91,11 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
         protected Task InvokeUnaryRequestAsync()
         {
-            _httpContext.Response.Headers.Clear();
-            _trailers.Clear();
-            _requestPipe.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage), false, true)));
+            _httpContext!.Response.Headers.Clear();
+            _trailers!.Clear();
+            _requestPipe!.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage), false, true)));
 
-            return _callHandler.HandleCallAsync(_httpContext);
+            return _callHandler!.HandleCallAsync(_httpContext);
         }
     }
 }

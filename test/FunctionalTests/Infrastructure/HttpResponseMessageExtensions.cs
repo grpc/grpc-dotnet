@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             }
         }
 
-        private static string GetStatusValue(HttpResponseHeaders headers, string name)
+        private static string? GetStatusValue(HttpResponseHeaders headers, string name)
         {
             if (headers.TryGetValues(name, out var values))
             {

@@ -23,7 +23,6 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
@@ -187,7 +186,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert
-            Assert.AreEqual(449, messageData.Length);
+            Assert.AreEqual(449, messageData!.Length);
             CollectionAssert.AreEqual(content, messageData);
         }
 
@@ -211,13 +210,13 @@ namespace Grpc.AspNetCore.Server.Tests
             var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 1
-            Assert.AreEqual(0, messageData1.Length);
+            Assert.AreEqual(0, messageData1!.Length);
 
             // Act 2
             var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 2
-            Assert.AreEqual(0, messageData2.Length);
+            Assert.AreEqual(0, messageData2!.Length);
 
             // Act 3
             var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);

@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             return new GrpcEndpointModel<TInvoker>(invoker, new List<object>());
         }
 
-        public string AddUnaryMethod<TService, TRequest, TResponse>(UnaryServerMethod<TRequest, TResponse> callHandler, string methodName = null)
+        public string AddUnaryMethod<TService, TRequest, TResponse>(UnaryServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
             where TService : class
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
@@ -60,12 +60,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
             mockFactory.Setup(m => m.CreateUnaryModel(method)).Returns(() => CreateModel(new UnaryServerMethod<TService, TRequest, TResponse>((service, request, context) => callHandler(request, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (UnaryServerMethod<TRequest, TResponse>)null), mockFactory.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (UnaryServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
 
             return method.FullName;
         }
 
-        public string AddServerStreamingMethod<TService, TRequest, TResponse>(ServerStreamingServerMethod<TRequest, TResponse> callHandler, string methodName = null)
+        public string AddServerStreamingMethod<TService, TRequest, TResponse>(ServerStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
             where TService : class
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
@@ -75,12 +75,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
             mockFactory.Setup(m => m.CreateServerStreamingModel(method)).Returns(() => CreateModel(new ServerStreamingServerMethod<TService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ServerStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (ServerStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
 
             return method.FullName;
         }
 
-        public string AddClientStreamingMethod<TService, TRequest, TResponse>(ClientStreamingServerMethod<TRequest, TResponse> callHandler, string methodName = null)
+        public string AddClientStreamingMethod<TService, TRequest, TResponse>(ClientStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
             where TService : class
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
@@ -90,12 +90,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
             mockFactory.Setup(m => m.CreateClientStreamingModel(method)).Returns(() => CreateModel(new ClientStreamingServerMethod<TService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ClientStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (ClientStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
 
             return method.FullName;
         }
 
-        public string AddDuplexStreamingMethod<TService, TRequest, TResponse>(DuplexStreamingServerMethod<TRequest, TResponse> callHandler, string methodName = null)
+        public string AddDuplexStreamingMethod<TService, TRequest, TResponse>(DuplexStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
             where TService : class
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
@@ -105,12 +105,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
             mockFactory.Setup(m => m.CreateDuplexStreamingModel(method)).Returns(() => CreateModel(new DuplexStreamingServerMethod<TService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context))));
 
-            AddServiceCore((binder, _) => binder.AddMethod(method, (DuplexStreamingServerMethod<TRequest, TResponse>)null), mockFactory.Object);
+            AddServiceCore((binder, _) => binder.AddMethod(method, (DuplexStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
 
             return method.FullName;
         }
 
-        private void AddServiceCore<TService>(Action<ServiceBinderBase, TService> bindAction, IGrpcMethodModelFactory<TService> modelFactory)
+        private void AddServiceCore<TService>(Action<ServiceBinderBase, TService?> bindAction, IGrpcMethodModelFactory<TService> modelFactory)
             where TService : class
         {
             var routeBuilder = new DynamicEndpointRouteBuilder(_serviceProvider);

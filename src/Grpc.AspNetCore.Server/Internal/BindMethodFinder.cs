@@ -45,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return bindMethodInfo;
         }
 
-        internal static MethodInfo GetBindMethodUsingAttribute(Type serviceType)
+        internal static MethodInfo? GetBindMethodUsingAttribute(Type serviceType)
         {
             BindServiceMethodAttribute bindServiceMethod;
             do
@@ -72,7 +72,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 Array.Empty<ParameterModifier>());
         }
 
-        internal static MethodInfo GetBindMethodFallback(Type serviceType)
+        internal static MethodInfo? GetBindMethodFallback(Type serviceType)
         {
             // Search for the generated service base class
             var baseType = GetServiceBaseType(serviceType);
@@ -89,7 +89,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 Array.Empty<ParameterModifier>());
         }
 
-        private static Type GetServiceBaseType(Type serviceImplementation)
+        private static Type? GetServiceBaseType(Type serviceImplementation)
         {
             // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
             // We need to access the static BindService method on Foo which implicitly derives from Object.

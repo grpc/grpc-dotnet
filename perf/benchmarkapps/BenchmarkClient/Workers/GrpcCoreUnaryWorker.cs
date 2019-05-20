@@ -26,8 +26,8 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcCoreUnaryWorker : IWorker
     {
-        private Channel _channel;
-        private Greeter.GreeterClient _client;
+        private Channel? _channel;
+        private Greeter.GreeterClient? _client;
         private bool _useClientCertificate;
 
         public GrpcCoreUnaryWorker(int id, string target, bool useClientCertificate)
@@ -42,7 +42,7 @@ namespace BenchmarkClient.Workers
 
         public async Task CallAsync()
         {
-            var call = _client.SayHelloAsync(new HelloRequest { Name = "World" });
+            var call = _client!.SayHelloAsync(new HelloRequest { Name = "World" });
             await call.ResponseAsync;
         }
 
@@ -60,7 +60,7 @@ namespace BenchmarkClient.Workers
 
         public Task DisconnectAsync()
         {
-            return _channel.ShutdownAsync();
+            return _channel?.ShutdownAsync() ?? Task.CompletedTask;
         }
 
         private static ChannelCredentials GetCertificateCredentials()

@@ -21,8 +21,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
-using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Reflection.Internal;
 using Grpc.Core;
 using Grpc.Reflection.V1Alpha;
@@ -31,8 +29,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using Moq;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.Reflection
@@ -85,7 +81,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
         private class TestServerStreamWriter : IServerStreamWriter<ServerReflectionResponse>
         {
-            public WriteOptions WriteOptions { get; set; }
+            public WriteOptions? WriteOptions { get; set; }
             public List<ServerReflectionResponse> Responses { get; } = new List<ServerReflectionResponse>();
 
             public Task WriteAsync(ServerReflectionResponse message)
@@ -97,7 +93,11 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
         private class TestAsyncStreamReader : IAsyncStreamReader<ServerReflectionRequest>
         {
-            public ServerReflectionRequest Current { get; set; }
+            // IAsyncStreamReader<T> should declare Current as nullable
+            // Suppress warning when overriding interface definition
+#pragma warning disable CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
+            public ServerReflectionRequest? Current { get; set; }
+#pragma warning restore CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
             private bool _hasNext = true;
 
             public void Dispose()

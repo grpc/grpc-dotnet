@@ -31,17 +31,20 @@ namespace Grpc.NetCore.HttpClient
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
 
-        public static Task<TResponse> ReadSingleMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
+        public static Task<TResponse?> ReadSingleMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
+            where TResponse : class
         {
             return responseStream.ReadMessageCoreAsync(logger, deserializer, cancellationToken, true, true);
         }
 
-        public static Task<TResponse> ReadStreamedMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
+        public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
+            where TResponse : class
         {
             return responseStream.ReadMessageCoreAsync(logger, deserializer, cancellationToken, true, false);
         }
 
-        private static async Task<TResponse> ReadMessageCoreAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken, bool canBeEmpty, bool singleMessage)
+        private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken, bool canBeEmpty, bool singleMessage)
+            where TResponse : class
         {
             try
             {

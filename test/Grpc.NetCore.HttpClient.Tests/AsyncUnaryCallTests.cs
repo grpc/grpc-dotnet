@@ -40,7 +40,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncUnaryCall_Success_HttpRequestMessagePopulated()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
+            HttpRequestMessage? httpRequestMessage = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -58,13 +58,13 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest());
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(new Version(2, 0), httpRequestMessage.Version);
+            Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
@@ -80,7 +80,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncUnaryCall_Success_RequestContentSent()
         {
             // Arrange
-            HttpContent content = null;
+            HttpContent? content = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -98,14 +98,14 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest { Name = "World" });
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
 
             Assert.IsNotNull(content);
 
-            var requestContent = await content.ReadAsStreamAsync().DefaultTimeout();
+            var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
             var requestMessage = await requestContent.ReadSingleMessageAsync(NullLogger.Instance, TestHelpers.ServiceMethod.RequestMarshaller.Deserializer, CancellationToken.None).DefaultTimeout();
 
             Assert.AreEqual("World", requestMessage.Name);
@@ -123,7 +123,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions(), new HelloRequest()));
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()));
 
             // Assert
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);

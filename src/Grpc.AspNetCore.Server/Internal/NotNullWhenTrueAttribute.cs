@@ -16,11 +16,11 @@
 
 #endregion
 
-namespace BenchmarkClient
+namespace System.Runtime.CompilerServices
 {
-    public class BenchmarkResult
+    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
+    internal class NotNullWhenTrueAttribute : Attribute
     {
-        public string? Name { get; set; }
-        public int RequestCount { get; set; }
+        public NotNullWhenTrueAttribute() { }
     }
 }

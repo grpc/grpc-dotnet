@@ -37,13 +37,13 @@ namespace Grpc.AspNetCore.Server.Internal
         // Override the current time for unit testing
         internal ISystemClock Clock = SystemClock.Instance;
 
-        private string _peer;
-        private Metadata _requestHeaders;
-        private Metadata _responseTrailers;
+        private string? _peer;
+        private Metadata? _requestHeaders;
+        private Metadata? _responseTrailers;
         private DateTime _deadline;
-        private Timer _deadlineTimer;
+        private Timer? _deadlineTimer;
         private Status _status;
-        private AuthContext _authContext;
+        private AuthContext? _authContext;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -54,15 +54,15 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
-        internal string ResponseGrpcEncoding { get; private set; }
+        internal string? ResponseGrpcEncoding { get; private set; }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
-        protected override string MethodCore => HttpContext.Request.Path.Value;
+        protected override string? MethodCore => HttpContext.Request.Path.Value;
 
-        protected override string HostCore => HttpContext.Request.Host.Value;
+        protected override string? HostCore => HttpContext.Request.Host.Value;
 
-        protected override string PeerCore
+        protected override string? PeerCore
         {
             get
             {
@@ -177,7 +177,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        protected override WriteOptions WriteOptionsCore { get; set; }
+        protected override WriteOptions? WriteOptionsCore { get; set; }
 
         protected override AuthContext AuthContextCore
         {
@@ -309,7 +309,7 @@ namespace Grpc.AspNetCore.Server.Internal
             _deadlineTimer?.Dispose();
         }
 
-        internal string GetRequestGrpcEncoding()
+        internal string? GetRequestGrpcEncoding()
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.MessageEncodingHeader, out var values))
             {

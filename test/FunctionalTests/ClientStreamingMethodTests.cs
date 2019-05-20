@@ -116,7 +116,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<ClientStreamingMethodTests, Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null));
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<ClientStreamingMethodTests, Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {

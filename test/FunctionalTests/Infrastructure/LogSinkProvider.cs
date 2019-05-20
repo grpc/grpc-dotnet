@@ -28,7 +28,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         private readonly ConcurrentQueue<LogRecord> _logs = new ConcurrentQueue<LogRecord>();
 
-        private IExternalScopeProvider _scopeProvider;
+        private IExternalScopeProvider? _scopeProvider;
 
         public event Action<LogRecord> RecordLogged;
 
@@ -43,18 +43,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public IList<LogRecord> GetLogs() => _logs.ToList();
 
-        public void Log<TState>(string categoryName, LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(string categoryName, LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            var record = new LogRecord
-            {
-                Timestamp = DateTime.Now,
-                LoggerName = categoryName,
-                LogLevel = logLevel,
-                EventId = eventId,
-                State = state,
-                Exception = exception,
-                Formatter = (o, e) => formatter((TState)o, e),
-            };
+            var record = new LogRecord(DateTime.Now, logLevel, eventId, state!, exception, (o, e) => formatter((TState)o, e), categoryName);
             _logs.Enqueue(record);
 
             RecordLogged?.Invoke(record);
@@ -69,9 +60,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             private readonly string _categoryName;
             private readonly LogSinkProvider _logSinkProvider;
-            private readonly IExternalScopeProvider _scopeProvider;
+            private readonly IExternalScopeProvider? _scopeProvider;
 
-            public LogSinkLogger(string categoryName, LogSinkProvider logSinkProvider, IExternalScopeProvider scopeProvider)
+            public LogSinkLogger(string categoryName, LogSinkProvider logSinkProvider, IExternalScopeProvider? scopeProvider)
             {
                 _categoryName = categoryName;
                 _logSinkProvider = logSinkProvider;
@@ -88,7 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 return true;
             }
 
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
             {
                 _logSinkProvider.Log(_categoryName, logLevel, eventId, state, exception, formatter);
             }

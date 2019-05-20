@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
         private readonly ILogger<ReflectionGrpcServiceActivator> _logger;
         private readonly EndpointDataSource _endpointDataSource;
 
-        private ReflectionServiceImpl _instance;
+        private ReflectionServiceImpl? _instance;
 
         public ReflectionGrpcServiceActivator(EndpointDataSource endpointDataSource, ILoggerFactory loggerFactory)
         {
@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
             return _instance;
         }
 
-        private static Type GetServiceBaseType(Type serviceImplementation)
+        private static Type? GetServiceBaseType(Type serviceImplementation)
         {
             // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
             // We need to access the static BindService method on Foo which implicitly derives from Object.
@@ -100,7 +100,7 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
 
         private static class Log
         {
-            private static readonly Action<ILogger, string, Exception> _serviceDescriptorNotResolved =
+            private static readonly Action<ILogger, string, Exception?> _serviceDescriptorNotResolved =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "ServiceDescriptorNotResolved"), "Could not resolve service descriptor for '{ServiceType}'. The service metadata will not be exposed by the reflection service.");
 
             public static void ServiceDescriptorNotResolved(ILogger logger, Type serviceType)

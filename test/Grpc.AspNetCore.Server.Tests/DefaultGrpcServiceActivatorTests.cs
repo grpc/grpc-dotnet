@@ -100,7 +100,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             Assert.AreEqual("service",
                 Assert.Throws<ArgumentNullException>(
-                    () => new DefaultGrpcServiceActivator<GrpcService>(Mock.Of<IServiceProvider>()).Release(null)).ParamName);
+                    () => new DefaultGrpcServiceActivator<GrpcService>(Mock.Of<IServiceProvider>()).Release(null!)).ParamName);
         }
     }
 }

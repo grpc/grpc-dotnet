@@ -39,7 +39,7 @@ namespace Grpc.NetCore.HttpClient
         /// <param name="certificate">The client certificate to use when making gRPC requests.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(string baseAddress, X509Certificate certificate = null, ILoggerFactory loggerFactory = null) where TClient : ClientBase<TClient>
+        public static TClient Create<TClient>(string baseAddress, X509Certificate? certificate = null, ILoggerFactory? loggerFactory = null) where TClient : ClientBase<TClient>
         {
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
@@ -59,12 +59,12 @@ namespace Grpc.NetCore.HttpClient
         /// <param name="httpClientHandler">The <see cref="HttpClientHandler"/>.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory loggerFactory) where TClient : ClientBase<TClient>
+        public static TClient Create<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory? loggerFactory) where TClient : ClientBase<TClient>
         {
             return CreateCore<TClient>(baseAddress, httpClientHandler, loggerFactory);
         }
 
-        private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory loggerFactory) where TClient : ClientBase<TClient>
+        private static TClient CreateCore<TClient>(string baseAddress, HttpClientHandler httpClientHandler, ILoggerFactory? loggerFactory) where TClient : ClientBase<TClient>
         {
             var httpClient = new System.Net.Http.HttpClient(httpClientHandler);
             httpClient.BaseAddress = new Uri(baseAddress, UriKind.RelativeOrAbsolute);
@@ -88,15 +88,25 @@ namespace Grpc.NetCore.HttpClient
                 return activator;
             };
 
-            private Func<CallInvoker, TClient> _activator;
+            private Func<CallInvoker, TClient>? _activator;
             private bool _initialized;
-            private object _lock;
+            private object? _lock;
 
-            public Func<CallInvoker, TClient> Activator => LazyInitializer.EnsureInitialized(
-                ref _activator,
-                ref _initialized,
-                ref _lock,
-                _createActivator);
+            public Func<CallInvoker, TClient> Activator
+            {
+                get
+                {
+                    var activator = LazyInitializer.EnsureInitialized(
+                        ref _activator,
+                        ref _initialized,
+                        ref _lock,
+                        _createActivator);
+
+                    // TODO(JamesNK): Compiler thinks activator is nullable
+                    // Possibly remove in the future when compiler is fixed
+                    return activator!;
+                }
+            }
         }
     }
 }

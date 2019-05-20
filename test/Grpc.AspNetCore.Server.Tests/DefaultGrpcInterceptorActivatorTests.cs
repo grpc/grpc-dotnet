@@ -77,7 +77,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 .Setup(sp => sp.GetService(typeof(Mutex)))
                 .Returns(mutex);
 
-            var interceptor = new DefaultGrpcInterceptorActivator<GrpcInterceptor>(mockServiceProvider.Object).Create(10) as GrpcInterceptor;
+            var interceptor = (GrpcInterceptor)new DefaultGrpcInterceptorActivator<GrpcInterceptor>(mockServiceProvider.Object).Create(10);
 
             Assert.AreEqual(10, interceptor.X);
         }
@@ -152,7 +152,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             Assert.AreEqual("interceptor",
                 Assert.Throws<ArgumentNullException>(
-                    () => new DefaultGrpcInterceptorActivator<GrpcInterceptor>(Mock.Of<IServiceProvider>()).Release(null)).ParamName);
+                    () => new DefaultGrpcInterceptorActivator<GrpcInterceptor>(Mock.Of<IServiceProvider>()).Release(null!)).ParamName);
         }
     }
 }

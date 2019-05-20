@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace Grpc.AspNetCore.Server
     {
         private static readonly IEnumerator<InterceptorRegistration> EmptyEnumerator = Enumerable.Empty<InterceptorRegistration>().GetEnumerator();
 
-        private List<InterceptorRegistration> _store;
+        private List<InterceptorRegistration>? _store;
 
         /// <summary>
         /// Get whether the collection contains any interceptors.
@@ -41,7 +42,18 @@ namespace Grpc.AspNetCore.Server
         public int Count => _store?.Count ?? 0;
 
         /// <inheritdoc />
-        public InterceptorRegistration this[int index] => _store?[index];
+        public InterceptorRegistration this[int index]
+        {
+            get
+            {
+                if (_store == null)
+                {
+                    throw new IndexOutOfRangeException();
+                }
+
+                return _store[index];
+            }
+        }
 
         /// <summary>
         /// Add an interceptor to the end of the pipeline.

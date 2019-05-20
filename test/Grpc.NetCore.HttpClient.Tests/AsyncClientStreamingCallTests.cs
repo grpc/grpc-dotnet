@@ -39,7 +39,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncClientStreamingCall_Success_HttpRequestMessagePopulated()
         {
             // Arrange
-            HttpRequestMessage httpRequestMessage = null;
+            HttpRequestMessage? httpRequestMessage = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -56,7 +56,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             await call.RequestStream.CompleteAsync().DefaultTimeout();
 
@@ -66,7 +66,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual("Hello world", response.Message);
 
             Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(new Version(2, 0), httpRequestMessage.Version);
+            Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
@@ -76,7 +76,7 @@ namespace Grpc.NetCore.HttpClient.Tests
         public async Task AsyncClientStreamingCall_Success_RequestContentSent()
         {
             // Arrange
-            PushStreamContent content = null;
+            PushStreamContent? content = null;
 
             var httpClient = TestHelpers.CreateTestClient(async request =>
             {
@@ -95,7 +95,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             Assert.IsNotNull(call);
@@ -104,7 +104,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var responseTask = call.ResponseAsync;
             Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
 
-            var streamTask = content.ReadAsStreamAsync();
+            var streamTask = content!.ReadAsStreamAsync();
 
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "2" }).DefaultTimeout();
@@ -133,7 +133,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -157,7 +157,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
@@ -181,7 +181,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
             await call.RequestStream.CompleteAsync();
 
             // Assert
@@ -202,7 +202,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var ex = Assert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout());
@@ -221,7 +221,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, null, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var ex = Assert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest()).DefaultTimeout());

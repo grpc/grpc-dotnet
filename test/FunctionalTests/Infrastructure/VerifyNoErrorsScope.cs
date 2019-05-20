@@ -28,13 +28,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     /// </summary>
     public class VerifyNoErrorsScope : IDisposable
     {
-        private readonly IDisposable _wrappedDisposable;
+        private readonly IDisposable? _wrappedDisposable;
         private readonly LogSinkProvider _sink;
 
-        public Func<LogRecord, bool> ExpectedErrorsFilter { get; set; }
+        public Func<LogRecord, bool>? ExpectedErrorsFilter { get; set; }
         public ILoggerFactory LoggerFactory { get; }
 
-        public VerifyNoErrorsScope(ILoggerFactory loggerFactory = null, IDisposable wrappedDisposable = null, Func<LogRecord, bool> expectedErrorsFilter = null)
+        public VerifyNoErrorsScope(ILoggerFactory? loggerFactory = null, IDisposable? wrappedDisposable = null, Func<LogRecord, bool>? expectedErrorsFilter = null)
         {
             _wrappedDisposable = wrappedDisposable;
             ExpectedErrorsFilter = expectedErrorsFilter;

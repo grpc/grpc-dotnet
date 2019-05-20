@@ -24,6 +24,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -204,7 +205,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// <returns>Complete message data.</returns>
         public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input, HttpContextServerCallContext context)
         {
-            byte[] completeMessageData = null;
+            byte[]? completeMessageData = null;
 
             while (true)
             {
@@ -261,7 +262,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// <param name="context">The request content.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context, CancellationToken cancellationToken = default)
+        public static async ValueTask<byte[]?> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context, CancellationToken cancellationToken = default)
         {
             while (true)
             {
@@ -311,7 +312,7 @@ namespace Grpc.AspNetCore.Server.Internal
             Stop
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, out byte[] message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhenTrue]out byte[]? message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
@@ -336,7 +337,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (compressed)
             {
-                string encoding = context.GetRequestGrpcEncoding();
+                var encoding = context.GetRequestGrpcEncoding();
                 if (encoding == null)
                 {
                     throw new RpcException(NoMessageEncodingMessageStatus);
