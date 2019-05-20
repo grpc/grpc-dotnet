@@ -126,6 +126,22 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void DisposeCalledForMultipleDisposableServicesCreatedByActivator()
+        {
+            var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>(Mock.Of<IServiceProvider>());
+            var interceptor1 = (DisposableGrpcInterceptor)interceptorActivator.Create();
+            var interceptor2 = (DisposableGrpcInterceptor)interceptorActivator.Create();
+            var interceptor3 = (DisposableGrpcInterceptor)interceptorActivator.Create();
+            interceptorActivator.Release(interceptor3);
+            interceptorActivator.Release(interceptor2);
+            interceptorActivator.Release(interceptor1);
+
+            Assert.True(interceptor1.Disposed);
+            Assert.True(interceptor2.Disposed);
+            Assert.True(interceptor3.Disposed);
+        }
+
+        [Test]
         public void DisposeNotCalledForUndisposableServicesCreatedByActivator()
         {
             var interceptorActivator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>(Mock.Of<IServiceProvider>());

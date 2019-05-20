@@ -32,28 +32,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TService : class
     {
         private readonly ServerStreamingServerMethod<TService, TRequest, TResponse> _invoker;
-        private static readonly Func<InterceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse>, ServerStreamingServerMethod<TRequest, TResponse>> BuildInvoker = (interceptorRegistration, next) =>
-        {
-            return async (request, responseStream, context) =>
-            {
-                var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
-                var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
-
-                if (interceptorInstance == null)
-                {
-                    throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
-                }
-
-                try
-                {
-                    await interceptorInstance.ServerStreamingServerHandler(request, responseStream, context, next);
-                }
-                finally
-                {
-                    interceptorActivator.Release(interceptorInstance);
-                }
-            };
-        };
+        private readonly ServerStreamingServerMethod<TRequest, TResponse>? _pipelineInvoker;
 
         public ServerStreamingServerCallHandler(
             Method<TRequest, TResponse> method, 
@@ -63,6 +42,30 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
+
+            if (!ServiceOptions.Interceptors.IsEmpty)
+            {
+                ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequest, responseStream, resolvedContext) =>
+                {
+                    var activator = resolvedContext.GetHttpContext().RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                    TService? service = null;
+                    try
+                    {
+                        service = activator.Create();
+                        await _invoker(service, resolvedRequest, responseStream, resolvedContext);
+                    }
+                    finally
+                    {
+                        if (service != null)
+                        {
+                            activator.Release(service);
+                        }
+                    }
+                };
+
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors);
+                _pipelineInvoker = interceptorPipeline.ServerStreamingPipeline(resolvedInvoker);
+            }
         }
 
         protected override async Task HandleCallAsyncCore(HttpContext httpContext)
@@ -71,8 +74,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
-            var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            TService? service = null;
 
             try
             {
@@ -82,9 +83,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
                 var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
-
-                if (ServiceOptions.Interceptors.IsEmpty)
+                if (_pipelineInvoker == null)
                 {
+                    var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                    TService? service = null;
                     try
                     {
                         service = activator.Create();
@@ -104,33 +106,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 }
                 else
                 {
-                    ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (request, responseStream, resolvedContext) =>
-                    {
-                        try
-                        {
-                            service = activator.Create();
-                            await _invoker(
-                                service,
-                                request,
-                                responseStream,
-                                resolvedContext);
-                        }
-                        finally
-                        {
-                            if (service != null)
-                            {
-                                activator.Release(service);
-                            }
-                        }
-                    };
-
-                    // The list is reversed during construction so the first interceptor is built last and invoked first
-                    for (var i = ServiceOptions.Interceptors.Count - 1; i >= 0; i--)
-                    {
-                        resolvedInvoker = BuildInvoker(ServiceOptions.Interceptors[i], resolvedInvoker);
-                    }
-
-                    await resolvedInvoker(
+                    await _pipelineInvoker(
                         request,
                         new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
                         serverCallContext);
@@ -145,10 +121,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             finally
             {
                 serverCallContext.Dispose();
-                if (service != null)
-                {
-                    activator.Release(service);
-                }
             }
         }
     }
