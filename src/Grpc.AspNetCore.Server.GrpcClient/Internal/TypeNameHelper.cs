@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Server.GrpcClient.Internal
             { typeof(ushort), "ushort" }
         };
 
-        public static string GetTypeDisplayName(object item, bool fullName = true)
+        public static string? GetTypeDisplayName(object item, bool fullName = true)
         {
             return item == null ? null : GetTypeDisplayName(item.GetType(), fullName);
         }

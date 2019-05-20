@@ -23,6 +23,6 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
     public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
     {
-        public IHeaderDictionary Trailers { get; set; }
+        public IHeaderDictionary? Trailers { get; set; }
     }
 }

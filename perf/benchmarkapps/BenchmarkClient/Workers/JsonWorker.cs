@@ -30,7 +30,7 @@ namespace BenchmarkClient.Workers
     public class JsonWorker : IWorker
     {
         private readonly string _path;
-        private HttpClient _client;
+        private HttpClient? _client;
 
         public JsonWorker(int id, string target, string path)
         {
@@ -57,7 +57,7 @@ namespace BenchmarkClient.Workers
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-            var response = await _client.SendAsync(request);
+            var response = await _client!.SendAsync(request);
 
             var content = await response.Content.ReadAsStringAsync();
 
@@ -75,7 +75,7 @@ namespace BenchmarkClient.Workers
 
         public Task DisconnectAsync()
         {
-            _client.Dispose();
+            _client?.Dispose();
             return Task.CompletedTask;
         }
     }

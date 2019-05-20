@@ -26,7 +26,7 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class DefaultGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
     {
         private readonly IServiceProvider _serviceProvider;
-        private HashSet<Interceptor> _createdInterceptors;
+        private HashSet<Interceptor>? _createdInterceptors;
 
         public DefaultGrpcInterceptorActivator(IServiceProvider serviceProvider)
         {

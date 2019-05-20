@@ -43,7 +43,7 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         /// <param name="client">The HttpClient to use for gRPC requests.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
-        public HttpClientCallInvoker(System.Net.Http.HttpClient client, ILoggerFactory loggerFactory)
+        public HttpClientCallInvoker(System.Net.Http.HttpClient client, ILoggerFactory? loggerFactory)
         {
             if (client == null)
             {
@@ -75,7 +75,7 @@ namespace Grpc.NetCore.HttpClient
         /// <summary>
         /// Token for propagating parent call context.
         /// </summary>
-        public ContextPropagationToken PropagationToken { get; set; }
+        public ContextPropagationToken? PropagationToken { get; set; }
 
         /// <summary>
         /// Invokes a client streaming call asynchronously.
@@ -157,6 +157,8 @@ namespace Grpc.NetCore.HttpClient
         }
 
         private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(Method<TRequest, TResponse> method, CallOptions options)
+            where TRequest : class
+            where TResponse : class
         {
             return new GrpcCall<TRequest, TResponse>(method, options, Clock, _loggerFactory);
         }

@@ -23,7 +23,7 @@ using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest>
+    internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
     {
         private static readonly Task<bool> True = Task.FromResult(true);
         private static readonly Task<bool> False = Task.FromResult(false);
@@ -37,13 +37,17 @@ namespace Grpc.AspNetCore.Server.Internal
             _deserializer = deserializer;
         }
 
-        public TRequest Current { get; private set; }
+        // IAsyncStreamReader<T> should declare Current as nullable
+        // Suppress warning when overriding interface definition
+#pragma warning disable CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
+        public TRequest? Current { get; private set; }
+#pragma warning restore CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
 
         public void Dispose() { }
 
         public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            async Task<bool> MoveNextAsync(ValueTask<byte[]> readStreamTask)
+            async Task<bool> MoveNextAsync(ValueTask<byte[]?> readStreamTask)
             {
                 return ProcessPayload(await readStreamTask);
             }
@@ -62,7 +66,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return ProcessPayload(readStreamTask.Result) ? True : False;
         }
 
-        private bool ProcessPayload(byte[] requestPayload)
+        private bool ProcessPayload(byte[]? requestPayload)
         {
             // Stream is complete
             if (requestPayload == null)

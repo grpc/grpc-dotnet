@@ -22,7 +22,7 @@ namespace Grpc.NetCore.HttpClient.Tests.Infrastructure
 {
     internal static class HttpClientCallInvokerFactory
     {
-        public static HttpClientCallInvoker Create(System.Net.Http.HttpClient httpClient, ILoggerFactory loggerFactory = null)
+        public static HttpClientCallInvoker Create(System.Net.Http.HttpClient httpClient, ILoggerFactory? loggerFactory = null)
         {
             return new HttpClientCallInvoker(httpClient, loggerFactory);
         }

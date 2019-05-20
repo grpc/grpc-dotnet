@@ -27,9 +27,9 @@ namespace Grpc.Tests.Shared
     internal static class HttpContextServerCallContextHelper
     {
         public static HttpContextServerCallContext CreateServerCallContext(
-            HttpContext httpContext = null,
-            GrpcServiceOptions serviceOptions = null,
-            ILogger logger = null)
+            HttpContext? httpContext = null,
+            GrpcServiceOptions? serviceOptions = null,
+            ILogger? logger = null)
         {
             var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),

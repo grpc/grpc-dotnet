@@ -48,13 +48,13 @@ namespace InteropTestsClient
         private class ClientOptions
         {
             [Option("client_type", Default = "httpclient")]
-            public string ClientType { get; set; }
+            public string? ClientType { get; set; }
 
             [Option("server_host", Default = "localhost")]
-            public string ServerHost { get; set; }
+            public string? ServerHost { get; set; }
 
             [Option("server_host_override")]
-            public string ServerHostOverride { get; set; }
+            public string? ServerHostOverride { get; set; }
 
             [Option("server_port"
 #if DEBUG
@@ -68,7 +68,7 @@ namespace InteropTestsClient
                 , Default = "large_unary"
 #endif
                 )]
-            public string TestCase { get; set; }
+            public string? TestCase { get; set; }
 
             // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
             [Option("use_tls", Default = false)]
@@ -79,13 +79,13 @@ namespace InteropTestsClient
             public bool? UseTestCa { get; set; }
 
             [Option("default_service_account", Required = false)]
-            public string DefaultServiceAccount { get; set; }
+            public string? DefaultServiceAccount { get; set; }
 
             [Option("oauth_scope", Required = false)]
-            public string OAuthScope { get; set; }
+            public string? OAuthScope { get; set; }
 
             [Option("service_account_key_file", Required = false)]
-            public string ServiceAccountKeyFile { get; set; }
+            public string? ServiceAccountKeyFile { get; set; }
         }
 
         private ILoggerFactory loggerFactory;
@@ -164,7 +164,7 @@ namespace InteropTestsClient
         {
             var credentials = await CreateCredentialsAsync();
 
-            List<ChannelOption> channelOptions = null;
+            List<ChannelOption>? channelOptions = null;
             if (!string.IsNullOrEmpty(options.ServerHostOverride))
             {
                 channelOptions = new List<ChannelOption>
@@ -182,9 +182,9 @@ namespace InteropTestsClient
         private async Task<ChannelCredentials> CreateCredentialsAsync()
         {
             var credentials = ChannelCredentials.Insecure;
-            if (options.UseTls.Value)
+            if (options.UseTls.GetValueOrDefault())
             {
-                credentials = options.UseTestCa.Value ? TestCredentials.CreateSslCredentials() : new SslCredentials();
+                credentials = options.UseTestCa.GetValueOrDefault() ? TestCredentials.CreateSslCredentials() : new SslCredentials();
             }
 
             if (options.TestCase == "jwt_token_creds")
@@ -243,16 +243,16 @@ namespace InteropTestsClient
                     await RunEmptyStreamAsync(client);
                     break;
                 case "compute_engine_creds":
-                    RunComputeEngineCreds(client, options.DefaultServiceAccount, options.OAuthScope);
+                    RunComputeEngineCreds(client, options.DefaultServiceAccount!, options.OAuthScope!);
                     break;
                 case "jwt_token_creds":
                     RunJwtTokenCreds(client);
                     break;
                 case "oauth2_auth_token":
-                    await RunOAuth2AuthTokenAsync(client, options.OAuthScope);
+                    await RunOAuth2AuthTokenAsync(client, options.OAuthScope!);
                     break;
                 case "per_rpc_creds":
-                    await RunPerRpcCredsAsync(client, options.OAuthScope);
+                    await RunPerRpcCredsAsync(client, options.OAuthScope!);
                     break;
                 case "cancel_after_begin":
                     await RunCancelAfterBeginAsync(client);
@@ -802,7 +802,7 @@ namespace InteropTestsClient
         // TODO(JamesNK): PEM loading logic from https://stackoverflow.com/a/10498045/11829
         // .NET does not have a built-in API for loading pem files
         // Consider providing ca file in a different format and removing method
-        private byte[] GetBytesFromPem(string pemString, string section)
+        private byte[]? GetBytesFromPem(string pemString, string section)
         {
             var header = string.Format("-----BEGIN {0}-----", section);
             var footer = string.Format("-----END {0}-----", section);

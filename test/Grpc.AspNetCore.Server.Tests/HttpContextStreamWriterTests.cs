@@ -21,7 +21,6 @@ using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
-using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
@@ -66,9 +65,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1.Message);
+            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
             var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2.Message);
+            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
         }
 
         [Test]
@@ -107,9 +106,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new StreamPipeReader(ms);
 
             var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1.Message);
+            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
             var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2.Message);
+            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
         }
     }
 }

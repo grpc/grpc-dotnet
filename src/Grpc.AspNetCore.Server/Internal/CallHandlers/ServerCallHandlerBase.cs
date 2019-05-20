@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         public Task HandleCallAsync(HttpContext httpContext)
         {
-            if (!GrpcProtocolHelpers.IsValidContentType(httpContext, out var error))
+            if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
                 GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
                 return Task.CompletedTask;

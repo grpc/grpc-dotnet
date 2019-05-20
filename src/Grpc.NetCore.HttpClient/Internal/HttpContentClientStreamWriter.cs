@@ -25,12 +25,14 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.NetCore.HttpClient.Internal
 {
     internal class HttpContentClientStreamWriter<TRequest, TResponse> : IClientStreamWriter<TRequest>
+        where TRequest : class
+        where TResponse : class
     {
         private readonly GrpcCall<TRequest, TResponse> _call;
         private readonly Task<Stream> _writeStreamTask;
         private readonly TaskCompletionSource<bool> _completeTcs;
         private readonly object _writeLock;
-        private Task _writeTask;
+        private Task? _writeTask;
 
         public HttpContentClientStreamWriter(GrpcCall<TRequest, TResponse> call, Task<Stream> writeStreamTask, TaskCompletionSource<bool> completeTcs)
         {
@@ -140,13 +142,13 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private static class Log
         {
-            private static readonly Action<ILogger, Exception> _completingClientStream =
+            private static readonly Action<ILogger, Exception?> _completingClientStream =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(1, "CompletingClientStream"), "Completing client stream.");
 
-            private static readonly Action<ILogger, Exception> _writeMessageError =
+            private static readonly Action<ILogger, Exception?> _writeMessageError =
                 LoggerMessage.Define(LogLevel.Error, new EventId(2, "WriteMessageError"), "Error writing message.");
 
-            private static readonly Action<ILogger, Exception> _completeClientStreamError =
+            private static readonly Action<ILogger, Exception?> _completeClientStreamError =
                 LoggerMessage.Define(LogLevel.Error, new EventId(3, "CompleteClientStreamError"), "Error completing client stream.");
 
             public static void CompletingClientStream(ILogger logger)

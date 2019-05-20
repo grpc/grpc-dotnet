@@ -194,7 +194,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 return writeContext.LoggerName == typeof(UnaryMethodTests).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
-                       writeContext.Exception.Message == "Response headers can only be sent once per call.";
+                       writeContext.Exception!.Message == "Response headers can only be sent once per call.";
             });
 
             var requestMessage = new HelloRequest
@@ -223,7 +223,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         {
             // Arrange
             var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(
-                (requestStream, context) => Task.FromResult<HelloReply>(null));
+                (requestStream, context) => Task.FromResult<HelloReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {

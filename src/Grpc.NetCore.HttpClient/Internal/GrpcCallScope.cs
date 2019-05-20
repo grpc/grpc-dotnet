@@ -30,7 +30,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private readonly MethodType _methodType;
         private readonly Uri _uri;
-        private string _cachedToString;
+        private string? _cachedToString;
 
         public GrpcCallScope(MethodType methodType, Uri uri)
         {

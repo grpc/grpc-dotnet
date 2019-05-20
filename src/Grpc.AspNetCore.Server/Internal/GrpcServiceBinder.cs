@@ -178,7 +178,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static class Log
         {
-            private static readonly Action<ILogger, string, string, MethodType, string, Exception> _serviceMethodAdded =
+            private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _serviceMethodAdded =
                 LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Debug, new EventId(1, "ServiceMethodAdded"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
 
             public static void ServiceMethodAdded(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)

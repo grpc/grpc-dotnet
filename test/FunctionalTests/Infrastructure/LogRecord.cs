@@ -23,22 +23,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public class LogRecord
     {
-        public DateTime Timestamp { get; set; }
+        public LogRecord(DateTime timestamp, LogLevel logLevel, EventId eventId, object state, Exception? exception, Func<object, Exception?, string> formatter, string loggerName)
+        {
+            Timestamp = timestamp;
+            LogLevel = logLevel;
+            EventId = eventId;
+            State = state;
+            Exception = exception;
+            Formatter = formatter;
+            LoggerName = loggerName;
+        }
 
-        public LogLevel LogLevel { get; set; }
+        public DateTime Timestamp { get; }
 
-        public EventId EventId { get; set; }
+        public LogLevel LogLevel { get; }
 
-        public object State { get; set; }
+        public EventId EventId { get; }
 
-        public Exception Exception { get; set; }
+        public object State { get; }
 
-        public Func<object, Exception, string> Formatter { get; set; }
+        public Exception? Exception { get; }
 
-        public object Scope { get; set; }
+        public Func<object, Exception?, string> Formatter { get; }
 
-        public string LoggerName { get; set; }
+        public string LoggerName { get; }
 
-        public string Message => Formatter(State, Exception);
+        public string Message => Formatter(State, Exception) ?? string.Empty;
     }
 }

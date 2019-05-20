@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -27,15 +28,17 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.NetCore.HttpClient.Internal
 {
     internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
+        where TRequest : class
+        where TResponse : class
     {
         private static readonly Task<bool> FinishedTask = Task.FromResult(false);
 
         private readonly GrpcCall<TRequest, TResponse> _call;
         private readonly object _moveNextLock;
 
-        private HttpResponseMessage _httpResponse;
-        private Stream _responseStream;
-        private Task<bool> _moveNextTask;
+        private HttpResponseMessage? _httpResponse;
+        private Stream? _responseStream;
+        private Task<bool>? _moveNextTask;
 
         public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
         {
@@ -43,7 +46,11 @@ namespace Grpc.NetCore.HttpClient.Internal
             _moveNextLock = new object();
         }
 
-        public TResponse Current { get; private set; }
+        // IAsyncStreamReader<T> should declare Current as nullable
+        // Suppress warning when overriding interface definition
+#pragma warning disable CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
+        public TResponse? Current { get; private set; }
+#pragma warning restore CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
 
         public void Dispose()
         {
@@ -84,7 +91,7 @@ namespace Grpc.NetCore.HttpClient.Internal
 
         private async Task<bool> MoveNextCore(CancellationToken cancellationToken)
         {
-            CancellationTokenSource cts = null;
+            CancellationTokenSource? cts = null;
             try
             {
                 // Linking tokens is expensive. Only create a linked token if the token passed in requires it
@@ -102,7 +109,10 @@ namespace Grpc.NetCore.HttpClient.Internal
 
                 if (_httpResponse == null)
                 {
+                    Debug.Assert(_call.SendTask != null);
                     await _call.SendTask.ConfigureAwait(false);
+
+                    Debug.Assert(_call.HttpResponse != null);
                     _httpResponse = _call.HttpResponse;
                 }
                 if (_responseStream == null)

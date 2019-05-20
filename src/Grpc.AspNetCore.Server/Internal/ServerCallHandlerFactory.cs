@@ -17,8 +17,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -51,7 +53,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
                 ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
                 ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
-                CompressionProviders = so._compressionProviders ?? go._compressionProviders
+                CompressionProviders = so._compressionProviders ?? go._compressionProviders ?? new List<ICompressionProvider>()
             };
 
             _resolvedOptions.Interceptors.AddRange(go.Interceptors);
@@ -103,7 +105,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
-                var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString();
+                var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
                 Log.MethodUnimplemented(logger, unimplementedMethod);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
@@ -119,7 +121,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
-                var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString();
+                var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
                 Log.ServiceUnimplemented(logger, unimplementedService);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
@@ -129,10 +131,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private static class Log
         {
-            private static readonly Action<ILogger, string, Exception> _serviceUnimplemented =
+            private static readonly Action<ILogger, string, Exception?> _serviceUnimplemented =
                 LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "ServiceUnimplemented"), "Service '{ServiceName}' is unimplemented.");
 
-            private static readonly Action<ILogger, string, Exception> _methodUnimplemented =
+            private static readonly Action<ILogger, string, Exception?> _methodUnimplemented =
                 LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "MethodUnimplemented"), "Method '{MethodName}' is unimplemented.");
 
             public static void ServiceUnimplemented(ILogger logger, string serviceName)

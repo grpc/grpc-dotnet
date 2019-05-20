@@ -26,37 +26,37 @@ namespace Grpc.NetCore.HttpClient.Internal
     {
         private static class Log
         {
-            private static readonly Action<ILogger, MethodType, Uri, Exception> _startingCall =
+            private static readonly Action<ILogger, MethodType, Uri, Exception?> _startingCall =
                 LoggerMessage.Define<MethodType, Uri>(LogLevel.Debug, new EventId(1, "StartingCall"), "Starting gRPC call. Method type: '{MethodType}', URI: '{Uri}'.");
 
-            private static readonly Action<ILogger, Exception> _responseHeadersReceived =
+            private static readonly Action<ILogger, Exception?> _responseHeadersReceived =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResponseHeadersReceived"), "Response headers received.");
 
-            private static readonly Action<ILogger, StatusCode, string, Exception> _grpcStatusError =
+            private static readonly Action<ILogger, StatusCode, string, Exception?> _grpcStatusError =
                 LoggerMessage.Define<StatusCode, string>(LogLevel.Error, new EventId(3, "GrpcStatusError"), "Server returned gRPC error status. Status code: '{StatusCode}', Message: '{StatusMessage}'.");
 
-            private static readonly Action<ILogger, Exception> _finishedCall =
+            private static readonly Action<ILogger, Exception?> _finishedCall =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "FinishedCall"), "Finished gRPC call.");
 
-            private static readonly Action<ILogger, TimeSpan, Exception> _startingDeadlineTimeout =
+            private static readonly Action<ILogger, TimeSpan, Exception?> _startingDeadlineTimeout =
                 LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(5, "StartingDeadlineTimeout"), "Starting deadline timeout. Duration: {DeadlineTimeout}.");
 
-            private static readonly Action<ILogger, Exception> _errorStartingCall =
+            private static readonly Action<ILogger, Exception?> _errorStartingCall =
                 LoggerMessage.Define(LogLevel.Error, new EventId(6, "ErrorStartingCall"), "Error starting gRPC call.");
 
-            private static readonly Action<ILogger, Exception> _deadlineExceeded =
+            private static readonly Action<ILogger, Exception?> _deadlineExceeded =
                 LoggerMessage.Define(LogLevel.Warning, new EventId(7, "DeadlineExceeded"), "gRPC call deadline exceeded.");
 
-            private static readonly Action<ILogger, Exception> _canceledCall =
+            private static readonly Action<ILogger, Exception?> _canceledCall =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(8, "CanceledCall"), "gRPC call canceled.");
 
-            private static readonly Action<ILogger, Exception> _messageNotReturned =
+            private static readonly Action<ILogger, Exception?> _messageNotReturned =
                 LoggerMessage.Define(LogLevel.Error, new EventId(9, "MessageNotReturned"), "Message not returned from unary or client streaming call.");
 
-            private static readonly Action<ILogger, Exception> _errorValidatingResponseHeaders =
+            private static readonly Action<ILogger, Exception?> _errorValidatingResponseHeaders =
                 LoggerMessage.Define(LogLevel.Error, new EventId(10, "ErrorValidatingResponseHeaders"), "Error validating response headers.");
 
-            private static readonly Action<ILogger, Exception> _errorFetchingGrpcStatus =
+            private static readonly Action<ILogger, Exception?> _errorFetchingGrpcStatus =
                 LoggerMessage.Define(LogLevel.Error, new EventId(11, "ErrorFetchingGrpcStatus"), "Error fetching gRPC status.");
 
             public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)

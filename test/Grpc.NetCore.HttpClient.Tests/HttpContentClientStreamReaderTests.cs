@@ -52,7 +52,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader.MoveNext(cts.Token);
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
             Assert.IsTrue(moveNextTask1.IsCompleted);
@@ -77,7 +77,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader.MoveNext(cts.Token);
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
             Assert.IsFalse(moveNextTask1.IsCompleted);
@@ -103,7 +103,7 @@ namespace Grpc.NetCore.HttpClient.Tests
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader.MoveNext(CancellationToken.None);
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(CancellationToken.None);
             var moveNextTask2 = call.ClientStreamReader.MoveNext(CancellationToken.None);
 
             // Assert
