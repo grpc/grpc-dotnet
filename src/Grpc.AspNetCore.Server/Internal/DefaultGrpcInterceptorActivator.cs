@@ -26,6 +26,11 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class DefaultGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
     {
         private readonly IServiceProvider _serviceProvider;
+
+        // An activator could create multiple interceptor instances of one type for a request
+        // Optimize for one instance and store it in a field
+        // When there are multiple interceptors then store in a set
+        private Interceptor? _createdInterceptor;
         private HashSet<Interceptor>? _createdInterceptors;
 
         public DefaultGrpcInterceptorActivator(IServiceProvider serviceProvider)
@@ -45,13 +50,24 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             var interceptor = ActivatorUtilities.CreateInstance<TInterceptor>(_serviceProvider, args);
-            
-            if (_createdInterceptors == null)
-            {
-                _createdInterceptors = new HashSet<Interceptor>();
-            }
 
-            _createdInterceptors.Add(interceptor);
+            if (_createdInterceptor == null)
+            {
+                _createdInterceptor = interceptor;
+            }
+            else
+            {
+                // Multiple interceptors of this type in the request pipeline
+                // Store references in a set
+                if (_createdInterceptors == null)
+                {
+                    _createdInterceptors = new HashSet<Interceptor>();
+                    _createdInterceptors.Add(_createdInterceptor);
+                    _createdInterceptor = null;
+                }
+
+                _createdInterceptors.Add(interceptor);
+            }
 
             return interceptor;
         }
@@ -63,10 +79,17 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new ArgumentNullException(nameof(interceptor));
             }
 
-            if (interceptor is IDisposable disposableInterceptor && _createdInterceptors != null && _createdInterceptors.Contains(interceptor))
+            if (interceptor is IDisposable disposableInterceptor)
             {
-                _createdInterceptors.Remove(interceptor); 
-                disposableInterceptor.Dispose();
+                if (_createdInterceptor == interceptor)
+                {
+                    _createdInterceptor = null;
+                    disposableInterceptor.Dispose();
+                }
+                else if (_createdInterceptors != null && _createdInterceptors.Remove(interceptor))
+                {
+                    disposableInterceptor.Dispose();
+                }
             }
         }
     }
