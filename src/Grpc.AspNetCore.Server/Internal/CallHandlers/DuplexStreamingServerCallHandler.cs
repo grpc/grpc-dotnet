@@ -17,10 +17,10 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -35,10 +35,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         private readonly DuplexStreamingServerMethod<TRequest, TResponse>? _pipelineInvoker;
 
         public DuplexStreamingServerCallHandler(
-            Method<TRequest, TResponse> method, 
-            DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker, 
-            GrpcServiceOptions serviceOptions, 
-            ILoggerFactory loggerFactory) 
+            Method<TRequest, TResponse> method,
+            DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory)
             : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
@@ -74,6 +74,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         protected override async Task HandleCallAsyncCore(HttpContext httpContext)
         {
+            // Disable request body data rate for client streaming
+            httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate = null;
+
             var serverCallContext = CreateServerCallContext(httpContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
