@@ -73,7 +73,6 @@ namespace BenchmarkWorkerWebsite
 
             webHostBuilder.ConfigureKestrel((context, options) =>
             {
-                options.Limits.MinRequestBodyDataRate = null;
                 options.ListenAnyIP(port, listenOptions =>
                 {
                     // TODO(jtattermusch): use TLS if config.SecurityParams != null
@@ -194,5 +193,5 @@ namespace BenchmarkWorkerWebsite
         {
             return webHost.StopAsync();
         }
-    }        
+    }
 }
