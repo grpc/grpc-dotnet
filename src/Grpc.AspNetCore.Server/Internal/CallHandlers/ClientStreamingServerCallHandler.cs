@@ -20,7 +20,6 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -74,11 +73,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         protected override async Task HandleCallAsyncCore(HttpContext httpContext)
         {
             // Disable request body data rate for client streaming
-            var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
-            if (minRequestBodyDataRateFeature != null)
-            {
-                minRequestBodyDataRateFeature.MinDataRate = null;
-            }
+            DisableMinRequestBodyDataRate(httpContext);
 
             var serverCallContext = CreateServerCallContext(httpContext);
 

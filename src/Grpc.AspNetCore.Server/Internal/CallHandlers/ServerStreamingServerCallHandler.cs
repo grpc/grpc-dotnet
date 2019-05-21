@@ -35,10 +35,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         private readonly ServerStreamingServerMethod<TRequest, TResponse>? _pipelineInvoker;
 
         public ServerStreamingServerCallHandler(
-            Method<TRequest, TResponse> method, 
-            ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, 
-            GrpcServiceOptions serviceOptions, 
-            ILoggerFactory loggerFactory) 
+            Method<TRequest, TResponse> method,
+            ServerStreamingServerMethod<TService, TRequest, TResponse> invoker,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory)
             : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
