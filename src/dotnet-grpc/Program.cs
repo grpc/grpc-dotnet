@@ -16,21 +16,27 @@
 
 #endregion
 
-using System.CommandLine;
+using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
+using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Commands;
+using Microsoft.Build.Locator;
 
 namespace Grpc.Dotnet.Cli
 {
     public class Program
     {
-        public static int Main(string[] args)
+        public static Task<int> Main(string[] args)
         {
-            // TODO johluo: Handle exceptions
-            var root = new RootCommand();
-            root.AddCommand(AddFileCommand.CreateCommand());
-            root.InvokeAsync(args);
+            MSBuildLocator.RegisterDefaults();
 
-            return 0;
+            var parser = new CommandLineBuilder()
+                .AddCommand(AddFileHandler.AddFileCommand())
+                .AddCommand(AddUrlHandler.AddFileCommand())
+                .UseDefaults()
+                .Build();
+
+            return parser.InvokeAsync(args);
         }
     }
 }
