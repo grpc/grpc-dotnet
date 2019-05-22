@@ -19,59 +19,39 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
-using NuGet.CommandLine.XPlat;
-using NuGet.Common;
-using NuGet.Packaging.Core;
-using NuGet.Versioning;
 
 namespace Grpc.Dotnet.Cli.Extensions
 {
     internal static class ProjectExtensions
     {
-        private static MSBuildAPIUtility MSBuild = new MSBuildAPIUtility(NullLogger.Instance);
-
-        public static async Task<int> EnsureGrpcPackagesAsync(this Project project)
+        public static void EnsureGrpcPackagesAsync(this Project project)
         {
-            var exitCode = await AddPackageReferenceAsync(project, "Google.Protobuf", "3.7.0");
-            if (exitCode != 0)
-            {
-                return exitCode;
-            }
-
-            exitCode = await AddPackageReferenceAsync(project, "Grpc.AspNetCore.Server", "0.1.20-pre1");
-            if (exitCode != 0)
-            {
-                return exitCode;
-            }
-
-            return await AddPackageReferenceAsync(project, "Grpc.Tools", "1.21.0-pre1", privateAssets: true);
+            AddPackageReferenceAsync(project, "Google.Protobuf", "3.7.0");
+            AddPackageReferenceAsync(project, "Grpc.AspNetCore.Server", "0.1.20-pre1");
+            AddPackageReferenceAsync(project, "Grpc.Tools", "1.21.0-pre1", privateAssets: true);
         }
 
-        private static async Task<int> AddPackageReferenceAsync(this Project project, string packageName, string packageVersion, bool privateAssets = false)
+        private static void AddPackageReferenceAsync(this Project project, string packageName, string packageVersion, bool privateAssets = false)
         {
-            var packageDependency = new PackageDependency(packageName, VersionRange.Parse(packageVersion));
-            var packageRefArgs = new PackageReferenceArgs(project.FullPath, packageDependency, NullLogger.Instance)
-            {
-                NoRestore = true
-            };
+            var packageReference = project.GetItems("PackageReference").SingleOrDefault(i => i.UnevaluatedInclude == packageName);
 
-            var exitCode = await new AddPackageReferenceCommandRunner().ExecuteCommand(packageRefArgs, MSBuild);
+            if (packageReference == null)
+            {
+                packageReference = project.AddItem("PackageReference", packageName).Single();
+                packageReference.Xml.AddMetadata("Version", packageVersion, expressAsAttribute: true);
+            }
 
             if (privateAssets)
             {
-                project.Items.Single(i => i.ItemType == "PackageReference" && i.UnevaluatedInclude == packageName).SetMetadataValue("PrivateAssets", "true");
-                project.Save();
+                packageReference.Xml.AddMetadata("PrivateAssets", "true", expressAsAttribute: true);
             }
-
-            return exitCode;
         }
 
         public static void AddProtobufReference(this Project project, Services services, string additionalImportDirs, Access access, string file, string url)
         {
-            if (!project.Items.Any(i => i.ItemType == "Protobuf" && i.UnevaluatedInclude == file))
+            if (!project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
             {
                 var newItem = project.AddItem("Protobuf", file).Single();
 

@@ -20,7 +20,6 @@ using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Definition;
@@ -51,17 +50,13 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public static async Task<int> AddFile(FileInfo project, Services services, Access access, string additionalImportDirs, string[] files)
+        public static int AddFile(FileInfo project, Services services, Access access, string additionalImportDirs, string[] files)
         {
             using (var projectCollection = new ProjectCollection())
             {
                 var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
 
-                var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
-                if (exitCode != 0)
-                {
-                    return exitCode;
-                }
+                msBuildProject.EnsureGrpcPackagesAsync();
 
                 foreach (var file in files)
                 {

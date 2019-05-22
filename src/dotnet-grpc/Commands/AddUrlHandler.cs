@@ -71,11 +71,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
 
-                var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
-                if (exitCode != 0)
-                {
-                    return exitCode;
-                }
+                msBuildProject.EnsureGrpcPackagesAsync();
 
                 var destination = Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output);
                 System.Console.WriteLine($"Downloading to {destination}");
