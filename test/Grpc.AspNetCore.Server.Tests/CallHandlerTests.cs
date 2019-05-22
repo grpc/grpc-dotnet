@@ -31,14 +31,13 @@ namespace Grpc.AspNetCore.Server.Tests
     [TestFixture]
     public class CallHandlerTests
     {
-        private readonly Marshaller<TestMessage> _marshaller = new Marshaller<TestMessage>((message, context) => { }, context => new TestMessage());
+        private static readonly Marshaller<TestMessage> _marshaller = new Marshaller<TestMessage>((message, context) => { }, context => new TestMessage());
 
         [Test]
-        public async Task ClientStreamingCallsDisablesRequestBodyDataRate()
+        public async Task MinRequestBodyDataRateFeature_ClientStreaming_DisablesRequestBodyDataRate()
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentType = "application/grpc";
-            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
+            // Arrange
+            var httpContext = CreateContext();
             var method = new Method<TestMessage, TestMessage>(MethodType.ClientStreaming, "test", "test", _marshaller, _marshaller);
             var call = new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                 method,
@@ -46,17 +45,18 @@ namespace Grpc.AspNetCore.Server.Tests
                 new GrpcServiceOptions(),
                 NullLoggerFactory.Instance);
 
+            // Act
             await call.HandleCallAsync(httpContext);
 
+            // Assert
             Assert.Null(httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate);
         }
 
         [Test]
-        public async Task DuplexStreamingCallsDisablesRequestBodyDataRate()
+        public async Task MinRequestBodyDataRateFeature_DuplexStreaming_DisablesRequestBodyDataRate()
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentType = "application/grpc";
-            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
+            // Arrange
+            var httpContext = CreateContext();
             var method = new Method<TestMessage, TestMessage>(MethodType.DuplexStreaming, "test", "test", _marshaller, _marshaller);
             var call = new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                 method,
@@ -64,17 +64,18 @@ namespace Grpc.AspNetCore.Server.Tests
                 new GrpcServiceOptions(),
                 NullLoggerFactory.Instance);
 
+            // Act
             await call.HandleCallAsync(httpContext);
 
+            // Assert
             Assert.Null(httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate);
         }
 
         [Test]
-        public async Task UnaryCallsDoesNotDisablesRequestBodyDataRate()
+        public async Task MinRequestBodyDataRateFeature_Unary_DoesNotDisableRequestBodyDataRate()
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentType = "application/grpc";
-            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
+            // Arrange
+            var httpContext = CreateContext();
             var method = new Method<TestMessage, TestMessage>(MethodType.Unary, "test", "test", _marshaller, _marshaller);
             var call = new UnaryServerCallHandler<TestService, TestMessage, TestMessage>(
                 method,
@@ -82,17 +83,18 @@ namespace Grpc.AspNetCore.Server.Tests
                 new GrpcServiceOptions(),
                 NullLoggerFactory.Instance);
 
+            // Act
             await call.HandleCallAsync(httpContext);
 
+            // Assert
             Assert.NotNull(httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate);
         }
 
         [Test]
-        public async Task ServerStreamingCallsDoesNotDisablesRequestBodyDataRate()
+        public async Task MinRequestBodyDataRateFeature_ServerStreaming_DoesNotDisableRequestBodyDataRate()
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentType = "application/grpc";
-            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
+            // Arrange
+            var httpContext = CreateContext();
             var method = new Method<TestMessage, TestMessage>(MethodType.ServerStreaming, "test", "test", _marshaller, _marshaller);
             var call = new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                 method,
@@ -100,9 +102,20 @@ namespace Grpc.AspNetCore.Server.Tests
                 new GrpcServiceOptions(),
                 NullLoggerFactory.Instance);
 
+            // Act
             await call.HandleCallAsync(httpContext);
 
+            // Assert
             Assert.NotNull(httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate);
+        }
+
+        private static HttpContext CreateContext()
+        {
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.ContentType = "application/grpc";
+            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
+
+            return httpContext;
         }
     }
 
