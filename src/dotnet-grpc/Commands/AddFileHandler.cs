@@ -17,11 +17,10 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Linq;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
@@ -53,22 +52,11 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public static async Task<int> AddFile(string project, string services, string additionalImportDirs, string access, string[] files)
         {
-            Console.WriteLine($"Project: {project}");
-            Console.WriteLine($"Services: {services}");
-            Console.WriteLine($"Access: {access}");
-            Console.WriteLine($"Additional Import Dirs: {additionalImportDirs}");
-
-            foreach (var file in files)
-            {
-                Console.Write($"{file} ");
-            }
-            Console.WriteLine();
-
             using (var projectCollection = new ProjectCollection())
             {
                 var msBuildProject = Project.FromFile(project, new ProjectOptions { ProjectCollection = projectCollection });
 
-                var exitCode = await ProjectUtilities.EnsureGrpcPackagesAsync(msBuildProject);
+                var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
                 if (exitCode != 0)
                 {
                     return exitCode;
@@ -76,33 +64,13 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 foreach (var file in files)
                 {
-                    if (!msBuildProject.Items.Any(i => i.ItemType == "Protobuf" && i.UnevaluatedInclude == file))
-                    {
-                        var metadata = new List<KeyValuePair<string, string>>();
-
-                        if (services != "Both")
-                        {
-                            metadata.Add(new KeyValuePair<string, string>("GrpcServices", services));
-                        }
-
-                        if (access != "Public")
-                        {
-                            metadata.Add(new KeyValuePair<string, string>("Access", access));
-                        }
-
-                        if (!string.IsNullOrEmpty(additionalImportDirs))
-                        {
-                            metadata.Add(new KeyValuePair<string, string>("AdditionalImportDirs", additionalImportDirs));
-                        }
-
-                        msBuildProject.AddItem("Protobuf", file, metadata);
-                    }
+                    msBuildProject.AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
                 }
 
                 msBuildProject.Save();
-
-                return 0;
             }
+
+            return 0;
         }
     }
 }

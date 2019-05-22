@@ -16,23 +16,21 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Microsoft.Build.Evaluation;
 using NuGet.CommandLine.XPlat;
 using NuGet.Common;
 using NuGet.Packaging.Core;
 using NuGet.Versioning;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Extensions
 {
-    internal static class ProjectUtilities
+    internal static class ProjectExtesnions
     {
         private static MSBuildAPIUtility MSBuild = new MSBuildAPIUtility(NullLogger.Instance);
 
-        public static async Task<int> EnsureGrpcPackagesAsync(Project project)
+        public static async Task<int> EnsureGrpcPackagesAsync(this Project project)
         {
             var exitCode = await AddPackageReferenceAsync(project, "Google.Protobuf", "3.7.0");
             if (exitCode != 0)
@@ -49,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
             return await AddPackageReferenceAsync(project, "Grpc.Tools", "1.21.0-pre1", privateAssets: true);
         }
 
-        private static async Task<int> AddPackageReferenceAsync(Project project, string packageName, string packageVersion, bool privateAssets = false)
+        private static async Task<int> AddPackageReferenceAsync(this Project project, string packageName, string packageVersion, bool privateAssets = false)
         {
             var packageDependency = new PackageDependency(packageName, VersionRange.Parse(packageVersion));
             var packageRefArgs = new PackageReferenceArgs(project.FullPath, packageDependency, NullLogger.Instance)
@@ -68,5 +66,32 @@ namespace Grpc.Dotnet.Cli.Commands
             return exitCode;
         }
 
+        public static void AddProtobufReference(this Project project, string services, string additionalImportDirs, string access, string file, string url)
+        {
+            if (!project.Items.Any(i => i.ItemType == "Protobuf" && i.UnevaluatedInclude == file))
+            {
+                var newItem = project.AddItem("Protobuf", file).Single();
+
+                if (services != "Both")
+                {
+                    newItem.Xml.AddMetadata("GrpcServices", services, expressAsAttribute: true);
+                }
+
+                if (access != "Public")
+                {
+                    newItem.Xml.AddMetadata("Access", access, expressAsAttribute: true);
+                }
+
+                if (!string.IsNullOrEmpty(additionalImportDirs))
+                {
+                    newItem.Xml.AddMetadata("AdditionalImportDirs", additionalImportDirs, expressAsAttribute: true);
+                }
+
+                if (!string.IsNullOrEmpty(url))
+                {
+                    newItem.Xml.AddMetadata("SourceURL", url);
+                }
+            }
+        }
     }
 }

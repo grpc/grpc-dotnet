@@ -18,7 +18,11 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
+using Microsoft.Build.Definition;
+using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
@@ -39,19 +43,35 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.ServiceOption());
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
+            command.AddOption(new Option(
+                aliases: new[] { "-o", "--output" },
+                description: "Add a protobuf url reference to the gRPC project.",
+                argument: new Argument<string> { Name = "project", Arity = ArgumentArity.ExactlyOne }));
 
-            command.Handler = CommandHandler.Create<string, string, string, string, string>(AddUrl);
+            command.Handler = CommandHandler.Create<string, string, string, string, string, string>(AddUrl);
 
             return command;
         }
 
-        public static int AddUrl(string project, string services, string additionalImportDirs, string access, string url)
+        public static async Task<int> AddUrl(string project, string services, string additionalImportDirs, string access, string url, string output)
         {
-            System.Console.WriteLine($"{project}");
-            System.Console.WriteLine($"{services}");
-            System.Console.WriteLine($"{additionalImportDirs}");
-            System.Console.WriteLine($"{access}");
-            System.Console.Write($"{url} ");
+            // Use a separate project collection to avoid conflicts in the global project collection
+            using (var projectCollection = new ProjectCollection())
+            {
+                var msBuildProject = Project.FromFile(project, new ProjectOptions { ProjectCollection = projectCollection });
+
+                var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
+                if (exitCode != 0)
+                {
+                    return exitCode;
+                }
+
+                await HttpClientExtensions.DownloadFileAsync(url, output);
+
+                msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
+
+                msBuildProject.Save();
+            }
 
             return 0;
         }
