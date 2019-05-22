@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             static void Encode(Span<char> span, string s)
             {
-                Span<byte> unicodeBytesBuffer = stackalloc byte[MaxUnicodeCharsReallocate * MaxUtf8BytesPerUnicodeChar];
+                Span<byte> unicodeBytesBuffer = new byte[MaxUnicodeCharsReallocate * MaxUtf8BytesPerUnicodeChar];
 
                 var writePosition = 0;
                 for (var i = 0; i < s.Length; i++)
@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.Server.Internal
             // We know we have started with a UTF-16 character
             var unicodeCharCount = 1;
 
-            var maxSize = Math.Min(value.Length - currentIndex, maxCount); 
+            var maxSize = Math.Min(value.Length - currentIndex, maxCount);
             for (; unicodeCharCount < maxSize && value[currentIndex + unicodeCharCount] > AsciiMaxValue; unicodeCharCount++)
             {
             }

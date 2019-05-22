@@ -46,7 +46,6 @@ namespace BenchmarkWorkerWebsite
                     // Port on which to listen to commands from QpsDriver
                     int driverPort = context.Configuration.GetValue<int>("driver_port", 50053);
 
-                    options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(driverPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;

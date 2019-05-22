@@ -35,7 +35,6 @@ namespace GRPCServer
             WebHost.CreateDefaultBuilder(args)
                 .ConfigureKestrel(options =>
                 {
-                    options.Limits.MinRequestBodyDataRate = null;
                     options.ListenLocalhost(50051, listenOptions =>
                     {
                         // ALPN is not available on macOS so only use Https on Windows and Linux

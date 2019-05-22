@@ -34,10 +34,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         private readonly UnaryServerMethod<TRequest, TResponse>? _pipelineInvoker;
 
         public UnaryServerCallHandler(
-            Method<TRequest, TResponse> method, 
-            UnaryServerMethod<TService, TRequest, TResponse> invoker, 
-            GrpcServiceOptions serviceOptions, 
-            ILoggerFactory loggerFactory) 
+            Method<TRequest, TResponse> method,
+            UnaryServerMethod<TService, TRequest, TResponse> invoker,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory)
             : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;

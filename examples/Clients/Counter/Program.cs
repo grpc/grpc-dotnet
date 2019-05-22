@@ -62,7 +62,7 @@ namespace Sample.Clients
                     var count = RNG.Next(5);
                     Console.WriteLine($"Accumulating with {count}");
                     await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
-                    await Task.Delay(1000);
+                    await Task.Delay(2000);
                 }
 
                 await call.RequestStream.CompleteAsync();
