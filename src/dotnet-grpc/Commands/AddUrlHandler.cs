@@ -66,19 +66,15 @@ namespace Grpc.Dotnet.Cli.Commands
                 }
             }
 
-            // Use a separate project collection to avoid conflicts in the global project collection
-            using (var projectCollection = new ProjectCollection())
-            {
-                var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
+            var msBuildProject = new Project(project.FullName);
 
-                msBuildProject.EnsureGrpcPackagesAsync();
+            msBuildProject.EnsureGrpcPackagesAsync();
 
-                await HttpClientExtensions.DownloadFileAsync(url, Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output));
+            await HttpClientExtensions.DownloadFileAsync(url, Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output));
 
-                msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
+            msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
 
-                msBuildProject.Save();
-            }
+            msBuildProject.Save();
 
             return 0;
         }

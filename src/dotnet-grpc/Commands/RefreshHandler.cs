@@ -68,47 +68,43 @@ namespace Grpc.Dotnet.Cli.Commands
                 }
             }
 
-            // Use a separate project collection to avoid conflicts in the global project collection
-            using (var projectCollection = new ProjectCollection())
+            var msBuildProject = new Project(project.FullName);
+            var protobufItems = msBuildProject.GetItems("Protobuf");
+            var refsToRefresh = new List<ProjectItem>();
+
+            if (references.Length == 0)
             {
-                var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
-                var protobufItems = msBuildProject.GetItems("Protobuf");
-                var refsToRefresh = new List<ProjectItem>();
-
-                if (references.Length == 0)
+                refsToRefresh.AddRange(protobufItems.Where(p => p.HasMetadata("SourceURL")));
+            }
+            else
+            {
+                foreach (var reference in references)
                 {
-                    refsToRefresh.AddRange(protobufItems.Where(p => p.HasMetadata("SourceURL")));
-                }
-                else
-                {
-                    foreach (var reference in references)
+                    if (Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http"))
                     {
-                        if (Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http"))
-                        {
-                            var protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+                        var protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
-                            if (protobufRef == null)
-                            {
-                                Console.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
-                            }
+                        if (protobufRef == null)
+                        {
+                            Console.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
                         }
-                        else
-                        {
-                            var protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+                    }
+                    else
+                    {
+                        var protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
 
-                            if (protobufRef == null)
-                            {
-                                Console.WriteLine($"Could not find a reference for the file `{reference}`.");
-                            }
+                        if (protobufRef == null)
+                        {
+                            Console.WriteLine($"Could not find a reference for the file `{reference}`.");
                         }
                     }
                 }
+            }
 
-                foreach (var reference in refsToRefresh)
-                {
-                    Console.WriteLine($"Refreshing `{reference.UnevaluatedInclude}` with remote source `{reference.GetMetadataValue("SourceURL")}`.");
-                    await HttpClientExtensions.DownloadFileAsync(reference.GetMetadataValue("SourceURL"), Path.IsPathRooted(reference.UnevaluatedInclude) ? reference.UnevaluatedInclude : Path.Combine(project.DirectoryName, reference.UnevaluatedInclude), true);
-                }
+            foreach (var reference in refsToRefresh)
+            {
+                Console.WriteLine($"Refreshing `{reference.UnevaluatedInclude}` with remote source `{reference.GetMetadataValue("SourceURL")}`.");
+                await HttpClientExtensions.DownloadFileAsync(reference.GetMetadataValue("SourceURL"), Path.IsPathRooted(reference.UnevaluatedInclude) ? reference.UnevaluatedInclude : Path.Combine(project.DirectoryName, reference.UnevaluatedInclude), true);
             }
 
             return 0;

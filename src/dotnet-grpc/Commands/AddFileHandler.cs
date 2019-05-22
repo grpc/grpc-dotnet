@@ -52,19 +52,16 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public static int AddFile(FileInfo project, Services services, Access access, string additionalImportDirs, string[] files)
         {
-            using (var projectCollection = new ProjectCollection())
+            var msBuildProject = new Project(project.FullName);
+
+            msBuildProject.EnsureGrpcPackagesAsync();
+
+            foreach (var file in files)
             {
-                var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
-
-                msBuildProject.EnsureGrpcPackagesAsync();
-
-                foreach (var file in files)
-                {
-                    msBuildProject.AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
-                }
-
-                msBuildProject.Save();
+                msBuildProject.AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
             }
+
+            msBuildProject.Save();
 
             return 0;
         }
