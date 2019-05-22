@@ -18,10 +18,11 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Grpc.Dotnet.Cli.Options;
 
-namespace Grpc.Dotnet.Cli
+namespace Grpc.Dotnet.Cli.Commands
 {
-    public class AddFileCommand
+    internal static class AddFileCommand
     {
         public static Command CreateCommand()
         {
@@ -36,11 +37,7 @@ namespace Grpc.Dotnet.Cli
                 }
                 );
 
-            command.AddOption(
-                new Option(
-                    new[] { "-p", "--project" },
-                    "The project file to operate on. If a file is not specified, the command will search the current directory for one.",
-                    new Argument<string> { Name = "PROJECT" }));
+            command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(
                 new Option(
                     new[] { "-s", "--services" },
