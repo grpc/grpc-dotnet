@@ -18,6 +18,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.IO;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
@@ -46,19 +47,29 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(new Option(
                 aliases: new[] { "-o", "--output" },
                 description: "Add a protobuf url reference to the gRPC project.",
-                argument: new Argument<string> { Name = "project", Arity = ArgumentArity.ExactlyOne }));
+                argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
 
-            command.Handler = CommandHandler.Create<string, string, string, string, string, string>(AddUrl);
+            command.Handler = CommandHandler.Create<FileInfo, Services, Access, string, string, string>(AddUrl);
 
             return command;
         }
 
-        public static async Task<int> AddUrl(string project, string services, string additionalImportDirs, string access, string url, string output)
+        public static async Task<int> AddUrl(FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
         {
+            if (project == null)
+            {
+                project = ProjectExtensions.ResolveProjectPath();
+
+                if (project == null)
+                {
+                    return -1;
+                }
+            }
+
             // Use a separate project collection to avoid conflicts in the global project collection
             using (var projectCollection = new ProjectCollection())
             {
-                var msBuildProject = Project.FromFile(project, new ProjectOptions { ProjectCollection = projectCollection });
+                var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
 
                 var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
                 if (exitCode != 0)
@@ -66,7 +77,10 @@ namespace Grpc.Dotnet.Cli.Commands
                     return exitCode;
                 }
 
-                await HttpClientExtensions.DownloadFileAsync(url, output);
+                var destination = Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output);
+                System.Console.WriteLine($"Downloading to {destination}");
+
+                await HttpClientExtensions.DownloadFileAsync(url, destination);
 
                 msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
 

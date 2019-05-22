@@ -16,8 +16,11 @@
 
 #endregion
 
+using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 using NuGet.CommandLine.XPlat;
 using NuGet.Common;
@@ -26,7 +29,7 @@ using NuGet.Versioning;
 
 namespace Grpc.Dotnet.Cli.Extensions
 {
-    internal static class ProjectExtesnions
+    internal static class ProjectExtensions
     {
         private static MSBuildAPIUtility MSBuild = new MSBuildAPIUtility(NullLogger.Instance);
 
@@ -66,20 +69,20 @@ namespace Grpc.Dotnet.Cli.Extensions
             return exitCode;
         }
 
-        public static void AddProtobufReference(this Project project, string services, string additionalImportDirs, string access, string file, string url)
+        public static void AddProtobufReference(this Project project, Services services, string additionalImportDirs, Access access, string file, string url)
         {
             if (!project.Items.Any(i => i.ItemType == "Protobuf" && i.UnevaluatedInclude == file))
             {
                 var newItem = project.AddItem("Protobuf", file).Single();
 
-                if (services != "Both")
+                if (services != Services.Both)
                 {
-                    newItem.Xml.AddMetadata("GrpcServices", services, expressAsAttribute: true);
+                    newItem.Xml.AddMetadata("GrpcServices", services.ToString(), expressAsAttribute: true);
                 }
 
-                if (access != "Public")
+                if (access != Access.Public)
                 {
-                    newItem.Xml.AddMetadata("Access", access, expressAsAttribute: true);
+                    newItem.Xml.AddMetadata("Access", access.ToString(), expressAsAttribute: true);
                 }
 
                 if (!string.IsNullOrEmpty(additionalImportDirs))
@@ -92,6 +95,26 @@ namespace Grpc.Dotnet.Cli.Extensions
                     newItem.Xml.AddMetadata("SourceURL", url);
                 }
             }
+        }
+
+        public static FileInfo? ResolveProjectPath()
+        {
+            var currentDirectory = Directory.GetCurrentDirectory();
+            var projectFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.csproj");
+
+            if (projectFiles.Length == 0)
+            {
+                Console.WriteLine($"Could not find any project in `{currentDirectory}`. Please specify a project explicitly.");
+                return null;
+            }
+
+            if (projectFiles.Length > 1)
+            {
+                Console.WriteLine($"Found more than one project in `{currentDirectory}`. Please specify which one to use.");
+                return null;
+            }
+
+            return new FileInfo(projectFiles[0]);
         }
     }
 }

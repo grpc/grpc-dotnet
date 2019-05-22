@@ -19,6 +19,7 @@
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.IO;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
@@ -45,16 +46,16 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
 
-            command.Handler = CommandHandler.Create<string, string, string, string, string[]>(AddFile);
+            command.Handler = CommandHandler.Create<FileInfo, Services, Access, string, string[]>(AddFile);
 
             return command;
         }
 
-        public static async Task<int> AddFile(string project, string services, string additionalImportDirs, string access, string[] files)
+        public static async Task<int> AddFile(FileInfo project, Services services, Access access, string additionalImportDirs, string[] files)
         {
             using (var projectCollection = new ProjectCollection())
             {
-                var msBuildProject = Project.FromFile(project, new ProjectOptions { ProjectCollection = projectCollection });
+                var msBuildProject = Project.FromFile(project.FullName, new ProjectOptions { ProjectCollection = projectCollection });
 
                 var exitCode = await msBuildProject.EnsureGrpcPackagesAsync();
                 if (exitCode != 0)
