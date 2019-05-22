@@ -34,6 +34,7 @@ namespace Grpc.Dotnet.Cli
                 .AddCommand(AddFileHandler.AddFileCommand())
                 .AddCommand(AddUrlHandler.AddFileCommand())
                 .AddCommand(RefreshHandler.RefreshCommand())
+                .AddCommand(RemoveHandler.RemoveCommand())
                 .UseDefaults()
                 .Build();
 

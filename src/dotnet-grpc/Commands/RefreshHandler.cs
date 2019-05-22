@@ -25,7 +25,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
-using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
