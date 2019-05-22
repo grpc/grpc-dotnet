@@ -33,6 +33,7 @@ namespace Grpc.Dotnet.Cli
             var parser = new CommandLineBuilder()
                 .AddCommand(AddFileHandler.AddFileCommand())
                 .AddCommand(AddUrlHandler.AddFileCommand())
+                .AddCommand(RefreshHandler.RefreshCommand())
                 .UseDefaults()
                 .Build();
 

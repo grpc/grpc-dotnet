@@ -73,10 +73,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 msBuildProject.EnsureGrpcPackagesAsync();
 
-                var destination = Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output);
-                System.Console.WriteLine($"Downloading to {destination}");
-
-                await HttpClientExtensions.DownloadFileAsync(url, destination);
+                await HttpClientExtensions.DownloadFileAsync(url, Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output));
 
                 msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
 

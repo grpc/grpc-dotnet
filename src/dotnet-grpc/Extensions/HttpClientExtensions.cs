@@ -43,7 +43,7 @@ namespace Grpc.Dotnet.Cli.Extensions
                     Directory.CreateDirectory(desitnationDirectory);
                 }
 
-                using (var fileStream = File.Open(destination, FileMode.OpenOrCreate, FileAccess.Write))
+                using (var fileStream = File.Open(destination, FileMode.Create, FileAccess.Write))
                 {
                     await stream.CopyToAsync(fileStream);
                 }
