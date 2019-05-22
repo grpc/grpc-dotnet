@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
@@ -56,6 +57,19 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             return serverCallContext;
+        }
+
+        /// <summary>
+        /// This should only be called from client streaming calls
+        /// </summary>
+        /// <param name="httpContext"></param>
+        protected void DisableMinRequestBodyDataRate(HttpContext httpContext)
+        {
+            var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
+            if (minRequestBodyDataRateFeature != null)
+            {
+                minRequestBodyDataRateFeature.MinDataRate = null;
+            }
         }
     }
 }

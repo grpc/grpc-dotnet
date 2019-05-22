@@ -73,8 +73,6 @@ namespace BenchmarkServer
                 })
                 .ConfigureKestrel((context, options) =>
                 {
-                    options.Limits.MinRequestBodyDataRate = null;
-
                     var endPoint = config.CreateIPEndPoint();
 
                     options.Listen(endPoint, listenOptions =>

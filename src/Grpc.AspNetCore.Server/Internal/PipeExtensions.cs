@@ -171,7 +171,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                Span<byte> headerData = stackalloc byte[HeaderSize];
+                Span<byte> headerData = new byte[HeaderSize];
                 buffer.Slice(0, HeaderSize).CopyTo(headerData);
 
                 compressed = ReadCompressedFlag(headerData[0]);

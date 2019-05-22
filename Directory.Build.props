@@ -13,7 +13,7 @@
 
     <!-- static local methods are a C# 8.0 feature -->
     <LangVersion>preview</LangVersion>
-    <NullableContextOptions>enable</NullableContextOptions>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
 </Project>

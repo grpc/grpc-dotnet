@@ -33,7 +33,6 @@ namespace FunctionalTestsWebsite
             WebHost.CreateDefaultBuilder(args)
                 .ConfigureKestrel(options =>
                 {
-                    options.Limits.MinRequestBodyDataRate = null;
                     options.ListenLocalhost(50051, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;
