@@ -27,7 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.GrpcClient.Internal
+namespace Grpc.AspNetCore.Server.ClientFactory.Internal
 {
     internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
     {

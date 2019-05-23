@@ -22,7 +22,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Net.Http;
 
-namespace Grpc.AspNetCore.Server.GrpcClient.Internal
+namespace Grpc.AspNetCore.Server.ClientFactory.Internal
 {
     internal class DefaultGrpcClientFactory : GrpcClientFactory
     {

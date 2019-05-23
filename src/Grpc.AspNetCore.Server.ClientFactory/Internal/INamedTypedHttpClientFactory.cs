@@ -18,7 +18,7 @@
 
 using System.Net.Http;
 
-namespace Grpc.AspNetCore.Server.GrpcClient.Internal
+namespace Grpc.AspNetCore.Server.ClientFactory.Internal
 {
     interface INamedTypedHttpClientFactory<TClient>
     {

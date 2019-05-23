@@ -23,7 +23,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
-using Grpc.AspNetCore.Server.GrpcClient;
+using Grpc.AspNetCore.Server.ClientFactory;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
