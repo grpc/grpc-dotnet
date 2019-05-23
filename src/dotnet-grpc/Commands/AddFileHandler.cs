@@ -56,6 +56,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
             msBuildProject.EnsureGrpcPackagesAsync();
 
+            files = ProjectExtensions.ExpandReferences(project, files);
+
             foreach (var file in files)
             {
                 msBuildProject.AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);

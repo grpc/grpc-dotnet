@@ -46,7 +46,9 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--dry-run" },
-                description: "Obtain a list of file(s) that will be updated."));
+                description: "Obtain a list of file(s) that will be updated.",
+                argument: Argument.None
+                ));
 
             command.Handler = CommandHandler.Create<FileInfo, bool, string[]>(Refresh);
 
@@ -70,6 +72,7 @@ namespace Grpc.Dotnet.Cli.Commands
             var msBuildProject = new Project(project.FullName);
             var protobufItems = msBuildProject.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
+            references = ProjectExtensions.ExpandReferences(project, references);
 
             if (references.Length == 0)
             {

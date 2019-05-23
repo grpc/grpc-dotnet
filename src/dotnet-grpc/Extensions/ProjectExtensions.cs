@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Grpc.Dotnet.Cli.Options;
@@ -41,12 +42,13 @@ namespace Grpc.Dotnet.Cli.Extensions
             {
                 packageReference = project.AddItem("PackageReference", packageName).Single();
                 packageReference.Xml.AddMetadata("Version", packageVersion, expressAsAttribute: true);
+
+                if (privateAssets)
+                {
+                    packageReference.Xml.AddMetadata("PrivateAssets", "true", expressAsAttribute: true);
+                }
             }
 
-            if (privateAssets)
-            {
-                packageReference.Xml.AddMetadata("PrivateAssets", "true", expressAsAttribute: true);
-            }
         }
 
         public static void AddProtobufReference(this Project project, Services services, string additionalImportDirs, Access access, string file, string url)
@@ -95,6 +97,33 @@ namespace Grpc.Dotnet.Cli.Extensions
             }
 
             return new FileInfo(projectFiles[0]);
+        }
+
+        public static string[] ExpandReferences(FileInfo projectPath, string[] references)
+        {
+            var expandedReferences = new List<string>();
+
+            foreach (var reference in references)
+            {
+                if (reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _))
+                {
+                    expandedReferences.Add(reference);
+                    continue;
+                }
+
+                if (Path.IsPathRooted(reference))
+                {
+                    var directoryToSearch = Path.GetPathRoot(reference);
+                    var searchPattern = reference.Substring(directoryToSearch.Length);
+
+                    expandedReferences.AddRange(Directory.GetFiles(directoryToSearch, searchPattern));
+                    continue;
+                }
+
+                expandedReferences.AddRange(Directory.GetFiles(Path.GetDirectoryName(projectPath.FullName), reference));
+            }
+
+            return expandedReferences.ToArray();
         }
     }
 }

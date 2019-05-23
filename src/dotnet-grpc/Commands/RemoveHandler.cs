@@ -22,7 +22,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
@@ -46,7 +45,8 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--remove-file" },
-                description: "Also delete the protobuf file from disk."));
+                description: "Also delete the protobuf file from disk.",
+                argument: Argument.None));
 
             command.Handler = CommandHandler.Create<FileInfo, bool, string[]>(Remove);
 
@@ -68,6 +68,7 @@ namespace Grpc.Dotnet.Cli.Commands
             var msBuildProject = new Project(project.FullName);
             var protobufItems = msBuildProject.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
+            references = ProjectExtensions.ExpandReferences(project, references);
 
             foreach (var reference in references)
             {
