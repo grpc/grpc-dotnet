@@ -18,7 +18,7 @@
     <Content Include="@(Protobuf)" LinkBase="Proto" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.GrpcClient\Grpc.AspNetCore.Server.GrpcClient.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
 
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />

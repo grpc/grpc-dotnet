@@ -19,7 +19,7 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Grpc.AspNetCore.Server.GrpcClient
+namespace Grpc.AspNetCore.Server.ClientFactory
 {
     /// <summary>
     /// Options used to configure a gRPC client.

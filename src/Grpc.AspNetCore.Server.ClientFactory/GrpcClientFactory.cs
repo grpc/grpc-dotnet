@@ -18,7 +18,7 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.GrpcClient
+namespace Grpc.AspNetCore.Server.ClientFactory
 {
     /// <summary>
     /// A factory abstraction for a component that can create gRPC client instances with custom
