@@ -97,6 +97,52 @@ namespace Grpc.NetCore.HttpClient.Tests
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
+        [Test]
+        public void AsyncClientStreamingCall_CancellationTokenOnCallInvoker_ResponseThrowsCancelledStatus()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            var invoker = CreateTimedoutCallInvoker();
+            invoker.CancellationToken = cts.Token;
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
+
+            // Assert
+            var responseTask = call.ResponseAsync;
+            Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
+
+            cts.Cancel();
+
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public void AsyncClientStreamingCall_CancellationTokenOnCallInvokerAndOptions_ResponseThrowsCancelledStatus()
+        {
+            // Arrange
+            var invokerCts = new CancellationTokenSource();
+            var optionsCts = new CancellationTokenSource();
+
+            var invoker = CreateTimedoutCallInvoker();
+            invoker.CancellationToken = invokerCts.Token;
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: optionsCts.Token));
+
+            // Assert
+            var responseTask = call.ResponseAsync;
+            Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
+
+            invokerCts.Cancel();
+
+            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+
+            call.Dispose();
+        }
+
         private static HttpClientCallInvoker CreateTimedoutCallInvoker()
         {
             var httpClient = TestHelpers.CreateTestClient(async request =>

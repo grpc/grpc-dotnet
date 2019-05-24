@@ -147,6 +147,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Clie
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ticketer", "examples\Clients\Ticketer\Ticketer.csproj", "{64CC84DE-C5A1-46B9-9A1B-8CDD730239A9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.ClientFactory.Tests", "test\Grpc.AspNetCore.Server.ClientFactory.Tests\Grpc.AspNetCore.Server.ClientFactory.Tests.csproj", "{4306E048-9D81-44A8-8069-2C294289FC00}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -241,6 +243,10 @@ Global
 		{64CC84DE-C5A1-46B9-9A1B-8CDD730239A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64CC84DE-C5A1-46B9-9A1B-8CDD730239A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64CC84DE-C5A1-46B9-9A1B-8CDD730239A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4306E048-9D81-44A8-8069-2C294289FC00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4306E048-9D81-44A8-8069-2C294289FC00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4306E048-9D81-44A8-8069-2C294289FC00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4306E048-9D81-44A8-8069-2C294289FC00}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -282,6 +288,7 @@ Global
 		{D15CAEF6-0A5D-416E-B6F7-DE75C4B1D89B} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{BF9F5674-2BC3-446E-BBEA-3055A4A2B889} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{64CC84DE-C5A1-46B9-9A1B-8CDD730239A9} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{4306E048-9D81-44A8-8069-2C294289FC00} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
