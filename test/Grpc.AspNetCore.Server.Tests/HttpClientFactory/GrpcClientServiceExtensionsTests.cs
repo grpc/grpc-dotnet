@@ -18,7 +18,7 @@
 
 using System;
 using System.Threading;
-using Grpc.AspNetCore.Server.GrpcClient;
+using Grpc.AspNetCore.Server.ClientFactory;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;

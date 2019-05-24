@@ -18,8 +18,8 @@
 
 using System;
 using System.Net.Http;
-using Grpc.AspNetCore.Server.GrpcClient;
-using Grpc.AspNetCore.Server.GrpcClient.Internal;
+using Grpc.AspNetCore.Server.ClientFactory;
+using Grpc.AspNetCore.Server.ClientFactory.Internal;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
