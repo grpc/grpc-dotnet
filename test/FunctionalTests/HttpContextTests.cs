@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task HttpContextExtensionMethod_ReturnContextInTrailer()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<HttpContextTests, HelloRequest, HelloReply>((request, context) =>
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
             {
                 var httpContext = context.GetHttpContext();
                 context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);

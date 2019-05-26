@@ -114,11 +114,11 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<ClientStreamingMethodTests, Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(ClientStreamingMethodTests).FullName &&
+                return writeContext.LoggerName == typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -178,7 +178,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<UnaryMethodTests, CounterRequest, CounterReply>(AccumulateCount);
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
 
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new CounterRequest

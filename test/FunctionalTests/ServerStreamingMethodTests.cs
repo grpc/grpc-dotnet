@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<UnaryMethodTests, HelloRequest, HelloReply>(SayHellosBufferHint);
+            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(SayHellosBufferHint);
 
             var requestMessage = new HelloRequest
             {
