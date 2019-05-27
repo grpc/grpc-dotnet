@@ -46,6 +46,31 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(expectedDecodedValue, decodedValue);
         }
 
+        [Test]
+        public void StartOfHeaderChar_Roundtrip_Success()
+        {
+            // Arrange & Act
+            var encodedValue = PercentEncodingHelpers.PercentEncode("\x01");
+            var decodedValue = Uri.UnescapeDataString("%01");
+
+            // Assert
+            Assert.AreEqual("%01", encodedValue);
+            Assert.AreEqual("\x01", decodedValue);
+
+        }
+
+        [Test]
+        public void ShiftInChar_Roundtrip_Success()
+        {
+            // Arrange & Act
+            var encodedValue = PercentEncodingHelpers.PercentEncode("\x0f");
+            var decodedValue = Uri.UnescapeDataString("%0F");
+
+            // Assert
+            Assert.AreEqual("%0F", encodedValue);
+            Assert.AreEqual("\x0f", decodedValue);
+        }
+
         // This test double-checks that UnescapeDataString doesn't thrown when given odd data
         [TestCase("%", "%")]
         [TestCase("%A", "%A")]
@@ -126,10 +151,8 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             new TestCaseData("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~"),
             new TestCaseData("\x00", "%00"),
-            new TestCaseData("\x01", "%01"),
             new TestCaseData("a b", "a b"),
             new TestCaseData(" b", " b"),
-            new TestCaseData("\x0f", "%0F"),
             new TestCaseData("\xff", "%C3%BF"),
             new TestCaseData("\xee", "%C3%AE"),
             new TestCaseData("%2", "%252"),
