@@ -37,7 +37,6 @@ using Grpc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
-using NUnit.Framework;
 
 namespace InteropTestsClient
 {
@@ -338,7 +337,7 @@ namespace InteropTestsClient
             using (var call = client.StreamingOutputCall(request))
             {
                 var responseList = await call.ResponseStream.ToListAsync();
-                CollectionAssert.AreEqual(bodySizes, responseList.Select((item) => item.Payload.Body.Length));
+                CollectionAssert.AreEqual(bodySizes, responseList.Select((item) => item.Payload.Body.Length).ToList());
             }
             Console.WriteLine("Passed!");
         }
@@ -421,8 +420,8 @@ namespace InteropTestsClient
             var response = client.UnaryCall(request);
 
             Assert.AreEqual(314159, response.Payload.Body.Length);
-            Assert.False(string.IsNullOrEmpty(response.OauthScope));
-            Assert.True(oauthScope.Contains(response.OauthScope));
+            Assert.IsFalse(string.IsNullOrEmpty(response.OauthScope));
+            Assert.IsTrue(oauthScope.Contains(response.OauthScope));
             Assert.AreEqual(defaultServiceAccount, response.Username);
             Console.WriteLine("Passed!");
         }
@@ -461,8 +460,8 @@ namespace InteropTestsClient
 
             var response = client.UnaryCall(request, new CallOptions(credentials: credentials));
 
-            Assert.False(string.IsNullOrEmpty(response.OauthScope));
-            Assert.True(oauthScope.Contains(response.OauthScope));
+            Assert.IsFalse(string.IsNullOrEmpty(response.OauthScope));
+            Assert.IsTrue(oauthScope.Contains(response.OauthScope));
             Assert.AreEqual(GetEmailFromServiceAccountFile(), response.Username);
             Console.WriteLine("Passed!");
         }
