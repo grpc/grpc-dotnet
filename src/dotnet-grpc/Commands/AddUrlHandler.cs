@@ -22,7 +22,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
-using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
@@ -54,29 +53,15 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public static async Task<int> AddUrl(FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
+        public static async Task AddUrl(FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
         {
-            if (project == null)
-            {
-                project = ProjectExtensions.ResolveProjectPath();
+            var msBuildProject = ProjectExtensions.ResolveProject(project);
+            msBuildProject.EnsureGrpcPackagesInProjectAsync();
 
-                if (project == null)
-                {
-                    return -1;
-                }
-            }
-
-            var msBuildProject = new Project(project.FullName);
-
-            msBuildProject.EnsureGrpcPackagesAsync();
-
-            await HttpClientExtensions.DownloadFileAsync(url, Path.IsPathRooted(output) ? output : Path.Combine(project.DirectoryName, output));
-
+            await msBuildProject.DownloadFileAsync(url, output);
             msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
 
             msBuildProject.Save();
-
-            return 0;
         }
     }
 }

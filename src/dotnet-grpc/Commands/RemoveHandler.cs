@@ -53,28 +53,20 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public static int Remove(FileInfo? project, bool removeFile, string[] references)
+        public static void Remove(FileInfo? project, bool removeFile, string[] references)
         {
-            if (project == null)
-            {
-                project = ProjectExtensions.ResolveProjectPath();
-
-                if (project == null)
-                {
-                    return -1;
-                }
-            }
-
-            var msBuildProject = new Project(project.FullName);
+            var msBuildProject = ProjectExtensions.ResolveProject(project);
             var protobufItems = msBuildProject.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
-            references = ProjectExtensions.ExpandReferences(project, references);
+            references = msBuildProject.ExpandReferences(references);
 
             foreach (var reference in references)
             {
-                if (Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http"))
+                ProjectItem protobufRef;
+
+                if (ProjectExtensions.IsUrl(reference))
                 {
-                    var protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+                    protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
                     if (protobufRef == null)
                     {
@@ -82,35 +74,23 @@ namespace Grpc.Dotnet.Cli.Commands
                         continue;
                     }
 
-                    msBuildProject.RemoveItem(protobufRef);
-
-                    if (removeFile)
-                    {
-                        File.Delete(Path.IsPathRooted(protobufRef.UnevaluatedInclude) ? protobufRef.UnevaluatedInclude : Path.Combine(project.DirectoryName, protobufRef.UnevaluatedInclude));
-                    }
+                    msBuildProject.RemoveProtobufReference(protobufRef, removeFile);
                 }
                 else
                 {
-                    var protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+                    protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
 
                     if (protobufRef == null)
                     {
                         Console.WriteLine($"Could not find a reference for the file `{reference}`.");
                         continue;
                     }
-
-                    msBuildProject.RemoveItem(protobufRef);
-
-                    if (removeFile)
-                    {
-                        File.Delete(Path.IsPathRooted(protobufRef.UnevaluatedInclude) ? protobufRef.UnevaluatedInclude : Path.Combine(project.DirectoryName, protobufRef.UnevaluatedInclude));
-                    }
                 }
+
+                msBuildProject.RemoveProtobufReference(protobufRef, removeFile);
             }
 
             msBuildProject.Save();
-
-            return 0;
         }
     }
 }

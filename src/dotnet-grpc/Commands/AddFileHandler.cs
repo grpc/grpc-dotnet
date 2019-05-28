@@ -16,14 +16,11 @@
 
 #endregion
 
-using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
-using Microsoft.Build.Definition;
-using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
@@ -50,13 +47,12 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public static int AddFile(FileInfo project, Services services, Access access, string additionalImportDirs, string[] files)
+        public static void AddFile(FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
         {
-            var msBuildProject = new Project(project.FullName);
+            var msBuildProject = ProjectExtensions.ResolveProject(project);
+            msBuildProject.EnsureGrpcPackagesInProjectAsync();
 
-            msBuildProject.EnsureGrpcPackagesAsync();
-
-            files = ProjectExtensions.ExpandReferences(project, files);
+            files = msBuildProject.ExpandReferences(files);
 
             foreach (var file in files)
             {
@@ -64,8 +60,6 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             msBuildProject.Save();
-
-            return 0;
         }
     }
 }

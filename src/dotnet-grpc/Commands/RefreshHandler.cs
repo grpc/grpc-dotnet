@@ -55,24 +55,12 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public static async Task<int> Refresh(FileInfo? project, bool dryRun, string[] references)
+        public static async Task Refresh(FileInfo? project, bool dryRun, string[] references)
         {
-            // TODO (johluo): Handle dry-run by comparing file hashes before overwriting the proto files.
-
-            if (project == null)
-            {
-                project = ProjectExtensions.ResolveProjectPath();
-
-                if (project == null)
-                {
-                    return -1;
-                }
-            }
-
-            var msBuildProject = new Project(project.FullName);
+            var msBuildProject = ProjectExtensions.ResolveProject(project);
             var protobufItems = msBuildProject.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
-            references = ProjectExtensions.ExpandReferences(project, references);
+            references = msBuildProject.ExpandReferences(references);
 
             if (references.Length == 0)
             {
@@ -82,34 +70,36 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 foreach (var reference in references)
                 {
+                    ProjectItem protobufRef;
                     if (Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http"))
                     {
-                        var protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+                        protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
                         if (protobufRef == null)
                         {
                             Console.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                            continue;
                         }
                     }
                     else
                     {
-                        var protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+                        protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
 
                         if (protobufRef == null)
                         {
                             Console.WriteLine($"Could not find a reference for the file `{reference}`.");
+                            continue;
                         }
                     }
+                    refsToRefresh.Add(protobufRef);
                 }
             }
 
             foreach (var reference in refsToRefresh)
             {
-                Console.WriteLine($"Refreshing `{reference.UnevaluatedInclude}` with remote source `{reference.GetMetadataValue("SourceURL")}`.");
-                await HttpClientExtensions.DownloadFileAsync(reference.GetMetadataValue("SourceURL"), Path.IsPathRooted(reference.UnevaluatedInclude) ? reference.UnevaluatedInclude : Path.Combine(project.DirectoryName, reference.UnevaluatedInclude), true);
+                // TODO (johluo): Handle dry-run flag
+                await msBuildProject.DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true);
             }
-
-            return 0;
         }
     }
 }
