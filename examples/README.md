@@ -16,7 +16,7 @@ The mailer shows how to make bi-directional streaming gRPC methods and call them
 
 ## Ticketer
 
-The ticker shows how to use gRPC with [authorization in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction). This example has a gRPC method marked with an `[Authorize]` attribute. The client can only call the method if it has been authenticated by the server and passes a valid JWT token with the gRPC call.
+The ticketer shows how to use gRPC with [authorization in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/security/authorization/introduction). This example has a gRPC method marked with an `[Authorize]` attribute. The client can only call the method if it has been authenticated by the server and passes a valid JWT token with the gRPC call.
 
 ## Reflector
 
