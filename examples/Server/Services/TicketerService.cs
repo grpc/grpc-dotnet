@@ -35,8 +35,6 @@ namespace GRPCServer
 
         public override Task<AvailableTicketsResponse> GetAvailableTickets(Empty request, ServerCallContext context)
         {
-            System.Diagnostics.Debugger.Launch();
-
             return Task.FromResult(new AvailableTicketsResponse
             {
                 Count = _ticketRepository.GetAvailableTickets()
