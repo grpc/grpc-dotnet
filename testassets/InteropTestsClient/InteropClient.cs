@@ -673,6 +673,7 @@ namespace InteropTestsClient
                 {
                     ResponseStatus = echoStatus
                 });
+                Assert.Fail();
             }
             catch (RpcException e)
             {
