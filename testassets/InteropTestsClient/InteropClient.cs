@@ -271,6 +271,9 @@ namespace InteropTestsClient
                 case "unimplemented_service":
                     RunUnimplementedService(CreateClient<UnimplementedService.UnimplementedServiceClient>(channel));
                     break;
+                case "special_status_message":
+                    await RunSpecialStatusMessageAsync(client);
+                    break;
                 case "unimplemented_method":
                     RunUnimplementedMethod(client);
                     break;
@@ -648,6 +651,33 @@ namespace InteropTestsClient
                     Assert.AreEqual(StatusCode.Unknown, e.Status.StatusCode);
                     Assert.AreEqual(echoStatus.Message, e.Status.Detail);
                 }
+            }
+
+            Console.WriteLine("Passed!");
+        }
+
+        private static async Task RunSpecialStatusMessageAsync(TestService.TestServiceClient client)
+        {
+            Console.WriteLine("running special_status_message");
+
+            var echoStatus = new EchoStatus
+            {
+                Code = 2,
+                Message = "\t\ntest with whitespace\r\nand Unicode BMP ☺ and non-BMP 😈\t\n"
+            };
+
+            try
+            {
+                await client.UnaryCallAsync(new SimpleRequest
+                {
+                    ResponseStatus = echoStatus
+                });
+                Assert.Fail();
+            }
+            catch (RpcException e)
+            {
+                Assert.AreEqual(StatusCode.Unknown, e.Status.StatusCode);
+                Assert.AreEqual(echoStatus.Message, e.Status.Detail);
             }
 
             Console.WriteLine("Passed!");
