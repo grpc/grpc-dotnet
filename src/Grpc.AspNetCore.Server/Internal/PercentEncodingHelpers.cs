@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             static void Encode(Span<char> span, string s)
             {
-                Span<byte> unicodeBytesBuffer = new byte[MaxUnicodeCharsReallocate * MaxUtf8BytesPerUnicodeChar];
+                Span<byte> unicodeBytesBuffer = stackalloc byte[MaxUnicodeCharsReallocate * MaxUtf8BytesPerUnicodeChar];
 
                 var writePosition = 0;
                 for (var i = 0; i < s.Length; i++)
