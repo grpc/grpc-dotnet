@@ -21,6 +21,7 @@ $allTests =
   "timeout_on_sleeping_server",
   "custom_metadata",
   "status_code_and_message",
+  "special_status_message",
   "unimplemented_service",
   "unimplemented_method"
   #,
