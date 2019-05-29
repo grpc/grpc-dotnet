@@ -85,7 +85,8 @@ namespace Grpc.Dotnet.Cli.Commands
                 throw new InvalidOperationException("Internal error: Console not set.");
             }
 
-            if (!File.Exists(file))
+
+            if (!File.Exists(Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file)))
             {
                 throw new CLIToolException($"The reference {file} does not exist.");
             }
@@ -176,7 +177,9 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                expandedReferences.AddRange(Directory.GetFiles(Project.DirectoryPath, reference));
+                expandedReferences.AddRange(
+                    Directory.GetFiles(Project.DirectoryPath, reference)
+                        .Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
             }
 
             return expandedReferences.ToArray();
