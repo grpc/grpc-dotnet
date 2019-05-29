@@ -22,6 +22,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
@@ -52,49 +53,57 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public void Remove(IConsole console, FileInfo? project, bool removeFile, string[] references)
+        public int Remove(IConsole console, FileInfo? project, bool removeFile, string[] references)
         {
             Console = console;
-            ResolveProject(project);
 
-            if (Project == null)
+            try
             {
-                throw new InvalidOperationException("Internal error: Project not set.");
+                Project = ResolveProject(project);
+
+                var protobufItems = Project.GetItems("Protobuf");
+                var refsToRefresh = new List<ProjectItem>();
+                references = ExpandReferences(references);
+
+                foreach (var reference in references)
+                {
+                    ProjectItem protobufRef;
+
+                    if (IsUrl(reference))
+                    {
+                        protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+
+                        if (protobufRef == null)
+                        {
+                            Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+
+                        if (protobufRef == null)
+                        {
+                            Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
+                            continue;
+                        }
+                    }
+
+                    Console.Out.WriteLine($"Removing reference to file {protobufRef.UnevaluatedInclude}");
+                    RemoveProtobufReference(protobufRef, removeFile);
+                }
+
+                Project.Save();
+
+                return 0;
             }
-
-            var protobufItems = Project.GetItems("Protobuf");
-            var refsToRefresh = new List<ProjectItem>();
-            references = ExpandReferences(references);
-
-            foreach (var reference in references)
+            catch (CLIToolException e)
             {
-                ProjectItem protobufRef;
+                Console.Error.WriteLine($"Error: {e.Message}");
 
-                if (IsUrl(reference))
-                {
-                    protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
-
-                    if (protobufRef == null)
-                    {
-                        Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
-                        continue;
-                    }
-                }
-                else
-                {
-                    protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
-
-                    if (protobufRef == null)
-                    {
-                        Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
-                        continue;
-                    }
-                }
-
-                RemoveProtobufReference(protobufRef, removeFile);
+                return -1;
             }
-
-            Project.Save();
         }
     }
 }

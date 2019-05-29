@@ -20,6 +20,7 @@ using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 
 namespace Grpc.Dotnet.Cli.Commands
@@ -47,25 +48,33 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public void AddFile(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
+        public int AddFile(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
         {
             Console = console;
-            ResolveProject(project);
 
-            if (Project == null)
+            try
             {
-                throw new InvalidOperationException("Internal error: Project not set.");
+                Project = ResolveProject(project);
+
+                EnsureNugetPackages();
+                files = ExpandReferences(files);
+
+                foreach (var file in files)
+                {
+                    Console.Out.WriteLine($"Adding file reference {file}");
+                    AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
+                }
+
+                Project.Save();
+
+                return 0;
             }
-
-            EnsureGrpcPackagesInProjectAsync();
-            files = ExpandReferences(files);
-
-            foreach (var file in files)
+            catch (CLIToolException e)
             {
-                AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
-            }
+                Console.Error.WriteLine($"Error: {e.Message}");
 
-            Project.Save();
+                return -1;
+            }
         }
     }
 }

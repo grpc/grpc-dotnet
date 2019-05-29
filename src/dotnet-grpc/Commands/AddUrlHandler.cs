@@ -21,6 +21,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 
 namespace Grpc.Dotnet.Cli.Commands
@@ -52,22 +53,30 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public async Task AddUrl(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
+        public async Task<int> AddUrl(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
         {
             Console = console;
-            ResolveProject(project);
 
-            if (Project == null)
+            try
             {
-                throw new InvalidOperationException("Internal error: Project not set.");
+                Project = ResolveProject(project);
+                EnsureNugetPackages();
+
+                await DownloadFileAsync(url, output);
+
+                Console.Out.WriteLine($"Adding file reference {output} with content from {url}.");
+                AddProtobufReference(services, additionalImportDirs, access, output, url);
+
+                Project.Save();
+
+                return 0;
             }
+            catch (CLIToolException e)
+            {
+                Console.Error.WriteLine($"Error: {e.Message}");
 
-            EnsureGrpcPackagesInProjectAsync();
-
-            await DownloadFileAsync(url, output);
-            AddProtobufReference(services, additionalImportDirs, access, output, url);
-
-            Project.Save();
+                return -1;
+            }
         }
     }
 }

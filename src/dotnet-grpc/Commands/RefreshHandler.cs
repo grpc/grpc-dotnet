@@ -23,6 +23,7 @@ using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
@@ -54,56 +55,63 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public async Task Refresh(IConsole console, FileInfo? project, bool dryRun, string[] references)
+        public async Task<int> Refresh(IConsole console, FileInfo? project, bool dryRun, string[] references)
         {
             Console = console;
-            ResolveProject(project);
 
-            if (Project == null)
+            try
             {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
+                Project = ResolveProject(project);
 
-            var protobufItems = Project.GetItems("Protobuf");
-            var refsToRefresh = new List<ProjectItem>();
-            references = ExpandReferences(references);
+                var protobufItems = Project.GetItems("Protobuf");
+                var refsToRefresh = new List<ProjectItem>();
+                references = ExpandReferences(references);
 
-            if (references.Length == 0)
-            {
-                refsToRefresh.AddRange(protobufItems.Where(p => p.HasMetadata("SourceURL")));
-            }
-            else
-            {
-                foreach (var reference in references)
+                if (references.Length == 0)
                 {
-                    ProjectItem protobufRef;
-                    if (IsUrl(reference))
-                    {
-                        protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
-
-                        if (protobufRef == null)
-                        {
-                            Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
-
-                        if (protobufRef == null)
-                        {
-                            Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
-                            continue;
-                        }
-                    }
-                    refsToRefresh.Add(protobufRef);
+                    refsToRefresh.AddRange(protobufItems.Where(p => p.HasMetadata("SourceURL")));
                 }
-            }
+                else
+                {
+                    foreach (var reference in references)
+                    {
+                        ProjectItem protobufRef;
+                        if (IsUrl(reference))
+                        {
+                            protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
-            foreach (var reference in refsToRefresh)
+                            if (protobufRef == null)
+                            {
+                                Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference && p.GetMetadata("SourceURL") != null);
+
+                            if (protobufRef == null)
+                            {
+                                Console.Out.WriteLine($"Could not find a reference referencing remote content for the file `{reference}`.");
+                                continue;
+                            }
+                        }
+                        refsToRefresh.Add(protobufRef);
+                    }
+                }
+
+                foreach (var reference in refsToRefresh)
+                {
+                    await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true, dryRun);
+                }
+
+                return 0;
+            }
+            catch (CLIToolException e)
             {
-                await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true, dryRun);
+                Console.Error.WriteLine($"Error: {e.Message}");
+
+                return -1;
             }
         }
     }

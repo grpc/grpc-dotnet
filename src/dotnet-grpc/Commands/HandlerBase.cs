@@ -25,6 +25,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
@@ -37,24 +38,31 @@ namespace Grpc.Dotnet.Cli.Commands
         internal IConsole? Console { get; set; }
         internal Project? Project { get; set; }
 
-        public void EnsureGrpcPackagesInProjectAsync()
+        public void EnsureNugetPackages()
         {
-            AddPackageReferenceAsync("Google.Protobuf", "3.7.0");
-            AddPackageReferenceAsync("Grpc.AspNetCore.Server", "0.1.20-pre1");
-            AddPackageReferenceAsync("Grpc.Tools", "1.21.0-pre1", privateAssets: true);
+            AddNugetPackage("Google.Protobuf", "3.7.0");
+            AddNugetPackage("Grpc.AspNetCore.Server", "0.1.20-pre1");
+            AddNugetPackage("Grpc.Tools", "1.21.0-pre1", privateAssets: true);
         }
 
-        private void AddPackageReferenceAsync(string packageName, string packageVersion, bool privateAssets = false)
+        private void AddNugetPackage(string packageName, string packageVersion, bool privateAssets = false)
         {
             if (Project == null)
             {
                 throw new InvalidOperationException("Internal error: Project not set.");
             }
 
+            if (Console == null)
+            {
+                throw new InvalidOperationException("Internal error: Console not set.");
+            }
+
             var packageReference = Project.GetItems("PackageReference").SingleOrDefault(i => i.UnevaluatedInclude == packageName);
 
             if (packageReference == null)
             {
+                Console.Out.WriteLine($"Adding required gRPC package reference: {packageName}.");
+
                 packageReference = Project.AddItem("PackageReference", packageName).Single();
                 packageReference.Xml.AddMetadata("Version", packageVersion, expressAsAttribute: true);
 
@@ -72,9 +80,23 @@ namespace Grpc.Dotnet.Cli.Commands
                 throw new InvalidOperationException("Internal error: Project not set.");
             }
 
+            if (Console == null)
+            {
+                throw new InvalidOperationException("Internal error: Console not set.");
+            }
+
+            if (!File.Exists(file))
+            {
+                throw new CLIToolException($"The reference {file} does not exist.");
+            }
+
             if (!Project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
             {
-                // TODO (johluo): Log warning if the file doesn't have the .proto extension. Technically, this is not a requirement but it could lead to errors during compilation.
+
+                if (Path.GetExtension(file) != ".proto")
+                {
+                    Console.Out.WriteLine($"Warning: The reference {file} does not reference a .proto file. This may lead to compilation errors.");
+                }
 
                 var newItem = Project.AddItem("Protobuf", file).Single();
 
@@ -100,11 +122,16 @@ namespace Grpc.Dotnet.Cli.Commands
             }
         }
 
-        public void ResolveProject(FileInfo? project)
+        public Project ResolveProject(FileInfo? project)
         {
             if (project != null)
             {
-                Project = new Project(project.FullName);
+                if (!File.Exists(project.FullName))
+                {
+                    throw new CLIToolException($"The project {project.FullName} does not exist.");
+                }
+
+                return new Project(project.FullName);
             }
 
             var currentDirectory = Directory.GetCurrentDirectory();
@@ -112,24 +139,29 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (projectFiles.Length == 0)
             {
-                throw new InvalidOperationException($"Could not find any project in `{currentDirectory}`. Please specify a project explicitly.");
+                throw new CLIToolException($"Could not find any project in `{currentDirectory}`. Please specify a project explicitly.");
             }
 
             if (projectFiles.Length > 1)
             {
-                throw new Exception($"Found more than one project in `{currentDirectory}`. Please specify which one to use.");
+                throw new CLIToolException($"Found more than one project in `{currentDirectory}`. Please specify which one to use.");
             }
 
-            Project = new Project(projectFiles[0]);
+            return new Project(projectFiles[0]);
         }
 
         public string[] ExpandReferences(string[] references)
         {
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
             var expandedReferences = new List<string>();
 
             foreach (var reference in references)
             {
-                if (reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _))
+                if (IsUrl(reference))
                 {
                     expandedReferences.Add(reference);
                     continue;
@@ -144,7 +176,7 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                expandedReferences.AddRange(Directory.GetFiles(Project!.DirectoryPath, reference));
+                expandedReferences.AddRange(Directory.GetFiles(Project.DirectoryPath, reference));
             }
 
             return expandedReferences.ToArray();
@@ -196,7 +228,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (!File.Exists(destination))
             {
-                // The desitnation file doesn't exist so refresh is needed.
+                // The destination file doesn't exist so content is modified.
                 contentNotModified = false;
 
                 var destinationDirectory = Path.GetDirectoryName(destination);
