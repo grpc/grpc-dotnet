@@ -22,13 +22,12 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
-using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal static class RemoveHandler
+    internal class RemoveHandler : HandlerBase
     {
         public static Command RemoveCommand()
         {
@@ -48,33 +47,38 @@ namespace Grpc.Dotnet.Cli.Commands
                 description: "Also delete the protobuf file from disk.",
                 argument: Argument.None));
 
-            command.Handler = CommandHandler.Create<FileInfo, bool, string[]>(Remove);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RemoveHandler().Remove);
 
             return command;
         }
 
-        public static void Remove(FileInfo? project, bool removeFile, string[] references)
+        public void Remove(IConsole console, FileInfo? project, bool removeFile, string[] references)
         {
-            var msBuildProject = ProjectExtensions.ResolveProject(project);
-            var protobufItems = msBuildProject.GetItems("Protobuf");
+            Console = console;
+            ResolveProject(project);
+
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            var protobufItems = Project.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
-            references = msBuildProject.ExpandReferences(references);
+            references = ExpandReferences(references);
 
             foreach (var reference in references)
             {
                 ProjectItem protobufRef;
 
-                if (ProjectExtensions.IsUrl(reference))
+                if (IsUrl(reference))
                 {
                     protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
                     if (protobufRef == null)
                     {
-                        Console.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                        Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
                         continue;
                     }
-
-                    msBuildProject.RemoveProtobufReference(protobufRef, removeFile);
                 }
                 else
                 {
@@ -82,15 +86,15 @@ namespace Grpc.Dotnet.Cli.Commands
 
                     if (protobufRef == null)
                     {
-                        Console.WriteLine($"Could not find a reference for the file `{reference}`.");
+                        Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
                         continue;
                     }
                 }
 
-                msBuildProject.RemoveProtobufReference(protobufRef, removeFile);
+                RemoveProtobufReference(protobufRef, removeFile);
             }
 
-            msBuildProject.Save();
+            Project.Save();
         }
     }
 }

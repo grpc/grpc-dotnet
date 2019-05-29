@@ -16,15 +16,15 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal static class AddFileHandler
+    internal class AddFileHandler : HandlerBase
     {
         public static Command AddFileCommand()
         {
@@ -42,24 +42,30 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
 
-            command.Handler = CommandHandler.Create<FileInfo, Services, Access, string, string[]>(AddFile);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(new AddFileHandler().AddFile);
 
             return command;
         }
 
-        public static void AddFile(FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
+        public void AddFile(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
         {
-            var msBuildProject = ProjectExtensions.ResolveProject(project);
-            msBuildProject.EnsureGrpcPackagesInProjectAsync();
+            Console = console;
+            ResolveProject(project);
 
-            files = msBuildProject.ExpandReferences(files);
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            EnsureGrpcPackagesInProjectAsync();
+            files = ExpandReferences(files);
 
             foreach (var file in files)
             {
-                msBuildProject.AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
+                AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
             }
 
-            msBuildProject.Save();
+            Project.Save();
         }
     }
 }

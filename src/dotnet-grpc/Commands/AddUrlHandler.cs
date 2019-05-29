@@ -16,17 +16,16 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Threading.Tasks;
-using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
-using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal static class AddUrlHandler
+    internal class AddUrlHandler : HandlerBase
     {
         public static Command AddFileCommand()
         {
@@ -48,20 +47,27 @@ namespace Grpc.Dotnet.Cli.Commands
                 description: "Add a protobuf url reference to the gRPC project.",
                 argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
 
-            command.Handler = CommandHandler.Create<FileInfo, Services, Access, string, string, string>(AddUrl);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(new AddUrlHandler().AddUrl);
 
             return command;
         }
 
-        public static async Task AddUrl(FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
+        public async Task AddUrl(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
         {
-            var msBuildProject = ProjectExtensions.ResolveProject(project);
-            msBuildProject.EnsureGrpcPackagesInProjectAsync();
+            Console = console;
+            ResolveProject(project);
 
-            await msBuildProject.DownloadFileAsync(url, output);
-            msBuildProject.AddProtobufReference(services, additionalImportDirs, access, output, url);
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
 
-            msBuildProject.Save();
+            EnsureGrpcPackagesInProjectAsync();
+
+            await DownloadFileAsync(url, output);
+            AddProtobufReference(services, additionalImportDirs, access, output, url);
+
+            Project.Save();
         }
     }
 }

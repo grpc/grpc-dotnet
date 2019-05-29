@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -27,26 +28,34 @@ using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
-namespace Grpc.Dotnet.Cli.Extensions
+namespace Grpc.Dotnet.Cli.Commands
 {
-    internal static class ProjectExtensions
+    internal class HandlerBase
     {
         private static readonly HttpClient HttpClient = new HttpClient();
 
-        public static void EnsureGrpcPackagesInProjectAsync(this Project project)
+        internal IConsole? Console { get; set; }
+        internal Project? Project { get; set; }
+
+        public void EnsureGrpcPackagesInProjectAsync()
         {
-            AddPackageReferenceAsync(project, "Google.Protobuf", "3.7.0");
-            AddPackageReferenceAsync(project, "Grpc.AspNetCore.Server", "0.1.20-pre1");
-            AddPackageReferenceAsync(project, "Grpc.Tools", "1.21.0-pre1", privateAssets: true);
+            AddPackageReferenceAsync("Google.Protobuf", "3.7.0");
+            AddPackageReferenceAsync("Grpc.AspNetCore.Server", "0.1.20-pre1");
+            AddPackageReferenceAsync("Grpc.Tools", "1.21.0-pre1", privateAssets: true);
         }
 
-        private static void AddPackageReferenceAsync(this Project project, string packageName, string packageVersion, bool privateAssets = false)
+        private void AddPackageReferenceAsync(string packageName, string packageVersion, bool privateAssets = false)
         {
-            var packageReference = project.GetItems("PackageReference").SingleOrDefault(i => i.UnevaluatedInclude == packageName);
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            var packageReference = Project.GetItems("PackageReference").SingleOrDefault(i => i.UnevaluatedInclude == packageName);
 
             if (packageReference == null)
             {
-                packageReference = project.AddItem("PackageReference", packageName).Single();
+                packageReference = Project.AddItem("PackageReference", packageName).Single();
                 packageReference.Xml.AddMetadata("Version", packageVersion, expressAsAttribute: true);
 
                 if (privateAssets)
@@ -56,13 +65,18 @@ namespace Grpc.Dotnet.Cli.Extensions
             }
         }
 
-        public static void AddProtobufReference(this Project project, Services services, string additionalImportDirs, Access access, string file, string url)
+        public void AddProtobufReference(Services services, string additionalImportDirs, Access access, string file, string url)
         {
-            if (!project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            if (!Project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
             {
                 // TODO (johluo): Log warning if the file doesn't have the .proto extension. Technically, this is not a requirement but it could lead to errors during compilation.
 
-                var newItem = project.AddItem("Protobuf", file).Single();
+                var newItem = Project.AddItem("Protobuf", file).Single();
 
                 if (services != Services.Both)
                 {
@@ -86,11 +100,11 @@ namespace Grpc.Dotnet.Cli.Extensions
             }
         }
 
-        public static Project ResolveProject(FileInfo? project)
+        public void ResolveProject(FileInfo? project)
         {
             if (project != null)
             {
-                return new Project(project.FullName);
+                Project = new Project(project.FullName);
             }
 
             var currentDirectory = Directory.GetCurrentDirectory();
@@ -106,10 +120,10 @@ namespace Grpc.Dotnet.Cli.Extensions
                 throw new Exception($"Found more than one project in `{currentDirectory}`. Please specify which one to use.");
             }
 
-            return new Project(projectFiles[0]);
+            Project = new Project(projectFiles[0]);
         }
 
-        public static string[] ExpandReferences(this Project project, string[] references)
+        public string[] ExpandReferences(string[] references)
         {
             var expandedReferences = new List<string>();
 
@@ -130,19 +144,24 @@ namespace Grpc.Dotnet.Cli.Extensions
                     continue;
                 }
 
-                expandedReferences.AddRange(Directory.GetFiles(project.DirectoryPath, reference));
+                expandedReferences.AddRange(Directory.GetFiles(Project!.DirectoryPath, reference));
             }
 
             return expandedReferences.ToArray();
         }
 
-        public static void RemoveProtobufReference(this Project project, ProjectItem protobufRef, bool removeFile)
+        public void RemoveProtobufReference(ProjectItem protobufRef, bool removeFile)
         {
-            project.RemoveItem(protobufRef);
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            Project.RemoveItem(protobufRef);
 
             if (removeFile)
             {
-                File.Delete(Path.IsPathRooted(protobufRef.UnevaluatedInclude) ? protobufRef.UnevaluatedInclude : Path.Combine(project.DirectoryPath, protobufRef.UnevaluatedInclude));
+                File.Delete(Path.IsPathRooted(protobufRef.UnevaluatedInclude) ? protobufRef.UnevaluatedInclude : Path.Combine(Project.DirectoryPath, protobufRef.UnevaluatedInclude));
             }
         }
 
@@ -151,11 +170,21 @@ namespace Grpc.Dotnet.Cli.Extensions
             return reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _);
         }
 
-        public static async Task DownloadFileAsync(this Project project, string url, string destination, bool overwrite = false, bool dryRun = false)
+        public async Task DownloadFileAsync(string url, string destination, bool overwrite = false, bool dryRun = false)
         {
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            if (Console == null)
+            {
+                throw new InvalidOperationException("Internal error: Console not set.");
+            }
+
             if (!Path.IsPathRooted(destination))
             {
-                destination = Path.Combine(project.DirectoryPath, destination);
+                destination = Path.Combine(Project.DirectoryPath, destination);
             }
 
             if (!overwrite && File.Exists(destination))
@@ -187,11 +216,11 @@ namespace Grpc.Dotnet.Cli.Extensions
 
             if (contentNotModified)
             {
-                Console.WriteLine($"Content of {destination} is identical to the content at {url}, skipping.");
+                Console.Out.WriteLine($"Content of {destination} is identical to the content at {url}, skipping.");
                 return;
             }
 
-            Console.WriteLine($"Content of {destination} is different from the content at {url}, updating with remote content.");
+            Console.Out.WriteLine($"Content of {destination} is different from the content at {url}, updating with remote content.");
 
             if (!dryRun)
             {

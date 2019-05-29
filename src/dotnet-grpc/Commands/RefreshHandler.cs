@@ -23,13 +23,12 @@ using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Grpc.Dotnet.Cli.Extensions;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal static class RefreshHandler
+    internal class RefreshHandler : HandlerBase
     {
         public static Command RefreshCommand()
         {
@@ -50,17 +49,24 @@ namespace Grpc.Dotnet.Cli.Commands
                 argument: Argument.None
                 ));
 
-            command.Handler = CommandHandler.Create<FileInfo, bool, string[]>(Refresh);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RefreshHandler().Refresh);
 
             return command;
         }
 
-        public static async Task Refresh(FileInfo? project, bool dryRun, string[] references)
+        public async Task Refresh(IConsole console, FileInfo? project, bool dryRun, string[] references)
         {
-            var msBuildProject = ProjectExtensions.ResolveProject(project);
-            var protobufItems = msBuildProject.GetItems("Protobuf");
+            Console = console;
+            ResolveProject(project);
+
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            var protobufItems = Project.GetItems("Protobuf");
             var refsToRefresh = new List<ProjectItem>();
-            references = msBuildProject.ExpandReferences(references);
+            references = ExpandReferences(references);
 
             if (references.Length == 0)
             {
@@ -71,13 +77,13 @@ namespace Grpc.Dotnet.Cli.Commands
                 foreach (var reference in references)
                 {
                     ProjectItem protobufRef;
-                    if (Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http"))
+                    if (IsUrl(reference))
                     {
                         protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
 
                         if (protobufRef == null)
                         {
-                            Console.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                            Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
                             continue;
                         }
                     }
@@ -87,7 +93,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                         if (protobufRef == null)
                         {
-                            Console.WriteLine($"Could not find a reference for the file `{reference}`.");
+                            Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
                             continue;
                         }
                     }
@@ -97,8 +103,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             foreach (var reference in refsToRefresh)
             {
-                // TODO (johluo): Handle dry-run flag
-                await msBuildProject.DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true);
+                await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true, dryRun);
             }
         }
     }
