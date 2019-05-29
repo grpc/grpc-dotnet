@@ -37,7 +37,7 @@ namespace Grpc.Tests.Shared
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string payload) =>
             CreateResponse(statusCode, new StringContent(payload));
 
-        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK)
+        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK, string? grpcEncoding = null)
         {
             payload.Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
 
@@ -45,6 +45,8 @@ namespace Grpc.Tests.Shared
             {
                 Content = payload
             };
+
+            message.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, grpcEncoding ?? GrpcProtocolConstants.IdentityGrpcEncoding);
 
             if (grpcStatusCode != null)
             {

@@ -61,7 +61,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var streamContent = await ClientTestHelpers.CreateResponseContent(
+                var streamContent = await ClientTestHelpers.CreateResponsesContent(
                     new HelloReply
                     {
                         Message = "Hello world 1"

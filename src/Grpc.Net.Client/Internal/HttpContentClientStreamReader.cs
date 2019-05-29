@@ -120,7 +120,11 @@ namespace Grpc.Net.Client.Internal
                     _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 }
 
-                Current = await _responseStream.ReadStreamedMessageAsync(_call.Logger, _call.Method.ResponseMarshaller.Deserializer, cancellationToken).ConfigureAwait(false);
+                Current = await _responseStream.ReadStreamedMessageAsync(
+                    _call.Logger,
+                    _call.Method.ResponseMarshaller.Deserializer,
+                    GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse),
+                    cancellationToken).ConfigureAwait(false);
                 if (Current == null)
                 {
                     // No more content in response so mark as finished

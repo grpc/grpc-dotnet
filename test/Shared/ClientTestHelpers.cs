@@ -26,10 +26,11 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.Core;
+using Grpc.Net.Client.Internal.Compression;
 
 namespace Grpc.Tests.Shared
 {
-    public static class ClientTestHelpers
+    internal static class ClientTestHelpers
     {
         public static readonly Marshaller<HelloRequest> HelloRequestMarshaller = Marshallers.Create<HelloRequest>(r => r.ToByteArray(), data => HelloRequest.Parser.ParseFrom(data));
         public static readonly Marshaller<HelloReply> HelloReplyMarshaller = Marshallers.Create<HelloReply>(r => r.ToByteArray(), data => HelloReply.Parser.ParseFrom(data));
@@ -63,12 +64,22 @@ namespace Grpc.Tests.Shared
             return httpClient;
         }
 
-        public static async Task<StreamContent> CreateResponseContent<TResponse>(params TResponse[] responses) where TResponse : IMessage<TResponse>
+        public static Task<StreamContent> CreateResponseContent<TResponse>(TResponse response, ICompressionProvider? compressionProvider = null) where TResponse : IMessage<TResponse>
+        {
+            return CreateResponseContentCore(new[] { response }, compressionProvider);
+        }
+
+        public static Task<StreamContent> CreateResponsesContent<TResponse>(params TResponse[] responses) where TResponse : IMessage<TResponse>
+        {
+            return CreateResponseContentCore(responses, compressionProvider: null);
+        }
+
+        private static async Task<StreamContent> CreateResponseContentCore<TResponse>(TResponse[] responses, ICompressionProvider? compressionProvider) where TResponse : IMessage<TResponse>
         {
             var ms = new MemoryStream();
             foreach (var response in responses)
             {
-                await WriteResponseAsync(ms, response);
+                await WriteResponseAsync(ms, response, compressionProvider);
             }
             ms.Seek(0, SeekOrigin.Begin);
             var streamContent = new StreamContent(ms);
@@ -76,16 +87,35 @@ namespace Grpc.Tests.Shared
             return streamContent;
         }
 
-        public static async Task WriteResponseAsync<TResponse>(Stream ms, TResponse response) where TResponse : IMessage<TResponse>
+        public static async Task WriteResponseAsync<TResponse>(Stream ms, TResponse response, ICompressionProvider? compressionProvider) where TResponse : IMessage<TResponse>
         {
-            await ResponseUtils.WriteHeaderAsync(ms, response.CalculateSize(), false, CancellationToken.None);
-            await ms.WriteAsync(response.ToByteArray());
+            var compress = false;
+
+            byte[]? data;
+            if (compressionProvider != null)
+            {
+                compress = true;
+
+                var output = new MemoryStream();
+                var compressionStream = compressionProvider.CreateCompressionStream(output, System.IO.Compression.CompressionLevel.Fastest);
+
+                compressionStream.Write(response.ToByteArray());
+                compressionStream.Flush();
+                data = output.ToArray();
+            }
+            else
+            {
+                data = response.ToByteArray();
+            }
+
+            await ResponseUtils.WriteHeaderAsync(ms, data.Length, compress, CancellationToken.None);
+            await ms.WriteAsync(data);
         }
 
         public static async Task<byte[]> GetResponseDataAsync<TResponse>(TResponse response) where TResponse : IMessage<TResponse>
         {
             var ms = new MemoryStream();
-            await WriteResponseAsync(ms, response);
+            await WriteResponseAsync(ms, response, compressionProvider: null);
             return ms.ToArray();
         }
     }
