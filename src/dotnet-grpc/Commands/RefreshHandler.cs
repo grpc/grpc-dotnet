@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -35,18 +34,18 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "refresh",
-                description: "Check remote protobuf file(s) for updates and replace them if a newer version is available. If no file or url is provided, all remote protobuf files will be updated.",
+                description: "Check remote protobuf references(s) for updates and replace them if a newer version is available. If no file or url is provided, all remote protobuf files will be updated.",
                 argument: new Argument<string[]>
                 {
                     Name = "references",
-                    Description = "The URL(s) or file path(s) to remote protobuf file(s) that should be updated.",
+                    Description = "The URL(s) or file path(s) to remote protobuf references(s) that should be updated.",
                     Arity = ArgumentArity.ZeroOrMore
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--dry-run" },
-                description: "Obtain a list of file(s) that will be updated.",
+                description: "Output a list of file(s) that will be updated without downloading any new content.",
                 argument: Argument.None
                 ));
 

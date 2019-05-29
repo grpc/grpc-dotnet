@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
@@ -45,7 +44,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AccessOption());
             command.AddOption(new Option(
                 aliases: new[] { "-o", "--output" },
-                description: "Add a protobuf url reference to the gRPC project.",
+                description: "Specify the download path for the remote protobuf file. This is a required option.",
                 argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(new AddUrlHandler().AddUrl);

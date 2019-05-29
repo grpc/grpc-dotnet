@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -34,7 +33,7 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "remove",
-                description: "Remove protobuf files(s).",
+                description: "Remove protobuf references(s).",
                 argument: new Argument<string[]>
                 {
                     Name = "references",
@@ -45,7 +44,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--remove-file" },
-                description: "Also delete the protobuf file from disk.",
+                description: "Delete the protobuf file that was referenced from disk.",
                 argument: Argument.None));
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RemoveHandler().Remove);
