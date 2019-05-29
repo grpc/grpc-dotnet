@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Options;
 using Microsoft.Build.Evaluation;
@@ -149,7 +151,7 @@ namespace Grpc.Dotnet.Cli.Extensions
             return reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _);
         }
 
-        public static async Task DownloadFileAsync(this Project project, string url, string destination, bool overwrite = false)
+        public static async Task DownloadFileAsync(this Project project, string url, string destination, bool overwrite = false, bool dryRun = false)
         {
             if (!Path.IsPathRooted(destination))
             {
@@ -161,19 +163,85 @@ namespace Grpc.Dotnet.Cli.Extensions
                 return;
             }
 
-            using (var stream = await HttpClient.GetStreamAsync(url))
+            var contentNotModified = true;
+
+            if (!File.Exists(destination))
             {
+                // The desitnation file doesn't exist so refresh is needed.
+                contentNotModified = false;
 
-                var desitnationDirectory = Path.GetDirectoryName(destination);
-                if (!Directory.Exists(desitnationDirectory))
+                var destinationDirectory = Path.GetDirectoryName(destination);
+                if (!Directory.Exists(destinationDirectory))
                 {
-                    Directory.CreateDirectory(desitnationDirectory);
+                    Directory.CreateDirectory(destinationDirectory);
                 }
+            }
+            else
+            {
+                using (var stream = await HttpClient.GetStreamAsync(url))
+                using (var fileStream = File.OpenRead(destination))
+                {
+                    contentNotModified = IsStreamContentIdentical(stream, fileStream);
+                }
+            }
 
+            if (contentNotModified)
+            {
+                Console.WriteLine($"Content of {destination} is identical to the content at {url}, skipping.");
+                return;
+            }
+
+            Console.WriteLine($"Content of {destination} is different from the content at {url}, updating with remote content.");
+
+            if (!dryRun)
+            {
+                using (var stream = await HttpClient.GetStreamAsync(url))
                 using (var fileStream = File.Open(destination, FileMode.Create, FileAccess.Write))
                 {
                     await stream.CopyToAsync(fileStream);
+                    fileStream.Flush();
                 }
+            }
+        }
+
+        private static bool IsStreamContentIdentical(Stream remote, Stream local)
+        {
+            var remoteHash = GetHash(remote);
+            var localHash = GetHash(local);
+
+            if (remoteHash.Length != localHash.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < remoteHash.Length; i++)
+            {
+                if (remoteHash[i] != localHash[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static byte[] GetHash(Stream stream)
+        {
+            SHA256 algorithm;
+            try
+            {
+                algorithm = SHA256.Create();
+            }
+            catch (TargetInvocationException)
+            {
+                // SHA256.Create is documented to throw this exception on FIPS-compliant machines. See
+                // https://msdn.microsoft.com/en-us/library/z08hz7ad Fall back to a FIPS-compliant SHA256 algorithm.
+                algorithm = new SHA256CryptoServiceProvider();
+            }
+
+            using (algorithm)
+            {
+                return algorithm.ComputeHash(stream);
             }
         }
     }
