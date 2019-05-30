@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- TODO (johluo): Remove this workaround when VS updates -->
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="$(MicrosoftNetCompilersToolsetPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
