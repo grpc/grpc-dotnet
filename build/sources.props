@@ -6,6 +6,7 @@
       https://dotnetfeed.blob.core.windows.net/aspnet-aspnetcore/index.json;
       https://dotnetfeed.blob.core.windows.net/aspnet-extensions/index.json;
       https://dotnetfeed.blob.core.windows.net/dotnet-core/index.json;
+      https://dotnet.myget.org/F/roslyn/api/v3/index.json;
     </RestoreSources>
     <RestoreSources Condition="Exists('$(MSBuildThisFileDirectory)feed')">
       $(RestoreSources);
