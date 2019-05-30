@@ -28,9 +28,9 @@ using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal class RefreshHandler : HandlerBase
+    internal class RefreshCommand : CommandBase
     {
-        public static Command RefreshCommand()
+        public static Command Create()
         {
             var command = new Command(
                 name: "refresh",
@@ -49,7 +49,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 argument: Argument.None
                 ));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RefreshHandler().Refresh);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RefreshCommand().Refresh);
 
             return command;
         }

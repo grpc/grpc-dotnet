@@ -31,7 +31,7 @@ using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal class HandlerBase
+    internal class CommandBase
     {
         private static readonly HttpClient HttpClient = new HttpClient();
 

@@ -27,9 +27,9 @@ using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal class RemoveHandler : HandlerBase
+    internal class RemoveCommand : CommandBase
     {
-        public static Command RemoveCommand()
+        public static Command Create()
         {
             var command = new Command(
                 name: "remove",
@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 description: "Delete the protobuf file that was referenced from disk.",
                 argument: Argument.None));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RemoveHandler().Remove);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RemoveCommand().Remove);
 
             return command;
         }

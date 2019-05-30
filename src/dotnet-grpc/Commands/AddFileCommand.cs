@@ -24,12 +24,12 @@ using Grpc.Dotnet.Cli.Options;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal class AddFileHandler : HandlerBase
+    internal class AddFileCommand : CommandBase
     {
-        public static Command AddFileCommand()
+        public static Command Create()
         {
             var command = new Command(
-                name: "add-file",
+                name: "file",
                 description: "Add protobuf file reference(s) to the gRPC project.",
                 argument: new Argument<string[]>
                 {
@@ -42,7 +42,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(new AddFileHandler().AddFile);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(new AddFileCommand().AddFile);
 
             return command;
         }

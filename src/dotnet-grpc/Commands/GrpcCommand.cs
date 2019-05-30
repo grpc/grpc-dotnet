@@ -16,26 +16,23 @@
 
 #endregion
 
-using System.CommandLine.Builder;
-using System.CommandLine.Invocation;
-using System.Threading.Tasks;
-using Grpc.Dotnet.Cli.Commands;
-using Microsoft.Build.Locator;
+using System.CommandLine;
 
-namespace Grpc.Dotnet.Cli
+namespace Grpc.Dotnet.Cli.Commands
 {
-    public class Program
+    internal class GrpcCommand
     {
-        public static Task<int> Main(string[] args)
+        public static Command Create()
         {
-            MSBuildLocator.RegisterDefaults();
+            var command = new Command(
+                name: "grpc",
+                description: "Manage protobuf references for gRPC project.");
 
-            var parser = new CommandLineBuilder()
-                .AddCommand(GrpcCommand.Create())
-                .UseDefaults()
-                .Build();
+            command.AddCommand(AddCommand.Create());
+            command.AddCommand(RefreshCommand.Create());
+            command.AddCommand(RemoveCommand.Create());
 
-            return parser.InvokeAsync(args);
+            return command;
         }
     }
 }

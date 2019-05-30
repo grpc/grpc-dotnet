@@ -25,12 +25,12 @@ using Grpc.Dotnet.Cli.Options;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
-    internal class AddUrlHandler : HandlerBase
+    internal class AddUrlCommand : CommandBase
     {
-        public static Command AddFileCommand()
+        public static Command Create()
         {
             var command = new Command(
-                name: "add-url",
+                name: "url",
                 description: "Add a protobuf url reference to the gRPC project.",
                 argument: new Argument<string>
                 {
@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 description: "Specify the download path for the remote protobuf file. This is a required option.",
                 argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(new AddUrlHandler().AddUrl);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(new AddUrlCommand().AddUrl);
 
             return command;
         }
