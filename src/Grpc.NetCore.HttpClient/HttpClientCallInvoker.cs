@@ -52,6 +52,7 @@ namespace Grpc.NetCore.HttpClient
 
             _client = client;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            Deadline = DateTime.MaxValue;
         }
 
         internal Uri BaseAddress => _client.BaseAddress;
@@ -73,17 +74,12 @@ namespace Grpc.NetCore.HttpClient
         public DateTime Deadline { get; set; }
 
         /// <summary>
-        /// Token for propagating parent call context.
-        /// </summary>
-        public ContextPropagationToken? PropagationToken { get; set; }
-
-        /// <summary>
         /// Invokes a client streaming call asynchronously.
         /// In client streaming scenario, client sends a stream of requests and server responds with a single response.
         /// </summary>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
             call.StartClientStreaming(_client);
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
@@ -92,7 +88,7 @@ namespace Grpc.NetCore.HttpClient
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                disposeAction: disposeAction);
         }
 
         /// <summary>
@@ -102,7 +98,7 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
             call.StartDuplexStreaming(_client);
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
@@ -111,7 +107,7 @@ namespace Grpc.NetCore.HttpClient
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                disposeAction: disposeAction);
         }
 
         /// <summary>
@@ -120,7 +116,7 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
             call.StartServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
@@ -128,7 +124,7 @@ namespace Grpc.NetCore.HttpClient
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                disposeAction: disposeAction);
         }
 
         /// <summary>
@@ -136,7 +132,7 @@ namespace Grpc.NetCore.HttpClient
         /// </summary>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
             call.StartUnary(_client, request);
 
             return new AsyncUnaryCall<TResponse>(
@@ -144,7 +140,7 @@ namespace Grpc.NetCore.HttpClient
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                disposeAction: disposeAction);
         }
 
         /// <summary>
@@ -156,11 +152,44 @@ namespace Grpc.NetCore.HttpClient
             return call.ResponseAsync.GetAwaiter().GetResult();
         }
 
-        private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(Method<TRequest, TResponse> method, CallOptions options)
+        private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(
+            Method<TRequest, TResponse> method,
+            CallOptions options,
+            out Action disposeAction)
             where TRequest : class
             where TResponse : class
         {
-            return new GrpcCall<TRequest, TResponse>(method, options, Clock, _loggerFactory);
+            CancellationTokenSource? linkedCts = null;
+
+            // Use propagated deadline if it is small than the specified deadline
+            if (Deadline < options.Deadline)
+            {
+                options = options.WithDeadline(Deadline);
+            }
+
+            if (CancellationToken.CanBeCanceled)
+            {
+                if (options.CancellationToken.CanBeCanceled)
+                {
+                    // If both propagated and options cancellation token can be canceled
+                    // then set a new linked token of both
+                    linkedCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, options.CancellationToken);
+                    options = options.WithCancellationToken(linkedCts.Token);
+                }
+                else
+                {
+                    options = options.WithCancellationToken(CancellationToken);
+                }
+            }
+
+            var call = new GrpcCall<TRequest, TResponse>(method, options, Clock, _loggerFactory);
+
+            // Clean up linked cancellation token
+            disposeAction = linkedCts != null
+                ? () => { call.Dispose(); linkedCts!.Dispose(); }
+                : (Action)call.Dispose;
+
+            return call;
         }
     }
 }
