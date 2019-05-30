@@ -64,7 +64,7 @@ namespace FunctionalTestsWebsite
                 options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
                 {
                     policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-                    policy.RequireClaim(ClaimTypes.NameIdentifier);
+                    policy.RequireClaim(ClaimTypes.Name);
                 });
             });
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -135,7 +135,7 @@ namespace FunctionalTestsWebsite
 
         private string GenerateJwtToken()
         {
-            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "testuser") };
+            var claims = new[] { new Claim(ClaimTypes.Name, "testuser") };
             var credentials = new SigningCredentials(SecurityKey, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken("FunctionalTestServer", "FunctionalTests", claims, expires: DateTime.Now.AddSeconds(5), signingCredentials: credentials);
             return JwtTokenHandler.WriteToken(token);
