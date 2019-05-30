@@ -56,7 +56,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 Project = ResolveProject(project);
 
                 EnsureNugetPackages();
-                files = ExpandReferences(files);
+                files = GlobReferences(files);
 
                 foreach (var file in files)
                 {

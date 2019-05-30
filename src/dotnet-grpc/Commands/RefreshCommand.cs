@@ -64,7 +64,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 var protobufItems = Project.GetItems("Protobuf");
                 var refsToRefresh = new List<ProjectItem>();
-                references = ExpandReferences(references);
+                references = GlobReferences(references);
 
                 if (references.Length == 0)
                 {
@@ -81,7 +81,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                             if (protobufRef == null)
                             {
-                                Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                                Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
                                 continue;
                             }
                         }
@@ -91,7 +91,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                             if (protobufRef == null)
                             {
-                                Console.Out.WriteLine($"Could not find a reference referencing remote content for the file `{reference}`.");
+                                Console.Out.WriteLine($"Warning: Could not find a reference referencing remote content for the file `{reference}`.");
                                 continue;
                             }
                         }
@@ -101,7 +101,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 foreach (var reference in refsToRefresh)
                 {
-                    await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, true, dryRun);
+                    await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, dryRun);
                 }
 
                 return 0;

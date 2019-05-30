@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Grpc.Dotnet.Cli.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <ProjectReference Include="..\..\src\dotnet-grpc\dotnet-grpc.csproj" />
+  </ItemGroup>
+
+</Project>

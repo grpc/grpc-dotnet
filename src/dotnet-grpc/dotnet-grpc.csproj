@@ -15,10 +15,13 @@
 
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>exe</OutputType>
+    <!--TODO (johluo): Uncomment this-->
     <!--<PackAsTool>true</PackAsTool>-->
+    <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <!--TODO (johluo): PUt the versions in dependencies.props-->
     <PackageReference Include="System.CommandLine.Experimental" Version="0.2.0-alpha.19272.1" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.2.2" />
     <PackageReference Include="Microsoft.Build" Version="16.0.461" ExcludeAssets="runtime" />

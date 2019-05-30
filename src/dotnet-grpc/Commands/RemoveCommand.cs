@@ -62,7 +62,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 var protobufItems = Project.GetItems("Protobuf");
                 var refsToRefresh = new List<ProjectItem>();
-                references = ExpandReferences(references);
+                references = GlobReferences(references);
 
                 foreach (var reference in references)
                 {
@@ -74,7 +74,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                         if (protobufRef == null)
                         {
-                            Console.Out.WriteLine($"Could not find a reference that uses the source url `{reference}`.");
+                            Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
                             continue;
                         }
                     }
@@ -84,7 +84,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                         if (protobufRef == null)
                         {
-                            Console.Out.WriteLine($"Could not find a reference for the file `{reference}`.");
+                            Console.Out.WriteLine($"Warning: Could not find a reference for the file `{reference}`.");
                             continue;
                         }
                     }

@@ -40,6 +40,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void EnsureNugetPackages()
         {
+            // TODO (johluo): Tie these to dependencies.props
             AddNugetPackage("Google.Protobuf", "3.7.0");
             AddNugetPackage("Grpc.AspNetCore.Server", "0.1.20-pre1");
             AddNugetPackage("Grpc.Tools", "1.21.0-pre1", privateAssets: true);
@@ -68,7 +69,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 if (privateAssets)
                 {
-                    packageReference.Xml.AddMetadata("PrivateAssets", "true", expressAsAttribute: true);
+                    packageReference.Xml.AddMetadata("PrivateAssets", "All", expressAsAttribute: true);
                 }
             }
         }
@@ -85,7 +86,6 @@ namespace Grpc.Dotnet.Cli.Commands
                 throw new InvalidOperationException("Internal error: Console not set.");
             }
 
-
             if (!File.Exists(Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file)))
             {
                 throw new CLIToolException($"The reference {file} does not exist.");
@@ -93,6 +93,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (!Project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
             {
+                Console.Out.WriteLine($"Adding protobuf reference: {file}.");
 
                 if (Path.GetExtension(file) != ".proto")
                 {
@@ -151,7 +152,7 @@ namespace Grpc.Dotnet.Cli.Commands
             return new Project(projectFiles[0]);
         }
 
-        public string[] ExpandReferences(string[] references)
+        public string[] GlobReferences(string[] references)
         {
             if (Project == null)
             {
@@ -205,7 +206,7 @@ namespace Grpc.Dotnet.Cli.Commands
             return reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _);
         }
 
-        public async Task DownloadFileAsync(string url, string destination, bool overwrite = false, bool dryRun = false)
+        public async Task DownloadFileAsync(string url, string destination, bool dryRun = false)
         {
             if (Project == null)
             {
@@ -220,11 +221,6 @@ namespace Grpc.Dotnet.Cli.Commands
             if (!Path.IsPathRooted(destination))
             {
                 destination = Path.Combine(Project.DirectoryPath, destination);
-            }
-
-            if (!overwrite && File.Exists(destination))
-            {
-                return;
             }
 
             var contentNotModified = true;
