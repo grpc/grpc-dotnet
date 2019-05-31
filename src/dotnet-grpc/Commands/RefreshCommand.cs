@@ -61,46 +61,15 @@ namespace Grpc.Dotnet.Cli.Commands
             try
             {
                 Project = ResolveProject(project);
-
-                var protobufItems = Project.GetItems("Protobuf");
-                var refsToRefresh = new List<ProjectItem>();
-                references = GlobReferences(references);
-
-                if (references.Length == 0)
-                {
-                    refsToRefresh.AddRange(protobufItems.Where(p => p.HasMetadata("SourceURL")));
-                }
-                else
-                {
-                    foreach (var reference in references)
-                    {
-                        ProjectItem protobufRef;
-                        if (IsUrl(reference))
-                        {
-                            protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
-
-                            if (protobufRef == null)
-                            {
-                                Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
-                                continue;
-                            }
-                        }
-                        else
-                        {
-                            protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference && p.GetMetadata("SourceURL") != null);
-
-                            if (protobufRef == null)
-                            {
-                                Console.Out.WriteLine($"Warning: Could not find a reference referencing remote content for the file `{reference}`.");
-                                continue;
-                            }
-                        }
-                        refsToRefresh.Add(protobufRef);
-                    }
-                }
+                var refsToRefresh = references.Length == 0 ? Project.GetItems("Protobuf").Where(p => p.HasMetadata("SourceURL")) : ResolveReferences(references);
 
                 foreach (var reference in refsToRefresh)
                 {
+                    if (!reference.HasMetadata("SourceURL"))
+                    {
+                        continue;
+                    }
+
                     await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, dryRun);
                 }
 

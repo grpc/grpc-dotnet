@@ -93,8 +93,6 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (!Project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
             {
-                Console.Out.WriteLine($"Adding protobuf reference: {file}.");
-
                 if (Path.GetExtension(file) != ".proto")
                 {
                     Console.Out.WriteLine($"Warning: The reference {file} does not reference a .proto file. This may lead to compilation errors.");
@@ -152,7 +150,57 @@ namespace Grpc.Dotnet.Cli.Commands
             return new Project(projectFiles[0]);
         }
 
-        public string[] GlobReferences(string[] references)
+        public IEnumerable<ProjectItem> ResolveReferences(string[] references)
+        {
+            if (references.Length == 0)
+            {
+                return Enumerable.Empty<ProjectItem>();
+            }
+
+            if (Project == null)
+            {
+                throw new InvalidOperationException("Internal error: Project not set.");
+            }
+
+            if (Console == null)
+            {
+                throw new InvalidOperationException("Internal error: Console not set.");
+            }
+
+            var resolvedReferences = new List<ProjectItem>();
+            var protobufItems = Project.GetItems("Protobuf");
+
+            foreach (var reference in GlobReferences(references))
+            {
+                if (IsUrl(reference))
+                {
+                    var remoteItem = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+
+                    if (remoteItem == null)
+                    {
+                        Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
+                        continue;
+                    }
+
+                    resolvedReferences.Add(remoteItem);
+                    continue;
+                }
+
+                var localItem = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+
+                if (localItem == null)
+                {
+                    Console.Out.WriteLine($"Warning: Could not find a reference for the file `{reference}`.");
+                    continue;
+                }
+
+                resolvedReferences.Add(localItem);
+            }
+
+            return resolvedReferences;
+        }
+
+        internal string[] GlobReferences(string[] references)
         {
             if (Project == null)
             {
@@ -178,9 +226,13 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                expandedReferences.AddRange(
-                    Directory.GetFiles(Project.DirectoryPath, reference)
-                        .Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
+                try
+                {
+                    expandedReferences.AddRange(
+                        Directory.GetFiles(Project.DirectoryPath, reference)
+                            .Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
+                }
+                catch (DirectoryNotFoundException) { }
             }
 
             return expandedReferences.ToArray();
@@ -250,8 +302,6 @@ namespace Grpc.Dotnet.Cli.Commands
                 Console.Out.WriteLine($"Content of {destination} is identical to the content at {url}, skipping.");
                 return;
             }
-
-            Console.Out.WriteLine($"Content of {destination} is different from the content at {url}, updating with remote content.");
 
             if (!dryRun)
             {

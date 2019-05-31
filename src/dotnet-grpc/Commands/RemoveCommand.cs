@@ -59,38 +59,12 @@ namespace Grpc.Dotnet.Cli.Commands
             try
             {
                 Project = ResolveProject(project);
+                var items = ResolveReferences(references);
 
-                var protobufItems = Project.GetItems("Protobuf");
-                var refsToRefresh = new List<ProjectItem>();
-                references = GlobReferences(references);
-
-                foreach (var reference in references)
+                foreach (var item in items)
                 {
-                    ProjectItem protobufRef;
-
-                    if (IsUrl(reference))
-                    {
-                        protobufRef = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
-
-                        if (protobufRef == null)
-                        {
-                            Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        protobufRef = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
-
-                        if (protobufRef == null)
-                        {
-                            Console.Out.WriteLine($"Warning: Could not find a reference for the file `{reference}`.");
-                            continue;
-                        }
-                    }
-
-                    Console.Out.WriteLine($"Removing reference to file {protobufRef.UnevaluatedInclude}");
-                    RemoveProtobufReference(protobufRef, removeFile);
+                    Console.Out.WriteLine($"Removing reference to file {item.UnevaluatedInclude}");
+                    RemoveProtobufReference(item, removeFile);
                 }
 
                 Project.Save();
