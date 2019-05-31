@@ -57,6 +57,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testassets", "testassets", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4-6099-4EF9-85BB-7EE6CBEB920C}"
 	ProjectSection(SolutionItems) = preProject
+		testassets\Proto\any.proto = testassets\Proto\any.proto
 		testassets\Proto\authorize.proto = testassets\Proto\authorize.proto
 		testassets\Proto\chat.proto = testassets\Proto\chat.proto
 		testassets\Proto\compression.proto = testassets\Proto\compression.proto
