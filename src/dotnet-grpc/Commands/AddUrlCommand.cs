@@ -22,20 +22,24 @@ using System.IO;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddUrlCommand : CommandBase
     {
+        public AddUrlCommand(IConsole console, FileInfo? projectPath)
+            : base(console, projectPath) { }
+
         public static Command Create()
         {
             var command = new Command(
                 name: "url",
-                description: "Add a protobuf url reference to the gRPC project.",
+                description: CoreStrings.AddUrlCommandDescription,
                 argument: new Argument<string>
                 {
                     Name = "url",
-                    Description = "The URL to a remote protobuf file.",
+                    Description = CoreStrings.AddUrlCommandArgumentDescription,
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
@@ -44,38 +48,40 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AccessOption());
             command.AddOption(new Option(
                 aliases: new[] { "-o", "--output" },
-                description: "Specify the download path for the remote protobuf file. This is a required option.",
+                description: CoreStrings.OutputOptionDescription,
                 argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(new AddUrlCommand().AddUrl);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(
+                async (console, project, services, access, additionalImportDirs, url, output) =>
+                {
+                    try
+                    {
+                        var command = new AddUrlCommand(console, project);
+                        await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
+
+                        return 0;
+                    }
+                    catch (CLIToolException e)
+                    {
+                        console.LogError(e);
+
+                        return -1;
+                    }
+                });
 
             return command;
         }
 
-        public async Task<int> AddUrl(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string url, string output)
+        public async Task AddUrlAsync(Services services, Access access, string additionalImportDirs, string url, string output)
         {
-            Console = console;
+            EnsureNugetPackages();
 
-            try
-            {
-                Project = ResolveProject(project);
-                EnsureNugetPackages();
+            await DownloadFileAsync(url, output);
 
-                await DownloadFileAsync(url, output);
+            Console.Log(CoreStrings.LogAddUrlReference, output, url);
+            AddProtobufReference(services, additionalImportDirs, access, output, url);
 
-                Console.Out.WriteLine($"Adding file reference {output} with content from {url}.");
-                AddProtobufReference(services, additionalImportDirs, access, output, url);
-
-                Project.Save();
-
-                return 0;
-            }
-            catch (CLIToolException e)
-            {
-                Console.Error.WriteLine($"Error: {e.Message}");
-
-                return -1;
-            }
+            Project.Save();
         }
     }
 }

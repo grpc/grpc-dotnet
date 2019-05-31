@@ -21,20 +21,25 @@ using System.CommandLine.Invocation;
 using System.IO;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
+using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddFileCommand : CommandBase
     {
+        public AddFileCommand(IConsole console, FileInfo? projectPath)
+            : base(console, projectPath) { }
+
         public static Command Create()
         {
             var command = new Command(
                 name: "file",
-                description: "Add protobuf file reference(s) to the gRPC project.",
+                description: CoreStrings.AddFileCommandDescription,
                 argument: new Argument<string[]>
                 {
                     Name = "files",
-                    Description = "The protobuf file reference(s). These can be a path to glob for local protobuf file(s).",
+                    Description = CoreStrings.AddFileCommandArgumentDescription,
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
@@ -42,38 +47,39 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(new AddFileCommand().AddFile);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(
+                (console, project, services, access, additionalImportDirs, files) =>
+                {
+                    try
+                    {
+                        var command = new AddFileCommand(console, project);
+                        command.AddFile(services, access, additionalImportDirs, files);
+
+                        return 0;
+                    }
+                    catch (CLIToolException e)
+                    {
+                        console.LogError(e);
+
+                        return -1;
+                    }
+                });
 
             return command;
         }
 
-        public int AddFile(IConsole console, FileInfo? project, Services services, Access access, string additionalImportDirs, string[] files)
+        public void AddFile(Services services, Access access, string additionalImportDirs, string[] files)
         {
-            Console = console;
+            EnsureNugetPackages();
+            files = GlobReferences(files);
 
-            try
+            foreach (var file in files)
             {
-                Project = ResolveProject(project);
-
-                EnsureNugetPackages();
-                files = GlobReferences(files);
-
-                foreach (var file in files)
-                {
-                    Console.Out.WriteLine($"Adding file reference {file}");
-                    AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
-                }
-
-                Project.Save();
-
-                return 0;
+                Console.Log(CoreStrings.LogAddFileReference, file);
+                AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
             }
-            catch (CLIToolException e)
-            {
-                Console.Error.WriteLine($"Error: {e.Message}");
 
-                return -1;
-            }
+            Project.Save();
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Authors>The gRPC Authors</Authors>
     <Copyright>Copyright 2019 The gRPC Authors</Copyright>
@@ -9,20 +8,32 @@
     <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
     <PackageTags>gRPC RPC CLI</PackageTags>
     <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
-
     <!-- Ignore missing XML documentation -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.7.0" />
+    <PackageReference Include="Grpc.AspNetCore.Server" Version="0.1.20-pre1" />
+    <PackageReference Include="Grpc.Tools" Version="1.21.0-pre1" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Build" Version="$(MicrosoftBuildPackageVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" Version="$(MicrosoftBuildLocatorPackageVersion)" />
     <PackageReference Include="System.CommandLine.Experimental" Version="$(SystemCommandLineExperimentalPackageVersion)" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Compile Update="Properties\CoreStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CoreStrings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\CoreStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>CoreStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

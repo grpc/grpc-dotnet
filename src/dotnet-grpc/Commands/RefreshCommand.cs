@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
@@ -24,62 +23,68 @@ using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RefreshCommand : CommandBase
     {
+        public RefreshCommand(IConsole console, FileInfo? projectPath)
+            : base(console, projectPath) { }
+
         public static Command Create()
         {
             var command = new Command(
                 name: "refresh",
-                description: "Check remote protobuf references(s) for updates and replace them if a newer version is available. If no file or url is provided, all remote protobuf files will be updated.",
+                description: CoreStrings.RefreshCommandDescription,
                 argument: new Argument<string[]>
                 {
                     Name = "references",
-                    Description = "The URL(s) or file path(s) to remote protobuf references(s) that should be updated.",
+                    Description = CoreStrings.RefreshCommandArgumentDescription,
                     Arity = ArgumentArity.ZeroOrMore
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--dry-run" },
-                description: "Output a list of file(s) that will be updated without downloading any new content.",
+                description: CoreStrings.DryRunOptionDescription,
                 argument: Argument.None
                 ));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RefreshCommand().Refresh);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(
+                async (console, project, dryRun, references) =>
+                {
+                    try
+                    {
+                        var command = new RefreshCommand(console, project);
+                        await command.RefreshAsync(dryRun, references);
+
+                        return 0;
+                    }
+                    catch (CLIToolException e)
+                    {
+                        console.LogError(e);
+
+                        return -1;
+                    }
+                });
 
             return command;
         }
 
-        public async Task<int> Refresh(IConsole console, FileInfo? project, bool dryRun, string[] references)
+        public async Task RefreshAsync(bool dryRun, string[] references)
         {
-            Console = console;
+            var refsToRefresh = references.Length == 0 ? Project.GetItems(ProtobufElement).Where(p => p.HasMetadata(SourceUrlElement)) : ResolveReferences(references);
 
-            try
+            foreach (var reference in refsToRefresh)
             {
-                Project = ResolveProject(project);
-                var refsToRefresh = references.Length == 0 ? Project.GetItems("Protobuf").Where(p => p.HasMetadata("SourceURL")) : ResolveReferences(references);
-
-                foreach (var reference in refsToRefresh)
+                if (!reference.HasMetadata(SourceUrlElement))
                 {
-                    if (!reference.HasMetadata("SourceURL"))
-                    {
-                        continue;
-                    }
-
-                    await DownloadFileAsync(reference.GetMetadataValue("SourceURL"), reference.UnevaluatedInclude, dryRun);
+                    continue;
                 }
 
-                return 0;
-            }
-            catch (CLIToolException e)
-            {
-                Console.Error.WriteLine($"Error: {e.Message}");
-
-                return -1;
+                await DownloadFileAsync(reference.GetMetadataValue(SourceUrlElement), reference.UnevaluatedInclude, dryRun);
             }
         }
     }

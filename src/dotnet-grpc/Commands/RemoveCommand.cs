@@ -16,67 +16,71 @@
 
 #endregion
 
-using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
-using System.Linq;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RemoveCommand : CommandBase
     {
+        public RemoveCommand(IConsole console, FileInfo? projectPath)
+            : base(console, projectPath) { }
+
         public static Command Create()
         {
             var command = new Command(
                 name: "remove",
-                description: "Remove protobuf references(s).",
+                description: CoreStrings.RemoveCommandDescription,
                 argument: new Argument<string[]>
                 {
                     Name = "references",
-                    Description = "The URL(s) or file path(s) of the protobuf references to remove.",
+                    Description = CoreStrings.RemoveCommandArgumentDescription,
                     Arity = ArgumentArity.OneOrMore
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--remove-file" },
-                description: "Delete the protobuf file that was referenced from disk.",
+                description: CoreStrings.RemoveFileOptionDescription,
                 argument: Argument.None));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(new RemoveCommand().Remove);
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(
+                (console, project, removeFile, references) =>
+                {
+                    try
+                    {
+                        var command = new RemoveCommand(console, project);
+                        command.Remove(removeFile, references);
+
+                        return 0;
+                    }
+                    catch (CLIToolException e)
+                    {
+                        console.LogError(e);
+
+                        return -1;
+                    }
+                });
 
             return command;
         }
 
-        public int Remove(IConsole console, FileInfo? project, bool removeFile, string[] references)
+        public void Remove(bool removeFile, string[] references)
         {
-            Console = console;
+            var items = ResolveReferences(references);
 
-            try
+            foreach (var item in items)
             {
-                Project = ResolveProject(project);
-                var items = ResolveReferences(references);
-
-                foreach (var item in items)
-                {
-                    Console.Out.WriteLine($"Removing reference to file {item.UnevaluatedInclude}");
-                    RemoveProtobufReference(item, removeFile);
-                }
-
-                Project.Save();
-
-                return 0;
+                Console.Log(CoreStrings.LogRemoveReference, item.UnevaluatedInclude);
+                RemoveProtobufReference(item, removeFile);
             }
-            catch (CLIToolException e)
-            {
-                Console.Error.WriteLine($"Error: {e.Message}");
 
-                return -1;
-            }
+            Project.Save();
         }
     }
 }

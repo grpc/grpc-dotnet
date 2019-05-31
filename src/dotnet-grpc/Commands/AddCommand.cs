@@ -17,6 +17,7 @@
 #endregion
 
 using System.CommandLine;
+using Grpc.Dotnet.Cli.Properties;
 
 namespace Grpc.Dotnet.Cli.Commands
 {
@@ -26,7 +27,7 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "add",
-                description: "Add protobuf reference(s).");
+                description: CoreStrings.AddCommandDescription);
 
             command.AddCommand(AddFileCommand.Create());
             command.AddCommand(AddUrlCommand.Create());

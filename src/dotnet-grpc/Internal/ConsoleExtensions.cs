@@ -16,24 +16,27 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
-using Grpc.Dotnet.Cli.Properties;
+using System.Globalization;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Internal
 {
-    internal class GrpcCommand
+    internal static class ConsoleExtensions
     {
-        public static Command Create()
+        public static void Log(this IConsole console, string formatString, params string[] args)
         {
-            var command = new Command(
-                name: "grpc",
-                description: CoreStrings.GrpcCommandDescription);
+            console.Out.WriteLine(string.Format(CultureInfo.CurrentCulture, formatString, args));
+        }
 
-            command.AddCommand(AddCommand.Create());
-            command.AddCommand(RefreshCommand.Create());
-            command.AddCommand(RemoveCommand.Create());
+        public static void LogWarning(this IConsole console, string formatString, params string[] args)
+        {
+            console.Out.WriteLine(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args));
+        }
 
-            return command;
+        public static void LogError(this IConsole console, Exception e)
+        {
+            console.Error.WriteLine($"Error: {e.Message}");
         }
     }
 }

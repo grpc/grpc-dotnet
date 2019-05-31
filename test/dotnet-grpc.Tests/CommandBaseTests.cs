@@ -45,50 +45,44 @@ namespace Grpc.Dotnet.Cli.Tests
         public void EnsureNugetPackages_AddsRequiredPackages()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
             commandBase.EnsureNugetPackages();
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var packageRefs = commandBase.Project.GetItems("PackageReference");
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
             Assert.AreEqual(3, packageRefs.Count);
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata("PrivateAssets")));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata("PrivateAssets")));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata("PrivateAssets")));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
         [Test]
         public void EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
-            commandBase.Project.AddItem("PackageReference", "Grpc.Tools");
+            var commandBase = new CommandBase(new TestConsole(), new Project());
+            commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
             // Act
             commandBase.EnsureNugetPackages();
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var packageRefs = commandBase.Project.GetItems("PackageReference");
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
             Assert.AreEqual(3, packageRefs.Count);
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata("PrivateAssets")));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata("PrivateAssets")));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && !r.HasMetadata("PrivateAssets")));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
         [Test]
         public void AddProtobufReference_ThrowsIfFileNotFound()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act, Assert
             Assert.Throws<CLIToolException>(() => commandBase.AddProtobufReference(Services.Both, string.Empty, Access.Public, "NonExistentFile", string.Empty));
@@ -98,9 +92,10 @@ namespace Grpc.Dotnet.Cli.Tests
         public void AddProtobufReference_AddsRelativeReference()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() });
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+
             var referencePath = Path.Combine("Proto", "a.proto");
 
             // Act
@@ -108,23 +103,21 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var protoRefs = commandBase.Project.GetItems("Protobuf");
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
             var protoRef = protoRefs.Single();
             Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue("GrpcServices"));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue("AdditionalImportDirs"));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue("Access"));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue("SourceUrl"));
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
         public void AddProtobufReference_AddsAbsoluteReference()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "a.proto");
 
             // Act
@@ -132,23 +125,21 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var protoRefs = commandBase.Project.GetItems("Protobuf");
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
             var protoRef = protoRefs.Single();
             Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue("GrpcServices"));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue("AdditionalImportDirs"));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue("Access"));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue("SourceUrl"));
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
         public void AddProtobufReference_DoesNotOverwriteReference()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "a.proto");
 
             // Act
@@ -156,24 +147,21 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var protoRefs = commandBase.Project.GetItems("Protobuf");
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
             var protoRef = protoRefs.Single();
             Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue("GrpcServices"));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue("AdditionalImportDirs"));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue("Access"));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue("SourceUrl"));
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
         public void ResolveProject_ThrowsIfProjectFileDoesNotExist()
         {
-            // Arrange
-            var commandBase = new CommandBase();
-
             // Act, Assert
-            Assert.Throws<CLIToolException>(() => commandBase.ResolveProject(new FileInfo("NonExistent")));
+            Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject(new FileInfo("NonExistent")));
         }
 
         [Test]
@@ -181,13 +169,12 @@ namespace Grpc.Dotnet.Cli.Tests
         public void ResolveProject_SucceedIfOnlyOneProject()
         {
             // Arrange
-            var commandBase = new CommandBase();
             var currentDirectory = Directory.GetCurrentDirectory();
             var testAssetsDirectory = Path.Combine(currentDirectory, "TestAssets");
             Directory.SetCurrentDirectory(testAssetsDirectory);
 
             // Act
-            var project = commandBase.ResolveProject(null);
+            var project = CommandBase.ResolveProject(null);
 
             // Assert
             Assert.AreEqual(Path.Combine(testAssetsDirectory, "test.csproj"), project.FullPath);
@@ -199,12 +186,11 @@ namespace Grpc.Dotnet.Cli.Tests
         public void ResolveProject_ThrowsIfMoreThanOneProjectFound()
         {
             // Arrange
-            var commandBase = new CommandBase();
             var currentDirectory = Directory.GetCurrentDirectory();
             Directory.SetCurrentDirectory(Path.Combine(currentDirectory, "TestAssets", "DuplicateProjects"));
 
             // Act, Assert
-            Assert.Throws<CLIToolException>(() => commandBase.ResolveProject(null));
+            Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject(null));
             Directory.SetCurrentDirectory(currentDirectory);
         }
 
@@ -213,12 +199,11 @@ namespace Grpc.Dotnet.Cli.Tests
         public void ResolveProject_ThrowsIfZeroProjectFound()
         {
             // Arrange
-            var commandBase = new CommandBase();
             var currentDirectory = Directory.GetCurrentDirectory();
             Directory.SetCurrentDirectory(Path.Combine(currentDirectory, "TestAssets", "Proto"));
 
             // Act, Assert
-            Assert.Throws<CLIToolException>(() => commandBase.ResolveProject(null));
+            Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject(null));
             Directory.SetCurrentDirectory(currentDirectory);
         }
 
@@ -226,8 +211,9 @@ namespace Grpc.Dotnet.Cli.Tests
         public void GlobReferences_ExpandsRelativeReferences()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() });
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
 
             // Act
             var references = commandBase.GlobReferences(new[] { Path.Combine("Proto", "*.proto") });
@@ -241,8 +227,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public void GlobReferences_ExpandsAbsoluteReferences()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
             var references = commandBase.GlobReferences(new[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "*.proto") });
@@ -256,9 +241,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -273,9 +256,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_OverwritesIfContentDoesNotMatch()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -291,9 +272,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_SkipIfContentMatches()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -310,9 +289,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_DoesNotOverwriteForDryrun()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -328,9 +305,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public void RemoveProtobufReference_RemovesReference_RetainsFile()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -339,7 +314,7 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var protoRefs = commandBase.Project.GetItems("Protobuf");
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
 
             // Act
@@ -347,7 +322,7 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            Assert.AreEqual(0, commandBase.Project.GetItems("Protobuf").Count);
+            Assert.AreEqual(0, commandBase.Project.GetItems(CommandBase.ProtobufElement).Count);
             Assert.True(File.Exists(tempProtoFile));
             File.Delete(tempProtoFile);
         }
@@ -356,9 +331,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public void RemoveProtobufReference_RemovesReference_DeletesFile()
         {
             // Arrange
-            var commandBase = new CommandBase();
-            commandBase.Project = new Project();
-            commandBase.Console = new TestConsole();
+            var commandBase = new CommandBase(new TestConsole(), new Project());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
 
             // Act
@@ -367,7 +340,7 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            var protoRefs = commandBase.Project.GetItems("Protobuf");
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
 
             // Act
@@ -375,8 +348,20 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
-            Assert.AreEqual(0, commandBase.Project.GetItems("Protobuf").Count);
+            Assert.AreEqual(0, commandBase.Project.GetItems(CommandBase.ProtobufElement).Count);
             Assert.False(File.Exists(tempProtoFile));
+        }
+
+        [TestCase("http://contoso.com/file.proto", true)]
+        [TestCase("https://contoso.com/file.proto", true)]
+        [TestCase("HTTPS://contoso.com/FILE.PROTO", true)]
+        [TestCase("C:\\contoso.com\\FILE.PROTO", false)]
+        [TestCase("FILE.PROTO", false)]
+        [TestCase("", false)]
+        [TestCase(null, false)]
+        public void IsUrl_ChecksUrlValidity(string url, bool isUrl)
+        {
+            Assert.AreEqual(isUrl, CommandBase.IsUrl(url));
         }
     }
 }

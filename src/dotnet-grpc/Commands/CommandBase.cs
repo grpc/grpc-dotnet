@@ -27,6 +27,7 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
 using Microsoft.Build.Evaluation;
 
 namespace Grpc.Dotnet.Cli.Commands
@@ -35,8 +36,28 @@ namespace Grpc.Dotnet.Cli.Commands
     {
         private static readonly HttpClient HttpClient = new HttpClient();
 
-        internal IConsole? Console { get; set; }
-        internal Project? Project { get; set; }
+        // static IDs for msbuild elements
+        internal static readonly string PackageReferenceElement = "PackageReference";
+        internal static readonly string VersionElement = "Version";
+        internal static readonly string PrivateAssetsElement = "PrivateAssets";
+        internal static readonly string ProtobufElement = "Protobuf";
+        internal static readonly string GrpcServicesElement = "GrpcServices";
+        internal static readonly string AccessElement = "Access";
+        internal static readonly string AdditionalImportDirsElement = "AdditionalImportDirs";
+        internal static readonly string SourceUrlElement = "SourceUrl";
+
+        public CommandBase(IConsole console, FileInfo? projectPath)
+            : this(console, ResolveProject(projectPath)) { }
+
+        // Internal for testing
+        internal CommandBase(IConsole console, Project project)
+        {
+            Console = console;
+            Project = project;
+        }
+
+        internal IConsole Console { get; set; }
+        internal Project Project { get; set; }
 
         public void EnsureNugetPackages()
         {
@@ -48,81 +69,61 @@ namespace Grpc.Dotnet.Cli.Commands
 
         private void AddNugetPackage(string packageName, string packageVersion, bool privateAssets = false)
         {
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
-            if (Console == null)
-            {
-                throw new InvalidOperationException("Internal error: Console not set.");
-            }
-
-            var packageReference = Project.GetItems("PackageReference").SingleOrDefault(i => i.UnevaluatedInclude == packageName);
+            var packageReference = Project.GetItems(PackageReferenceElement).SingleOrDefault(i => i.UnevaluatedInclude == packageName);
 
             if (packageReference == null)
             {
-                Console.Out.WriteLine($"Adding required gRPC package reference: {packageName}.");
+                Console.Log(CoreStrings.LogAddPackageReference, packageName);
 
-                packageReference = Project.AddItem("PackageReference", packageName).Single();
-                packageReference.Xml.AddMetadata("Version", packageVersion, expressAsAttribute: true);
+                packageReference = Project.AddItem(PackageReferenceElement, packageName).Single();
+                packageReference.Xml.AddMetadata(VersionElement, packageVersion, expressAsAttribute: true);
 
                 if (privateAssets)
                 {
-                    packageReference.Xml.AddMetadata("PrivateAssets", "All", expressAsAttribute: true);
+                    packageReference.Xml.AddMetadata(PrivateAssetsElement, "All", expressAsAttribute: true);
                 }
             }
         }
 
         public void AddProtobufReference(Services services, string additionalImportDirs, Access access, string file, string url)
         {
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
-            if (Console == null)
-            {
-                throw new InvalidOperationException("Internal error: Console not set.");
-            }
-
             if (!File.Exists(Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file)))
             {
                 throw new CLIToolException($"The reference {file} does not exist.");
             }
 
-            if (!Project.GetItems("Protobuf").Any(i => i.UnevaluatedInclude == file))
+            if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(i.UnevaluatedInclude, file, StringComparison.OrdinalIgnoreCase)))
             {
-                if (Path.GetExtension(file) != ".proto")
+                if (!string.Equals(Path.GetExtension(file), ".proto", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.Out.WriteLine($"Warning: The reference {file} does not reference a .proto file. This may lead to compilation errors.");
+                    Console.LogWarning(CoreStrings.LogWarningReferenceNotProto, file);
                 }
 
-                var newItem = Project.AddItem("Protobuf", file).Single();
+                var newItem = Project.AddItem(ProtobufElement, file).Single();
 
                 if (services != Services.Both)
                 {
-                    newItem.Xml.AddMetadata("GrpcServices", services.ToString(), expressAsAttribute: true);
+                    newItem.Xml.AddMetadata(GrpcServicesElement, services.ToString(), expressAsAttribute: true);
                 }
 
                 if (access != Access.Public)
                 {
-                    newItem.Xml.AddMetadata("Access", access.ToString(), expressAsAttribute: true);
+                    newItem.Xml.AddMetadata(AccessElement, access.ToString(), expressAsAttribute: true);
                 }
 
                 if (!string.IsNullOrEmpty(additionalImportDirs))
                 {
-                    newItem.Xml.AddMetadata("AdditionalImportDirs", additionalImportDirs, expressAsAttribute: true);
+                    newItem.Xml.AddMetadata(AdditionalImportDirsElement, additionalImportDirs, expressAsAttribute: true);
                 }
 
                 if (!string.IsNullOrEmpty(url))
                 {
-                    newItem.Xml.AddMetadata("SourceURL", url);
+                    newItem.Xml.AddMetadata(SourceUrlElement, url);
                 }
             }
         }
 
-        public Project ResolveProject(FileInfo? project)
+        public static Project ResolveProject(FileInfo? project)
         {
             if (project != null)
             {
@@ -156,29 +157,18 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 return Enumerable.Empty<ProjectItem>();
             }
-
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
-            if (Console == null)
-            {
-                throw new InvalidOperationException("Internal error: Console not set.");
-            }
-
             var resolvedReferences = new List<ProjectItem>();
-            var protobufItems = Project.GetItems("Protobuf");
+            var protobufItems = Project.GetItems(ProtobufElement);
 
             foreach (var reference in GlobReferences(references))
             {
                 if (IsUrl(reference))
                 {
-                    var remoteItem = protobufItems.SingleOrDefault(p => p.GetMetadataValue("SourceURL") == reference);
+                    var remoteItem = protobufItems.SingleOrDefault(p => string.Equals(p.GetMetadataValue(SourceUrlElement), reference, StringComparison.OrdinalIgnoreCase));
 
                     if (remoteItem == null)
                     {
-                        Console.Out.WriteLine($"Warning: Could not find a reference that uses the source url `{reference}`.");
+                        Console.LogWarning(CoreStrings.LogWarningCouldNotFindRemoteReference, reference);
                         continue;
                     }
 
@@ -186,11 +176,11 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                var localItem = protobufItems.SingleOrDefault(p => p.UnevaluatedInclude == reference);
+                var localItem = protobufItems.SingleOrDefault(p => string.Equals(p.UnevaluatedInclude, reference, StringComparison.OrdinalIgnoreCase));
 
                 if (localItem == null)
                 {
-                    Console.Out.WriteLine($"Warning: Could not find a reference for the file `{reference}`.");
+                    Console.LogWarning(CoreStrings.LogWarningCouldNotFindFileReference, reference);
                     continue;
                 }
 
@@ -202,11 +192,6 @@ namespace Grpc.Dotnet.Cli.Commands
 
         internal string[] GlobReferences(string[] references)
         {
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
             var expandedReferences = new List<string>();
 
             foreach (var reference in references)
@@ -240,11 +225,6 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void RemoveProtobufReference(ProjectItem protobufRef, bool removeFile)
         {
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
             Project.RemoveItem(protobufRef);
 
             if (removeFile)
@@ -255,21 +235,11 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public static bool IsUrl(string reference)
         {
-            return reference.StartsWith("http") && Uri.TryCreate(reference, UriKind.Absolute, out var _);
+            return Uri.TryCreate(reference, UriKind.Absolute, out var _) && reference.StartsWith("http", StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task DownloadFileAsync(string url, string destination, bool dryRun = false)
         {
-            if (Project == null)
-            {
-                throw new InvalidOperationException("Internal error: Project not set.");
-            }
-
-            if (Console == null)
-            {
-                throw new InvalidOperationException("Internal error: Console not set.");
-            }
-
             if (!Path.IsPathRooted(destination))
             {
                 destination = Path.Combine(Project.DirectoryPath, destination);
@@ -299,7 +269,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (contentNotModified)
             {
-                Console.Out.WriteLine($"Content of {destination} is identical to the content at {url}, skipping.");
+                Console.Log(CoreStrings.LogSkipDownload, destination, url);
                 return;
             }
 
@@ -309,7 +279,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 using (var fileStream = File.Open(destination, FileMode.Create, FileAccess.Write))
                 {
                     await stream.CopyToAsync(fileStream);
-                    fileStream.Flush();
+                    await fileStream.FlushAsync();
                 }
             }
         }
