@@ -23,13 +23,16 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Any;
 using FunctionalTestsWebsite.Services;
+using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
+using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
@@ -416,6 +419,50 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
             Assert.AreEqual("Hello World", responseMessage.Message);
+            response.AssertTrailerStatus();
+        }
+
+        [Test]
+        public async Task AnyRequest_SuccessResponse()
+        {
+            // Arrange 1
+            IMessage requestMessage = AnyMessage.Pack(new AnyProductRequest
+            {
+                Name = "Headlight fluid",
+                Quantity = 2
+            });
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            // Act 1
+            var response = await Fixture.Client.PostAsync(
+                "Any.AnyService/DoAny",
+                new GrpcStreamContent(ms)).DefaultTimeout();
+
+            // Assert 1
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>();
+            Assert.AreEqual("2 x Headlight fluid", responseMessage.Message);
+            response.AssertTrailerStatus();
+
+            // Arrange 2
+            requestMessage = AnyMessage.Pack(new AnyUserRequest
+            {
+                Name = "Arnie Admin",
+                Enabled = true
+            });
+
+            ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            // Act 2
+            response = await Fixture.Client.PostAsync(
+                "Any.AnyService/DoAny",
+                new GrpcStreamContent(ms)).DefaultTimeout();
+
+            // Assert 2
+            responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>();
+            Assert.AreEqual("Arnie Admin - Enabled", responseMessage.Message);
             response.AssertTrailerStatus();
         }
     }
