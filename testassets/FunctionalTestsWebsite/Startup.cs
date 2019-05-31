@@ -114,6 +114,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<SingletonCounterService>();
                 endpoints.MapGrpcService<NestedService>();
                 endpoints.MapGrpcService<CompressionService>();
+                endpoints.MapGrpcService<AnyService>();
 
                 // Bind via configure method
                 endpoints.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
