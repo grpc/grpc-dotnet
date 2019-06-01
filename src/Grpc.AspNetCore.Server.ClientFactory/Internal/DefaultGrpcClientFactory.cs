@@ -16,11 +16,10 @@
 
 #endregion
 
-using Grpc.Core;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using System;
 using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.ClientFactory.Internal
 {

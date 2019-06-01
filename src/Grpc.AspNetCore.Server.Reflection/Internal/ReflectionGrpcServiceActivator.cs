@@ -20,11 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Grpc.Core;
 using Grpc.Reflection;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Reflection.Internal
 {

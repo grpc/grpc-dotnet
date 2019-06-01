@@ -16,13 +16,12 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using Mail;
-using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using System.Linq;
+using System.Threading.Tasks;
+using Grpc.Core;
+using Mail;
+using Microsoft.Extensions.Logging;
 
 namespace GRPCServer
 {

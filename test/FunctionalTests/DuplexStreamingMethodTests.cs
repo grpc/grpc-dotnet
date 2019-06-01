@@ -19,13 +19,11 @@
 using System;
 using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Chat;
 using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;

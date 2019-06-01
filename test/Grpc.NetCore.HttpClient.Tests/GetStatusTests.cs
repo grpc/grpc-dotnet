@@ -16,23 +16,14 @@
 
 #endregion
 
-using NUnit.Framework;
-using Greet;
-using static Greet.Greeter;
-using Grpc.Core;
-using Google.Protobuf;
-using System.Net.Http;
-using Grpc.NetCore.HttpClient.Tests.Infrastructure;
-using System.Net;
-using System.Threading.Tasks;
 using System;
-using System.IO;
-using System.Threading;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Linq;
+using System.Net;
+using Greet;
+using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
+using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
 {

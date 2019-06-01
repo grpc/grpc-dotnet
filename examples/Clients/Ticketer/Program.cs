@@ -17,15 +17,14 @@
 #endregion
 
 using System;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Common;
-using Ticket;
-using Grpc.Core;
-using Google.Protobuf.WellKnownTypes;
 using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Web;
+using Common;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
+using Ticket;
 
 namespace Sample.Clients
 {
