@@ -31,7 +31,10 @@ namespace Grpc.Dotnet.Cli
             MSBuildLocator.RegisterDefaults();
 
             var parser = new CommandLineBuilder()
-                .AddCommand(GrpcCommand.Create())
+                .AddCommand(AddFileCommand.Create())
+                .AddCommand(AddUrlCommand.Create())
+                .AddCommand(RefreshCommand.Create())
+                .AddCommand(RemoveCommand.Create())
                 .UseDefaults()
                 .Build();
 

@@ -117,14 +117,17 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AddCommandDescription" xml:space="preserve">
-    <value>Add protobuf reference(s).</value>
+  <data name="AccessOptionDescription" xml:space="preserve">
+    <value>The access modifier to use for the generated C# classes. Default value is Public.</value>
   </data>
   <data name="AddFileCommandArgumentDescription" xml:space="preserve">
     <value>The protobuf file reference(s). These can be a path to glob for local protobuf file(s).</value>
   </data>
   <data name="AddFileCommandDescription" xml:space="preserve">
     <value>Add protobuf file reference(s) to the gRPC project.</value>
+  </data>
+  <data name="AdditionalImportDirsOption" xml:space="preserve">
+    <value>Additional directories to be used when resolving imports for the protobuf files. This is a semicolon separated list of paths.</value>
   </data>
   <data name="AddUrlCommandArgumentDescription" xml:space="preserve">
     <value>The URL to a remote protobuf file.</value>
@@ -134,9 +137,6 @@
   </data>
   <data name="DryRunOptionDescription" xml:space="preserve">
     <value>Output a list of file(s) that will be updated without downloading any new content.</value>
-  </data>
-  <data name="GrpcCommandDescription" xml:space="preserve">
-    <value>Manage protobuf references for gRPC project.</value>
   </data>
   <data name="LogAddFileReference" xml:space="preserve">
     <value>Adding file reference {0}.</value>
@@ -165,6 +165,9 @@
   <data name="OutputOptionDescription" xml:space="preserve">
     <value>Specify the download path for the remote protobuf file. This is a required option.</value>
   </data>
+  <data name="ProjectOptionDescription" xml:space="preserve">
+    <value>The path to the project file to operate on. If a file is not specified, the command will search the current directory for one.</value>
+  </data>
   <data name="RefreshCommandArgumentDescription" xml:space="preserve">
     <value>The URL(s) or file path(s) to remote protobuf references(s) that should be updated. Leave this argument empty to refresh all remote references.</value>
   </data>
@@ -179,5 +182,8 @@
   </data>
   <data name="RemoveFileOptionDescription" xml:space="preserve">
     <value>Delete the protobuf file that was referenced from disk.</value>
+  </data>
+  <data name="ServiceOptionDescription" xml:space="preserve">
+    <value>The type of gRPC services that should be generated. Default value is Both.</value>
   </data>
 </root>

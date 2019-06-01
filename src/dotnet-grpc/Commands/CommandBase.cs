@@ -61,13 +61,13 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void EnsureNugetPackages()
         {
-            // TODO (johluo): Tie these to dependencies.props
-            AddNugetPackage("Google.Protobuf", "3.7.0");
-            AddNugetPackage("Grpc.AspNetCore.Server", "0.1.20-pre1");
-            AddNugetPackage("Grpc.Tools", "1.21.0-pre1", privateAssets: true);
+            foreach (var dependency in GetType().Assembly.GetCustomAttributes<GrpcDependencyAttribute>())
+            {
+                AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+            }
         }
 
-        private void AddNugetPackage(string packageName, string packageVersion, bool privateAssets = false)
+        private void AddNugetPackage(string packageName, string packageVersion, string privateAssets)
         {
             var packageReference = Project.GetItems(PackageReferenceElement).SingleOrDefault(i => i.UnevaluatedInclude == packageName);
 
@@ -78,9 +78,9 @@ namespace Grpc.Dotnet.Cli.Commands
                 packageReference = Project.AddItem(PackageReferenceElement, packageName).Single();
                 packageReference.Xml.AddMetadata(VersionElement, packageVersion, expressAsAttribute: true);
 
-                if (privateAssets)
+                if (!string.Equals(privateAssets, "Default", StringComparison.OrdinalIgnoreCase))
                 {
-                    packageReference.Xml.AddMetadata(PrivateAssetsElement, "All", expressAsAttribute: true);
+                    packageReference.Xml.AddMetadata(PrivateAssetsElement, privateAssets, expressAsAttribute: true);
                 }
             }
         }

@@ -18,6 +18,7 @@
 
 using System.CommandLine;
 using System.IO;
+using Grpc.Dotnet.Cli.Properties;
 
 namespace Grpc.Dotnet.Cli.Options
 {
@@ -26,25 +27,25 @@ namespace Grpc.Dotnet.Cli.Options
         public static Option ProjectOption() =>
             new Option(
                 aliases: new[] { "-p", "--project" },
-                description: "The path to the project file to operate on. If a file is not specified, the command will search the current directory for one.",
+                description: CoreStrings.ProjectOptionDescription,
                 argument: new Argument<FileInfo> { Name = "project" });
 
         public static Option ServiceOption() =>
             new Option(
                 aliases: new[] { "-s", "--services" },
-                description: "The type of gRPC services that should be generated. Valid values are: Both (Default), Server, Client, None.",
+                description: CoreStrings.ServiceOptionDescription,
                 argument: new Argument<Services> { Name = "services" });
 
         public static Option AccessOption() =>
             new Option(
                 aliases: new[] { "--access" },
-                description: "The access modifier to use for the generated C# classes. Valid values are: Public (Default), Internal.",
+                description: CoreStrings.AccessOptionDescription,
                 argument: new Argument<Access> { Name = "access" });
 
         public static Option AdditionalImportDirsOption() =>
             new Option(
                 aliases: new[] { "-a", "--additional-import-dirs" },
-                description: "Additional directories to be used when resolving imports for the protobuf files. This is a semicolon separated list of paths.",
+                description: CoreStrings.AdditionalImportDirsOption,
                 argument: new Argument<string> { Name = "dirs" });
     }
 }

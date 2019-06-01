@@ -16,24 +16,22 @@
 
 #endregion
 
-using System.CommandLine;
-using Grpc.Dotnet.Cli.Properties;
+using System;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Internal
 {
-    internal class GrpcCommand
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+    internal class GrpcDependencyAttribute : Attribute
     {
-        public static Command Create()
+        public GrpcDependencyAttribute(string name, string version, string privateAssets)
         {
-            var command = new Command(
-                name: "grpc",
-                description: CoreStrings.GrpcCommandDescription);
-
-            command.AddCommand(AddCommand.Create());
-            command.AddCommand(RefreshCommand.Create());
-            command.AddCommand(RemoveCommand.Create());
-
-            return command;
+            Name = name;
+            Version = version;
+            PrivateAssets = privateAssets;
         }
+
+        public string Name { get; }
+        public string Version { get; }
+        public string PrivateAssets { get; }
     }
 }

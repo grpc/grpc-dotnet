@@ -34,7 +34,7 @@ namespace Grpc.Dotnet.Cli.Commands
         public static Command Create()
         {
             var command = new Command(
-                name: "url",
+                name: "add-url",
                 description: CoreStrings.AddUrlCommandDescription,
                 argument: new Argument<string>
                 {
@@ -42,14 +42,14 @@ namespace Grpc.Dotnet.Cli.Commands
                     Description = CoreStrings.AddUrlCommandArgumentDescription,
                 });
 
-            command.AddOption(CommonOptions.ProjectOption());
-            command.AddOption(CommonOptions.ServiceOption());
-            command.AddOption(CommonOptions.AdditionalImportDirsOption());
-            command.AddOption(CommonOptions.AccessOption());
             command.AddOption(new Option(
                 aliases: new[] { "-o", "--output" },
                 description: CoreStrings.OutputOptionDescription,
                 argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
+            command.AddOption(CommonOptions.ProjectOption());
+            command.AddOption(CommonOptions.ServiceOption());
+            command.AddOption(CommonOptions.AdditionalImportDirsOption());
+            command.AddOption(CommonOptions.AccessOption());
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string, string>(
                 async (console, project, services, access, additionalImportDirs, url, output) =>

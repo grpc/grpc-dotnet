@@ -34,7 +34,7 @@ namespace Grpc.Dotnet.Cli.Commands
         public static Command Create()
         {
             var command = new Command(
-                name: "file",
+                name: "add-file",
                 description: CoreStrings.AddFileCommandDescription,
                 argument: new Argument<string[]>
                 {

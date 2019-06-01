@@ -61,11 +61,11 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Add protobuf reference(s)..
+        ///   Looks up a localized string similar to The access modifier to use for the generated C# classes. Default value is Public..
         /// </summary>
-        internal static string AddCommandDescription {
+        internal static string AccessOptionDescription {
             get {
-                return ResourceManager.GetString("AddCommandDescription", resourceCulture);
+                return ResourceManager.GetString("AccessOptionDescription", resourceCulture);
             }
         }
         
@@ -84,6 +84,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string AddFileCommandDescription {
             get {
                 return ResourceManager.GetString("AddFileCommandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Additional directories to be used when resolving imports for the protobuf files. This is a semicolon separated list of paths..
+        /// </summary>
+        internal static string AdditionalImportDirsOption {
+            get {
+                return ResourceManager.GetString("AdditionalImportDirsOption", resourceCulture);
             }
         }
         
@@ -111,15 +120,6 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string DryRunOptionDescription {
             get {
                 return ResourceManager.GetString("DryRunOptionDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Manage protobuf references for gRPC project..
-        /// </summary>
-        internal static string GrpcCommandDescription {
-            get {
-                return ResourceManager.GetString("GrpcCommandDescription", resourceCulture);
             }
         }
         
@@ -205,6 +205,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The path to the project file to operate on. If a file is not specified, the command will search the current directory for one..
+        /// </summary>
+        internal static string ProjectOptionDescription {
+            get {
+                return ResourceManager.GetString("ProjectOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The URL(s) or file path(s) to remote protobuf references(s) that should be updated. Leave this argument empty to refresh all remote references..
         /// </summary>
         internal static string RefreshCommandArgumentDescription {
@@ -246,6 +255,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string RemoveFileOptionDescription {
             get {
                 return ResourceManager.GetString("RemoveFileOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The type of gRPC services that should be generated. Default value is Both..
+        /// </summary>
+        internal static string ServiceOptionDescription {
+            get {
+                return ResourceManager.GetString("ServiceOptionDescription", resourceCulture);
             }
         }
     }
