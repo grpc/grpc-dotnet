@@ -16,12 +16,12 @@
 
 #endregion
 
+using System.Threading;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Threading;
 
 namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {

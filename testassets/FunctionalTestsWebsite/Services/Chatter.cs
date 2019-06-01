@@ -18,8 +18,8 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Grpc.Core;
 using Chat;
+using Grpc.Core;
 
 namespace FunctionalTestsWebsite.Services
 {

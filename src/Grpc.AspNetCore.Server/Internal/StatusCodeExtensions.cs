@@ -17,7 +17,6 @@
 #endregion
 
 using Grpc.Core;
-using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Internal
 {

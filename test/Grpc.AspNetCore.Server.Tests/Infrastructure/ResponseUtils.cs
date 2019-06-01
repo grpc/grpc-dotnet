@@ -16,16 +16,16 @@
 
 #endregion
 
-using System.Net.Http;
 using System;
-using System.Net;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Diagnostics;
 using System.Buffers.Binary;
-using Grpc.NetCore.HttpClient.Internal;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.NetCore.HttpClient.Internal;
 
 namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {

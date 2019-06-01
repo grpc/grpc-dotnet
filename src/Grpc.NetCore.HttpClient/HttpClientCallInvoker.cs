@@ -17,9 +17,7 @@
 #endregion
 
 using System;
-using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.NetCore.HttpClient.Internal;
 using Microsoft.Extensions.Logging;

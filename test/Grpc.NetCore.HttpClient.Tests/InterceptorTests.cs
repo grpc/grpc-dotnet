@@ -20,10 +20,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -31,7 +28,6 @@ using Grpc.Core.Interceptors;
 using Grpc.Core.Utils;
 using Grpc.NetCore.HttpClient.Tests.Infrastructure;
 using Grpc.Tests.Shared;
-using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests

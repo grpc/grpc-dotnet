@@ -16,12 +16,9 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.IO.Compression;
-using System.Linq;
 using Grpc.AspNetCore.Server.Compression;
-using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server
 {

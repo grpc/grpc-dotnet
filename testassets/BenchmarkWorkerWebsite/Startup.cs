@@ -16,9 +16,9 @@
 
 #endregion
 
+using Grpc.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Grpc.Testing;
 
 namespace BenchmarkWorkerWebsite
 {

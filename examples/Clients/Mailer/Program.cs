@@ -20,9 +20,9 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Mail;
 using Common;
 using Grpc.Core;
+using Mail;
 
 namespace Sample.Clients
 {
