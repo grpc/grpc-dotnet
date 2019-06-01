@@ -46,6 +46,9 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string AdditionalImportDirsElement = "AdditionalImportDirs";
         internal static readonly string SourceUrlElement = "SourceUrl";
 
+        // Internal for testing
+        internal static Func<string, Task<Stream>> GetStreamAsync { get; set; } = HttpClient.GetStreamAsync;
+
         public CommandBase(IConsole console, FileInfo? projectPath)
             : this(console, ResolveProject(projectPath)) { }
 
@@ -260,7 +263,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
             else
             {
-                using (var stream = await HttpClient.GetStreamAsync(url))
+                using (var stream = await GetStreamAsync(url))
                 using (var fileStream = File.OpenRead(destination))
                 {
                     contentNotModified = IsStreamContentIdentical(stream, fileStream);
@@ -275,7 +278,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (!dryRun)
             {
-                using (var stream = await HttpClient.GetStreamAsync(url))
+                using (var stream = await GetStreamAsync(url))
                 using (var fileStream = File.Open(destination, FileMode.Create, FileAccess.Write))
                 {
                     await stream.CopyToAsync(fileStream);
