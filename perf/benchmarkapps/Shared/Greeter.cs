@@ -16,11 +16,11 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using Grpc.Core;
-using Greet;
 using System;
+using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
+using Greet;
+using Grpc.Core;
 
 class GreeterService : Greeter.GreeterBase
 {

@@ -17,8 +17,6 @@
 #endregion
 
 using BenchmarkDotNet.Running;
-using System;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Microbenchmarks
 {

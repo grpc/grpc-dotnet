@@ -17,14 +17,11 @@
 #endregion
 
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 

@@ -16,11 +16,8 @@
 
 #endregion
 
-using NUnit.Framework;
-using Greet;
-using static Greet.Greeter;
-using System;
 using Grpc.NetCore.HttpClient.Internal;
+using NUnit.Framework;
 
 namespace Grpc.NetCore.HttpClient.Tests
 {
