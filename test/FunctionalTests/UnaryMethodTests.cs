@@ -337,7 +337,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         }
 
         [Test]
-        [Ignore("Regression in TestServer")]
+        [Ignore("Regression in TestServer - https://github.com/aspnet/AspNetCore/issues/10737")]
         public async Task SingletonService_PrivateFieldsPreservedBetweenCalls()
         {
             // Arrange
