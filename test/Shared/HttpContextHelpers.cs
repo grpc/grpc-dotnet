@@ -16,17 +16,20 @@
 
 #endregion
 
+using System.Threading;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.Tests.Shared
 {
-    internal class TestHttpContextAccessor : IHttpContextAccessor
+    internal static class HttpContextHelpers
     {
-        public TestHttpContextAccessor(HttpContext httpContext)
+        public static void SetupHttpContext(ServiceCollection services, CancellationToken? cancellationToken = null)
         {
-            HttpContext = httpContext;
-        }
+            var httpContext = new DefaultHttpContext();
+            httpContext.RequestAborted = cancellationToken ?? CancellationToken.None;
 
-        public HttpContext HttpContext { get; set; }
+            services.AddSingleton<IHttpContextAccessor>(new TestHttpContextAccessor(httpContext));
+        }
     }
 }

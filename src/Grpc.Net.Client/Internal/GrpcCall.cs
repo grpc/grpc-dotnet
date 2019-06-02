@@ -326,7 +326,7 @@ namespace Grpc.Net.Client.Internal
             {
                 _headerValidationError = "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode;
             }
-            else if (HttpResponse.Content.Headers.ContentType == null)
+            else if (HttpResponse.Content?.Headers.ContentType == null)
             {
                 _headerValidationError = "Bad gRPC response. Response did not have a content-type header.";
             }
