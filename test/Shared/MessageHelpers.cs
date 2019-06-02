@@ -47,7 +47,7 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var pipeReader = new StreamPipeReader(stream);
+            var pipeReader = PipeReader.Create(stream);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
@@ -70,7 +70,7 @@ namespace Grpc.Tests.Shared
 
         public static Task<T?> AssertReadStreamMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
-            var pipeReader = new StreamPipeReader(stream);
+            var pipeReader = PipeReader.Create(stream);
 
             return AssertReadStreamMessageAsync<T>(pipeReader, compressionEncoding, compressionProviders);
         }
@@ -110,7 +110,7 @@ namespace Grpc.Tests.Shared
 
             var messageData = message.ToByteArray();
 
-            var pipeWriter = new StreamPipeWriter(stream);
+            var pipeWriter = PipeWriter.Create(stream);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = compressionEncoding;

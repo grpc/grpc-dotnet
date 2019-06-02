@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
         {
             var messageData = message.ToByteArray();
 
-            var pipeWriter = new StreamPipeWriter(stream);
+            var pipeWriter = PipeWriter.Create(stream);
 
             PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
         }

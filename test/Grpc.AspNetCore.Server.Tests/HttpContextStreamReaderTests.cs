@@ -22,8 +22,10 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -61,7 +63,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new SyncPointMemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.BodyReader = new StreamPipeReader(ms);
+            httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
             var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, (data) =>
             {
