@@ -243,19 +243,16 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public async Task DownloadFileAsync(string url, string destination, bool dryRun = false)
         {
-            if (!Path.IsPathRooted(destination))
-            {
-                destination = Path.Combine(Project.DirectoryPath, destination);
-            }
+            var resolveDestination = Path.IsPathRooted(destination) ? destination : Path.Combine(Project.DirectoryPath, destination);
 
             var contentNotModified = true;
 
-            if (!File.Exists(destination))
+            if (!File.Exists(resolveDestination))
             {
                 // The destination file doesn't exist so content is modified.
                 contentNotModified = false;
 
-                var destinationDirectory = Path.GetDirectoryName(destination);
+                var destinationDirectory = Path.GetDirectoryName(resolveDestination);
                 if (!Directory.Exists(destinationDirectory))
                 {
                     Directory.CreateDirectory(destinationDirectory);
@@ -264,7 +261,7 @@ namespace Grpc.Dotnet.Cli.Commands
             else
             {
                 using (var stream = await GetStreamAsync(url))
-                using (var fileStream = File.OpenRead(destination))
+                using (var fileStream = File.OpenRead(resolveDestination))
                 {
                     contentNotModified = IsStreamContentIdentical(stream, fileStream);
                 }
@@ -276,10 +273,11 @@ namespace Grpc.Dotnet.Cli.Commands
                 return;
             }
 
+            Console.Log(CoreStrings.LogDownload, destination, url);
             if (!dryRun)
             {
                 using (var stream = await GetStreamAsync(url))
-                using (var fileStream = File.Open(destination, FileMode.Create, FileAccess.Write))
+                using (var fileStream = File.Open(resolveDestination, FileMode.Create, FileAccess.Write))
                 {
                     await stream.CopyToAsync(fileStream);
                     await fileStream.FlushAsync();

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Protobuf Include="Proto\a.proto">
+      <SourceUrl>SourceUrl</SourceUrl>
+    </Protobuf>
+  </ItemGroup>
+</Project>

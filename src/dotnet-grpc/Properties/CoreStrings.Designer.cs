@@ -151,6 +151,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Updating content of {0} with content at {1}..
+        /// </summary>
+        internal static string LogDownload {
+            get {
+                return ResourceManager.GetString("LogDownload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Removing reference to file {0}..
         /// </summary>
         internal static string LogRemoveReference {

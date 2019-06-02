@@ -147,6 +147,9 @@
   <data name="LogAddUrlReference" xml:space="preserve">
     <value>Adding file reference {0} with content from {1}.</value>
   </data>
+  <data name="LogDownload" xml:space="preserve">
+    <value>Updating content of {0} with content at {1}.</value>
+  </data>
   <data name="LogRemoveReference" xml:space="preserve">
     <value>Removing reference to file {0}.</value>
   </data>
