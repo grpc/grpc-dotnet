@@ -21,7 +21,7 @@ using System.Net.Http;
 using System.Threading;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

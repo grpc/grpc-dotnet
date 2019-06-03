@@ -16,24 +16,12 @@
 
 #endregion
 
-using Grpc.Core;
-using Grpc.Net.Client;
-using static Greet.SecondGreeter;
+using System;
 
-namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
+namespace Grpc.Net.Client.Internal
 {
-    internal class TestSecondGreeterClient : SecondGreeterClient
+    internal interface ISystemClock
     {
-        private CallInvoker _callInvoker;
-
-        public TestSecondGreeterClient(CallInvoker callInvoker) : base(callInvoker)
-        {
-            _callInvoker = callInvoker;
-        }
-
-        public HttpClientCallInvoker GetCallInvoker()
-        {
-            return (HttpClientCallInvoker)_callInvoker;
-        }
+        DateTime UtcNow { get; }
     }
 }

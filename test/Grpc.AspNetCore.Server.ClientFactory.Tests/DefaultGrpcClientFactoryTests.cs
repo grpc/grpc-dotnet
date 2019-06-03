@@ -24,7 +24,7 @@ using Greet;
 using Grpc.AspNetCore.Server.ClientFactory.Internal;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
