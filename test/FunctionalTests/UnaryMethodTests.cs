@@ -337,10 +337,9 @@ namespace Grpc.AspNetCore.FunctionalTests
         }
 
         [Test]
-        [Ignore("Regression in TestServer - https://github.com/aspnet/AspNetCore/issues/10737")]
         public async Task SingletonService_PrivateFieldsPreservedBetweenCalls()
         {
-            // Arrange
+            // Arrange 1
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new Empty());
 
@@ -353,6 +352,10 @@ namespace Grpc.AspNetCore.FunctionalTests
             var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
             Assert.AreEqual(1, total.Count);
             response.AssertTrailerStatus();
+
+            // Arrange 2
+            ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new Empty());
 
             // Act 2
             response = await Fixture.Client.PostAsync(
