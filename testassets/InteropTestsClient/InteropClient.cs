@@ -31,7 +31,7 @@ using Grpc.Auth;
 using Grpc.Core;
 using Grpc.Core.Logging;
 using Grpc.Core.Utils;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 using Grpc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -209,7 +209,10 @@ namespace InteropTestsClient
             }
             else if (channel is HttpClientChannel httpClientChannel)
             {
-                return GrpcClientFactory.Create<TClient>(httpClientChannel.BaseAddress, httpClientChannel.HttpClientHandler, loggerFactory);
+                var httpClient = new HttpClient(httpClientChannel.HttpClientHandler);
+                httpClient.BaseAddress = new Uri(httpClientChannel.BaseAddress, UriKind.RelativeOrAbsolute);
+
+                return GrpcClient.Create<TClient>(httpClient, loggerFactory);
             }
             else
             {

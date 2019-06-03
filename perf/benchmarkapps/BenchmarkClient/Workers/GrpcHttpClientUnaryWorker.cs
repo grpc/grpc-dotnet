@@ -16,9 +16,11 @@
 
 #endregion
 
+using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 
 namespace BenchmarkClient.Workers
 {
@@ -43,7 +45,10 @@ namespace BenchmarkClient.Workers
 
         public Task ConnectAsync()
         {
-            _client = GrpcClientFactory.Create<Greeter.GreeterClient>(BaseUri);
+            _client = GrpcClient.Create<Greeter.GreeterClient>(new HttpClient
+            {
+                BaseAddress = new Uri(BaseUri, UriKind.RelativeOrAbsolute)
+            });
             return Task.CompletedTask;
         }
 

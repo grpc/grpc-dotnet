@@ -17,7 +17,7 @@
 #endregion
 
 using Grpc.Core;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 using static Greet.Greeter;
 
 namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory

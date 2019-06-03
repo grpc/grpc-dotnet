@@ -16,24 +16,28 @@
 
 #endregion
 
-using Grpc.Core;
-using Grpc.Net.Client;
-using static Greet.SecondGreeter;
+using System;
+using System.Net.Http;
+using NUnit.Framework;
+using static Greet.Greeter;
 
-namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
+namespace Grpc.Net.Client.Tests
 {
-    internal class TestSecondGreeterClient : SecondGreeterClient
+    [TestFixture]
+    public class GrpcClientFactoryTests
     {
-        private CallInvoker _callInvoker;
-
-        public TestSecondGreeterClient(CallInvoker callInvoker) : base(callInvoker)
+        [Test]
+        public void Create_WithBaseAddress_ReturnInstance()
         {
-            _callInvoker = callInvoker;
-        }
+            // Arrange & Act
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = GrpcClient.Create<GreeterClient>(httpClient);
 
-        public HttpClientCallInvoker GetCallInvoker()
-        {
-            return (HttpClientCallInvoker)_callInvoker;
+            // Assert
+            Assert.IsNotNull(client);
         }
     }
 }

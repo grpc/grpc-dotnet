@@ -9,7 +9,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\Grpc.NetCore.HttpClient\Grpc.NetCore.HttpClient.csproj" />
+    <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 </Project>
