@@ -161,6 +161,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 return Enumerable.Empty<ProjectItem>();
             }
+
             var resolvedReferences = new List<ProjectItem>();
             var protobufItems = Project.GetItems(ProtobufElement);
 
@@ -180,7 +181,7 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                var localItem = protobufItems.SingleOrDefault(p => string.Equals(p.UnevaluatedInclude, reference, StringComparison.OrdinalIgnoreCase));
+                var localItem = protobufItems.SingleOrDefault(p => string.Equals(Path.GetFullPath(p.UnevaluatedInclude), Path.GetFullPath(reference), StringComparison.OrdinalIgnoreCase));
 
                 if (localItem == null)
                 {
