@@ -110,7 +110,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureClient));
             }
 
-            services.TryAddSingleton<Grpc.Net.ClientFactory.GrpcClientFactory, DefaultGrpcClientFactory>();
+            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
 
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Transient(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));

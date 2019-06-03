@@ -35,19 +35,19 @@ namespace Grpc.Net.Client.Tests.Infrastructure
 
         public static readonly Method<HelloRequest, HelloReply> ServiceMethod = new Method<HelloRequest, HelloReply>(MethodType.Unary, "ServiceName", "MethodName", HelloRequestMarshaller, HelloReplyMarshaller);
 
-        public static System.Net.Http.HttpClient CreateTestClient(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
+        public static HttpClient CreateTestClient(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
         {
             var handler = TestHttpMessageHandler.Create(sendAsync);
-            var httpClient = new System.Net.Http.HttpClient(handler);
+            var httpClient = new HttpClient(handler);
             httpClient.BaseAddress = new Uri("https://localhost");
 
             return httpClient;
         }
 
-        public static System.Net.Http.HttpClient CreateTestClient(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
+        public static HttpClient CreateTestClient(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
         {
             var handler = TestHttpMessageHandler.Create(sendAsync);
-            var httpClient = new System.Net.Http.HttpClient(handler);
+            var httpClient = new HttpClient(handler);
             httpClient.BaseAddress = new Uri("https://localhost");
 
             return httpClient;
