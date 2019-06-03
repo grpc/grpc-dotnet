@@ -24,6 +24,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Any;
+using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;

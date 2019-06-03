@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TRequest, TResponse>(MethodType.Unary, methodName ?? Guid.NewGuid().ToString());
 
-            AddServiceCore((c) =>
+            AddServiceCore(c =>
             {
                 c.AddUnaryMethod(method, new List<object>(), new UnaryServerMethod<DynamicService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
             });
@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TRequest, TResponse>(MethodType.ServerStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            AddServiceCore((c) =>
+            AddServiceCore(c =>
             {
                 c.AddServerStreamingMethod(method, new List<object>(), new ServerStreamingServerMethod<DynamicService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
             });
@@ -81,7 +81,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TRequest, TResponse>(MethodType.ClientStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            AddServiceCore((c) =>
+            AddServiceCore(c =>
             {
                 c.AddClientStreamingMethod(method, new List<object>(), new ClientStreamingServerMethod<DynamicService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
             });
@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             var method = CreateMethod<TRequest, TResponse>(MethodType.DuplexStreaming, methodName ?? Guid.NewGuid().ToString());
 
-            AddServiceCore((c) =>
+            AddServiceCore(c =>
             {
                 c.AddDuplexStreamingMethod(method, new List<object>(), new DuplexStreamingServerMethod<DynamicService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
             });

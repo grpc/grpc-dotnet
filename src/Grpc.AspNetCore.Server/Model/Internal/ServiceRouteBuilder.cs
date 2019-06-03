@@ -105,7 +105,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             // Return UNIMPLEMENTED status for missing method:
             // - /Package.Service/{method} + content-type header = grpc/application
-            var serviceNames = serviceMethods.Select(m => m.Method.ServiceName).Distinct().ToList();
+            var serviceNames = serviceMethods.Select(m => m.Method.ServiceName).Distinct();
 
             // Typically there should be one service name for a type
             // In case the bind method sets up multiple services in one call we'll loop over them

@@ -19,6 +19,7 @@
 using System;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;

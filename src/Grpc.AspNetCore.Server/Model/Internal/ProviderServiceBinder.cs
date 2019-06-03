@@ -33,29 +33,29 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var model = CreateModelCore<ClientStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
-            _context.AddClientStreamingMethod<TRequest, TResponse>(method, model.Metadata, model.Invoker);
+            var (invoker, metadata) = CreateModelCore<ClientStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
+            _context.AddClientStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var model = CreateModelCore<DuplexStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
-            _context.AddDuplexStreamingMethod<TRequest, TResponse>(method, model.Metadata, model.Invoker);
+            var (invoker, metadata) = CreateModelCore<DuplexStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
+            _context.AddDuplexStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
         {
-            var model = CreateModelCore<ServerStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
-            _context.AddServerStreamingMethod<TRequest, TResponse>(method, model.Metadata, model.Invoker);
+            var (invoker, metadata) = CreateModelCore<ServerStreamingServerMethod<TService, TRequest, TResponse>>(method.Name);
+            _context.AddServerStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
         {
-            var model = CreateModelCore<UnaryServerMethod<TService, TRequest, TResponse>>(method.Name);
-            _context.AddUnaryMethod<TRequest, TResponse>(method, model.Metadata, model.Invoker);
+            var (invoker, metadata) = CreateModelCore<UnaryServerMethod<TService, TRequest, TResponse>>(method.Name);
+            _context.AddUnaryMethod<TRequest, TResponse>(method, metadata, invoker);
         }
 
-        private GrpcEndpointModel<TDelegate> CreateModelCore<TDelegate>(string methodName) where TDelegate : Delegate
+        private (TDelegate invoker, List<object> metadata) CreateModelCore<TDelegate>(string methodName) where TDelegate : Delegate
         {
             var handlerMethod = typeof(TService).GetMethod(methodName);
             if (handlerMethod == null)
@@ -71,19 +71,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             // Add method metadata last so it has a higher priority
             metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
 
-            return new GrpcEndpointModel<TDelegate>(invoker, metadata);
-        }
-
-        private class GrpcEndpointModel<TInvoker> where TInvoker : Delegate
-        {
-            public GrpcEndpointModel(TInvoker invoker, List<object> metadata)
-            {
-                Invoker = invoker;
-                Metadata = metadata;
-            }
-
-            public TInvoker Invoker { get; }
-            public List<object> Metadata { get; }
+            return (invoker, metadata);
         }
     }
 }
