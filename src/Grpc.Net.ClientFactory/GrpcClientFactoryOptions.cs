@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 using Grpc.Core.Interceptors;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 
 namespace Grpc.Net.ClientFactory
 {

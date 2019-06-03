@@ -18,7 +18,7 @@
 
 using Greet;
 using Grpc.Core;
-using Grpc.NetCore.HttpClient;
+using Grpc.Net.Client;
 
 namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
 {

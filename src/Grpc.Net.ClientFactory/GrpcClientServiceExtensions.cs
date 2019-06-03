@@ -23,7 +23,6 @@ using Grpc.Net.ClientFactory.Internal;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Grpc.NetCore.HttpClient;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
