@@ -22,6 +22,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

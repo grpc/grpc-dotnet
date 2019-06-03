@@ -19,8 +19,10 @@
 using System;
 using System.Linq;
 using Greet;
+using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
+using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_WithoutServices_RaiseError()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -53,16 +55,25 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_CantBind_RaiseError()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
             // Act & Assert
-            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<object>());
-            Assert.AreEqual("Error binding gRPC service 'Object'.", ex.Message);
-            Assert.AreEqual($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {typeof(object).FullName}.", ex.InnerException.Message);
+            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<ErrorService>());
+            Assert.AreEqual("Error binding gRPC service 'ErrorService'.", ex.Message);
+            Assert.AreEqual("Error!", ex.InnerException.InnerException.Message);
+        }
+
+        [BindServiceMethod(typeof(ErrorService), "BindMethod")]
+        private class ErrorService
+        {
+            public static void BindMethod(ServiceBinderBase binder, ErrorService errorService)
+            {
+                throw new Exception("Error!");
+            }
         }
 
         [Test]
@@ -86,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Tests
         private void BindServiceCore<TService>() where TService : class
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc();
 
@@ -120,11 +131,10 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
 
-            var loggerName = "Grpc.AspNetCore.Server.Internal.GrpcServiceBinder";
             var mockLoggerFactory = new Mock<ILoggerFactory>();
             mockLoggerFactory
                 .Setup(m => m.CreateLogger(It.IsAny<string>()))
-                .Returns((string categoryName) => (categoryName == loggerName) ? (ILogger)testLogger : NullLogger.Instance);
+                .Returns((string categoryName) => testLogger);
 
             var services = new ServiceCollection();
             services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
@@ -149,7 +159,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ConventionBuilder_AddsMetadata()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc();
 
@@ -181,7 +191,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ServiceWithAttribute_AddsAttributesAsMetadata()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc();
 
@@ -210,7 +220,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ServiceWithAttributeAndBuilder_TestMetdataPrecedence()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc();
 
@@ -244,7 +254,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_NoMatchingCompressionProvider_ThrowError()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc(options =>
             {

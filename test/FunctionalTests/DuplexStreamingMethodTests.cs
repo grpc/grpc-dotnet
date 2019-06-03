@@ -102,7 +102,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<UnaryMethodTests, ChatMessage, ChatMessage>(ChatBufferHint);
+            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<ChatMessage, ChatMessage>(ChatBufferHint);
 
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage

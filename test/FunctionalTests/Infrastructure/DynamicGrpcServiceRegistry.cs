@@ -22,11 +22,14 @@ using System.Linq;
 using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Builder.Internal;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -44,93 +47,84 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _serviceProvider = serviceProvider;
         }
 
-        private static GrpcEndpointModel<TInvoker> CreateModel<TInvoker>(TInvoker invoker) where TInvoker : Delegate
-        {
-            return new GrpcEndpointModel<TInvoker>(invoker, new List<object>());
-        }
-
-        public string AddUnaryMethod<TService, TRequest, TResponse>(UnaryServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
-            where TService : class
+        public string AddUnaryMethod<TRequest, TResponse>(UnaryServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
         {
-            var method = CreateMethod<TService, TRequest, TResponse>(MethodType.Unary, methodName ?? Guid.NewGuid().ToString());
+            var method = CreateMethod<TRequest, TResponse>(MethodType.Unary, methodName ?? Guid.NewGuid().ToString());
 
-            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
-            mockFactory.Setup(m => m.CreateUnaryModel(method)).Returns(() => CreateModel(new UnaryServerMethod<TService, TRequest, TResponse>((service, request, context) => callHandler(request, context))));
-
-            AddServiceCore((binder, _) => binder.AddMethod(method, (UnaryServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
-
-            return method.FullName;
-        }
-
-        public string AddServerStreamingMethod<TService, TRequest, TResponse>(ServerStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
-            where TService : class
-            where TRequest : class, IMessage, new()
-            where TResponse : class, IMessage, new()
-        {
-            var method = CreateMethod<TService, TRequest, TResponse>(MethodType.ServerStreaming, methodName ?? Guid.NewGuid().ToString());
-
-            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
-            mockFactory.Setup(m => m.CreateServerStreamingModel(method)).Returns(() => CreateModel(new ServerStreamingServerMethod<TService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context))));
-
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ServerStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
-
-            return method.FullName;
-        }
-
-        public string AddClientStreamingMethod<TService, TRequest, TResponse>(ClientStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
-            where TService : class
-            where TRequest : class, IMessage, new()
-            where TResponse : class, IMessage, new()
-        {
-            var method = CreateMethod<TService, TRequest, TResponse>(MethodType.ClientStreaming, methodName ?? Guid.NewGuid().ToString());
-
-            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
-            mockFactory.Setup(m => m.CreateClientStreamingModel(method)).Returns(() => CreateModel(new ClientStreamingServerMethod<TService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context))));
-
-            AddServiceCore((binder, _) => binder.AddMethod(method, (ClientStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
-
-            return method.FullName;
-        }
-
-        public string AddDuplexStreamingMethod<TService, TRequest, TResponse>(DuplexStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
-            where TService : class
-            where TRequest : class, IMessage, new()
-            where TResponse : class, IMessage, new()
-        {
-            var method = CreateMethod<TService, TRequest, TResponse>(MethodType.DuplexStreaming, methodName ?? Guid.NewGuid().ToString());
-
-            Mock<IGrpcMethodModelFactory<TService>> mockFactory = new Mock<IGrpcMethodModelFactory<TService>>();
-            mockFactory.Setup(m => m.CreateDuplexStreamingModel(method)).Returns(() => CreateModel(new DuplexStreamingServerMethod<TService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context))));
-
-            AddServiceCore((binder, _) => binder.AddMethod(method, (DuplexStreamingServerMethod<TRequest, TResponse>)null!), mockFactory.Object);
-
-            return method.FullName;
-        }
-
-        private void AddServiceCore<TService>(Action<ServiceBinderBase, TService?> bindAction, IGrpcMethodModelFactory<TService> modelFactory)
-            where TService : class
-        {
-            var routeBuilder = new DynamicEndpointRouteBuilder(_serviceProvider);
-            routeBuilder.MapGrpcService<TService>(options =>
+            AddServiceCore(c =>
             {
-                options.BindAction = bindAction;
-                options.ModelFactory = modelFactory;
+                c.AddUnaryMethod(method, new List<object>(), new UnaryServerMethod<DynamicService, TRequest, TResponse>((service, request, context) => callHandler(request, context)));
             });
 
-            var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
+            return method.FullName;
+        }
 
+        public string AddServerStreamingMethod<TRequest, TResponse>(ServerStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
+            where TRequest : class, IMessage, new()
+            where TResponse : class, IMessage, new()
+        {
+            var method = CreateMethod<TRequest, TResponse>(MethodType.ServerStreaming, methodName ?? Guid.NewGuid().ToString());
+
+            AddServiceCore(c =>
+            {
+                c.AddServerStreamingMethod(method, new List<object>(), new ServerStreamingServerMethod<DynamicService, TRequest, TResponse>((service, request, stream, context) => callHandler(request, stream, context)));
+            });
+
+            return method.FullName;
+        }
+
+        public string AddClientStreamingMethod<TRequest, TResponse>(ClientStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
+            where TRequest : class, IMessage, new()
+            where TResponse : class, IMessage, new()
+        {
+            var method = CreateMethod<TRequest, TResponse>(MethodType.ClientStreaming, methodName ?? Guid.NewGuid().ToString());
+
+            AddServiceCore(c =>
+            {
+                c.AddClientStreamingMethod(method, new List<object>(), new ClientStreamingServerMethod<DynamicService, TRequest, TResponse>((service, stream, context) => callHandler(stream, context)));
+            });
+
+            return method.FullName;
+        }
+
+        public string AddDuplexStreamingMethod<TRequest, TResponse>(DuplexStreamingServerMethod<TRequest, TResponse> callHandler, string? methodName = null)
+            where TRequest : class, IMessage, new()
+            where TResponse : class, IMessage, new()
+        {
+            var method = CreateMethod<TRequest, TResponse>(MethodType.DuplexStreaming, methodName ?? Guid.NewGuid().ToString());
+
+            AddServiceCore(c =>
+            {
+                c.AddDuplexStreamingMethod(method, new List<object>(), new DuplexStreamingServerMethod<DynamicService, TRequest, TResponse>((service, input, output, context) => callHandler(input, output, context)));
+            });
+
+            return method.FullName;
+        }
+
+        private void AddServiceCore(Action<ServiceMethodProviderContext<DynamicService>> action)
+        {
+            // Set action for adding dynamic method
+            var serviceMethodProviders = _serviceProvider.GetServices<IServiceMethodProvider<DynamicService>>().ToList();
+            var dynamicServiceModelProvider = serviceMethodProviders.OfType<DynamicServiceModelProvider>().Single();
+            dynamicServiceModelProvider.CreateMethod = action;
+
+            // Add to dynamic endpoint route builder
+            var routeBuilder = new DynamicEndpointRouteBuilder(_serviceProvider);
+            routeBuilder.MapGrpcService<DynamicService>();
+
+            var endpoints = routeBuilder.DataSources.SelectMany(ds => ds.Endpoints).ToList();
             _endpointDataSource.AddEndpoints(endpoints);
         }
 
-        private Method<TRequest, TResponse> CreateMethod<TService, TRequest, TResponse>(MethodType methodType, string methodName)
+        private Method<TRequest, TResponse> CreateMethod<TRequest, TResponse>(MethodType methodType, string methodName)
             where TRequest : class, IMessage, new()
             where TResponse : class, IMessage, new()
         {
             return new Method<TRequest, TResponse>(
                 methodType,
-                typeof(TService).Name,
+                typeof(DynamicService).Name,
                 methodName,
                 CreateMarshaller<TRequest>(),
                 CreateMarshaller<TResponse>());

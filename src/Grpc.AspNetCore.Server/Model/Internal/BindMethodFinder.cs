@@ -20,13 +20,13 @@ using System;
 using System.Reflection;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Model.Internal
 {
     internal static class BindMethodFinder
     {
         private const BindingFlags BindMethodBindingFlags = BindingFlags.Public | BindingFlags.Static;
 
-        internal static MethodInfo GetBindMethod(Type serviceType)
+        internal static MethodInfo? GetBindMethod(Type serviceType)
         {
             // Prefer finding the bind method using attribute on the generated service
             var bindMethodInfo = GetBindMethodUsingAttribute(serviceType);
@@ -35,11 +35,6 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 // Fallback to searching for bind method using known type hierarchy that Grpc.Tools generates
                 bindMethodInfo = GetBindMethodFallback(serviceType);
-            }
-
-            if (bindMethodInfo == null)
-            {
-                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {serviceType.FullName}.");
             }
 
             return bindMethodInfo;
@@ -55,21 +50,18 @@ namespace Grpc.AspNetCore.Server.Internal
                 bindServiceMethod = serviceType.GetCustomAttribute<BindServiceMethodAttribute>();
                 if (bindServiceMethod != null)
                 {
-                    break;
+                    // Bind method will be public and static
+                    // Two parameters: ServiceBinderBase and the service type
+                    return bindServiceMethod.BindType.GetMethod(
+                        bindServiceMethod.BindMethodName,
+                        BindMethodBindingFlags,
+                        binder: null,
+                        new[] { typeof(ServiceBinderBase), serviceType },
+                        Array.Empty<ParameterModifier>());
                 }
             } while ((serviceType = serviceType.BaseType) != null);
 
-            if (bindServiceMethod == null)
-            {
-                return null;
-            }
-
-            return bindServiceMethod.BindType.GetMethod(
-                bindServiceMethod.BindMethodName,
-                BindMethodBindingFlags,
-                binder: null,
-                new[] { typeof(ServiceBinderBase), serviceType },
-                Array.Empty<ParameterModifier>());
+            return null;
         }
 
         internal static MethodInfo? GetBindMethodFallback(Type serviceType)

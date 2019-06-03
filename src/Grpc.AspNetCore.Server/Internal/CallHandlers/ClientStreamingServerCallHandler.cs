@@ -18,6 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
