@@ -15,6 +15,8 @@
     <Compile Include="..\Shared\SyncPoint.cs" Link="Infrastructure\SyncPoint.cs" />
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
+    <Compile Include="..\Shared\TestRequestBodyPipeFeature.cs" Link="Infrastructure\TestRequestBodyPipeFeature.cs" />
+    <Compile Include="..\Shared\TestResponseBodyPipeFeature.cs" Link="Infrastructure\TestResponseBodyPipeFeature.cs" />
   </ItemGroup>
 
   <ItemGroup>

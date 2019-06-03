@@ -11,9 +11,11 @@
 
   <ItemGroup>
     <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
-
     <None Remove="@(Protobuf)" />
     <Content Include="@(Protobuf)" LinkBase="" />
+    
+    <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
+    <Compile Include="..\..\test\Shared\TestResponseBodyPipeFeature.cs" Link="Internal\TestResponseBodyPipeFeature.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 

@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x00 // length = 0
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
@@ -72,7 +72,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
@@ -97,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var messageData = await pipeReader.ReadSingleMessageAsync(context);
@@ -123,7 +123,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context).AsTask());
@@ -151,7 +151,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0xC1 // length = 449
                 }.Concat(content).ToArray());
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
@@ -179,7 +179,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0xC1 // length = 449
                 }.Concat(content).ToArray());
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
@@ -203,7 +203,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 };
             var ms = new MemoryStream(emptyMessage.Concat(emptyMessage).ToArray());
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act 1
             var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
@@ -235,7 +235,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x00
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(
@@ -260,7 +260,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(
@@ -286,7 +286,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10 // additional data
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(
@@ -308,7 +308,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x00
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(
@@ -333,7 +333,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 });
 
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(
@@ -349,7 +349,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServerCallContext);
@@ -364,7 +364,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServerCallContext, flush: true);
@@ -389,7 +389,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServerCallContext, flush: true);
@@ -415,7 +415,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
             var content = Encoding.UTF8.GetBytes("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius nibh a blandit mollis. "
                 + "In hac habitasse platea dictumst. Proin non quam nec neque convallis commodo. Orci varius natoque penatibus et magnis dis "
                 + "parturient montes, nascetur ridiculus mus. Mauris commodo est vehicula, semper arcu eu, ornare urna. Mauris malesuada nisl "
@@ -445,7 +445,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
@@ -472,7 +472,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             var ex = Assert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, flush: true));
@@ -502,7 +502,7 @@ namespace Grpc.AspNetCore.Server.Tests
             context.Initialize();
 
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
@@ -536,7 +536,7 @@ namespace Grpc.AspNetCore.Server.Tests
             context.Initialize();
 
             var ms = new MemoryStream();
-            var pipeWriter = new StreamPipeWriter(ms);
+            var pipeWriter = PipeWriter.Create(ms);
 
             // Act
             await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);

@@ -41,7 +41,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response) where T : IMessage, new()
         {
             response.AssertIsSuccessfulGrpcRequest();
-            return MessageHelpers.AssertReadMessage<T>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+            var data = await response.Content.ReadAsByteArrayAsync().DefaultTimeout();
+            response.AssertTrailerStatus();
+
+            return MessageHelpers.AssertReadMessage<T>(data);
         }
 
         public static void AssertTrailerStatus(this HttpResponseMessage response) => response.AssertTrailerStatus(StatusCode.OK, string.Empty);
