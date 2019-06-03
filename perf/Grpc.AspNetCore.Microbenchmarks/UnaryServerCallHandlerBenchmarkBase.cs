@@ -28,6 +28,7 @@ using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -79,10 +80,10 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;
-            _httpContext.Request.BodyReader = _requestPipe;
             _httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
-            _httpContext.Response.BodyWriter = new TestPipeWriter();
 
+            _httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(_requestPipe));
+            _httpContext.Features.Set<IResponseBodyPipeFeature>(new TestResponseBodyPipeFeature(new TestPipeWriter()));
             _httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature
             {
                 Trailers = _trailers

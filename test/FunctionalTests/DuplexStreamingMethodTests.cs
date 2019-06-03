@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
             var message1 = await message1Task.DefaultTimeout();
@@ -141,7 +141,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             var message1 = await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout();
             Assert.AreEqual("John", message1.Name);

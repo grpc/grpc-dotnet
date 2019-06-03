@@ -111,7 +111,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 url,
                 new GrpcStreamContent(ms)).DefaultTimeout();
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             // Assert
             await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader);
@@ -134,7 +134,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 url,
                 new GrpcStreamContent(new MemoryStream())).DefaultTimeout();
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             // Assert
             await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader);

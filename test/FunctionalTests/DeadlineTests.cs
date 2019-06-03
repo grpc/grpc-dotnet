@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             var messageCount = 0;
 
@@ -171,7 +171,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-            var pipeReader = new StreamPipeReader(responseStream);
+            var pipeReader = PipeReader.Create(responseStream);
 
             var messageCount = 0;
 
