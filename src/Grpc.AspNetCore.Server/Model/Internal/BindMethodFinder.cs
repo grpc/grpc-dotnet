@@ -50,21 +50,18 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 bindServiceMethod = serviceType.GetCustomAttribute<BindServiceMethodAttribute>();
                 if (bindServiceMethod != null)
                 {
-                    break;
+                    // Bind method will be public and static
+                    // Two parameters: ServiceBinderBase and the service type
+                    return bindServiceMethod.BindType.GetMethod(
+                        bindServiceMethod.BindMethodName,
+                        BindMethodBindingFlags,
+                        binder: null,
+                        new[] { typeof(ServiceBinderBase), serviceType },
+                        Array.Empty<ParameterModifier>());
                 }
             } while ((serviceType = serviceType.BaseType) != null);
 
-            if (bindServiceMethod == null)
-            {
-                return null;
-            }
-
-            return bindServiceMethod.BindType.GetMethod(
-                bindServiceMethod.BindMethodName,
-                BindMethodBindingFlags,
-                binder: null,
-                new[] { typeof(ServiceBinderBase), serviceType },
-                Array.Empty<ParameterModifier>());
+            return null;
         }
 
         internal static MethodInfo? GetBindMethodFallback(Type serviceType)
