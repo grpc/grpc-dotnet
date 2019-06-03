@@ -6,11 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\*.proto" GrpcServices="Server,Client" Generator="MSBuild:Compile" />
-    <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="" />
-    <Compile Include="..\Shared\HttpContextHelpers.cs" Link="Infrastructure\HttpContextHelpers.cs" />
+    <Protobuf Include="Proto\*.proto" GrpcServices="Server,Client" />
 
+    <Compile Include="..\Shared\HttpContextHelpers.cs" Link="Infrastructure\HttpContextHelpers.cs" />
     <Compile Include="..\Shared\HttpContextServerCallContextHelpers.cs" Link="Infrastructure\HttpContextServerCallContextHelpers.cs" />
     <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
     <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />

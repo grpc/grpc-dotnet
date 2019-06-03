@@ -6,10 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Proto\grpc\testing\*.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
-
-    <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="Proto" />
+    <Protobuf Include="..\Proto\grpc\testing\*.proto" GrpcServices="Client" />
 
     <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
