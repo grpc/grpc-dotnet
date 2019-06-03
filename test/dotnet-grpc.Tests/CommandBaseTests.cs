@@ -30,9 +30,8 @@ using NUnit.Framework;
 namespace Grpc.Dotnet.Cli.Tests
 {
     [TestFixture]
-    public class BindMethodFinderTests
+    public class BindMethodFinderTests : TestBase
     {
-
         [Test]
         public void EnsureNugetPackages_AddsRequiredPackages()
         {
@@ -86,12 +85,12 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var commandBase = new CommandBase(
                 new TestConsole(),
-                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
 
             var referencePath = Path.Combine("Proto", "a.proto");
 
             // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, "http://contoso.com/proto.proto");
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -102,7 +101,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
@@ -110,10 +109,10 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "a.proto");
+            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto");
 
             // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, "http://contoso.com/proto.proto");
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -124,7 +123,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
@@ -132,10 +131,10 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "a.proto");
+            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto");
 
             // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, "http://contoso.com/proto.proto");
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -146,7 +145,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual("http://contoso.com/proto.proto", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
         }
 
         [Test]
@@ -162,7 +161,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var currentDirectory = Directory.GetCurrentDirectory();
-            var testAssetsDirectory = Path.Combine(currentDirectory, "TestAssets");
+            var testAssetsDirectory = Path.Combine(currentDirectory, "TestAssets", "EmptyProject");
             Directory.SetCurrentDirectory(testAssetsDirectory);
 
             // Act
@@ -192,7 +191,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var currentDirectory = Directory.GetCurrentDirectory();
-            Directory.SetCurrentDirectory(Path.Combine(currentDirectory, "TestAssets", "Proto"));
+            Directory.SetCurrentDirectory(Path.Combine(currentDirectory, "TestAssets", "EmptyProject", "Proto"));
 
             // Act, Assert
             Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject(null));
@@ -205,7 +204,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var commandBase = new CommandBase(
                 new TestConsole(),
-                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
 
             // Act
             var references = commandBase.GlobReferences(new[] { Path.Combine("Proto", "*.proto") });
@@ -222,11 +221,11 @@ namespace Grpc.Dotnet.Cli.Tests
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            var references = commandBase.GlobReferences(new[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "*.proto") });
+            var references = commandBase.GlobReferences(new[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "*.proto") });
 
             // Assert
-            Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "a.proto"), references);
-            Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "b.proto"), references);
+            Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
+            Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
         }
 
         [Test]
@@ -234,7 +233,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
@@ -249,7 +248,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "NonEquivalent Content");
@@ -265,7 +264,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
@@ -282,7 +281,7 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "NonEquivalent Content");
@@ -298,11 +297,11 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "Content");
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, "http://contoso.com/proto.proto");
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -324,11 +323,11 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "Proto", "c.proto");
+            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "Content");
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, "http://contoso.com/proto.proto");
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert

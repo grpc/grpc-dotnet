@@ -189,4 +189,19 @@
   <data name="ServiceOptionDescription" xml:space="preserve">
     <value>The type of gRPC services that should be generated. Default value is Both.</value>
   </data>
+  <data name="ErrorMoreThanOneProjectFound" xml:space="preserve">
+    <value>Found more than one project in `{0}`. Please specify which one to use.</value>
+  </data>
+  <data name="ErrorNoProjectFound" xml:space="preserve">
+    <value>Could not find any project in `{0}`. Please specify a project explicitly.</value>
+  </data>
+  <data name="ErrorProjectDoesNotExist" xml:space="preserve">
+    <value>The project {0} does not exist.</value>
+  </data>
+  <data name="ErrorReferenceDoesNotExist" xml:space="preserve">
+    <value>The reference {0} does not exist.</value>
+  </data>
+  <data name="ErrorReferenceNotUrl" xml:space="preserve">
+    <value>The reference being added is not a valid URL.</value>
+  </data>
 </root>

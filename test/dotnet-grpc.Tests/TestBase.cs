@@ -27,6 +27,8 @@ namespace Grpc.Dotnet.Cli.Tests
 {
     public class TestBase
     {
+        public static readonly string SourceUrl = "https://contoso.com/greet.proto";
+
         private static readonly string ProtoContent = @"// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the ""License"");

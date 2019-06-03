@@ -124,6 +124,51 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Found more than one project in `{0}`. Please specify which one to use..
+        /// </summary>
+        internal static string ErrorMoreThanOneProjectFound {
+            get {
+                return ResourceManager.GetString("ErrorMoreThanOneProjectFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not find any project in `{0}`. Please specify a project explicitly..
+        /// </summary>
+        internal static string ErrorNoProjectFound {
+            get {
+                return ResourceManager.GetString("ErrorNoProjectFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The project {0} does not exist..
+        /// </summary>
+        internal static string ErrorProjectDoesNotExist {
+            get {
+                return ResourceManager.GetString("ErrorProjectDoesNotExist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The reference {0} does not exist..
+        /// </summary>
+        internal static string ErrorReferenceDoesNotExist {
+            get {
+                return ResourceManager.GetString("ErrorReferenceDoesNotExist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The reference being added is not a valid URL..
+        /// </summary>
+        internal static string ErrorReferenceNotUrl {
+            get {
+                return ResourceManager.GetString("ErrorReferenceNotUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Adding file reference {0}..
         /// </summary>
         internal static string LogAddFileReference {

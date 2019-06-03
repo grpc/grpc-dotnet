@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -92,7 +93,7 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             if (!File.Exists(Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file)))
             {
-                throw new CLIToolException($"The reference {file} does not exist.");
+                throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorReferenceDoesNotExist, file));
             }
 
             if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(i.UnevaluatedInclude, file, StringComparison.OrdinalIgnoreCase)))
@@ -132,7 +133,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 if (!File.Exists(project.FullName))
                 {
-                    throw new CLIToolException($"The project {project.FullName} does not exist.");
+                    throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorProjectDoesNotExist, project.FullName));
                 }
 
                 return new Project(project.FullName);
@@ -143,12 +144,12 @@ namespace Grpc.Dotnet.Cli.Commands
 
             if (projectFiles.Length == 0)
             {
-                throw new CLIToolException($"Could not find any project in `{currentDirectory}`. Please specify a project explicitly.");
+                throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorNoProjectFound, currentDirectory));
             }
 
             if (projectFiles.Length > 1)
             {
-                throw new CLIToolException($"Found more than one project in `{currentDirectory}`. Please specify which one to use.");
+                throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorMoreThanOneProjectFound, currentDirectory));
             }
 
             return new Project(projectFiles[0]);

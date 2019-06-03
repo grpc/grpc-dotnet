@@ -36,7 +36,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var currentDir = Directory.GetCurrentDirectory();
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            new DirectoryInfo(Path.Combine(currentDir, "TestAssets")).CopyTo(tempDir);
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
 
             // Act
             Directory.SetCurrentDirectory(tempDir);

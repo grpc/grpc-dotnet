@@ -37,12 +37,12 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var currentDir = Directory.GetCurrentDirectory();
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            new DirectoryInfo(Path.Combine(currentDir, "TestAssets")).CopyTo(tempDir);
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
 
             // Act
             Directory.SetCurrentDirectory(tempDir);
             var command = new AddUrlCommand(new TestConsole(), null);
-            await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", "SourceUrl", Path.Combine("Proto", "c.proto"));
+            await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, Path.Combine("Proto", "c.proto"));
             command.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -59,7 +59,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual("SourceUrl", protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
 
             Assert.IsNotEmpty(File.ReadAllText(Path.Combine(command.Project.DirectoryPath, "Proto", "c.proto")));
 

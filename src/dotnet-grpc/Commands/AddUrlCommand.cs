@@ -76,6 +76,11 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             EnsureNugetPackages();
 
+            if (!IsUrl(url))
+            {
+                throw new CLIToolException(CoreStrings.ErrorReferenceNotUrl);
+            }
+
             await DownloadFileAsync(url, output);
 
             Console.Log(CoreStrings.LogAddUrlReference, output, url);
