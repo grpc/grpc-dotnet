@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
 
             // Assert
-            Assert.AreEqual(string.Format(CoreStrings.LogDownload, "Proto\\a.proto", "SourceUrl"), testConsole.Out.ToString().TrimEnd());
+            Assert.AreEqual(string.Format(CoreStrings.LogDownload, "Proto/a.proto", "SourceUrl"), testConsole.Out.ToString().TrimEnd());
             Assert.AreEqual(dryRun, string.IsNullOrEmpty(File.ReadAllText(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto"))));
 
             // Cleanup
