@@ -24,6 +24,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Any;
+using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
@@ -194,7 +195,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(UnaryMethodTests).FullName &&
+                return writeContext.LoggerName == typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
                        writeContext.Exception!.Message == "Response headers can only be sent once per call.";
@@ -208,7 +209,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
 
             // Act
             var response = await Fixture.Client.PostAsync(
@@ -225,12 +226,12 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>(
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
                 (requestStream, context) => Task.FromResult<HelloReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(UnaryMethodTests).FullName &&
+                return writeContext.LoggerName == typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -259,7 +260,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task ServerMethodThrowsExceptionWithTrailers_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, HelloRequest, HelloReply>((request, context) =>
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
             {
                 var trailers = new Metadata();
                 trailers.Add(new Metadata.Entry("test-trailer", "A value!"));
@@ -269,7 +270,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(UnaryMethodTests).FullName &&
+                return writeContext.LoggerName == typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Unknown' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "User error";
@@ -314,7 +315,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<UnaryMethodTests, Empty, Empty>(ReturnContextInfoInTrailers);
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
 
             // Act
             var response = await Fixture.Client.PostAsync(
@@ -329,7 +330,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var serviceName = methodParts[0];
             var methodName = methodParts[1];
 
-            Assert.AreEqual("UnaryMethodTests", serviceName);
+            Assert.AreEqual("DynamicService", serviceName);
             Assert.IsTrue(Guid.TryParse(methodName, out var _));
 
             Assert.IsFalse(response.TrailingHeaders.TryGetValues("Test-Peer", out _));

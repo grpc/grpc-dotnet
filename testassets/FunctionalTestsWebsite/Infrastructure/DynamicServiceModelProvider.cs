@@ -17,22 +17,20 @@
 #endregion
 
 using System;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
+using System.Diagnostics;
+using Grpc.AspNetCore.Server.Model;
 
-namespace Grpc.AspNetCore.Server
+namespace FunctionalTestsWebsite.Infrastructure
 {
-    /// <summary>
-    /// Options used to configure the binding of a gRPC service.
-    /// </summary>
-    public class GrpcBindingOptions<TService> where TService : class
+    public class DynamicServiceModelProvider : IServiceMethodProvider<DynamicService>
     {
-        /// <summary>
-        /// The action invoked to get service metadata via <see cref="ServiceBinderBase"/>.
-        /// </summary>
-        public Action<ServiceBinderBase, TService?>? BindAction { get; set; }
+        public Action<ServiceMethodProviderContext<DynamicService>>? CreateMethod { get; set; }
 
-        // Currently internal. It is set in tests via InternalVisibleTo. Can be made public if there is demand for it
-        internal IGrpcMethodModelFactory<TService>? ModelFactory { get; set; }
+        public void OnServiceMethodDiscovery(ServiceMethodProviderContext<DynamicService> context)
+        {
+            Debug.Assert(CreateMethod != null);
+
+            CreateMethod(context);
+        }
     }
 }

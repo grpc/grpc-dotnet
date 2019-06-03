@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Greet;
+using Grpc.AspNetCore.Server.Model;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -90,6 +91,7 @@ namespace FunctionalTestsWebsite
             // This will add a default types if the site is run standalone
             services.TryAddSingleton<IPrimaryMessageHandlerProvider, HttpPrimaryMessageHandlerProvider>();
             services.TryAddSingleton<DynamicEndpointDataSource>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IServiceMethodProvider<DynamicService>, DynamicServiceModelProvider>());
 
             // Add a Singleton service
             services.AddSingleton<SingletonCounterService>();
@@ -114,9 +116,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<NestedService>();
                 endpoints.MapGrpcService<CompressionService>();
                 endpoints.MapGrpcService<AnyService>();
-
-                // Bind via configure method
-                endpoints.MapGrpcService<GreeterService>(options => options.BindAction = Greet.Greeter.BindService);
+                endpoints.MapGrpcService<GreeterService>();
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 

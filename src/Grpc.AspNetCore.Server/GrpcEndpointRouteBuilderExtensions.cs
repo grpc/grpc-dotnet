@@ -19,6 +19,7 @@
 using System;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,57 +45,12 @@ namespace Microsoft.AspNetCore.Builder
                 throw new ArgumentNullException(nameof(builder));
             }
 
-            return builder.MapGrpcService<TService>(configureOptions: null);
-        }
-
-        /// <summary>
-        /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
-        /// </summary>
-        /// <typeparam name="TService">The service type to map requests to.</typeparam>
-        /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <param name="configureOptions">A callback to configure binding options.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder, Action<GrpcBindingOptions<TService>>? configureOptions) where TService : class
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
             ValidateServicesRegistered(builder.ServiceProvider);
 
-            var options = new GrpcBindingOptions<TService>();
-            options.BindAction = ReflectionBind;
-            options.ModelFactory = new ReflectionMethodModelFactory<TService>();
+            var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
+            var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
 
-            configureOptions?.Invoke(options);
-
-            var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
-            var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
-            var loggerFactory = builder.ServiceProvider.GetRequiredService<ILoggerFactory>();
-
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry, loggerFactory);
-
-            try
-            {
-                options.BindAction(serviceBinder, null);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error binding gRPC service '{typeof(TService).Name}'.", ex);
-            }
-
-            serviceBinder.CreateUnimplementedEndpoints();
-
-            return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
-        }
-
-        private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
-        {
-            var bindMethodInfo = BindMethodFinder.GetBindMethod(typeof(TService));
-
-            // Invoke BindService(ServiceBinderBase, BaseType)
-            bindMethodInfo.Invoke(null, new object?[] { binder, service });
+            return new CompositeEndpointConventionBuilder(endpointConventionBuilders);
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)

@@ -16,16 +16,9 @@
 
 #endregion
 
-using System.Collections.Generic;
-using Grpc.Core;
-
-namespace Grpc.AspNetCore.Server.Internal
+namespace FunctionalTestsWebsite.Infrastructure
 {
-    /// <summary>
-    /// A registry of all the service methods in the application.
-    /// </summary>
-    internal class ServiceMethodsRegistry
+    public class DynamicService
     {
-        public List<IMethod> Methods { get; } = new List<IMethod>();
     }
 }

@@ -19,6 +19,7 @@
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
+using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
@@ -40,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                     options.Interceptors.Add<OrderedInterceptor>(0);
                     options.Interceptors.Add<OrderedInterceptor>(1);
                 })
-                .AddServiceOptions<InterceptorOrderTests>(options =>
+                .AddServiceOptions<DynamicService>(options =>
                 {
                     options.Interceptors.Add<OrderedInterceptor>(2);
                     options.Interceptors.Add<OrderedInterceptor>(3);
@@ -51,7 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_Unary()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<InterceptorOrderTests, Empty, Empty>((request, context) =>
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>((request, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -75,7 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_ClientStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<InterceptorOrderTests, Empty, Empty>((requestStream, context) =>
+            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, Empty>((requestStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -96,7 +97,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_ServerStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<InterceptorOrderTests, Empty, Empty>((request, responseStream, context) =>
+            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<Empty, Empty>((request, responseStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -122,7 +123,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_DuplexStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<InterceptorOrderTests, Empty, Empty>((requestStream, responseStream, context) =>
+            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<Empty, Empty>((requestStream, responseStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
