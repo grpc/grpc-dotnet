@@ -24,8 +24,9 @@ using Grpc.Core;
 namespace Grpc.AspNetCore.Server.Model
 {
     /// <summary>
-    /// 
+    /// A context for <see cref="IServiceMethodProvider{TService}"/>.
     /// </summary>
+    /// <typeparam name="TService">Service type for the context.</typeparam>
     public class ServiceMethodProviderContext<TService> where TService : class
     {
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
@@ -39,13 +40,13 @@ namespace Grpc.AspNetCore.Server.Model
         internal List<MethodModel> Methods { get; }
 
         /// <summary>
-        /// 
+        /// Adds a unary method to a service.
         /// </summary>
-        /// <typeparam name="TRequest"></typeparam>
-        /// <typeparam name="TResponse"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="metadata"></param>
-        /// <param name="invoker"></param>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The method invoker that is executed when the method is called.</param>
         public void AddUnaryMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, IList<object> metadata, UnaryServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
@@ -57,13 +58,13 @@ namespace Grpc.AspNetCore.Server.Model
         }
 
         /// <summary>
-        /// 
+        /// Adds a server streaming method to a service.
         /// </summary>
-        /// <typeparam name="TRequest"></typeparam>
-        /// <typeparam name="TResponse"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="metadata"></param>
-        /// <param name="invoker"></param>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The method invoker that is executed when the method is called.</param>
         public void AddServerStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
@@ -75,13 +76,13 @@ namespace Grpc.AspNetCore.Server.Model
         }
 
         /// <summary>
-        /// 
+        /// Adds a client streaming method to a service.
         /// </summary>
-        /// <typeparam name="TRequest"></typeparam>
-        /// <typeparam name="TResponse"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="metadata"></param>
-        /// <param name="invoker"></param>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The method invoker that is executed when the method is called.</param>
         public void AddClientStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
@@ -93,13 +94,13 @@ namespace Grpc.AspNetCore.Server.Model
         }
 
         /// <summary>
-        /// 
+        /// Adds a duplex streaming method to a service.
         /// </summary>
-        /// <typeparam name="TRequest"></typeparam>
-        /// <typeparam name="TResponse"></typeparam>
-        /// <param name="method"></param>
-        /// <param name="metadata"></param>
-        /// <param name="invoker"></param>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The method invoker that is executed when the method is called.</param>
         public void AddDuplexStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
