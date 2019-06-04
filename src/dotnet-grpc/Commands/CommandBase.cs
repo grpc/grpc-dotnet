@@ -277,7 +277,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.LogError(e);
+                    throw new CLIToolException(e.Message);
                 }
             }
 
@@ -301,7 +301,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 }
                 catch (HttpRequestException e)
                 {
-                    Console.LogError(e);
+                    throw new CLIToolException(e.Message);
                 }
             }
         }
