@@ -23,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     public static class TestHelpers
     {

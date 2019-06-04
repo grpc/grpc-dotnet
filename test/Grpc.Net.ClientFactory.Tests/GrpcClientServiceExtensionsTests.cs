@@ -19,6 +19,7 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
 using Greet;
+using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
@@ -40,22 +41,16 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
                     o.BaseAddress = baseAddress;
-                    o.Certificate = certificate;
-                    o.PropagateCancellationToken = true;
-                    o.PropagateDeadline = true;
                 });
 
             var serviceProvider = services.BuildServiceProvider();
 
             // Act
-            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>();
+            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
             var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
 
             // Assert
             Assert.AreEqual(baseAddress, options.BaseAddress);
-            Assert.AreEqual(certificate, options.Certificate);
-            Assert.AreEqual(true, options.PropagateCancellationToken);
-            Assert.AreEqual(true, options.PropagateDeadline);
         }
 
         [Test]
@@ -80,7 +75,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var serviceProvider = services.BuildServiceProvider();
 
             // Act
-            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>();
+            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
             var options1 = optionsMonitor.Get("First");
             var options2 = optionsMonitor.Get("Second");
 

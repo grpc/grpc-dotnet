@@ -27,7 +27,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class ResponseUtils
     {

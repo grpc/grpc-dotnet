@@ -19,12 +19,10 @@
 using System;
 using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
-using Greet;
-using Grpc.AspNetCore.Server.ClientFactory.Internal;
+using Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Features;
-using Grpc.Core;
-using Grpc.Net.Client;
+using Grpc.Net.ClientFactory;
+using Grpc.Net.ClientFactory.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -36,58 +34,6 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
     public class DefaultGrpcClientFactoryTests
     {
         [Test]
-        public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
-        {
-            // Arrange
-            var baseAddress = new Uri("http://localhost");
-
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services.AddSingleton(CreateHttpContextAccessor());
-            services.AddGrpcClient<TestGreeterClient>(o => o.BaseAddress = baseAddress);
-
-            var serviceProvider = services.BuildServiceProvider();
-
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>());
-
-            // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
-
-            // Assert
-            Assert.IsNotNull(client);
-            Assert.AreEqual(baseAddress, client.CallInvoker.BaseAddress);
-        }
-
-        [Test]
-        public void CreateClient_MatchingConfigurationBasedOnCustomName_ReturnConfiguration()
-        {
-            // Arrange
-            var baseAddress = new Uri("http://localhost");
-
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services.AddSingleton(CreateHttpContextAccessor());
-            services.AddGrpcClient<TestGreeterClient>("Custom", o => o.BaseAddress = baseAddress);
-
-            var serviceProvider = services.BuildServiceProvider();
-
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>());
-
-            // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>("Custom");
-
-            // Assert
-            Assert.IsNotNull(client);
-            Assert.AreEqual(baseAddress, client.CallInvoker.BaseAddress);
-        }
-
-        [Test]
         public void CreateClient_ServerCallContextHasValues_PropogatedDeadlineAndCancellation()
         {
             // Arrange
@@ -97,20 +43,18 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddSingleton(CreateHttpContextAccessor(deadline, cancellationToken));
+            services.AddSingleton(CreateHttpContextAccessorWithServerCallContext(deadline, cancellationToken));
             services.AddGrpcClient<TestGreeterClient>(o =>
             {
                 o.BaseAddress = baseAddress;
-                o.PropagateDeadline = true;
-                o.PropagateCancellationToken = true;
-            });
+            }).EnableCallContextPropagation();
 
             var serviceProvider = services.BuildServiceProvider();
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
                 serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>());
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
@@ -123,97 +67,84 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public void CreateClient_NoMatchingConfiguration_ThrowError()
+        public void CreateClient_NoHttpContext_ThrowError()
         {
             // Arrange
+            var baseAddress = new Uri("http://localhost");
+
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddSingleton(CreateHttpContextAccessor());
-            services.AddGrpcClient<TestGreeterClient>(o => { });
+            services.AddSingleton(CreateHttpContextAccessor(null));
+            services.AddGrpcClient<TestGreeterClient>(o =>
+            {
+                o.BaseAddress = baseAddress;
+            }).EnableCallContextPropagation();
 
             var serviceProvider = services.BuildServiceProvider();
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
                 serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>());
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greet.Greeter.GreeterClient>("Test"));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)));
 
             // Assert
-            Assert.AreEqual("No gRPC client configured with name 'Test'.", ex.Message);
+            Assert.AreEqual("Unable to propagate server context values to the client. Can't find the current HttpContext.", ex.Message);
         }
 
-        private IHttpContextAccessor CreateHttpContextAccessor(DateTime deadline = default, CancellationToken cancellationToken = default)
+        [Test]
+        public void CreateClient_NoServerCallContextOnHttpContext_ThrowError()
         {
-            var test = new TestHttpContextAccessor(new DefaultHttpContext());
+            // Arrange
+            var baseAddress = new Uri("http://localhost");
 
+            var services = new ServiceCollection();
+            services.AddOptions();
+            services.AddSingleton(CreateHttpContextAccessor(new DefaultHttpContext()));
+            services.AddGrpcClient<TestGreeterClient>(o =>
+            {
+                o.BaseAddress = baseAddress;
+            }).EnableCallContextPropagation();
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            var clientFactory = new DefaultGrpcClientFactory(
+                serviceProvider,
+                serviceProvider.GetRequiredService<IHttpClientFactory>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)));
+
+            // Assert
+            Assert.AreEqual("Unable to propagate server context values to the client. Can't find the current gRPC ServerCallContext.", ex.Message);
+        }
+
+        private IHttpContextAccessor CreateHttpContextAccessor(HttpContext? httpContext)
+        {
+            return new TestHttpContextAccessor(httpContext);
+        }
+
+        private IHttpContextAccessor CreateHttpContextAccessorWithServerCallContext(DateTime deadline = default, CancellationToken cancellationToken = default)
+        {
+            var httpContext = new DefaultHttpContext();
             var serverCallContext = new TestServerCallContext(deadline, cancellationToken);
             var serverCallContextFeature = new TestServerCallContextFeature(serverCallContext);
-            test.HttpContext.Features.Set<IServerCallContextFeature>(serverCallContextFeature);
+            httpContext.Features.Set<IServerCallContextFeature>(serverCallContextFeature);
 
-            return test;
-        }
-
-        private class TestServerCallContext : ServerCallContext
-        {
-            public TestServerCallContext(DateTime deadline, CancellationToken cancellationToken)
-            {
-                DeadlineCore = deadline;
-                CancellationTokenCore = cancellationToken;
-            }
-
-            protected override string? MethodCore { get; }
-            protected override string? HostCore { get; }
-            protected override string? PeerCore { get; }
-            protected override DateTime DeadlineCore { get; }
-            protected override Metadata? RequestHeadersCore { get; }
-            protected override CancellationToken CancellationTokenCore { get; }
-            protected override Metadata? ResponseTrailersCore { get; }
-            protected override Status StatusCore { get; set; }
-            protected override WriteOptions? WriteOptionsCore { get; set; }
-            protected override AuthContext? AuthContextCore { get; }
-
-            protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
-            {
-                throw new NotImplementedException();
-            }
-
-            protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public class TestGreeterClient : Greeter.GreeterClient
-        {
-            public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
-            {
-                CallInvoker = (HttpClientCallInvoker)callInvoker;
-            }
-
-            public new HttpClientCallInvoker CallInvoker { get; }
-        }
-
-        private class TestServerCallContextFeature : IServerCallContextFeature
-        {
-            public TestServerCallContextFeature(ServerCallContext serverCallContext)
-            {
-                ServerCallContext = serverCallContext;
-            }
-
-            public ServerCallContext ServerCallContext { get; }
+            return CreateHttpContextAccessor(httpContext);
         }
 
         private class TestHttpContextAccessor : IHttpContextAccessor
         {
-            public TestHttpContextAccessor(HttpContext httpContext)
+            public TestHttpContextAccessor(HttpContext? httpContext)
             {
                 HttpContext = httpContext;
             }
 
-            public HttpContext HttpContext { get; set; }
+            public HttpContext? HttpContext { get; set; }
         }
     }
 }

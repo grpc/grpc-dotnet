@@ -22,7 +22,6 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;

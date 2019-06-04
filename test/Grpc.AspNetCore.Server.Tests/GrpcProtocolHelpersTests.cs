@@ -19,7 +19,7 @@
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Tests.Infrastructure;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests

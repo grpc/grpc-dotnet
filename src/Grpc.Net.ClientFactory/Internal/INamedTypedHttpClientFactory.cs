@@ -17,15 +17,11 @@
 #endregion
 
 using System.Net.Http;
-using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.Net.ClientFactory.Internal
 {
-    internal static class HttpClientCallInvokerFactory
+    interface INamedTypedHttpClientFactory<TClient>
     {
-        public static HttpClientCallInvoker Create(HttpClient httpClient, ILoggerFactory? loggerFactory = null)
-        {
-            return new HttpClientCallInvoker(httpClient, loggerFactory);
-        }
+        TClient CreateClient(HttpClient httpClient, string name);
     }
 }

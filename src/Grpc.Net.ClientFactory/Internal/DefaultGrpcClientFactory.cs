@@ -21,15 +21,15 @@ using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Internal
+namespace Grpc.Net.ClientFactory.Internal
 {
     internal class DefaultGrpcClientFactory : GrpcClientFactory
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IOptionsMonitor<GrpcClientOptions> _clientOptionsMonitor;
+        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientOptionsMonitor;
 
-        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, IOptionsMonitor<GrpcClientOptions> clientOptionsMonitor)
+        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, IOptionsMonitor<GrpcClientFactoryOptions> clientOptionsMonitor)
         {
             _serviceProvider = serviceProvider;
             _httpClientFactory = httpClientFactory;

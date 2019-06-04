@@ -19,25 +19,27 @@
 using System;
 using System.Net.Http;
 using System.Threading;
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Internal
+namespace Grpc.Net.ClientFactory.Internal
 {
     internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
     {
         private readonly Cache _cache;
         private readonly IServiceProvider _services;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IOptionsMonitor<GrpcClientOptions> _clientOptions;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _optionsMonitor;
 
-        public GrpcHttpClientFactory(Cache cache, IServiceProvider services, IOptionsMonitor<GrpcClientOptions> clientOptions, ILoggerFactory loggerFactory)
+        public GrpcHttpClientFactory(
+            Cache cache,
+            IServiceProvider services,
+            ILoggerFactory loggerFactory,
+            IOptionsMonitor<GrpcClientFactoryOptions> optionsMonitor)
         {
             if (cache == null)
             {
@@ -49,21 +51,20 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Internal
                 throw new ArgumentNullException(nameof(services));
             }
 
-            if (clientOptions == null)
-            {
-                throw new ArgumentNullException(nameof(clientOptions));
-            }
-
             if (loggerFactory == null)
             {
                 throw new ArgumentNullException(nameof(loggerFactory));
             }
 
+            if (optionsMonitor == null)
+            {
+                throw new ArgumentNullException(nameof(optionsMonitor));
+            }
+
             _cache = cache;
             _services = services;
-            _httpContextAccessor = services.GetService<IHttpContextAccessor>();
-            _clientOptions = clientOptions;
             _loggerFactory = loggerFactory;
+            _optionsMonitor = optionsMonitor;
         }
 
         public TClient CreateClient(HttpClient httpClient, string name)
@@ -73,34 +74,22 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Internal
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
-            var callInvoker = new HttpClientCallInvoker(httpClient, _loggerFactory);
+            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, _loggerFactory);
 
-            var httpContext = _httpContextAccessor.HttpContext;
-            var serverCallContext = httpContext?.Features.Get<IServerCallContextFeature>().ServerCallContext;
-
-            var namedOptions = _clientOptions.Get(name);
-
-            if (namedOptions.PropagateCancellationToken)
+            var options = _optionsMonitor.Get(name);
+            for (var i = 0; i < options.CallInvokerActions.Count; i++)
             {
-                if (serverCallContext == null)
-                {
-                    throw new InvalidOperationException("Cannot propagate the call cancellation token to the client. Cannot find the current gRPC ServerCallContext.");
-                }
-
-                callInvoker.CancellationToken = serverCallContext.CancellationToken;
+                options.CallInvokerActions[i](httpClientCallInvoker);
             }
 
-            if (namedOptions.PropagateDeadline)
+            CallInvoker resolvedCallInvoker = httpClientCallInvoker;
+            // Interceptors wrap each other and execute in reverse order
+            for (var i = options.Interceptors.Count - 1; i >= 0; i--)
             {
-                if (serverCallContext == null)
-                {
-                    throw new InvalidOperationException("Cannot propagate the call deadline to the client. Cannot find the current gRPC ServerCallContext.");
-                }
-
-                callInvoker.Deadline = serverCallContext.Deadline;
+                resolvedCallInvoker = resolvedCallInvoker.Intercept(options.Interceptors[i]);
             }
 
-            return (TClient)_cache.Activator(_services, new object[] { callInvoker });
+            return (TClient)_cache.Activator(_services, new object[] { resolvedCallInvoker });
         }
 
         // The Cache should be registered as a singleton, so it that it can
