@@ -33,13 +33,13 @@ namespace Grpc.Dotnet.Cli.Tests
     public class BindMethodFinderTests : TestBase
     {
         [Test]
-        public void EnsureNugetPackages_AddsRequiredPackages()
+        public void EnsureNugetPackages_AddsRequiredServerPackages()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages();
+            commandBase.EnsureNugetPackages(Services.Server);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -51,6 +51,24 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
+        public void EnsureNugetPackages_AddsRequiredClientPackages()
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project());
+
+            // Act
+            commandBase.EnsureNugetPackages(Services.Client);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            Assert.AreEqual(3, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Core" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+        }
+
+        [Test]
         public void EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
         {
             // Arrange
@@ -58,7 +76,7 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
             // Act
-            commandBase.EnsureNugetPackages();
+            commandBase.EnsureNugetPackages(Services.Server);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -102,6 +120,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
             Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
         }
 
         [Test]
@@ -124,6 +143,7 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
             Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
         }
 
         [Test]
@@ -135,6 +155,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Act
             commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
+            commandBase.AddProtobufReference(Services.Client, "ImportDir2", Access.Public, referencePath, SourceUrl + ".proto");
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -146,6 +167,37 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
             Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+        }
+
+        static object[] ProtosOutsideProject =
+        {
+            new object[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "ProjectWithReference", "Proto", "a.proto") },
+            new object[] { Path.Combine("..", "ProjectWithReference", "Proto", "a.proto") },
+        };
+
+        [Test]
+        [TestCaseSource("ProtosOutsideProject")]
+        public void AddProtobufReference_AddsLinkElementIfFileOutsideProject(string reference)
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+
+            // Act
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, reference, SourceUrl);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(reference, protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(Path.Combine(CommandBase.ProtosFolder, "a.proto"), protoRef.GetMetadataValue(CommandBase.LinkElement));
         }
 
         [Test]
