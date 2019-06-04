@@ -12,6 +12,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <!-- Include PDB in the built .nupkg -->
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- TODO(JamesNK): Potentially change to netstandard2.1 https://github.com/dotnet/standard/issues/1144 -->
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
