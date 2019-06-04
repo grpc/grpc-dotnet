@@ -77,7 +77,7 @@ namespace Grpc.Dotnet.Cli.Commands
             foreach (var item in items)
             {
                 Console.Log(CoreStrings.LogRemoveReference, item.UnevaluatedInclude);
-                RemoveProtobufReference(item, removeFile);
+                Project.RemoveItem(item)
             }
 
             Project.Save();

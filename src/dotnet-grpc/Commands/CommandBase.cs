@@ -78,7 +78,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         private void AddNugetPackage(string packageName, string packageVersion, string privateAssets)
         {
-            var packageReference = Project.GetItems(PackageReferenceElement).SingleOrDefault(i => i.UnevaluatedInclude == packageName);
+            var packageReference = Project.GetItems(PackageReferenceElement).SingleOrDefault(i => string.Equals(i.UnevaluatedInclude, packageName, StringComparison.OrdinalIgnoreCase));
 
             if (packageReference == null)
             {
@@ -193,6 +193,8 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
+                // The GetFullPath calls are used to resolve paths which may be equivalent but not identitcal
+                // For example: Proto/a.proto and Proto/../Proto/a.proto
                 var localItem = protobufItems.SingleOrDefault(p => string.Equals(Path.GetFullPath(p.UnevaluatedInclude), Path.GetFullPath(reference), StringComparison.OrdinalIgnoreCase));
 
                 if (localItem == null)
@@ -228,26 +230,17 @@ namespace Grpc.Dotnet.Cli.Commands
                     continue;
                 }
 
-                try
+                if (Directory.Exists(Path.Combine(Project.DirectoryPath, Path.GetDirectoryName(reference))))
                 {
                     expandedReferences.AddRange(
                         Directory.GetFiles(Project.DirectoryPath, reference)
+                            // The reference is relative to the project directory but GetFiles returns the full path.
+                            // Remove the project directory portion of the path so relative references are maintained.
                             .Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
                 }
-                catch (DirectoryNotFoundException) { }
             }
 
             return expandedReferences.ToArray();
-        }
-
-        public void RemoveProtobufReference(ProjectItem protobufRef, bool removeFile)
-        {
-            Project.RemoveItem(protobufRef);
-
-            if (removeFile)
-            {
-                File.Delete(Path.IsPathRooted(protobufRef.UnevaluatedInclude) ? protobufRef.UnevaluatedInclude : Path.Combine(Project.DirectoryPath, protobufRef.UnevaluatedInclude));
-            }
         }
 
         public static bool IsUrl(string reference)
@@ -274,10 +267,17 @@ namespace Grpc.Dotnet.Cli.Commands
             }
             else
             {
-                using (var stream = await GetStreamAsync(url))
-                using (var fileStream = File.OpenRead(resolveDestination))
+                try
                 {
-                    contentNotModified = IsStreamContentIdentical(stream, fileStream);
+                    using (var stream = await GetStreamAsync(url))
+                    using (var fileStream = File.OpenRead(resolveDestination))
+                    {
+                        contentNotModified = IsStreamContentIdentical(stream, fileStream);
+                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.LogError(e);
                 }
             }
 
@@ -290,11 +290,18 @@ namespace Grpc.Dotnet.Cli.Commands
             Console.Log(CoreStrings.LogDownload, destination, url);
             if (!dryRun)
             {
-                using (var stream = await GetStreamAsync(url))
-                using (var fileStream = File.Open(resolveDestination, FileMode.Create, FileAccess.Write))
+                try
                 {
-                    await stream.CopyToAsync(fileStream);
-                    await fileStream.FlushAsync();
+                    using (var stream = await GetStreamAsync(url))
+                    using (var fileStream = File.Open(resolveDestination, FileMode.Create, FileAccess.Write))
+                    {
+                        await stream.CopyToAsync(fileStream);
+                        await fileStream.FlushAsync();
+                    }
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.LogError(e);
                 }
             }
         }

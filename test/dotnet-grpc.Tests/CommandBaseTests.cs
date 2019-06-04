@@ -344,57 +344,6 @@ namespace Grpc.Dotnet.Cli.Tests
             File.Delete(tempProtoFile);
         }
 
-        [Test]
-        public void RemoveProtobufReference_RemovesReference_RetainsFile()
-        {
-            // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
-
-            // Act
-            File.WriteAllText(tempProtoFile, "Content");
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, SourceUrl);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(1, protoRefs.Count);
-
-            // Act
-            commandBase.RemoveProtobufReference(protoRefs.Single(), false);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            Assert.AreEqual(0, commandBase.Project.GetItems(CommandBase.ProtobufElement).Count);
-            Assert.True(File.Exists(tempProtoFile));
-            File.Delete(tempProtoFile);
-        }
-
-        [Test]
-        public void RemoveProtobufReference_RemovesReference_DeletesFile()
-        {
-            // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
-            var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
-
-            // Act
-            File.WriteAllText(tempProtoFile, "Content");
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, tempProtoFile, SourceUrl);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(1, protoRefs.Count);
-
-            // Act
-            commandBase.RemoveProtobufReference(protoRefs.Single(), true);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            Assert.AreEqual(0, commandBase.Project.GetItems(CommandBase.ProtobufElement).Count);
-            Assert.False(File.Exists(tempProtoFile));
-        }
-
         [TestCase("http://contoso.com/file.proto", true)]
         [TestCase("https://contoso.com/file.proto", true)]
         [TestCase("HTTPS://contoso.com/FILE.PROTO", true)]
