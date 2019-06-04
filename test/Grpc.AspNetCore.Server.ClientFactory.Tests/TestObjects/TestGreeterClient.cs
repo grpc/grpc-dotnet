@@ -16,16 +16,19 @@
 
 #endregion
 
-using System.Net.Http;
-using Microsoft.Extensions.Logging;
+using Greet;
+using Grpc.Core;
+using Grpc.Net.Client;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
 {
-    internal static class HttpClientCallInvokerFactory
+    public class TestGreeterClient : Greeter.GreeterClient
     {
-        public static HttpClientCallInvoker Create(HttpClient httpClient, ILoggerFactory? loggerFactory = null)
+        public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
         {
-            return new HttpClientCallInvoker(httpClient, loggerFactory);
+            CallInvoker = (HttpClientCallInvoker)callInvoker;
         }
+
+        public new HttpClientCallInvoker CallInvoker { get; }
     }
 }

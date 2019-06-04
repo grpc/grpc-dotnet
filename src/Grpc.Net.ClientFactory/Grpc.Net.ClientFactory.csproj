@@ -8,8 +8,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
-    <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
+    <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 </Project>

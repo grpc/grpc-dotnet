@@ -20,7 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Internal
+namespace Grpc.Net.ClientFactory.Internal
 {
     // Copied from https://github.com/aspnet/Extensions/blob/aa18b93adac411b6b98e4088284a1ffb7d83249f/src/Shared/src/TypeNameHelper/TypeNameHelper.cs
     internal class TypeNameHelper

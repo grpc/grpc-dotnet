@@ -18,8 +18,8 @@
 
 using System;
 using System.Net.Http;
-using Grpc.AspNetCore.Server.ClientFactory;
-using Grpc.AspNetCore.Server.ClientFactory.Internal;
+using Grpc.Net.ClientFactory;
+using Grpc.Net.ClientFactory.Internal;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -54,7 +54,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type. 
         /// </para>
         /// </remarks>
-        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientOptions> configureClient)
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
             where TClient : ClientBase
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
@@ -86,13 +86,13 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type. 
         /// </para>
         /// </remarks>
-        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions> configureClient)
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
             where TClient : ClientBase
         {
             return services.AddGrpcClientCore<TClient>(name, configureClient);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name, Action<GrpcClientOptions> configureClient)
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
             where TClient : ClientBase
         {
             if (services == null)
@@ -110,8 +110,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureClient));
             }
 
-            // HttpContextAccessor is used to resolve the cancellation token, deadline and other request details to use with nested gRPC requests
-            services.AddHttpContextAccessor();
             services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
 
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
@@ -119,31 +117,16 @@ namespace Microsoft.Extensions.DependencyInjection
 
             Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
             {
-                var os = s.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>();
+                var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
                 var clientOptions = os.Get(name);
 
                 httpClient.BaseAddress = clientOptions.BaseAddress;
             };
 
-            Func<IServiceProvider, HttpMessageHandler> configurePrimaryHttpMessageHandler = s =>
-            {
-                var os = s.GetRequiredService<IOptionsMonitor<GrpcClientOptions>>();
-                var clientOptions = os.Get(name);
-
-                var handler = new HttpClientHandler();
-                if (clientOptions.Certificate != null)
-                {
-                    handler.ClientCertificates.Add(clientOptions.Certificate);
-                }
-
-                return handler;
-            };
-
             services.Configure(name, configureClient);
-            services.Configure<GrpcClientOptions>(name, options => options.ExplicitlySet = true);
+            services.Configure<GrpcClientFactoryOptions>(name, options => options.ExplicitlySet = true);
 
             IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
-            clientBuilder.ConfigurePrimaryHttpMessageHandler(configurePrimaryHttpMessageHandler);
 
             return clientBuilder;
         }

@@ -16,16 +16,18 @@
 
 #endregion
 
-using System.Net.Http;
-using Microsoft.Extensions.Logging;
+using Grpc.AspNetCore.Server.Features;
+using Grpc.Core;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
 {
-    internal static class HttpClientCallInvokerFactory
+    public class TestServerCallContextFeature : IServerCallContextFeature
     {
-        public static HttpClientCallInvoker Create(HttpClient httpClient, ILoggerFactory? loggerFactory = null)
+        public TestServerCallContextFeature(ServerCallContext serverCallContext)
         {
-            return new HttpClientCallInvoker(httpClient, loggerFactory);
+            ServerCallContext = serverCallContext;
         }
+
+        public ServerCallContext ServerCallContext { get; }
     }
 }

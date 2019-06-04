@@ -109,21 +109,21 @@ namespace Grpc.Net.Client.Internal
             get { return _callCts.IsCancellationRequested; }
         }
 
-        public void StartUnary(System.Net.Http.HttpClient client, TRequest request)
+        public void StartUnary(HttpClient client, TRequest request)
         {
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
             StartSend(client, message);
         }
 
-        public void StartClientStreaming(System.Net.Http.HttpClient client)
+        public void StartClientStreaming(HttpClient client)
         {
             var message = CreateHttpRequestMessage();
             ClientStreamWriter = CreateWriter(message);
             StartSend(client, message);
         }
 
-        public void StartServerStreaming(System.Net.Http.HttpClient client, TRequest request)
+        public void StartServerStreaming(HttpClient client, TRequest request)
         {
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
@@ -131,7 +131,7 @@ namespace Grpc.Net.Client.Internal
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
-        public void StartDuplexStreaming(System.Net.Http.HttpClient client)
+        public void StartDuplexStreaming(HttpClient client)
         {
             var message = CreateHttpRequestMessage();
             ClientStreamWriter = CreateWriter(message);
@@ -326,7 +326,7 @@ namespace Grpc.Net.Client.Internal
             {
                 _headerValidationError = "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode;
             }
-            else if (HttpResponse.Content.Headers.ContentType == null)
+            else if (HttpResponse.Content?.Headers.ContentType == null)
             {
                 _headerValidationError = "Bad gRPC response. Response did not have a content-type header.";
             }
@@ -405,7 +405,7 @@ namespace Grpc.Net.Client.Internal
             return null;
         }
 
-        private void StartSend(System.Net.Http.HttpClient client, HttpRequestMessage message)
+        private void StartSend(HttpClient client, HttpRequestMessage message)
         {
             using (StartScope())
             {
@@ -423,7 +423,7 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private async Task SendAsync(System.Net.Http.HttpClient client, HttpRequestMessage message)
+        private async Task SendAsync(HttpClient client, HttpRequestMessage message)
         {
             Log.StartingCall(Logger, Method.Type, message.RequestUri);
 

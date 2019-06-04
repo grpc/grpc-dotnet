@@ -17,14 +17,16 @@
 #endregion
 
 using System;
-using System.Security.Cryptography.X509Certificates;
+using System.Collections.Generic;
+using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
 
-namespace Grpc.AspNetCore.Server.ClientFactory
+namespace Grpc.Net.ClientFactory
 {
     /// <summary>
     /// Options used to configure a gRPC client.
     /// </summary>
-    public class GrpcClientOptions
+    public class GrpcClientFactoryOptions
     {
         /// <summary>
         /// The base address to use when making gRPC calls.
@@ -32,19 +34,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory
         public Uri? BaseAddress { get; set; }
 
         /// <summary>
-        /// The client certificate to use when making gRPC calls.
+        /// Gets a list of operations used to configure an <see cref="HttpClientCallInvoker"/>.
         /// </summary>
-        public X509Certificate? Certificate { get; set; }
+        public IList<Action<HttpClientCallInvoker>> CallInvokerActions { get; } = new List<Action<HttpClientCallInvoker>>();
 
         /// <summary>
-        /// A flag that indicates whether the call cancellation token should be propagated to client calls. Defaults to true.
+        /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
-        public bool PropagateCancellationToken { get; set; } = true;
-
-        /// <summary>
-        /// A flag that indicates whether the call deadline should be propagated to client calls. Defaults to true.
-        /// </summary>
-        public bool PropagateDeadline { get; set; } = true;
+        public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
 
         // This property is set internally. It is used to check whether named configuration was explicitly set by the user
         internal bool ExplicitlySet { get; set; }

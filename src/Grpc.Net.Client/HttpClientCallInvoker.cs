@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Net.Http;
 using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -30,7 +31,7 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class HttpClientCallInvoker : CallInvoker
     {
-        private readonly System.Net.Http.HttpClient _client;
+        private readonly HttpClient _client;
         private readonly ILoggerFactory _loggerFactory;
 
         // Override the current time for unit testing
@@ -41,7 +42,7 @@ namespace Grpc.Net.Client
         /// </summary>
         /// <param name="client">The HttpClient to use for gRPC requests.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
-        public HttpClientCallInvoker(System.Net.Http.HttpClient client, ILoggerFactory? loggerFactory)
+        public HttpClientCallInvoker(HttpClient client, ILoggerFactory? loggerFactory)
         {
             if (client == null)
             {
