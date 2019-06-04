@@ -23,15 +23,17 @@ namespace Grpc.Dotnet.Cli.Internal
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     internal class GrpcDependencyAttribute : Attribute
     {
-        public GrpcDependencyAttribute(string name, string version, string privateAssets)
+        public GrpcDependencyAttribute(string name, string version, string privateAssets, string applicableServices)
         {
             Name = name;
             Version = version;
             PrivateAssets = privateAssets;
+            ApplicableServices = applicableServices;
         }
 
         public string Name { get; }
         public string Version { get; }
         public string PrivateAssets { get; }
+        public string ApplicableServices { get; }
     }
 }

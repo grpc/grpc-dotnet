@@ -27,16 +27,25 @@
       <_Parameter1>Google.Protobuf</_Parameter1>
       <_Parameter2>$(GoogleProtobufPackageVersion)</_Parameter2>
       <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Both;Server;Client;None</_Parameter4>
     </AssemblyAttribute>
     <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
       <_Parameter1>Grpc.AspNetCore.Server</_Parameter1>
       <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
       <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Both;Server</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.Core</_Parameter1>
+      <_Parameter2>$(GrpcPackageVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Both;Client</_Parameter4>
     </AssemblyAttribute>
     <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
       <_Parameter1>Grpc.Tools</_Parameter1>
       <_Parameter2>$(GrpcPackageVersion)</_Parameter2>
       <_Parameter3>All</_Parameter3>
+      <_Parameter4>Both;Server;Client;None</_Parameter4>
     </AssemblyAttribute>
 
     <Compile Update="Properties\CoreStrings.Designer.cs">

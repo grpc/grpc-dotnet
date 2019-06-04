@@ -46,6 +46,8 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string AccessElement = "Access";
         internal static readonly string AdditionalImportDirsElement = "AdditionalImportDirs";
         internal static readonly string SourceUrlElement = "SourceUrl";
+        internal static readonly string LinkElement = "Link";
+        internal static readonly string ProtosFolder = "Protos";
 
         // Internal for testing
         internal static Func<string, Task<Stream>> GetStreamAsync { get; set; } = HttpClient.GetStreamAsync;
@@ -63,11 +65,14 @@ namespace Grpc.Dotnet.Cli.Commands
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
 
-        public void EnsureNugetPackages()
+        public void EnsureNugetPackages(Services services)
         {
             foreach (var dependency in GetType().Assembly.GetCustomAttributes<GrpcDependencyAttribute>())
             {
-                AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+                if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+                }
             }
         }
 
@@ -91,7 +96,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void AddProtobufReference(Services services, string additionalImportDirs, Access access, string file, string url)
         {
-            if (!File.Exists(Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file)))
+            var resolvedPath = Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file);
+            if (!File.Exists(resolvedPath))
             {
                 throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorReferenceDoesNotExist, file));
             }
@@ -123,6 +129,12 @@ namespace Grpc.Dotnet.Cli.Commands
                 if (!string.IsNullOrEmpty(url))
                 {
                     newItem.Xml.AddMetadata(SourceUrlElement, url);
+                }
+
+                // If file is outside of the project, display the file under Protos/ directory
+                if (!Path.GetFullPath(resolvedPath).StartsWith(Project.DirectoryPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)));
                 }
             }
         }

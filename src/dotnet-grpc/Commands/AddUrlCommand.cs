@@ -74,7 +74,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public async Task AddUrlAsync(Services services, Access access, string additionalImportDirs, string url, string output)
         {
-            EnsureNugetPackages();
+            EnsureNugetPackages(services);
 
             if (!IsUrl(url))
             {

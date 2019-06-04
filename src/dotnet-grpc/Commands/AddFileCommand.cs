@@ -70,7 +70,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void AddFile(Services services, Access access, string additionalImportDirs, string[] files)
         {
-            EnsureNugetPackages();
+            EnsureNugetPackages(services);
             files = GlobReferences(files);
 
             foreach (var file in files)
