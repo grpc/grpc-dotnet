@@ -6,9 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\*.proto" GrpcServices="Client" Generator="MSBuild:Compile" />
-    <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="" />
+    <Protobuf Include="Proto\*.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,7 +14,7 @@
     <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
     <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
-    
+
     <ProjectReference Include="..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
