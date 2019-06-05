@@ -41,7 +41,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private DateTime _deadline;
+#if TIMER
         private Timer? _deadlineTimer;
+#else
+        private CancellationTokenSource? _cts;
+        private CancellationTokenRegistration _deadlineRegistration;
+#endif
         private Status _status;
         private AuthContext? _authContext;
 
@@ -247,7 +252,12 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = Clock.UtcNow.Add(timeout);
 
+#if TIMER
                 _deadlineTimer = new Timer(DeadlineExceeded, timeout, timeout, Timeout.InfiniteTimeSpan);
+#else
+                _cts = new CancellationTokenSource(timeout);
+                _deadlineRegistration = _cts.Token.UnsafeRegister(DeadlineExceeded, timeout);
+#endif
             }
             else
             {
@@ -306,7 +316,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public void Dispose()
         {
+#if TIMER
             _deadlineTimer?.Dispose();
+#else
+            _cts?.Dispose();
+            _deadlineRegistration.Dispose();
+#endif
         }
 
         internal string? GetRequestGrpcEncoding()
