@@ -8,7 +8,7 @@ $allTests =
   "large_unary",
   "client_streaming",
   "server_streaming",
-  #"ping_pong",
+  "ping_pong",
   "empty_stream",
 
   #"compute_engine_creds",
@@ -17,7 +17,7 @@ $allTests =
   #"per_rpc_creds",
 
   "cancel_after_begin",
-  #"cancel_after_first_response",
+  "cancel_after_first_response",
   "timeout_on_sleeping_server",
   "custom_metadata",
   "status_code_and_message",
