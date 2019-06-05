@@ -19,6 +19,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
@@ -30,6 +31,10 @@ namespace Grpc.Dotnet.Cli.Commands
     {
         public AddUrlCommand(IConsole console, FileInfo? projectPath)
             : base(console, projectPath) { }
+
+        // Internal for testing
+        internal AddUrlCommand(IConsole console, HttpClient client)
+            : base(console, client) { }
 
         public static Command Create()
         {

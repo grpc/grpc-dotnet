@@ -30,7 +30,7 @@ using NUnit.Framework;
 namespace Grpc.Dotnet.Cli.Tests
 {
     [TestFixture]
-    public class BindMethodFinderTests : TestBase
+    public class CommandBaseTests : TestBase
     {
         [Test]
         public void EnsureNugetPackages_AddsRequiredServerPackages()
@@ -103,7 +103,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var commandBase = new CommandBase(
                 new TestConsole(),
-                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             var referencePath = Path.Combine("Proto", "a.proto");
 
@@ -182,7 +182,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var commandBase = new CommandBase(
                 new TestConsole(),
-                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             // Act
             commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, reference, SourceUrl);
@@ -256,7 +256,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Arrange
             var commandBase = new CommandBase(
                 new TestConsole(),
-                Project.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj"), new ProjectOptions { ProjectCollection = new ProjectCollection() }));
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             // Act
             var references = commandBase.GlobReferences(new[] { Path.Combine("Proto", "*.proto") });
@@ -284,11 +284,11 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
-            await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile);
 
             // Assert
             Assert.IsNotEmpty(File.ReadAllText(tempProtoFile));
@@ -299,12 +299,12 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_OverwritesIfContentDoesNotMatch()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "NonEquivalent Content");
-            await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile);
 
             // Assert
             Assert.AreNotEqual("NonEquivalent Content", File.ReadAllText(tempProtoFile));
@@ -315,13 +315,13 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_SkipIfContentMatches()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
-            await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile);
             var lastWriteTime = File.GetLastWriteTime(tempProtoFile);
-            await commandBase.DownloadFileAsync(string.Empty, tempProtoFile);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile);
 
             // Assert
             Assert.AreEqual(lastWriteTime, File.GetLastWriteTime(tempProtoFile));
@@ -332,12 +332,12 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_DoesNotOverwriteForDryrun()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
             File.WriteAllText(tempProtoFile, "NonEquivalent Content");
-            await commandBase.DownloadFileAsync(string.Empty, tempProtoFile, true);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile, true);
 
             // Assert
             Assert.AreEqual("NonEquivalent Content", File.ReadAllText(tempProtoFile));
@@ -355,5 +355,8 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             Assert.AreEqual(isUrl, CommandBase.IsUrl(url));
         }
+
+        private Project CreateIsolatedProject(string path)
+            => Project.FromFile(path, new ProjectOptions { ProjectCollection = new ProjectCollection() });
     }
 }

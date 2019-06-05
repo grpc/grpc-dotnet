@@ -16,10 +16,11 @@
 
 #endregion
 
-using System.IO;
-using System.Text;
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
-using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
 using NUnit.Framework;
 
@@ -27,9 +28,9 @@ namespace Grpc.Dotnet.Cli.Tests
 {
     public class TestBase
     {
-        public static readonly string SourceUrl = "https://contoso.com/greet.proto";
+        internal static readonly string SourceUrl = "https://contoso.com/greet.proto";
 
-        private static readonly string ProtoContent = @"// Copyright 2019 The gRPC Authors
+        internal static readonly string ProtoContent = @"// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the ""License"");
 // you may not use this file except in compliance with the License.
@@ -64,6 +65,8 @@ message HelloReply {
   string message = 1;
 }";
 
+        internal HttpClient TestClient = new HttpClient(new TestMessageHandler());
+
         [OneTimeSetUp]
         public void Initialize()
         {
@@ -71,7 +74,18 @@ message HelloReply {
             {
                 MSBuildLocator.RegisterDefaults();
             }
-            CommandBase.GetStreamAsync = url => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(ProtoContent)));
+        }
+
+        private class TestMessageHandler : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                Assert.AreEqual(request.RequestUri,  new Uri(SourceUrl));
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(ProtoContent)
+                });
+            }
         }
     }
 }

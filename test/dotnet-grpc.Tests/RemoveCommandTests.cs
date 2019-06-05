@@ -27,10 +27,9 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class RemoveCommandTests : TestBase
     {
-        [TestCase(true)]
-        [TestCase(false)]
+        [Test]
         [NonParallelizable]
-        public void Remove_RemovesReferences(bool removeFile)
+        public void Remove_RemovesReferences()
         {
             // Arrange
             var currentDir = Directory.GetCurrentDirectory();
@@ -40,12 +39,12 @@ namespace Grpc.Dotnet.Cli.Tests
             // Act
             Directory.SetCurrentDirectory(tempDir);
             var command = new RemoveCommand(new TestConsole(), null);
-            command.Remove(removeFile, new[] { Path.Combine("Proto", "a.proto") });
+            command.Remove(new[] { Path.Combine("Proto", "a.proto") });
 
             // Assert
             var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(0, protoRefs.Count);
-            Assert.AreEqual(!removeFile, File.Exists(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto")));
+            Assert.True(File.Exists(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto")));
 
             // Cleanup
             Directory.SetCurrentDirectory(currentDir);

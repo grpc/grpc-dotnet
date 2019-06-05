@@ -41,7 +41,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Act
             Directory.SetCurrentDirectory(tempDir);
-            var command = new AddUrlCommand(new TestConsole(), null);
+            var command = new AddUrlCommand(new TestConsole(), TestClient);
             await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, Path.Combine("Proto", "c.proto"));
             command.Project.ReevaluateIfNecessary();
 

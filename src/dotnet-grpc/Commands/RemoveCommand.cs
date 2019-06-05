@@ -44,18 +44,14 @@ namespace Grpc.Dotnet.Cli.Commands
                 });
 
             command.AddOption(CommonOptions.ProjectOption());
-            command.AddOption(new Option(
-                aliases: new[] { "--remove-file" },
-                description: CoreStrings.RemoveFileOptionDescription,
-                argument: Argument.None));
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(
-                (console, project, removeFile, references) =>
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, string[]>(
+                (console, project, references) =>
                 {
                     try
                     {
                         var command = new RemoveCommand(console, project);
-                        command.Remove(removeFile, references);
+                        command.Remove(references);
 
                         return 0;
                     }
@@ -70,14 +66,14 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public void Remove(bool removeFile, string[] references)
+        public void Remove(string[] references)
         {
             var items = ResolveReferences(references);
 
             foreach (var item in items)
             {
                 Console.Log(CoreStrings.LogRemoveReference, item.UnevaluatedInclude);
-                Project.RemoveItem(item)
+                Project.RemoveItem(item);
             }
 
             Project.Save();

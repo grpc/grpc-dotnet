@@ -35,8 +35,6 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class CommandBase
     {
-        private static readonly HttpClient HttpClient = new HttpClient();
-
         // static IDs for msbuild elements
         internal static readonly string PackageReferenceElement = "PackageReference";
         internal static readonly string VersionElement = "Version";
@@ -49,17 +47,23 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string LinkElement = "Link";
         internal static readonly string ProtosFolder = "Protos";
 
-        // Internal for testing
-        internal static Func<string, Task<Stream>> GetStreamAsync { get; set; } = HttpClient.GetStreamAsync;
+        private readonly HttpClient _httpClient;
 
         public CommandBase(IConsole console, FileInfo? projectPath)
-            : this(console, ResolveProject(projectPath)) { }
+            : this(console, ResolveProject(projectPath), new HttpClient()) { }
 
         // Internal for testing
         internal CommandBase(IConsole console, Project project)
+            : this(console, project, new HttpClient()) { }
+
+        public CommandBase(IConsole console, HttpClient httpClient)
+            : this(console, ResolveProject(null), httpClient) { }
+
+        internal CommandBase(IConsole console, Project project, HttpClient httpClient)
         {
             Console = console;
             Project = project;
+            _httpClient = httpClient;
         }
 
         internal IConsole Console { get; set; }
@@ -269,7 +273,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 try
                 {
-                    using (var stream = await GetStreamAsync(url))
+                    using (var stream = await _httpClient.GetStreamAsync(url))
                     using (var fileStream = File.OpenRead(resolveDestination))
                     {
                         contentNotModified = IsStreamContentIdentical(stream, fileStream);
@@ -292,7 +296,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 try
                 {
-                    using (var stream = await GetStreamAsync(url))
+                    using (var stream = await _httpClient.GetStreamAsync(url))
                     using (var fileStream = File.Open(resolveDestination, FileMode.Create, FileAccess.Write))
                     {
                         await stream.CopyToAsync(fileStream);

@@ -183,9 +183,6 @@
   <data name="RemoveCommandDescription" xml:space="preserve">
     <value>Remove protobuf references(s).</value>
   </data>
-  <data name="RemoveFileOptionDescription" xml:space="preserve">
-    <value>Delete the protobuf file that was referenced from disk.</value>
-  </data>
   <data name="ServiceOptionDescription" xml:space="preserve">
     <value>The type of gRPC services that should be generated. Default value is Both.</value>
   </data>

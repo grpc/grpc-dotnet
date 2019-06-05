@@ -20,6 +20,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
@@ -32,6 +33,10 @@ namespace Grpc.Dotnet.Cli.Commands
     {
         public RefreshCommand(IConsole console, FileInfo? projectPath)
             : base(console, projectPath) { }
+
+        // Internal for testing
+        public RefreshCommand(IConsole console, HttpClient client)
+            : base(console, client) { }
 
         public static Command Create()
         {

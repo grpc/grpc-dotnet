@@ -304,15 +304,6 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delete the protobuf file that was referenced from disk..
-        /// </summary>
-        internal static string RemoveFileOptionDescription {
-            get {
-                return ResourceManager.GetString("RemoveFileOptionDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The type of gRPC services that should be generated. Default value is Both..
         /// </summary>
         internal static string ServiceOptionDescription {
