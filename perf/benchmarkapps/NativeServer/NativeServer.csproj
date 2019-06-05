@@ -6,21 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Requirements (Note that most of these changes will be made to the msbuild targets in Grpc.Tools) -->
-    <!-- 1. Grpc.Tools msbuild files: the Google.Protobuf.Tools.targets file needs to be updated to remove Condition=" '$(DesignTimeBuild)' != 'true' "  -->
-    <!-- 2. Generator metadata: this is the target that's run during the design time build to generate the *.cs files -->
-    <!-- 3. None ItemGroup: Remove the *.proto files from None since the generator metadata for those files are ignored -->
-    <!-- 4. Content ItemGroup: Include the *.proto files in the Content ItemGroup. This isn't required if the file is included in the project directory. I'm not sure about what's going on with this requirement. -->
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
-    <None Remove="@(Protobuf)" />
+    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" />
+
     <None Remove="hosting.json" />
-    <Content Include="@(Protobuf)" LinkBase="" />
     <Content Include="hosting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
-    <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
 
+    <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
     <Compile Include="..\Shared\Greeter.cs" Link="Greeter.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
