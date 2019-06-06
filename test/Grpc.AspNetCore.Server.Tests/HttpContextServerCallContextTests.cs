@@ -538,7 +538,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100n";
-            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetime12345Feature(cts));
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestBlockingHttpRequestLifetimeFeature(cts));
 
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
@@ -598,11 +598,11 @@ namespace Grpc.AspNetCore.Server.Tests
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
         }
 
-        private class TestHttpRequestLifetime12345Feature : IHttpRequestLifetimeFeature
+        private class TestBlockingHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
         {
             private readonly CancellationTokenSource _cts;
 
-            public TestHttpRequestLifetime12345Feature(CancellationTokenSource cts)
+            public TestBlockingHttpRequestLifetimeFeature(CancellationTokenSource cts)
             {
                 _cts = cts;
             }
