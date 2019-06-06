@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
@@ -88,6 +89,11 @@ namespace Grpc.AspNetCore.Microbenchmarks
             {
                 Trailers = _trailers
             });
+            ConfigureHttpContext(_httpContext);
+        }
+
+        protected virtual void ConfigureHttpContext(DefaultHttpContext httpContext)
+        {
         }
 
         protected Task InvokeUnaryRequestAsync()
