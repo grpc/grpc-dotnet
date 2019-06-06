@@ -397,42 +397,42 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual($"Invalid grpc-timeout header value '{header}' has been ignored.", write.State.ToString());
         }
 
+        //[Test]
+        //public async Task CancellationToken_WithDeadline_CancellationRequested()
+        //{
+        //    // Arrange
+        //    var testSink = new TestSink();
+        //    var testLogger = new TestLogger(string.Empty, testSink, true);
+
+        //    var httpContext = new DefaultHttpContext();
+        //    httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
+        //    httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
+        //    var context = CreateServerCallContext(httpContext, testLogger);
+        //    context.Initialize();
+
+        //    // Act
+        //    try
+        //    {
+        //        await Task.WhenAll(
+        //            Task.Delay(int.MaxValue, context.CancellationToken),
+        //            Task.Delay(int.MaxValue, httpContext.RequestAborted)
+        //            ).DefaultTimeout();
+        //        Assert.Fail();
+        //    }
+        //    catch (TaskCanceledException)
+        //    {
+        //    }
+
+        //    // Assert
+        //    Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
+        //    Assert.IsTrue(httpContext.RequestAborted.IsCancellationRequested);
+
+        //    var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+        //    Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
+        //}
+
         [Test]
-        public async Task CancellationToken_WithDeadline_CancellationRequested()
-        {
-            // Arrange
-            var testSink = new TestSink();
-            var testLogger = new TestLogger(string.Empty, testSink, true);
-
-            var httpContext = new DefaultHttpContext();
-            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
-            var context = CreateServerCallContext(httpContext, testLogger);
-            context.Initialize();
-
-            // Act
-            try
-            {
-                await Task.WhenAll(
-                    Task.Delay(int.MaxValue, context.CancellationToken),
-                    Task.Delay(int.MaxValue, httpContext.RequestAborted)
-                    ).DefaultTimeout();
-                Assert.Fail();
-            }
-            catch (TaskCanceledException)
-            {
-            }
-
-            // Assert
-            Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
-            Assert.IsTrue(httpContext.RequestAborted.IsCancellationRequested);
-
-            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
-            Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
-        }
-
-        [Test]
-        public async Task CancellationToken_WithDeadlineAndNoLifetimeFeature_ErrorLogged()
+        public void CancellationToken_WithDeadlineAndNoLifetimeFeature_ErrorLogged()
         {
             // Arrange
             var testSink = new TestSink();
@@ -445,10 +445,7 @@ namespace Grpc.AspNetCore.Server.Tests
             context.Initialize();
 
             // Act
-            while (context.Status.StatusCode != StatusCode.DeadlineExceeded)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
-            }
+            context.DeadlineExceeded();
 
             // Assert
             Assert.IsFalse(context.CancellationToken.IsCancellationRequested);
@@ -528,7 +525,6 @@ namespace Grpc.AspNetCore.Server.Tests
             var headerAdded = serverCallContext.RequestHeaders.Any(k => string.Equals(k.Key, headerName, StringComparison.OrdinalIgnoreCase));
             Assert.AreEqual(addedToRequestHeaders, headerAdded);
         }
-
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
         {
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);

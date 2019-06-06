@@ -16,6 +16,8 @@
 
 #endregion
 
+using System;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Running;
 
 namespace Grpc.AspNetCore.Microbenchmarks
@@ -31,18 +33,19 @@ namespace Grpc.AspNetCore.Microbenchmarks
         // Profiling option. This will call methods explicitly, in-process
         static async Task Main(string[] args)
         {
-            UnaryServerCallHandlerBenchmark benchmark = new UnaryServerCallHandlerBenchmark();
+            var benchmark = new DeadlineUnaryServerCallHandlerBenchmark();
             benchmark.GlobalSetup();
-            for (int i = 0; i < 100; i++)
+            Console.WriteLine("Warming up.");
+            for (int i = 0; i < 100000; i++)
             {
-                await benchmark.HandleCallAsync();
+                await benchmark.DeadlineHandleCallAsync();
             }
 
             Console.WriteLine("Press any key to start.");
             Console.ReadKey();
             for (int i = 0; i < 1; i++)
             {
-                await benchmark.HandleCallAsync();
+                await benchmark.DeadlineHandleCallAsync();
             }
 
             Console.WriteLine("Done. Press any key to exit.");

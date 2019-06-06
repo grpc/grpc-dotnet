@@ -16,6 +16,8 @@
 
 #endregion
 
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
@@ -46,10 +48,115 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            return HandleCallAsyncCore(httpContext);
+            var serverCallContext = CreateServerCallContext(httpContext);
+
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+            try
+            {
+                serverCallContext.Initialize();
+
+                var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
+                if (serverCallContext.Timeout == TimeSpan.Zero)
+                {
+                    // Non-deadline request
+                    serverCallContext.SetCancellationToken(httpContext.RequestAborted);
+
+                    if (handleCallTask.IsCompletedSuccessfully)
+                    {
+                        return serverCallContext.EndCallAsync();
+                    }
+                    else
+                    {
+                        return AwaitHandleCall(serverCallContext, Method, handleCallTask);
+                    }
+                }
+                else
+                {
+                    return HandleCallWithDeadline(httpContext, serverCallContext, handleCallTask);
+                }
+            }
+            catch (Exception ex)
+            {
+                serverCallContext.ProcessHandlerError(ex, Method.Name);
+                return Task.CompletedTask;
+            }
+
+            static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+            {
+                try
+                {
+                    await handleCall;
+                    await serverCallContext.EndCallAsync();
+                }
+                catch (Exception ex)
+                {
+                    serverCallContext.ProcessHandlerError(ex, method.Name);
+                }
+            }
         }
 
-        protected abstract Task HandleCallAsyncCore(HttpContext httpContext);
+        private async Task HandleCallWithDeadline(HttpContext httpContext, HttpContextServerCallContext serverCallContext, Task handleCallTask)
+        {
+            // CTS is used to...
+            // 1. Cancel Task.Delay if the handler completes first
+            // 2. CT is set on ServerCallContext to indicate
+            var cts = new CancellationTokenSource();
+            CancellationTokenRegistration registration = default;
+
+            serverCallContext.SetCancellationToken(cts.Token);
+
+            try
+            {
+                // Cancel the CTS if the request is aborted
+                if (httpContext.RequestAborted.CanBeCanceled)
+                {
+                    registration = httpContext.RequestAborted.Register((c) =>
+                    {
+                        ((CancellationTokenSource)c).Cancel();
+                    }, cts, false);
+                }
+
+                var completedTask = await Task.WhenAny(
+                    handleCallTask,
+                    Task.Delay(serverCallContext.Timeout, cts.Token));
+
+                // Either the call handler is complete, and we want to cancel the Task.Delay
+                // Or the deadline has been exceeded and we want to trigger ServerCallContext.CancellationToken
+                cts.Cancel();
+
+                if (completedTask != handleCallTask)
+                {
+                    serverCallContext.DeadlineExceeded();
+                    httpContext.Response.ConsolidateTrailers(serverCallContext);
+
+                    // Ensure any errors thrown by the dead call are handled
+                    _ = ObserveDeadCall(serverCallContext, handleCallTask);
+                }
+                else
+                {
+                    await serverCallContext.EndCallAsync();
+                }
+            }
+            finally
+            {
+                registration.Dispose();
+            }
+        }
+
+        private async Task ObserveDeadCall(HttpContextServerCallContext serverCallContext, Task handleCallTask)
+        {
+            try
+            {
+                await handleCallTask;
+            }
+            catch
+            {
+                // TODO: Log errors from dead calls
+            }
+        }
+
+        protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
 
         protected HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext)
         {
@@ -60,9 +167,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         }
 
         /// <summary>
-        /// This should only be called from client streaming calls
+        /// This should only be called from client streaming calls.
         /// </summary>
-        /// <param name="httpContext"></param>
         protected void DisableMinRequestBodyDataRate(HttpContext httpContext)
         {
             var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();

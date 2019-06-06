@@ -29,7 +29,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
@@ -41,7 +41,6 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private DateTime _deadline;
-        private Timer? _deadlineTimer;
         private Status _status;
         private AuthContext? _authContext;
 
@@ -52,9 +51,16 @@ namespace Grpc.AspNetCore.Server.Internal
             _logger = logger;
         }
 
+        internal TimeSpan Timeout { get; private set; }
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
+        internal CancellationToken _cancellationToken;
+
+        internal void SetCancellationToken(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+        }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
@@ -141,7 +147,7 @@ namespace Grpc.AspNetCore.Server.Internal
             HttpContext.Response.ConsolidateTrailers(this);
         }
 
-        protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
+        protected override CancellationToken CancellationTokenCore => _cancellationToken;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -241,13 +247,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public void Initialize()
         {
-            var timeout = GetTimeout();
+            Timeout = GetTimeout();
 
-            if (timeout != TimeSpan.Zero)
+            if (Timeout != TimeSpan.Zero)
             {
-                _deadline = Clock.UtcNow.Add(timeout);
-
-                _deadlineTimer = new Timer(DeadlineExceeded, timeout, timeout, Timeout.InfiniteTimeSpan);
+                _deadline = Clock.UtcNow.Add(Timeout);
             }
             else
             {
@@ -287,26 +291,11 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private void DeadlineExceeded(object state)
+        internal void DeadlineExceeded()
         {
-            Log.DeadlineExceeded(_logger, (TimeSpan)state);
+            Log.DeadlineExceeded(_logger, Timeout);
 
             _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-
-            try
-            {
-                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-                HttpContext.Abort();
-            }
-            catch (Exception ex)
-            {
-                Log.DeadlineCancellationError(_logger, ex);
-            }
-        }
-
-        public void Dispose()
-        {
-            _deadlineTimer?.Dispose();
         }
 
         internal string? GetRequestGrpcEncoding()
