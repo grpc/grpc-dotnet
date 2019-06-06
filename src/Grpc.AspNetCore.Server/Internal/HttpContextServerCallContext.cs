@@ -41,14 +41,11 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private DateTime _deadline;
-#if TIMER
         private Timer? _deadlineTimer;
-#else
-        private CancellationTokenSource? _cts;
-        private CancellationTokenRegistration _deadlineRegistration;
-#endif
         private Status _status;
         private AuthContext? _authContext;
+        // Internal for tests
+        internal bool _disposed;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -252,12 +249,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = Clock.UtcNow.Add(timeout);
 
-#if TIMER
                 _deadlineTimer = new Timer(DeadlineExceeded, timeout, timeout, Timeout.InfiniteTimeSpan);
-#else
-                _cts = new CancellationTokenSource(timeout);
-                _deadlineRegistration = _cts.Token.UnsafeRegister(DeadlineExceeded, timeout);
-#endif
             }
             else
             {
@@ -297,31 +289,55 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private void DeadlineExceeded(object state)
+        // Internal for tests
+        internal void DeadlineExceeded(object state)
         {
-            Log.DeadlineExceeded(_logger, (TimeSpan)state);
-
-            _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-
-            try
+            if (!_disposed)
             {
-                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-                HttpContext.Abort();
-            }
-            catch (Exception ex)
-            {
-                Log.DeadlineCancellationError(_logger, ex);
+                Debug.Assert(_deadlineTimer != null, "Should only be called via the timer.");
+                lock (_deadlineTimer)
+                {
+                    if (!_disposed)
+                    {
+                        Log.DeadlineExceeded(_logger, (TimeSpan)state);
+
+                        _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+                        try
+                        {
+                            // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
+                            HttpContext.Abort();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.DeadlineCancellationError(_logger, ex);
+                        }
+                    }
+                }
             }
         }
 
         public void Dispose()
         {
-#if TIMER
-            _deadlineTimer?.Dispose();
-#else
-            _cts?.Dispose();
-            _deadlineRegistration.Dispose();
-#endif
+            var lockTaken = false;
+            try
+            {
+                // Only take a lock if there is a deadline
+                if (_deadlineTimer != null)
+                {
+                    Monitor.Enter(_deadlineTimer, ref lockTaken);
+                }
+
+                _disposed = true;
+                _deadlineTimer?.Dispose();
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    Monitor.Exit(_deadlineTimer);
+                }
+            }
         }
 
         internal string? GetRequestGrpcEncoding()
