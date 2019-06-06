@@ -100,7 +100,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             // CTS is used to...
             // 1. Cancel Task.Delay if the handler completes first
-            // 2. CT is set on ServerCallContext to indicate
+            // 2. CT is set on ServerCallContext to indicate deadline/request abort
             var cts = new CancellationTokenSource();
             CancellationTokenRegistration registration = default;
 
@@ -108,7 +108,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             try
             {
-                // Cancel the CTS if the request is aborted
+                // If the request is aborted then cancel the CTS
                 if (httpContext.RequestAborted.CanBeCanceled)
                 {
                     registration = httpContext.RequestAborted.Register((c) =>
