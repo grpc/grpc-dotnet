@@ -26,13 +26,14 @@ namespace Common
     {
         public static HttpClient CreateHttpClient(string address)
         {
-            // ALPN is not available on macOS so only use Https on Windows and Linux
+            // ALPN is not available on macOS so only use HTTP/2 without TLS
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
                 return new HttpClient { BaseAddress = new Uri($"http://{address}") };
             }
 
+            // Use HTTP/2 and TLS on Windows and Linux
             return new HttpClient { BaseAddress = new Uri($"https://{address}") };
         }
     }
