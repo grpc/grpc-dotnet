@@ -6,11 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
+    <Compile Include="..\..\Shared\ClientResources.cs" Link="ClientResources.cs" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Reflection" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
   </ItemGroup>
+  
 </Project>

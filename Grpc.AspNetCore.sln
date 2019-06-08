@@ -34,7 +34,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{3E045DF6-62EF-4331-B712-9CF5EC56F04C}"
 	ProjectSection(SolutionItems) = preProject
 		examples\Shared\ClientResources.cs = examples\Shared\ClientResources.cs
-		examples\Shared\Resources.cs = examples\Shared\Resources.cs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CECC4AE8-9C4E-4727-939B-517CC2E58D65}"
@@ -149,7 +148,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Client", "src\Grpc.Net.Client\Grpc.Net.Client.csproj", "{095F2B46-16DC-4A2E-A075-A0373D902294}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Client.Tests", "test\Grpc.Net.Client.Tests\Grpc.Net.Client.Tests.csproj", "{7C299E2C-A5FE-439D-A346-2A676302BD04}"
-EndProject
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.ClientFactory", "src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj", "{F68DBD76-196A-4F55-BBEB-97278655017F}"
 EndProject

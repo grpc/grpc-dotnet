@@ -19,10 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Common;
-using Grpc.Core;
+using Grpc.Net.Client;
 using Grpc.Reflection.V1Alpha;
 using ServerReflectionClient = Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionClient;
 
@@ -32,10 +31,8 @@ namespace Sample.Clients
     {
         static async Task Main(string[] args)
         {
-            // Server will only support Https on Windows and Linux
-            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
-            var channel = new Channel("localhost:50051", credentials);
-            var client = new ServerReflectionClient(channel);
+            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var client = GrpcClient.Create<ServerReflectionClient>(httpClient);
 
             var response = await SingleRequestAsync(client, new ServerReflectionRequest
             {
@@ -49,7 +46,6 @@ namespace Sample.Clients
             }
 
             Console.WriteLine("Shutting down");
-            await channel.ShutdownAsync();
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
