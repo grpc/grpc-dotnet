@@ -45,15 +45,22 @@ namespace Sample.Clients
             {
                 _ = Task.Run(async () =>
                 {
-                    while (await mailbox.ResponseStream.MoveNext(CancellationToken.None))
+                    try
                     {
-                        var response = mailbox.ResponseStream.Current;
+                        while (await mailbox.ResponseStream.MoveNext(CancellationToken.None))
+                        {
+                            var response = mailbox.ResponseStream.Current;
 
-                        Console.ForegroundColor = response.Reason == MailboxMessage.Types.Reason.Received ? ConsoleColor.White : ConsoleColor.Green;
-                        Console.WriteLine();
-                        Console.WriteLine(response.Reason == MailboxMessage.Types.Reason.Received ? "Mail received" : "Mail forwarded");
-                        Console.WriteLine($"New mail: {response.New}, Forwarded mail: {response.Forwarded}");
-                        Console.ResetColor();
+                            Console.ForegroundColor = response.Reason == MailboxMessage.Types.Reason.Received ? ConsoleColor.White : ConsoleColor.Green;
+                            Console.WriteLine();
+                            Console.WriteLine(response.Reason == MailboxMessage.Types.Reason.Received ? "Mail received" : "Mail forwarded");
+                            Console.WriteLine($"New mail: {response.New}, Forwarded mail: {response.Forwarded}");
+                            Console.ResetColor();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error reading reaponse: " + ex);
                     }
                 });
 
