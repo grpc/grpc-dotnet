@@ -33,4 +33,8 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="build\**\*.targets" PackagePath="%(Identity)" />
+  </ItemGroup>
+
 </Project>
