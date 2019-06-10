@@ -18,12 +18,11 @@
 
 using System;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Web;
-using Common;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Ticket;
 
 namespace Sample.Clients
@@ -34,10 +33,8 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            // Server will only support Https on Windows and Linux
-            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
-            var channel = new Channel("localhost:50051", credentials);
-            var client = new Ticketer.TicketerClient(channel);
+            var httpClient = new HttpClient { BaseAddress = new Uri($"https://{Address}") };
+            var client = GrpcClient.Create<Ticketer.TicketerClient>(httpClient);
 
             Console.WriteLine("gRPC Ticketer");
             Console.WriteLine();
@@ -72,7 +69,6 @@ namespace Sample.Clients
             }
 
             Console.WriteLine("Exiting");
-            await channel.ShutdownAsync();
         }
 
         private static async Task<string> Authenticate()

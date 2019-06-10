@@ -14,9 +14,12 @@
   <ItemGroup>
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" />
 
+    <None Include="..\..\..\examples\Certs\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+
     <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
     <Compile Include="..\Shared\Greeter.cs" Link="Greeter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\examples\Shared\Resources.cs" />
 
     <Content Update="hosting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

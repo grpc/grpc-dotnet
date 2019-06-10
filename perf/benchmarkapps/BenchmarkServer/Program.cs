@@ -85,7 +85,10 @@ namespace BenchmarkServer
                             var requireClientCertificate = Convert.ToBoolean(context.Configuration["RequireClientCertificate"]);
                             Console.WriteLine($"Require client certificate: {requireClientCertificate}");
 
-                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111", httpsOptions =>
+                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                            var certPath = Path.Combine(basePath, "Certs/server.pfx");
+
+                            listenOptions.UseHttps(certPath, "1111", httpsOptions =>
                             {
                                 if (requireClientCertificate)
                                 {

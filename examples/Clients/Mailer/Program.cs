@@ -17,11 +17,11 @@
 #endregion
 
 using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Common;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Mail;
 
 namespace Sample.Clients
@@ -32,33 +32,35 @@ namespace Sample.Clients
         {
             var mailboxName = GetMailboxName(args);
 
-            // Server will only support Https on Windows and Linux
-            var credentials = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ChannelCredentials.Insecure : ClientResources.SslCredentials;
-
-            var channel = new Channel("localhost:50051", credentials);
-
-            Console.WriteLine($"Connecting to mailbox '{mailboxName}'");
+            Console.WriteLine($"Creating client to mailbox '{mailboxName}'");
             Console.WriteLine();
 
-            await channel.ConnectAsync();
+            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var client = GrpcClient.Create<Mailer.MailerClient>(httpClient);
 
-            Console.WriteLine("Connected");
+            Console.WriteLine("Client created");
             Console.WriteLine("Press escape to disconnect. Press any other key to forward mail.");
 
-            var client = new Mailer.MailerClient(channel);
             using (var mailbox = client.Mailbox(headers: new Metadata { new Metadata.Entry("mailbox-name", mailboxName) }))
             {
                 _ = Task.Run(async () =>
                 {
-                    while (await mailbox.ResponseStream.MoveNext(CancellationToken.None))
+                    try
                     {
-                        var response = mailbox.ResponseStream.Current;
+                        while (await mailbox.ResponseStream.MoveNext(CancellationToken.None))
+                        {
+                            var response = mailbox.ResponseStream.Current;
 
-                        Console.ForegroundColor = response.Reason == MailboxMessage.Types.Reason.Received ? ConsoleColor.White : ConsoleColor.Green;
-                        Console.WriteLine();
-                        Console.WriteLine(response.Reason == MailboxMessage.Types.Reason.Received ? "Mail received" : "Mail forwarded");
-                        Console.WriteLine($"New mail: {response.New}, Forwarded mail: {response.Forwarded}");
-                        Console.ResetColor();
+                            Console.ForegroundColor = response.Reason == MailboxMessage.Types.Reason.Received ? ConsoleColor.White : ConsoleColor.Green;
+                            Console.WriteLine();
+                            Console.WriteLine(response.Reason == MailboxMessage.Types.Reason.Received ? "Mail received" : "Mail forwarded");
+                            Console.WriteLine($"New mail: {response.New}, Forwarded mail: {response.Forwarded}");
+                            Console.ResetColor();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error reading reaponse: " + ex);
                     }
                 });
 
@@ -73,11 +75,9 @@ namespace Sample.Clients
                     await mailbox.RequestStream.WriteAsync(new ForwardMailMessage());
                 }
 
+                Console.WriteLine("Disconnecting");
                 await mailbox.RequestStream.CompleteAsync();
             }
-
-            Console.WriteLine("Disconnecting");
-            await channel.ShutdownAsync();
 
             Console.WriteLine("Disconnected. Press any key to exit.");
             Console.ReadKey();
