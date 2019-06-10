@@ -29,25 +29,25 @@ namespace Sample.Clients
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
-            var client = GrpcClient.Create<ServerReflectionClient>(httpClient);
+            //var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            //var client = GrpcClient.CreateClientBase<ServerReflectionClient>(httpClient);
 
-            var response = await SingleRequestAsync(client, new ServerReflectionRequest
-            {
-                ListServices = "" // Get all services
-            });
+            //var response = await SingleRequestAsync(client, new ServerReflectionRequest
+            //{
+            //    ListServices = "" // Get all services
+            //});
 
-            Console.WriteLine("Services:");
-            foreach (var item in response.ListServicesResponse.Service)
-            {
-                Console.WriteLine("- " + item.Name);
-            }
+            //Console.WriteLine("Services:");
+            //foreach (var item in response.ListServicesResponse.Service)
+            //{
+            //    Console.WriteLine("- " + item.Name);
+            //}
 
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+            //Console.WriteLine("Shutting down");
+            //Console.WriteLine("Press any key to exit...");
+            //Console.ReadKey();
         }
 
         private static async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionClient client, ServerReflectionRequest request)

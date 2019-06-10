@@ -37,7 +37,7 @@ namespace Grpc.Net.Client
         /// <param name="httpClient">The <see cref="HttpClient"/>.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : ClientBase<TClient>
+        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : LiteClientBase
         {
             return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient, loggerFactory));
         }

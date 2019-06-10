@@ -17,6 +17,4 @@ set -ex
 
 source activate.sh
 
-dotnet build
-
 dotnet test

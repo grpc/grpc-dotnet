@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using Grpc.Core;
@@ -28,7 +29,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
-    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
+    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : LiteClientBase
     {
         private readonly Cache _cache;
         private readonly IServiceProvider _services;
@@ -82,14 +83,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 options.CallInvokerActions[i](httpClientCallInvoker);
             }
 
-            CallInvoker resolvedCallInvoker = httpClientCallInvoker;
-            // Interceptors wrap each other and execute in reverse order
-            for (var i = options.Interceptors.Count - 1; i >= 0; i--)
-            {
-                resolvedCallInvoker = resolvedCallInvoker.Intercept(options.Interceptors[i]);
-            }
-
-            return (TClient)_cache.Activator(_services, new object[] { resolvedCallInvoker });
+            return (TClient)_cache.Activator(_services, new object[] { httpClientCallInvoker.Intercept(options.Interceptors.ToArray()) });
         }
 
         // The Cache should be registered as a singleton, so it that it can
