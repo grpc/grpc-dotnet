@@ -36,7 +36,7 @@ namespace Sample.Clients
             var httpClient = CreateHttpClient();
             var client = GrpcClient.Create<Certifier.CertifierClient>(httpClient);
 
-            Console.WriteLine("Sending gRPC call with client certificate");
+            Console.WriteLine("Sending gRPC call with client certificate...");
             var certificateInfo = await client.GetCertificateInfoAsync(new Empty());
 
             Console.WriteLine($"Server received client certificate: {certificateInfo.HasCertificate}");
