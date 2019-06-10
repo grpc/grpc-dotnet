@@ -19,6 +19,8 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Count;
+using Greet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -55,6 +57,13 @@ namespace GRPCServer
             services.AddSingleton<MailQueueRepository>();
             services.AddSingleton<TicketRepository>();
 
+            services
+                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .EnableCallContextPropagation();
+            services
+                .AddGrpcClient<Counter.CounterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .EnableCallContextPropagation();
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
@@ -76,6 +85,17 @@ namespace GRPCServer
                             IssuerSigningKey = SecurityKey
                         };
                 });
+
+            static Uri GetCurrentAddress(IServiceProvider serviceProvider)
+            {
+                var context = serviceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
+                if (context == null)
+                {
+                    throw new InvalidOperationException("Could not get HttpContext.");
+                }
+
+                return new Uri($"{context.Request.Scheme}://{context.Request.Host.Value}");
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -93,6 +113,7 @@ namespace GRPCServer
                 endpoints.MapGrpcService<GreeterService>();
                 endpoints.MapGrpcService<TicketerService>();
                 endpoints.MapGrpcService<CertifierService>();
+                endpoints.MapGrpcService<AggregatorService>();
 
                 endpoints.MapGrpcReflectionService();
 
