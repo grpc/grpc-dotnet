@@ -9,7 +9,9 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\*.proto" GrpcServices="Server" />
 
-    <Compile Include="$(MSBuildThisFileDirectory)..\Shared\Resources.cs" />
+    <None Include="..\Certs\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />

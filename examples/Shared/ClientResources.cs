@@ -16,18 +16,25 @@
 
 #endregion
 
-using System.IO;
-using Grpc.Core;
+using System;
+using System.Net.Http;
+using System.Runtime.InteropServices;
 
 namespace Common
 {
     public static class ClientResources
     {
-        public static SslCredentials SslCredentials
-            = new SslCredentials(
-                File.ReadAllText(Path.Combine(Resources.CertDir, "ca.crt")),
-                new KeyCertificatePair(
-                    File.ReadAllText(Path.Combine(Resources.CertDir, "client.crt")),
-                    File.ReadAllText(Path.Combine(Resources.CertDir, "client.key"))));
+        public static HttpClient CreateHttpClient(string address)
+        {
+            // ALPN is not available on macOS so only use HTTP/2 without TLS
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+                return new HttpClient { BaseAddress = new Uri($"http://{address}") };
+            }
+
+            // Use HTTP/2 and TLS on Windows and Linux
+            return new HttpClient { BaseAddress = new Uri($"https://{address}") };
+        }
     }
 }
