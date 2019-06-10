@@ -11,11 +11,12 @@
     <None Include="..\..\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
+    <Compile Include="..\..\Shared\ClientResources.cs" Link="ClientResources.cs" />
+    
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Net.Client" Version="0.1.21-pre1" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
   </ItemGroup>
 
 </Project>
