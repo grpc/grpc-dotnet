@@ -338,6 +338,37 @@ namespace Grpc.AspNetCore.FunctionalTests
         }
 
         [Test]
+        public async Task ThrowErrorInNonAsyncMethod_StatusMessageReturned()
+        {
+            static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
+            {
+                throw new Exception("Test!");
+            }
+
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                       writeContext.EventId.Name == "ErrorExecutingServiceMethod";
+            });
+
+            // Arrange
+            var requestMessage = new Empty();
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                url,
+                new GrpcStreamContent(ms)).DefaultTimeout();
+
+            // Assert
+            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. Exception: Test!");
+        }
+
+        [Test]
         public async Task SingletonService_PrivateFieldsPreservedBetweenCalls()
         {
             // Arrange 1
