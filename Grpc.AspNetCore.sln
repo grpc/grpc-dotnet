@@ -151,6 +151,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.ClientFactory", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.ClientFactory.Tests", "test\Grpc.Net.ClientFactory.Tests\Grpc.Net.ClientFactory.Tests.csproj", "{0C98BD64-8A57-46A1-B47B-EAF260DEE25A}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Worker", "examples\Clients\Worker\Worker.csproj", "{94F42386-DCB3-4500-87A2-75479957C881}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -257,6 +259,10 @@ Global
 		{0C98BD64-8A57-46A1-B47B-EAF260DEE25A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C98BD64-8A57-46A1-B47B-EAF260DEE25A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C98BD64-8A57-46A1-B47B-EAF260DEE25A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94F42386-DCB3-4500-87A2-75479957C881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94F42386-DCB3-4500-87A2-75479957C881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94F42386-DCB3-4500-87A2-75479957C881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94F42386-DCB3-4500-87A2-75479957C881}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -301,6 +307,7 @@ Global
 		{7C299E2C-A5FE-439D-A346-2A676302BD04} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{F68DBD76-196A-4F55-BBEB-97278655017F} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{0C98BD64-8A57-46A1-B47B-EAF260DEE25A} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{94F42386-DCB3-4500-87A2-75479957C881} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
