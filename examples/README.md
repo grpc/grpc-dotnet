@@ -24,4 +24,8 @@ The reflector shows how to host the [gRPC Server Reflection Protocol](https://gi
 
 ## Certifier
 
-The certifier example shows how to configure the client and the server to use a client certificate with a gRPC call.
+The certifier shows how to configure the client and the server to use a client certificate with a gRPC call.
+
+## Worker
+
+The worker shows how a [worker service](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/) can use the gRPC client factory to make gRPC calls.
