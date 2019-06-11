@@ -14,7 +14,7 @@ SET PATH=%DOTNET_ROOT%;%PATH%
 SET sln=%1
 
 IF "%sln%"=="" (
-    SET sln=Grpc.AspNetCore.sln
+    SET sln=Grpc.DotNet.sln
 )
 
 IF NOT EXIST "%DOTNET_ROOT%\dotnet.exe" (
