@@ -17,10 +17,10 @@
 #endregion
 
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Aggregate;
+using Common;
 using Count;
 using Greet;
 using Grpc.Core;
@@ -36,10 +36,10 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var httpClient = CreateHttpClient();
+            var httpClient = ClientResources.CreateHttpClient(Address);
             var client = GrpcClient.Create<Aggregator.AggregatorClient>(httpClient);
 
-            //await ServerStreamingCallExample(client);
+            await ServerStreamingCallExample(client);
 
             await ClientStreamingCallExample(client);
 
@@ -47,20 +47,12 @@ namespace Sample.Clients
             Console.ReadKey();
         }
 
-        private static HttpClient CreateHttpClient()
-        {
-            var httpClient = new HttpClient();
-            httpClient.BaseAddress = new Uri($"https://{Address}");
-
-            return httpClient;
-        }
-
         private static async Task ServerStreamingCallExample(Aggregator.AggregatorClient client)
         {
             var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(8.5));
+            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
 
-            using (var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
+            using (var replies = client.SayHellos(new HelloRequest { Name = "AggregatorClient" }, cancellationToken: cts.Token))
             {
                 try
                 {
