@@ -71,12 +71,12 @@ startvs.cmd
 
 To build from the command line:
 ```
-dotnet build Grpc.AspNetCore.sln
+dotnet build Grpc.DotNet.sln
 ```
 
 To run tests from the command line:
 ```
-dotnet test Grpc.AspNetCore.sln
+dotnet test Grpc.DotNet.sln
 ```
 
 ## To contribute
