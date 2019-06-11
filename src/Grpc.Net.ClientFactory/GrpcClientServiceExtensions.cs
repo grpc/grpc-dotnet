@@ -84,6 +84,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
         /// <typeparamref name="TClient"/> as the service type. 
         /// </para>
+        /// <para>
+        /// The <see cref="IServiceProvider"/> argument provided to <paramref name="configureClient"/> will be
+        /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
+        /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
             where TClient : ClientBase
@@ -162,6 +166,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
         /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
         /// <typeparamref name="TClient"/> as the service type. 
+        /// </para>
+        /// <para>
+        /// The <see cref="IServiceProvider"/> argument provided to <paramref name="configureClient"/> will be
+        /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
