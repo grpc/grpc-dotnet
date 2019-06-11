@@ -88,6 +88,11 @@ namespace Grpc.AspNetCore.Microbenchmarks
             {
                 Trailers = _trailers
             });
+            SetupHttpContext(_httpContext);
+        }
+
+        protected virtual void SetupHttpContext(HttpContext httpContext)
+        {
         }
 
         protected Task InvokeUnaryRequestAsync()
