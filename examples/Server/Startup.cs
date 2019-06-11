@@ -57,6 +57,7 @@ namespace GRPCServer
             services.AddSingleton<MailQueueRepository>();
             services.AddSingleton<TicketRepository>();
 
+            // These clients will call back to the server
             services
                 .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
                 .EnableCallContextPropagation();
@@ -88,6 +89,7 @@ namespace GRPCServer
 
             static Uri GetCurrentAddress(IServiceProvider serviceProvider)
             {
+                // Get the address of the current server from the request
                 var context = serviceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
                 if (context == null)
                 {
