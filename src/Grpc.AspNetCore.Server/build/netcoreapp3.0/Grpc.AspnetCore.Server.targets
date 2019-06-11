@@ -1,10 +1,10 @@
 <Project>
 
   <ItemGroup>
-    <Protobuf Update="@(Protobuf)">
+    <Protobuf Condition="'$(DisableAspNetCoreDefaultClientTypeOverride)' != 'true'" Update="@(Protobuf)">
       <!-- TODO (johluo): We should use the explicit property if possible and remove the current workaround -->
       <!-- <ClientType Condition="'%(Protobuf.GrpcServices)' == 'Client' OR '%(Protobuf.GrpcServices)' == 'Both'">LiteClient</ClientType> -->
-      <_GrpcOutputOptions Condition="'%(Protobuf.ClientType)' != 'ClientBase' AND ('%(Protobuf.GrpcServices)' == 'Client' OR '%(Protobuf.GrpcServices)' == 'Both')">$(_GrpcOutputOptions);lite_client</_GrpcOutputOptions>
+      <_GrpcOutputOptions Condition="'%(Protobuf.GrpcServices)' == 'Client' OR '%(Protobuf.GrpcServices)' == 'Both'">$(_GrpcOutputOptions);lite_client</_GrpcOutputOptions>
     </Protobuf>
   </ItemGroup>
 
