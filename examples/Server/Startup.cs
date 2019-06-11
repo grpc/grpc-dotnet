@@ -92,6 +92,7 @@ namespace GRPCServer
                 endpoints.MapGrpcService<CounterService>();
                 endpoints.MapGrpcService<GreeterService>();
                 endpoints.MapGrpcService<TicketerService>();
+                endpoints.MapGrpcService<CertifierService>();
 
                 endpoints.MapGrpcReflectionService();
 

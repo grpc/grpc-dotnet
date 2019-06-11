@@ -21,3 +21,11 @@ The ticketer shows how to use gRPC with [authorization in ASP.NET Core](https://
 ## Reflector
 
 The reflector shows how to host the [gRPC Server Reflection Protocol](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md) service and call its methods from a client.
+
+## Certifier
+
+The certifier shows how to configure the client and the server to use a client certificate with a gRPC call.
+
+## Worker
+
+The worker shows how a [worker service](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/) can use the gRPC client factory to make gRPC calls.
