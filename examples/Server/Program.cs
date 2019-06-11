@@ -21,6 +21,7 @@ using System.Runtime.InteropServices;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 
 namespace GRPCServer
 {
@@ -41,9 +42,12 @@ namespace GRPCServer
                         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                         {
                             var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                            var certPath = Path.Combine(basePath, "Certs/server.pfx");
+                            var certPath = Path.Combine(basePath, "Certs", "server.pfx");
 
-                            listenOptions.UseHttps(certPath, "1111");
+                            listenOptions.UseHttps(certPath, "1111", o =>
+                            {
+                                o.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+                            });
                         }
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });
