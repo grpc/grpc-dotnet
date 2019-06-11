@@ -11,7 +11,7 @@
     <ProjectReference Include="..\..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
     <!-- Template uses hosting APIs that are new in 3.0 -->
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.0.0-preview6.19260.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
