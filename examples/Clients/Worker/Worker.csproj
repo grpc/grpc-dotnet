@@ -10,7 +10,8 @@
 
     <ProjectReference Include="..\..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <!-- Template uses hosting APIs that are new in 3.0 -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
