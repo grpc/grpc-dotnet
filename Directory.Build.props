@@ -21,4 +21,11 @@
     <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="$(MicrosoftNetCompilersToolsetPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
+  <Target Name="WorkaroundNetStandard" AfterTargets="ResolvePackageAssets">
+    <!-- TODO (jamesnk): Remove this workaround when VS updates - https://github.com/dotnet/cli/issues/11378#issuecomment-499988244 -->
+    <ItemGroup>
+      <TransitiveFrameworkReference Remove="NETStandard.Library" />
+    </ItemGroup>
+  </Target>
+
 </Project>
