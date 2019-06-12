@@ -249,7 +249,11 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = Clock.UtcNow.Add(timeout);
 
-                _deadlineTimer = new Timer(DeadlineExceeded, timeout, timeout, Timeout.InfiniteTimeSpan);
+                // Set timer field first and then set the timeout.
+                // The method uses the timer to lock and we want to avoid the timer immediately
+                // running before the field is set.
+                _deadlineTimer = new Timer(DeadlineExceeded);
+                _deadlineTimer.Change(timeout, Timeout.InfiniteTimeSpan);
             }
             else
             {
@@ -299,7 +303,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     if (!_disposed)
                     {
-                        Log.DeadlineExceeded(_logger, (TimeSpan)state);
+                        Log.DeadlineExceeded(_logger, GetTimeout());
 
                         _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
