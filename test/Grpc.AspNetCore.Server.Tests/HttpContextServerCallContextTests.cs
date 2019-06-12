@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -533,12 +534,11 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task Dispose_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
         {
             // Arrange
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(1));
+            var blockingLifeTimeFeature = new TestBlockingHttpRequestLifetimeFeature();
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100n";
-            httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestBlockingHttpRequestLifetimeFeature(cts));
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(blockingLifeTimeFeature);
 
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
@@ -567,7 +567,8 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsFalse(serverCallContext._disposed);
 
             // Wait for dispose to finish
-            await disposeTask;
+            blockingLifeTimeFeature.CancelBlocking();
+            await disposeTask.DefaultTimeout();
 
             Assert.IsTrue(serverCallContext._disposed);
         }
@@ -602,9 +603,9 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             private readonly CancellationTokenSource _cts;
 
-            public TestBlockingHttpRequestLifetimeFeature(CancellationTokenSource cts)
+            public TestBlockingHttpRequestLifetimeFeature()
             {
-                _cts = cts;
+                _cts = new CancellationTokenSource();
             }
 
             public CancellationToken RequestAborted
@@ -616,6 +617,11 @@ namespace Grpc.AspNetCore.Server.Tests
             public void Abort()
             {
                 _cts.Token.WaitHandle.WaitOne();
+            }
+
+            public void CancelBlocking()
+            {
+                _cts.Cancel();
             }
         }
 
