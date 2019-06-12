@@ -19,25 +19,42 @@
 using System;
 using System.Net.Http;
 using NUnit.Framework;
-using static Greet.Greeter;
 
 namespace Grpc.Net.Client.Tests
 {
     [TestFixture]
     public class GrpcClientFactoryTests
     {
+        private static readonly HttpClient _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
+
         [Test]
-        public void Create_WithBaseAddress_ReturnInstance()
+        public void Create_WithClientBaseClient_ReturnInstance()
         {
             // Arrange & Act
-            var httpClient = new HttpClient
-            {
-                BaseAddress = new Uri("http://localhost")
-            };
-            var client = GrpcClient.Create<GreeterClient>(httpClient);
+            var client = GrpcClient.Create<Greet.Greeter.GreeterClient>(_httpClient);
 
             // Assert
             Assert.IsNotNull(client);
+        }
+
+        [Test]
+        public void Create_WithLiteClientBaseClient_ReturnInstance()
+        {
+            // Arrange & Act
+            var client = GrpcClient.Create<CoreGreet.Greeter.GreeterClient>(_httpClient);
+
+            // Assert
+            Assert.IsNotNull(client);
+        }
+
+        [Test]
+        public void Create_WithNonCompatibleClient_throws()
+        {
+            // Arrange, Act, Assert
+            Assert.Throws<InvalidOperationException>(() => GrpcClient.Create<GrpcClientFactoryTests>(_httpClient));
         }
     }
 }

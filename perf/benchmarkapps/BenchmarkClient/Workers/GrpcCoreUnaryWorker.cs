@@ -19,7 +19,7 @@
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using GrpcCoreGreet;
+using CoreGreet;
 using Grpc.Core;
 
 namespace BenchmarkClient.Workers
