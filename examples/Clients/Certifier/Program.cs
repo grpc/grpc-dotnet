@@ -33,15 +33,17 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            await CallService(includeClientCertificate: false);
+            // The server will return 403 (Forbidden). The method requires a certificate
+            await CallCertificateInfo(includeClientCertificate: false);
 
-            await CallService(includeClientCertificate: true);
+            // The server will return a successful gRPC response
+            await CallCertificateInfo(includeClientCertificate: true);
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        private static async Task CallService(bool includeClientCertificate)
+        private static async Task CallCertificateInfo(bool includeClientCertificate)
         {
             try
             {
