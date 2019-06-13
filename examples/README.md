@@ -5,19 +5,21 @@ Examples of basic gRPC scenarios with gRPC for .NET.
 * [Clients](./Clients) - each example has its own client
 * [Server](./Server) - a shared website that hosts all services
 
+If you are brand new to gRPC on .NET a good place to start is the getting started tutorial: [Create a gRPC client and server in ASP.NET Core](https://docs.microsoft.com/aspnet/core/tutorials/grpc/grpc-start)
+
 ## Greeter
 
-The greeter shows how to make unary and server streaming gRPC methods and call them from a client.
+The greeter shows how to create unary (non-streaming) and server streaming gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
 * Unary call
 * Server streaming call
-* Client canceling a streaming call
+* Client canceling a call
 
 ## Counter
 
-The counter shows how to make unary and client streaming gRPC methods and call them from a client.
+The counter shows how to create unary (non-streaming) and client streaming gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
@@ -26,7 +28,7 @@ The counter shows how to make unary and client streaming gRPC methods and call t
 
 ## Mailer
 
-The mailer shows how to make bi-directional streaming gRPC methods and call them from a client.
+The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET Core and call it from a client.
 
 ##### Scenarios:
 
@@ -39,7 +41,8 @@ The ticketer shows how to use gRPC with [authentication and authorization in ASP
 ##### Scenarios:
 
 * JSON web token authentication
-* Authorization with attribute on service
+* Send JWT token with call
+* Authorization with `[Authorize]` on service
 
 ## Reflector
 
@@ -56,14 +59,14 @@ The certifier shows how to configure the client and the server to use a [TLS cli
 
 ##### Scenarios:
 
+* Client certificate authentication
 * Send client certificate with call
 * Receive client certificate in a service
-* Client certificate authentication
-* Authorization with attribute on service
+* Authorization with `[Authorize]` on service
 
 ## Worker
 
-The worker shows how a [worker service](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/) can use the gRPC client factory to make gRPC calls.
+The worker shows how a [.NET worker service](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/) can use the gRPC client factory to make gRPC calls.
 
 ##### Scenarios:
 
@@ -72,10 +75,10 @@ The worker shows how a [worker service](https://devblogs.microsoft.com/aspnet/ne
 
 ## Aggregator
 
-The aggregator shows how a to use the gRPC client factory with services to make nested gRPC calls. The gRPC client factory is configured to propagate the context from the original call to the nested call. For example, cancellation will automatically propagate.
+The aggregator shows how a to make nested gRPC calls (a gRPC service calling another gRPC service). The gRPC client factory is used in ASP.NET Core to inject a client into services. The gRPC client factory is configured to propagate the context from the original call to the nested call. In this example the cancellation from the client will automatically propagate through to nested gRPC calls.
 
 ##### Scenarios:
 
 * Client factory
-* Client canceling a streaming call
-* Context propagation
+* Client canceling a call
+* Cancellation propagation
