@@ -19,6 +19,7 @@
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
   </ItemGroup>
 

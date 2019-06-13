@@ -33,34 +33,51 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var httpClient = CreateHttpClient();
-            var client = GrpcClient.Create<Certifier.CertifierClient>(httpClient);
+            await CallService(includeClientCertificate: false);
 
-            Console.WriteLine("Sending gRPC call with client certificate...");
-            var certificateInfo = await client.GetCertificateInfoAsync(new Empty());
-
-            Console.WriteLine($"Server received client certificate: {certificateInfo.HasCertificate}");
-            if (certificateInfo.HasCertificate)
-            {
-                Console.WriteLine($"Client certificate name: {certificateInfo.Name}");
-            }
+            await CallService(includeClientCertificate: true);
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        private static HttpClient CreateHttpClient()
+        private static async Task CallService(bool includeClientCertificate)
         {
-            // Load client certificate
-            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var certPath = Path.Combine(basePath, "Certs", "client.pfx");
-            var clientCertificate = new X509Certificate2(certPath, "1111");
+            try
+            {
+                Console.WriteLine($"Setting up HttpClient. Client has certificate: {includeClientCertificate}");
+                var httpClient = CreateHttpClient(includeClientCertificate);
+                var client = GrpcClient.Create<Certifier.CertifierClient>(httpClient);
 
-            // Add to handler
+                Console.WriteLine("Sending gRPC call...");
+                var certificateInfo = await client.GetCertificateInfoAsync(new Empty());
+
+                Console.WriteLine($"Server received client certificate: {certificateInfo.HasCertificate}");
+                if (certificateInfo.HasCertificate)
+                {
+                    Console.WriteLine($"Client certificate name: {certificateInfo.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error calling service: {ex.Message}");
+            }
+        }
+
+        private static HttpClient CreateHttpClient(bool includeClientCertificate)
+        {
             var handler = new HttpClientHandler();
-            handler.ClientCertificates.Add(clientCertificate);
 
-            // Client client
+            if (includeClientCertificate)
+            {
+                // Load client certificate
+                var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                var certPath = Path.Combine(basePath, "Certs", "client.pfx");
+                var clientCertificate = new X509Certificate2(certPath, "1111");
+                handler.ClientCertificates.Add(clientCertificate);
+            }
+
+            // Create client
             var httpClient = new HttpClient(handler);
             httpClient.BaseAddress = new Uri($"https://{Address}");
 
