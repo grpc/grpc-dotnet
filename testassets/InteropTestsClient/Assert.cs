@@ -108,7 +108,7 @@ namespace InteropTestsClient
                 throw new InvalidOperationException($"Collection lengths differ. {expected.Count} but got {actual.Count}.");
             }
 
-            for (int i = 0; i < expected.Count; i++)
+            for (var i = 0; i < expected.Count; i++)
             {
                 Assert.AreEqual(expected[i], actual[i]);
             }

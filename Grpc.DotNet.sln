@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{AC41B2B2-62D9-454E-8521-F71E331B07F3}"
 	ProjectSection(SolutionItems) = preProject
 		examples\Proto\certify.proto = examples\Proto\certify.proto
+		examples\Proto\aggregate.proto = examples\Proto\aggregate.proto
 		examples\Proto\count.proto = examples\Proto\count.proto
 		examples\Proto\greet.proto = examples\Proto\greet.proto
 		examples\Proto\mail.proto = examples\Proto\mail.proto
@@ -156,6 +157,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Worker", "examples\Clients\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certifier", "examples\Clients\Certifier\Certifier.csproj", "{F7A0064A-C648-46BD-A3E8-132D5E08A970}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aggregator", "examples\Clients\Aggregator\Aggregator.csproj", "{BEC5E994-7EE1-4429-B5A6-870B174D8830}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -270,6 +273,10 @@ Global
 		{F7A0064A-C648-46BD-A3E8-132D5E08A970}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7A0064A-C648-46BD-A3E8-132D5E08A970}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7A0064A-C648-46BD-A3E8-132D5E08A970}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEC5E994-7EE1-4429-B5A6-870B174D8830}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEC5E994-7EE1-4429-B5A6-870B174D8830}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEC5E994-7EE1-4429-B5A6-870B174D8830}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEC5E994-7EE1-4429-B5A6-870B174D8830}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -316,6 +323,7 @@ Global
 		{0C98BD64-8A57-46A1-B47B-EAF260DEE25A} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{94F42386-DCB3-4500-87A2-75479957C881} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{F7A0064A-C648-46BD-A3E8-132D5E08A970} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{BEC5E994-7EE1-4429-B5A6-870B174D8830} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

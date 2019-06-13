@@ -17,10 +17,13 @@
 #endregion
 
 using System;
-using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
+using Aggregate;
 using Common;
 using Count;
+using Greet;
+using Grpc.Core;
 using Grpc.Net.Client;
 
 namespace Sample.Clients
@@ -29,27 +32,43 @@ namespace Sample.Clients
     {
         static Random RNG = new Random();
 
+        private const string Address = "localhost:50051";
+
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
-            var client = GrpcClient.Create<Counter.CounterClient>(httpClient);
+            var httpClient = ClientResources.CreateHttpClient(Address);
+            var client = GrpcClient.Create<Aggregator.AggregatorClient>(httpClient);
 
-            await UnaryCallExample(client);
+            await ServerStreamingCallExample(client);
 
             await ClientStreamingCallExample(client);
 
-            Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        private static async Task UnaryCallExample(Counter.CounterClient client)
+        private static async Task ServerStreamingCallExample(Aggregator.AggregatorClient client)
         {
-            var reply = await client.IncrementCountAsync(new Google.Protobuf.WellKnownTypes.Empty());
-            Console.WriteLine("Count: " + reply.Count);
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
+
+            using (var replies = client.SayHellos(new HelloRequest { Name = "AggregatorClient" }, cancellationToken: cts.Token))
+            {
+                try
+                {
+                    while (await replies.ResponseStream.MoveNext(cts.Token))
+                    {
+                        Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                    }
+                }
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+                {
+                    Console.WriteLine("Stream cancelled.");
+                }
+            }
         }
 
-        private static async Task ClientStreamingCallExample(Counter.CounterClient client)
+        private static async Task ClientStreamingCallExample(Aggregator.AggregatorClient client)
         {
             using (var call = client.AccumulateCount())
             {

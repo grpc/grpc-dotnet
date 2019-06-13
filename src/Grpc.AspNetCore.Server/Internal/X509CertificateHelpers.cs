@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     List<string> dnsEntries = new List<string>();
 
-                    for (int i = 0; i < rawDnsEntries.Length; i++)
+                    for (var i = 0; i < rawDnsEntries.Length; i++)
                     {
                         string[] keyval = rawDnsEntries[i].Split(X509SubjectAlternativeNameConstants.Delimiter);
                         if (string.Equals(keyval[0], X509SubjectAlternativeNameConstants.Identifier))
@@ -147,7 +147,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     int separatorFirstChar = delimiterIndex + subjectName1.Length + 1;
                     int separatorLength = 1;
-                    for (int i = separatorFirstChar + 1; i < x509ExtensionFormattedString.Length; i++)
+                    for (var i = separatorFirstChar + 1; i < x509ExtensionFormattedString.Length; i++)
                     {
                         // We advance until the first character of the identifier to determine what the
                         // separator is. This assumes that the identifier assumption above is correct

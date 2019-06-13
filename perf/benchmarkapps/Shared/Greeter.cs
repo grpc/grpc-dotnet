@@ -35,7 +35,7 @@ class GreeterService : Greeter.GreeterBase
 
     public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var message = $"How are you {request.Name}? {i}";
             await responseStream.WriteAsync(new HelloReply
