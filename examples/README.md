@@ -9,7 +9,7 @@ If you are brand new to gRPC on .NET a good place to start is the getting starte
 
 ## Greeter
 
-The greeter shows how to create unary (non-streaming) and server streaming gRPC methods in ASP.NET Core and call them from a client.
+The greeter shows how to create unary (non-streaming) and server streaming gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
@@ -19,7 +19,7 @@ The greeter shows how to create unary (non-streaming) and server streaming gRPC 
 
 ## Counter
 
-The counter shows how to create unary (non-streaming) and client streaming gRPC methods in ASP.NET Core and call them from a client.
+The counter shows how to create unary (non-streaming) and client streaming gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
@@ -42,7 +42,7 @@ The ticketer shows how to use gRPC with [authentication and authorization in ASP
 
 * JSON web token authentication
 * Send JWT token with call
-* Authorization with attribute on service
+* Authorization with `[Authorize]` on service
 
 ## Reflector
 
@@ -59,10 +59,10 @@ The certifier shows how to configure the client and the server to use a [TLS cli
 
 ##### Scenarios:
 
+* Client certificate authentication
 * Send client certificate with call
 * Receive client certificate in a service
-* Client certificate authentication
-* Authorization with attribute on service
+* Authorization with `[Authorize]` on service
 
 ## Worker
 
@@ -75,7 +75,7 @@ The worker shows how a [.NET worker service](https://devblogs.microsoft.com/aspn
 
 ## Aggregator
 
-The aggregator shows how a to make nested gRPC calls (a gRPC service calling another gRPC service). The the gRPC client factory is used in ASP.NET Core to inject a client into services. The gRPC client factory is configured to propagate the context from the original call to the nested call. In this example the cancellation request from the client will automatically propagate through to nested gRPC calls.
+The aggregator shows how a to make nested gRPC calls (a gRPC service calling another gRPC service). The gRPC client factory is used in ASP.NET Core to inject a client into services. The gRPC client factory is configured to propagate the context from the original call to the nested call. In this example the cancellation from the client will automatically propagate through to nested gRPC calls.
 
 ##### Scenarios:
 
