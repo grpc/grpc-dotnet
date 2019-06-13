@@ -52,12 +52,13 @@ The reflector shows how to host the [gRPC Server Reflection Protocol](https://gi
 
 ## Certifier
 
-The certifier shows how to configure the client and the server to use a [TLS client certificate](https://blogs.msdn.microsoft.com/kaushal/2015/05/27/client-certificate-authentication-part-1/) with a gRPC call.
+The certifier shows how to configure the client and the server to use a [TLS client certificate](https://blogs.msdn.microsoft.com/kaushal/2015/05/27/client-certificate-authentication-part-1/) with a gRPC call. The server is configured to require a client certificate using [ASP.NET Core client certificate authorization](https://docs.microsoft.com/en-us/aspnet/core/security/authentication/certauth).
 
 ##### Scenarios:
 
 * Send client certificate with call
 * Receive client certificate in a service
+* Authorization with attribute on service
 
 ## Worker
 
