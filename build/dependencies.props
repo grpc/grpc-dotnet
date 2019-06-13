@@ -7,7 +7,8 @@
     <GrpcPackageVersion>1.21.0</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0-preview6-19265-03</MicrosoftAspNetCorePackageVersion>
     <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensions30PackageVersion>3.0.0-preview6.19260.1</MicrosoftExtensions30PackageVersion>
+    <MicrosoftExtensions30PackageVersion>3.0.0-preview6.19304.6</MicrosoftExtensions30PackageVersion>
+    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>3.0.0-preview6.19307.2</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
     <MicrosoftNetCompilersToolsetPackageVersion>3.2.0-beta3-19280-02</MicrosoftNetCompilersToolsetPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.0.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>

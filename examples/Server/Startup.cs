@@ -19,8 +19,11 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using Count;
 using Greet;
+using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -85,6 +88,11 @@ namespace GRPCServer
                             ValidateLifetime = true,
                             IssuerSigningKey = SecurityKey
                         };
+                })
+                .AddCertificate(options =>
+                {
+                    // Not recommended in production environments. The example is using a test certificate
+                    options.RevocationMode = X509RevocationMode.NoCheck;
                 });
 
             static Uri GetCurrentAddress(IServiceProvider serviceProvider)
