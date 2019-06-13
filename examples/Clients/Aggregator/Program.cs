@@ -72,7 +72,7 @@ namespace Sample.Clients
         {
             using (var call = client.AccumulateCount())
             {
-                for (int i = 0; i < 3; i++)
+                for (var i = 0; i < 3; i++)
                 {
                     var count = RNG.Next(5);
                     Console.WriteLine($"Accumulating with {count}");
