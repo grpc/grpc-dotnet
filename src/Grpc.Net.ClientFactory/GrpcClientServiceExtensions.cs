@@ -69,7 +69,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// will be set to the full name of <typeparamref name="TClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
-        /// The type of the typed client. The type must inherit from <see cref="ClientBase{TClient}"/>. The type specified will be registered in the service collection as
+        /// The type of the typed client. The type must inherit from <see cref="LiteClientBase"/> or ClientBase. The type specified will be registered in the service collection as
         /// a transient service.
         /// </typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -77,21 +77,22 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         /// <remarks>
         /// <para>
-        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using 
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using
         /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
         /// </para>
         /// <para>
         /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
         /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
-        /// <typeparamref name="TClient"/> as the service type. 
+        /// <typeparamref name="TClient"/> as the service type.
         /// </para>
         /// <para>
         /// The <see cref="IServiceProvider"/> argument provided to <paramref name="configureClient"/> will be
         /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
         /// </para>
         /// </remarks>
+        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
 
@@ -152,7 +153,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// will be set to the full name of <typeparamref name="TClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
-        /// The type of the typed client. The type must inherit from <see cref="ClientBase{TClient}"/>. The type specified will be registered in the service collection as
+        /// The type of the typed client. The type must inherit from <see cref="LiteClientBase"/> or ClientBase. The type specified will be registered in the service collection as
         /// a transient service.
         /// </typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -161,13 +162,13 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         /// <remarks>
         /// <para>
-        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using 
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using
         /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
         /// </para>
         /// <para>
         /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
         /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
-        /// <typeparamref name="TClient"/> as the service type. 
+        /// <typeparamref name="TClient"/> as the service type.
         /// </para>
         /// <para>
         /// The <see cref="IServiceProvider"/> argument provided to <paramref name="configureClient"/> will be
@@ -203,7 +204,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return services.AddGrpcClientCore<TClient>(name);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : ClientBase
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : class
         {
             if (name == null)
             {
