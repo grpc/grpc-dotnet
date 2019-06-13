@@ -430,6 +430,11 @@ namespace Grpc.Net.Client.Internal
             try
             {
                 HttpResponse = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
+
+                _callCts.Token.Register(() =>
+                {
+                    string s = string.Empty;
+                });
             }
             catch (Exception ex)
             {

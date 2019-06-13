@@ -33,14 +33,14 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             UnaryServerCallHandlerBenchmark benchmark = new UnaryServerCallHandlerBenchmark();
             benchmark.GlobalSetup();
-            for (int i = 0; i < 100; i++)
+            for (var i = 0; i < 100; i++)
             {
                 await benchmark.HandleCallAsync();
             }
 
             Console.WriteLine("Press any key to start.");
             Console.ReadKey();
-            for (int i = 0; i < 1; i++)
+            for (var i = 0; i < 1; i++)
             {
                 await benchmark.HandleCallAsync();
             }

@@ -75,7 +75,7 @@ namespace BenchmarkClient
                 Log($"Benchmark complete '{name}'");
             });
 
-            for (int i = 0; i < Connections; i++)
+            for (var i = 0; i < Connections; i++)
             {
                 var id = i;
                 var worker = workers[i];
@@ -129,7 +129,7 @@ namespace BenchmarkClient
         {
             Log($"Creating workers: {Connections}");
 
-            for (int i = 0; i < Connections; i++)
+            for (var i = 0; i < Connections; i++)
             {
                 var worker = workerFactory(i);
                 await worker.ConnectAsync();
@@ -141,7 +141,7 @@ namespace BenchmarkClient
 
         private static async Task StopWorkers(List<IWorker> workers)
         {
-            for (int i = 0; i < Connections; i++)
+            for (var i = 0; i < Connections; i++)
             {
                 await workers[i].DisconnectAsync();
             }
