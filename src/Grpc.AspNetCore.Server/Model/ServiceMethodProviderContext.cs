@@ -65,7 +65,7 @@ namespace Grpc.AspNetCore.Server.Model
         /// <param name="method">The method description.</param>
         /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
         /// <param name="invoker">The method invoker that is executed when the method is called.</param>
-        public void AddServerStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public void AddServerStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, IList<object> metadata, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
@@ -83,7 +83,7 @@ namespace Grpc.AspNetCore.Server.Model
         /// <param name="method">The method description.</param>
         /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
         /// <param name="invoker">The method invoker that is executed when the method is called.</param>
-        public void AddClientStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public void AddClientStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, IList<object> metadata, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.Server.Model
         /// <param name="method">The method description.</param>
         /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
         /// <param name="invoker">The method invoker that is executed when the method is called.</param>
-        public void AddDuplexStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, List<object> metadata, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public void AddDuplexStreamingMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, IList<object> metadata, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
