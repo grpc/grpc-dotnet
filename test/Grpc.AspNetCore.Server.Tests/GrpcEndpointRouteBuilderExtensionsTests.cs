@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<ErrorService>());
             Assert.AreEqual("Error binding gRPC service 'ErrorService'.", ex.Message);
-            Assert.AreEqual("Error!", ex.InnerException.InnerException.Message);
+            Assert.AreEqual("Error!", ex.InnerException?.InnerException?.Message);
         }
 
         [BindServiceMethod(typeof(ErrorService), "BindMethod")]
@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void MapGrpcService_LoggerAttached_AddsLogForBoundMethod()
+        public void MapGrpcService_LoggerAttachedAndMethodsDiscovered_AddsLogForBoundMethod()
         {
             // Arrange
             var testSink = new TestSink();
@@ -149,10 +149,47 @@ namespace Grpc.AspNetCore.Server.Tests
             var writes = testSink.Writes.ToList();
 
             var s1 = writes[0].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHello' to service 'Greet.Greeter'. Method type: 'Unary', route pattern: '/Greet.Greeter/SayHello'.", s1);
+            Assert.AreEqual("Discovering gRPC methods for Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute.GreeterWithAttributeService.", s1);
 
             var s2 = writes[1].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'Greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/Greet.Greeter/SayHellos'.", s2);
+            Assert.AreEqual("Added gRPC method 'SayHello' to service 'Greet.Greeter'. Method type: 'Unary', route pattern: '/Greet.Greeter/SayHello'.", s2);
+
+            var s3 = writes[2].State.ToString();
+            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'Greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/Greet.Greeter/SayHellos'.", s3);
+        }
+
+        [Test]
+        public void MapGrpcService_LoggerAttachedAndNoMethodsDiscovered_AddsWarningLog()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var mockLoggerFactory = new Mock<ILoggerFactory>();
+            mockLoggerFactory
+                .Setup(m => m.CreateLogger(It.IsAny<string>()))
+                .Returns((string categoryName) => testLogger);
+
+            var services = new ServiceCollection();
+            services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
+            services.AddGrpc();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+
+            // Act
+            routeBuilder.MapGrpcService<object>();
+
+            // Assert
+            var writes = testSink.Writes.ToList();
+
+            var s1 = writes[0].State.ToString();
+            Assert.AreEqual("Discovering gRPC methods for System.Object.", s1);
+
+            var s2 = writes[1].State.ToString();
+            Assert.AreEqual("Could not find bind method for System.Object.", s2);
+
+            var s3 = writes[2].State.ToString();
+            Assert.AreEqual("No gRPC methods discovered for System.Object.", s3);
         }
 
         [Test]

@@ -65,7 +65,7 @@ namespace BenchmarkClient.Workers
 
         private static ChannelCredentials GetCertificateCredentials()
         {
-            var currentPath = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+            var currentPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)!;
 
             return new SslCredentials(
               File.ReadAllText(Path.Combine(currentPath, "Certs", "ca.crt")),

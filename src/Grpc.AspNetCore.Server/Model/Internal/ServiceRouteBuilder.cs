@@ -50,6 +50,8 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder)
         {
+            Log.DiscoveringServiceMethods(_logger, typeof(TService));
+
             var serviceMethodProviderContext = new ServiceMethodProviderContext<TService>(_serverCallHandlerFactory);
             foreach (var serviceMethodProvider in _serviceMethodProviders)
             {
@@ -57,25 +59,32 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             }
 
             var endpointConventionBuilders = new List<IEndpointConventionBuilder>();
-            foreach (var method in serviceMethodProviderContext.Methods)
+            if (serviceMethodProviderContext.Methods.Count > 0)
             {
-                var pattern = method.Method.FullName;
-                var endpointBuilder = endpointRouteBuilder.MapPost(pattern, method.RequestDelegate);
-
-                endpointBuilder.Add(ep =>
+                foreach (var method in serviceMethodProviderContext.Methods)
                 {
-                    ep.DisplayName = $"gRPC - {pattern}";
+                    var pattern = method.Method.FullName;
+                    var endpointBuilder = endpointRouteBuilder.MapPost(pattern, method.RequestDelegate);
 
-                    ep.Metadata.Add(new GrpcMethodMetadata(typeof(TService), method.Method));
-                    foreach (var item in method.Metadata)
+                    endpointBuilder.Add(ep =>
                     {
-                        ep.Metadata.Add(item);
-                    }
-                });
+                        ep.DisplayName = $"gRPC - {pattern}";
 
-                endpointConventionBuilders.Add(endpointBuilder);
+                        ep.Metadata.Add(new GrpcMethodMetadata(typeof(TService), method.Method));
+                        foreach (var item in method.Metadata)
+                        {
+                            ep.Metadata.Add(item);
+                        }
+                    });
 
-                Log.ServiceMethodAdded(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, pattern);
+                    endpointConventionBuilders.Add(endpointBuilder);
+
+                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, pattern);
+                }
+            }
+            else
+            {
+                Log.NoServiceMethodsDiscovered(_logger, typeof(TService));
             }
 
             CreateUnimplementedEndpoints(
@@ -154,12 +163,28 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private static class Log
         {
-            private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _serviceMethodAdded =
-                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Debug, new EventId(1, "ServiceMethodAdded"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+            private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _addedServiceMethod =
+                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Debug, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
 
-            public static void ServiceMethodAdded(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
+            private static readonly Action<ILogger, Type, Exception?> _discoveringServiceMethods =
+                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
+
+            private static readonly Action<ILogger, Type, Exception?> _noServiceMethodsDiscovered =
+                LoggerMessage.Define<Type>(LogLevel.Warning, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
+
+            public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
             {
-                _serviceMethodAdded(logger, methodName, serviceName, methodType, routePattern, null);
+                _addedServiceMethod(logger, methodName, serviceName, methodType, routePattern, null);
+            }
+
+            public static void DiscoveringServiceMethods(ILogger logger, Type serviceType)
+            {
+                _discoveringServiceMethods(logger, serviceType, null);
+            }
+
+            public static void NoServiceMethodsDiscovered(ILogger logger, Type serviceType)
+            {
+                _noServiceMethodsDiscovered(logger, serviceType, null);
             }
         }
     }
