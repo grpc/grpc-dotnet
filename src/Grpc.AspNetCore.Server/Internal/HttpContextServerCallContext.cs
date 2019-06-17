@@ -171,45 +171,53 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (_deadlineLock == null)
             {
-                return EndCallAsyncCore();
+                EndCallCore();
+                return Task.CompletedTask;
             }
 
-            return DeadlineEndCallAsync();
-
-            async Task DeadlineEndCallAsync()
+            var lockTask = _deadlineLock.WaitAsync();
+            if (lockTask.IsCompletedSuccessfully)
             {
-                await _deadlineLock!.WaitAsync();
                 try
                 {
-                    // Have to await EndCallAsyncCore inside the try/finally
-                    await EndCallAsyncCore();
+                    EndCallCore();
                 }
                 finally
                 {
                     _deadlineLock.Release();
                 }
-            }
 
-            Task EndCallAsyncCore()
+                return Task.CompletedTask;
+            }
+            else
             {
-                // Don't set trailers if deadline exceeded or request aborted
-                if (CancellationToken.IsCancellationRequested)
-                {
-                    return Task.CompletedTask;
-                }
+                return EndCallAsyncCore(lockTask);
+            }
 
-                HttpContext.Response.ConsolidateTrailers(this);
+            async Task EndCallAsyncCore(Task lockTask)
+            {
+                await lockTask;
 
-                if (HasBufferedMessage)
+                try
                 {
-                    // Flush any buffered content
-                    return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+                    EndCallCore();
                 }
-                else
+                finally
                 {
-                    return Task.CompletedTask;
+                    _deadlineLock!.Release();
                 }
             }
+        }
+
+        private void EndCallCore()
+        {
+            // Don't set trailers if deadline exceeded or request aborted
+            if (CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            HttpContext.Response.ConsolidateTrailers(this);
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }

@@ -104,6 +104,14 @@ namespace FunctionalTestsWebsite
 
             app.UseAuthorization();
 
+            app.Use(async (context, next) =>
+            {
+                await next();
+
+                // TODO(JamesNK) - Workaround until https://github.com/aspnet/AspNetCore/pull/11268
+                await context.Response.BodyWriter.FlushAsync();
+            });
+
             app.UseEndpoints(endpoints =>
             {
                 // Bind via reflection
