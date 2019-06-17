@@ -25,11 +25,12 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IAsyncDisposable, IServerCallContextFeature
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
@@ -41,9 +42,11 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private DateTime _deadline;
-        private Timer? _deadlineTimer;
+        private CancellationTokenSource? _deadlineCts;
+        private SemaphoreSlim? _deadlineLock;
         private Status _status;
         private AuthContext? _authContext;
+        private CancellationTokenRegistration _requestAbortedRegistration;
         // Internal for tests
         internal bool _disposed;
 
@@ -143,7 +146,7 @@ namespace Grpc.AspNetCore.Server.Internal
             HttpContext.Response.ConsolidateTrailers(this);
         }
 
-        protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
+        protected override CancellationToken CancellationTokenCore => _deadlineCts?.Token ?? HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -166,16 +169,46 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal Task EndCallAsync()
         {
-            HttpContext.Response.ConsolidateTrailers(this);
-
-            if (HasBufferedMessage)
+            if (_deadlineLock == null)
             {
-                // Flush any buffered content
-                return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+                return EndCallAsyncCore();
             }
-            else
+
+            return DeadlineEndCallAsync();
+
+            async Task DeadlineEndCallAsync()
             {
-                return Task.CompletedTask;
+                await _deadlineLock!.WaitAsync();
+                try
+                {
+                    // Have to await EndCallAsyncCore inside the try/finally
+                    await EndCallAsyncCore();
+                }
+                finally
+                {
+                    _deadlineLock.Release();
+                }
+            }
+
+            Task EndCallAsyncCore()
+            {
+                // Don't set trailers if deadline exceeded or request aborted
+                if (CancellationToken.IsCancellationRequested)
+                {
+                    return Task.CompletedTask;
+                }
+
+                HttpContext.Response.ConsolidateTrailers(this);
+
+                if (HasBufferedMessage)
+                {
+                    // Flush any buffered content
+                    return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
+                }
+                else
+                {
+                    return Task.CompletedTask;
+                }
             }
         }
 
@@ -249,11 +282,13 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 _deadline = Clock.UtcNow.Add(timeout);
 
-                // Set timer field first and then set the timeout.
-                // The method uses the timer to lock and we want to avoid the timer immediately
-                // running before the field is set.
-                _deadlineTimer = new Timer(DeadlineExceeded);
-                _deadlineTimer.Change(timeout, Timeout.InfiniteTimeSpan);
+                // Create lock before setting up deadline event
+                _deadlineLock = new SemaphoreSlim(1, 1);
+
+                _deadlineCts = new CancellationTokenSource(timeout);
+                _deadlineCts.Token.Register(DeadlineExceeded);
+
+                _requestAbortedRegistration = HttpContext.RequestAborted.Register(RequestAborted);
             }
             else
             {
@@ -275,6 +310,11 @@ namespace Grpc.AspNetCore.Server.Internal
             HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
         }
 
+        private void RequestAborted()
+        {
+            _deadlineCts?.Cancel();
+        }
+
         private TimeSpan GetTimeout()
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
@@ -294,54 +334,109 @@ namespace Grpc.AspNetCore.Server.Internal
         }
 
         // Internal for tests
-        internal void DeadlineExceeded(object state)
+        internal async void DeadlineExceeded()
         {
-            if (!_disposed)
+            // Deadline could be raised after context has been disposed
+            if (_disposed)
             {
-                Debug.Assert(_deadlineTimer != null, "Should only be called via the timer.");
-                lock (_deadlineTimer)
+                return;
+            }
+
+            // Request abort uses the same cancellation token
+            // Don't run deadline logic if the request has already been aborted
+            if (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return;
+            }
+
+            Debug.Assert(_deadlineLock != null, "Lock has not been created.");
+
+            await _deadlineLock.WaitAsync();
+
+            try
+            {
+                if (_disposed)
                 {
-                    if (!_disposed)
-                    {
-                        Log.DeadlineExceeded(_logger, GetTimeout());
+                    return;
+                }
 
-                        _status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+                Log.DeadlineExceeded(_logger, GetTimeout());
 
-                        try
-                        {
-                            // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-                            HttpContext.Abort();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.DeadlineCancellationError(_logger, ex);
-                        }
-                    }
+                var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+                var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(HttpContext.Response);
+                GrpcProtocolHelpers.SetStatus(trailersDestination, status);
+
+                _status = status;
+
+                // Immediately send remaining response content and trailers
+                // If feature is null then abort will still end request, but response won't have trailers
+                var completionFeature = HttpContext.Features.Get<IHttpResponseCompletionFeature>();
+                if (completionFeature != null)
+                {
+                    await completionFeature.CompleteAsync();
+                }
+
+                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
+                HttpContext.Abort();
+            }
+            catch (Exception ex)
+            {
+                Log.DeadlineCancellationError(_logger, ex);
+            }
+            finally
+            {
+                _deadlineLock.Release();
+            }
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            if (_deadlineLock == null)
+            {
+                DisposeCore();
+                return default;
+            }
+
+            var lockTask = _deadlineLock.WaitAsync();
+            if (lockTask.IsCompletedSuccessfully)
+            {
+                try
+                {
+                    DisposeCore();
+                }
+                finally
+                {
+                    _deadlineLock.Release();
+                }
+
+                return default;
+            }
+            else
+            {
+                return DisposeAsyncCore(lockTask);
+            }
+
+            async ValueTask DisposeAsyncCore(Task lockTask)
+            {
+                await lockTask;
+
+                try
+                {
+                    DisposeCore();
+                }
+                finally
+                {
+                    _deadlineLock!.Release();
                 }
             }
         }
 
-        public void Dispose()
+        private void DisposeCore()
         {
-            var lockTaken = false;
-            try
-            {
-                // Only take a lock if there is a deadline
-                if (_deadlineTimer != null)
-                {
-                    Monitor.Enter(_deadlineTimer, ref lockTaken);
-                }
-
-                _disposed = true;
-                _deadlineTimer?.Dispose();
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    Monitor.Exit(_deadlineTimer);
-                }
-            }
+            _disposed = true;
+            _deadlineCts?.Dispose();
+            _requestAbortedRegistration.Dispose();
         }
 
         internal string? GetRequestGrpcEncoding()

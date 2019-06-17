@@ -112,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 }
 
                 var responseBodyWriter = httpContext.Response.BodyWriter;
-                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
+                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer, canFlush: false);
 
                 await serverCallContext.EndCallAsync();
             }
@@ -122,7 +122,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
             finally
             {
-                serverCallContext.Dispose();
+                await serverCallContext.DisposeAsync();
             }
         }
     }

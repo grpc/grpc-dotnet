@@ -120,7 +120,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
             finally
             {
-                serverCallContext.Dispose();
+                await serverCallContext.DisposeAsync();
             }
         }
     }

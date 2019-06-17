@@ -452,13 +452,32 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             // Assert
-            Assert.IsFalse(context.CancellationToken.IsCancellationRequested);
-
             var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
             Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
 
             write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
             Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", write.State.ToString());
+        }
+
+        [Test]
+        public void CancellationToken_WithDeadlineAndRequestAborted_DeadlineStatusNotSet()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var requestLifetimeFeature = new TestHttpRequestLifetimeFeature();
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(requestLifetimeFeature);
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1000S";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            context.Initialize();
+
+            // Act
+            requestLifetimeFeature.Abort();
+
+            // Assert
+            Assert.AreNotEqual(StatusCode.DeadlineExceeded, context.Status.StatusCode);
         }
 
         [Test]
@@ -537,7 +556,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var blockingLifeTimeFeature = new TestBlockingHttpRequestLifetimeFeature();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100n";
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
             httpContext.Features.Set<IHttpRequestLifetimeFeature>(blockingLifeTimeFeature);
 
             var testSink = new TestSink();
@@ -556,7 +575,7 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             // Act
-            var disposeTask = Task.Run(() => serverCallContext.Dispose());
+            var disposeTask = Task.Run(() => serverCallContext.DisposeAsync().AsTask());
 
             // Assert
             if (await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == disposeTask)
@@ -574,7 +593,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
+        public async Task DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
         {
             // Arrange
             var lifetimeFeature = new TestHttpRequestLifetimeFeature();
@@ -585,10 +604,10 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Initialize();
-            serverCallContext.Dispose();
+            await serverCallContext.DisposeAsync();
 
             // Act
-            serverCallContext.DeadlineExceeded(TimeSpan.Zero);
+            serverCallContext.DeadlineExceeded();
 
             // Assert
             Assert.IsFalse(lifetimeFeature.RequestAborted.IsCancellationRequested);
