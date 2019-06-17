@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IAsyncDisposable, IServerCallContextFeature
+    internal sealed partial class HttpContextServerCallContext : ServerCallContext, IDisposable, IServerCallContextFeature
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
@@ -117,33 +117,86 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        internal void ProcessHandlerError(Exception ex, string method)
+        internal Task ProcessHandlerErrorAsync(Exception ex, string method)
         {
-            if (ex is RpcException rpcException)
+            if (_deadlineLock == null)
             {
-                Log.RpcConnectionError(_logger, rpcException.StatusCode, ex);
+                ProcessHandlerError(ex, method);
+                return Task.CompletedTask;
+            }
 
-                // There are two sources of metadata entries on the server-side:
-                // 1. serverCallContext.ResponseTrailers
-                // 2. trailers in RpcException thrown by user code in server side handler.
-                // As metadata allows duplicate keys, the logical thing to do is
-                // to just merge trailers from RpcException into serverCallContext.ResponseTrailers.
-                foreach (var entry in rpcException.Trailers)
+            var lockTask = _deadlineLock.WaitAsync();
+            if (lockTask.IsCompletedSuccessfully)
+            {
+                try
                 {
-                    ResponseTrailers.Add(entry);
+                    ProcessHandlerError(ex, method);
+                }
+                finally
+                {
+                    _deadlineLock.Release();
                 }
 
-                _status = rpcException.Status;
+                return Task.CompletedTask;
             }
             else
             {
-                Log.ErrorExecutingServiceMethod(_logger, method, ex);
-
-                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
-                _status = new Status(StatusCode.Unknown, message);
+                return ProcessHandlerErrorAsyncCore(lockTask, ex, method);
             }
 
-            HttpContext.Response.ConsolidateTrailers(this);
+            async Task ProcessHandlerErrorAsyncCore(Task lockTask, Exception ex, string method)
+            {
+                await lockTask;
+
+                try
+                {
+                    ProcessHandlerError(ex, method);
+                }
+                finally
+                {
+                    _deadlineLock!.Release();
+                }
+            }
+        }
+
+        private void ProcessHandlerError(Exception ex, string method)
+        {
+            try
+            {
+                if (ex is RpcException rpcException)
+                {
+                    Log.RpcConnectionError(_logger, rpcException.StatusCode, ex);
+
+                    // There are two sources of metadata entries on the server-side:
+                    // 1. serverCallContext.ResponseTrailers
+                    // 2. trailers in RpcException thrown by user code in server side handler.
+                    // As metadata allows duplicate keys, the logical thing to do is
+                    // to just merge trailers from RpcException into serverCallContext.ResponseTrailers.
+                    foreach (var entry in rpcException.Trailers)
+                    {
+                        ResponseTrailers.Add(entry);
+                    }
+
+                    _status = rpcException.Status;
+                }
+                else
+                {
+                    Log.ErrorExecutingServiceMethod(_logger, method, ex);
+
+                    var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
+                    _status = new Status(StatusCode.Unknown, message);
+                }
+
+                // Don't update trailers if request has exceeded deadline/aborted
+                if (!CancellationToken.IsCancellationRequested)
+                {
+                    HttpContext.Response.ConsolidateTrailers(this);
+                }
+            }
+            finally
+            {
+                Dispose();
+            }
         }
 
         protected override CancellationToken CancellationTokenCore => _deadlineCts?.Token ?? HttpContext.RequestAborted;
@@ -218,6 +271,9 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             HttpContext.Response.ConsolidateTrailers(this);
+
+            // Clean up deadline
+            Dispose();
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -344,7 +400,7 @@ namespace Grpc.AspNetCore.Server.Internal
         // Internal for tests
         internal async void DeadlineExceeded()
         {
-            // Deadline could be raised after context has been disposed
+            // Deadline could be raised after call has been disposed
             if (_disposed)
             {
                 return;
@@ -363,6 +419,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             try
             {
+                // Re-check after lock
                 if (_disposed)
                 {
                     return;
@@ -398,49 +455,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        public ValueTask DisposeAsync()
-        {
-            if (_deadlineLock == null)
-            {
-                DisposeCore();
-                return default;
-            }
-
-            var lockTask = _deadlineLock.WaitAsync();
-            if (lockTask.IsCompletedSuccessfully)
-            {
-                try
-                {
-                    DisposeCore();
-                }
-                finally
-                {
-                    _deadlineLock.Release();
-                }
-
-                return default;
-            }
-            else
-            {
-                return DisposeAsyncCore(lockTask);
-            }
-
-            async ValueTask DisposeAsyncCore(Task lockTask)
-            {
-                await lockTask;
-
-                try
-                {
-                    DisposeCore();
-                }
-                finally
-                {
-                    _deadlineLock!.Release();
-                }
-            }
-        }
-
-        private void DisposeCore()
+        public void Dispose()
         {
             _disposed = true;
             _deadlineCts?.Dispose();

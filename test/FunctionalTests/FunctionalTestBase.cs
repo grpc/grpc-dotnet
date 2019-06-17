@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             // This will verify only expected errors were logged on the server for the previous test.
             _scope?.Dispose();
         }
+
+        public IList<LogRecord> Logs => _scope!.Logs;
 
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
         {

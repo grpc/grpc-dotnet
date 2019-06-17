@@ -118,11 +118,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
             catch (Exception ex)
             {
-                serverCallContext.ProcessHandlerError(ex, Method.Name);
-            }
-            finally
-            {
-                await serverCallContext.DisposeAsync();
+                await serverCallContext.ProcessHandlerErrorAsync(ex, Method.Name);
             }
         }
     }

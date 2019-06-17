@@ -550,7 +550,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task Dispose_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
+        public async Task ProcessHandlerErrorAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
         {
             // Arrange
             var blockingLifeTimeFeature = new TestBlockingHttpRequestLifetimeFeature();
@@ -575,7 +575,7 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             // Act
-            var disposeTask = Task.Run(() => serverCallContext.DisposeAsync().AsTask());
+            var disposeTask = Task.Run(() => serverCallContext.ProcessHandlerErrorAsync(new Exception(), "Method!"));
 
             // Assert
             if (await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == disposeTask)
@@ -593,7 +593,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
+        public void DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
         {
             // Arrange
             var lifetimeFeature = new TestHttpRequestLifetimeFeature();
@@ -604,7 +604,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Initialize();
-            await serverCallContext.DisposeAsync();
+            serverCallContext.Dispose();
 
             // Act
             serverCallContext.DeadlineExceeded();
