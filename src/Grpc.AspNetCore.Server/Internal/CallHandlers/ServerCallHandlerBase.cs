@@ -47,7 +47,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = CreateServerCallContext(httpContext);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
@@ -86,14 +87,6 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         }
 
         protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
-
-        protected HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext)
-        {
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
-            httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
-
-            return serverCallContext;
-        }
 
         /// <summary>
         /// This should only be called from client streaming calls
