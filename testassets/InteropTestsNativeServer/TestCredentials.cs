@@ -69,7 +69,7 @@ namespace InteropTestsNativeWebsite
         private static string GetPath(string relativePath)
         {
             var assemblyDir = Path.GetDirectoryName(typeof(TestCredentials).GetTypeInfo().Assembly.Location);
-            return Path.Combine(assemblyDir, relativePath);
+            return Path.Combine(assemblyDir!, relativePath);
         }
     }
 }

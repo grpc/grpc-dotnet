@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because an error occured when making the request.", ex.Message);
-            Assert.AreEqual("An error!", ex.InnerException.InnerException.Message);
+            Assert.AreEqual("An error!", ex.InnerException?.InnerException?.Message);
         }
 
         [Test]

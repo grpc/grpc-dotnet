@@ -103,7 +103,7 @@ namespace Grpc.AspNetCore.Server.Reflection.Internal
 
             public static void ServiceDescriptorNotResolved(ILogger logger, Type serviceType)
             {
-                _serviceDescriptorNotResolved(logger, serviceType.FullName, null);
+                _serviceDescriptorNotResolved(logger, serviceType.FullName ?? string.Empty, null);
             }
         }
     }
