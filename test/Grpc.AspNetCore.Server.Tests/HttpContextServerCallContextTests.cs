@@ -575,25 +575,25 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             // Act
-            var disposeTask = Task.Run(() => serverCallContext.ProcessHandlerErrorAsync(new Exception(), "Method!"));
+            var processHandlerErrorTask = Task.Run(() => serverCallContext.ProcessHandlerErrorAsync(new Exception(), "Method!"));
 
             // Assert
-            if (await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == disposeTask)
+            if (await Task.WhenAny(processHandlerErrorTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == processHandlerErrorTask)
             {
-                Assert.Fail("Dispose did not wait on lock taken by deadline cancellation.");
+                Assert.Fail($"{nameof(HttpContextServerCallContext.ProcessHandlerErrorAsync)} did not wait on lock taken by deadline cancellation.");
             }
 
             Assert.IsFalse(serverCallContext._disposed);
 
             // Wait for dispose to finish
             blockingLifeTimeFeature.CancelBlocking();
-            await disposeTask.DefaultTimeout();
+            await processHandlerErrorTask.DefaultTimeout();
 
             Assert.IsTrue(serverCallContext._disposed);
         }
 
         [Test]
-        public void DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
+        public async Task DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
         {
             // Arrange
             var lifetimeFeature = new TestHttpRequestLifetimeFeature();
@@ -604,10 +604,10 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Initialize();
-            serverCallContext.Dispose();
+            await serverCallContext.DisposeAsync();
 
             // Act
-            serverCallContext.DeadlineExceeded();
+            serverCallContext.DeadlineExceeded(null);
 
             // Assert
             Assert.IsFalse(lifetimeFeature.RequestAborted.IsCancellationRequested);
