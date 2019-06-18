@@ -153,7 +153,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// will be set to the full name of <typeparamref name="TClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
-        /// The type of the typed client. The type must inherit from <see cref="LiteClientBase"/> or ClientBase. The type specified will be registered in the service collection as
+        /// The type of the gRPC client. The type specified will be registered in the service collection as
         /// a transient service.
         /// </typeparam>
         /// <param name="services">The <see cref="IServiceCollection"/>.</param>
