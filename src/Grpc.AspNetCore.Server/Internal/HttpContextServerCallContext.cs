@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private Status _status;
         private AuthContext? _authContext;
         // Internal for tests
-        internal bool _disposed;
+        internal bool _deadlineDisposed;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -121,7 +121,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (_deadlineLock == null)
             {
                 ProcessHandlerError(ex, method);
-                return DisposeAsync();
+                return Task.CompletedTask;
             }
 
             return ProcessHandlerErrorAsyncCore(ex, method);
@@ -140,7 +140,7 @@ namespace Grpc.AspNetCore.Server.Internal
             finally
             {
                 _deadlineLock.Release();
-                await DisposeAsync();
+                await DeadlineDisposeAsync();
             }
         }
 
@@ -219,7 +219,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     _deadlineLock.Release();
 
                     // Can't return from a finally
-                    disposeTask = DisposeAsync();
+                    disposeTask = DeadlineDisposeAsync();
                 }
 
                 return disposeTask;
@@ -243,7 +243,7 @@ namespace Grpc.AspNetCore.Server.Internal
             finally
             {
                 _deadlineLock.Release();
-                await DisposeAsync();
+                await DeadlineDisposeAsync();
             }
         }
 
@@ -375,14 +375,7 @@ namespace Grpc.AspNetCore.Server.Internal
         internal async void DeadlineExceeded(object? state)
         {
             // Deadline could be raised after call has been disposed
-            if (_disposed)
-            {
-                return;
-            }
-
-            // Request abort uses the same cancellation token
-            // Don't run deadline logic if the request has already been aborted
-            if (HttpContext.RequestAborted.IsCancellationRequested)
+            if (_deadlineDisposed)
             {
                 return;
             }
@@ -394,7 +387,7 @@ namespace Grpc.AspNetCore.Server.Internal
             try
             {
                 // Re-check after lock
-                if (_disposed)
+                if (_deadlineDisposed)
                 {
                     return;
                 }
@@ -430,28 +423,24 @@ namespace Grpc.AspNetCore.Server.Internal
         }
 
         // Internal for testing
-        internal Task DisposeAsync()
+        internal Task DeadlineDisposeAsync()
         {
-            _disposed = true;
-            if (_deadlineTimer == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            var disposeTask = _deadlineTimer.DisposeAsync();
+            var disposeTask = _deadlineTimer!.DisposeAsync();
             if (disposeTask.IsCompletedSuccessfully)
             {
                 _deadlineLock!.Dispose();
+                _deadlineDisposed = true;
                 return Task.CompletedTask;
             }
 
-            return DisposeAsyncCore(disposeTask);
+            return DeadlineDisposeAsyncCore(disposeTask);
         }
 
-        private async Task DisposeAsyncCore(ValueTask disposeTask)
+        private async Task DeadlineDisposeAsyncCore(ValueTask disposeTask)
         {
             await disposeTask;
             _deadlineLock!.Dispose();
+            _deadlineDisposed = true;
         }
 
         internal string? GetRequestGrpcEncoding()

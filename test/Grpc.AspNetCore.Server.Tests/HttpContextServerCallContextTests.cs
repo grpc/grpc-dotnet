@@ -550,7 +550,30 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ProcessHandlerErrorAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
+        public Task EndCallAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
+        {
+            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
+                nameof(HttpContextServerCallContext.EndCallAsync),
+                context => context.EndCallAsync());
+        }
+
+        [Test]
+        public Task ProcessHandlerErrorAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
+        {
+            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
+                nameof(HttpContextServerCallContext.ProcessHandlerErrorAsync),
+                context => context.ProcessHandlerErrorAsync(new Exception(), "Method!"));
+        }
+
+        [Test]
+        public Task DeadlineDisposeAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
+        {
+            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
+                nameof(HttpContextServerCallContext.DeadlineDisposeAsync),
+                context => context.DeadlineDisposeAsync());
+        }
+
+        private async Task LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(string methodName, Func<HttpContextServerCallContext, Task> method)
         {
             // Arrange
             var blockingLifeTimeFeature = new TestBlockingHttpRequestLifetimeFeature();
@@ -575,21 +598,21 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             // Act
-            var processHandlerErrorTask = Task.Run(() => serverCallContext.ProcessHandlerErrorAsync(new Exception(), "Method!"));
+            var methodTask = method(serverCallContext);
 
             // Assert
-            if (await Task.WhenAny(processHandlerErrorTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == processHandlerErrorTask)
+            if (await Task.WhenAny(methodTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == methodTask)
             {
-                Assert.Fail($"{nameof(HttpContextServerCallContext.ProcessHandlerErrorAsync)} did not wait on lock taken by deadline cancellation.");
+                Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
 
-            Assert.IsFalse(serverCallContext._disposed);
+            Assert.IsFalse(serverCallContext._deadlineDisposed);
 
             // Wait for dispose to finish
             blockingLifeTimeFeature.CancelBlocking();
-            await processHandlerErrorTask.DefaultTimeout();
+            await methodTask.DefaultTimeout();
 
-            Assert.IsTrue(serverCallContext._disposed);
+            Assert.IsTrue(serverCallContext._deadlineDisposed);
         }
 
         [Test]
@@ -604,7 +627,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Initialize();
-            await serverCallContext.DisposeAsync();
+            await serverCallContext.DeadlineDisposeAsync();
 
             // Act
             serverCallContext.DeadlineExceeded(null);
