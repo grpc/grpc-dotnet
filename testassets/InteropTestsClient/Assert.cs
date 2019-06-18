@@ -110,7 +110,7 @@ namespace InteropTestsClient
 
             for (var i = 0; i < expected.Count; i++)
             {
-                Assert.AreEqual(expected[i], actual[i]);
+                Assert.AreEqual(expected[i]!, actual[i]!);
             }
         }
     }

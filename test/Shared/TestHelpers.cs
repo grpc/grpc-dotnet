@@ -29,7 +29,7 @@ namespace Grpc.Tests.Shared
     {
         public static string ResolvePath(string relativePath)
         {
-            var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location), relativePath);
+            var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location)!, relativePath);
 
             return resolvedPath;
         }

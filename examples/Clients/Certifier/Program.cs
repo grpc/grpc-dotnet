@@ -74,7 +74,7 @@ namespace Sample.Clients
             {
                 // Load client certificate
                 var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                var certPath = Path.Combine(basePath, "Certs", "client.pfx");
+                var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
                 var clientCertificate = new X509Certificate2(certPath, "1111");
                 handler.ClientCertificates.Add(clientCertificate);
             }

@@ -205,7 +205,7 @@ namespace InteropTestsClient
         {
             if (channel is CoreChannel coreChannel)
             {
-                return (TClient)Activator.CreateInstance(typeof(TClient), coreChannel.Channel);
+                return (TClient)Activator.CreateInstance(typeof(TClient), coreChannel.Channel)!;
             }
             else if (channel is HttpClientChannel httpClientChannel)
             {
@@ -813,7 +813,7 @@ namespace InteropTestsClient
         // extracts the client_email field from service account file used for auth test cases
         private static string GetEmailFromServiceAccountFile()
         {
-            string keyFile = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+            string keyFile = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")!;
             Assert.IsNotNull(keyFile);
             var jobject = JObject.Parse(File.ReadAllText(keyFile));
             string email = jobject.GetValue("client_email").Value<string>();

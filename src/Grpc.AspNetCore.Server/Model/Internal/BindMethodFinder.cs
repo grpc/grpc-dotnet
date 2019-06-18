@@ -42,12 +42,13 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         internal static MethodInfo? GetBindMethodUsingAttribute(Type serviceType)
         {
-            BindServiceMethodAttribute bindServiceMethod;
+            Type? currentServiceType = serviceType;
+            BindServiceMethodAttribute? bindServiceMethod;
             do
             {
                 // Search through base types for bind service attribute
                 // We need to know the base service type because it is used with GetMethod below
-                bindServiceMethod = serviceType.GetCustomAttribute<BindServiceMethodAttribute>();
+                bindServiceMethod = currentServiceType.GetCustomAttribute<BindServiceMethodAttribute>();
                 if (bindServiceMethod != null)
                 {
                     // Bind method will be public and static
@@ -56,10 +57,10 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                         bindServiceMethod.BindMethodName,
                         BindMethodBindingFlags,
                         binder: null,
-                        new[] { typeof(ServiceBinderBase), serviceType },
+                        new[] { typeof(ServiceBinderBase), currentServiceType },
                         Array.Empty<ParameterModifier>());
                 }
-            } while ((serviceType = serviceType.BaseType) != null);
+            } while ((currentServiceType = currentServiceType.BaseType) != null);
 
             return null;
         }
@@ -68,9 +69,13 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         {
             // Search for the generated service base class
             var baseType = GetServiceBaseType(serviceType);
+            if (baseType == null)
+            {
+                return null;
+            }
 
             // We need to call Foo.BindService from the declaring type.
-            var declaringType = baseType?.DeclaringType;
+            var declaringType = baseType.DeclaringType;
 
             // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
             return declaringType?.GetMethod(

@@ -57,7 +57,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         private static class Log
         {
             private static readonly Action<ILogger, Type, Exception?> _bindMethodNotFound =
-                LoggerMessage.Define<Type>(LogLevel.Warning, new EventId(1, "BindMethodNotFound"), "Could not find bind method for service '{ServiceType}'.");
+                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(1, "BindMethodNotFound"), "Could not find bind method for {ServiceType}.");
 
             public static void BindMethodNotFound(ILogger logger, Type serviceType)
             {
