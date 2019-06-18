@@ -53,7 +53,7 @@ namespace Grpc.Net.Client
 
                 if (constructor == null)
                 {
-                    throw new InvalidOperationException($"Could not resolve a valid constructor for type {typeof(TClient)}. Please make sure it is of type Grpc.Core.ClientBase or Grpc.Core.LiteClientBase.");
+                    throw new InvalidOperationException($"Could not create an instance of {typeof(TClient)}. The client type must have public constructor with a {typeof(CallInvoker)} argument. Clients can be generate from *.proto files using the Grpc.Tools package.");
                 }
 
                 var callInvokerArgument = Expression.Parameter(typeof(CallInvoker), "arg");
