@@ -37,7 +37,8 @@ namespace Grpc.Net.Client
         /// <param name="httpClient">The <see cref="HttpClient"/>.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : ClientBase<TClient>
+        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
+        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : class
         {
             return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient, loggerFactory));
         }
@@ -49,6 +50,12 @@ namespace Grpc.Net.Client
             private readonly static Func<Func<CallInvoker, TClient>> _createActivator = () =>
             {
                 var constructor = typeof(TClient).GetConstructor(new[] { typeof(CallInvoker) });
+
+                if (constructor == null)
+                {
+                    throw new InvalidOperationException($"Could not create an instance of {typeof(TClient)}. The client type must have public constructor with a {typeof(CallInvoker)} argument. Clients can be generate from *.proto files using the Grpc.Tools package.");
+                }
+
                 var callInvokerArgument = Expression.Parameter(typeof(CallInvoker), "arg");
 
                 var activator = Expression.Lambda<Func<CallInvoker, TClient>>(

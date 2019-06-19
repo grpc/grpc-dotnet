@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
 </Project>

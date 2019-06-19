@@ -3,10 +3,12 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\*.proto" GrpcServices="Client" />
+    <Protobuf Include="Proto\greet.proto" GrpcServices="Client" ClientBaseType="LiteClientBase" />
+    <Protobuf Include="Proto\core-greet.proto" GrpcServices="Client" ClientBaseType="ClientBase" />
 
     <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
@@ -23,6 +25,12 @@
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Update="Proto\core-greet.proto">
+      <_GrpcOutputOptions>$(_GrpcOutputOptions);lite_client</_GrpcOutputOptions>
+    </Protobuf>
   </ItemGroup>
 
 </Project>
