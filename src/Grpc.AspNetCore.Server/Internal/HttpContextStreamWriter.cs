@@ -51,7 +51,20 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new InvalidOperationException("Cannot write message after request is complete.");
             }
 
-            return _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
+            var writeMessageTask = _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
+            if (writeMessageTask.IsCompletedSuccessfully)
+            {
+                GrpcEventSource.Log.MessageSent();
+                return Task.CompletedTask;
+            }
+
+            return WriteAsyncCore(writeMessageTask);
+
+            static async Task WriteAsyncCore(Task writeMessageTask)
+            {
+                await writeMessageTask;
+                GrpcEventSource.Log.MessageSent();
+            }
         }
     }
 }

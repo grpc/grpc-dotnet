@@ -40,9 +40,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         public async Task Create_ConfiguredGrpcEndpoint_EndpointReturnedFromReflectionService()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddGrpc();
-            services.AddLogging();
+            var services = ServicesHelpers.CreateServices();
             var serviceProvider = services.BuildServiceProvider();
 
             var endpointRouteBuilder = new TestEndpointRouteBuilder(serviceProvider);

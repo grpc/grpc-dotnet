@@ -17,6 +17,7 @@
 #endregion
 
 using System.Buffers;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
@@ -58,7 +59,8 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 method,
                 (service, request, context) => result,
                 ServiceOptions,
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new DiagnosticListener("Test"));
 
             _trailers = new HeaderDictionary();
 

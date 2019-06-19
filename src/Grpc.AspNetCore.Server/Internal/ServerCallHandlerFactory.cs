@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Compression;
@@ -36,12 +37,17 @@ namespace Grpc.AspNetCore.Server.Internal
     internal partial class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
+        private readonly DiagnosticListener _diagnosticListener;
         private readonly GrpcServiceOptions _resolvedOptions;
 
-        public ServerCallHandlerFactory(ILoggerFactory loggerFactory, IOptions<GrpcServiceOptions> globalOptions, IOptions<GrpcServiceOptions<TService>> serviceOptions)
+        public ServerCallHandlerFactory(
+            ILoggerFactory loggerFactory,
+            IOptions<GrpcServiceOptions> globalOptions,
+            IOptions<GrpcServiceOptions<TService>> serviceOptions,
+            DiagnosticListener diagnosticListener)
         {
             _loggerFactory = loggerFactory;
-
+            _diagnosticListener = diagnosticListener;
             var so = serviceOptions.Value;
             var go = globalOptions.Value;
 
@@ -74,28 +80,28 @@ namespace Grpc.AspNetCore.Server.Internal
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _diagnosticListener);
         }
 
         public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _diagnosticListener);
         }
 
         public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _diagnosticListener);
         }
 
         public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _diagnosticListener);
         }
 
         public RequestDelegate CreateUnimplementedMethod()
@@ -108,6 +114,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
                 Log.MethodUnimplemented(logger, unimplementedMethod);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
                 return Task.CompletedTask;
@@ -124,6 +131,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
                 Log.ServiceUnimplemented(logger, unimplementedService);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
                 return Task.CompletedTask;

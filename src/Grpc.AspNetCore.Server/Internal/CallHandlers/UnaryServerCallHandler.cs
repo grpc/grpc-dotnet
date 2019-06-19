@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
@@ -38,8 +39,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             UnaryServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory)
-            : base(method, serviceOptions, loggerFactory)
+            ILoggerFactory loggerFactory,
+            DiagnosticListener diagnosticListener)
+            : base(method, serviceOptions, loggerFactory, diagnosticListener)
         {
             _invoker = invoker;
 
@@ -76,6 +78,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             var request = Method.RequestMarshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
             serverCallContext.DeserializationContext.SetPayload(null);
 
+            GrpcEventSource.Log.MessageReceived();
+
             TResponse? response = null;
 
             if (_pipelineInvoker == null)
@@ -108,6 +112,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             var responseBodyWriter = httpContext.Response.BodyWriter;
             await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
+
+            GrpcEventSource.Log.MessageSent();
         }
     }
 }

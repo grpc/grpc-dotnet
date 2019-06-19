@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -633,9 +635,108 @@ namespace Grpc.AspNetCore.Server.Tests
             await disposeTask;
         }
 
-        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
+        [Test]
+        public void Initialize_MethodInPath_SetsMethodOnActivity()
         {
-            return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
+            using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
+            {
+                // Arrange
+                var diagnosticListener = new DiagnosticListener("Test");
+                var result = new List<KeyValuePair<string, object>>();
+                var httpContext = new DefaultHttpContext();
+                httpContext.Request.Path = "/Package.Service/Method";
+                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+
+                // Act
+                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
+                {
+                    context.Initialize();
+                }
+
+                // Assert
+                Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
+                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
+            }
+        }
+
+        [Test]
+        public void Initialize_MethodInPathAndChildActivity_SetsMethodOnActivity()
+        {
+            using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
+            {
+                // Arrange
+                var diagnosticListener = new DiagnosticListener("Test");
+                var result = new List<KeyValuePair<string, object>>();
+                var httpContext = new DefaultHttpContext();
+                httpContext.Request.Path = "/Package.Service/Method";
+                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+
+                // Act
+                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
+                {
+                    using (new ActivityReplacer("ChildActivity"))
+                    {
+                        context.Initialize();
+                    }
+                }
+
+                // Assert
+                Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
+                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
+            }
+        }
+
+        [Test]
+        public async Task EndCallAsync_StatusSet_SetsStatusOnActivity()
+        {
+            using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
+            {
+                // Arrange
+                var diagnosticListener = new DiagnosticListener("Test");
+                var result = new List<KeyValuePair<string, object>>();
+                var httpContext = new DefaultHttpContext();
+                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+                context.Status = new Status(StatusCode.ResourceExhausted, string.Empty);
+
+                // Act
+                context.Initialize();
+                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
+                {
+                    await context.EndCallAsync();
+                }
+
+                // Assert
+                Assert.AreEqual("8", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
+                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
+            }
+        }
+
+        [Test]
+        public async Task ProcessHandlerErrorAsync_Exception_SetsStatusOnActivity()
+        {
+            using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
+            {
+                // Arrange
+                var httpContext = new DefaultHttpContext();
+                var context = CreateServerCallContext(httpContext);
+                context.Status = new Status(StatusCode.ResourceExhausted, string.Empty);
+
+                // Act
+                context.Initialize();
+                await context.ProcessHandlerErrorAsync(new Exception(), "MethodName");
+
+                // Assert
+                Assert.AreEqual("2", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
+            }
+        }
+
+        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null, DiagnosticListener? diagnosticListener = null)
+        {
+            return HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                logger: logger,
+                diagnosticListener: diagnosticListener,
+                initialize: false);
         }
 
         private class TestHttpResetFeature : IHttpResetFeature
@@ -660,32 +761,6 @@ namespace Grpc.AspNetCore.Server.Tests
             public Task CompleteAsync()
             {
                 return _syncPoint.WaitToContinue();
-            }
-        }
-
-        private class TestBlockingHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
-        {
-            private readonly CancellationTokenSource _cts;
-
-            public TestBlockingHttpRequestLifetimeFeature()
-            {
-                _cts = new CancellationTokenSource();
-            }
-
-            public CancellationToken RequestAborted
-            {
-                get => _cts.Token;
-                set => throw new NotSupportedException();
-            }
-
-            public void Abort()
-            {
-                _cts.Token.WaitHandle.WaitOne();
-            }
-
-            public void CancelBlocking()
-            {
-                _cts.Cancel();
             }
         }
 

@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
-
+        private readonly DiagnosticListener _diagnosticListener;
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
@@ -46,11 +46,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private DefaultSerializationContext? _serializationContext;
         private DefaultDeserializationContext? _deserializationContext;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
+        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger, DiagnosticListener diagnosticListener)
         {
             HttpContext = httpContext;
             ServiceOptions = serviceOptions;
             _logger = logger;
+            _diagnosticListener = diagnosticListener;
         }
 
         internal HttpContext HttpContext { get; }
@@ -68,9 +69,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
-        protected override string? MethodCore => HttpContext.Request.Path.Value;
+        protected override string MethodCore => HttpContext.Request.Path.Value;
 
-        protected override string? HostCore => HttpContext.Request.Host.Value;
+        protected override string HostCore => HttpContext.Request.Host.Value;
 
         protected override string? PeerCore
         {
@@ -182,6 +183,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
+            LogCallEnd();
+
             DeadlineManager?.SetCallComplete();
         }
 
@@ -266,7 +269,24 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
+            LogCallEnd();
+
             DeadlineManager?.SetCallComplete();
+        }
+
+        private void LogCallEnd()
+        {
+            var activity = GetHostActivity();
+            if (activity != null)
+            {
+                activity.AddTag(GrpcServerConstants.ActivityStatusCodeTag, _status.StatusCode.ToTrailerString());
+                RaiseHostActivityChanged();
+            }
+            if (_status.StatusCode != StatusCode.OK)
+            {
+                GrpcEventSource.Log.CallFailed(_status.StatusCode);
+            }
+            GrpcEventSource.Log.CallStop();
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -334,6 +354,15 @@ namespace Grpc.AspNetCore.Server.Internal
         // Clock is for testing
         public void Initialize(ISystemClock? clock = null)
         {
+            var activity = GetHostActivity();
+            if (activity != null)
+            {
+                activity.AddTag(GrpcServerConstants.ActivityMethodTag, MethodCore);
+                RaiseHostActivityChanged();
+            }
+
+            GrpcEventSource.Log.CallStart(MethodCore);
+
             var timeout = GetTimeout();
 
             if (timeout != TimeSpan.Zero)
@@ -354,6 +383,33 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
+        }
+
+        private Activity? GetHostActivity()
+        {
+            var activity = Activity.Current;
+            while (activity != null)
+            {
+                // We only want to add gRPC metadata to the host activity
+                // Search parent activities in case a new activity was started in middleware before gRPC endpoint is invoked
+                if (string.Equals(activity.OperationName, GrpcServerConstants.HostActivityName, StringComparison.Ordinal))
+                {
+                    return activity;
+                }
+
+                activity = activity.Parent;
+            }
+
+            return null;
+        }
+
+        private void RaiseHostActivityChanged()
+        {
+            // Notify diagnostic listener that activity has been changed
+            if (_diagnosticListener.IsEnabled() && _diagnosticListener.IsEnabled(GrpcServerConstants.HostActivityChanged, HttpContext))
+            {
+                _diagnosticListener.Write(GrpcServerConstants.HostActivityChanged, HttpContext);
+            }
         }
 
         private TimeSpan GetTimeout()
@@ -379,6 +435,7 @@ namespace Grpc.AspNetCore.Server.Internal
             try
             {
                 Log.DeadlineExceeded(_logger, GetTimeout());
+                GrpcEventSource.Log.CallDeadlineExceeded();
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 

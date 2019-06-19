@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
@@ -29,13 +30,19 @@ namespace Grpc.Tests.Shared
         public static HttpContextServerCallContext CreateServerCallContext(
             HttpContext? httpContext = null,
             GrpcServiceOptions? serviceOptions = null,
-            ILogger? logger = null)
+            ILogger? logger = null,
+            DiagnosticListener? diagnosticListener = null,
+            bool initialize = true)
         {
             var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),
                 serviceOptions ?? new GrpcServiceOptions(),
-                logger ?? NullLogger.Instance);
-            context.Initialize();
+                logger ?? NullLogger.Instance,
+                diagnosticListener ?? new DiagnosticListener("Test"));
+            if (initialize)
+            {
+                context.Initialize();
+            }
 
             return context;
         }

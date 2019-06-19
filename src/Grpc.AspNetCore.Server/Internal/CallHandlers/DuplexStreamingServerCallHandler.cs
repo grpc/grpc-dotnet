@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
@@ -38,8 +39,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory)
-            : base(method, serviceOptions, loggerFactory)
+            ILoggerFactory loggerFactory,
+            DiagnosticListener diagnosticListener)
+            : base(method, serviceOptions, loggerFactory, diagnosticListener)
         {
             _invoker = invoker;
 

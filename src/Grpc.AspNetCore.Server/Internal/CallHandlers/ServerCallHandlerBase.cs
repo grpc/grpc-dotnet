@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
@@ -26,16 +27,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
+    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
+        protected DiagnosticListener DiagnosticListener { get; }
         protected ILogger Logger { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory)
+        protected ServerCallHandlerBase(
+            Method<TRequest, TResponse> method,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory,
+            DiagnosticListener diagnosticListener)
         {
             Method = method;
             ServiceOptions = serviceOptions;
+            DiagnosticListener = diagnosticListener;
             Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 
@@ -47,7 +54,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger, DiagnosticListener);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);

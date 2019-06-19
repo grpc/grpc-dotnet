@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
@@ -43,7 +44,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, reader, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new DiagnosticListener("Test"));
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -62,7 +64,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, reader, writer, context) => Task.CompletedTask,
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new DiagnosticListener("Test"));
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -81,7 +84,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, request, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new DiagnosticListener("Test"));
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -100,7 +104,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, request, writer, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new DiagnosticListener("Test"));
 
             // Act
             await call.HandleCallAsync(httpContext);
