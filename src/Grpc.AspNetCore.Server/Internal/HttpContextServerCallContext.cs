@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private Status _status;
         private AuthContext? _authContext;
         // Internal for tests
-        internal bool _deadlineDisposed;
+        internal bool _callComplete;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -175,6 +175,8 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 HttpContext.Response.ConsolidateTrailers(this);
             }
+
+            _callComplete = true;
         }
 
         protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
@@ -250,12 +252,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private void EndCallCore()
         {
             // Don't set trailers if deadline exceeded or request aborted
-            if (CancellationToken.IsCancellationRequested)
+            if (!CancellationToken.IsCancellationRequested)
             {
-                return;
+                HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            HttpContext.Response.ConsolidateTrailers(this);
+            _callComplete = true;
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -371,11 +373,11 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        // Internal for tests
-        internal async void DeadlineExceeded(object? state)
+        private async void DeadlineExceeded(object? state)
         {
-            // Deadline could be raised after call has been disposed
-            if (_deadlineDisposed)
+            // Deadline could be raised in the timer after call has been completed (either successfully or with error)
+            // but before deadline timer has been disposed
+            if (_callComplete)
             {
                 return;
             }
@@ -386,8 +388,8 @@ namespace Grpc.AspNetCore.Server.Internal
 
             try
             {
-                // Re-check after lock
-                if (_deadlineDisposed)
+                // Double check after lock is aquired
+                if (_callComplete)
                 {
                     return;
                 }
@@ -422,14 +424,15 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        // Internal for testing
-        internal Task DeadlineDisposeAsync()
+        private Task DeadlineDisposeAsync()
         {
+            // Deadline timer needs to be disposed with DisposeAsync before the lock
+            // Timer.DisposeAsync ensures it has finished running, so there is no way
+            // for deadline logic to attempt to wait on a disposed lock
             var disposeTask = _deadlineTimer!.DisposeAsync();
             if (disposeTask.IsCompletedSuccessfully)
             {
                 _deadlineLock!.Dispose();
-                _deadlineDisposed = true;
                 return Task.CompletedTask;
             }
 
@@ -440,7 +443,6 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             await disposeTask;
             _deadlineLock!.Dispose();
-            _deadlineDisposed = true;
         }
 
         internal string? GetRequestGrpcEncoding()

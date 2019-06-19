@@ -565,22 +565,14 @@ namespace Grpc.AspNetCore.Server.Tests
                 context => context.ProcessHandlerErrorAsync(new Exception(), "Method!"));
         }
 
-        [Test]
-        public Task DeadlineDisposeAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
-        {
-            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
-                nameof(HttpContextServerCallContext.DeadlineDisposeAsync),
-                context => context.DeadlineDisposeAsync());
-        }
-
         private async Task LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(string methodName, Func<HttpContextServerCallContext, Task> method)
         {
             // Arrange
-            var blockingLifeTimeFeature = new TestBlockingHttpRequestLifetimeFeature();
+            var tcs = new SyncPoint();
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
-            httpContext.Features.Set<IHttpRequestLifetimeFeature>(blockingLifeTimeFeature);
+            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(tcs));
 
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
@@ -588,14 +580,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var serverCallContext = CreateServerCallContext(httpContext, testLogger);
             serverCallContext.Initialize();
 
-            // Wait until we're inside the deadline method and the lock has been taken
-            while (true)
-            {
-                if (testSink.Writes.Any(w => w.EventId.Name == "DeadlineExceeded"))
-                {
-                    break;
-                }
-            }
+            // Wait until CompleteAsync is called
+            // That means we're inside the deadline method and the lock has been taken
+            await tcs.WaitForSyncPoint();
 
             // Act
             var methodTask = method(serverCallContext);
@@ -606,39 +593,33 @@ namespace Grpc.AspNetCore.Server.Tests
                 Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
 
-            Assert.IsFalse(serverCallContext._deadlineDisposed);
+            Assert.IsFalse(serverCallContext._callComplete);
 
             // Wait for dispose to finish
-            blockingLifeTimeFeature.CancelBlocking();
+            tcs.Continue();
             await methodTask.DefaultTimeout();
 
-            Assert.IsTrue(serverCallContext._deadlineDisposed);
-        }
-
-        [Test]
-        public async Task DeadlineTimer_ExecutedAfterDispose_RequestNotAborted()
-        {
-            // Arrange
-            var lifetimeFeature = new TestHttpRequestLifetimeFeature();
-
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1H";
-            httpContext.Features.Set<IHttpRequestLifetimeFeature>(lifetimeFeature);
-
-            var serverCallContext = CreateServerCallContext(httpContext);
-            serverCallContext.Initialize();
-            await serverCallContext.DeadlineDisposeAsync();
-
-            // Act
-            serverCallContext.DeadlineExceeded(null);
-
-            // Assert
-            Assert.IsFalse(lifetimeFeature.RequestAborted.IsCancellationRequested);
+            Assert.IsTrue(serverCallContext._callComplete);
         }
 
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
         {
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
+        }
+
+        private class TestBlockingHttpResponseCompletionFeature : IHttpResponseCompletionFeature
+        {
+            private readonly SyncPoint _syncPoint;
+
+            public TestBlockingHttpResponseCompletionFeature(SyncPoint syncPoint)
+            {
+                _syncPoint = syncPoint;
+            }
+
+            public Task CompleteAsync()
+            {
+                return _syncPoint.WaitToContinue();
+            }
         }
 
         private class TestBlockingHttpRequestLifetimeFeature : IHttpRequestLifetimeFeature
