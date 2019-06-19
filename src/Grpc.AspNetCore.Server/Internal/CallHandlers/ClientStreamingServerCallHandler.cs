@@ -71,67 +71,48 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
         }
 
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
             // Disable request body data rate for client streaming
             DisableMinRequestBodyDataRate(httpContext);
 
-            var serverCallContext = CreateServerCallContext(httpContext);
-
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
-
             TResponse? response = null;
 
-            try
+            if (_pipelineInvoker == null)
             {
-                serverCallContext.Initialize();
-
-                if (_pipelineInvoker == null)
+                var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                TService? service = null;
+                try
                 {
-                    var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-                    TService? service = null;
-                    try
-                    {
-                        service = activator.Create();
-                        response = await _invoker(
-                            service,
-                            new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
-                            serverCallContext);
-                    }
-                    finally
-                    {
-                        if (service != null)
-                        {
-                            activator.Release(service);
-                        }
-                    }
-                }
-                else
-                {
-                    response = await _pipelineInvoker(
+                    service = activator.Create();
+                    response = await _invoker(
+                        service,
                         new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
                         serverCallContext);
                 }
-
-                if (response == null)
+                finally
                 {
-                    // This is consistent with Grpc.Core when a null value is returned
-                    throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
+                    if (service != null)
+                    {
+                        activator.Release(service);
+                    }
                 }
-
-                var responseBodyWriter = httpContext.Response.BodyWriter;
-                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
-
-                await serverCallContext.EndCallAsync();
             }
-            catch (Exception ex)
+            else
             {
-                serverCallContext.ProcessHandlerError(ex, Method.Name);
+                response = await _pipelineInvoker(
+                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                    serverCallContext);
             }
-            finally
+
+            if (response == null)
             {
-                serverCallContext.Dispose();
+                // This is consistent with Grpc.Core when a null value is returned
+                throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
             }
+
+            var responseBodyWriter = httpContext.Response.BodyWriter;
+            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer, canFlush: false);
         }
     }
 }

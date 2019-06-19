@@ -19,6 +19,7 @@
 using System;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
@@ -198,7 +199,13 @@ namespace Grpc.AspNetCore.FunctionalTests
             await readTask.DefaultTimeout();
 
             Assert.AreNotEqual(0, messageCount);
-            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Cannot write message after request is complete.");
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+            var errorLogged = Logs.Any(r =>
+                r.EventId.Name == "ErrorExecutingServiceMethod" &&
+                r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                r.Exception!.Message == "Cannot write message after request is complete.");
+            Assert.IsTrue(errorLogged);
         }
     }
 }

@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new InvalidOperationException("Cannot write message after request is complete.");
             }
 
-            return _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer);
+            return _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
         }
     }
 }
