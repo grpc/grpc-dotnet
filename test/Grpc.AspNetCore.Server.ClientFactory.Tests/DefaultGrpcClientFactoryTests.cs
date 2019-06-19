@@ -88,10 +88,13 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)));
+            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
             // Assert
-            Assert.AreEqual("Unable to propagate server context values to the client. Can't find the current HttpContext.", ex.Message);
+            Assert.IsNotNull(client);
+            Assert.AreEqual(baseAddress, client.CallInvoker.BaseAddress);
+            Assert.AreEqual(DateTime.MaxValue, client.CallInvoker.Deadline);
+            Assert.AreEqual(default(CancellationToken), client.CallInvoker.CancellationToken);
         }
 
         [Test]
@@ -99,6 +102,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var baseAddress = new Uri("http://localhost");
+            var deadline = new DateTime(2000, 12, 12, 1, 1, 1, DateTimeKind.Utc);
+            var cancellationToken = new CancellationTokenSource().Token;
 
             var services = new ServiceCollection();
             services.AddOptions();
@@ -116,10 +121,13 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)));
+            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
             // Assert
-            Assert.AreEqual("Unable to propagate server context values to the client. Can't find the current gRPC ServerCallContext.", ex.Message);
+            Assert.IsNotNull(client);
+            Assert.AreEqual(baseAddress, client.CallInvoker.BaseAddress);
+            Assert.AreEqual(DateTime.MaxValue, client.CallInvoker.Deadline);
+            Assert.AreEqual(default(CancellationToken), client.CallInvoker.CancellationToken);
         }
 
         private IHttpContextAccessor CreateHttpContextAccessor(HttpContext? httpContext)
