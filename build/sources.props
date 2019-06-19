@@ -13,9 +13,9 @@
       $(MSBuildThisFileDirectory)feed;
     </RestoreSources>
     <!-- The following is used to ingest nightly gRPC packages -->
-    <!-- <RestoreSources>
+    <RestoreSources>
       $(RestoreSources);
       https://grpc.jfrog.io/grpc/api/nuget/v3/grpc-nuget-dev;
-    </RestoreSources> -->
+    </RestoreSources>
   </PropertyGroup>
 </Project>

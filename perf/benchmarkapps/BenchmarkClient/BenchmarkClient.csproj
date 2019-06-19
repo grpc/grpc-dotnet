@@ -3,10 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" />
+    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" ClientType="LiteClientBase" />
+    <Protobuf Include="..\Shared\core-greet.proto" GrpcServices="Client" ClientType="ClientBase" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 

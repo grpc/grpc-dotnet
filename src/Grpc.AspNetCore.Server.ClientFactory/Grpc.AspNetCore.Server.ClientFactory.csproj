@@ -27,6 +27,6 @@
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
-    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 </Project>

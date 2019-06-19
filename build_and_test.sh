@@ -19,4 +19,4 @@ source activate.sh
 
 dotnet build
 
-dotnet test
+dotnet test --no-build

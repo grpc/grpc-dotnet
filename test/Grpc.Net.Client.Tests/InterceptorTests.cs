@@ -132,7 +132,10 @@ namespace Grpc.Net.Client.Tests
             var callInvoker = invoker.Intercept(new ClientStreamingCountingInterceptor());
 
             var call = callInvoker.AsyncClientStreamingCall(serviceMethod, Host, new CallOptions());
-            await call.RequestStream.WriteAllAsync(new [] { "A", "B", "C" });
+            await call.RequestStream.WriteAsync("A");
+            await call.RequestStream.WriteAsync("B");
+            await call.RequestStream.WriteAsync("C");
+            await call.RequestStream.CompleteAsync();
 
             // Assert
             Assert.AreEqual("3", await call.ResponseAsync);
@@ -150,7 +153,7 @@ namespace Grpc.Net.Client.Tests
                 var requestStream = new WrappedClientStreamWriter<TRequest>(response.RequestStream,
                     message => { counter++; return message; }, null);
                 var responseAsync = response.ResponseAsync.ContinueWith(
-                    unaryResponse => (TResponse)(object)counter.ToString()  // Cast to object first is needed to satisfy the type-checker    
+                    unaryResponse => (TResponse)(object)counter.ToString()  // Cast to object first is needed to satisfy the type-checker
                 );
                 return new AsyncClientStreamingCall<TRequest, TResponse>(requestStream, responseAsync, response.ResponseHeadersAsync, response.GetStatus, response.GetTrailers, response.Dispose);
             }
