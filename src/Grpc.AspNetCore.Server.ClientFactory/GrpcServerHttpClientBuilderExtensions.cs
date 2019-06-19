@@ -53,17 +53,8 @@ namespace Microsoft.Extensions.DependencyInjection
                     {
                         var httpContextAccessor = services.GetRequiredService<IHttpContextAccessor>();
 
-                        var httpContext = httpContextAccessor.HttpContext;
-                        if (httpContext == null)
-                        {
-                            throw new InvalidOperationException("Unable to propagate server context values to the client. Can't find the current HttpContext.");
-                        }
-
-                        var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
-                        if (serverCallContext == null)
-                        {
-                            throw new InvalidOperationException("Unable to propagate server context values to the client. Can't find the current gRPC ServerCallContext.");
-                        }
+                        var serverCallContext = httpContextAccessor.HttpContext?.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
+                        if (serverCallContext == null) return;
 
                         client.CancellationToken = serverCallContext.CancellationToken;
                         client.Deadline = serverCallContext.Deadline;
