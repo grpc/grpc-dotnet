@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public void CreateClient_NoHttpContext_ThrowError()
+        public void CreateClient_NoHttpContext_Return()
         {
             // Arrange
             var baseAddress = new Uri("http://localhost");
@@ -98,7 +98,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public void CreateClient_NoServerCallContextOnHttpContext_ThrowError()
+        public void CreateClient_NoServerCallContextOnHttpContext_Return()
         {
             // Arrange
             var baseAddress = new Uri("http://localhost");
