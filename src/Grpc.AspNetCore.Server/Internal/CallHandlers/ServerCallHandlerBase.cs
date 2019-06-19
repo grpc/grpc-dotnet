@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
@@ -46,18 +47,46 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            return HandleCallAsyncCore(httpContext);
-        }
-
-        protected abstract Task HandleCallAsyncCore(HttpContext httpContext);
-
-        protected HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext)
-        {
             var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
-            return serverCallContext;
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+            try
+            {
+                serverCallContext.Initialize();
+
+                var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
+
+                if (handleCallTask.IsCompletedSuccessfully)
+                {
+                    return serverCallContext.EndCallAsync();
+                }
+                else
+                {
+                    return AwaitHandleCall(serverCallContext, Method, handleCallTask);
+                }
+            }
+            catch (Exception ex)
+            {
+                return serverCallContext.ProcessHandlerErrorAsync(ex, Method.Name);
+            }
+
+            static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+            {
+                try
+                {
+                    await handleCall;
+                    await serverCallContext.EndCallAsync();
+                }
+                catch (Exception ex)
+                {
+                    await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+                }
+            }
         }
+
+        protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
 
         /// <summary>
         /// This should only be called from client streaming calls

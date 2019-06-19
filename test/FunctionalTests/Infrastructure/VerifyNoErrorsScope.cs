@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -43,6 +44,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             LoggerFactory = loggerFactory ?? new LoggerFactory();
             LoggerFactory.AddProvider(_sink);
         }
+
+        public IList<LogRecord> Logs => _sink.GetLogs();
 
         public void Dispose()
         {

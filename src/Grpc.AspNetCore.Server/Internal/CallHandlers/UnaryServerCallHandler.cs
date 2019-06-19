@@ -68,62 +68,43 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
         }
 
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
-            var serverCallContext = CreateServerCallContext(httpContext);
+            var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
+            var request = Method.RequestMarshaller.Deserializer(requestPayload);
 
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+            TResponse? response = null;
 
-            try
+            if (_pipelineInvoker == null)
             {
-                serverCallContext.Initialize();
-
-                var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
-                var request = Method.RequestMarshaller.Deserializer(requestPayload);
-
-                TResponse? response = null;
-
-                if (_pipelineInvoker == null)
+                var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                TService? service = null;
+                try
                 {
-                    var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-                    TService? service = null;
-                    try
+                    service = activator.Create();
+                    response = await _invoker(service, request, serverCallContext);
+                }
+                finally
+                {
+                    if (service != null)
                     {
-                        service = activator.Create();
-                        response = await _invoker(service, request, serverCallContext);
-                    }
-                    finally
-                    {
-                        if (service != null)
-                        {
-                            activator.Release(service);
-                        }
+                        activator.Release(service);
                     }
                 }
-                else
-                {
-                    response = await _pipelineInvoker(request, serverCallContext);
-                }
-
-                if (response == null)
-                {
-                    // This is consistent with Grpc.Core when a null value is returned
-                    throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
-                }
-
-                var responseBodyWriter = httpContext.Response.BodyWriter;
-                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
-
-                await serverCallContext.EndCallAsync();
             }
-            catch (Exception ex)
+            else
             {
-                serverCallContext.ProcessHandlerError(ex, Method.Name);
+                response = await _pipelineInvoker(request, serverCallContext);
             }
-            finally
+
+            if (response == null)
             {
-                serverCallContext.Dispose();
+                // This is consistent with Grpc.Core when a null value is returned
+                throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
             }
+
+            var responseBodyWriter = httpContext.Response.BodyWriter;
+            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer, canFlush: false);
         }
     }
 }

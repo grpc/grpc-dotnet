@@ -72,57 +72,38 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
         }
 
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
             // Disable request body data rate for client streaming
             DisableMinRequestBodyDataRate(httpContext);
 
-            var serverCallContext = CreateServerCallContext(httpContext);
-
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
-
-            try
+            if (_pipelineInvoker == null)
             {
-                serverCallContext.Initialize();
-
-                if (_pipelineInvoker == null)
+                var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
+                TService? service = null;
+                try
                 {
-                    var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-                    TService? service = null;
-                    try
-                    {
-                        service = activator.Create();
-                        await _invoker(
-                            service,
-                            new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
-                            new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
-                            serverCallContext);
-                    }
-                    finally
-                    {
-                        if (service != null)
-                        {
-                            activator.Release(service);
-                        }
-                    }
-                }
-                else
-                {
-                    await _pipelineInvoker(
+                    service = activator.Create();
+                    await _invoker(
+                        service,
                         new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
                         new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
                         serverCallContext);
                 }
-
-                await serverCallContext.EndCallAsync();
+                finally
+                {
+                    if (service != null)
+                    {
+                        activator.Release(service);
+                    }
+                }
             }
-            catch (Exception ex)
+            else
             {
-                serverCallContext.ProcessHandlerError(ex, Method.Name);
-            }
-            finally
-            {
-                serverCallContext.Dispose();
+                await _pipelineInvoker(
+                    new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.Deserializer),
+                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                    serverCallContext);
             }
         }
     }
