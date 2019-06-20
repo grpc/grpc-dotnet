@@ -568,11 +568,13 @@ namespace Grpc.AspNetCore.Server.Tests
         private async Task LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(string methodName, Func<HttpContextServerCallContext, Task> method)
         {
             // Arrange
-            var tcs = new SyncPoint();
+            var syncPoint = new SyncPoint();
 
+            var httpResetFeature = new TestHttpResetFeature();
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
-            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(tcs));
+            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
+            httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
 
             var testSink = new TestSink();
             var testLogger = new TestLogger(string.Empty, testSink, true);
@@ -582,7 +584,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Wait until CompleteAsync is called
             // That means we're inside the deadline method and the lock has been taken
-            await tcs.WaitForSyncPoint();
+            await syncPoint.WaitForSyncPoint();
 
             // Act
             var methodTask = method(serverCallContext);
@@ -596,8 +598,10 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsFalse(serverCallContext._callComplete);
 
             // Wait for dispose to finish
-            tcs.Continue();
+            syncPoint.Continue();
             await methodTask.DefaultTimeout();
+
+            Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
 
             Assert.IsTrue(serverCallContext._callComplete);
         }
@@ -605,6 +609,16 @@ namespace Grpc.AspNetCore.Server.Tests
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
         {
             return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
+        }
+
+        private class TestHttpResetFeature : IHttpResetFeature
+        {
+            public int? ErrorCode { get; private set; }
+
+            public void Reset(int errorCode)
+            {
+                ErrorCode = errorCode;
+            }
         }
 
         private class TestBlockingHttpResponseCompletionFeature : IHttpResponseCompletionFeature
