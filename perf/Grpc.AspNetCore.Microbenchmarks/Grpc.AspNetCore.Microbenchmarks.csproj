@@ -6,20 +6,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" />
-    
+
     <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
     <Compile Include="..\..\test\Shared\TestResponseBodyPipeFeature.cs" Link="Internal\TestResponseBodyPipeFeature.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <PackageReference Include="BenchmarkDotNet" Version="$(BenchmarkDotNetPackageVersion)" />
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

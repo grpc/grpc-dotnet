@@ -13,12 +13,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePackageVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
   </ItemGroup>
