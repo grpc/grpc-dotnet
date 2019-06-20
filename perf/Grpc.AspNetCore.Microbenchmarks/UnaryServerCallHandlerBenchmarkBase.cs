@@ -99,7 +99,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             _httpContext!.Response.Headers.Clear();
             _trailers!.Clear();
-            _requestPipe!.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage), false, true)));
+            _requestPipe!.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage!), false, true)));
 
             return _callHandler!.HandleCallAsync(_httpContext);
         }

@@ -34,6 +34,7 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string MessageTrailer = "grpc-message";
 
         internal const string IdentityGrpcEncoding = "identity";
+        internal const int ResetStreamNoError = 0;
 
         internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
