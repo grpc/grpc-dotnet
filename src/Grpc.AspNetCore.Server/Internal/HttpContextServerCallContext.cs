@@ -411,8 +411,18 @@ namespace Grpc.AspNetCore.Server.Internal
                     await completionFeature.CompleteAsync();
                 }
 
-                // TODO(JamesNK): I believe this sends a RST_STREAM with INTERNAL_ERROR. Grpc.Core sends NO_ERROR
-                HttpContext.Abort();
+                // HttpResetFeature should always be set on context,
+                // but in case it isn't, fall back to HttpContext.Abort.
+                // Abort will send error code INTERNAL_ERROR instead of NO_ERROR
+                var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
+                if (resetFeature != null)
+                {
+                    resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
+                }
+                else
+                {
+                    HttpContext.Abort();
+                }
             }
             catch (Exception ex)
             {
