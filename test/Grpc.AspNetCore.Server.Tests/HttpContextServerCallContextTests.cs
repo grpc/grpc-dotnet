@@ -349,10 +349,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
             var context = CreateServerCallContext(httpContext);
-            context.Clock = TestClock;
 
             // Act
-            context.Initialize();
+            context.Initialize(TestClock);
 
             // Assert
             Assert.AreEqual(TestClock.UtcNow.Add(TimeSpan.FromTicks(ticks)), context.Deadline);
@@ -593,7 +592,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
 
-            Assert.IsFalse(serverCallContext._callComplete);
+            Assert.IsFalse(serverCallContext.DeadlineManager!._callComplete);
 
             // Wait for dispose to finish
             syncPoint.Continue();
@@ -601,7 +600,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
 
-            Assert.IsTrue(serverCallContext._callComplete);
+            Assert.IsTrue(serverCallContext.DeadlineManager!._callComplete);
         }
 
         [Test]
@@ -627,7 +626,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await syncPoint.WaitForSyncPoint();
 
             // Act
-            var disposeTask = serverCallContext.DeadlineDisposeAsync();
+            var disposeTask = serverCallContext.DeadlineManager!.DisposeAsync();
 
             // Assert
             Assert.IsFalse(disposeTask.IsCompletedSuccessfully);

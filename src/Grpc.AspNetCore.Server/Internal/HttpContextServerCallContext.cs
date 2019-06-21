@@ -35,23 +35,13 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
 
-        // Override the current time for unit testing
-        internal ISystemClock Clock = SystemClock.Instance;
-
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private Status _status;
         private AuthContext? _authContext;
         // Internal for tests
-        internal bool _callComplete;
-
-        private DateTime _deadline;
-        private SemaphoreSlim? _deadlineLock;
-        private CancellationTokenSource? _deadlineCts;
-        private Task? _deadlineExceededTask;
-        private CancellationTokenRegistration _deadlineExceededRegistration;
-        private CancellationTokenRegistration _requestAbortedRegistration;
+        internal ServerCallDeadlineManager? DeadlineManager;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -87,7 +77,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        protected override DateTime DeadlineCore => _deadline;
+        protected override DateTime DeadlineCore => DeadlineManager?.Deadline ?? DateTime.MaxValue;
 
         protected override Metadata RequestHeadersCore
         {
@@ -122,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal Task ProcessHandlerErrorAsync(Exception ex, string method)
         {
-            if (_deadlineLock == null)
+            if (DeadlineManager == null)
             {
                 ProcessHandlerError(ex, method);
                 return Task.CompletedTask;
@@ -133,9 +123,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private async Task ProcessHandlerErrorAsyncCore(Exception ex, string method)
         {
-            Debug.Assert(_deadlineLock != null, "Deadline lock should have been created.");
+            Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            await _deadlineLock.WaitAsync();
+            await DeadlineManager.DeadlineLock.WaitAsync();
 
             try
             {
@@ -143,8 +133,8 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                _deadlineLock.Release();
-                await DeadlineDisposeAsync();
+                DeadlineManager.DeadlineLock.Release();
+                await DeadlineManager.DisposeAsync();
             }
         }
 
@@ -180,13 +170,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            _callComplete = true;
+            DeadlineManager?.SetCallComplete();
         }
 
         // If there is a deadline then we need to have our own cancellation token.
         // Deadline will call CompleteAsync, then Reset/Abort. This order means RequestAborted
         // is not raised, so deadlineCts will be triggered instead.
-        protected override CancellationToken CancellationTokenCore => _deadlineCts?.Token ?? HttpContext.RequestAborted;
+        protected override CancellationToken CancellationTokenCore => DeadlineManager?.CancellationToken ?? HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -209,13 +199,13 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal Task EndCallAsync()
         {
-            if (_deadlineLock == null)
+            if (DeadlineManager == null)
             {
                 EndCallCore();
                 return Task.CompletedTask;
             }
 
-            var lockTask = _deadlineLock.WaitAsync();
+            var lockTask = DeadlineManager.DeadlineLock.WaitAsync();
             if (lockTask.IsCompletedSuccessfully)
             {
                 Task disposeTask;
@@ -225,10 +215,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
                 finally
                 {
-                    _deadlineLock.Release();
+                    DeadlineManager.DeadlineLock.Release();
 
                     // Can't return from a finally
-                    disposeTask = DeadlineDisposeAsync();
+                    disposeTask = DeadlineManager.DisposeAsync().AsTask();
                 }
 
                 return disposeTask;
@@ -241,7 +231,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private async Task EndCallAsyncCore(Task lockTask)
         {
-            Debug.Assert(_deadlineLock != null, "Deadline lock should have been created.");
+            Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
             await lockTask;
 
@@ -251,8 +241,8 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                _deadlineLock.Release();
-                await DeadlineDisposeAsync();
+                DeadlineManager.DeadlineLock.Release();
+                await DeadlineManager.DisposeAsync();
             }
         }
 
@@ -264,7 +254,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            _callComplete = true;
+            DeadlineManager?.SetCallComplete();
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -329,24 +319,14 @@ namespace Grpc.AspNetCore.Server.Internal
             return HttpContext.Response.Body.FlushAsync();
         }
 
-        public void Initialize()
+        // Clock is for testing
+        public void Initialize(ISystemClock? clock = null)
         {
             var timeout = GetTimeout();
 
             if (timeout != TimeSpan.Zero)
             {
-                _deadline = Clock.UtcNow.Add(timeout);
-
-                // Create lock before setting up deadline event
-                _deadlineLock = new SemaphoreSlim(1, 1);
-
-                _deadlineCts = new CancellationTokenSource(timeout);
-                _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
-                _requestAbortedRegistration = HttpContext.RequestAborted.Register(() => _deadlineCts?.Cancel());
-            }
-            else
-            {
-                _deadline = DateTime.MaxValue;
+                DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
             }
 
             var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
@@ -382,30 +362,10 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private void DeadlineExceeded()
-        {
-            _deadlineExceededTask = DeadlineExceededAsync();
-        }
-
         private async Task DeadlineExceededAsync()
         {
-            if (!CanExceedDeadline())
-            {
-                return;
-            }
-
-            Debug.Assert(_deadlineLock != null, "Lock has not been created.");
-
-            await _deadlineLock.WaitAsync();
-
             try
             {
-                // Double check after lock is aquired
-                if (!CanExceedDeadline())
-                {
-                    return;
-                }
-
                 Log.DeadlineExceeded(_logger, GetTimeout());
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
@@ -440,66 +400,6 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 Log.DeadlineCancellationError(_logger, ex);
             }
-            finally
-            {
-                _deadlineLock.Release();
-            }
-        }
-
-        private bool CanExceedDeadline()
-        {
-            // Deadline callback could be raised by the CTS after call has been completed (either successfully or with error)
-            // but before deadline exceeded registration has been disposed
-            if (_callComplete)
-            {
-                return false;
-            }
-
-            // Deadline CTS is being reused as the overall request CT for perf. This means it could be raised when request
-            // has been aborted. Don't run deadline exceeded logic if request has already been aborted.
-            if (HttpContext.RequestAborted.IsCancellationRequested)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        // Internal for testing
-        internal Task DeadlineDisposeAsync()
-        {
-            // Deadline registration needs to be disposed with DisposeAsync, and the task completed
-            // before the lock can be disposed.
-            // Awaiting deadline registration and deadline task ensures it has finished running, so there is
-            // no way for deadline logic to attempt to wait on a disposed lock.
-            var disposeTask = _deadlineExceededRegistration.DisposeAsync();
-
-            if (disposeTask.IsCompletedSuccessfully &&
-                (_deadlineExceededTask == null || _deadlineExceededTask.IsCompletedSuccessfully))
-            {
-                DisposeCore();
-                return Task.CompletedTask;
-            }
-
-            return DeadlineDisposeAsyncCore(disposeTask);
-        }
-
-        private async Task DeadlineDisposeAsyncCore(ValueTask disposeTask)
-        {
-            await disposeTask;
-            if (_deadlineExceededTask != null)
-            {
-                await _deadlineExceededTask;
-            }
-
-            DisposeCore();
-        }
-
-        private void DisposeCore()
-        {
-            _deadlineLock!.Dispose();
-            _deadlineCts!.Dispose();
-            _requestAbortedRegistration.Dispose();
         }
 
         internal string? GetRequestGrpcEncoding()
