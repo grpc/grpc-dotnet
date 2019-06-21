@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal DateTime Deadline { get; private set; }
         // Lock is to ensure deadline doesn't execute as call is completing
-        internal SemaphoreSlim DeadlineLock { get; private set; }
+        internal SemaphoreSlim Lock { get; private set; }
         // Internal for testing
         internal bool _callComplete;
 
@@ -42,10 +42,11 @@ namespace Grpc.AspNetCore.Server.Internal
         public ServerCallDeadlineManager(ISystemClock clock, TimeSpan timeout, Func<Task> deadlineExceededCallback, CancellationToken requestAborted)
         {
             Deadline = clock.UtcNow.Add(timeout);
-            _deadlineExceededCallback = deadlineExceededCallback;
 
-            // Create lock before setting up deadline event
-            DeadlineLock = new SemaphoreSlim(1, 1);
+            // Set fields that need to exist before setting up deadline CTS
+            // Ensures callback can run successfully before CTS timer starts
+            _deadlineExceededCallback = deadlineExceededCallback;
+            Lock = new SemaphoreSlim(1, 1);
 
             _deadlineCts = new CancellationTokenSource(timeout);
             _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
@@ -74,9 +75,9 @@ namespace Grpc.AspNetCore.Server.Internal
                 return;
             }
 
-            Debug.Assert(DeadlineLock != null, "Lock has not been created.");
+            Debug.Assert(Lock != null, "Lock has not been created.");
 
-            await DeadlineLock.WaitAsync();
+            await Lock.WaitAsync();
 
             try
             {
@@ -90,7 +91,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                DeadlineLock.Release();
+                Lock.Release();
             }
         }
 
@@ -132,7 +133,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void DisposeCore()
         {
-            DeadlineLock!.Dispose();
+            Lock!.Dispose();
             _deadlineCts!.Dispose();
             _requestAbortedRegistration.Dispose();
         }

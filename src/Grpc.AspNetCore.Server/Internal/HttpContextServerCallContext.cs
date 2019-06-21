@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            await DeadlineManager.DeadlineLock.WaitAsync();
+            await DeadlineManager.Lock.WaitAsync();
 
             try
             {
@@ -133,7 +133,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                DeadlineManager.DeadlineLock.Release();
+                DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
             }
         }
@@ -205,7 +205,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.CompletedTask;
             }
 
-            var lockTask = DeadlineManager.DeadlineLock.WaitAsync();
+            var lockTask = DeadlineManager.Lock.WaitAsync();
             if (lockTask.IsCompletedSuccessfully)
             {
                 Task disposeTask;
@@ -215,7 +215,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
                 finally
                 {
-                    DeadlineManager.DeadlineLock.Release();
+                    DeadlineManager.Lock.Release();
 
                     // Can't return from a finally
                     disposeTask = DeadlineManager.DisposeAsync().AsTask();
@@ -241,7 +241,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                DeadlineManager.DeadlineLock.Release();
+                DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
             }
         }
