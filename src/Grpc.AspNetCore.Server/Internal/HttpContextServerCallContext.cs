@@ -41,13 +41,17 @@ namespace Grpc.AspNetCore.Server.Internal
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
-        private DateTime _deadline;
-        private Timer? _deadlineTimer;
-        private SemaphoreSlim? _deadlineLock;
         private Status _status;
         private AuthContext? _authContext;
         // Internal for tests
         internal bool _callComplete;
+
+        private DateTime _deadline;
+        private SemaphoreSlim? _deadlineLock;
+        private CancellationTokenSource? _deadlineCts;
+        private Task? _deadlineExceededTask;
+        private CancellationTokenRegistration _deadlineExceededRegistration;
+        private CancellationTokenRegistration _requestAbortedRegistration;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -179,7 +183,10 @@ namespace Grpc.AspNetCore.Server.Internal
             _callComplete = true;
         }
 
-        protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
+        // If there is a deadline then we need to have our own cancellation token.
+        // Deadline will call CompleteAsync, then Reset/Abort. This order means RequestAborted
+        // is not raised, so deadlineCts will be triggered instead.
+        protected override CancellationToken CancellationTokenCore => _deadlineCts?.Token ?? HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -333,7 +340,9 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Create lock before setting up deadline event
                 _deadlineLock = new SemaphoreSlim(1, 1);
 
-                _deadlineTimer = new Timer(DeadlineExceeded, null, timeout, Timeout.InfiniteTimeSpan);
+                _deadlineCts = new CancellationTokenSource(timeout);
+                _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
+                _requestAbortedRegistration = HttpContext.RequestAborted.Register(() => _deadlineCts?.Cancel());
             }
             else
             {
@@ -373,11 +382,14 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private async void DeadlineExceeded(object? state)
+        private void DeadlineExceeded()
         {
-            // Deadline could be raised in the timer after call has been completed (either successfully or with error)
-            // but before deadline timer has been disposed
-            if (_callComplete)
+            _deadlineExceededTask = DeadlineExceededAsync();
+        }
+
+        private async Task DeadlineExceededAsync()
+        {
+            if (!CanExceedDeadline())
             {
                 return;
             }
@@ -389,7 +401,7 @@ namespace Grpc.AspNetCore.Server.Internal
             try
             {
                 // Double check after lock is aquired
-                if (_callComplete)
+                if (!CanExceedDeadline())
                 {
                     return;
                 }
@@ -404,7 +416,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 _status = status;
 
                 // Immediately send remaining response content and trailers
-                // If feature is null then abort will still end request, but response won't have trailers
+                // If feature is null then reset/abort will still end request, but response won't have trailers
                 var completionFeature = HttpContext.Features.Get<IHttpResponseCompletionFeature>();
                 if (completionFeature != null)
                 {
@@ -434,15 +446,38 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private Task DeadlineDisposeAsync()
+        private bool CanExceedDeadline()
         {
-            // Deadline timer needs to be disposed with DisposeAsync before the lock
-            // Timer.DisposeAsync ensures it has finished running, so there is no way
-            // for deadline logic to attempt to wait on a disposed lock
-            var disposeTask = _deadlineTimer!.DisposeAsync();
-            if (disposeTask.IsCompletedSuccessfully)
+            // Deadline callback could be raised by the CTS after call has been completed (either successfully or with error)
+            // but before deadline exceeded registration has been disposed
+            if (_callComplete)
             {
-                _deadlineLock!.Dispose();
+                return false;
+            }
+
+            // Deadline CTS is being reused as the overall request CT for perf. This means it could be raised when request
+            // has been aborted. Don't run deadline exceeded logic if request has already been aborted.
+            if (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // Internal for testing
+        internal Task DeadlineDisposeAsync()
+        {
+            // Deadline registration needs to be disposed with DisposeAsync, and the task completed
+            // before the lock can be disposed.
+            // Awaiting deadline registration and deadline task ensures it has finished running, so there is
+            // no way for deadline logic to attempt to wait on a disposed lock.
+            var disposeTask = _deadlineExceededRegistration.DisposeAsync();
+
+            if (disposeTask.IsCompletedSuccessfully &&
+                (_deadlineExceededTask == null || _deadlineExceededTask.IsCompletedSuccessfully))
+            {
+                DisposeCore();
                 return Task.CompletedTask;
             }
 
@@ -452,7 +487,19 @@ namespace Grpc.AspNetCore.Server.Internal
         private async Task DeadlineDisposeAsyncCore(ValueTask disposeTask)
         {
             await disposeTask;
+            if (_deadlineExceededTask != null)
+            {
+                await _deadlineExceededTask;
+            }
+
+            DisposeCore();
+        }
+
+        private void DisposeCore()
+        {
             _deadlineLock!.Dispose();
+            _deadlineCts!.Dispose();
+            _requestAbortedRegistration.Dispose();
         }
 
         internal string? GetRequestGrpcEncoding()

@@ -478,6 +478,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreNotEqual(StatusCode.DeadlineExceeded, context.Status.StatusCode);
+            Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
         }
 
         [Test]
@@ -552,7 +553,7 @@ namespace Grpc.AspNetCore.Server.Tests
         [Test]
         public Task EndCallAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
         {
-            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
+            return LongRunningDeadline_WaitsUntilDeadlineIsFinished(
                 nameof(HttpContextServerCallContext.EndCallAsync),
                 context => context.EndCallAsync());
         }
@@ -560,12 +561,12 @@ namespace Grpc.AspNetCore.Server.Tests
         [Test]
         public Task ProcessHandlerErrorAsync_LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished()
         {
-            return LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(
+            return LongRunningDeadline_WaitsUntilDeadlineIsFinished(
                 nameof(HttpContextServerCallContext.ProcessHandlerErrorAsync),
                 context => context.ProcessHandlerErrorAsync(new Exception(), "Method!"));
         }
 
-        private async Task LongRunningDeadlineAbort_WaitsUntilDeadlineAbortIsFinished(string methodName, Func<HttpContextServerCallContext, Task> method)
+        private async Task LongRunningDeadline_WaitsUntilDeadlineIsFinished(string methodName, Func<HttpContextServerCallContext, Task> method)
         {
             // Arrange
             var syncPoint = new SyncPoint();
@@ -576,10 +577,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
             httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
 
-            var testSink = new TestSink();
-            var testLogger = new TestLogger(string.Empty, testSink, true);
-
-            var serverCallContext = CreateServerCallContext(httpContext, testLogger);
+            var serverCallContext = CreateServerCallContext(httpContext);
             serverCallContext.Initialize();
 
             // Wait until CompleteAsync is called
@@ -604,6 +602,40 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
 
             Assert.IsTrue(serverCallContext._callComplete);
+        }
+
+        [Test]
+        public async Task LongRunningDeadline_DisposeWaitsUntilFinished()
+        {
+            // Arrange
+            var syncPoint = new SyncPoint();
+
+            var httpResetFeature = new TestHttpResetFeature();
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
+            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
+            httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
+
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var serverCallContext = CreateServerCallContext(httpContext, testLogger);
+            serverCallContext.Initialize();
+
+            // Wait until CompleteAsync is called
+            // That means we're inside the deadline method and the lock has been taken
+            await syncPoint.WaitForSyncPoint();
+
+            // Act
+            var disposeTask = serverCallContext.DeadlineDisposeAsync();
+
+            // Assert
+            Assert.IsFalse(disposeTask.IsCompletedSuccessfully);
+
+            // Allow deadline exceeded to continue
+            syncPoint.Continue();
+
+            await disposeTask;
         }
 
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
