@@ -35,19 +35,13 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
 
-        // Override the current time for unit testing
-        internal ISystemClock Clock = SystemClock.Instance;
-
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
-        private DateTime _deadline;
-        private Timer? _deadlineTimer;
-        private SemaphoreSlim? _deadlineLock;
         private Status _status;
         private AuthContext? _authContext;
         // Internal for tests
-        internal bool _callComplete;
+        internal ServerCallDeadlineManager? DeadlineManager;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -83,7 +77,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        protected override DateTime DeadlineCore => _deadline;
+        protected override DateTime DeadlineCore => DeadlineManager?.Deadline ?? DateTime.MaxValue;
 
         protected override Metadata RequestHeadersCore
         {
@@ -118,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal Task ProcessHandlerErrorAsync(Exception ex, string method)
         {
-            if (_deadlineLock == null)
+            if (DeadlineManager == null)
             {
                 ProcessHandlerError(ex, method);
                 return Task.CompletedTask;
@@ -129,9 +123,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private async Task ProcessHandlerErrorAsyncCore(Exception ex, string method)
         {
-            Debug.Assert(_deadlineLock != null, "Deadline lock should have been created.");
+            Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            await _deadlineLock.WaitAsync();
+            await DeadlineManager.Lock.WaitAsync();
 
             try
             {
@@ -139,8 +133,8 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                _deadlineLock.Release();
-                await DeadlineDisposeAsync();
+                DeadlineManager.Lock.Release();
+                await DeadlineManager.DisposeAsync();
             }
         }
 
@@ -176,10 +170,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            _callComplete = true;
+            DeadlineManager?.SetCallComplete();
         }
 
-        protected override CancellationToken CancellationTokenCore => HttpContext.RequestAborted;
+        // If there is a deadline then we need to have our own cancellation token.
+        // Deadline will call CompleteAsync, then Reset/Abort. This order means RequestAborted
+        // is not raised, so deadlineCts will be triggered instead.
+        protected override CancellationToken CancellationTokenCore => DeadlineManager?.CancellationToken ?? HttpContext.RequestAborted;
 
         protected override Metadata ResponseTrailersCore
         {
@@ -202,13 +199,13 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal Task EndCallAsync()
         {
-            if (_deadlineLock == null)
+            if (DeadlineManager == null)
             {
                 EndCallCore();
                 return Task.CompletedTask;
             }
 
-            var lockTask = _deadlineLock.WaitAsync();
+            var lockTask = DeadlineManager.Lock.WaitAsync();
             if (lockTask.IsCompletedSuccessfully)
             {
                 Task disposeTask;
@@ -218,10 +215,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
                 finally
                 {
-                    _deadlineLock.Release();
+                    DeadlineManager.Lock.Release();
 
                     // Can't return from a finally
-                    disposeTask = DeadlineDisposeAsync();
+                    disposeTask = DeadlineManager.DisposeAsync().AsTask();
                 }
 
                 return disposeTask;
@@ -234,7 +231,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private async Task EndCallAsyncCore(Task lockTask)
         {
-            Debug.Assert(_deadlineLock != null, "Deadline lock should have been created.");
+            Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
             await lockTask;
 
@@ -244,8 +241,8 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                _deadlineLock.Release();
-                await DeadlineDisposeAsync();
+                DeadlineManager.Lock.Release();
+                await DeadlineManager.DisposeAsync();
             }
         }
 
@@ -257,7 +254,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            _callComplete = true;
+            DeadlineManager?.SetCallComplete();
         }
 
         protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -322,22 +319,14 @@ namespace Grpc.AspNetCore.Server.Internal
             return HttpContext.Response.Body.FlushAsync();
         }
 
-        public void Initialize()
+        // Clock is for testing
+        public void Initialize(ISystemClock? clock = null)
         {
             var timeout = GetTimeout();
 
             if (timeout != TimeSpan.Zero)
             {
-                _deadline = Clock.UtcNow.Add(timeout);
-
-                // Create lock before setting up deadline event
-                _deadlineLock = new SemaphoreSlim(1, 1);
-
-                _deadlineTimer = new Timer(DeadlineExceeded, null, timeout, Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                _deadline = DateTime.MaxValue;
+                DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
             }
 
             var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
@@ -373,27 +362,10 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private async void DeadlineExceeded(object? state)
+        private async Task DeadlineExceededAsync()
         {
-            // Deadline could be raised in the timer after call has been completed (either successfully or with error)
-            // but before deadline timer has been disposed
-            if (_callComplete)
-            {
-                return;
-            }
-
-            Debug.Assert(_deadlineLock != null, "Lock has not been created.");
-
-            await _deadlineLock.WaitAsync();
-
             try
             {
-                // Double check after lock is aquired
-                if (_callComplete)
-                {
-                    return;
-                }
-
                 Log.DeadlineExceeded(_logger, GetTimeout());
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
@@ -404,7 +376,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 _status = status;
 
                 // Immediately send remaining response content and trailers
-                // If feature is null then abort will still end request, but response won't have trailers
+                // If feature is null then reset/abort will still end request, but response won't have trailers
                 var completionFeature = HttpContext.Features.Get<IHttpResponseCompletionFeature>();
                 if (completionFeature != null)
                 {
@@ -428,31 +400,6 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 Log.DeadlineCancellationError(_logger, ex);
             }
-            finally
-            {
-                _deadlineLock.Release();
-            }
-        }
-
-        private Task DeadlineDisposeAsync()
-        {
-            // Deadline timer needs to be disposed with DisposeAsync before the lock
-            // Timer.DisposeAsync ensures it has finished running, so there is no way
-            // for deadline logic to attempt to wait on a disposed lock
-            var disposeTask = _deadlineTimer!.DisposeAsync();
-            if (disposeTask.IsCompletedSuccessfully)
-            {
-                _deadlineLock!.Dispose();
-                return Task.CompletedTask;
-            }
-
-            return DeadlineDisposeAsyncCore(disposeTask);
-        }
-
-        private async Task DeadlineDisposeAsyncCore(ValueTask disposeTask)
-        {
-            await disposeTask;
-            _deadlineLock!.Dispose();
         }
 
         internal string? GetRequestGrpcEncoding()
