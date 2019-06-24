@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Net.Http;
 using FunctionalTestsWebsite.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -28,38 +29,66 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
-        private readonly TestServer _server;
+        private readonly ILogger _logger;
+        private readonly InProcessTestServer _server;
+        private readonly object _lock = new object();
+        private readonly ConcurrentDictionary<string, ILogger> _serverLoggers;
+        private bool _disposed;
 
-        public GrpcTestFixture() : this(null) { }
-
-        public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices)
+        public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices = null)
         {
             LoggerFactory = new LoggerFactory();
+            _logger = LoggerFactory.CreateLogger<GrpcTestFixture<TStartup>>();
+
+            _serverLoggers = new ConcurrentDictionary<string, ILogger>(StringComparer.Ordinal);
 
             Action<IServiceCollection> configureServices = services =>
             {
                 // Registers a service for tests to add new methods
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
-
-                services.AddSingleton<ILoggerFactory>(LoggerFactory);
-
-                services.AddSingleton<IPrimaryMessageHandlerProvider, TestPrimaryMessageHandlerProvider>(s => new TestPrimaryMessageHandlerProvider(_server));
             };
 
-            var builder = new WebHostBuilder()
-                .ConfigureServices(services =>
+            _server = new InProcessTestServer<TStartup>(services =>
+            {
+                initialConfigureServices?.Invoke(services);
+                configureServices(services);
+            });
+            _server.ServerLogged += ServerFixtureOnServerLogged;
+
+            _server.StartServer();
+
+            DynamicGrpc = _server.Host!.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
+
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+            Client = new HttpClient();
+            Client.DefaultRequestVersion = new Version(2, 0);
+            Client.BaseAddress = new Uri(_server.Url!);
+        }
+
+        private void ServerFixtureOnServerLogged(LogRecord logRecord)
+        {
+            if (logRecord == null)
+            {
+                _logger.LogWarning("Server log has no data.");
+                return;
+            }
+
+            ILogger logger;
+
+            lock (_lock)
+            {
+                if (_disposed)
                 {
-                    initialConfigureServices?.Invoke(services);
-                    configureServices(services);
-                })
-                .UseStartup<TStartup>();
+                    return;
+                }
 
-            _server = new TestServer(builder);
+                // Create (or get) a logger with the same name as the server logger
+                // Call in the lock to avoid ODE where LoggerFactory could be disposed by the wrapped disposable
+                logger = _serverLoggers.GetOrAdd(logRecord.LoggerName, loggerName => LoggerFactory.CreateLogger("SERVER " + loggerName));
+            }
 
-            DynamicGrpc = _server.Host.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
-
-            Client = _server.CreateClient();
-            Client.BaseAddress = new Uri("http://localhost");
+            logger.Log(logRecord.LogLevel, logRecord.EventId, logRecord.State, logRecord.Exception, logRecord.Formatter);
         }
 
         public LoggerFactory LoggerFactory { get; }
@@ -69,8 +98,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public void Dispose()
         {
+            _server.ServerLogged -= ServerFixtureOnServerLogged;
             Client.Dispose();
             _server.Dispose();
+
+            _disposed = true;
         }
     }
 }

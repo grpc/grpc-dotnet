@@ -238,6 +238,12 @@ namespace Grpc.AspNetCore.Server.Internal
                     {
                         if (completeMessageData != null)
                         {
+                            // Additional data came with message
+                            if (buffer.Length > 0)
+                            {
+                                throw new RpcException(AdditionalDataStatus);
+                            }
+
                             // Finished and the complete message has arrived
                             return completeMessageData;
                         }

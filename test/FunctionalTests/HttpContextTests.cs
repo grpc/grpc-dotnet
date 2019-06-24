@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -75,7 +75,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{url}?query=extra");
+            var httpRequest = GrpcHttpHelper.Create($"{url}?query=extra");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act

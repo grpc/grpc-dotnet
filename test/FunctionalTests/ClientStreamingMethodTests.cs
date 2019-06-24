@@ -19,6 +19,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Count;
@@ -26,6 +27,7 @@ using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -45,10 +47,14 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Count = 1
             });
 
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+                });
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -56,9 +62,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
 
@@ -73,7 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(CounterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(CounterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Internal' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.";
@@ -85,23 +88,23 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Count = 1
             });
 
-            var requestStream = new SyncPointMemoryStream();
+            var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    // Complete message
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Count.Counter/AccumulateCount");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+                    // Incomplete message and finish
+                    await s.WriteAsync(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).AsTask().DefaultTimeout();
+                    await s.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+                });
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
-            // Complete message
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-
-            // Incomplete message and finish
-            await requestStream.AddDataAndWait(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).DefaultTimeout();
-            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
 
@@ -119,7 +122,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -187,24 +190,23 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Count = 1
             });
 
-            var requestStream = new SyncPointMemoryStream();
+            var requestStream = new MemoryStream();
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var httpRequest = GrpcHttpHelper.Create(url);
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    }
+                });
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
-            _ = Task.Run(async () =>
-            {
-                while (!responseTask.IsCompleted)
-                {
-                    await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-                }
-            });
 
             var response = await responseTask.DefaultTimeout();
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();

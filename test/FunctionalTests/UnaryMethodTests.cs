@@ -75,10 +75,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var streamingContent = new StreamingContent();
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
+            httpRequest.Content = streamingContent;
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -86,8 +85,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            streamingContent.Complete();
 
             var response = await responseTask.DefaultTimeout();
             var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Internal' raised.";
             });
@@ -114,10 +114,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var streamingContent = new StreamingContent();
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
+            httpRequest.Content = streamingContent;
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -125,8 +124,10 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            streamingContent.Complete();
 
             var response = await responseTask.DefaultTimeout();
 
@@ -134,50 +135,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             await response.Content.CopyToAsync(new MemoryStream());
 
             response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
-        }
-
-        [Test]
-        public async Task MessageSentInMultipleChunks_SuccessResponse()
-        {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Internal' raised.";
-            });
-
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
-
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
-            // Send message one byte at a time then finish
-            foreach (var b in ms.ToArray())
-            {
-                await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
-            }
-            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
-
-            var response = await responseTask.DefaultTimeout();
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
-
-            Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertTrailerStatus();
         }
 
         [Test]
@@ -195,7 +152,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
                        writeContext.Exception!.Message == "Response headers can only be sent once per call.";
@@ -231,7 +188,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -270,7 +227,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Unknown' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "User error";
@@ -303,7 +260,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
             {
                 context.ResponseTrailers.Add("Test-Method", context.Method);
-                context.ResponseTrailers.Add("Test-Peer", context.Peer ?? string.Empty); // null because there is not a remote ip address
+                context.ResponseTrailers.Add("Test-Peer", context.Peer);
                 context.ResponseTrailers.Add("Test-Host", context.Host);
 
                 return Task.FromResult(new Empty());
@@ -333,8 +290,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreEqual("DynamicService", serviceName);
             Assert.IsTrue(Guid.TryParse(methodName, out var _));
 
-            Assert.IsFalse(response.TrailingHeaders.TryGetValues("Test-Peer", out _));
-            Assert.AreEqual("localhost", response.TrailingHeaders.GetValues("Test-Host").Single());
+            Assert.IsTrue(response.TrailingHeaders.TryGetValues("Test-Peer", out _));
+            Assert.AreEqual(Fixture.Client.BaseAddress.Authority, response.TrailingHeaders.GetValues("Test-Host").Single());
         }
 
         [Test]
@@ -347,7 +304,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod";
             });
 

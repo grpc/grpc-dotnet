@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellos");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHellos");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -87,7 +87,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHellosSendHeadersFirst");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHellosSendHeadersFirst");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -141,7 +141,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            var httpRequest = GrpcHttpHelper.Create(url);
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act

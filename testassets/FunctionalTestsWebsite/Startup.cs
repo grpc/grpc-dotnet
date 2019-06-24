@@ -56,8 +56,8 @@ namespace FunctionalTestsWebsite
             services.AddHttpContextAccessor();
 
             services
-                .AddGrpcClient<Greeter.GreeterClient>(options => options.BaseAddress = new Uri("https://localhost:8080"))
-                .UsePrimaryMessageHandlerProvider();
+                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .EnableCallContextPropagation();
 
             services.AddAuthorization(options =>
             {
@@ -89,12 +89,23 @@ namespace FunctionalTestsWebsite
 
             // When the site is run from the test project these types will be injected
             // This will add a default types if the site is run standalone
-            services.TryAddSingleton<IPrimaryMessageHandlerProvider, HttpPrimaryMessageHandlerProvider>();
             services.TryAddSingleton<DynamicEndpointDataSource>();
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IServiceMethodProvider<DynamicService>, DynamicServiceModelProvider>());
 
             // Add a Singleton service
             services.AddSingleton<SingletonCounterService>();
+
+            static Uri GetCurrentAddress(IServiceProvider serviceProvider)
+            {
+                // Get the address of the current server from the request
+                var context = serviceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
+                if (context == null)
+                {
+                    throw new InvalidOperationException("Could not get HttpContext.");
+                }
+
+                return new Uri($"{context.Request.Scheme}://{context.Request.Host.Value}");
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -103,14 +114,6 @@ namespace FunctionalTestsWebsite
             app.UseRouting();
 
             app.UseAuthorization();
-
-            app.Use(async (context, next) =>
-            {
-                await next();
-
-                // TODO(JamesNK) - Workaround until https://github.com/aspnet/AspNetCore/pull/11268
-                await context.Response.BodyWriter.FlushAsync();
-            });
 
             app.UseEndpoints(endpoints =>
             {

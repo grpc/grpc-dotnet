@@ -66,7 +66,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Authorize.AuthorizedGreeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
             httpRequest.Headers.Add("Authorization", $"Bearer {token}");
             httpRequest.Content = new GrpcStreamContent(ms);
 
@@ -92,7 +92,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Authorize.AuthorizedGreeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
             httpRequest.Headers.Add("Authorization", $"Bearer SomeInvalidTokenHere");
             httpRequest.Content = new GrpcStreamContent(ms);
 

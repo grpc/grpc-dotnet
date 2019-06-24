@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            var httpRequest = GrpcHttpHelper.Create(url);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -146,7 +146,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
                        writeContext.Exception!.Message == "Cannot write message after request is complete.";
@@ -162,7 +162,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            var httpRequest = GrpcHttpHelper.Create(url);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -201,11 +201,32 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.AreNotEqual(0, messageCount);
             response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
-            var errorLogged = Logs.Any(r =>
-                r.EventId.Name == "ErrorExecutingServiceMethod" &&
-                r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                r.Exception!.Message == "Cannot write message after request is complete.");
-            Assert.IsTrue(errorLogged);
+            // The server has completed the response but is still running
+            // Allow time for the server to complete
+            while (true)
+            {
+                var i = 0;
+
+                var errorLogged = Logs.Any(r =>
+                    r.EventId.Name == "ErrorExecutingServiceMethod" &&
+                    r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                    r.Exception!.Message == "Cannot write message after request is complete.");
+
+                if (errorLogged)
+                {
+                    break;
+                }
+                else
+                {
+                    if (i > 5)
+                    {
+                        Assert.Fail("Expected error not thrown.");
+                    }
+
+                    i++;
+                    await Task.Delay(100);
+                }
+            }
         }
     }
 }

@@ -281,7 +281,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x00,
                     0x00,
                     0x00,
-                    0x01, // length = 2
+                    0x01, // length = 1
                     0x10,
                     0x10 // additional data
                 });
@@ -295,6 +295,78 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task ReadMessageAsync_AdditionalDataInSeparatePipeRead_ThrowError()
+        {
+            // Arrange
+            var requestStream = new SyncPointMemoryStream();
+
+            var pipeReader = PipeReader.Create(requestStream);
+
+            // Act
+            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask();
+
+            // Assert
+            Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
+
+            await requestStream.AddDataAndWait(new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01, // length = 1
+                    0x10
+                }).DefaultTimeout();
+
+            Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
+
+            await requestStream.AddDataAndWait(new byte[] { 0x00 }).DefaultTimeout();
+
+            var ex = Assert.ThrowsAsync<RpcException>(() => readTask);
+
+            // Assert
+            Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task ReadMessageAsync_MessageInMultiplePipeReads_ReadMessageData()
+        {
+            // Arrange
+            var messageData = new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01, // length = 1
+                    0x10
+                };
+
+            var requestStream = new SyncPointMemoryStream();
+
+            var pipeReader = PipeReader.Create(requestStream);
+
+            // Act
+            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask();
+
+            // Assert
+            foreach (var b in messageData)
+            {
+                Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
+
+                await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
+            }
+
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            var readMessageData = await readTask.DefaultTimeout();
+
+            // Assert
+            CollectionAssert.AreEqual(new byte[] { 0x10 }, readMessageData);
         }
 
         [Test]
