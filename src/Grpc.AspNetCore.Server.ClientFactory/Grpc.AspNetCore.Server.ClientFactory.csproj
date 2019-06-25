@@ -26,11 +26,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-    <ProjectReference Include="..\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
+    <ProjectReference Include="..\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" PrivateAssets="None" />
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="build\**\*.targets" PackagePath="%(Identity)" />
   </ItemGroup>
 </Project>
