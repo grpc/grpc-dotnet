@@ -70,13 +70,14 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public void AddFile(Services services, Access access, string additionalImportDirs, string[] files)
         {
-            EnsureNugetPackages(services);
+            var resolvedServices = ResolveServices(services);
+            EnsureNugetPackages(resolvedServices);
             files = GlobReferences(files);
 
             foreach (var file in files)
             {
                 Console.Log(CoreStrings.LogAddFileReference, file);
-                AddProtobufReference(services, additionalImportDirs, access, file, string.Empty);
+                AddProtobufReference(resolvedServices, additionalImportDirs, access, file, string.Empty);
             }
 
             Project.Save();

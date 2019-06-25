@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
+using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using NUnit.Framework;
 
@@ -47,10 +48,8 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Assert
             var packageRefs = command.Project.GetItems(CommandBase.PackageReferenceElement);
-            Assert.AreEqual(3, packageRefs.Count);
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.AreEqual(1, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
 
             var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
@@ -62,6 +61,24 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
 
             Assert.IsNotEmpty(File.ReadAllText(Path.Combine(command.Project.DirectoryPath, "Proto", "c.proto")));
+
+            // Cleanup
+            Directory.SetCurrentDirectory(currentDir);
+            Directory.Delete(tempDir, true);
+        }
+
+        [Test]
+        public void AddUrlCommand_NoOutputSpecified_Error()
+        {
+            // Arrange
+            var currentDir = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
+
+            // Act, Assert
+            Directory.SetCurrentDirectory(tempDir);
+            var command = new AddUrlCommand(new TestConsole(), TestClient);
+            Assert.ThrowsAsync<CLIToolException>(async () => await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty));
 
             // Cleanup
             Directory.SetCurrentDirectory(currentDir);

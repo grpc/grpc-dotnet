@@ -133,11 +133,29 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A output path must be specified when adding a URL reference via the &apos;-o|--output&apos; option..
+        /// </summary>
+        internal static string ErrorNoOutputProvided {
+            get {
+                return ResourceManager.GetString("ErrorNoOutputProvided", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Could not find any project in `{0}`. Please specify a project explicitly..
         /// </summary>
         internal static string ErrorNoProjectFound {
             get {
                 return ResourceManager.GetString("ErrorNoProjectFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Output path `{0}` is invalid. The path cannot be a directory path and must be a file path..
+        /// </summary>
+        internal static string ErrorOutputMustBeFilePath {
+            get {
+                return ResourceManager.GetString("ErrorOutputMustBeFilePath", resourceCulture);
             }
         }
         
@@ -304,7 +322,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The type of gRPC services that should be generated. Default value is Both..
+        ///   Looks up a localized string similar to The type of gRPC services that should be generated. If Default is specified, Both will be used for Web projects and Client will be used for non-Web projects..
         /// </summary>
         internal static string ServiceOptionDescription {
             get {

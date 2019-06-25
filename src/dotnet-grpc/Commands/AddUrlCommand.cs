@@ -45,6 +45,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 {
                     Name = "url",
                     Description = CoreStrings.AddUrlCommandArgumentDescription,
+                    Arity = ArgumentArity.ExactlyOne
                 });
 
             command.AddOption(new Option(
@@ -61,6 +62,11 @@ namespace Grpc.Dotnet.Cli.Commands
                 {
                     try
                     {
+                        if (string.IsNullOrEmpty(output))
+                        {
+                            throw new CLIToolException(CoreStrings.ErrorNoOutputProvided);
+                        }
+
                         var command = new AddUrlCommand(console, project);
                         await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
 
@@ -79,7 +85,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public async Task AddUrlAsync(Services services, Access access, string additionalImportDirs, string url, string output)
         {
-            EnsureNugetPackages(services);
+            var resolvedServices = ResolveServices(services);
+            EnsureNugetPackages(resolvedServices);
 
             if (!IsUrl(url))
             {
@@ -89,7 +96,7 @@ namespace Grpc.Dotnet.Cli.Commands
             await DownloadFileAsync(url, output);
 
             Console.Log(CoreStrings.LogAddUrlReference, output, url);
-            AddProtobufReference(services, additionalImportDirs, access, output, url);
+            AddProtobufReference(resolvedServices, additionalImportDirs, access, output, url);
 
             Project.Save();
         }

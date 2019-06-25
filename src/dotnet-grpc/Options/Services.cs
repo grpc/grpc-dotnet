@@ -21,7 +21,8 @@ namespace Grpc.Dotnet.Cli.Options
     internal enum Services
     {
         // Default is Both
-        Both = 0,
+        Default = 0,
+        Both,
         Server,
         Client,
         None

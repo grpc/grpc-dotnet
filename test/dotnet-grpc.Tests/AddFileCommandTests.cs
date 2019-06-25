@@ -46,10 +46,8 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Assert
             var packageRefs = command.Project.GetItems(CommandBase.PackageReferenceElement);
-            Assert.AreEqual(3, packageRefs.Count);
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.AreEqual(1, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
 
 
             var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);

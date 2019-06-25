@@ -33,25 +33,30 @@ namespace Grpc.Dotnet.Cli.Tests
     public class CommandBaseTests : TestBase
     {
         [Test]
-        public void EnsureNugetPackages_AddsRequiredServerPackages()
+        public void EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
+            => EnsureNugetPackages_AddsRequiredServerPackages(Services.Server);
+
+        [Test]
+        public void EnsureNugetPackages_AddsRequiredServerPackages_ForBoth()
+            => EnsureNugetPackages_AddsRequiredServerPackages(Services.Both);
+
+        private void EnsureNugetPackages_AddsRequiredServerPackages(Services services)
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(Services.Server);
+            commandBase.EnsureNugetPackages(services);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
             var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
-            Assert.AreEqual(3, packageRefs.Count);
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.AreEqual(1, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredClientPackages()
+        public void EnsureNugetPackages_AddsRequiredClientPackages_ForClient()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
@@ -64,7 +69,24 @@ namespace Grpc.Dotnet.Cli.Tests
             var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
             Assert.AreEqual(3, packageRefs.Count);
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Core" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+        }
+
+        [Test]
+        public void EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project());
+
+            // Act
+            commandBase.EnsureNugetPackages(Services.None);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            Assert.AreEqual(2, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
@@ -76,14 +98,13 @@ namespace Grpc.Dotnet.Cli.Tests
             commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
             // Act
-            commandBase.EnsureNugetPackages(Services.Server);
+            commandBase.EnsureNugetPackages(Services.None);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
             var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
-            Assert.AreEqual(3, packageRefs.Count);
+            Assert.AreEqual(2, packageRefs.Count);
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
-            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
@@ -251,6 +272,51 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
+        public void ResolveServices_ReturnsIdentity_Both()
+            => ResolveServices_ReturnsIdentity_IfNotDefault(Services.Both);
+
+        [Test]
+        public void ResolveServices_ReturnsIdentity_Server()
+            => ResolveServices_ReturnsIdentity_IfNotDefault(Services.Server);
+
+        [Test]
+        public void ResolveServices_ReturnsIdentity_Client()
+            => ResolveServices_ReturnsIdentity_IfNotDefault(Services.Client);
+
+        [Test]
+        public void ResolveServices_ReturnsIdentity_None()
+            => ResolveServices_ReturnsIdentity_IfNotDefault(Services.None);
+
+        private void ResolveServices_ReturnsIdentity_IfNotDefault(Services services)
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project());
+
+            // Act, Assert
+            Assert.AreEqual(services, commandBase.ResolveServices(services));
+        }
+
+        [Test]
+        public void ResolveServices_ReturnsBoth_IfWebSDK()
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "server.csproj")));
+
+            // Act, Assert
+            Assert.AreEqual(Services.Both, commandBase.ResolveServices(Services.Default));
+        }
+
+        [Test]
+        public void ResolveServices_ReturnsClient_IfNotWebSDK()
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "DuplicateProjects", "client.csproj")));
+
+            // Act, Assert
+            Assert.AreEqual(Services.Client, commandBase.ResolveServices(Services.Default));
+        }
+
+        [Test]
         public void GlobReferences_ExpandsRelativeReferences()
         {
             // Arrange
@@ -278,6 +344,23 @@ namespace Grpc.Dotnet.Cli.Tests
             // Assert
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
+        }
+
+        static object[] DirectoryPaths =
+        {
+            new object[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") },
+            new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.DirectorySeparatorChar) },
+            new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.AltDirectorySeparatorChar) },
+        };
+
+        [TestCaseSource("DirectoryPaths")]
+        public void DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+
+            // Act, Assert
+            Assert.ThrowsAsync<CLIToolException>(async () => await commandBase.DownloadFileAsync(SourceUrl, destination));
         }
 
         [Test]

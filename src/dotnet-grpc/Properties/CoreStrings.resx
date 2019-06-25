@@ -184,7 +184,7 @@
     <value>Remove protobuf references(s).</value>
   </data>
   <data name="ServiceOptionDescription" xml:space="preserve">
-    <value>The type of gRPC services that should be generated. Default value is Both.</value>
+    <value>The type of gRPC services that should be generated. If Default is specified, Both will be used for Web projects and Client will be used for non-Web projects.</value>
   </data>
   <data name="ErrorMoreThanOneProjectFound" xml:space="preserve">
     <value>Found more than one project in `{0}`. Please specify which one to use.</value>
@@ -200,5 +200,11 @@
   </data>
   <data name="ErrorReferenceNotUrl" xml:space="preserve">
     <value>The reference being added is not a valid URL.</value>
+  </data>
+  <data name="ErrorNoOutputProvided" xml:space="preserve">
+    <value>A output path must be specified when adding a URL reference via the '-o|--output' option.</value>
+  </data>
+  <data name="ErrorOutputMustBeFilePath" xml:space="preserve">
+    <value>Output path `{0}` is invalid. The path cannot be a directory path and must be a file path.</value>
   </data>
 </root>

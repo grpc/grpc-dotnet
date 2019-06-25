@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -46,6 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string SourceUrlElement = "SourceUrl";
         internal static readonly string LinkElement = "Link";
         internal static readonly string ProtosFolder = "Protos";
+        internal static readonly string WebSDKProperty = "UsingMicrosoftNETSdkWeb";
 
         private readonly HttpClient _httpClient;
 
@@ -69,8 +71,29 @@ namespace Grpc.Dotnet.Cli.Commands
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
 
+        public Services ResolveServices(Services services)
+        {
+            // Return the explicitly set services
+            if (services != Services.Default)
+            {
+                return services;
+            }
+
+            // If UsingMicrosoftNETSdkWeb is true, generate Client and Server services
+            if (Project.AllEvaluatedProperties.Any(p => string.Equals(WebSDKProperty, p.Name, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase)))
+            {
+                return Services.Both;
+            }
+
+            // If UsingMicrosoftNETSdkWeb is not true, genereate Client only
+            return Services.Client;
+        }
+
         public void EnsureNugetPackages(Services services)
         {
+            Debug.Assert(services != Services.Default);
+
             foreach (var dependency in GetType().Assembly.GetCustomAttributes<GrpcDependencyAttribute>())
             {
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
@@ -138,7 +161,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 // If file is outside of the project, display the file under Protos/ directory
                 if (!Path.GetFullPath(resolvedPath).StartsWith(Project.DirectoryPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)));
+                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)!));
                 }
             }
         }
@@ -227,14 +250,14 @@ namespace Grpc.Dotnet.Cli.Commands
 
                 if (Path.IsPathRooted(reference))
                 {
-                    var directoryToSearch = Path.GetPathRoot(reference);
+                    var directoryToSearch = Path.GetPathRoot(reference)!;
                     var searchPattern = reference.Substring(directoryToSearch.Length);
 
                     expandedReferences.AddRange(Directory.GetFiles(directoryToSearch, searchPattern));
                     continue;
                 }
 
-                if (Directory.Exists(Path.Combine(Project.DirectoryPath, Path.GetDirectoryName(reference))))
+                if (Directory.Exists(Path.Combine(Project.DirectoryPath, Path.GetDirectoryName(reference)!)))
                 {
                     expandedReferences.AddRange(
                         Directory.GetFiles(Project.DirectoryPath, reference)
@@ -254,12 +277,23 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public async Task DownloadFileAsync(string url, string destination, bool dryRun = false)
         {
-            var resolveDestination = Path.IsPathRooted(destination) ? destination : Path.Combine(Project.DirectoryPath, destination);
+            // The user must not specify a directory
+            if (Path.EndsInDirectorySeparator(destination))
+            {
+                throw new CLIToolException(string.Format(CoreStrings.ErrorOutputMustBeFilePath, destination));
+            }
 
+            var resolveDestination = Path.IsPathRooted(destination) ? destination : Path.Combine(Project.DirectoryPath, destination);
             var contentNotModified = true;
 
             if (!File.Exists(resolveDestination))
             {
+                // The user must not specify an existing directory
+                if (Directory.Exists(resolveDestination))
+                {
+                    throw new CLIToolException(string.Format(CoreStrings.ErrorOutputMustBeFilePath, destination));
+                }
+
                 // The destination file doesn't exist so content is modified.
                 contentNotModified = false;
 
