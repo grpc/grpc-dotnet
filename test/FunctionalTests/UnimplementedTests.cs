@@ -46,7 +46,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/MethodDoesNotExist");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/MethodDoesNotExist");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -70,7 +70,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.ServiceDoesNotExist/Method");
+            var httpRequest = GrpcHttpHelper.Create("Greet.ServiceDoesNotExist/Method");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "HasMapped/Extra");
+            var httpRequest = GrpcHttpHelper.Create("HasMapped/Extra");
             httpRequest.Content = new StreamContent(requestStream);
             httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
