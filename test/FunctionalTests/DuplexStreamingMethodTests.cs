@@ -44,17 +44,19 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Message = "Hello Jill"
             });
 
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Chat.Chatter/Chat");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var streamingContent = new StreamingContent();
+            var httpRequest = GrpcHttpHelper.Create("Chat.Chatter/Chat");
+            httpRequest.Content = streamingContent;
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
-            requestStream.AddData(ms.ToArray());
+
+            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
             response.AssertIsSuccessfulGrpcRequest();
@@ -77,7 +79,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Message = "Hello John"
             });
 
-            requestStream.AddData(ms.ToArray());
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
             var message2 = await message2Task.DefaultTimeout();
             Assert.AreEqual("Jill", message2.Name);
             Assert.AreEqual("Hello John", message2.Message);
@@ -85,9 +87,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
             Assert.IsFalse(finishedTask.IsCompleted, "Server is waiting for client to end streaming");
 
-            requestStream.AddData(Array.Empty<byte>());
-            await finishedTask.DefaultTimeout();
+            // Complete request stream
+            await requestStream.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+            streamingContent.Complete();
 
+            await finishedTask.DefaultTimeout();
             response.AssertTrailerStatus();
         }
 
@@ -111,10 +115,9 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Message = "Hello Jill"
             });
 
-            var requestStream = new SyncPointMemoryStream();
-
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+            var streamingContent = new StreamingContent();
+            var httpRequest = GrpcHttpHelper.Create(url);
+            httpRequest.Content = streamingContent;
 
             // Act
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
@@ -122,7 +125,9 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
 
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 1");
 
             ms = new MemoryStream();
@@ -132,10 +137,12 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Message = "Hello John"
             });
 
-            await requestStream.AddDataAndWait(ms.ToArray()).DefaultTimeout();
+            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 2");
 
-            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+            // Complete request stream
+            await requestStream.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+            streamingContent.Complete();
 
             var response = await responseTask.DefaultTimeout();
             response.AssertIsSuccessfulGrpcRequest();

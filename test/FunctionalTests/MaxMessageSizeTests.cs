@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.";
@@ -65,7 +65,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.";

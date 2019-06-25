@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage, "gzip");
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "gzip");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -69,7 +69,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Internal' raised.";
             });
@@ -82,7 +82,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage, "gzip");
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "identity");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -107,7 +107,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "DOES_NOT_EXIST");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Unimplemented' raised.";
             });
@@ -145,7 +145,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                     new DoesNotExistCompressionProvider()
                 });
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "DOES_NOT_EXIST");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -180,7 +180,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == typeof(GreeterService).FullName &&
+                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Internal' raised.";
             });
@@ -193,7 +193,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage, "gzip");
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Greet.Greeter/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -216,7 +216,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage, "gzip");
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Compression.CompressionService/WriteMessageWithoutCompression");
+            var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/WriteMessageWithoutCompression");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "gzip");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, "gzip");
             httpRequest.Content = new GrpcStreamContent(requestStream);
@@ -247,7 +247,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Compression.CompressionService/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, "gzip");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -275,7 +275,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "Compression.CompressionService/SayHello");
+            var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/SayHello");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, "identity");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, "identity");
             httpRequest.Content = new GrpcStreamContent(requestStream);

@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error || w.EventId.Name == "RpcConnectionError").ToList();
 
-            if (ExpectedErrorsFilter != null)
+            if (results.Count > 0 && ExpectedErrorsFilter != null)
             {
                 results = results.Where(w => !ExpectedErrorsFilter(w)).ToList();
             }

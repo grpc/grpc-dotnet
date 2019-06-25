@@ -16,24 +16,19 @@
 
 #endregion
 
+using System;
 using System.Net.Http;
-using FunctionalTestsWebsite.Infrastructure;
-using Microsoft.AspNetCore.TestHost;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    public class TestPrimaryMessageHandlerProvider : IPrimaryMessageHandlerProvider
+    public static class GrpcHttpHelper
     {
-        private readonly TestServer _server;
-
-        public TestPrimaryMessageHandlerProvider(TestServer server)
+        public static HttpRequestMessage Create(string url)
         {
-            _server = server;
-        }
+            var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Version = new Version(2, 0);
 
-        public HttpMessageHandler GetPrimaryMessageHandler()
-        {
-            return _server.CreateHandler();
+            return request;
         }
     }
 }
