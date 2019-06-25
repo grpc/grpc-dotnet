@@ -17,7 +17,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
+    <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
+    <ProjectReference Include="..\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" PrivateAssets="None" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
