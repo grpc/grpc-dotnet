@@ -44,7 +44,7 @@ namespace Grpc.Dotnet.Cli.Options
 
         public static Option AdditionalImportDirsOption() =>
             new Option(
-                aliases: new[] { "-a", "--additional-import-dirs" },
+                aliases: new[] { "-i", "--additional-import-dirs" },
                 description: CoreStrings.AdditionalImportDirsOption,
                 argument: new Argument<string> { Name = "dirs" });
     }
