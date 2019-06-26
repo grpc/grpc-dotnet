@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Authors>The gRPC Authors</Authors>
+    <Copyright>Copyright 2019 The gRPC Authors</Copyright>
+    <Description>Command line tool for gRPC projects</Description>
+    <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
+    <PackageTags>gRPC RPC CLI</PackageTags>
+    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
+    <!-- Ignore missing XML documentation -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <OutputType>exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build" Version="$(MicrosoftBuildPackageVersion)" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="$(MicrosoftBuildLocatorPackageVersion)" />
+    <PackageReference Include="System.CommandLine.Experimental" Version="$(SystemCommandLineExperimentalPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Google.Protobuf</_Parameter1>
+      <_Parameter2>$(GoogleProtobufPackageVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client;None</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.AspNetCore</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Both;Server</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.Net.ClientFactory</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.Tools</_Parameter1>
+      <_Parameter2>$(GrpcPackageVersion)</_Parameter2>
+      <_Parameter3>All</_Parameter3>
+      <_Parameter4>Client;None</_Parameter4>
+    </AssemblyAttribute>
+
+    <Compile Update="Properties\CoreStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>CoreStrings.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\CoreStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>CoreStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+
+</Project>
