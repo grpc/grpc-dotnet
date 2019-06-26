@@ -1,0 +1,57 @@
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System;
+using System.CommandLine;
+using System.IO;
+using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Commands;
+using Grpc.Dotnet.Cli.Properties;
+using NUnit.Framework;
+
+namespace Grpc.Dotnet.Cli.Tests
+{
+    [TestFixture]
+    public class RefreshCommandTests : TestBase
+    {
+        [TestCase(true)]
+        [TestCase(false)]
+        [NonParallelizable]
+        public async Task Refresh_RefreshesReferences(bool dryRun)
+        {
+            // Arrange
+            var currentDir = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var testConsole = new TestConsole();
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
+
+            // Act
+            Directory.SetCurrentDirectory(tempDir);
+            var command = new RefreshCommand(testConsole, TestClient);
+            await command.RefreshAsync(dryRun, new string[0]);
+
+            // Assert
+            Assert.AreEqual(string.Format(CoreStrings.LogDownload, "Proto/a.proto", SourceUrl), testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual(dryRun, string.IsNullOrEmpty(File.ReadAllText(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto"))));
+
+            // Cleanup
+            Directory.SetCurrentDirectory(currentDir);
+            Directory.Delete(tempDir, true);
+        }
+    }
+}
