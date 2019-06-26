@@ -12,7 +12,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <OutputType>exe</OutputType>
-    <PackAsTool>false</PackAsTool>
+    <PackAsTool>true</PackAsTool>
     <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
   </PropertyGroup>
 
