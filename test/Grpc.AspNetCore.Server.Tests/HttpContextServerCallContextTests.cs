@@ -28,7 +28,6 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -537,8 +536,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            var httpRequest = new DefaultHttpRequest(httpContext);
-            httpRequest.Headers[headerName] = "value";
+            httpContext.Request.Headers[headerName] = "value";
             var serverCallContext = CreateServerCallContext(httpContext);
 
             // Act
