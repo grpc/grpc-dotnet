@@ -24,7 +24,7 @@ namespace GRPCServer
     {
         private readonly ILogger<TicketRepository> _logger;
         private int _availableTickets = 5;
-        
+
         public TicketRepository(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<TicketRepository>();
@@ -35,7 +35,7 @@ namespace GRPCServer
             return _availableTickets;
         }
 
-        public bool BuyTickets(string user, int count)
+        public bool BuyTickets(string? user, int count)
         {
             var updatedCount = _availableTickets - count;
 
