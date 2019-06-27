@@ -35,7 +35,7 @@ namespace GRPCServer
             return _availableTickets;
         }
 
-        public bool BuyTickets(string? user, int count)
+        public bool BuyTickets(string user, int count)
         {
             var updatedCount = _availableTickets - count;
 
