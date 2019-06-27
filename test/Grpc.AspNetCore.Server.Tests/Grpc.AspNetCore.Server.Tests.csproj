@@ -26,7 +26,6 @@
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
 
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
