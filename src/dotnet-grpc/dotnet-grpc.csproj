@@ -14,6 +14,9 @@
     <OutputType>exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
+
+    <!-- Workaround for MSBuild issue TODO (johluo): https://github.com/microsoft/msbuild/issues/4474 -->
+    <GenerateResourceUsePreserializedResources>false</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
 
   <ItemGroup>
