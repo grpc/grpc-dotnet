@@ -17,6 +17,12 @@ set -ex
 
 source activate.sh
 
+echo "Building solution"
+
 dotnet build
 
+echo "Testing solution"
+
 dotnet test --no-build
+
+echo "Complete"
