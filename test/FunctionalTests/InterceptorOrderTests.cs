@@ -68,7 +68,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>().DefaultTimeout();
             response.AssertTrailerStatus();
         }
 
@@ -89,7 +89,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(new MemoryStream())).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>().DefaultTimeout();
             response.AssertTrailerStatus();
         }
 
@@ -115,7 +115,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var pipeReader = PipeReader.Create(responseStream);
 
             // Assert
-            await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader);
+            await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader).DefaultTimeout();
             response.AssertTrailerStatus();
         }
 
@@ -138,7 +138,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var pipeReader = PipeReader.Create(responseStream);
 
             // Assert
-            await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader);
+            await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader).DefaultTimeout();
             response.AssertTrailerStatus();
         }
     }
@@ -156,7 +156,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation)
         {
             EnsureIncomingOrder(context);
-            var result = await continuation(request, context);
+            var result = await continuation(request, context).DefaultTimeout();
             EnsureOutgoingOrder(context);
 
             return result;
@@ -165,7 +165,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         public override async Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> continuation)
         {
             EnsureIncomingOrder(context);
-            var result = await continuation(requestStream, context);
+            var result = await continuation(requestStream, context).DefaultTimeout();
             EnsureOutgoingOrder(context);
 
             return result;
@@ -174,14 +174,14 @@ namespace Grpc.AspNetCore.FunctionalTests
         public override async Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> continuation)
         {
             EnsureIncomingOrder(context);
-            await continuation(request, responseStream, context);
+            await continuation(request, responseStream, context).DefaultTimeout();
             EnsureOutgoingOrder(context);
         }
 
         public override async Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> continuation)
         {
             EnsureIncomingOrder(context);
-            await continuation(requestStream, responseStream, context);
+            await continuation(requestStream, responseStream, context).DefaultTimeout();
             EnsureOutgoingOrder(context);
         }
 

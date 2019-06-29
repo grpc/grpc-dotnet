@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 while (DateTime.UtcNow < context.Deadline)
                 {
                     var message = $"How are you {request.Name}? {i}";
-                    await responseStream.WriteAsync(new HelloReply { Message = message });
+                    await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
 
                     i++;
 
@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 // Ensure deadline timer has run
                 var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 context.CancellationToken.Register(() => tcs.SetResult(null));
-                await tcs.Task;
+                await tcs.Task.DefaultTimeout();
             });
 
         [Test]
@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 while (!context.CancellationToken.IsCancellationRequested)
                 {
                     var message = $"How are you {request.Name}? {i}";
-                    await responseStream.WriteAsync(new HelloReply { Message = message });
+                    await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
 
                     i++;
 
@@ -136,7 +136,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 while (true)
                 {
                     var message = $"How are you {request.Name}? {i}";
-                    await responseStream.WriteAsync(new HelloReply { Message = message });
+                    await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
                     i++;
 
                     await Task.Delay(10);

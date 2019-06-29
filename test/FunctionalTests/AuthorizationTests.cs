@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests
         {
             // Arrange
             var tokenResponse = await Fixture.Client.GetAsync("generateJwtToken").DefaultTimeout();
-            var token = await tokenResponse.Content.ReadAsStringAsync();
+            var token = await tokenResponse.Content.ReadAsStringAsync().DefaultTimeout();
 
             var requestMessage = new HelloRequest
             {
@@ -71,10 +71,10 @@ namespace Grpc.AspNetCore.FunctionalTests
             httpRequest.Content = new GrpcStreamContent(ms);
 
             // Act
-            var response = await Fixture.Client.SendAsync(httpRequest);
+            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
             Assert.AreEqual("Hello World", responseMessage.Message);
             response.AssertTrailerStatus();
         }
@@ -97,7 +97,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             httpRequest.Content = new GrpcStreamContent(ms);
 
             // Act
-            var response = await Fixture.Client.SendAsync(httpRequest);
+            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
