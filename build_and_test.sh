@@ -23,6 +23,6 @@ dotnet build
 
 echo "Testing solution"
 
-dotnet test --no-build -v n
+dotnet test --no-build
 
 echo "Finished"
