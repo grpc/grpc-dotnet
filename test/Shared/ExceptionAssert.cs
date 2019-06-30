@@ -24,38 +24,6 @@ namespace Grpc.Tests.Shared
 {
     public static class ExceptionAssert
     {
-        public static TException Throws<TException>(Action action, params string[] possibleMessages)
-            where TException : Exception
-        {
-            try
-            {
-                action();
-
-                throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");
-            }
-            catch (TException ex)
-            {
-                if (possibleMessages == null || possibleMessages.Length == 0)
-                {
-                    return ex;
-                }
-                foreach (string possibleMessage in possibleMessages)
-                {
-                    if (Assert.Equals(possibleMessage, ex.Message))
-                    {
-                        return ex;
-                    }
-                }
-
-                throw new Exception("Unexpected exception message." + Environment.NewLine + "Expected one of: " + string.Join(Environment.NewLine, possibleMessages) + Environment.NewLine + "Got: " + ex.Message + Environment.NewLine + Environment.NewLine + ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(string.Format("Exception of type {0} expected; got exception of type {1}.", typeof(TException).Name, ex.GetType().Name), ex);
-            }
-        }
-
-#if !(NET20 || NET35 || NET40 || PORTABLE40)
         public static async Task<TException> ThrowsAsync<TException>(Func<Task> action, params string[] possibleMessages)
             where TException : Exception
         {
@@ -86,6 +54,5 @@ namespace Grpc.Tests.Shared
                 throw new Exception(string.Format("Exception of type {0} expected; got exception of type {1}.", typeof(TException).Name, ex.GetType().Name), ex);
             }
         }
-#endif
     }
 }
