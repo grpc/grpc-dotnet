@@ -158,7 +158,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ReturnsError()
+        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ReturnsError()
         {
             // Arrange
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -180,11 +180,11 @@ namespace Grpc.Net.Client.Tests
             tcs.TrySetResult(true);
 
             // Assert
-            Assert.ThrowsAsync<ObjectDisposedException>(() => call.ResponseHeadersAsync);
+            await ExceptionAssert.ThrowsAsync<ObjectDisposedException>(() => call.ResponseHeadersAsync).DefaultTimeout();
         }
 
         [Test]
-        public void AsyncClientStreamingCall_NotFoundStatus_ThrowsError()
+        public async Task AsyncClientStreamingCall_NotFoundStatus_ThrowsError()
         {
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
@@ -196,14 +196,14 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseHeadersAsync.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseHeadersAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_InvalidContentType_ThrowsError()
+        public async Task AsyncClientStreamingCall_InvalidContentType_ThrowsError()
         {
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
@@ -216,7 +216,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseHeadersAsync.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseHeadersAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Message);

@@ -151,7 +151,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void ClientStreamReader_WriteWithInvalidHttpStatus_ErrorThrown()
+        public async Task ClientStreamReader_WriteWithInvalidHttpStatus_ErrorThrown()
         {
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
@@ -165,7 +165,7 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             // Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
 
             Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
         }

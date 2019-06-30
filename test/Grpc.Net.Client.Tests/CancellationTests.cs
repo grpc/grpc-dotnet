@@ -18,6 +18,7 @@
 
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -31,7 +32,7 @@ namespace Grpc.Net.Client.Tests
     public class CancellationTests
     {
         [Test]
-        public void AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -46,12 +47,12 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -66,7 +67,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseHeadersTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
@@ -89,7 +90,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationTokenOnCallInvoker_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationTokenOnCallInvoker_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -105,12 +106,12 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationTokenOnCallInvokerAndOptions_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationTokenOnCallInvokerAndOptions_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var invokerCts = new CancellationTokenSource();
@@ -128,7 +129,7 @@ namespace Grpc.Net.Client.Tests
 
             invokerCts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
 
             call.Dispose();

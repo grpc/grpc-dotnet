@@ -35,7 +35,7 @@ namespace Grpc.Net.Client.Tests
     public class HttpContentClientStreamReaderTests
     {
         [Test]
-        public void MoveNext_TokenCanceledBeforeCall_ThrowError()
+        public async Task MoveNext_TokenCanceledBeforeCall_ThrowError()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -56,12 +56,12 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.IsTrue(moveNextTask1.IsCompleted);
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await moveNextTask1.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
-        public void MoveNext_TokenCanceledDuringCall_ThrowError()
+        public async Task MoveNext_TokenCanceledDuringCall_ThrowError()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -84,12 +84,12 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await moveNextTask1.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
-        public void MoveNext_MultipleCallsWithoutAwait_ThrowError()
+        public async Task MoveNext_MultipleCallsWithoutAwait_ThrowError()
         {
             // Arrange
             var httpClient = TestHelpers.CreateTestClient(request =>
@@ -109,7 +109,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.IsFalse(moveNextTask1.IsCompleted);
 
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await moveNextTask2.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => moveNextTask2).DefaultTimeout();
             Assert.AreEqual("Cannot read next message because the previous read is in progress.", ex.Message);
         }
     }
