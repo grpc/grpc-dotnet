@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Handle bad response
-            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await client.SayHelloAsync(new HelloRequest())).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(3, list.Count);
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Handle bad response
-            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await client.SayHelloAsync(new HelloRequest())).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(3, list.Count);

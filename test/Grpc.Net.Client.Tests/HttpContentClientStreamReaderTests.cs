@@ -41,14 +41,14 @@ namespace Grpc.Net.Client.Tests
             var cts = new CancellationTokenSource();
             cts.Cancel();
 
-            var httpClient = TestHelpers.CreateTestClient(request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
                 var stream = new SyncPointMemoryStream();
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -66,14 +66,14 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var cts = new CancellationTokenSource();
 
-            var httpClient = TestHelpers.CreateTestClient(request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
                 var stream = new SyncPointMemoryStream();
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -92,14 +92,14 @@ namespace Grpc.Net.Client.Tests
         public async Task MoveNext_MultipleCallsWithoutAwait_ThrowError()
         {
             // Arrange
-            var httpClient = TestHelpers.CreateTestClient(request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
                 var stream = new SyncPointMemoryStream();
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act

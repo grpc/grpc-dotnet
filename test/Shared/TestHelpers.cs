@@ -17,11 +17,6 @@
 #endregion
 
 using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
-using Google.Protobuf;
 
 namespace Grpc.Tests.Shared
 {
@@ -32,25 +27,6 @@ namespace Grpc.Tests.Shared
             var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location)!, relativePath);
 
             return resolvedPath;
-        }
-
-        public static async Task<StreamContent> CreateResponseContent<TResponse>(params TResponse[] responses) where TResponse : IMessage<TResponse>
-        {
-            var ms = new MemoryStream();
-            foreach (var response in responses)
-            {
-                await WriteResponseAsync(ms, response);
-            }
-            ms.Seek(0, SeekOrigin.Begin);
-            var streamContent = new StreamContent(ms);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
-            return streamContent;
-        }
-
-        public static async Task WriteResponseAsync<TResponse>(Stream ms, TResponse response) where TResponse : IMessage<TResponse>
-        {
-            await ResponseUtils.WriteHeaderAsync(ms, response.CalculateSize(), false, CancellationToken.None);
-            await ms.WriteAsync(response.ToByteArray());
         }
     }
 }

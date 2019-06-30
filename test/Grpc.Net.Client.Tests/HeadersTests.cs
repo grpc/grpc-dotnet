@@ -40,7 +40,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
 
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 httpRequestMessage = request;
 
@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Tests
                     Message = "Hello world"
                 };
 
-                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
@@ -60,7 +60,7 @@ namespace Grpc.Net.Client.Tests
             headers.Add("custom-bin", Encoding.UTF8.GetBytes("Hello world"));
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
@@ -76,7 +76,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
 
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 httpRequestMessage = request;
 
@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Tests
                     Message = "Hello world"
                 };
 
-                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
@@ -94,7 +94,7 @@ namespace Grpc.Net.Client.Tests
             var headers = new Metadata();
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);

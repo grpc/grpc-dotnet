@@ -39,7 +39,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             var responseHeadersTask = call.ResponseHeadersAsync;
@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             cts.Cancel();
@@ -98,7 +98,7 @@ namespace Grpc.Net.Client.Tests
             invoker.CancellationToken = cts.Token;
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -121,7 +121,7 @@ namespace Grpc.Net.Client.Tests
             invoker.CancellationToken = invokerCts.Token;
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: optionsCts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: optionsCts.Token));
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -137,7 +137,7 @@ namespace Grpc.Net.Client.Tests
 
         private static HttpClientCallInvoker CreateTimedoutCallInvoker()
         {
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 var content = (PushStreamContent)request.Content;
                 await content.PushComplete.DefaultTimeout();

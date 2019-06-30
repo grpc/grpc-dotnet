@@ -49,7 +49,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddGrpcClient<TestGreeterClient>(o => o.BaseAddress = baseAddress);
+            services
+                .AddGrpcClient<TestGreeterClient>(o => o.BaseAddress = baseAddress)
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider();
 
@@ -74,7 +76,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddGrpcClient<TestGreeterClient>("Custom", o => o.BaseAddress = baseAddress);
+            services
+                .AddGrpcClient<TestGreeterClient>("Custom", o => o.BaseAddress = baseAddress)
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider();
 
@@ -97,7 +101,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Arrange
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddGrpcClient<TestGreeterClient>(o => { });
+            services
+                .AddGrpcClient<TestGreeterClient>(o => { })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider();
 
@@ -120,10 +126,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var testSink = new TestSink();
 
             var services = new ServiceCollection();
-            var clientBuilder = services.AddGrpcClient<TestGreeterClient>("contoso", options =>
-            {
-                options.BaseAddress = new Uri("http://contoso");
-            }).AddHttpMessageHandler(() => new TestDelegatingHandler());
+            var clientBuilder = services
+                .AddGrpcClient<TestGreeterClient>("contoso", options =>
+                {
+                    options.BaseAddress = new Uri("http://contoso");
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
 
@@ -134,7 +142,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
 
-            var response = await contosoClient.SayHelloAsync(new HelloRequest());
+            var response = await contosoClient.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual("http://contoso", contosoClient.CallInvoker.BaseAddress.OriginalString);
@@ -147,14 +155,18 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddGrpcClient<TestGreeterClient>("contoso", options =>
-            {
-                options.BaseAddress = new Uri("http://contoso");
-            });
-            services.AddGrpcClient<TestGreeterClient>("adventureworks", options =>
-            {
-                options.BaseAddress = new Uri("http://adventureworks");
-            });
+            services
+                .AddGrpcClient<TestGreeterClient>("contoso", options =>
+                {
+                    options.BaseAddress = new Uri("http://contoso");
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+            services
+                .AddGrpcClient<TestGreeterClient>("adventureworks", options =>
+                {
+                    options.BaseAddress = new Uri("http://adventureworks");
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var provider = services.BuildServiceProvider();
 
@@ -216,24 +228,6 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             public void Dispose()
             {
                 DisposeCalled = true;
-            }
-        }
-
-        public class TestDelegatingHandler : DelegatingHandler
-        {
-            public TestDelegatingHandler()
-            {
-            }
-
-            protected async override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
-                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             }
         }
     }

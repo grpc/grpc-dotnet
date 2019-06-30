@@ -20,6 +20,7 @@ using System;
 using System.Security.Cryptography.X509Certificates;
 using Greet;
 using Grpc.Net.ClientFactory;
+using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
@@ -41,7 +42,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
                     o.BaseAddress = baseAddress;
-                });
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider();
 
@@ -65,12 +67,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<Greeter.GreeterClient>("First", o =>
                 {
                     o.BaseAddress = baseAddress1;
-                });
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services
                 .AddGrpcClient<Greeter.GreeterClient>("Second", o =>
                 {
                     o.BaseAddress = baseAddress2;
-                });
+                })
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider();
 
