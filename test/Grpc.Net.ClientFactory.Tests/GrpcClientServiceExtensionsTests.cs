@@ -35,7 +35,6 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var baseAddress = new Uri("http://localhost");
-            var certificate = new X509Certificate2();
 
             ServiceCollection services = new ServiceCollection();
             services
