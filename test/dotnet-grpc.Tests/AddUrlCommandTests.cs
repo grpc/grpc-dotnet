@@ -79,7 +79,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Act, Assert
             Directory.SetCurrentDirectory(tempDir);
             var command = new AddUrlCommand(new TestConsole(), TestClient);
-            await ExceptionAssert.ThrowsAsync<CLIToolException>(async () => await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty)).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<CLIToolException>(() => command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty)).DefaultTimeout();
 
             // Cleanup
             Directory.SetCurrentDirectory(currentDir);

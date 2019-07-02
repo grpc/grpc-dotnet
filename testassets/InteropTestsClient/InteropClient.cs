@@ -499,7 +499,7 @@ namespace InteropTestsClient
                 await Task.Delay(1000);
                 cts.Cancel();
 
-                var ex = await Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync);
+                var ex = await Assert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
                 Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
             }
             Console.WriteLine("Passed!");
@@ -525,7 +525,7 @@ namespace InteropTestsClient
 
                 try
                 {
-                    // cannot use await ExceptionAssert.ThrowsAsync because it uses Task.Wait and would deadlock.
+                    // cannot use Assert.ThrowsAsync because it uses Task.Wait and would deadlock.
                     await call.ResponseStream.MoveNext();
                     Assert.Fail();
                 }
@@ -644,7 +644,7 @@ namespace InteropTestsClient
 
                 try
                 {
-                    // cannot use await ExceptionAssert.ThrowsAsync because it uses Task.Wait and would deadlock.
+                    // cannot use Assert.ThrowsAsync because it uses Task.Wait and would deadlock.
                     await call.ResponseStream.ToListAsync();
                     Assert.Fail();
                 }
@@ -760,7 +760,7 @@ namespace InteropTestsClient
                     Payload = CreateZerosPayload(27182)
                 });
 
-                // cannot use await ExceptionAssert.ThrowsAsync because it uses Task.Wait and would deadlock.
+                // cannot use Assert.ThrowsAsync because it uses Task.Wait and would deadlock.
                 await probeCall;
                 Assert.Fail();
             }

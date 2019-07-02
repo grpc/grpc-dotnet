@@ -361,7 +361,7 @@ namespace Grpc.Dotnet.Cli.Tests
             var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
 
             // Act, Assert
-            await ExceptionAssert.ThrowsAsync<CLIToolException>(async () => await commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<CLIToolException>(() => commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
         }
 
         [Test]

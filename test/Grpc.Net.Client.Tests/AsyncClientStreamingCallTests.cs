@@ -224,7 +224,7 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
     }

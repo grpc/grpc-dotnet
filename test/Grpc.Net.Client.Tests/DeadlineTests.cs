@@ -241,7 +241,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: new DateTime(2000, DateTimeKind.Local)), new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: new DateTime(2000, DateTimeKind.Local)), new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Deadline must have a kind DateTimeKind.Utc or be equal to DateTime.MaxValue or DateTime.MinValue.", ex.Message);

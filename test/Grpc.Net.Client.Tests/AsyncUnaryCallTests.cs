@@ -123,7 +123,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);

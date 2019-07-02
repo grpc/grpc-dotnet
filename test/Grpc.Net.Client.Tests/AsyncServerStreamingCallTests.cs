@@ -165,7 +165,7 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
 
             Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
         }
