@@ -16,8 +16,10 @@
 
 #endregion
 
+using System;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,16 +36,16 @@ namespace Grpc.Net.Client.Tests
     public class CallCredentialTests
     {
         [Test]
-        public async Task MetadataCredentials_PerCall()
+        public async Task CallCredentialsWithHttps_MetadataOnRequest()
         {
             // Arrange
             string? authorizationValue = null;
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 authorizationValue = request.Headers.GetValues("authorization").Single();
 
                 var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -51,11 +53,11 @@ namespace Grpc.Net.Client.Tests
             // Act
             var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
             {
-                // Make sure the operation is asynchronous to ensure delegate is awaited
-                await Task.Delay(100);
+                // The operation is asynchronous to ensure delegate is awaited
+                await Task.Delay(50);
                 metadata.Add("authorization", "SECRET_TOKEN");
             });
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
             await call.ResponseAsync.DefaultTimeout();
 
             // Assert
@@ -63,16 +65,44 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task MetadataCredentials_ComposedPerCall()
+        public async Task CallCredentialsWithHttp_NoMetadataOnRequest()
+        {
+            // Arrange
+            bool? hasAuthorizationValue = null;
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                hasAuthorizationValue = request.Headers.TryGetValues("authorization", out _);
+
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            }, new Uri("http://localhost"));
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
+            {
+                metadata.Add("authorization", "SECRET_TOKEN");
+                return Task.CompletedTask;
+            });
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            await call.ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(false, hasAuthorizationValue);
+        }
+
+        [Test]
+        public async Task CompositeCallCredentialsWithHttps_MetadataOnRequest()
         {
             // Arrange
             HttpRequestHeaders? requestHeaders = null;
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 requestHeaders = request.Headers;
 
                 var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await TestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -92,7 +122,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var callCredentials = CallCredentials.Compose(first, second, third);
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
             await call.ResponseAsync.DefaultTimeout();
 
             // Assert
