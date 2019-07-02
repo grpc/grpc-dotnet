@@ -61,9 +61,23 @@ namespace InteropTestsClient
             throw new InvalidOperationException("Failure assert.");
         }
 
-        public static TException ThrowsAsync<TException>(Func<Task> action) where TException : Exception
+        public static async Task<TException> ThrowsAsync<TException>(Func<Task> action) where TException : Exception
         {
-            return Throws<TException>(() => action().GetAwaiter().GetResult());
+            try
+            {
+                await action();
+            }
+            catch (Exception ex)
+            {
+                if (ex.GetType() == typeof(TException))
+                {
+                    return (TException)ex;
+                }
+
+                throw new InvalidOperationException($"Expected ${typeof(TException)} but got ${ex.GetType()}.");
+            }
+
+            throw new InvalidOperationException("No exception thrown.");
         }
 
         public static TException Throws<TException>(Action action) where TException : Exception

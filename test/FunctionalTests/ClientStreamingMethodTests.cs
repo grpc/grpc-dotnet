@@ -65,7 +65,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             var response = await responseTask.DefaultTimeout();
 
-            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>();
+            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
             Assert.AreEqual(2, reply.Count);
             response.AssertTrailerStatus();
         }
@@ -109,7 +109,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await responseTask.DefaultTimeout();
 
             // Read to end of response so headers are available
-            await response.Content.CopyToAsync(new MemoryStream());
+            await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
             response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
         }

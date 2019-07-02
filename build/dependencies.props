@@ -11,12 +11,12 @@
     <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions30PackageVersion>3.0.0-preview7.19327.1</MicrosoftExtensions30PackageVersion>
     <MicrosoftNetCompilersToolsetPackageVersion>3.2.0-beta3-19280-02</MicrosoftNetCompilersToolsetPackageVersion>
-    <MicrosoftNETTestSdkPackageVersion>16.0.0</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
-    <NunitPackageVersion>3.11.0</NunitPackageVersion>
-    <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
+    <NunitPackageVersion>3.12.0</NunitPackageVersion>
+    <Nunit3TestAdapterPackageVersion>3.13.0</Nunit3TestAdapterPackageVersion>
     <SystemCommandLineExperimentalPackageVersion>0.2.0-alpha.19272.1</SystemCommandLineExperimentalPackageVersion>
   </PropertyGroup>
 </Project>

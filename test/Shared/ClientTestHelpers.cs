@@ -18,6 +18,7 @@
 
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -26,14 +27,23 @@ using Google.Protobuf;
 using Greet;
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.Tests.Shared
 {
-    public static class TestHelpers
+    public static class ClientTestHelpers
     {
         public static readonly Marshaller<HelloRequest> HelloRequestMarshaller = Marshallers.Create<HelloRequest>(r => r.ToByteArray(), data => HelloRequest.Parser.ParseFrom(data));
         public static readonly Marshaller<HelloReply> HelloReplyMarshaller = Marshallers.Create<HelloReply>(r => r.ToByteArray(), data => HelloReply.Parser.ParseFrom(data));
 
         public static readonly Method<HelloRequest, HelloReply> ServiceMethod = new Method<HelloRequest, HelloReply>(MethodType.Unary, "ServiceName", "MethodName", HelloRequestMarshaller, HelloReplyMarshaller);
+
+        public static TestHttpMessageHandler CreateTestMessageHandler(HelloReply reply)
+        {
+            return TestHttpMessageHandler.Create(async r =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+        }
 
         public static HttpClient CreateTestClient(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
         {

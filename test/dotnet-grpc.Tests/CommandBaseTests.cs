@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Tests.Shared;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 using NUnit.Framework;
@@ -354,13 +355,13 @@ namespace Grpc.Dotnet.Cli.Tests
         };
 
         [TestCaseSource("DirectoryPaths")]
-        public void DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
+        public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
 
             // Act, Assert
-            Assert.ThrowsAsync<CLIToolException>(async () => await commandBase.DownloadFileAsync(SourceUrl, destination));
+            await ExceptionAssert.ThrowsAsync<CLIToolException>(() => commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
         }
 
         [Test]
@@ -371,7 +372,7 @@ namespace Grpc.Dotnet.Cli.Tests
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
-            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile);
+            await commandBase.DownloadFileAsync(SourceUrl, tempProtoFile).DefaultTimeout();
 
             // Assert
             Assert.IsNotEmpty(File.ReadAllText(tempProtoFile));

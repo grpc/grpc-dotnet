@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Dotnet.Cli.Tests
@@ -68,7 +69,7 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void AddUrlCommand_NoOutputSpecified_Error()
+        public async Task AddUrlCommand_NoOutputSpecified_Error()
         {
             // Arrange
             var currentDir = Directory.GetCurrentDirectory();
@@ -78,7 +79,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Act, Assert
             Directory.SetCurrentDirectory(tempDir);
             var command = new AddUrlCommand(new TestConsole(), TestClient);
-            Assert.ThrowsAsync<CLIToolException>(async () => await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty));
+            await ExceptionAssert.ThrowsAsync<CLIToolException>(() => command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty)).DefaultTimeout();
 
             // Cleanup
             Directory.SetCurrentDirectory(currentDir);

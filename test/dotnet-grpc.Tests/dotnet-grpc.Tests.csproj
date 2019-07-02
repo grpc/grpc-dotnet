@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <Content Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+    
+    <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
+    <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 

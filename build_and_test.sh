@@ -17,6 +17,14 @@ set -ex
 
 source activate.sh
 
+echo "Building solution"
+
 dotnet build
 
-dotnet test --no-build
+echo "Testing solution"
+
+# Capturing test diagnostic logs because of hanging build
+# https://github.com/grpc/grpc-dotnet/pull/363
+dotnet test --no-build --diag:log.txt
+
+echo "Finished"
