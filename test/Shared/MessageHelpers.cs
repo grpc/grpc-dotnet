@@ -60,7 +60,7 @@ namespace Grpc.Tests.Shared
                     CompressionProviders = compressionProviders
                 });
 
-            var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext);
+            var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext).AsTask().DefaultTimeout();
 
             var message = new T();
             message.MergeFrom(messageData);
@@ -88,7 +88,7 @@ namespace Grpc.Tests.Shared
                 CompressionProviders = compressionProviders
             });
 
-            var messageData = await pipeReader.ReadStreamMessageAsync(serverCallContext);
+            var messageData = await pipeReader.ReadStreamMessageAsync(serverCallContext).AsTask().DefaultTimeout();
 
             if (messageData == null)
             {

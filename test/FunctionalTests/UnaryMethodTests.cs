@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
             Assert.AreEqual("Hello World", responseMessage.Message);
             response.AssertTrailerStatus();
         }
@@ -90,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             streamingContent.Complete();
 
             var response = await responseTask.DefaultTimeout();
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
 
             Assert.AreEqual("Hello World", responseMessage.Message);
         }
@@ -132,7 +132,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var response = await responseTask.DefaultTimeout();
 
             // Read to end of response so headers are available
-            await response.Content.CopyToAsync(new MemoryStream());
+            await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
             response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
         }
@@ -142,9 +142,9 @@ namespace Grpc.AspNetCore.FunctionalTests
         {
             static async Task<HelloReply> ReturnHeadersTwice(HelloRequest request, ServerCallContext context)
             {
-                await context.WriteResponseHeadersAsync(null);
+                await context.WriteResponseHeadersAsync(null).DefaultTimeout();
 
-                await context.WriteResponseHeadersAsync(null);
+                await context.WriteResponseHeadersAsync(null).DefaultTimeout();
 
                 return new HelloReply { Message = "Should never reach here" };
             }
@@ -280,7 +280,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>().DefaultTimeout();
             Assert.IsNotNull(responseMessage);
 
             var methodParts = response.TrailingHeaders.GetValues("Test-Method").Single().Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -338,7 +338,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 1
-            var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
+            var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
             Assert.AreEqual(1, total.Count);
             response.AssertTrailerStatus();
 
@@ -352,7 +352,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 2
-            total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>();
+            total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
             Assert.AreEqual(2, total.Count);
             response.AssertTrailerStatus();
         }
@@ -410,7 +410,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 streamContent).DefaultTimeout();
 
             // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
             Assert.AreEqual("Hello World", responseMessage.Message);
             response.AssertTrailerStatus();
         }
@@ -434,7 +434,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 1
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>();
+            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
             Assert.AreEqual("2 x Headlight fluid", responseMessage.Message);
             response.AssertTrailerStatus();
 
@@ -454,7 +454,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 2
-            responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>();
+            responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
             Assert.AreEqual("Arnie Admin - Enabled", responseMessage.Message);
             response.AssertTrailerStatus();
         }

@@ -499,7 +499,7 @@ namespace InteropTestsClient
                 await Task.Delay(1000);
                 cts.Cancel();
 
-                var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync);
+                var ex = await Assert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
                 Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
             }
             Console.WriteLine("Passed!");

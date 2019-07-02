@@ -108,7 +108,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageAsync_ExceedReceiveSize_ReturnData()
+        public async Task ReadMessageAsync_ExceedReceiveSize_ReturnData()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { ReceiveMaxMessageSize = 1 });
@@ -126,7 +126,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -225,7 +225,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageAsync_HeaderIncomplete_ThrowError()
+        public async Task ReadMessageAsync_HeaderIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -238,8 +238,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -247,7 +247,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageAsync_MessageDataIncomplete_ThrowError()
+        public async Task ReadMessageAsync_MessageDataIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -263,8 +263,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -272,7 +272,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageAsync_AdditionalData_ThrowError()
+        public async Task ReadMessageAsync_AdditionalData_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -289,8 +289,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
@@ -325,7 +325,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             await requestStream.AddDataAndWait(new byte[] { 0x00 }).DefaultTimeout();
 
-            var ex = Assert.ThrowsAsync<RpcException>(() => readTask);
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => readTask).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
@@ -370,7 +370,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageStreamAsync_HeaderIncomplete_ThrowError()
+        public async Task ReadMessageStreamAsync_HeaderIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -383,8 +383,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -392,7 +392,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void ReadMessageStreamAsync_MessageDataIncomplete_ThrowError()
+        public async Task ReadMessageStreamAsync_MessageDataIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -408,8 +408,8 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -539,7 +539,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void WriteMessageAsync_ExceedSendSize_ThrowError()
+        public async Task WriteMessageAsync_ExceedSendSize_ThrowError()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
@@ -547,7 +547,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            var ex = Assert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, flush: true));
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, flush: true)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);

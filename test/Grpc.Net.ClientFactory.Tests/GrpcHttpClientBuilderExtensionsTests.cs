@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
     public class GrpcHttpClientBuilderExtensionsTests
     {
         [Test]
-        public void AddInterceptor_MultipleInstances_ExecutedInOrder()
+        public async Task AddInterceptor_MultipleInstances_ExecutedInOrder()
         {
             // Arrange
             var list = new List<int>();
@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Handle bad response
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.SayHelloAsync(new HelloRequest()));
+            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(3, list.Count);
@@ -69,7 +69,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public void AddInterceptorGeneric_MultipleInstances_ExecutedInOrder()
+        public async Task AddInterceptorGeneric_MultipleInstances_ExecutedInOrder()
         {
             // Arrange
             var list = new List<int>();
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Handle bad response
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await client.SayHelloAsync(new HelloRequest()));
+            await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(3, list.Count);

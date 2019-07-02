@@ -18,6 +18,7 @@
 
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -31,14 +32,14 @@ namespace Grpc.Net.Client.Tests
     public class CancellationTests
     {
         [Test]
-        public void AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -46,19 +47,19 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             var responseHeadersTask = call.ResponseHeadersAsync;
@@ -66,7 +67,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseHeadersTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
@@ -78,7 +79,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = CreateTimedoutCallInvoker();
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             cts.Cancel();
@@ -89,7 +90,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationTokenOnCallInvoker_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationTokenOnCallInvoker_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -97,7 +98,7 @@ namespace Grpc.Net.Client.Tests
             invoker.CancellationToken = cts.Token;
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -105,12 +106,12 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_CancellationTokenOnCallInvokerAndOptions_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationTokenOnCallInvokerAndOptions_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var invokerCts = new CancellationTokenSource();
@@ -120,7 +121,7 @@ namespace Grpc.Net.Client.Tests
             invoker.CancellationToken = invokerCts.Token;
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(TestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: optionsCts.Token));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: optionsCts.Token));
 
             // Assert
             var responseTask = call.ResponseAsync;
@@ -128,7 +129,7 @@ namespace Grpc.Net.Client.Tests
 
             invokerCts.Cancel();
 
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await responseTask.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
 
             call.Dispose();
@@ -136,7 +137,7 @@ namespace Grpc.Net.Client.Tests
 
         private static HttpClientCallInvoker CreateTimedoutCallInvoker()
         {
-            var httpClient = TestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 var content = (PushStreamContent)request.Content;
                 await content.PushComplete.DefaultTimeout();

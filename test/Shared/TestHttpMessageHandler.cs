@@ -21,9 +21,9 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.Tests.Shared
 {
-    public class TestHttpMessageHandler : HttpMessageHandler
+    public class TestHttpMessageHandler : DelegatingHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _sendAsync;
 

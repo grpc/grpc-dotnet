@@ -33,9 +33,9 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task Scoped_ReturnSameValue()
         {
             // Arrange & Act
-            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue");
-            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue");
-            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue");
+            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue").DefaultTimeout();
+            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue").DefaultTimeout();
+            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetScopedValue").DefaultTimeout();
 
             // Assert
             Assert.AreEqual(1, valueResponse1.Value);
@@ -47,9 +47,9 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task Transient_ReturnSameValue()
         {
             // Arrange & Act
-            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue");
-            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue");
-            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue");
+            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue").DefaultTimeout();
+            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue").DefaultTimeout();
+            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetTransientValue").DefaultTimeout();
 
             // Assert
             Assert.AreEqual(1, valueResponse1.Value);
@@ -61,9 +61,9 @@ namespace Grpc.AspNetCore.FunctionalTests
         public async Task Singleton_ReturnIncrementingValue()
         {
             // Arrange & Act
-            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue");
-            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue");
-            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue");
+            var valueResponse1 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue").DefaultTimeout();
+            var valueResponse2 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue").DefaultTimeout();
+            var valueResponse3 = await CallLifetimeService("Lifetime.LifetimeService/GetSingletonValue").DefaultTimeout();
 
             // Assert
             Assert.AreEqual(1, valueResponse1.Value);

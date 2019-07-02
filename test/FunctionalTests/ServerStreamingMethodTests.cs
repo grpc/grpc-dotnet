@@ -150,7 +150,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for first message from client");
 
-            var response = await responseTask;
+            var response = await responseTask.DefaultTimeout();
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
