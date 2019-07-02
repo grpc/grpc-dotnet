@@ -23,6 +23,8 @@ dotnet build
 
 echo "Testing solution"
 
+# Capturing test diagnostic logs because of hanging build
+# https://github.com/grpc/grpc-dotnet/pull/363
 dotnet test --no-build --diag:log.txt
 
 echo "Finished"
