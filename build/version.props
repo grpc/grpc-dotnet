@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- version of all grpc-dotnet packages -->
-    <GrpcDotnetVersion>0.1.22-pre1</GrpcDotnetVersion>
+    <GrpcDotnetVersion>0.1.22-pre2</GrpcDotnetVersion>
   </PropertyGroup>
 </Project>
