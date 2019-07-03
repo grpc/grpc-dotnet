@@ -128,5 +128,20 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
         }
+
+        [Test]
+        public async Task AsyncUnaryCall_HttpClientBaseAddressNotSet_ThrowError()
+        {
+            // Arrange
+            var httpClient = new HttpClient();
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Unable to send the gRPC call because no server address has been configured. " +
+                "Set HttpClient.BaseAddress on the HttpClient used to created to gRPC client.", ex.Message);
+        }
     }
 }

@@ -158,6 +158,12 @@ namespace Grpc.Net.Client
             where TRequest : class
             where TResponse : class
         {
+            if (_client.BaseAddress == null)
+            {
+                throw new InvalidOperationException("Unable to send the gRPC call because no server address has been configured. " +
+                    "Set HttpClient.BaseAddress on the HttpClient used to created to gRPC client.");
+            }
+
             CancellationTokenSource? linkedCts = null;
 
             // Use propagated deadline if it is small than the specified deadline
