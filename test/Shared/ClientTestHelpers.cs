@@ -45,20 +45,20 @@ namespace Grpc.Tests.Shared
             });
         }
 
-        public static HttpClient CreateTestClient(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
+        public static HttpClient CreateTestClient(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync, Uri? baseAddress = null)
         {
             var handler = TestHttpMessageHandler.Create(sendAsync);
             var httpClient = new HttpClient(handler);
-            httpClient.BaseAddress = new Uri("https://localhost");
+            httpClient.BaseAddress = baseAddress ?? new Uri("https://localhost");
 
             return httpClient;
         }
 
-        public static HttpClient CreateTestClient(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
+        public static HttpClient CreateTestClient(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync, Uri? baseAddress = null)
         {
             var handler = TestHttpMessageHandler.Create(sendAsync);
             var httpClient = new HttpClient(handler);
-            httpClient.BaseAddress = new Uri("https://localhost");
+            httpClient.BaseAddress = baseAddress ?? new Uri("https://localhost");
 
             return httpClient;
         }
