@@ -145,6 +145,7 @@ namespace Grpc.Net.Client
 
                 await WriteHeaderAsync(stream, data.Length, false, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                 Log.MessageSent(logger);
             }
