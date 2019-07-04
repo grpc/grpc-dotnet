@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -425,6 +426,14 @@ namespace Grpc.Net.Client.Internal
 
         private async Task SendAsync(HttpClient client, HttpRequestMessage message)
         {
+            // In C-Core the call credential auth metadata is only applied if the channel is secure
+            // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
+            // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
+            if (Options.Credentials != null && client.BaseAddress.Scheme == Uri.UriSchemeHttps)
+            {
+                await ReadCredentialMetadata(client, message, Options.Credentials).ConfigureAwait(false);
+            }
+
             Log.StartingCall(Logger, Method.Type, message.RequestUri);
 
             try
@@ -443,6 +452,32 @@ namespace Grpc.Net.Client.Internal
             }
 
             ValidateHeaders();
+        }
+
+        private async Task ReadCredentialMetadata(HttpClient client, HttpRequestMessage message, CallCredentials credentials)
+        {
+            var configurator = new CallCredentialsConfigurator();
+            credentials.InternalPopulateConfiguration(configurator, null);
+
+            if (configurator.Interceptor != null)
+            {
+                var authInterceptorContext = new AuthInterceptorContext(client.BaseAddress.OriginalString, Method.FullName);
+                var metadata = new Metadata();
+                await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
+
+                foreach (var entry in metadata)
+                {
+                    AddHeader(message.Headers, entry);
+                }
+            }
+
+            if (configurator.Credentials != null)
+            {
+                foreach (var c in configurator.Credentials)
+                {
+                    await ReadCredentialMetadata(client, message, c).ConfigureAwait(false);
+                }
+            }
         }
 
         private HttpContentClientStreamWriter<TRequest, TResponse> CreateWriter(HttpRequestMessage message)
@@ -482,8 +517,7 @@ namespace Grpc.Net.Client.Internal
                         continue;
                     }
 
-                    var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-                    message.Headers.Add(entry.Key, value);
+                    AddHeader(message.Headers, entry);
                 }
             }
 
@@ -493,6 +527,28 @@ namespace Grpc.Net.Client.Internal
             }
 
             return message;
+        }
+
+        private static void AddHeader(HttpRequestHeaders headers, Metadata.Entry entry)
+        {
+            var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
+            headers.Add(entry.Key, value);
+        }
+
+        private class CallCredentialsConfigurator : CallCredentialsConfiguratorBase
+        {
+            public AsyncAuthInterceptor? Interceptor { get; private set; }
+            public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
+
+            public override void SetAsyncAuthInterceptorCredentials(object state, AsyncAuthInterceptor interceptor)
+            {
+                Interceptor = interceptor;
+            }
+
+            public override void SetCompositeCredentials(object state, IReadOnlyList<CallCredentials> credentials)
+            {
+                Credentials = credentials;
+            }
         }
 
         private void DeadlineExceeded(object state)
