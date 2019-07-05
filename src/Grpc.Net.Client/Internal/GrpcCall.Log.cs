@@ -59,6 +59,9 @@ namespace Grpc.Net.Client.Internal
             private static readonly Action<ILogger, Exception?> _errorFetchingGrpcStatus =
                 LoggerMessage.Define(LogLevel.Error, new EventId(11, "ErrorFetchingGrpcStatus"), "Error fetching gRPC status.");
 
+            private static readonly Action<ILogger, Exception?> _callCredentialsNotUsed =
+                LoggerMessage.Define(LogLevel.Warning, new EventId(12, "CallCredentialsNotUsed"), "The configured CallCredentials were not used because the call does not use TLS.");
+
             public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
             {
                 _startingCall(logger, methodType, uri, null);
@@ -112,6 +115,11 @@ namespace Grpc.Net.Client.Internal
             public static void ErrorFetchingGrpcStatus(ILogger logger, Exception ex)
             {
                 _errorFetchingGrpcStatus(logger, ex);
+            }
+
+            public static void CallCredentialsNotUsed(ILogger logger)
+            {
+                _callCredentialsNotUsed(logger, null);
             }
         }
     }
