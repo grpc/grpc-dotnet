@@ -96,7 +96,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(false, hasAuthorizationValue);
 
-            var log = testSink.Writes.Single(w => w.EventId.Name == "CallCredentialsNotUsed"); ;
+            var log = testSink.Writes.Single(w => w.EventId.Name == "CallCredentialsNotUsed");
             Assert.AreEqual("The configured CallCredentials were not used because the call does not use TLS.", log.State.ToString());
         }
 
