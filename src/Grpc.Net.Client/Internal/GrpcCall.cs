@@ -426,12 +426,19 @@ namespace Grpc.Net.Client.Internal
 
         private async Task SendAsync(HttpClient client, HttpRequestMessage message)
         {
-            // In C-Core the call credential auth metadata is only applied if the channel is secure
-            // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
-            // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
-            if (Options.Credentials != null && client.BaseAddress.Scheme == Uri.UriSchemeHttps)
+            if (Options.Credentials != null)
             {
-                await ReadCredentialMetadata(client, message, Options.Credentials).ConfigureAwait(false);
+                // In C-Core the call credential auth metadata is only applied if the channel is secure
+                // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
+                // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
+                if (client.BaseAddress.Scheme == Uri.UriSchemeHttps)
+                {
+                    await ReadCredentialMetadata(client, message, Options.Credentials).ConfigureAwait(false);
+                }
+                else
+                {
+                    Log.CallCredentialsNotUsed(Logger);
+                }
             }
 
             Log.StartingCall(Logger, Method.Type, message.RequestUri);
