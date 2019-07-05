@@ -28,6 +28,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -77,7 +78,11 @@ namespace Grpc.Net.Client.Tests
                 var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             }, new Uri("http://localhost"));
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            var testSink = new TestSink();
+            var loggerFactory = new TestLoggerFactory(testSink, true);
+
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
 
             // Act
             var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
@@ -90,6 +95,9 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual(false, hasAuthorizationValue);
+
+            var log = testSink.Writes.Single(w => w.EventId.Name == "CallCredentialsNotUsed");
+            Assert.AreEqual("The configured CallCredentials were not used because the call does not use TLS.", log.State.ToString());
         }
 
         [Test]
