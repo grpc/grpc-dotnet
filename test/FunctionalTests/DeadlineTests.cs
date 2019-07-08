@@ -203,30 +203,15 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             // The server has completed the response but is still running
             // Allow time for the server to complete
-            while (true)
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
-                var i = 0;
-
                 var errorLogged = Logs.Any(r =>
                     r.EventId.Name == "ErrorExecutingServiceMethod" &&
                     r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
                     r.Exception!.Message == "Cannot write message after request is complete.");
 
-                if (errorLogged)
-                {
-                    break;
-                }
-                else
-                {
-                    if (i > 5)
-                    {
-                        Assert.Fail("Expected error not thrown.");
-                    }
-
-                    i++;
-                    await Task.Delay(100);
-                }
-            }
+                return errorLogged;
+            }, "Expected error not thrown.");
         }
     }
 }

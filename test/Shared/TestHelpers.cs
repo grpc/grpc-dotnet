@@ -16,7 +16,9 @@
 
 #endregion
 
+using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Grpc.Tests.Shared
 {
@@ -27,6 +29,26 @@ namespace Grpc.Tests.Shared
             var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location)!, relativePath);
 
             return resolvedPath;
+        }
+
+        public static async Task AssertIsTrueRetryAsync(Func<bool> assert, string message)
+        {
+            const int Retrys = 10;
+
+            for (int i = 0; i < Retrys; i++)
+            {
+                if (i > 0)
+                {
+                    await Task.Delay((i + 1) * 10);
+                }
+
+                if (assert())
+                {
+                    return;
+                }
+            }
+
+            throw new Exception($"Assert failed after {Retrys} retries: {message}");
         }
     }
 }
