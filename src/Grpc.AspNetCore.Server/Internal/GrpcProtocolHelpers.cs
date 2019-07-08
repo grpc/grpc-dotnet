@@ -109,7 +109,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static bool IsInvalidContentType(HttpContext httpContext, [NotNullWhenTrue]out string? error)
+        public static bool IsInvalidContentType(HttpContext httpContext, [NotNullWhen(true)]out string? error)
         {
             if (httpContext.Request.ContentType == null)
             {
@@ -157,7 +157,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhenTrue]out byte[]? result)
+        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
         {
             foreach (var compressionProvider in compressionProviders)
             {

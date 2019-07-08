@@ -298,7 +298,11 @@ namespace Grpc.Net.Client.Internal
 
                     // Trailers are only available once the response body had been read
                     var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    var message = await responseStream.ReadSingleMessageAsync(Logger, Method.ResponseMarshaller.Deserializer, _callCts.Token).ConfigureAwait(false);
+                    var message = await responseStream.ReadSingleMessageAsync(
+                        Logger,
+                        Method.ResponseMarshaller.Deserializer,
+                        GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
+                        _callCts.Token).ConfigureAwait(false);
                     FinishResponse();
 
                     if (message == null)
@@ -373,7 +377,14 @@ namespace Grpc.Net.Client.Internal
             message.Content = new PushStreamContent(
                 (stream) =>
                 {
-                    return stream.WriteMessage<TRequest>(Logger, request, Method.RequestMarshaller.Serializer, Options.CancellationToken);
+                    var grpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
+
+                    return stream.WriteMessage<TRequest>(
+                        Logger,
+                        request,
+                        Method.RequestMarshaller.Serializer,
+                        grpcEncoding,
+                        Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
@@ -500,7 +511,7 @@ namespace Grpc.Net.Client.Internal
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
 
-            var writer = new HttpContentClientStreamWriter<TRequest, TResponse>(this, _writeStreamTcs.Task, _completeTcs);
+            var writer = new HttpContentClientStreamWriter<TRequest, TResponse>(this, message, _writeStreamTcs.Task, _completeTcs);
             return writer;
         }
 
@@ -513,18 +524,26 @@ namespace Grpc.Net.Client.Internal
             // TE is required by some servers, e.g. C Core
             // A missing TE header results in servers aborting the gRPC call
             message.Headers.TE.Add(GrpcProtocolConstants.TEHeader);
+            message.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, GrpcProtocolConstants.MessageAcceptEncodingValue);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {
                 foreach (var entry in Options.Headers)
                 {
-                    // Deadline is set via CallOptions.Deadline
                     if (entry.Key == GrpcProtocolConstants.TimeoutHeader)
                     {
+                        // grpc-timeout is set via CallOptions.Deadline
                         continue;
                     }
-
-                    AddHeader(message.Headers, entry);
+                    else if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
+                    {
+                        // grpc-internal-encoding-request is used in the client to set message compression
+                        message.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
+                    }
+                    else
+                    {
+                        AddHeader(message.Headers, entry);
+                    }
                 }
             }
 

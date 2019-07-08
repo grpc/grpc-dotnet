@@ -24,6 +24,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using Microsoft.Net.Http.Headers;
@@ -110,6 +111,11 @@ namespace Grpc.Net.Client.Tests
                 }
 
                 if (string.Equals(h.Key, HeaderNames.TE, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (string.Equals(h.Key, GrpcProtocolConstants.MessageAcceptEncodingHeader, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }

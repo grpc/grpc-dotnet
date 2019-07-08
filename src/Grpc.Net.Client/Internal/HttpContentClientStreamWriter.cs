@@ -18,6 +18,7 @@
 
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
@@ -29,18 +30,24 @@ namespace Grpc.Net.Client.Internal
         where TResponse : class
     {
         private readonly GrpcCall<TRequest, TResponse> _call;
+        private readonly string _grpcEncoding;
         private readonly Task<Stream> _writeStreamTask;
         private readonly TaskCompletionSource<bool> _completeTcs;
         private readonly object _writeLock;
         private Task? _writeTask;
 
-        public HttpContentClientStreamWriter(GrpcCall<TRequest, TResponse> call, Task<Stream> writeStreamTask, TaskCompletionSource<bool> completeTcs)
+        public HttpContentClientStreamWriter(
+            GrpcCall<TRequest, TResponse> call,
+            HttpRequestMessage message,
+            Task<Stream> writeStreamTask,
+            TaskCompletionSource<bool> completeTcs)
         {
             _call = call;
             _writeStreamTask = writeStreamTask;
             _completeTcs = completeTcs;
             _writeLock = new object();
             WriteOptions = _call.Options.WriteOptions;
+            _grpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
         }
 
         public WriteOptions WriteOptions { get; set; }
@@ -116,10 +123,15 @@ namespace Grpc.Net.Client.Internal
         {
             try
             {
-                    // Wait until the client stream has started
-                    var writeStream = await _writeStreamTask.ConfigureAwait(false);
+                // Wait until the client stream has started
+                var writeStream = await _writeStreamTask.ConfigureAwait(false);
 
-                    await writeStream.WriteMessage<TRequest>(_call.Logger, message, _call.Method.RequestMarshaller.Serializer, _call.CancellationToken).ConfigureAwait(false);
+                await writeStream.WriteMessage<TRequest>(
+                    _call.Logger,
+                    message,
+                    _call.Method.RequestMarshaller.Serializer,
+                    _grpcEncoding,
+                    _call.CancellationToken).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
             {
