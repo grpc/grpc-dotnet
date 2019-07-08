@@ -438,19 +438,18 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature(throwError: true));
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
             context.Initialize();
 
             // Act
-            while (context.Status.StatusCode != StatusCode.DeadlineExceeded)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
-            }
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => context.Status.StatusCode == StatusCode.DeadlineExceeded,
+                "StatusCode not set to DeadlineExceeded.");
 
             // Assert
             var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
-            Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
+            Assert.AreEqual("Request with timeout of 00:00:00.1000000 has exceeded its deadline.", write.State.ToString());
 
             write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
             Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", write.State.ToString());
