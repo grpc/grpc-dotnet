@@ -318,7 +318,7 @@ namespace Grpc.AspNetCore.Server.Internal
             Stop
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhenTrue]out byte[]? message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out byte[]? message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {

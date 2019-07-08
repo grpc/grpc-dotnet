@@ -18,11 +18,16 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Core;
+using Grpc.Net.Client.Internal;
 using Microsoft.Extensions.Logging;
+using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace Grpc.Net.Client
 {
@@ -31,19 +36,43 @@ namespace Grpc.Net.Client
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
 
-        public static Task<TResponse?> ReadSingleMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
-            where TResponse : class
+        private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
+        private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
+        private static Status CreateUnknownMessageEncodingMessageStatus(string unsupportedEncoding, IEnumerable<string> supportedEncodings)
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, cancellationToken, true, true);
+            return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken)
+        public static Task<TResponse?> ReadSingleMessageAsync<TResponse>(
+            this Stream responseStream,
+            ILogger logger,
+            Func<byte[], TResponse> deserializer,
+            string grpcEncoding,
+            CancellationToken cancellationToken)
             where TResponse : class
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, cancellationToken, true, false);
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, cancellationToken, true, true);
         }
 
-        private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(this Stream responseStream, ILogger logger, Func<byte[], TResponse> deserializer, CancellationToken cancellationToken, bool canBeEmpty, bool singleMessage)
+        public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(
+            this Stream responseStream,
+            ILogger logger,
+            Func<byte[], TResponse> deserializer,
+            string grpcEncoding,
+            CancellationToken cancellationToken)
+            where TResponse : class
+        {
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, cancellationToken, true, false);
+        }
+
+        private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(
+            this Stream responseStream,
+            ILogger logger,
+            Func<byte[], TResponse> deserializer,
+            string grpcEncoding,
+            CancellationToken cancellationToken,
+            bool canBeEmpty,
+            bool singleMessage)
             where TResponse : class
         {
             try
@@ -79,6 +108,8 @@ namespace Grpc.Net.Client
                     throw new InvalidDataException("Unexpected end of content while reading the message header.");
                 }
 
+                var compressed = ReadCompressedFlag(header[0]);
+
                 var length = BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(1));
                 if (length > int.MaxValue)
                 {
@@ -108,6 +139,26 @@ namespace Grpc.Net.Client
 
                 cancellationToken.ThrowIfCancellationRequested();
 
+                if (compressed)
+                {
+                    if (grpcEncoding == null)
+                    {
+                        throw new RpcException(NoMessageEncodingMessageStatus);
+                    }
+                    if (string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal))
+                    {
+                        throw new RpcException(IdentityMessageEncodingMessageStatus);
+                    }
+
+                    // Performance improvement would be to decompress without converting to an intermediary byte array
+                    if (!GrpcProtocolHelpers.TryDecompressMessage(grpcEncoding, GrpcProtocolConstants.CompressionProviders, messageData, out var decompressedMessage))
+                    {
+                        throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName)));
+                    }
+
+                    messageData = decompressedMessage;
+                }
+
                 Log.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
 
                 var message = deserializer(messageData);
@@ -132,7 +183,29 @@ namespace Grpc.Net.Client
             }
         }
 
-        public static async Task WriteMessage<TMessage>(this Stream stream, ILogger logger, TMessage message, Func<TMessage, byte[]> serializer, CancellationToken cancellationToken)
+        private static bool ReadCompressedFlag(byte flag)
+        {
+            if (flag == 0)
+            {
+                return false;
+            }
+            else if (flag == 1)
+            {
+                return true;
+            }
+            else
+            {
+                throw new InvalidDataException("Unexpected compressed flag value in message header.");
+            }
+        }
+
+        public static async Task WriteMessage<TMessage>(
+            this Stream stream,
+            ILogger logger,
+            TMessage message,
+            Func<TMessage, byte[]> serializer,
+            string grpcEncoding,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -141,9 +214,20 @@ namespace Grpc.Net.Client
                 // Serialize message first. Need to know size to prefix the length in the header
                 var data = serializer(message);
 
+                var isCompressed = !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
+
+                if (isCompressed)
+                {
+                    data = GrpcProtocolHelpers.CompressMessage(
+                        grpcEncoding,
+                        CompressionLevel.Fastest,
+                        GrpcProtocolConstants.CompressionProviders,
+                        data);
+                }
+
                 Log.SerializedMessage(logger, typeof(TMessage), data.Length);
 
-                await WriteHeaderAsync(stream, data.Length, false, cancellationToken).ConfigureAwait(false);
+                await WriteHeaderAsync(stream, data.Length, isCompressed, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
 
