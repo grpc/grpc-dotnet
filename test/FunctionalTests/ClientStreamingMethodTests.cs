@@ -52,8 +52,10 @@ namespace Grpc.AspNetCore.FunctionalTests
                 async s =>
                 {
                     await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+
                     await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-                    await s.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
                 });
 
             // Act
@@ -94,10 +96,11 @@ namespace Grpc.AspNetCore.FunctionalTests
                 {
                     // Complete message
                     await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
 
                     // Incomplete message and finish
                     await s.WriteAsync(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).AsTask().DefaultTimeout();
-                    await s.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
                 });
 
             // Act

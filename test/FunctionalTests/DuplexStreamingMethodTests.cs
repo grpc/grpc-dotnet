@@ -57,6 +57,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
 
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            await requestStream.FlushAsync().DefaultTimeout();
 
             var response = await responseTask.DefaultTimeout();
             response.AssertIsSuccessfulGrpcRequest();
@@ -80,6 +81,8 @@ namespace Grpc.AspNetCore.FunctionalTests
             });
 
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            await requestStream.FlushAsync().DefaultTimeout();
+
             var message2 = await message2Task.DefaultTimeout();
             Assert.AreEqual("Jill", message2.Name);
             Assert.AreEqual("Hello John", message2.Message);
@@ -88,7 +91,6 @@ namespace Grpc.AspNetCore.FunctionalTests
             Assert.IsFalse(finishedTask.IsCompleted, "Server is waiting for client to end streaming");
 
             // Complete request stream
-            await requestStream.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
             streamingContent.Complete();
 
             await finishedTask.DefaultTimeout();
