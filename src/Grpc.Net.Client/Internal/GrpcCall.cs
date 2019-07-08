@@ -542,7 +542,7 @@ namespace Grpc.Net.Client.Internal
                     }
                     else
                     {
-					    AddHeader(message.Headers, entry);
+                        AddHeader(message.Headers, entry);
                     }
                 }
             }
