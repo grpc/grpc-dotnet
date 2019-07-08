@@ -16,7 +16,12 @@
 
 #endregion
 
+#if !PROFILE
 using BenchmarkDotNet.Running;
+#else
+using System;
+using System.Threading.Tasks;
+#endif
 
 namespace Grpc.AspNetCore.Microbenchmarks
 {
@@ -33,7 +38,9 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             UnaryServerCallHandlerBenchmark benchmark = new UnaryServerCallHandlerBenchmark();
             benchmark.GlobalSetup();
-            for (var i = 0; i < 100; i++)
+            Console.WriteLine("Warm up.");
+            Console.ReadKey();
+            for (var i = 0; i < 100000; i++)
             {
                 await benchmark.HandleCallAsync();
             }

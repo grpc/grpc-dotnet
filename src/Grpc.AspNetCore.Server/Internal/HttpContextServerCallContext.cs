@@ -28,42 +28,68 @@ using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
-        private readonly ILogger _logger;
 
+        private ILogger? _logger;
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
         private Status _status;
         private AuthContext? _authContext;
+        private WriteOptions? _writeOptions;
+        private HttpContext? _httpContext;
+        private GrpcServiceOptions? _serviceOptions;
+
         // Internal for tests
         internal ServerCallDeadlineManager? DeadlineManager;
-        private DefaultSerializationContext? _serializationContext;
-        private DefaultDeserializationContext? _deserializationContext;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
-        {
-            HttpContext = httpContext;
-            ServiceOptions = serviceOptions;
-            _logger = logger;
-        }
-
-        internal HttpContext HttpContext { get; }
-        internal GrpcServiceOptions ServiceOptions { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
+        internal bool HasBufferedMessage { get; set; }
 
-        internal DefaultSerializationContext SerializationContext
+        internal ObjectPool<HttpContextServerCallContext> ServerCallContextPool { get; }
+        internal ISystemClock Clock { get; }
+        internal DefaultSerializationContext SerializationContext { get; }
+        internal DefaultDeserializationContext DeserializationContext { get; }
+
+        internal HttpContext HttpContext
         {
-            get => _serializationContext ??= new DefaultSerializationContext();
+            get
+            {
+                Debug.Assert(_httpContext != null, "ServerCallContext has not been initialized.");
+                return _httpContext;
+            }
         }
-        internal DefaultDeserializationContext DeserializationContext
+
+        internal GrpcServiceOptions ServiceOptions
         {
-            get => _deserializationContext ??= new DefaultDeserializationContext();
+            get
+            {
+                Debug.Assert(_serviceOptions != null, "ServerCallContext has not been initialized.");
+                return _serviceOptions;
+            }
+        }
+
+        internal ILogger Logger
+        {
+            get
+            {
+                Debug.Assert(_logger != null, "ServerCallContext has not been initialized.");
+                return _logger;
+            }
+        }
+
+        public HttpContextServerCallContext(ISystemClock clock, ObjectPool<HttpContextServerCallContext> serverCallContextPool)
+        {
+            Clock = clock;
+            ServerCallContextPool = serverCallContextPool;
+            SerializationContext = new DefaultSerializationContext();
+            DeserializationContext = new DefaultDeserializationContext();
         }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
@@ -122,6 +148,59 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
+        public void Initialize(
+            HttpContext httpContext,
+            GrpcServiceOptions serviceOptions,
+            ILogger logger)
+        {
+            Debug.Assert(_httpContext == null, "ServerCallContext is already initialized.");
+
+            _httpContext = httpContext;
+            _serviceOptions = serviceOptions;
+            _logger = logger;
+
+            var timeout = GetTimeout();
+
+            if (timeout != TimeSpan.Zero)
+            {
+                DeadlineManager ??= new ServerCallDeadlineManager(Clock, DeadlineExceededAsync);
+                DeadlineManager.Initialize(timeout, HttpContext.RequestAborted);
+            }
+
+            var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
+            if (serviceDefaultCompression != null &&
+                !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
+                IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
+            {
+                ResponseGrpcEncoding = serviceDefaultCompression;
+            }
+            else
+            {
+                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
+            }
+
+            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
+        }
+
+        internal void Reset()
+        {
+            Debug.Assert(_httpContext != null, "ServerCallContext is already uninitialized.");
+
+            _httpContext = null;
+            _serviceOptions = null;
+            _logger = null;
+
+            _peer = null;
+            _requestHeaders = null;
+            _responseTrailers = null;
+            _status = default;
+            _authContext = null;
+            ResponseGrpcEncoding = null;
+            _writeOptions = null;
+            HasBufferedMessage = false;
+            DeadlineManager?.Reset();
+        }
+
         internal Task ProcessHandlerErrorAsync(Exception ex, string method)
         {
             if (DeadlineManager == null)
@@ -154,7 +233,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                Log.RpcConnectionError(_logger, rpcException.StatusCode, ex);
+                Log.RpcConnectionError(Logger, rpcException.StatusCode, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers
@@ -170,7 +249,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                Log.ErrorExecutingServiceMethod(_logger, method, ex);
+                Log.ErrorExecutingServiceMethod(Logger, method, ex);
 
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
@@ -214,6 +293,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (DeadlineManager == null)
             {
                 EndCallCore();
+                ServerCallContextPool.Return(this);
                 return Task.CompletedTask;
             }
 
@@ -233,15 +313,29 @@ namespace Grpc.AspNetCore.Server.Internal
                     disposeTask = DeadlineManager.DisposeAsync().AsTask();
                 }
 
-                return disposeTask;
+                if (disposeTask.IsCompletedSuccessfully)
+                {
+                    ServerCallContextPool.Return(this);
+                    return Task.CompletedTask;
+                }
+                else
+                {
+                    return EndCallAsyncDispose(disposeTask);
+                }
             }
             else
             {
-                return EndCallAsyncCore(lockTask);
+                return EndCallAsyncLock(lockTask);
             }
         }
 
-        private async Task EndCallAsyncCore(Task lockTask)
+        private async Task EndCallAsyncDispose(Task disposeTask)
+        {
+            await disposeTask;
+            ServerCallContextPool.Return(this);
+        }
+
+        private async Task EndCallAsyncLock(Task lockTask)
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
@@ -256,6 +350,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
             }
+
+            ServerCallContextPool.Return(this);
         }
 
         private void EndCallCore()
@@ -269,7 +365,11 @@ namespace Grpc.AspNetCore.Server.Internal
             DeadlineManager?.SetCallComplete();
         }
 
-        protected override WriteOptions? WriteOptionsCore { get; set; }
+        protected override WriteOptions? WriteOptionsCore
+        {
+            get => _writeOptions;
+            set => _writeOptions = value;
+        }
 
         protected override AuthContext AuthContextCore
         {
@@ -295,8 +395,6 @@ namespace Grpc.AspNetCore.Server.Internal
         public ServerCallContext ServerCallContext => this;
 
         protected override IDictionary<object, object> UserStateCore => HttpContext.Items;
-
-        internal bool HasBufferedMessage { get; set; }
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
@@ -331,31 +429,6 @@ namespace Grpc.AspNetCore.Server.Internal
             return HttpContext.Response.Body.FlushAsync();
         }
 
-        // Clock is for testing
-        public void Initialize(ISystemClock? clock = null)
-        {
-            var timeout = GetTimeout();
-
-            if (timeout != TimeSpan.Zero)
-            {
-                DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
-            }
-
-            var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
-            if (serviceDefaultCompression != null &&
-                !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
-                IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
-            {
-                ResponseGrpcEncoding = serviceDefaultCompression;
-            }
-            else
-            {
-                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
-            }
-
-            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
-        }
-
         private TimeSpan GetTimeout()
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
@@ -368,7 +441,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return timeout;
                 }
 
-                Log.InvalidTimeoutIgnored(_logger, values);
+                Log.InvalidTimeoutIgnored(Logger, values);
             }
 
             return TimeSpan.Zero;
@@ -378,7 +451,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             try
             {
-                Log.DeadlineExceeded(_logger, GetTimeout());
+                Log.DeadlineExceeded(Logger, GetTimeout());
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
@@ -410,7 +483,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             catch (Exception ex)
             {
-                Log.DeadlineCancellationError(_logger, ex);
+                Log.DeadlineCancellationError(Logger, ex);
             }
         }
 
@@ -464,7 +537,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
             {
-                Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
+                Log.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
             }
         }
 

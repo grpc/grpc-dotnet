@@ -23,16 +23,18 @@ using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
     internal static class MessageHelpers
     {
-        private static readonly HttpContextServerCallContext TestServerCallContext = new HttpContextServerCallContext(new DefaultHttpContext(), new GrpcServiceOptions(), NullLogger.Instance);
+        private static readonly HttpContextServerCallContext TestServerCallContext;
 
         static MessageHelpers()
         {
-            TestServerCallContext.Initialize();
+            TestServerCallContext = new HttpContextServerCallContext(SystemClock.Instance, TestObjectPool.Instance);
+            TestServerCallContext.Initialize(new DefaultHttpContext(), new GrpcServiceOptions(), NullLogger.Instance);
         }
 
         public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
@@ -42,6 +44,24 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             var pipeWriter = PipeWriter.Create(stream);
 
             PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
+        }
+    }
+
+    internal class TestObjectPool : ObjectPool<HttpContextServerCallContext>
+    {
+        public static TestObjectPool Instance = new TestObjectPool();
+
+        private HttpContextServerCallContext? _obj;
+
+        public override HttpContextServerCallContext Get()
+        {
+            return _obj ??= new HttpContextServerCallContext(SystemClock.Instance, TestObjectPool.Instance);
+        }
+
+        public override void Return(HttpContextServerCallContext obj)
+        {
+            obj.Reset();
+            _obj = obj;
         }
     }
 }

@@ -23,6 +23,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
@@ -38,8 +39,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory)
-            : base(method, serviceOptions, loggerFactory)
+            ILoggerFactory loggerFactory,
+            ObjectPool<HttpContextServerCallContext> serverCallContextPool)
+            : base(method, serviceOptions, loggerFactory, serverCallContextPool)
         {
             _invoker = invoker;
 

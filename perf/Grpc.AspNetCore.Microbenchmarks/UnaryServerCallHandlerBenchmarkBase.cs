@@ -58,7 +58,8 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 method,
                 (service, request, context) => result,
                 ServiceOptions,
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                TestObjectPool.Instance);
 
             _trailers = new HeaderDictionary();
 
@@ -73,10 +74,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             _requestPipe = new TestPipeReader();
 
-            var services = new ServiceCollection();
-            services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));
-            services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
-            _requestServices = services.BuildServiceProvider();
+            _requestServices = CreateServiceProvider();
 
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;
@@ -89,6 +87,14 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 Trailers = _trailers
             });
             SetupHttpContext(_httpContext);
+        }
+
+        private static ServiceProvider CreateServiceProvider()
+        {
+            var services = new ServiceCollection();
+            services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));
+            services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
+            return services.BuildServiceProvider();
         }
 
         protected virtual void SetupHttpContext(HttpContext httpContext)

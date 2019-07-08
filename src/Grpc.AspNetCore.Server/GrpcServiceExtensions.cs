@@ -22,6 +22,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.ObjectPool;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -69,6 +70,12 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddScoped(typeof(IGrpcServiceActivator<>), typeof(DefaultGrpcServiceActivator<>));
             services.TryAddScoped(typeof(IGrpcInterceptorActivator<>), typeof(DefaultGrpcInterceptorActivator<>));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<GrpcServiceOptions>, GrpcServiceOptionsSetup>());
+            services.TryAddSingleton<ObjectPool<HttpContextServerCallContext>>(serviceProvider =>
+            {
+                var policy = new HttpContextServerCallContextPooledObjectPolicy(serviceProvider);
+                var provider = serviceProvider.GetRequiredService<ObjectPoolProvider>();
+                return provider.Create(policy);
+            });
             
             // Model
             services.TryAddSingleton<ServiceMethodsRegistry>();

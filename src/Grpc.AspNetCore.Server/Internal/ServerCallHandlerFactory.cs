@@ -26,6 +26,7 @@ using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -36,12 +37,17 @@ namespace Grpc.AspNetCore.Server.Internal
     internal partial class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
+        private readonly ObjectPool<HttpContextServerCallContext> _serverCallContextPool;
         private readonly GrpcServiceOptions _resolvedOptions;
 
-        public ServerCallHandlerFactory(ILoggerFactory loggerFactory, IOptions<GrpcServiceOptions> globalOptions, IOptions<GrpcServiceOptions<TService>> serviceOptions)
+        public ServerCallHandlerFactory(
+            ILoggerFactory loggerFactory,
+            IOptions<GrpcServiceOptions> globalOptions,
+            IOptions<GrpcServiceOptions<TService>> serviceOptions,
+            ObjectPool<HttpContextServerCallContext> serverCallContextPool)
         {
             _loggerFactory = loggerFactory;
-
+            _serverCallContextPool = serverCallContextPool;
             var so = serviceOptions.Value;
             var go = globalOptions.Value;
 
@@ -74,28 +80,28 @@ namespace Grpc.AspNetCore.Server.Internal
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serverCallContextPool);
         }
 
         public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serverCallContextPool);
         }
 
         public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serverCallContextPool);
         }
 
         public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory);
+            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serverCallContextPool);
         }
 
         public RequestDelegate CreateUnimplementedMethod()

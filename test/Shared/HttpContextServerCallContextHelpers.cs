@@ -21,6 +21,7 @@ using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Grpc.Tests.Shared
 {
@@ -31,13 +32,27 @@ namespace Grpc.Tests.Shared
             GrpcServiceOptions? serviceOptions = null,
             ILogger? logger = null)
         {
-            var context = new HttpContextServerCallContext(
+            var context = new HttpContextServerCallContext(SystemClock.Instance, TestObjectPool.Instance);
+            context.Initialize(
                 httpContext ?? new DefaultHttpContext(),
                 serviceOptions ?? new GrpcServiceOptions(),
                 logger ?? NullLogger.Instance);
-            context.Initialize();
 
             return context;
+        }
+    }
+
+    internal class TestObjectPool : ObjectPool<HttpContextServerCallContext>
+    {
+        public static TestObjectPool Instance = new TestObjectPool();
+
+        public override HttpContextServerCallContext Get()
+        {
+            return new HttpContextServerCallContext(SystemClock.Instance, Instance);
+        }
+
+        public override void Return(HttpContextServerCallContext obj)
+        {
         }
     }
 }

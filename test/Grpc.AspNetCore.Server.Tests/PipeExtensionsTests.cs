@@ -571,7 +571,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "gzip";
 
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
-            context.Initialize();
 
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
@@ -605,7 +604,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "Mock";
 
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
-            context.Initialize();
 
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);

@@ -129,7 +129,6 @@ namespace Grpc.Tests.Shared
                     ResponseCompressionAlgorithm = compressionEncoding,
                     CompressionProviders = compressionProviders
                 });
-            serverCallContext.Initialize();
 
             PipeExtensions.WriteMessageAsync(pipeWriter, messageData, serverCallContext, flush: true).GetAwaiter().GetResult();
 			stream.Seek(0, SeekOrigin.Begin);

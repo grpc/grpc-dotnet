@@ -170,10 +170,9 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers["header-bin"] = headerValue;
-            var context = CreateServerCallContext(httpContext, testLogger);
 
             // Act
-            context.Initialize();
+            var context = CreateServerCallContext(httpContext, testLogger);
 
             // Assert
             Assert.IsTrue(context.RequestHeaders[0].ValueBytes.SequenceEqual(Convert.FromBase64String(base64)));
@@ -239,7 +238,6 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var headers = httpContext.Response.Headers;
 
-            Assert.AreEqual(2, headers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), headers[GrpcProtocolConstants.StatusTrailer]);
             Assert.AreEqual("Test message", headers[GrpcProtocolConstants.MessageTrailer].ToString());
         }
@@ -318,10 +316,9 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            var context = CreateServerCallContext(httpContext);
 
             // Act
-            context.Initialize();
+            var context = CreateServerCallContext(httpContext);
 
             // Assert
             Assert.AreEqual(DateTime.MaxValue, context.Deadline);
@@ -346,10 +343,9 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
-            var context = CreateServerCallContext(httpContext);
 
             // Act
-            context.Initialize(TestClock);
+            var context = CreateServerCallContext(httpContext, clock: TestClock);
 
             // Assert
             Assert.AreEqual(TestClock.UtcNow.Add(TimeSpan.FromTicks(ticks)), context.Deadline);
@@ -383,10 +379,9 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = header;
-            var context = CreateServerCallContext(httpContext, testLogger);
 
             // Act
-            context.Initialize();
+            var context = CreateServerCallContext(httpContext, testLogger);
 
             // Assert
             Assert.AreEqual(DateTime.MaxValue, context.Deadline);
@@ -406,7 +401,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature());
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1S";
             var context = CreateServerCallContext(httpContext, testLogger);
-            context.Initialize();
 
             // Act
             try
@@ -440,7 +434,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Features.Set<IHttpRequestLifetimeFeature>(new TestHttpRequestLifetimeFeature(throwError: true));
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
-            context.Initialize();
 
             // Act
             await TestHelpers.AssertIsTrueRetryAsync(
@@ -467,7 +460,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Features.Set<IHttpRequestLifetimeFeature>(requestLifetimeFeature);
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1000S";
             var context = CreateServerCallContext(httpContext, testLogger);
-            context.Initialize();
 
             // Act
             requestLifetimeFeature.Abort();
@@ -573,7 +565,6 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
 
             var serverCallContext = CreateServerCallContext(httpContext);
-            serverCallContext.Initialize();
 
             // Wait until CompleteAsync is called
             // That means we're inside the deadline method and the lock has been taken
@@ -615,7 +606,6 @@ namespace Grpc.AspNetCore.Server.Tests
             var testLogger = new TestLogger(string.Empty, testSink, true);
 
             var serverCallContext = CreateServerCallContext(httpContext, testLogger);
-            serverCallContext.Initialize();
 
             // Wait until CompleteAsync is called
             // That means we're inside the deadline method and the lock has been taken
@@ -633,9 +623,11 @@ namespace Grpc.AspNetCore.Server.Tests
             await disposeTask;
         }
 
-        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
+        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null, ISystemClock? clock = null)
         {
-            return new HttpContextServerCallContext(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
+            var context = new HttpContextServerCallContext(clock ?? SystemClock.Instance, TestObjectPool.Instance);
+            context.Initialize(httpContext, new GrpcServiceOptions(), logger ?? NullLogger.Instance);
+            return context;
         }
 
         private class TestHttpResetFeature : IHttpResetFeature

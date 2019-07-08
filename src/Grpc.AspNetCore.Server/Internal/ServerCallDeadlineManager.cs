@@ -25,28 +25,32 @@ namespace Grpc.AspNetCore.Server.Internal
 {
     internal class ServerCallDeadlineManager : IAsyncDisposable
     {
-        private CancellationTokenSource _deadlineCts;
+        private readonly ISystemClock _clock;
+
+        private CancellationTokenSource? _deadlineCts;
         private Task? _deadlineExceededTask;
         private CancellationTokenRegistration _deadlineExceededRegistration;
         private CancellationTokenRegistration _requestAbortedRegistration;
-        private Func<Task> _deadlineExceededCallback;
+        private Func<Task>? _deadlineExceededCallback;
 
-        internal DateTime Deadline { get; private set; }
+        internal DateTime? Deadline { get; private set; }
         // Lock is to ensure deadline doesn't execute as call is completing
         internal SemaphoreSlim Lock { get; private set; }
         // Internal for testing
         internal bool _callComplete;
 
-        public CancellationToken CancellationToken => _deadlineCts.Token;
+        public CancellationToken? CancellationToken => _deadlineCts?.Token;
 
-        public ServerCallDeadlineManager(ISystemClock clock, TimeSpan timeout, Func<Task> deadlineExceededCallback, CancellationToken requestAborted)
+        public ServerCallDeadlineManager(ISystemClock clock, Func<Task> deadlineExceededCallback)
         {
-            Deadline = clock.UtcNow.Add(timeout);
-
-            // Set fields that need to exist before setting up deadline CTS
-            // Ensures callback can run successfully before CTS timer starts
-            _deadlineExceededCallback = deadlineExceededCallback;
             Lock = new SemaphoreSlim(1, 1);
+            _clock = clock;
+            _deadlineExceededCallback = deadlineExceededCallback;
+        }
+
+        public void Initialize(TimeSpan timeout, CancellationToken requestAborted)
+        {
+            Deadline = _clock.UtcNow.Add(timeout);
 
             _deadlineCts = new CancellationTokenSource(timeout);
             _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
@@ -56,6 +60,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 _callComplete = true;
                 _deadlineCts?.Cancel();
             });
+        }
+
+        public void Reset()
+        {
+            _deadlineCts = null;
+            _deadlineExceededTask = null;
+            _deadlineExceededCallback = null;
         }
 
         public void SetCallComplete()
@@ -75,7 +86,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return;
             }
 
-            Debug.Assert(Lock != null, "Lock has not been created.");
+            Debug.Assert(_deadlineExceededCallback != null, "Deadline callback not registered.");
 
             await Lock.WaitAsync();
 
@@ -133,7 +144,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void DisposeCore()
         {
-            Lock!.Dispose();
             _deadlineCts!.Dispose();
             _requestAbortedRegistration.Dispose();
         }

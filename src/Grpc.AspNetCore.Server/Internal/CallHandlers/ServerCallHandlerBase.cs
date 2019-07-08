@@ -23,19 +23,27 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
     {
+        private readonly ObjectPool<HttpContextServerCallContext> _serverCallContextPool;
+
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
         protected ILogger Logger { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory)
+        protected ServerCallHandlerBase(
+            Method<TRequest, TResponse> method,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory,
+            ObjectPool<HttpContextServerCallContext> serverCallContextPool)
         {
             Method = method;
             ServiceOptions = serviceOptions;
+            _serverCallContextPool = serverCallContextPool;
             Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 
@@ -47,14 +55,14 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            var serverCallContext = _serverCallContextPool.Get();
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
             try
             {
-                serverCallContext.Initialize();
+                serverCallContext.Initialize(httpContext, ServiceOptions, Logger);
 
                 var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
 
