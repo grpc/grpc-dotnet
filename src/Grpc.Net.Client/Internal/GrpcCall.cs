@@ -300,7 +300,7 @@ namespace Grpc.Net.Client.Internal
                     var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
                     var message = await responseStream.ReadSingleMessageAsync(
                         Logger,
-                        Method.ResponseMarshaller.Deserializer,
+                        Method.ResponseMarshaller.ContextualDeserializer,
                         GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                         _callCts.Token).ConfigureAwait(false);
                     FinishResponse();
@@ -382,7 +382,7 @@ namespace Grpc.Net.Client.Internal
                     return stream.WriteMessage<TRequest>(
                         Logger,
                         request,
-                        Method.RequestMarshaller.Serializer,
+                        Method.RequestMarshaller.ContextualSerializer,
                         grpcEncoding,
                         Options.CancellationToken);
                 },

@@ -18,7 +18,7 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.Shared
 {
     internal sealed class DefaultSerializationContext : SerializationContext
     {

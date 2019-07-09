@@ -26,6 +26,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 
@@ -46,7 +47,7 @@ namespace Grpc.Net.Client
         public static Task<TResponse?> ReadSingleMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
-            Func<byte[], TResponse> deserializer,
+            Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             CancellationToken cancellationToken)
             where TResponse : class
@@ -57,7 +58,7 @@ namespace Grpc.Net.Client
         public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
-            Func<byte[], TResponse> deserializer,
+            Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             CancellationToken cancellationToken)
             where TResponse : class
@@ -68,7 +69,7 @@ namespace Grpc.Net.Client
         private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
-            Func<byte[], TResponse> deserializer,
+            Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             CancellationToken cancellationToken,
             bool canBeEmpty,
@@ -156,12 +157,18 @@ namespace Grpc.Net.Client
                         throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName)));
                     }
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     messageData = decompressedMessage;
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                 }
 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 Log.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
-                var message = deserializer(messageData);
+                var deserializationContext = new DefaultDeserializationContext();
+                deserializationContext.SetPayload(messageData);
+                var message = deserializer(deserializationContext);
 
                 if (singleMessage)
                 {
@@ -203,7 +210,7 @@ namespace Grpc.Net.Client
             this Stream stream,
             ILogger logger,
             TMessage message,
-            Func<TMessage, byte[]> serializer,
+            Action<TMessage, SerializationContext> serializer,
             string grpcEncoding,
             CancellationToken cancellationToken)
         {
@@ -212,7 +219,14 @@ namespace Grpc.Net.Client
                 Log.SendingMessage(logger);
 
                 // Serialize message first. Need to know size to prefix the length in the header
-                var data = serializer(message);
+                var serializationContext = new DefaultSerializationContext();
+                serializer(message, serializationContext);
+                var data = serializationContext.Payload;
+
+                if (data == null)
+                {
+                    throw new InvalidOperationException("Serialization did not return a payload.");
+                }
 
                 var isCompressed = !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 

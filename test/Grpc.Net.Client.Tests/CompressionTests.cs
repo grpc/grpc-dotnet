@@ -53,7 +53,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     CancellationToken.None);
 
@@ -96,7 +96,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     CancellationToken.None);
 
@@ -147,7 +147,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     CancellationToken.None);
 
@@ -191,7 +191,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     CancellationToken.None);
 

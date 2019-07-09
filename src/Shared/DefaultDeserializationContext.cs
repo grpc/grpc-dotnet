@@ -20,7 +20,7 @@ using System.Buffers;
 using System.Diagnostics;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.Shared
 {
     internal sealed class DefaultDeserializationContext : DeserializationContext
     {
