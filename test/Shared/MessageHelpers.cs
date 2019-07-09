@@ -18,19 +18,26 @@
 
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Greet;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace Grpc.Tests.Shared
 {
     internal static class MessageHelpers
     {
+        public static readonly Marshaller<HelloRequest> HelloRequestMarshaller = Marshallers.Create<HelloRequest>(r => r.ToByteArray(), data => HelloRequest.Parser.ParseFrom(data));
+        public static readonly Marshaller<HelloReply> HelloReplyMarshaller = Marshallers.Create<HelloReply>(r => r.ToByteArray(), data => HelloReply.Parser.ParseFrom(data));
+
+        public static readonly Method<HelloRequest, HelloReply> ServiceMethod = new Method<HelloRequest, HelloReply>(MethodType.Unary, "ServiceName", "MethodName", HelloRequestMarshaller, HelloReplyMarshaller);
+
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
         public static T AssertReadMessage<T>(byte[] messageData, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage, new()

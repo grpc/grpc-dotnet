@@ -19,7 +19,6 @@
 using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;
@@ -40,12 +39,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, (data) =>
-            {
-                var message = new HelloReply();
-                message.MergeFrom(data);
-                return message;
-            });
+            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualDeserializer);
 
             // Act
             var nextTask = reader.MoveNext(new CancellationToken(true));
@@ -64,12 +58,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, (data) =>
-            {
-                var message = new HelloReply();
-                message.MergeFrom(data);
-                return message;
-            });
+            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualDeserializer);
 
             var cts = new CancellationTokenSource();
 
