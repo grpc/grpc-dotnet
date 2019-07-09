@@ -35,7 +35,7 @@ using NUnit.Framework;
 namespace Grpc.Net.Client.Tests
 {
     [TestFixture]
-    public class CompressionTests
+    public class MaximumMessageSizeTests
     {
         [Test]
         public void AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError()
@@ -53,7 +53,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
                     "gzip",
                     maximumMessageSize: null,
                     CancellationToken.None);
@@ -97,7 +97,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
                     "gzip",
                     maximumMessageSize: null,
                     CancellationToken.None);
@@ -149,7 +149,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
                     "gzip",
                     maximumMessageSize: null,
                     CancellationToken.None);
@@ -194,7 +194,7 @@ namespace Grpc.Net.Client.Tests
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
                     requestStream,
                     NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
                     "gzip",
                     maximumMessageSize: null,
                     CancellationToken.None);

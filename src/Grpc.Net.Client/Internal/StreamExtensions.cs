@@ -37,6 +37,7 @@ namespace Grpc.Net.Client
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
 
+        private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
         private static Status CreateUnknownMessageEncodingMessageStatus(string unsupportedEncoding, IEnumerable<string> supportedEncodings)
@@ -49,10 +50,11 @@ namespace Grpc.Net.Client
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
+            int? maximumMessageSize,
             CancellationToken cancellationToken)
             where TResponse : class
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, cancellationToken, true, true);
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, cancellationToken, true, true);
         }
 
         public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(
@@ -60,10 +62,11 @@ namespace Grpc.Net.Client
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
+            int? maximumMessageSize,
             CancellationToken cancellationToken)
             where TResponse : class
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, cancellationToken, true, false);
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, cancellationToken, true, false);
         }
 
         private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(
@@ -71,6 +74,7 @@ namespace Grpc.Net.Client
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
+            int? maximumMessageSize,
             CancellationToken cancellationToken,
             bool canBeEmpty,
             bool singleMessage)
@@ -115,6 +119,11 @@ namespace Grpc.Net.Client
                 if (length > int.MaxValue)
                 {
                     throw new InvalidDataException("Message too large.");
+                }
+
+                if (length > maximumMessageSize)
+                {
+                    throw new RpcException(ReceivedMessageExceedsLimitStatus);
                 }
 
                 // Read message content until content length is reached

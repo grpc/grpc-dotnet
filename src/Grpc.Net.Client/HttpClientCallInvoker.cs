@@ -32,7 +32,7 @@ namespace Grpc.Net.Client
     public sealed class HttpClientCallInvoker : CallInvoker
     {
         private readonly HttpClient _client;
-        private readonly ILoggerFactory _loggerFactory;
+        internal ILoggerFactory LoggerFactory { get; }
 
         // Override the current time for unit testing
         internal ISystemClock Clock = SystemClock.Instance;
@@ -50,7 +50,7 @@ namespace Grpc.Net.Client
             }
 
             _client = client;
-            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             Deadline = DateTime.MaxValue;
         }
 
@@ -71,6 +71,16 @@ namespace Grpc.Net.Client
         /// The call deadline.
         /// </summary>
         public DateTime Deadline { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum message size in bytes that can be sent from the client.
+        /// </summary>
+        public int? SendMaxMessageSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum message size in bytes that can be received by the client.
+        /// </summary>
+        public int? ReceiveMaxMessageSize { get; set; }
 
         /// <summary>
         /// Invokes a client streaming call asynchronously.
@@ -187,7 +197,7 @@ namespace Grpc.Net.Client
                 }
             }
 
-            var call = new GrpcCall<TRequest, TResponse>(method, options, Clock, _loggerFactory);
+            var call = new GrpcCall<TRequest, TResponse>(method, options, this);
 
             // Clean up linked cancellation token
             disposeAction = linkedCts != null

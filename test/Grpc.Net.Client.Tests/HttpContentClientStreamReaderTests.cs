@@ -48,7 +48,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -73,7 +74,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -99,7 +101,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), SystemClock.Instance, NullLoggerFactory.Instance);
+            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
