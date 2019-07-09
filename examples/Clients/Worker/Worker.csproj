@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\Proto\count.proto" GrpcServices="Client" />
+    <Protobuf Include="..\..\Proto\count.proto" GrpcServices="Client" Link="Protos\count.proto" />
 
     <ProjectReference Include="..\..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 

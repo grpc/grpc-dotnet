@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\*.proto" GrpcServices="Both" />
+    <Protobuf Include="Proto\greet.proto" GrpcServices="Both" />
 
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
     <Compile Include="..\Shared\HttpContextHelpers.cs" Link="Infrastructure\HttpContextHelpers.cs" />

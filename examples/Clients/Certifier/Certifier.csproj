@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\Proto\certify.proto" GrpcServices="Client" />
+    <Protobuf Include="..\..\Proto\certify.proto" GrpcServices="Client" Link="Protos\certify.proto" />
 
     <None Include="..\..\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
