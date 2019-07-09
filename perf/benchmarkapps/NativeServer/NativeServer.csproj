@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" />
+    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
 
     <None Remove="hosting.json" />
     <Content Include="hosting.json">
