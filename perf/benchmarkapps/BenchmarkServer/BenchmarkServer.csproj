@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" />
+    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
 
     <None Include="..\..\..\examples\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -1,23 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
-
   <ItemGroup>
-    <Protobuf Include="..\Proto\*.proto" />
-
     <None Include="..\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
-
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCorePackageVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Protobuf Include="..\Proto\aggregate.proto" GrpcServices="Server" Link="Protos\aggregate.proto" />
+    <Protobuf Include="..\Proto\certify.proto" GrpcServices="Server" Link="Protos\certify.proto" />
+    <Protobuf Include="..\Proto\count.proto" GrpcServices="Both" Link="Protos\count.proto" />
+    <Protobuf Include="..\Proto\greet.proto" GrpcServices="Both" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Proto\mail.proto" GrpcServices="Server" Link="Protos\mail.proto" />
+    <Protobuf Include="..\Proto\ticket.proto" GrpcServices="Server" Link="Protos\ticket.proto" />
+  </ItemGroup>
 </Project>

@@ -161,7 +161,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 // If file is outside of the project, display the file under Protos/ directory
                 if (!Path.GetFullPath(resolvedPath).StartsWith(Project.DirectoryPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)!));
+                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)!), expressAsAttribute: true);
                 }
             }
         }

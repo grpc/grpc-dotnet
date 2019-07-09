@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\..\Proto\greet.proto" GrpcServices="Client" />
+    <Protobuf Include="..\..\Proto\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
 
     <Compile Include="..\..\Shared\ClientResources.cs" Link="ClientResources.cs" />
 

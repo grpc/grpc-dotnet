@@ -1,17 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
-
   <ItemGroup>
     <Protobuf Include="..\Proto\*.proto" GrpcServices="Both" />
-
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
-
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
+    
+    <Protobuf Include="..\Proto\any.proto" Link="Protos\any.proto" />
+    <Protobuf Include="..\Proto\authorize.proto" Link="Protos\authorize.proto" />
+    <Protobuf Include="..\Proto\chat.proto" Link="Protos\chat.proto" />
+    <Protobuf Include="..\Proto\compression.proto" Link="Protos\compression.proto" />
+    <Protobuf Include="..\Proto\count.proto" Link="Protos\count.proto" />
+    <Protobuf Include="..\Proto\greet.proto" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Proto\lifetime.proto" Link="Protos\lifetime.proto" />
+    <Protobuf Include="..\Proto\nested.proto" Link="Protos\nested.proto" />
+    <Protobuf Include="..\Proto\singleton.proto" Link="Protos\singleton.proto" />
   </ItemGroup>
-
 </Project>

@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" />
+    <Protobuf Include=".\Proto\chat.proto" GrpcServices="Server" />
 
     <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
     <Compile Include="..\..\test\Shared\TestResponseBodyPipeFeature.cs" Link="Internal\TestResponseBodyPipeFeature.cs" />
