@@ -25,6 +25,7 @@ namespace Grpc.Net.Client.Tests
     [TestFixture]
     public class ClientBaseTests
     {
+        [Test]
         public void ClientBaseClass_Implicit_UsesLiteClientBase()
         {
             // Assert
