@@ -25,6 +25,11 @@ echo "Testing solution"
 
 # Capturing test diagnostic logs because of hanging build
 # https://github.com/grpc/grpc-dotnet/pull/363
-dotnet test --no-build --diag:log.txt
+test_projects=( $( ls test/**/*Tests.csproj ) )
+
+for test_project in "${test_projects[@]}"
+do
+   dotnet test $test_project --no-build --diag:artifacts/${test_project##*/}.log.txt
+done
 
 echo "Finished"
