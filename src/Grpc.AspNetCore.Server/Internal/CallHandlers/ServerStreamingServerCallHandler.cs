@@ -72,7 +72,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             // Decode request
             var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
-            var request = Method.RequestMarshaller.Deserializer(requestPayload);
+
+            serverCallContext.DeserializationContext.SetPayload(requestPayload);
+            var request = Method.RequestMarshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
+            serverCallContext.DeserializationContext.SetPayload(null);
 
             if (_pipelineInvoker == null)
             {
@@ -84,7 +87,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     await _invoker(
                         service,
                         request,
-                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                        new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.ContextualSerializer),
                         serverCallContext);
                 }
                 finally
@@ -99,7 +102,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             {
                 await _pipelineInvoker(
                     request,
-                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.Serializer),
+                    new HttpContextStreamWriter<TResponse>(serverCallContext, Method.ResponseMarshaller.ContextualSerializer),
                     serverCallContext);
             }
         }

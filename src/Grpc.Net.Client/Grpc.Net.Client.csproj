@@ -34,4 +34,9 @@
     <Content Include="build\**\*.targets" PackagePath="%(Identity)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
+    <Compile Include="..\Shared\DefaultSerializationContext.cs" Link="Internal\DefaultSerializationContext.cs" />
+  </ItemGroup>
+
 </Project>

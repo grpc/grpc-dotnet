@@ -129,7 +129,7 @@ namespace Grpc.Net.Client.Internal
                 await writeStream.WriteMessage<TRequest>(
                     _call.Logger,
                     message,
-                    _call.Method.RequestMarshaller.Serializer,
+                    _call.Method.RequestMarshaller.ContextualSerializer,
                     _grpcEncoding,
                     _call.CancellationToken).ConfigureAwait(false);
             }

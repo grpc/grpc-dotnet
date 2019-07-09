@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.Internal
 
                 Current = await _responseStream.ReadStreamedMessageAsync(
                     _call.Logger,
-                    _call.Method.ResponseMarshaller.Deserializer,
+                    _call.Method.ResponseMarshaller.ContextualDeserializer,
                     GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse),
                     cancellationToken).ConfigureAwait(false);
                 if (Current == null)

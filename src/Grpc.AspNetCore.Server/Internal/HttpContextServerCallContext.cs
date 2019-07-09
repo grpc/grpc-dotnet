@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,8 @@ namespace Grpc.AspNetCore.Server.Internal
         private AuthContext? _authContext;
         // Internal for tests
         internal ServerCallDeadlineManager? DeadlineManager;
+        private DefaultSerializationContext? _serializationContext;
+        private DefaultDeserializationContext? _deserializationContext;
 
         internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
@@ -53,6 +56,15 @@ namespace Grpc.AspNetCore.Server.Internal
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
+
+        internal DefaultSerializationContext SerializationContext
+        {
+            get => _serializationContext ??= new DefaultSerializationContext();
+        }
+        internal DefaultDeserializationContext DeserializationContext
+        {
+            get => _deserializationContext ??= new DefaultDeserializationContext();
+        }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 

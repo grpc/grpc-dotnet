@@ -29,9 +29,9 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Task<bool> False = Task.FromResult(false);
 
         private readonly HttpContextServerCallContext _serverCallContext;
-        private readonly Func<byte[], TRequest> _deserializer;
+        private readonly Func<DeserializationContext, TRequest> _deserializer;
 
-        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<byte[], TRequest> deserializer)
+        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
         {
             _serverCallContext = serverCallContext;
             _deserializer = deserializer;
@@ -75,7 +75,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 return false;
             }
 
-            Current = _deserializer(requestPayload);
+            var context = _serverCallContext.DeserializationContext;
+            context.SetPayload(requestPayload);
+            Current = _deserializer(context);
+            context.SetPayload(null);
+
             return true;
         }
     }

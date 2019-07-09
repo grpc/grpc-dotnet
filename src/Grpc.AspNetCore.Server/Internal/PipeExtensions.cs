@@ -48,9 +48,17 @@ namespace Grpc.AspNetCore.Server.Internal
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Func<TResponse, byte[]> serializer, bool canFlush)
+        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, bool canFlush)
         {
-            var responsePayload = serializer(response);
+            var serializationContext = serverCallContext.SerializationContext;
+            serializer(response, serializationContext);
+            var responsePayload = serializationContext.Payload;
+            serializationContext.Payload = null;
+
+            if (responsePayload == null)
+            {
+                return Task.FromException(new InvalidOperationException("Serialization did not return a payload."));
+            }
 
             // Flush messages unless WriteOptions.Flags has BufferHint set
             var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
