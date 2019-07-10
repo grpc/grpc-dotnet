@@ -37,7 +37,6 @@ namespace Grpc.Net.Client.Internal
     {
         private readonly CancellationTokenSource _callCts;
         private readonly CancellationTokenRegistration? _ctsRegistration;
-        private readonly ISystemClock _clock;
         private readonly TimeSpan? _timeout;
         private readonly Uri _uri;
         private readonly GrpcCallScope _logScope;
@@ -54,13 +53,14 @@ namespace Grpc.Net.Client.Internal
         public HttpResponseMessage? HttpResponse { get; private set; }
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
+        public HttpClientCallInvoker CallInvoker { get; }
 
         public ILogger Logger { get; }
         public Task? SendTask { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, ISystemClock clock, ILoggerFactory loggerFactory)
+        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, HttpClientCallInvoker callInvoker)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
@@ -70,8 +70,8 @@ namespace Grpc.Net.Client.Internal
             _uri = new Uri(method.FullName, UriKind.Relative);
             _logScope = new GrpcCallScope(method.Type, _uri);
             Options = options;
-            _clock = clock;
-            Logger = loggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
+            CallInvoker = callInvoker;
+            Logger = callInvoker.LoggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
 
             if (options.CancellationToken.CanBeCanceled)
             {
@@ -87,7 +87,7 @@ namespace Grpc.Net.Client.Internal
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
             {
-                var timeout = options.Deadline.GetValueOrDefault() - _clock.UtcNow;
+                var timeout = options.Deadline.GetValueOrDefault() - CallInvoker.Clock.UtcNow;
                 _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
             }
         }
@@ -302,6 +302,7 @@ namespace Grpc.Net.Client.Internal
                         Logger,
                         Method.ResponseMarshaller.ContextualDeserializer,
                         GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
+                        CallInvoker.ReceiveMaxMessageSize,
                         _callCts.Token).ConfigureAwait(false);
                     FinishResponse();
 
@@ -384,6 +385,7 @@ namespace Grpc.Net.Client.Internal
                         request,
                         Method.RequestMarshaller.ContextualSerializer,
                         grpcEncoding,
+                        CallInvoker.SendMaxMessageSize,
                         Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
