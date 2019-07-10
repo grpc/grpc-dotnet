@@ -124,6 +124,7 @@ namespace Grpc.Net.Client.Internal
                     _call.Logger,
                     _call.Method.ResponseMarshaller.ContextualDeserializer,
                     GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse),
+                    _call.CallInvoker.ReceiveMaxMessageSize,
                     cancellationToken).ConfigureAwait(false);
                 if (Current == null)
                 {
