@@ -37,6 +37,7 @@ namespace Grpc.Net.Client
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
 
+        private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
@@ -221,6 +222,7 @@ namespace Grpc.Net.Client
             TMessage message,
             Action<TMessage, SerializationContext> serializer,
             string grpcEncoding,
+            int? maximumMessageSize,
             CancellationToken cancellationToken)
         {
             try
@@ -235,6 +237,11 @@ namespace Grpc.Net.Client
                 if (data == null)
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
+                }
+
+                if (data.Length > maximumMessageSize)
+                {
+                    throw new RpcException(SendingMessageExceedsLimitStatus);
                 }
 
                 var isCompressed = !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);

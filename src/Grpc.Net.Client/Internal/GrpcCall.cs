@@ -385,6 +385,7 @@ namespace Grpc.Net.Client.Internal
                         request,
                         Method.RequestMarshaller.ContextualSerializer,
                         grpcEncoding,
+                        CallInvoker.SendMaxMessageSize,
                         Options.CancellationToken);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);

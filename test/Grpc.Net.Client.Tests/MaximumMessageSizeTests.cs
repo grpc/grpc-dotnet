@@ -29,6 +29,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Compression;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
@@ -37,198 +38,188 @@ namespace Grpc.Net.Client.Tests
     [TestFixture]
     public class MaximumMessageSizeTests
     {
-        [Test]
-        public void AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError()
+        private async Task<HttpResponseMessage> HandleRequest(HttpRequestMessage request)
         {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
-            HelloRequest? helloRequest = null;
+            var requestStream = await request.Content.ReadAsStreamAsync();
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+                requestStream,
+                NullLogger.Instance,
+                ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                "gzip",
+                maximumMessageSize: null,
+                CancellationToken.None);
+
+            HelloReply reply = new HelloReply
             {
-                httpRequestMessage = request;
-
-                var requestStream = await request.Content.ReadAsStreamAsync();
-
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
-                    requestStream,
-                    NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
-                    "gzip",
-                    maximumMessageSize: null,
-                    CancellationToken.None);
-
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-
-            // Act
-            var compressionMetadata = CreateClientCompressionMetadata("not-supported");
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: compressionMetadata), new HelloRequest
-            {
-                Name = "Hello"
-            });
-
-            // Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseAsync.DefaultTimeout());
-            Assert.AreEqual("Could not find compression provider for 'not-supported'.", ex.Message);
-        }
-
-        [Test]
-        public async Task AsyncUnaryCall_CompressMetadataSentWithRequest_RequestMessageCompressed()
-        {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
-            HelloRequest? helloRequest = null;
-
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                httpRequestMessage = request;
-
-                var requestStream = await request.Content.ReadAsStreamAsync();
-
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
-                    requestStream,
-                    NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
-                    "gzip",
-                    maximumMessageSize: null,
-                    CancellationToken.None);
-
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-
-            // Act
-            var compressionMetadata = CreateClientCompressionMetadata("gzip");
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: compressionMetadata), new HelloRequest
-            {
-                Name = "Hello"
-            });
-
-            // Assert
-            var response = await call.ResponseAsync;
-            Assert.IsNotNull(response);
-            Assert.AreEqual("Hello world", response.Message);
-
-            Debug.Assert(httpRequestMessage != null);
-            Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
-            Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
-
-            Debug.Assert(helloRequest != null);
-            Assert.AreEqual("Hello", helloRequest.Name);
-        }
-
-        [Test]
-        public async Task AsyncUnaryCall_CompressedResponse_ResponseMessageDecompressed()
-        {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
-            HelloRequest? helloRequest = null;
-
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                httpRequestMessage = request;
-
-                var requestStream = await request.Content.ReadAsStreamAsync();
-
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
-                    requestStream,
-                    NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
-                    "gzip",
-                    maximumMessageSize: null,
-                    CancellationToken.None);
-
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
-                var compressionProvider = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest);
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply, compressionProvider).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcEncoding: "gzip");
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
-            {
-                Name = "Hello"
-            });
-
-            // Assert
-            var response = await call.ResponseAsync;
-            Assert.IsNotNull(response);
-            Assert.AreEqual("Hello world", response.Message);
-        }
-
-        [Test]
-        public void AsyncUnaryCall_CompressedResponseWithUnknownEncoding_ErrorThrown()
-        {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
-            HelloRequest? helloRequest = null;
-
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                httpRequestMessage = request;
-
-                var requestStream = await request.Content.ReadAsStreamAsync();
-
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
-                    requestStream,
-                    NullLogger.Instance,
-                    ClientTestHelpers.ServiceMethod.RequestMarshaller.Deserializer,
-                    "gzip",
-                    maximumMessageSize: null,
-                    CancellationToken.None);
-
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
-                var compressionProvider = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest);
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply, compressionProvider).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcEncoding: "not-supported");
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
-            {
-                Name = "Hello"
-            });
-
-            // Assert
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync.DefaultTimeout());
-            Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
-            Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: gzip", ex.Status.Detail);
-        }
-
-        private static Metadata CreateClientCompressionMetadata(string algorithmName)
-        {
-            return new Metadata
-            {
-                { new Metadata.Entry(GrpcProtocolConstants.CompressionRequestAlgorithmHeader, algorithmName) }
+                Message = "Hello " + helloRequest!.Name
             };
+
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_MessageSmallerThanSendMaxMessageSize_Success()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.SendMaxMessageSize = 100;
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+            {
+                Name = "World"
+            });
+
+            // Assert
+            var response = await call.ResponseAsync.DefaultTimeout();
+            Assert.AreEqual("Hello World", response.Message);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_MessageLargerThanSendMaxMessageSize_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.SendMaxMessageSize = 1;
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+            {
+                Name = "World"
+            });
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_MessageSmallerThanReceiveMaxMessageSize_Success()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.ReceiveMaxMessageSize = 100;
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+            {
+                Name = "World"
+            });
+
+            // Assert
+            var response = await call.ResponseAsync.DefaultTimeout();
+            Assert.AreEqual("Hello World", response.Message);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_MessageLargerThanReceiveMaxMessageSize_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.ReceiveMaxMessageSize = 1;
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+            {
+                Name = "World"
+            });
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+        }
+
+        [Test]
+        public async Task AsyncDuplexStreamingCall_MessageSmallerThanSendMaxMessageSize_Success()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.SendMaxMessageSize = 100;
+
+            // Act
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            await call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "World"
+            });
+            await call.RequestStream.CompleteAsync();
+
+            // Assert
+            await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout();
+            Assert.AreEqual("Hello World", call.ResponseStream.Current.Message);
+        }
+
+        [Test]
+        public async Task AsyncDuplexStreamingCall_MessageLargerThanSendMaxMessageSize_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.SendMaxMessageSize = 1;
+
+            // Act
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "World"
+            }));
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
+        }
+
+        [Test]
+        public async Task AsyncDuplexStreamingCall_MessageSmallerThanReceiveMaxMessageSize_Success()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.ReceiveMaxMessageSize = 100;
+
+            // Act
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            await call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "World"
+            });
+            await call.RequestStream.CompleteAsync();
+
+            // Assert
+            await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout();
+            Assert.AreEqual("Hello World", call.ResponseStream.Current.Message);
+        }
+
+        [Test]
+        public async Task AsyncDuplexStreamingCall_MessageLargerThanReceiveMaxMessageSize_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            invoker.ReceiveMaxMessageSize = 1;
+
+            // Act
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            await call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "World"
+            });
+            await call.RequestStream.CompleteAsync();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None));
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
         }
     }
 }

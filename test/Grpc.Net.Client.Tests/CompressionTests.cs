@@ -38,7 +38,7 @@ namespace Grpc.Net.Client.Tests
     public class CompressionTests
     {
         [Test]
-        public void AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError()
+        public async Task AsyncUnaryCall_UnknownCompressMetadataSentWithRequest_ThrowsError()
         {
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
@@ -77,7 +77,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             // Assert
-            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await call.ResponseAsync.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual("Could not find compression provider for 'not-supported'.", ex.Message);
         }
 
@@ -179,7 +179,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void AsyncUnaryCall_CompressedResponseWithUnknownEncoding_ErrorThrown()
+        public async Task AsyncUnaryCall_CompressedResponseWithUnknownEncoding_ErrorThrown()
         {
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
@@ -218,7 +218,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             // Assert
-            var ex = Assert.ThrowsAsync<RpcException>(async () => await call.ResponseAsync.DefaultTimeout());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
             Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: gzip", ex.Status.Detail);
         }
