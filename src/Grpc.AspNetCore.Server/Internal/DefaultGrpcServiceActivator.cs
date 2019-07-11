@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -25,39 +24,27 @@ namespace Grpc.AspNetCore.Server.Internal
     internal class DefaultGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
     {
         private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(() => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
-        private readonly IServiceProvider _serviceProvider;
-        private bool? _created;
 
-        public DefaultGrpcServiceActivator(IServiceProvider serviceProvider)
+        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
         {
-            _serviceProvider = serviceProvider;
-        }
-
-        public TGrpcService Create()
-        {
-            Debug.Assert(!_created.HasValue, "Grpc service activator must not be reused.");
-
-            _created = false;
-            var service = _serviceProvider.GetService<TGrpcService>();
+            var service = serviceProvider.GetService<TGrpcService>();
             if (service == null)
             {
-                service = (TGrpcService)_objectFactory.Value(_serviceProvider, Array.Empty<object>());
-                _created = true;
+                service = (TGrpcService)_objectFactory.Value(serviceProvider, Array.Empty<object>());
+                return new GrpcActivatorHandle<TGrpcService>(service, created: true, state: null);
             }
 
-            return service;
+            return new GrpcActivatorHandle<TGrpcService>(service, created: false, state: null);
         }
 
-        public void Release(TGrpcService service)
+        public void Release(in GrpcActivatorHandle<TGrpcService> service)
         {
-            if (service == null)
+            if (service.Instance == null)
             {
-                throw new ArgumentNullException(nameof(service));
+                throw new ArgumentException("Service instance is null.", nameof(service));
             }
 
-            Debug.Assert(_created.HasValue, "Services must be released with the service activator they were created");
-
-            if (service is IDisposable disposableService && _created.Value)
+            if (service.Created && service.Instance is IDisposable disposableService)
             {
                 disposableService.Dispose();
             }

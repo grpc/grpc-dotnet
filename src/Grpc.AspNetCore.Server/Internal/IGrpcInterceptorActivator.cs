@@ -16,26 +16,28 @@
 
 #endregion
 
+using System;
 using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server.Internal
 {
     /// <summary>
     /// An interceptor activator abstraction.
     /// </summary>
-    public interface IGrpcInterceptorActivator
+    internal interface IGrpcInterceptorActivator
     {
         /// <summary>
         /// Creates an interceptor.
         /// </summary>
-        /// <param name="args">The arguments to pass to the interceptor type instance's constructor.</param>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <param name="interceptorRegistration">The arguments to pass to the interceptor type instance's constructor.</param>
         /// <returns>The created interceptor.</returns>
-        Interceptor Create(params object[] args);
+        GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration);
 
         /// <summary>
         /// Releases the specified interceptor.
         /// </summary>
         /// <param name="interceptor">The interceptor to release.</param>
-        void Release(Interceptor interceptor);
+        void Release(in GrpcActivatorHandle<Interceptor> interceptor);
     }
 }

@@ -18,11 +18,11 @@
 
 using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server.Internal
 {
     /// <summary>
     /// A <typeparamref name="TInterceptor"/> activator abstraction.
     /// </summary>
     /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
-    public interface IGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator where TInterceptor : Interceptor { }
+    internal interface IGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator where TInterceptor : Interceptor { }
 }

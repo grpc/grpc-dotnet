@@ -18,6 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
@@ -43,7 +44,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, reader, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new TestGrpcServiceActivator<TestService>(),
+                TestServiceProvider.Instance);
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -62,7 +65,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, reader, writer, context) => Task.CompletedTask,
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new TestGrpcServiceActivator<TestService>(),
+                TestServiceProvider.Instance);
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -81,7 +86,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, request, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new TestGrpcServiceActivator<TestService>(),
+                TestServiceProvider.Instance);
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -100,7 +107,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 method,
                 (service, request, writer, context) => Task.FromResult(new TestMessage()),
                 new GrpcServiceOptions(),
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new TestGrpcServiceActivator<TestService>(),
+                TestServiceProvider.Instance);
 
             // Act
             await call.HandleCallAsync(httpContext);
@@ -126,5 +135,28 @@ namespace Grpc.AspNetCore.Server.Tests
     public class TestMinRequestBodyDataRateFeature : IHttpMinRequestBodyDataRateFeature
     {
         public MinDataRate MinDataRate { get; set; } = new MinDataRate(1, TimeSpan.FromSeconds(5));
+    }
+
+    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    {
+        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Release(in GrpcActivatorHandle<TGrpcService> service)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class TestServiceProvider : IServiceProvider
+    {
+        public static readonly TestServiceProvider Instance = new TestServiceProvider();
+
+        public object GetService(Type serviceType)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -18,17 +18,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
-using Grpc.AspNetCore.Server.Reflection.Internal;
 using Grpc.Core;
+using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.Reflection
@@ -40,18 +42,23 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         public async Task Create_ConfiguredGrpcEndpoint_EndpointReturnedFromReflectionService()
         {
             // Arrange
+            var endpointRouteBuilder = new TestEndpointRouteBuilder();
+
             var services = ServicesHelpers.CreateServices();
+            services.AddGrpcReflection();
+            services.AddRouting();
+            services.AddSingleton<EndpointDataSource>(s =>
+            {
+                return new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
+            });
+
             var serviceProvider = services.BuildServiceProvider();
 
-            var endpointRouteBuilder = new TestEndpointRouteBuilder(serviceProvider);
+            endpointRouteBuilder.ServiceProvider = serviceProvider;
             endpointRouteBuilder.MapGrpcService<GreeterService>();
 
-            var dataSource = new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
-
-            var activator = new ReflectionGrpcServiceActivator(dataSource, NullLoggerFactory.Instance);
-
             // Act
-            var service = activator.Create();
+            var service = serviceProvider.GetRequiredService<ReflectionServiceImpl>();
 
             var reader = new TestAsyncStreamReader
             {
@@ -113,14 +120,13 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
         private class TestEndpointRouteBuilder : IEndpointRouteBuilder
         {
-            public TestEndpointRouteBuilder(IServiceProvider serviceProvider)
+            public TestEndpointRouteBuilder()
             {
                 DataSources = new List<EndpointDataSource>();
-                ServiceProvider = serviceProvider;
             }
 
             public ICollection<EndpointDataSource> DataSources { get; }
-            public IServiceProvider ServiceProvider { get; }
+            public IServiceProvider? ServiceProvider { get; set; }
 
             public IApplicationBuilder CreateApplicationBuilder()
             {

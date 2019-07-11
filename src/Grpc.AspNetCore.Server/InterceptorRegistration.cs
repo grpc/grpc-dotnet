@@ -17,6 +17,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Grpc.AspNetCore.Server.Internal;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server
 {
@@ -25,20 +29,63 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class InterceptorRegistration
     {
-        internal InterceptorRegistration(Type type, object[] args)
+        internal object[] _args;
+
+        internal InterceptorRegistration(Type type, object[] arguments)
         {
+            if (type == null)
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+            if (arguments == null)
+            {
+                throw new ArgumentNullException(nameof(arguments));
+            }
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                if (arguments[i] == null)
+                {
+                    throw new ArgumentException("Interceptor arguments contains a null value. Null interceptor arguments are not supported.", nameof(arguments));
+                }
+            }
+
             Type = type;
-            ActivatorType = typeof(IGrpcInterceptorActivator<>).MakeGenericType(Type);
-            Args = args;
+            _args = arguments;
         }
 
         /// <summary>
-        /// The type of the interceptor.
+        /// Get the type of the interceptor.
         /// </summary>
         public Type Type { get; }
 
-        internal Type ActivatorType { get; }
+        /// <summary>
+        /// Get the arguments used to create the interceptor.
+        /// </summary>
+        public IReadOnlyList<object> Arguments => _args;
 
-        internal object[] Args { get; }
+        private IGrpcInterceptorActivator? _interceptorActivator;
+        private ObjectFactory? _factory;
+
+        internal IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
+        {
+            // Not thread safe. Side effect is resolving the service twice.
+            if (_interceptorActivator == null)
+            {
+                _interceptorActivator = (IGrpcInterceptorActivator)serviceProvider.GetRequiredService(typeof(IGrpcInterceptorActivator<>).MakeGenericType(Type));
+            }
+
+            return _interceptorActivator;
+        }
+
+        internal ObjectFactory GetFactory()
+        {
+            // Not thread safe. Side effect is resolving the factory twice.
+            if (_factory == null)
+            {
+                _factory = ActivatorUtilities.CreateFactory(Type, _args.Select(a => a.GetType()).ToArray());
+            }
+
+            return _factory;
+        }
     }
 }
