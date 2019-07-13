@@ -17,8 +17,7 @@
 #endregion
 
 using System;
-using System.Net.Http;
-using Grpc.AspNetCore.Server.Features;
+using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.Http;

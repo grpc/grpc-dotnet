@@ -18,7 +18,7 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Features
+namespace Grpc.AspNetCore.Server
 {
     /// <summary>
     /// Provides access to the gRPC server call context for the current HTTP request.
