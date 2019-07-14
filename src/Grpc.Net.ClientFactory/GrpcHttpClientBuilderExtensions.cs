@@ -46,6 +46,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureInvoker));
             }
 
+            ValidateGrpcClient(builder);
+
             builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
             {
                 return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, (options) =>
@@ -75,6 +77,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureInvoker));
             }
 
+            ValidateGrpcClient(builder);
+
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
                 options.Interceptors.Add(configureInvoker());
@@ -97,12 +101,33 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(builder));
             }
 
+            ValidateGrpcClient(builder);
+
             builder.AddInterceptor(serviceProvider =>
             {
                 return serviceProvider.GetRequiredService<TInterceptor>();
             });
 
             return builder;
+        }
+
+        private static void ValidateGrpcClient(IHttpClientBuilder builder)
+        {
+            // Validate the builder is for a gRPC client
+            foreach (var service in builder.Services)
+            {
+                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+                {
+                    // Builder is from AddGrpcClient if options have been configured with the same name
+                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryOptions>;
+                    if (namedOptions != null && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            throw new InvalidOperationException($"{nameof(AddInterceptor)} must be used with a gRPC client.");
         }
     }
 }
