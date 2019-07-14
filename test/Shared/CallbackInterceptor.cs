@@ -24,40 +24,40 @@ namespace Grpc.Tests.Shared
 {
     public class CallbackInterceptor : Interceptor
     {
-        private readonly Action _callback;
+        private readonly Action<CallOptions> _callback;
 
-        public CallbackInterceptor(Action callback)
+        public CallbackInterceptor(Action<CallOptions> callback)
         {
             _callback = callback;
         }
 
         public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
         {
-            _callback();
+            _callback(context.Options);
             return continuation(request, context);
         }
 
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
         {
-            _callback();
+            _callback(context.Options);
             return continuation(request, context);
         }
 
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            _callback();
+            _callback(context.Options);
             return continuation(request, context);
         }
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            _callback();
+            _callback(context.Options);
             return continuation(context);
         }
 
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
         {
-            _callback();
+            _callback(context.Options);
             return continuation(context);
         }
     }

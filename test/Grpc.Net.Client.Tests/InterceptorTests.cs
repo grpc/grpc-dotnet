@@ -86,22 +86,26 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
             // Act
-            var callInvoker = invoker.Intercept(metadata =>
-            {
-                stringBuilder.Append("interceptor1");
-                return metadata;
-            }).Intercept(new CallbackInterceptor(() => stringBuilder.Append("array1")),
-                new CallbackInterceptor(() => stringBuilder.Append("array2")),
-                new CallbackInterceptor(() => stringBuilder.Append("array3")))
-            .Intercept(metadata =>
-            {
-                stringBuilder.Append("interceptor2");
-                return metadata;
-            }).Intercept(metadata =>
-            {
-                stringBuilder.Append("interceptor3");
-                return metadata;
-            });
+            var callInvoker = invoker
+                .Intercept(metadata =>
+                {
+                    stringBuilder.Append("interceptor1");
+                    return metadata;
+                })
+                .Intercept(
+                    new CallbackInterceptor(o => stringBuilder.Append("array1")),
+                    new CallbackInterceptor(o => stringBuilder.Append("array2")),
+                    new CallbackInterceptor(o => stringBuilder.Append("array3")))
+                .Intercept(metadata =>
+                {
+                    stringBuilder.Append("interceptor2");
+                    return metadata;
+                })
+                .Intercept(metadata =>
+                {
+                    stringBuilder.Append("interceptor3");
+                    return metadata;
+                });
 
             var result = callInvoker.BlockingUnaryCall(ClientTestHelpers.ServiceMethod, Host, new CallOptions(), new HelloRequest());
 

@@ -51,26 +51,9 @@ namespace Grpc.Net.Client
 
             _client = client;
             LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            Deadline = DateTime.MaxValue;
         }
 
         internal Uri BaseAddress => _client.BaseAddress;
-
-        /// <summary>
-        /// Token that can be used for cancelling the call on the client side.
-        /// Cancelling the token will request cancellation
-        /// of the remote call. Best effort will be made to deliver the cancellation
-        /// notification to the server and interaction of the call with the server side
-        /// will be terminated. Unless the call finishes before the cancellation could
-        /// happen (there is an inherent race),
-        /// the call will finish with <c>StatusCode.Cancelled</c> status.
-        /// </summary>
-        public CancellationToken CancellationToken { get; set; }
-
-        /// <summary>
-        /// The call deadline.
-        /// </summary>
-        public DateTime Deadline { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the client.
@@ -88,7 +71,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
             call.StartClientStreaming(_client);
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
@@ -97,7 +80,7 @@ namespace Grpc.Net.Client
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: disposeAction);
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -107,7 +90,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
             call.StartDuplexStreaming(_client);
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
@@ -116,7 +99,7 @@ namespace Grpc.Net.Client
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: disposeAction);
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -125,7 +108,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
             call.StartServerStreaming(_client, request);
 
             return new AsyncServerStreamingCall<TResponse>(
@@ -133,7 +116,7 @@ namespace Grpc.Net.Client
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: disposeAction);
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -141,7 +124,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options, out var disposeAction);
+            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
             call.StartUnary(_client, request);
 
             return new AsyncUnaryCall<TResponse>(
@@ -149,7 +132,7 @@ namespace Grpc.Net.Client
                 responseHeadersAsync: call.GetResponseHeadersAsync(),
                 getStatusFunc: call.GetStatus,
                 getTrailersFunc: call.GetTrailers,
-                disposeAction: disposeAction);
+                disposeAction: call.Dispose);
         }
 
         /// <summary>
@@ -163,8 +146,7 @@ namespace Grpc.Net.Client
 
         private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(
             Method<TRequest, TResponse> method,
-            CallOptions options,
-            out Action disposeAction)
+            CallOptions options)
             where TRequest : class
             where TResponse : class
         {
@@ -174,35 +156,7 @@ namespace Grpc.Net.Client
                     "Set HttpClient.BaseAddress on the HttpClient used to created to gRPC client.");
             }
 
-            CancellationTokenSource? linkedCts = null;
-
-            // Use propagated deadline if it is small than the specified deadline
-            if (Deadline < options.Deadline)
-            {
-                options = options.WithDeadline(Deadline);
-            }
-
-            if (CancellationToken.CanBeCanceled)
-            {
-                if (options.CancellationToken.CanBeCanceled)
-                {
-                    // If both propagated and options cancellation token can be canceled
-                    // then set a new linked token of both
-                    linkedCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, options.CancellationToken);
-                    options = options.WithCancellationToken(linkedCts.Token);
-                }
-                else
-                {
-                    options = options.WithCancellationToken(CancellationToken);
-                }
-            }
-
             var call = new GrpcCall<TRequest, TResponse>(method, options, this);
-
-            // Clean up linked cancellation token
-            disposeAction = linkedCts != null
-                ? () => { call.Dispose(); linkedCts!.Dispose(); }
-                : (Action)call.Dispose;
 
             return call;
         }
