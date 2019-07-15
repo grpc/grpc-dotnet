@@ -31,18 +31,15 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
-        protected DiagnosticListener DiagnosticListener { get; }
         protected ILogger Logger { get; }
 
         protected ServerCallHandlerBase(
             Method<TRequest, TResponse> method,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory,
-            DiagnosticListener diagnosticListener)
+            ILoggerFactory loggerFactory)
         {
             Method = method;
             ServiceOptions = serviceOptions;
-            DiagnosticListener = diagnosticListener;
             Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 
@@ -54,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger, DiagnosticListener);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);

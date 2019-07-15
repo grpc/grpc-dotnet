@@ -59,8 +59,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 method,
                 (service, request, context) => result,
                 ServiceOptions,
-                NullLoggerFactory.Instance,
-                new DiagnosticListener("Test"));
+                NullLoggerFactory.Instance);
 
             _trailers = new HeaderDictionary();
 

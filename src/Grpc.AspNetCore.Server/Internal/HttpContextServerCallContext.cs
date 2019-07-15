@@ -35,7 +35,6 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private readonly ILogger _logger;
-        private readonly DiagnosticListener _diagnosticListener;
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
@@ -46,12 +45,11 @@ namespace Grpc.AspNetCore.Server.Internal
         private DefaultSerializationContext? _serializationContext;
         private DefaultDeserializationContext? _deserializationContext;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger, DiagnosticListener diagnosticListener)
+        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
         {
             HttpContext = httpContext;
             ServiceOptions = serviceOptions;
             _logger = logger;
-            _diagnosticListener = diagnosticListener;
         }
 
         internal HttpContext HttpContext { get; }
@@ -280,7 +278,6 @@ namespace Grpc.AspNetCore.Server.Internal
             if (activity != null)
             {
                 activity.AddTag(GrpcServerConstants.ActivityStatusCodeTag, _status.StatusCode.ToTrailerString());
-                RaiseHostActivityChanged();
             }
             if (_status.StatusCode != StatusCode.OK)
             {
@@ -358,7 +355,6 @@ namespace Grpc.AspNetCore.Server.Internal
             if (activity != null)
             {
                 activity.AddTag(GrpcServerConstants.ActivityMethodTag, MethodCore);
-                RaiseHostActivityChanged();
             }
 
             GrpcEventSource.Log.CallStart(MethodCore);
@@ -401,15 +397,6 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             return null;
-        }
-
-        private void RaiseHostActivityChanged()
-        {
-            // Notify diagnostic listener that activity has been changed
-            if (_diagnosticListener.IsEnabled() && _diagnosticListener.IsEnabled(GrpcServerConstants.HostActivityChanged, HttpContext))
-            {
-                _diagnosticListener.Write(GrpcServerConstants.HostActivityChanged, HttpContext);
-            }
         }
 
         private TimeSpan GetTimeout()

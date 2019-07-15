@@ -39,9 +39,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             ServerStreamingServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory,
-            DiagnosticListener diagnosticListener)
-            : base(method, serviceOptions, loggerFactory, diagnosticListener)
+            ILoggerFactory loggerFactory)
+            : base(method, serviceOptions, loggerFactory)
         {
             _invoker = invoker;
 

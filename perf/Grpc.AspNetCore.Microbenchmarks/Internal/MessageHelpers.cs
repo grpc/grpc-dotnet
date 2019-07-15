@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using Google.Protobuf;
@@ -32,8 +31,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
         private static readonly HttpContextServerCallContext TestServerCallContext = new HttpContextServerCallContext(
             new DefaultHttpContext(),
             new GrpcServiceOptions(),
-            NullLogger.Instance,
-            new DiagnosticListener("Test"));
+            NullLogger.Instance);
 
         static MessageHelpers()
         {

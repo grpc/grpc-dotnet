@@ -30,7 +30,6 @@ using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
@@ -641,21 +640,15 @@ namespace Grpc.AspNetCore.Server.Tests
             using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
             {
                 // Arrange
-                var diagnosticListener = new DiagnosticListener("Test");
-                var result = new List<KeyValuePair<string, object>>();
                 var httpContext = new DefaultHttpContext();
                 httpContext.Request.Path = "/Package.Service/Method";
-                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+                var context = CreateServerCallContext(httpContext);
 
                 // Act
-                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
-                {
-                    context.Initialize();
-                }
+                context.Initialize();
 
                 // Assert
                 Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
-                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
             }
         }
 
@@ -665,24 +658,18 @@ namespace Grpc.AspNetCore.Server.Tests
             using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
             {
                 // Arrange
-                var diagnosticListener = new DiagnosticListener("Test");
-                var result = new List<KeyValuePair<string, object>>();
                 var httpContext = new DefaultHttpContext();
                 httpContext.Request.Path = "/Package.Service/Method";
-                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+                var context = CreateServerCallContext(httpContext);
 
                 // Act
-                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
+                using (new ActivityReplacer("ChildActivity"))
                 {
-                    using (new ActivityReplacer("ChildActivity"))
-                    {
-                        context.Initialize();
-                    }
+                    context.Initialize();
                 }
 
                 // Assert
                 Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
-                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
             }
         }
 
@@ -692,22 +679,16 @@ namespace Grpc.AspNetCore.Server.Tests
             using (new ActivityReplacer(GrpcServerConstants.HostActivityName))
             {
                 // Arrange
-                var diagnosticListener = new DiagnosticListener("Test");
-                var result = new List<KeyValuePair<string, object>>();
                 var httpContext = new DefaultHttpContext();
-                var context = CreateServerCallContext(httpContext, diagnosticListener: diagnosticListener);
+                var context = CreateServerCallContext(httpContext);
                 context.Status = new Status(StatusCode.ResourceExhausted, string.Empty);
 
                 // Act
                 context.Initialize();
-                using (diagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
-                {
-                    await context.EndCallAsync();
-                }
+                await context.EndCallAsync();
 
                 // Assert
                 Assert.AreEqual("8", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
-                Assert.AreEqual(1, result.Count(r => r.Key == GrpcServerConstants.HostActivityChanged));
             }
         }
 
@@ -730,12 +711,11 @@ namespace Grpc.AspNetCore.Server.Tests
             }
         }
 
-        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null, DiagnosticListener? diagnosticListener = null)
+        private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
         {
             return HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
                 logger: logger,
-                diagnosticListener: diagnosticListener,
                 initialize: false);
         }
 

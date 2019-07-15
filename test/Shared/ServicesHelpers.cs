@@ -17,8 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using Grpc.AspNetCore.Server;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,7 +27,6 @@ namespace Grpc.Tests.Shared
         public static ServiceCollection CreateServices(Action<GrpcServiceOptions>? configureGrpc = null)
         {
             var services = new ServiceCollection();
-            services.AddSingleton<DiagnosticListener>(new DiagnosticListener("Microsoft.AspNetCore"));
             services.AddLogging();
             services.AddGrpc(configureGrpc ?? (o => { }));
             return services;
