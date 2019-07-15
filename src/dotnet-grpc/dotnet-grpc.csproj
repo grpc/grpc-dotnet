@@ -15,7 +15,10 @@
     <PackAsTool>true</PackAsTool>
     <RootNamespace>Grpc.Dotnet.Cli</RootNamespace>
 
-    <!-- Workaround for MSBuild issue TODO (johluo): https://github.com/microsoft/msbuild/issues/4474 -->
+    <!-- Temporary workaround for dependency conflict TODO (JamesNK): https://github.com/grpc/grpc-dotnet/issues/360 -->
+    <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+
+    <!-- Temporary workaround for MSBuild issue TODO (johluo): https://github.com/microsoft/msbuild/issues/4474 -->
     <GenerateResourceUsePreserializedResources>false</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
 
