@@ -17,6 +17,6 @@
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.13.0</Nunit3TestAdapterPackageVersion>
-    <SystemCommandLineExperimentalPackageVersion>0.2.0-alpha.19272.1</SystemCommandLineExperimentalPackageVersion>
+    <SystemCommandLineExperimentalPackageVersion>0.3.0-alpha.19317.1</SystemCommandLineExperimentalPackageVersion>
   </PropertyGroup>
 </Project>

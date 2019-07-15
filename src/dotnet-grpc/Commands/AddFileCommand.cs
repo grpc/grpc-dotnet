@@ -35,12 +35,13 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "add-file",
-                description: CoreStrings.AddFileCommandDescription,
-                argument: new Argument<string[]>
-                {
-                    Name = "files",
-                    Description = CoreStrings.AddFileCommandArgumentDescription,
-                });
+                description: CoreStrings.AddFileCommandDescription);
+            command.AddArgument(new Argument<string[]>
+            {
+                Name = "files",
+                Description = CoreStrings.AddFileCommandArgumentDescription,
+                Arity = ArgumentArity.OneOrMore
+            });
 
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(CommonOptions.ServiceOption());

@@ -40,18 +40,19 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "add-url",
-                description: CoreStrings.AddUrlCommandDescription,
-                argument: new Argument<string>
-                {
-                    Name = "url",
-                    Description = CoreStrings.AddUrlCommandArgumentDescription,
-                    Arity = ArgumentArity.ExactlyOne
-                });
+                description: CoreStrings.AddUrlCommandDescription);
+            command.AddArgument(new Argument<string>
+            {
+                Name = "url",
+                Description = CoreStrings.AddUrlCommandArgumentDescription,
+                Arity = ArgumentArity.ExactlyOne
+            });
 
-            command.AddOption(new Option(
+            var outputOption = new Option(
                 aliases: new[] { "-o", "--output" },
-                description: CoreStrings.OutputOptionDescription,
-                argument: new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne }));
+                description: CoreStrings.OutputOptionDescription);
+            outputOption.Argument = new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne };
+            command.AddOption(outputOption);
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(CommonOptions.ServiceOption());
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
