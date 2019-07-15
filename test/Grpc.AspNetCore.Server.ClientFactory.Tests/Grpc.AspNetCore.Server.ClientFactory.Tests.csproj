@@ -11,7 +11,13 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    
+    <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
+    <Compile Include="..\Shared\ClientTestHelpers.cs" Link="Infrastructure\ClientTestHelpers.cs" />
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
+    <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />
+    <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
+    <Compile Include="..\Shared\TestHttpMessageHandler.cs" Link="Infrastructure\TestHttpMessageHandler.cs" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" />
 
