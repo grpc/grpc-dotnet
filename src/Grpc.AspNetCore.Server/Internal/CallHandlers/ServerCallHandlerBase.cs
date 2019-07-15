@@ -18,7 +18,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;

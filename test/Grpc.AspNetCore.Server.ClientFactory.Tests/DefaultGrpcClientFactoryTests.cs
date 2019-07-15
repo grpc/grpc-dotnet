@@ -20,7 +20,6 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects;
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Microsoft.AspNetCore.Http;
