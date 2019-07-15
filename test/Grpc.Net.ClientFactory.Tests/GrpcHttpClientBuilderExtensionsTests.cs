@@ -44,9 +44,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.BaseAddress = new Uri("http://localhost");
                 })
-                .AddInterceptor(() => new CallbackInterceptor(() => list.Add(1)))
-                .AddInterceptor(() => new CallbackInterceptor(() => list.Add(2)))
-                .AddInterceptor(() => new CallbackInterceptor(() => list.Add(3)))
+                .AddInterceptor(() => new CallbackInterceptor(o => list.Add(1)))
+                .AddInterceptor(() => new CallbackInterceptor(o => list.Add(2)))
+                .AddInterceptor(() => new CallbackInterceptor(o => list.Add(3)))
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
                     return new TestHttpMessageHandler();
@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var i = 0;
 
             ServiceCollection services = new ServiceCollection();
-            services.AddTransient<CallbackInterceptor>(s => new CallbackInterceptor(() =>
+            services.AddTransient<CallbackInterceptor>(s => new CallbackInterceptor(o =>
             {
                 var increment = i += 2;
                 list.Add(increment);
