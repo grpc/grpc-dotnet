@@ -40,6 +40,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 Name = "files",
                 Description = CoreStrings.AddFileCommandArgumentDescription,
+                Arity = ArgumentArity.OneOrMore
             });
 
             command.AddOption(CommonOptions.ProjectOption());
