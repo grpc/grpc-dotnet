@@ -18,7 +18,6 @@
 
 using System;
 using System.Threading;
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
