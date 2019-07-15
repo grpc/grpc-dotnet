@@ -16,7 +16,6 @@
 
 #endregion
 
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
