@@ -20,10 +20,8 @@ using System;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
-using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -37,8 +35,8 @@ namespace Microsoft.AspNetCore.Builder
         /// </summary>
         /// <typeparam name="TService">The service type to map requests to.</typeparam>
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder) where TService : class
+        /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+        public static GrpcServiceEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder) where TService : class
         {
             if (builder == null)
             {
@@ -50,7 +48,7 @@ namespace Microsoft.AspNetCore.Builder
             var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
             var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
 
-            return new CompositeEndpointConventionBuilder(endpointConventionBuilders);
+            return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)

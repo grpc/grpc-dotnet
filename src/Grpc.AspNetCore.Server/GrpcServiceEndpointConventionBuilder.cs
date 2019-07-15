@@ -21,17 +21,24 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Builder;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server
 {
-    internal class CompositeEndpointConventionBuilder : IEndpointConventionBuilder
+    /// <summary>
+    /// Builds conventions that will be used for customization of gRPC service <see cref="EndpointBuilder"/> instances.
+    /// </summary>
+    public sealed class GrpcServiceEndpointConventionBuilder : IEndpointConventionBuilder
     {
         private readonly List<IEndpointConventionBuilder> _endpointConventionBuilders;
 
-        public CompositeEndpointConventionBuilder(IEnumerable<IEndpointConventionBuilder> endpointConventionBuilders)
+        internal GrpcServiceEndpointConventionBuilder(IEnumerable<IEndpointConventionBuilder> endpointConventionBuilders)
         {
             _endpointConventionBuilders = endpointConventionBuilders.ToList();
         }
 
+        /// <summary>
+        /// Adds the specified convention to the builder. Conventions are used to customize <see cref="EndpointBuilder"/> instances.
+        /// </summary>
+        /// <param name="convention">The convention to add to the builder.</param>
         public void Add(Action<EndpointBuilder> convention)
         {
             foreach (var endpointConventionBuilder in _endpointConventionBuilders)
