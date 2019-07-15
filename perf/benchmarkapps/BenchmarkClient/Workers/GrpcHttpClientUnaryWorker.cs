@@ -20,18 +20,21 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
+using Grpc.Core;
 using Grpc.Net.Client;
 
 namespace BenchmarkClient.Workers
 {
     public class GrpcHttpClientUnaryWorker : IWorker
     {
+        private readonly DateTime? _deadline;
         private Greeter.GreeterClient? _client;
 
-        public GrpcHttpClientUnaryWorker(int id, string baseUri)
+        public GrpcHttpClientUnaryWorker(int id, string baseUri, DateTime? deadline = null)
         {
             Id = id;
             BaseUri = baseUri;
+            _deadline = deadline;
         }
 
         public int Id { get; }
@@ -39,7 +42,8 @@ namespace BenchmarkClient.Workers
 
         public async Task CallAsync()
         {
-            var call = _client!.SayHelloAsync(new HelloRequest { Name = "World" });
+            var options = new CallOptions(deadline: _deadline);
+            var call = _client!.SayHelloAsync(new HelloRequest { Name = "World" }, options);
             await call.ResponseAsync;
         }
 

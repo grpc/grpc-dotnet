@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
@@ -37,8 +38,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             UnaryServerMethod<TService, TRequest, TResponse> invoker,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory)
-            : base(method, serviceOptions, loggerFactory)
+            ILoggerFactory loggerFactory,
+            IGrpcServiceActivator<TService> serviceActivator,
+            IServiceProvider serviceProvider)
+            : base(method, serviceOptions, loggerFactory, serviceActivator, serviceProvider)
         {
             _invoker = invoker;
 
@@ -46,23 +49,22 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             {
                 UnaryServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequest, resolvedContext) =>
                 {
-                    var activator = resolvedContext.GetHttpContext().RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-                    TService? service = null;
+                    GrpcActivatorHandle<TService> serviceHandle = default;
                     try
                     {
-                        service = activator.Create();
-                        return await _invoker(service, resolvedRequest, resolvedContext);
+                        serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+                        return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
                     }
                     finally
                     {
-                        if (service != null)
+                        if (serviceHandle.Instance != null)
                         {
-                            activator.Release(service);
+                            ServiceActivator.Release(serviceHandle);
                         }
                     }
                 };
 
-                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors);
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
                 _pipelineInvoker = interceptorPipeline.UnaryPipeline(resolvedInvoker);
             }
         }
@@ -81,18 +83,17 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (_pipelineInvoker == null)
             {
-                var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-                TService? service = null;
+                GrpcActivatorHandle<TService> serviceHandle = default;
                 try
                 {
-                    service = activator.Create();
-                    response = await _invoker(service, request, serverCallContext);
+                    serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                    response = await _invoker(serviceHandle.Instance, request, serverCallContext);
                 }
                 finally
                 {
-                    if (service != null)
+                    if (serviceHandle.Instance != null)
                     {
-                        activator.Release(service);
+                        ServiceActivator.Release(serviceHandle);
                     }
                 }
             }

@@ -28,30 +28,32 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TResponse : class
     {
         private readonly InterceptorCollection _interceptors;
+        private readonly IServiceProvider _serviceProvider;
 
-        public InterceptorPipelineBuilder(InterceptorCollection interceptors)
+        public InterceptorPipelineBuilder(InterceptorCollection interceptors, IServiceProvider serviceProvider)
         {
             _interceptors = interceptors;
+            _serviceProvider = serviceProvider;
         }
 
         public ClientStreamingServerMethod<TRequest, TResponse> ClientStreamingPipeline(ClientStreamingServerMethod<TRequest, TResponse> innerInvoker)
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ClientStreamingServerMethod<TRequest, TResponse> next)
+            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, ClientStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, context) =>
                 {
-                    var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
-                    var interceptorInstance = CreateInterceptor(interceptorRegistration, interceptorActivator);
+                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
 
                     try
                     {
-                        return await interceptorInstance.ClientStreamingServerHandler(requestStream, context, next);
+                        return await interceptorHandle.Instance.ClientStreamingServerHandler(requestStream, context, next);
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorInstance);
+                        interceptorActivator.Release(interceptorHandle);
                     }
                 };
             }
@@ -61,20 +63,20 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, DuplexStreamingServerMethod<TRequest, TResponse> next)
+            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, DuplexStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, responseStream, context) =>
                 {
-                    var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
-                    var interceptorInstance = CreateInterceptor(interceptorRegistration, interceptorActivator);
+                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
 
                     try
                     {
-                        await interceptorInstance.DuplexStreamingServerHandler(requestStream, responseStream, context, next);
+                        await interceptorHandle.Instance.DuplexStreamingServerHandler(requestStream, responseStream, context, next);
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorInstance);
+                        interceptorActivator.Release(interceptorHandle);
                     }
                 };
             }
@@ -84,25 +86,25 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse> next)
+            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, ServerStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (request, responseStream, context) =>
                 {
-                    var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
-                    var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
+                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                    var interceptorHandle = interceptorActivator.Create(context.GetHttpContext().RequestServices, interceptorRegistration);
 
-                    if (interceptorInstance == null)
+                    if (interceptorHandle.Instance == null)
                     {
                         throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
                     }
 
                     try
                     {
-                        await interceptorInstance.ServerStreamingServerHandler(request, responseStream, context, next);
+                        await interceptorHandle.Instance.ServerStreamingServerHandler(request, responseStream, context, next);
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorInstance);
+                        interceptorActivator.Release(interceptorHandle);
                     }
                 };
             }
@@ -112,26 +114,26 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, UnaryServerMethod<TRequest, TResponse> next)
+            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, UnaryServerMethod<TRequest, TResponse> next)
             {
                 return async (request, context) =>
                 {
-                    var interceptorActivator = (IGrpcInterceptorActivator)context.GetHttpContext().RequestServices.GetRequiredService(interceptorRegistration.ActivatorType);
-                    var interceptorInstance = CreateInterceptor(interceptorRegistration, interceptorActivator);
+                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
 
                     try
                     {
-                        return await interceptorInstance.UnaryServerHandler(request, context, next);
+                        return await interceptorHandle.Instance.UnaryServerHandler(request, context, next);
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorInstance);
+                        interceptorActivator.Release(interceptorHandle);
                     }
                 };
             }
         }
 
-        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, T, T> wrapInvoker)
+        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, IServiceProvider, T, T> wrapInvoker)
         {
             // The inner invoker will create the service instance and invoke the method
             var resolvedInvoker = innerInvoker;
@@ -139,22 +141,22 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             // The list is reversed during construction so the first interceptor is built last and invoked first
             for (var i = _interceptors.Count - 1; i >= 0; i--)
             {
-                resolvedInvoker = wrapInvoker(_interceptors[i], resolvedInvoker);
+                resolvedInvoker = wrapInvoker(_interceptors[i], _serviceProvider, resolvedInvoker);
             }
 
             return resolvedInvoker;
         }
 
-        private static Interceptor CreateInterceptor(InterceptorRegistration interceptorRegistration, IGrpcInterceptorActivator interceptorActivator)
+        private static GrpcActivatorHandle<Interceptor> CreateInterceptor(InterceptorRegistration interceptorRegistration, IGrpcInterceptorActivator interceptorActivator, IServiceProvider serviceProvider)
         {
-            var interceptorInstance = interceptorActivator.Create(interceptorRegistration.Args);
+            var interceptorHandle = interceptorActivator.Create(serviceProvider, interceptorRegistration);
 
-            if (interceptorInstance == null)
+            if (interceptorHandle.Instance == null)
             {
                 throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
             }
 
-            return interceptorInstance;
+            return interceptorHandle;
         }
     }
 }
