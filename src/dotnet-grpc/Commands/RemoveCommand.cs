@@ -35,13 +35,13 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "remove",
-                description: CoreStrings.RemoveCommandDescription,
-                argument: new Argument<string[]>
-                {
-                    Name = "references",
-                    Description = CoreStrings.RemoveCommandArgumentDescription,
-                    Arity = ArgumentArity.OneOrMore
-                });
+                description: CoreStrings.RemoveCommandDescription);
+            command.AddArgument(new Argument<string[]>
+            {
+                Name = "references",
+                Description = CoreStrings.RemoveCommandArgumentDescription,
+                Arity = ArgumentArity.OneOrMore
+            });
 
             command.AddOption(CommonOptions.ProjectOption());
 
