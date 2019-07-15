@@ -42,19 +42,18 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "refresh",
-                description: CoreStrings.RefreshCommandDescription,
-                argument: new Argument<string[]>
-                {
-                    Name = "references",
-                    Description = CoreStrings.RefreshCommandArgumentDescription,
-                    Arity = ArgumentArity.ZeroOrMore
-                });
+                description: CoreStrings.RefreshCommandDescription);
 
+            command.AddArgument(new Argument<string[]>
+            {
+                Name = "references",
+                Description = CoreStrings.RefreshCommandArgumentDescription,
+                Arity = ArgumentArity.ZeroOrMore
+            });
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
                 aliases: new[] { "--dry-run" },
-                description: CoreStrings.DryRunOptionDescription,
-                argument: Argument.None
+                description: CoreStrings.DryRunOptionDescription
                 ));
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(

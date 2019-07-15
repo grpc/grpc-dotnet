@@ -24,28 +24,40 @@ namespace Grpc.Dotnet.Cli.Options
 {
     internal static class CommonOptions
     {
-        public static Option ProjectOption() =>
-            new Option(
+        public static Option ProjectOption()
+        {
+            var o = new Option(
                 aliases: new[] { "-p", "--project" },
-                description: CoreStrings.ProjectOptionDescription,
-                argument: new Argument<FileInfo> { Name = "project" });
+                description: CoreStrings.ProjectOptionDescription);
+            o.Argument = new Argument<FileInfo> { Name = "project" };
+            return o;
+        }
 
-        public static Option ServiceOption() =>
-            new Option(
+        public static Option ServiceOption()
+        {
+            var o = new Option(
                 aliases: new[] { "-s", "--services" },
-                description: CoreStrings.ServiceOptionDescription,
-                argument: new Argument<Services> { Name = "services" });
+                description: CoreStrings.ServiceOptionDescription);
+            o.Argument = new Argument<Services> { Name = "services" };
+            return o;
+        }
 
-        public static Option AccessOption() =>
-            new Option(
+        public static Option AccessOption()
+        {
+            var o = new Option(
                 aliases: new[] { "--access" },
-                description: CoreStrings.AccessOptionDescription,
-                argument: new Argument<Access> { Name = "access" });
+                description: CoreStrings.AccessOptionDescription);
+            o.Argument = new Argument<Access> { Name = "access" };
+            return o;
+        }
 
-        public static Option AdditionalImportDirsOption() =>
-            new Option(
+        public static Option AdditionalImportDirsOption()
+        {
+            var o = new Option(
                 aliases: new[] { "-i", "--additional-import-dirs" },
-                description: CoreStrings.AdditionalImportDirsOption,
-                argument: new Argument<string> { Name = "dirs" });
+                description: CoreStrings.AdditionalImportDirsOption);
+            o.Argument = new Argument<string> { Name = "dirs" };
+            return o;
+        }
     }
 }
