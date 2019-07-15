@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
@@ -76,6 +75,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             serverCallContext.DeserializationContext.SetPayload(requestPayload);
             var request = Method.RequestMarshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
             serverCallContext.DeserializationContext.SetPayload(null);
+
+            GrpcEventSource.Log.MessageReceived();
 
             if (_pipelineInvoker == null)
             {

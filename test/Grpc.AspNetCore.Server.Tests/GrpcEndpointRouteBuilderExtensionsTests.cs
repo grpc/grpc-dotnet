@@ -19,15 +19,14 @@
 using System;
 using System.Linq;
 using Greet;
-using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NUnit.Framework;
@@ -55,9 +54,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_CantBind_RaiseError()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc();
+            var services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -97,9 +94,7 @@ namespace Grpc.AspNetCore.Server.Tests
         private void BindServiceCore<TService>() where TService : class
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc();
+            var services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -136,9 +131,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 .Setup(m => m.CreateLogger(It.IsAny<string>()))
                 .Returns((string categoryName) => testLogger);
 
-            var services = new ServiceCollection();
+            var services = ServicesHelpers.CreateServices();
             services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
-            services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -170,9 +164,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 .Setup(m => m.CreateLogger(It.IsAny<string>()))
                 .Returns((string categoryName) => testLogger);
 
-            var services = new ServiceCollection();
+            var services = ServicesHelpers.CreateServices();
             services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
-            services.AddGrpc();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -196,9 +189,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ConventionBuilder_AddsMetadata()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc();
+            var services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -228,9 +219,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ServiceWithAttribute_AddsAttributesAsMetadata()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc();
+            var services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -257,9 +246,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ServiceWithAttributeAndBuilder_TestMetdataPrecedence()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc();
+            ServiceCollection services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
@@ -291,9 +278,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_NoMatchingCompressionProvider_ThrowError()
         {
             // Arrange
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddGrpc(options =>
+            var services = ServicesHelpers.CreateServices(options =>
             {
                 options.ResponseCompressionAlgorithm = "DOES_NOT_EXIST";
             });

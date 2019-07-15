@@ -20,10 +20,8 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 using Count;
 using Greet;
-using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -44,14 +42,14 @@ namespace GRPCServer
                 {
                     // This registers a global interceptor with a Singleton lifetime. The interceptor must be added to the service collection in addition to being registered here.
                     options.Interceptors.Add<MaxConcurrentCallsInterceptor>();
-                    // This registers a global interceptor with a Scoped lifetime.
-                    options.Interceptors.Add<MaxStreamingRequestTimeoutInterceptor>(TimeSpan.FromSeconds(30));
                 })
                 .AddServiceOptions<GreeterService>(options =>
                 {
                     // This registers an interceptor for the Greeter service with a Singleton lifetime.
                     // NOTE: Not all calls should be cached. Since the response of this service only depends on the request and no other state, adding caching here is acceptable.
                     options.Interceptors.Add<UnaryCachingInterceptor>();
+                    // This registers an interceptor for the Greeter service with a Scoped lifetime.
+                    options.Interceptors.Add<MaxStreamingRequestTimeoutInterceptor>(TimeSpan.FromSeconds(30));
                 });
             services.AddGrpcReflection();
             services.AddSingleton(new MaxConcurrentCallsInterceptor(200));

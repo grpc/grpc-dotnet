@@ -29,13 +29,17 @@ namespace Grpc.Tests.Shared
         public static HttpContextServerCallContext CreateServerCallContext(
             HttpContext? httpContext = null,
             GrpcServiceOptions? serviceOptions = null,
-            ILogger? logger = null)
+            ILogger? logger = null,
+            bool initialize = true)
         {
             var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),
                 serviceOptions ?? new GrpcServiceOptions(),
                 logger ?? NullLogger.Instance);
-            context.Initialize();
+            if (initialize)
+            {
+                context.Initialize();
+            }
 
             return context;
         }

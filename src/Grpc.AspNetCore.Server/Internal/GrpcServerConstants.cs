@@ -1,5 +1,4 @@
-﻿
-#region Copyright notice and license
+﻿#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,13 +16,14 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal interface IServerCallHandler
+    internal static class GrpcServerConstants
     {
-        Task HandleCallAsync(HttpContext httpContext);
+        internal const string HostActivityName = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
+        internal const string HostActivityChanged = HostActivityName + ".Changed";
+
+        internal const string ActivityStatusCodeTag = "grpc.status_code";
+        internal const string ActivityMethodTag = "grpc.method";
     }
 }

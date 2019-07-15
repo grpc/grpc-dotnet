@@ -25,13 +25,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
+    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
         protected ILogger Logger { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory)
+        protected ServerCallHandlerBase(
+            Method<TRequest, TResponse> method,
+            GrpcServiceOptions serviceOptions,
+            ILoggerFactory loggerFactory)
         {
             Method = method;
             ServiceOptions = serviceOptions;

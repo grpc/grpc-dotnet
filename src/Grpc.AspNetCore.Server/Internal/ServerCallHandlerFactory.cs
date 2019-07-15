@@ -38,10 +38,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly ILoggerFactory _loggerFactory;
         private readonly GrpcServiceOptions _resolvedOptions;
 
-        public ServerCallHandlerFactory(ILoggerFactory loggerFactory, IOptions<GrpcServiceOptions> globalOptions, IOptions<GrpcServiceOptions<TService>> serviceOptions)
+        public ServerCallHandlerFactory(
+            ILoggerFactory loggerFactory,
+            IOptions<GrpcServiceOptions> globalOptions,
+            IOptions<GrpcServiceOptions<TService>> serviceOptions)
         {
             _loggerFactory = loggerFactory;
-
             var so = serviceOptions.Value;
             var go = globalOptions.Value;
 
@@ -108,6 +110,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
                 Log.MethodUnimplemented(logger, unimplementedMethod);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
                 return Task.CompletedTask;
@@ -124,6 +127,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
                 Log.ServiceUnimplemented(logger, unimplementedService);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
                 return Task.CompletedTask;
