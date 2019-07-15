@@ -8,11 +8,14 @@
   <ItemGroup>
     <Protobuf Include="Proto\greet.proto" GrpcServices="Both" />
 
+    <Compile Include="..\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
     <Compile Include="..\Shared\HttpContextHelpers.cs" Link="Infrastructure\HttpContextHelpers.cs" />
     <Compile Include="..\Shared\HttpContextServerCallContextHelpers.cs" Link="Infrastructure\HttpContextServerCallContextHelpers.cs" />
+    <Compile Include="..\Shared\ObserverToList.cs" Link="Infrastructure\ObserverToList.cs" />
     <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
     <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />
+    <Compile Include="..\Shared\ServicesHelpers.cs" Link="Infrastructure\ServicesHelpers.cs" />
     <Compile Include="..\Shared\SyncPoint.cs" Link="Infrastructure\SyncPoint.cs" />
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
@@ -76,6 +75,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             var request = Method.RequestMarshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
             serverCallContext.DeserializationContext.SetPayload(null);
 
+            GrpcEventSource.Log.MessageReceived();
+
             TResponse? response = null;
 
             if (_pipelineInvoker == null)
@@ -108,6 +109,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             var responseBodyWriter = httpContext.Response.BodyWriter;
             await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
+
+            GrpcEventSource.Log.MessageSent();
         }
     }
 }
