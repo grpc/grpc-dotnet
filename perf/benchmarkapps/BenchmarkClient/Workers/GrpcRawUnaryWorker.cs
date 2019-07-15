@@ -30,12 +30,14 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcRawUnaryWorker : IWorker
     {
+        private readonly DateTime? _deadline;
         private HttpClient? _client;
 
-        public GrpcRawUnaryWorker(int id, string target)
+        public GrpcRawUnaryWorker(int id, string target, DateTime? deadline = null)
         {
             Id = id;
             Target = target;
+            _deadline = deadline;
         }
 
         public int Id { get; }
@@ -61,6 +63,10 @@ namespace BenchmarkClient.Workers
             request.Version = new Version(2, 0);
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
+            if (_deadline != null)
+            {
+                request.Headers.Add("grpc-timeout", "1S");
+            }
 
             var response = await _client!.SendAsync(request);
             response.EnsureSuccessStatusCode();

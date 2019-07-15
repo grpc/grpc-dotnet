@@ -51,6 +51,10 @@ namespace Grpc.AspNetCore.Microbenchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
+            var services = new ServiceCollection();
+            services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
+            var serviceProvider = services.BuildServiceProvider();
+
             var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
             var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
             var result = Task.FromResult(new ChatMessage());
@@ -58,7 +62,9 @@ namespace Grpc.AspNetCore.Microbenchmarks
                 method,
                 (service, request, context) => result,
                 ServiceOptions,
-                NullLoggerFactory.Instance);
+                NullLoggerFactory.Instance,
+                new TestGrpcServiceActivator<TestService>(new TestService()),
+                serviceProvider);
 
             _trailers = new HeaderDictionary();
 
@@ -73,10 +79,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             _requestPipe = new TestPipeReader();
 
-            var services = new ServiceCollection();
-            services.TryAddSingleton<IGrpcServiceActivator<TestService>>(new TestGrpcServiceActivator<TestService>(new TestService()));
-            services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
-            _requestServices = services.BuildServiceProvider();
+            _requestServices = serviceProvider;
 
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;

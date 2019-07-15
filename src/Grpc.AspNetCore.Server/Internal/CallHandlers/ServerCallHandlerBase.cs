@@ -26,18 +26,27 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
     internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
+        where TService : class
+        where TRequest : class
+        where TResponse : class
     {
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
+        protected IGrpcServiceActivator<TService> ServiceActivator { get; }
+        protected IServiceProvider ServiceProvider { get; }
         protected ILogger Logger { get; }
 
         protected ServerCallHandlerBase(
             Method<TRequest, TResponse> method,
             GrpcServiceOptions serviceOptions,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IGrpcServiceActivator<TService> serviceActivator,
+            IServiceProvider serviceProvider)
         {
             Method = method;
             ServiceOptions = serviceOptions;
+            ServiceActivator = serviceActivator;
+            ServiceProvider = serviceProvider;
             Logger = loggerFactory.CreateLogger(typeof(TService));
         }
 

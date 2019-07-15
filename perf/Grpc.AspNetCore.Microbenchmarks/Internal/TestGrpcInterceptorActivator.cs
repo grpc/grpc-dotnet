@@ -16,12 +16,14 @@
 
 #endregion
 
+using System;
 using Grpc.AspNetCore.Server;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
-    public class TestGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
+    internal class TestGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
     {
         public readonly TInterceptor _interceptor;
 
@@ -30,11 +32,11 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             _interceptor = service;
         }
 
-        public Interceptor Create(params object[] args)
+        public GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration)
         {
-            return _interceptor;
+            return new GrpcActivatorHandle<Interceptor>(_interceptor, created: false, state: null);
         }
 
-        public void Release(Interceptor interceptor) { }
+        public void Release(in GrpcActivatorHandle<Interceptor> interceptor) { }
     }
 }

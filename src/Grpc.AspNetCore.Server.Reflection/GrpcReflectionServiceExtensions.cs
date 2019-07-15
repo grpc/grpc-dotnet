@@ -17,10 +17,14 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Reflection.Internal;
 using Grpc.Reflection;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -41,9 +45,71 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
-            services.TryAddSingleton<IGrpcServiceActivator<ReflectionServiceImpl>, ReflectionGrpcServiceActivator>();
+            // ReflectionServiceImpl is designed to be a singleton
+            // Explicitly register creating it in DI using descriptors calculated from gRPC endpoints in the app
+            services.TryAddSingleton<ReflectionServiceImpl>(serviceProvider =>
+            {
+                var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(GrpcReflectionServiceExtensions));
+                var endpointDataSource = serviceProvider.GetRequiredService<EndpointDataSource>();
+
+                var grpcEndpointMetadata = endpointDataSource.Endpoints
+                    .Select(ep => ep.Metadata.GetMetadata<GrpcMethodMetadata>())
+                    .Where(m => m != null)
+                    .ToList();
+
+                var serviceTypes = grpcEndpointMetadata.Select(m => m.ServiceType).Distinct().ToList();
+
+                var serviceDescriptors = new List<Google.Protobuf.Reflection.ServiceDescriptor>();
+
+                foreach (var serviceType in serviceTypes)
+                {
+                    var baseType = GetServiceBaseType(serviceType);
+                    var definitionType = baseType?.DeclaringType;
+
+                    var descriptorPropertyInfo = definitionType?.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
+                    if (descriptorPropertyInfo != null)
+                    {
+                        var serviceDescriptor = descriptorPropertyInfo.GetValue(null) as Google.Protobuf.Reflection.ServiceDescriptor;
+                        if (serviceDescriptor != null)
+                        {
+                            serviceDescriptors.Add(serviceDescriptor);
+                            continue;
+                        }
+                    }
+
+                    Log.ServiceDescriptorNotResolved(logger, serviceType);
+                }
+
+                return new ReflectionServiceImpl(serviceDescriptors);
+            });
 
             return services;
+        }
+
+        private static Type? GetServiceBaseType(Type serviceImplementation)
+        {
+            // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
+            // We need to access the static BindService method on Foo which implicitly derives from Object.
+            var baseType = serviceImplementation.BaseType;
+
+            // Handle services that have multiple levels of inheritence
+            while (baseType?.BaseType?.BaseType != null)
+            {
+                baseType = baseType.BaseType;
+            }
+
+            return baseType;
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, string, Exception?> _serviceDescriptorNotResolved =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "ServiceDescriptorNotResolved"), "Could not resolve service descriptor for '{ServiceType}'. The service metadata will not be exposed by the reflection service.");
+
+            public static void ServiceDescriptorNotResolved(ILogger logger, Type serviceType)
+            {
+                _serviceDescriptorNotResolved(logger, serviceType.FullName ?? string.Empty, null);
+            }
         }
     }
 }
