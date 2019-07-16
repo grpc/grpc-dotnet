@@ -43,6 +43,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(builder));
             }
 
+            ValidateGrpcClient(builder);
+
             builder.Services.TryAddScoped<ContextPropagationInterceptor>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
@@ -54,6 +56,25 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             return builder;
+        }
+
+        private static void ValidateGrpcClient(IHttpClientBuilder builder)
+        {
+            // Validate the builder is for a gRPC client
+            foreach (var service in builder.Services)
+            {
+                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+                {
+                    // Builder is from AddGrpcClient if options have been configured with the same name
+                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryOptions>;
+                    if (namedOptions != null && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            throw new InvalidOperationException($"{nameof(EnableCallContextPropagation)} must be used with a gRPC client.");
         }
     }
 }

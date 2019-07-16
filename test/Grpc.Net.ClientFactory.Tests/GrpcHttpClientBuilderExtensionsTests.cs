@@ -69,6 +69,35 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public void AddInterceptor_NotFromGrpcClientFactoryAndExistingGrpcClient_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddGrpcClient<Greeter.GreeterClient>(o => { });
+            var client = services.AddHttpClient("TestClient");
+
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
+            Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
+
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
+            Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
+        }
+
+        [Test]
+        public void AddInterceptor_NotFromGrpcClientFactory_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var client = services.AddHttpClient("TestClient");
+
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
+            Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
+
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
+            Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
+        }
+
+        [Test]
         public async Task AddInterceptorGeneric_MultipleInstances_ExecutedInOrder()
         {
             // Arrange
@@ -108,6 +137,17 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             Assert.AreEqual(2, list[0]);
             Assert.AreEqual(4, list[1]);
             Assert.AreEqual(6, list[2]);
+        }
+
+        [Test]
+        public void AddInterceptorGeneric_NotFromGrpcClientFactory_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            var client = services.AddHttpClient("TestClient");
+
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor<CallbackInterceptor>());
+            Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 
         private class TestHttpMessageHandler : HttpMessageHandler
