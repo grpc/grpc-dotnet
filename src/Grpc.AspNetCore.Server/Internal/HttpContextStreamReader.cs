@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Internal
             context.SetPayload(requestPayload);
             Current = _deserializer(context);
             context.SetPayload(null);
-			
+
             GrpcEventSource.Log.MessageReceived();
             return true;
         }

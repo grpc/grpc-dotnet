@@ -133,8 +133,8 @@ namespace Grpc.Net.Client.Internal
                     _grpcEncoding,
                     _call.CallInvoker.SendMaxMessageSize,
                     _call.CancellationToken).ConfigureAwait(false);
-				
-				GrpcEventSource.Log.MessageSent();
+
+                GrpcEventSource.Log.MessageSent();
             }
             catch (TaskCanceledException)
             {
