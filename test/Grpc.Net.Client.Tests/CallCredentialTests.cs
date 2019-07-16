@@ -138,5 +138,41 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("SECOND_SECRET_TOKEN", requestHeaders!.GetValues("second_authorization").Single());
             Assert.AreEqual("THIRD_SECRET_TOKEN", requestHeaders!.GetValues("third_authorization").Single());
         }
+
+        [Test]
+        [TestCase("https://somehost", "https://somehost/ServiceName")]
+        [TestCase("https://somehost/", "https://somehost/ServiceName")]
+        [TestCase("https://somehost:443", "https://somehost/ServiceName")]
+        [TestCase("https://somehost:443/", "https://somehost/ServiceName")]
+        [TestCase("https://somehost:1234", "https://somehost:1234/ServiceName")]
+        [TestCase("https://foo.bar:443", "https://foo.bar/ServiceName")]
+        [TestCase("https://foo.bar:443/abc/xyz", "https://foo.bar/abc/xyz/ServiceName")]
+        public async Task CallCredentials_AuthContextPopulated(string target, string expectedServiceUrl)
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            }, new Uri(target));
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            string? serviceUrl = null;
+            string? methodName = null;
+            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
+            {
+                serviceUrl = context.ServiceUrl;
+                methodName = context.MethodName;
+                return Task.CompletedTask;
+            });
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            await call.ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(expectedServiceUrl, serviceUrl);
+            Assert.AreEqual("MethodName", ClientTestHelpers.ServiceMethod.Name);
+        }
     }
 }
