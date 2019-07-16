@@ -106,14 +106,10 @@ namespace Grpc.Net.Client.Tests
         public void DiagnosticListener_MakeCall_ActivityHasNameAndDuration()
         {
             // Arrange
-            HttpRequestMessage? requestMessage = null;
-            HttpResponseMessage? responseMessage = null;
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                requestMessage = request;
-
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
-                responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
+                var responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
                 responseMessage.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return responseMessage;
             });
