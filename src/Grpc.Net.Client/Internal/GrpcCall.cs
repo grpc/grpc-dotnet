@@ -160,6 +160,10 @@ namespace Grpc.Net.Client.Internal
         {
             if (!Disposed)
             {
+                // Locking on the call because:
+                // 1. Its not exposed publically
+                // 2. Nothing else locks on call
+                // 3. We want to avoid allocating a private lock object
                 lock (this)
                 {
                     if (!Disposed)
