@@ -18,7 +18,7 @@ package Mail;
 
 // The mail service definition.
 service Mailer {
-  rpc Mailbox (stream ForwardMailMessage) returns (stream MailboxMessage) {}
+  rpc Mailbox (stream ForwardMailMessage) returns (stream MailboxMessage) {};
 }
 
 message ForwardMailMessage {
