@@ -502,8 +502,8 @@ namespace Grpc.Net.Client.Internal
 
         private static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
         {
-            string serviceUrl = baseAddress.OriginalString;
-            if (baseAddress.Scheme == Uri.UriSchemeHttps && serviceUrl.EndsWith(":443", StringComparison.InvariantCulture))
+            var serviceUrl = baseAddress.OriginalString;
+            if (baseAddress.Scheme == Uri.UriSchemeHttps && serviceUrl.EndsWith(":443", StringComparison.Ordinal))
             {
                 // The service URL can be used by auth libraries to construct the "aud" fields of the JWT token,
                 // so not producing serviceUrl compatible with other gRPC implementations can lead to auth failures.
