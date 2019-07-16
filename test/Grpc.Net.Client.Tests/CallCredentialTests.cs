@@ -140,11 +140,13 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        [TestCase("https://somehost", "https://somehost/ServiceName")]
+        [TestCase("https://somehost/", "https://somehost/ServiceName")]
         [TestCase("https://somehost:443", "https://somehost/ServiceName")]
         [TestCase("https://somehost:443/", "https://somehost/ServiceName")]
         [TestCase("https://somehost:1234", "https://somehost:1234/ServiceName")]
         [TestCase("https://foo.bar:443", "https://foo.bar/ServiceName")]
-        [TestCase("https://foo.bar:443/abc/xyz", "https:/foo.bar/abc/xyz/ServiceName")]
+        [TestCase("https://foo.bar:443/abc/xyz", "https://foo.bar/abc/xyz/ServiceName")]
         public async Task CallCredentials_AuthContextPopulated(string target, string expectedServiceUrl)
         {
             // Arrange

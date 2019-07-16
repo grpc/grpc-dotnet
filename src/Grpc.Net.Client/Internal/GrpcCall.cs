@@ -502,16 +502,21 @@ namespace Grpc.Net.Client.Internal
 
         private static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
         {
-            var serviceUrl = baseAddress.OriginalString;
-            if (baseAddress.Scheme == Uri.UriSchemeHttps && serviceUrl.EndsWith(":443", StringComparison.Ordinal))
+            var authority = baseAddress.Authority;
+            if (baseAddress.Scheme == Uri.UriSchemeHttps && authority.EndsWith(":443", StringComparison.Ordinal))
             {
                 // The service URL can be used by auth libraries to construct the "aud" fields of the JWT token,
                 // so not producing serviceUrl compatible with other gRPC implementations can lead to auth failures.
                 // For https and the default port 443, the port suffix should be stripped.
                 // https://github.com/grpc/grpc/blob/39e982a263e5c48a650990743ed398c1c76db1ac/src/core/lib/security/transport/client_auth_filter.cc#L205
-                serviceUrl = serviceUrl.Substring(0, serviceUrl.Length - 4);
+                authority = authority.Substring(0, authority.Length - 4);
             }
-            serviceUrl += "/" + method.ServiceName;
+            var serviceUrl = baseAddress.Scheme + "://" + authority + baseAddress.AbsolutePath;
+            if (!serviceUrl.EndsWith("/", StringComparison.Ordinal))
+            {
+                serviceUrl += "/";
+            }
+            serviceUrl += method.ServiceName;
             return new AuthInterceptorContext(serviceUrl, method.Name);
         }
 
