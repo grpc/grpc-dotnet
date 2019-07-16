@@ -37,6 +37,27 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
     public class DefaultGrpcClientFactoryTests
     {
         [Test]
+        public void EnableCallContextPropagation_NotFromGrpcClientFactory_ThrowError()
+        {
+            var services = new ServiceCollection();
+            var clientBuilder = services.AddHttpClient("TestClient");
+
+            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
+            Assert.AreEqual("EnableCallContextPropagation must be used with a gRPC client.", ex.Message);
+        }
+
+        [Test]
+        public void EnableCallContextPropagation_NotFromGrpcClientFactoryAndExistingGrpcClient_ThrowError()
+        {
+            var services = new ServiceCollection();
+            services.AddGrpcClient<Greeter.GreeterClient>(o => { });
+            var clientBuilder = services.AddHttpClient("TestClient");
+
+            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
+            Assert.AreEqual("EnableCallContextPropagation must be used with a gRPC client.", ex.Message);
+        }
+
+        [Test]
         public async Task CreateClient_ServerCallContextHasValues_PropogatedDeadlineAndCancellation()
         {
             // Arrange
