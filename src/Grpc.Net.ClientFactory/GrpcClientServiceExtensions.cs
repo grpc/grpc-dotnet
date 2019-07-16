@@ -224,7 +224,15 @@ namespace Microsoft.Extensions.DependencyInjection
                 httpClient.BaseAddress = clientOptions.BaseAddress;
             };
 
-            services.Configure<GrpcClientFactoryOptions>(name, options => options.ExplicitlySet = true);
+            // This configuration serves multiple purposes:
+            // 1. ExplicitlySet is tested at runtime to determin if AddGrpcClient was called for this name.
+            // 2. `IConfigureOptions<GrpcClientFactoryOptions>` presense is services collection is tested
+            //    in gRPC client extension methods that take IHttpClientBuilder that the builder is from
+            //    AddGrpcClient. ConfigureNamedOptions<GrpcClientFactoryOptions> needs to be the value.
+            //    We need to cast to the concrete type to get the name.
+            //
+            services.AddSingleton<IConfigureOptions<GrpcClientFactoryOptions>>(
+                new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options => options.ExplicitlySet = true));
 
             IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
 

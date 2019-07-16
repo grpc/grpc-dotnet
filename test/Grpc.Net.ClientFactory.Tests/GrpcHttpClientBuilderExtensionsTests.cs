@@ -76,10 +76,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services.AddGrpcClient<Greeter.GreeterClient>(o => { });
             var client = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(() => { })));
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
 
-            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(() => { })));
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 
@@ -90,10 +90,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             var client = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(() => { })));
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
 
-            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(() => { })));
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 

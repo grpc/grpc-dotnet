@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         public void EnableCallContextPropagation_NotFromGrpcClientFactoryAndExistingGrpcClient_ThrowError()
         {
             var services = new ServiceCollection();
-            services.AddGrpcClient<TestGreeterClient>(o => { });
+            services.AddGrpcClient<Greeter.GreeterClient>(o => { });
             var clientBuilder = services.AddHttpClient("TestClient");
 
             var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
