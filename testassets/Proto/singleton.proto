@@ -20,7 +20,7 @@ package SingletonCount;
 // The counter service definition.
 service Counter {
   // Get current count
-  rpc IncrementCount (google.protobuf.Empty) returns (CounterReply) {}
+  rpc IncrementCount (google.protobuf.Empty) returns (CounterReply) {};
 }
 
 // The response message containing the current count
