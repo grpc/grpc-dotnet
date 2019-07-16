@@ -564,7 +564,7 @@ namespace Grpc.Net.Client.Internal
 
             if (configurator.Interceptor != null)
             {
-                var authInterceptorContext = new AuthInterceptorContext(client.BaseAddress.OriginalString, Method.FullName);
+                var authInterceptorContext = CreateAuthInterceptorContext(client.BaseAddress, Method);
                 var metadata = new Metadata();
                 await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
 
@@ -581,6 +581,26 @@ namespace Grpc.Net.Client.Internal
                     await ReadCredentialMetadata(client, message, c).ConfigureAwait(false);
                 }
             }
+        }
+
+        private static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
+        {
+            var authority = baseAddress.Authority;
+            if (baseAddress.Scheme == Uri.UriSchemeHttps && authority.EndsWith(":443", StringComparison.Ordinal))
+            {
+                // The service URL can be used by auth libraries to construct the "aud" fields of the JWT token,
+                // so not producing serviceUrl compatible with other gRPC implementations can lead to auth failures.
+                // For https and the default port 443, the port suffix should be stripped.
+                // https://github.com/grpc/grpc/blob/39e982a263e5c48a650990743ed398c1c76db1ac/src/core/lib/security/transport/client_auth_filter.cc#L205
+                authority = authority.Substring(0, authority.Length - 4);
+            }
+            var serviceUrl = baseAddress.Scheme + "://" + authority + baseAddress.AbsolutePath;
+            if (!serviceUrl.EndsWith("/", StringComparison.Ordinal))
+            {
+                serviceUrl += "/";
+            }
+            serviceUrl += method.ServiceName;
+            return new AuthInterceptorContext(serviceUrl, method.Name);
         }
 
         private HttpContentClientStreamWriter<TRequest, TResponse> CreateWriter(HttpRequestMessage message)
