@@ -133,6 +133,7 @@ namespace Grpc.Net.Client.Internal
                     return false;
                 }
 
+                GrpcEventSource.Log.MessageReceived();
                 return true;
             }
             catch (OperationCanceledException)
