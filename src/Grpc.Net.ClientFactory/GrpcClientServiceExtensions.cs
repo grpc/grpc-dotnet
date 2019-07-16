@@ -225,11 +225,12 @@ namespace Microsoft.Extensions.DependencyInjection
             };
 
             // This configuration serves multiple purposes:
-            // 1. ExplicitlySet is tested at runtime to determin if AddGrpcClient was called for this name.
-            // 2. `IConfigureOptions<GrpcClientFactoryOptions>` presense is services collection is tested
-            //    in gRPC client extension methods that take IHttpClientBuilder that the builder is from
+            // 1. ExplicitlySet is tested at runtime to determine if AddGrpcClient was called for this name.
+            // 2. `IConfigureOptions<GrpcClientFactoryOptions>` presence in builder's ServicesCollection is tested
+            //    in gRPC client extension methods that take IHttpClientBuilder. Validation will throw an error if
+            //    if gRPC extension methods, e.g. AddInterceptor, are used with client builders that are not from
             //    AddGrpcClient. ConfigureNamedOptions<GrpcClientFactoryOptions> needs to be the value.
-            //    We need to cast to the concrete type to get the name.
+            //    We need to cast the service value to the concrete type to get the name.
             //
             services.AddSingleton<IConfigureOptions<GrpcClientFactoryOptions>>(
                 new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options => options.ExplicitlySet = true));
