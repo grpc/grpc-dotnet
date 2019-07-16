@@ -20,9 +20,9 @@ package Count;
 // The counter service definition.
 service Counter {
   // Get current count
-  rpc IncrementCount (google.protobuf.Empty) returns (CounterReply) {}
+  rpc IncrementCount (google.protobuf.Empty) returns (CounterReply) {};
   // Increment count through multiple counts
-  rpc AccumulateCount (stream CounterRequest) returns (CounterReply) {}
+  rpc AccumulateCount (stream CounterRequest) returns (CounterReply) {};
 }
 
 // The request message containing the count to increment by

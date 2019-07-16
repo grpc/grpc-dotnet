@@ -17,7 +17,7 @@ syntax = "proto3";
 package Nested;
 
 service NestedService {
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc SayHello (HelloRequest) returns (HelloReply) {};
 }
 
 message HelloRequest {
