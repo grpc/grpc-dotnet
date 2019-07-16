@@ -18,5 +18,6 @@
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.13.0</Nunit3TestAdapterPackageVersion>
     <SystemCommandLineExperimentalPackageVersion>0.3.0-alpha.19317.1</SystemCommandLineExperimentalPackageVersion>
+    <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
   </PropertyGroup>
 </Project>

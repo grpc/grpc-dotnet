@@ -114,8 +114,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             var responseBodyWriter = httpContext.Response.BodyWriter;
             await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
-			
-			GrpcEventSource.Log.MessageSent();
+
+            GrpcEventSource.Log.MessageSent();
         }
     }
 }

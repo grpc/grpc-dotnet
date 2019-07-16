@@ -216,7 +216,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        public static async Task WriteMessage<TMessage>(
+        public static async Task WriteMessageAsync<TMessage>(
             this Stream stream,
             ILogger logger,
             TMessage message,

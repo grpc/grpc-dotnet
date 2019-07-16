@@ -214,10 +214,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 // physically encoded as UTF-8 followed by percent-encoding.
                 escapedDetail = PercentEncodingHelpers.PercentEncode(status.Detail);
             }
-			else
-			{
-			    escapedDetail = null;
-			}
+            else
+            {
+                escapedDetail = null;
+            }
 
             destination[GrpcProtocolConstants.MessageTrailer] = escapedDetail;
         }
