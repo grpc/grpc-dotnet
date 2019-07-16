@@ -45,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             _invoker = invoker;
 
-            if (!ServiceOptions.Interceptors.IsEmpty)
+            if (ServiceOptions.HasInterceptors)
             {
                 ClientStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequestStream, resolvedContext) =>
                 {

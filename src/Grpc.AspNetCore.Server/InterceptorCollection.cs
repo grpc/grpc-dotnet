@@ -17,9 +17,8 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server
@@ -27,34 +26,8 @@ namespace Grpc.AspNetCore.Server
     /// <summary>
     /// Represents the pipeline of interceptors to be invoked when processing a gRPC call.
     /// </summary>
-    public class InterceptorCollection : IReadOnlyList<InterceptorRegistration>
+    public class InterceptorCollection : Collection<InterceptorRegistration>
     {
-        private static readonly IEnumerator<InterceptorRegistration> EmptyEnumerator = Enumerable.Empty<InterceptorRegistration>().GetEnumerator();
-
-        private List<InterceptorRegistration>? _store;
-
-        /// <summary>
-        /// Get whether the collection contains any interceptors.
-        /// </summary>
-        public bool IsEmpty => _store == null || _store.Count == 0;
-
-        /// <inheritdoc />
-        public int Count => _store?.Count ?? 0;
-
-        /// <inheritdoc />
-        public InterceptorRegistration this[int index]
-        {
-            get
-            {
-                if (_store == null)
-                {
-                    throw new IndexOutOfRangeException();
-                }
-
-                return _store[index];
-            }
-        }
-
         /// <summary>
         /// Add an interceptor to the end of the pipeline.
         /// </summary>
@@ -62,36 +35,24 @@ namespace Grpc.AspNetCore.Server
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
         public void Add<TInterceptor>(params object[] args) where TInterceptor : Interceptor
         {
-            if (_store == null)
-            {
-                _store = new List<InterceptorRegistration>();
-            }
-
-            _store.Add(new InterceptorRegistration(typeof(TInterceptor), args));
+            Add(new InterceptorRegistration(typeof(TInterceptor), args));
         }
 
         /// <summary>
-        /// Append a set of interceptors to the end of the pipeline.
+        /// Append a set of interceptor registrations to the end of the pipeline.
         /// </summary>
-        /// <param name="collection">The set of interceptors to add.</param>
-        public void AddRange(InterceptorCollection collection)
+        /// <param name="registrations">The set of interceptor registrations to add.</param>
+        public void AddRange(IEnumerable<InterceptorRegistration> registrations)
         {
-            if (collection.IsEmpty)
+            if (registrations == null)
             {
-                return;
+                throw new ArgumentNullException(nameof(registrations));
             }
 
-            if (_store == null)
+            foreach (var interceptorRegistration in registrations)
             {
-                _store = new List<InterceptorRegistration>();
+                Add(interceptorRegistration);
             }
-
-            _store.AddRange(collection);
         }
-
-        /// <inheritdoc />
-        public IEnumerator<InterceptorRegistration> GetEnumerator() => _store?.GetEnumerator() ?? EmptyEnumerator;
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
