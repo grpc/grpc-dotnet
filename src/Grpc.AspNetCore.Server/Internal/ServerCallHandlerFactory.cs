@@ -68,6 +68,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _resolvedOptions.Interceptors.AddRange(go.Interceptors);
             _resolvedOptions.Interceptors.AddRange(so.Interceptors);
+            _resolvedOptions.HasInterceptors = _resolvedOptions.Interceptors.Count > 0;
 
             if (_resolvedOptions.ResponseCompressionAlgorithm != null)
             {
