@@ -1,0 +1,86 @@
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System;
+using System.IO;
+using System.Threading;
+using Microsoft.Extensions.Logging;
+
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+{
+    public class ExecutionContextLoggingProvider : ILoggerProvider
+    {
+        private readonly TextWriter _writer;
+        private readonly ExecutionContext _executionContext;
+        private readonly DateTimeOffset _timeStart;
+
+        public ExecutionContextLoggingProvider(TextWriter writer, ExecutionContext executionContext)
+        {
+            _writer = writer;
+            _executionContext = executionContext;
+            _timeStart = DateTimeOffset.UtcNow;
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new ExecutionContextLoggLogger(_timeStart, _writer, _executionContext, categoryName);
+        }
+
+        public void Dispose()
+        {
+        }
+
+        private class ExecutionContextLoggLogger : ILogger
+        {
+            private readonly DateTimeOffset _timeStart;
+            private readonly TextWriter _writer;
+            private readonly ExecutionContext _executionContext;
+            private readonly string _categoryName;
+
+            public ExecutionContextLoggLogger(DateTimeOffset timeStart, TextWriter writer, ExecutionContext executionContext, string categoryName)
+            {
+                _timeStart = timeStart;
+                _writer = writer;
+                _executionContext = executionContext;
+                _categoryName = categoryName;
+            }
+
+            public IDisposable? BeginScope<TState>(TState state)
+            {
+                return null;
+            }
+
+            public bool IsEnabled(LogLevel logLevel)
+            {
+                return true;
+            }
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+            {
+                ExecutionContext.Run(_executionContext, s =>
+                {
+                    var timestamp = $"{(DateTimeOffset.UtcNow - _timeStart).TotalSeconds.ToString("N3")}s";
+
+                    var logLine = timestamp + " " + _categoryName + " - " + logLevel + ": " + formatter(state, exception);
+
+                    _writer.WriteLine(logLine);
+                }, null);
+            }
+        }
+    }
+}
