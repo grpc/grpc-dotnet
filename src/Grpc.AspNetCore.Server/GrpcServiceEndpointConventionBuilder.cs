@@ -19,9 +19,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Builder;
 
-namespace Grpc.AspNetCore.Server
+namespace Microsoft.AspNetCore.Builder
 {
     /// <summary>
     /// Builds conventions that will be used for customization of gRPC service <see cref="EndpointBuilder"/> instances.
