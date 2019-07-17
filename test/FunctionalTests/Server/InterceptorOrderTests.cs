@@ -28,7 +28,7 @@ using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests
+namespace Grpc.AspNetCore.FunctionalTests.Server
 {
     [TestFixture]
     public class InterceptorOrderTests : FunctionalTestBase

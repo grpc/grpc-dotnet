@@ -35,7 +35,7 @@ using Grpc.Tests.Shared;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
-namespace Grpc.AspNetCore.FunctionalTests
+namespace Grpc.AspNetCore.FunctionalTests.Server
 {
     [TestFixture]
     public class UnaryMethodTests : FunctionalTestBase

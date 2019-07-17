@@ -48,7 +48,7 @@ namespace GRPCServer
 
             _availableTickets = updatedCount;
 
-            _logger.LogError($"{user} successfully purchased tickets.");
+            _logger.LogInformation($"{user} successfully purchased tickets.");
             return true;
         }
     }

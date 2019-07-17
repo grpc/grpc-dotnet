@@ -24,7 +24,7 @@ using Grpc.Tests.Shared;
 using Lifetime;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests
+namespace Grpc.AspNetCore.FunctionalTests.Server
 {
     [TestFixture]
     public class LifetimeTests : FunctionalTestBase
