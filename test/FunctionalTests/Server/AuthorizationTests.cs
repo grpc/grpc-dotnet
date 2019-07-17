@@ -25,7 +25,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests
+namespace Grpc.AspNetCore.FunctionalTests.Server
 {
     [TestFixture]
     public class AuthorizationTests : FunctionalTestBase

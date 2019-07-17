@@ -128,6 +128,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<CompressionService>();
                 endpoints.MapGrpcService<AnyService>();
                 endpoints.MapGrpcService<GreeterService>();
+                endpoints.MapGrpcService<StreamService>();
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 

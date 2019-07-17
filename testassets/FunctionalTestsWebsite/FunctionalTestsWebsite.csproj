@@ -18,5 +18,6 @@
     <Protobuf Include="..\Proto\lifetime.proto" Link="Protos\lifetime.proto" />
     <Protobuf Include="..\Proto\nested.proto" Link="Protos\nested.proto" />
     <Protobuf Include="..\Proto\singleton.proto" Link="Protos\singleton.proto" />
+    <Protobuf Include="..\Proto\streaming.proto" Link="Protos\streaming.proto" />
   </ItemGroup>
 </Project>
