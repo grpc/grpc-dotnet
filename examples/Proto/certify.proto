@@ -18,7 +18,7 @@ import "google/protobuf/empty.proto";
 package Certify;
 
 service Certifier {
-  rpc GetCertificateInfo (google.protobuf.Empty) returns (CertificateInfoResponse) {};
+  rpc GetCertificateInfo (google.protobuf.Empty) returns (CertificateInfoResponse);
 }
 
 message CertificateInfoResponse {

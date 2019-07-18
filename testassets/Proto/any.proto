@@ -19,7 +19,7 @@ import "google/protobuf/any.proto";
 package Any;
 
 service AnyService {
-  rpc DoAny (google.protobuf.Any) returns (AnyMessageResponse) {};
+  rpc DoAny (google.protobuf.Any) returns (AnyMessageResponse);
 }
 
 message AnyProductRequest {

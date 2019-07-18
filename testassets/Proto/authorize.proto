@@ -18,7 +18,7 @@ package Authorize;
 
 // The greeting service definition.
 service AuthorizedGreeter {
-  rpc SayHello (HelloRequest) returns (HelloReply) {};
+  rpc SayHello (HelloRequest) returns (HelloReply);
 }
 
 message HelloRequest {
