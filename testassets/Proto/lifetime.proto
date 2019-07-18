@@ -19,9 +19,9 @@ import "google/protobuf/empty.proto";
 package Lifetime;
 
 service LifetimeService {
-  rpc GetScopedValue (google.protobuf.Empty) returns (ValueResponse) {};
-  rpc GetSingletonValue (google.protobuf.Empty) returns (ValueResponse) {};
-  rpc GetTransientValue (google.protobuf.Empty) returns (ValueResponse) {};
+  rpc GetScopedValue (google.protobuf.Empty) returns (ValueResponse);
+  rpc GetSingletonValue (google.protobuf.Empty) returns (ValueResponse);
+  rpc GetTransientValue (google.protobuf.Empty) returns (ValueResponse);
 }
 
 message ValueResponse {

@@ -19,7 +19,7 @@ package Chat;
 // The greeting service definition.
 service Chatter {
   // Sends a greeting
-  rpc Chat (stream ChatMessage) returns (stream ChatMessage) {};
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
 }
 
 // The chat message.

@@ -20,6 +20,6 @@ import "greet.proto";
 package Aggregate;
 
 service Aggregator {
-  rpc AccumulateCount (stream Count.CounterRequest) returns (Count.CounterReply) {};
-  rpc SayHellos (Greet.HelloRequest) returns (stream Greet.HelloReply) {};
+  rpc AccumulateCount (stream Count.CounterRequest) returns (Count.CounterReply);
+  rpc SayHellos (Greet.HelloRequest) returns (stream Greet.HelloReply);
 }
