@@ -18,7 +18,7 @@ import "google/protobuf/empty.proto";
 package Streaming;
 
 service StreamService {
-  rpc DuplexData (stream DataMessage) returns (stream DataMessage) {};
+  rpc DuplexData (stream DataMessage) returns (stream DataMessage);
 }
 
 message DataMessage {
