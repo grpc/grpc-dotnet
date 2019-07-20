@@ -72,13 +72,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
             // Decode request
-            var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
-
-            serverCallContext.DeserializationContext.SetPayload(requestPayload);
-            var request = Method.RequestMarshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
-            serverCallContext.DeserializationContext.SetPayload(null);
-
-            GrpcEventSource.Log.MessageReceived();
+            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, Method.RequestMarshaller.ContextualDeserializer);
 
             if (_pipelineInvoker == null)
             {

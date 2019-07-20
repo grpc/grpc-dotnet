@@ -38,6 +38,7 @@ namespace Grpc.AspNetCore.Server.Tests
     public class PipeExtensionsTests
     {
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
+        private static readonly Marshaller<byte[]> Marshaller = new Marshaller<byte[]>((byte[] data, SerializationContext c) => c.Complete(data), c => c.PayloadAsNewBuffer());
 
         [Test]
         public async Task ReadSingleMessageAsync_EmptyMessage_ReturnNoData()
@@ -55,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(ms));
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert
             Assert.AreEqual(0, messageData.Length);
@@ -79,7 +80,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert
             Assert.AreEqual(1, messageData.Length);
@@ -104,7 +105,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(context);
+            var messageData = await pipeReader.ReadSingleMessageAsync(context, Marshaller.ContextualDeserializer);
 
             // Assert
             Assert.AreEqual(1, messageData.Length);
@@ -130,7 +131,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context).AsTask()).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -158,7 +159,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
+            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert
             Assert.AreEqual(449, messageData.Length);
@@ -186,7 +187,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
+            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert
             Assert.AreEqual(449, messageData!.Length);
@@ -210,21 +211,21 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(ms));
 
             // Act 1
-            var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
+            var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert 1
             Assert.AreEqual(0, messageData1!.Length);
             Assert.AreEqual(emptyMessage.Length, pipeReader.Consumed);
 
             // Act 2
-            var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
+            var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert 2
             Assert.AreEqual(0, messageData2!.Length);
             Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
 
             // Act 3
-            var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
+            var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
 
             // Assert 3
             Assert.IsNull(messageData3);
@@ -258,7 +259,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
 
             // Act 1
-            var messageData1Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            var messageData1Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(emptyMessage).DefaultTimeout();
 
             // Assert 1
@@ -267,7 +268,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(5, pipeReader.Examined);
 
             // Act 2
-            var messageData2Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            var messageData2Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(followingMessage).DefaultTimeout();
 
             // Assert 2
@@ -276,7 +277,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(10, pipeReader.Examined);
 
             // Act 3
-            var messageData3Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            var messageData3Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             // Assert 3
@@ -301,7 +302,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -326,7 +327,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -352,7 +353,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
@@ -368,7 +369,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(requestStream);
 
             // Act
-            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask();
+            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
 
             // Assert
             Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
@@ -414,7 +415,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
 
             // Act
-            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask();
+            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
 
             // Assert
             for (var i = 0; i < messageData.Length; i++)
@@ -461,7 +462,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -486,7 +487,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -501,7 +502,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServerCallContext);
+            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServerCallContext, Marshaller.ContextualSerializer, canFlush: false);
 
             // Assert
             var messageData = ms.ToArray();
@@ -516,7 +517,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServerCallContext, flush: true);
+            await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -541,7 +542,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServerCallContext, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -571,7 +572,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 + "nisl, vitae tincidunt purus vestibulum sit amet. Interdum et malesuada fames ac ante ipsum primis in faucibus.");
 
             // Act
-            await pipeWriter.WriteMessageAsync(content, TestServerCallContext, flush: true);
+            await pipeWriter.WriteMessageAsync(content, TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -597,7 +598,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -624,7 +625,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, flush: true)).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -654,7 +655,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -688,7 +689,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, flush: true);
+            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             Assert.AreEqual(System.IO.Compression.CompressionLevel.Optimal, mockCompressionProvider.ArgumentCompression);

@@ -70,5 +70,50 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             CollectionAssert.AreEqual(data, ms.ToArray());
         }
+
+        [Test]
+        public async Task ClientStream_SendLargeFileBatchedAndRecieveLargeFileBatched_Success()
+        {
+            // Arrange
+            var total = 1024 * 1024 * 64; // 64 MB
+            var data = new byte[1024 * 64]; // 64 KB
+            var client = GrpcClient.Create<StreamService.StreamServiceClient>(Fixture.Client, LoggerFactory);
+            var dataMessage = new DataMessage
+            {
+                Data = ByteString.CopyFrom(data)
+            };
+
+            // Act
+            var call = client.ClientStreamedData();
+
+            var sent = 0;
+            while (sent < total)
+            {
+                var writeCount = Math.Min(total - sent, data.Length);
+                DataMessage m;
+                if (writeCount == data.Length)
+                {
+                    m = dataMessage;
+                }
+                else
+                {
+                    m = new DataMessage
+                    {
+                        Data = ByteString.CopyFrom(data, 0, writeCount)
+                    };
+                }
+
+                await call.RequestStream.WriteAsync(m).DefaultTimeout();
+
+                sent += writeCount;
+            }
+
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
+
+            var response = await call.ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(total, response.Size);
+        }
     }
 }

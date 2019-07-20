@@ -62,5 +62,27 @@ namespace FunctionalTestsWebsite.Services
                 sent += writeCount;
             }
         }
+
+        public override async Task<DataComplete> ClientStreamedData(
+            IAsyncStreamReader<DataMessage> requestStream,
+            ServerCallContext context)
+        {
+            var total = 0L;
+            while (await requestStream.MoveNext(CancellationToken.None))
+            {
+                var message = requestStream.Current;
+                total += message.Data.Length;
+
+                if (message.ServerDelayMilliseconds > 0)
+                {
+                    await Task.Delay(message.ServerDelayMilliseconds);
+                }
+            }
+
+            return new DataComplete
+            {
+                Size = total
+            };
+        }
     }
 }

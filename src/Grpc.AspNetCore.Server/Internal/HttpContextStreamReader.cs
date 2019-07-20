@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            async Task<bool> MoveNextAsync(ValueTask<byte[]?> readStreamTask)
+            async Task<bool> MoveNextAsync(ValueTask<TRequest?> readStreamTask)
             {
                 return ProcessPayload(await readStreamTask);
             }
@@ -57,30 +57,25 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromCanceled<bool>(cancellationToken);
             }
 
-            var readStreamTask = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, cancellationToken);
-            if (!readStreamTask.IsCompletedSuccessfully)
+            var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
+            if (!request.IsCompletedSuccessfully)
             {
-                return MoveNextAsync(readStreamTask);
+                return MoveNextAsync(request);
             }
 
-            return ProcessPayload(readStreamTask.Result) ? True : False;
+            return ProcessPayload(request.Result) ? True : False;
         }
 
-        private bool ProcessPayload(byte[]? requestPayload)
+        private bool ProcessPayload(TRequest? request)
         {
             // Stream is complete
-            if (requestPayload == null)
+            if (request == null)
             {
-                Current = default;
+                Current = null;
                 return false;
             }
 
-            var context = _serverCallContext.DeserializationContext;
-            context.SetPayload(requestPayload);
-            Current = _deserializer(context);
-            context.SetPayload(null);
-
-            GrpcEventSource.Log.MessageReceived();
+            Current = request;
             return true;
         }
     }

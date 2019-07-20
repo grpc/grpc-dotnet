@@ -33,7 +33,6 @@ namespace Grpc.AspNetCore.Server.Internal
     internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
     {
         private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
-        private readonly ILogger _logger;
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
@@ -48,9 +47,10 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             HttpContext = httpContext;
             ServiceOptions = serviceOptions;
-            _logger = logger;
+            Logger = logger;
         }
 
+        internal ILogger Logger { get; }
         internal HttpContext HttpContext { get; }
         internal GrpcServiceOptions ServiceOptions { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
@@ -152,7 +152,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                Log.RpcConnectionError(_logger, rpcException.StatusCode, ex);
+                Log.RpcConnectionError(Logger, rpcException.StatusCode, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers
@@ -168,7 +168,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                Log.ErrorExecutingServiceMethod(_logger, method, ex);
+                Log.ErrorExecutingServiceMethod(Logger, method, ex);
 
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
@@ -410,7 +410,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return timeout;
                 }
 
-                Log.InvalidTimeoutIgnored(_logger, values);
+                Log.InvalidTimeoutIgnored(Logger, values);
             }
 
             return TimeSpan.Zero;
@@ -420,7 +420,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             try
             {
-                Log.DeadlineExceeded(_logger, GetTimeout());
+                Log.DeadlineExceeded(Logger, GetTimeout());
                 GrpcEventSource.Log.CallDeadlineExceeded();
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
@@ -453,7 +453,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             catch (Exception ex)
             {
-                Log.DeadlineCancellationError(_logger, ex);
+                Log.DeadlineCancellationError(Logger, ex);
             }
         }
 
@@ -516,7 +516,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
             {
-                Log.EncodingNotInAcceptEncoding(_logger, ResponseGrpcEncoding);
+                Log.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
             }
         }
 

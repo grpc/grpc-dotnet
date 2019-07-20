@@ -36,10 +36,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.";
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "ErrorReadingMessage" &&
+                    writeContext.State.ToString() == "Error reading message." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             var requestMessage = new HelloRequest
@@ -65,10 +78,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.";
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "ErrorSendingMessage" &&
+                    writeContext.State.ToString() == "Error sending message." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             var requestMessage = new HelloRequest

@@ -40,14 +40,14 @@ namespace Grpc.Tests.Shared
 
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
-        public static T AssertReadMessage<T>(byte[] messageData, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage, new()
+        public static T AssertReadMessage<T>(byte[] messageData, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             var ms = new MemoryStream(messageData);
 
             return AssertReadMessageAsync<T>(ms, compressionEncoding, compressionProviders).GetAwaiter().GetResult();
         }
 
-        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : IMessage, new()
+        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
@@ -67,10 +67,7 @@ namespace Grpc.Tests.Shared
                     CompressionProviders = compressionProviders
                 });
 
-            var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext).AsTask().DefaultTimeout();
-
-            var message = new T();
-            message.MergeFrom(messageData);
+            var message = await pipeReader.ReadSingleMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
             return message;
         }
@@ -95,15 +92,7 @@ namespace Grpc.Tests.Shared
                 CompressionProviders = compressionProviders
             });
 
-            var messageData = await pipeReader.ReadStreamMessageAsync(serverCallContext).AsTask().DefaultTimeout();
-
-            if (messageData == null)
-            {
-                return default;
-            }
-
-            var message = new T();
-            message.MergeFrom(messageData);
+            var message = await pipeReader.ReadStreamMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
             return message;
         }
@@ -114,8 +103,6 @@ namespace Grpc.Tests.Shared
             {
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
-
-            var messageData = message.ToByteArray();
 
             var pipeWriter = PipeWriter.Create(stream);
 
@@ -131,8 +118,22 @@ namespace Grpc.Tests.Shared
                 });
             serverCallContext.Initialize();
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, serverCallContext, flush: true).GetAwaiter().GetResult();
+            PipeExtensions.WriteMessageAsync(pipeWriter, message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
             stream.Seek(0, SeekOrigin.Begin);
+        }
+
+        private static T Deserialize<T>(DeserializationContext context) where T : class, IMessage, new()
+        {
+            var data = context.PayloadAsNewBuffer();
+
+            if (data == null)
+            {
+                return null!;
+            }
+
+            var message = new T();
+            message.MergeFrom(data);
+            return message;
         }
     }
 }
