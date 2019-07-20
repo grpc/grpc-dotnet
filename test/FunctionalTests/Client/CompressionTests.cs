@@ -16,8 +16,11 @@
 
 #endregion
 
+using System.Linq;
 using System.Threading.Tasks;
 using Compression;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
@@ -34,7 +37,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             var compressionMetadata = CreateClientCompressionMetadata("gzip");
 
-            var client = GrpcClient.Create<CompressionService.CompressionServiceClient>(Fixture.Client, LoggerFactory);
+            string? requestMessageEncoding = null;
+            using var httpClient = Fixture.CreateClient(new TestDelegateHandler(r =>
+            {
+                requestMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
+            }));
+
+            var client = GrpcClient.Create<CompressionService.CompressionServiceClient>(httpClient, LoggerFactory);
 
             // Act
             var call = client.SayHelloAsync(new HelloRequest { Name = "World" }, headers: compressionMetadata);
@@ -42,6 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual("Hello World", response.Message);
+            Assert.AreEqual("gzip", requestMessageEncoding);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)
