@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
             // Disable request body data rate for client streaming
-            DisableMinRequestBodyDataRate(httpContext);
+            DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
 
             TResponse? response = null;
 

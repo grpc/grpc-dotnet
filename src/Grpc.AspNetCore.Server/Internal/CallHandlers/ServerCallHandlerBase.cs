@@ -20,6 +20,7 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
 
@@ -103,13 +104,34 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         /// This should only be called from client streaming calls
         /// </summary>
         /// <param name="httpContext"></param>
-        protected void DisableMinRequestBodyDataRate(HttpContext httpContext)
+        protected void DisableMinRequestBodyDataRateAndMaxRequestBodySize(HttpContext httpContext)
         {
             var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
             if (minRequestBodyDataRateFeature != null)
             {
                 minRequestBodyDataRateFeature.MinDataRate = null;
             }
+
+            var maxRequestBodySizeFeature = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+            if (maxRequestBodySizeFeature != null)
+            {
+                if (!maxRequestBodySizeFeature.IsReadOnly)
+                {
+                    maxRequestBodySizeFeature.MaxRequestBodySize = null;
+                }
+                else
+                {
+                    httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(UnlimitedHttpMaxRequestBodySizeFeature.Instance);
+                }
+            }
+        }
+
+        private sealed class UnlimitedHttpMaxRequestBodySizeFeature : IHttpMaxRequestBodySizeFeature
+        {
+            public static readonly UnlimitedHttpMaxRequestBodySizeFeature Instance = new UnlimitedHttpMaxRequestBodySizeFeature();
+
+            public bool IsReadOnly => true;
+            public long? MaxRequestBodySize { get => null; set { } }
         }
     }
 }
