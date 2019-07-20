@@ -121,17 +121,22 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 }
                 else
                 {
-                    httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(UnlimitedHttpMaxRequestBodySizeFeature.Instance);
+                    // IsReadOnly could be true if middleware has already started reading the request body
+                    // In that case we can't disable the max request body size for the request stream
+                    Log.UnableToDisableMaxRequestBodySize(Logger);
                 }
             }
         }
 
-        private sealed class UnlimitedHttpMaxRequestBodySizeFeature : IHttpMaxRequestBodySizeFeature
+        private static class Log
         {
-            public static readonly UnlimitedHttpMaxRequestBodySizeFeature Instance = new UnlimitedHttpMaxRequestBodySizeFeature();
+            private static readonly Action<ILogger, Exception?> _unableToDisableMaxRequestBodySize =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "UnableToDisableMaxRequestBodySizeLimit"), "Unable to disable the max request body size limit.");
 
-            public bool IsReadOnly => true;
-            public long? MaxRequestBodySize { get => null; set { } }
+            public static void UnableToDisableMaxRequestBodySize(ILogger logger)
+            {
+                _unableToDisableMaxRequestBodySize(logger, null);
+            }
         }
     }
 }

@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
@@ -25,7 +26,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -69,20 +72,25 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(hasMaxRequestBodySize, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
         }
 
-        public async Task MaxRequestBodySizeFeature_FeatureIsReadOnly_OverwriteReadOnlyFeature()
+        [Test]
+        public async Task MaxRequestBodySizeFeature_FeatureIsReadOnly_Logged()
         {
             // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
             var httpContext = CreateContext(isMaxRequestBodySizeFeatureReadOnly: true);
-            var call = CreateHandler(MethodType.ClientStreaming);
+            var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
             await call.HandleCallAsync(httpContext);
 
             // Assert
-            Assert.AreEqual(false, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
+            Assert.AreEqual(true, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
+            Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "UnableToDisableMaxRequestBodySizeLimit"));
         }
 
-        private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(MethodType methodType)
+        private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(MethodType methodType, ILoggerFactory? loggerFactory = null)
         {
             var method = new Method<TestMessage, TestMessage>(methodType, "test", "test", _marshaller, _marshaller);
 
@@ -93,7 +101,7 @@ namespace Grpc.AspNetCore.Server.Tests
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
                         new GrpcServiceOptions(),
-                        NullLoggerFactory.Instance,
+                        loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
                 case MethodType.ClientStreaming:
@@ -101,7 +109,7 @@ namespace Grpc.AspNetCore.Server.Tests
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
                         new GrpcServiceOptions(),
-                        NullLoggerFactory.Instance,
+                        loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
                 case MethodType.ServerStreaming:
@@ -109,7 +117,7 @@ namespace Grpc.AspNetCore.Server.Tests
                         method,
                         (service, request, writer, context) => Task.FromResult(new TestMessage()),
                         new GrpcServiceOptions(),
-                        NullLoggerFactory.Instance,
+                        loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
                 case MethodType.DuplexStreaming:
@@ -117,7 +125,7 @@ namespace Grpc.AspNetCore.Server.Tests
                         method,
                         (service, reader, writer, context) => Task.CompletedTask,
                         new GrpcServiceOptions(),
-                        NullLoggerFactory.Instance,
+                        loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
                 default:
