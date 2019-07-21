@@ -20,6 +20,7 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
 
@@ -103,12 +104,38 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         /// This should only be called from client streaming calls
         /// </summary>
         /// <param name="httpContext"></param>
-        protected void DisableMinRequestBodyDataRate(HttpContext httpContext)
+        protected void DisableMinRequestBodyDataRateAndMaxRequestBodySize(HttpContext httpContext)
         {
             var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
             if (minRequestBodyDataRateFeature != null)
             {
                 minRequestBodyDataRateFeature.MinDataRate = null;
+            }
+
+            var maxRequestBodySizeFeature = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+            if (maxRequestBodySizeFeature != null)
+            {
+                if (!maxRequestBodySizeFeature.IsReadOnly)
+                {
+                    maxRequestBodySizeFeature.MaxRequestBodySize = null;
+                }
+                else
+                {
+                    // IsReadOnly could be true if middleware has already started reading the request body
+                    // In that case we can't disable the max request body size for the request stream
+                    Log.UnableToDisableMaxRequestBodySize(Logger);
+                }
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception?> _unableToDisableMaxRequestBodySize =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "UnableToDisableMaxRequestBodySizeLimit"), "Unable to disable the max request body size limit.");
+
+            public static void UnableToDisableMaxRequestBodySize(ILogger logger)
+            {
+                _unableToDisableMaxRequestBodySize(logger, null);
             }
         }
     }
