@@ -17,11 +17,7 @@
 #endregion
 
 using System;
-using System.Collections.Concurrent;
 using System.Net.Http;
-using FunctionalTestsWebsite.Infrastructure;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -29,18 +25,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
-        private readonly ILogger _logger;
         private readonly InProcessTestServer _server;
-        private readonly object _lock = new object();
-        private readonly ConcurrentDictionary<string, ILogger> _serverLoggers;
-        private bool _disposed;
 
         public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices = null)
         {
             LoggerFactory = new LoggerFactory();
-            _logger = LoggerFactory.CreateLogger<GrpcTestFixture<TStartup>>();
-
-            _serverLoggers = new ConcurrentDictionary<string, ILogger>(StringComparer.Ordinal);
 
             Action<IServiceCollection> configureServices = services =>
             {
@@ -53,7 +42,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 initialConfigureServices?.Invoke(services);
                 configureServices(services);
             });
-            _server.ServerLogged += ServerFixtureOnServerLogged;
 
             _server.StartServer();
 
@@ -66,43 +54,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Client.BaseAddress = new Uri(_server.Url!);
         }
 
-        private void ServerFixtureOnServerLogged(LogRecord logRecord)
-        {
-            if (logRecord == null)
-            {
-                _logger.LogWarning("Server log has no data.");
-                return;
-            }
-
-            ILogger logger;
-
-            lock (_lock)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                // Create (or get) a logger with the same name as the server logger
-                // Call in the lock to avoid ODE where LoggerFactory could be disposed by the wrapped disposable
-                logger = _serverLoggers.GetOrAdd(logRecord.LoggerName, loggerName => LoggerFactory.CreateLogger("SERVER " + loggerName));
-            }
-
-            logger.Log(logRecord.LogLevel, logRecord.EventId, logRecord.State, logRecord.Exception, logRecord.Formatter);
-        }
-
-        public LoggerFactory LoggerFactory { get; }
+        public ILoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
         public HttpClient Client { get; }
 
+        internal event Action<LogRecord> ServerLogged
+        {
+            add => _server.ServerLogged += value;
+            remove => _server.ServerLogged -= value;
+        }
+
         public void Dispose()
         {
-            _server.ServerLogged -= ServerFixtureOnServerLogged;
             Client.Dispose();
             _server.Dispose();
-
-            _disposed = true;
         }
     }
 }
