@@ -49,8 +49,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 {
                     // Server categories are prefixed with SERVER
                     var category = s.StartsWith("SERVER ") ? s.AsSpan(7) : s.AsSpan();
+
                     if (category.SequenceEqual("Microsoft.AspNetCore.Routing.Matching.DfaMatcher"))
                     {
+                        // Routing matcher is quite verbose at Debug level
+                        // Only capture Info and above
                         return l >= LogLevel.Information;
                     }
                     else if (category.StartsWith("Microsoft") || category.StartsWith("System"))

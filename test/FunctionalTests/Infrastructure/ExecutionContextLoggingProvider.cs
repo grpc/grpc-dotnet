@@ -38,21 +38,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public ILogger CreateLogger(string categoryName)
         {
-            return new ExecutionContextLoggLogger(_timeStart, _writer, _executionContext, categoryName);
+            return new ExecutionContextLogger(_timeStart, _writer, _executionContext, categoryName);
         }
 
         public void Dispose()
         {
         }
 
-        private class ExecutionContextLoggLogger : ILogger
+        private class ExecutionContextLogger : ILogger
         {
             private readonly DateTimeOffset _timeStart;
             private readonly TextWriter _writer;
             private readonly ExecutionContext _executionContext;
             private readonly string _categoryName;
 
-            public ExecutionContextLoggLogger(DateTimeOffset timeStart, TextWriter writer, ExecutionContext executionContext, string categoryName)
+            public ExecutionContextLogger(DateTimeOffset timeStart, TextWriter writer, ExecutionContext executionContext, string categoryName)
             {
                 _timeStart = timeStart;
                 _writer = writer;
@@ -72,6 +72,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
+                // Log using the passed in execution context.
+                // In the case of NUnit, console output is only captured by the test
+                // if it is written in the test's execution context.
                 ExecutionContext.Run(_executionContext, s =>
                 {
                     var timestamp = $"{(DateTimeOffset.UtcNow - _timeStart).TotalSeconds.ToString("N3")}s";
