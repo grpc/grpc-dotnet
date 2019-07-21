@@ -17,19 +17,23 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests
 {
     public class FunctionalTestBase
     {
-        private VerifyNoErrorsScope? _scope;
+        private GrpcTestContext? _testContext;
 
         protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; } = default!;
+
+        protected ILoggerFactory LoggerFactory => _testContext!.LoggerFactory;
 
         protected virtual void ConfigureServices(IServiceCollection services) { }
 
@@ -48,21 +52,26 @@ namespace Grpc.AspNetCore.FunctionalTests
         [SetUp]
         public void SetUp()
         {
-            _scope = new VerifyNoErrorsScope(Fixture.LoggerFactory, wrappedDisposable: null, expectedErrorsFilter: null);
+            _testContext = new GrpcTestContext();
+            Fixture.ServerLogged += _testContext.ServerFixtureOnServerLogged;
         }
 
         [TearDown]
         public void TearDown()
         {
-            // This will verify only expected errors were logged on the server for the previous test.
-            _scope?.Dispose();
+            if (_testContext != null)
+            {
+                Fixture.ServerLogged -= _testContext.ServerFixtureOnServerLogged;
+                _testContext.Dispose();
+            }
         }
 
-        public IList<LogRecord> Logs => _scope!.Logs;
+        public IList<LogRecord> Logs => _testContext!.Scope.Logs;
+
 
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
         {
-            _scope!.ExpectedErrorsFilter = expectedErrorsFilter;
+            _testContext!.Scope.ExpectedErrorsFilter = expectedErrorsFilter;
         }
 
         protected static string? GetRpcExceptionDetail(Exception? ex)
