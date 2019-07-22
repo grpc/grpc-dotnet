@@ -262,9 +262,16 @@ namespace Grpc.AspNetCore.Server.Internal
                 finally
                 {
                     // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                    // before yielding the read again.
-                    input.AdvanceTo(buffer.Start, buffer.End);
+                    if (completeMessageData != null)
+                    {
+                        input.AdvanceTo(buffer.Start);
+                    }
+                    else
+                    {
+                        // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                        // before yielding the read again.
+                        input.AdvanceTo(buffer.Start, buffer.End);
+                    }
                 }
             }
         }
@@ -280,6 +287,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             while (true)
             {
+                var completeMessage = false;
                 var result = await input.ReadAsync(cancellationToken);
                 var buffer = result.Buffer;
 
@@ -294,6 +302,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     {
                         if (TryReadMessage(ref buffer, context, out var data))
                         {
+                            completeMessage = true;
                             return data;
                         }
                     }
@@ -312,18 +321,18 @@ namespace Grpc.AspNetCore.Server.Internal
                 finally
                 {
                     // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                    // before yielding the read again.
-                    input.AdvanceTo(buffer.Start, buffer.End);
+                    if (completeMessage)
+                    {
+                        input.AdvanceTo(buffer.Start);
+                    }
+                    else
+                    {
+                        // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                        // before yielding the read again.
+                        input.AdvanceTo(buffer.Start, buffer.End);
+                    }
                 }
             }
-        }
-
-        private enum ReadMessageResult
-        {
-            Read,
-            Incomplete,
-            Stop
         }
 
         private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out byte[]? message)
