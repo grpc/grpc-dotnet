@@ -28,14 +28,17 @@ namespace Grpc.Tests.Shared
     /// </summary>
     public class SyncPointMemoryStream : Stream
     {
+        private readonly bool _runContinuationsAsynchronously;
+
         private SyncPoint _syncPoint;
         private Func<Task> _awaiter;
         private byte[] _currentData;
 
-        public SyncPointMemoryStream()
+        public SyncPointMemoryStream(bool runContinuationsAsynchronously = true)
         {
+            _runContinuationsAsynchronously = runContinuationsAsynchronously;
             _currentData = Array.Empty<byte>();
-            _awaiter = SyncPoint.Create(out _syncPoint);
+            _awaiter = SyncPoint.Create(out _syncPoint, _runContinuationsAsynchronously);
         }
 
         /// <summary>
@@ -111,7 +114,7 @@ namespace Grpc.Tests.Shared
 
         private void ResetSyncPoint()
         {
-            _awaiter = SyncPoint.Create(out _syncPoint);
+            _awaiter = SyncPoint.Create(out _syncPoint, _runContinuationsAsynchronously);
         }
 
         #region Stream implementation

@@ -17,11 +17,14 @@
 #endregion
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
@@ -37,7 +40,7 @@ namespace Grpc.AspNetCore.Server.Tests
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
         [Test]
-        public async Task ReadMessageAsync_EmptyMessage_ReturnNoData()
+        public async Task ReadSingleMessageAsync_EmptyMessage_ReturnNoData()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -49,17 +52,18 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x00 // length = 0
                 });
 
-            var pipeReader = PipeReader.Create(ms);
+            var pipeReader = new TestPipeReader(PipeReader.Create(ms));
 
             // Act
             var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext);
 
             // Assert
             Assert.AreEqual(0, messageData.Length);
+            Assert.AreEqual(5, pipeReader.Consumed);
         }
 
         [Test]
-        public async Task ReadMessageAsync_OneByteMessage_ReturnData()
+        public async Task ReadSingleMessageAsync_OneByteMessage_ReturnData()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -83,7 +87,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_UnderReceiveSize_ReturnData()
+        public async Task ReadSingleMessageAsync_UnderReceiveSize_ReturnData()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
@@ -108,7 +112,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_ExceedReceiveSize_ReturnData()
+        public async Task ReadSingleMessageAsync_ExceedReceiveSize_ReturnData()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { ReceiveMaxMessageSize = 1 });
@@ -134,7 +138,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_LongMessage_ReturnData()
+        public async Task ReadSingleMessageAsync_LongMessage_ReturnData()
         {
             // Arrange
             var content = Encoding.UTF8.GetBytes("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius nibh a blandit mollis. "
@@ -162,7 +166,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageStreamAsync_LongMessage_ReturnData()
+        public async Task ReadStreamMessageAsync_LongMessage_ReturnData()
         {
             // Arrange
             var content = Encoding.UTF8.GetBytes("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius nibh a blandit mollis. "
@@ -190,7 +194,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageStreamAsync_MultipleEmptyMessage_ReturnNoDataMessageThenComplete()
+        public async Task ReadStreamMessageAsync_MultipleEmptyMessages_ReturnNoDataMessageThenComplete()
         {
             // Arrange
             var emptyMessage = new byte[]
@@ -203,29 +207,87 @@ namespace Grpc.AspNetCore.Server.Tests
                 };
             var ms = new MemoryStream(emptyMessage.Concat(emptyMessage).ToArray());
 
-            var pipeReader = PipeReader.Create(ms);
+            var pipeReader = new TestPipeReader(PipeReader.Create(ms));
 
             // Act 1
             var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 1
             Assert.AreEqual(0, messageData1!.Length);
+            Assert.AreEqual(emptyMessage.Length, pipeReader.Consumed);
 
             // Act 2
             var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 2
             Assert.AreEqual(0, messageData2!.Length);
+            Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
 
             // Act 3
             var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 3
             Assert.IsNull(messageData3);
+            Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
         }
 
         [Test]
-        public async Task ReadMessageAsync_HeaderIncomplete_ThrowError()
+        public async Task ReadStreamMessageAsync_MessageSplitAcrossReadsWithAdditionalData_ExamineMessageOnly()
+        {
+            // Arrange
+            var emptyMessage = new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length = 0
+                    0x00, // compression = 0
+                };
+            var followingMessage = new byte[]
+                {
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length = 0
+                    0x00, // extra data
+                };
+
+            var requestStream = new SyncPointMemoryStream(runContinuationsAsynchronously: false);
+
+            var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
+
+            // Act 1
+            var messageData1Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(emptyMessage).DefaultTimeout();
+
+            // Assert 1
+            Assert.AreEqual(0, (await messageData1Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(5, pipeReader.Consumed);
+            Assert.AreEqual(5, pipeReader.Examined);
+
+            // Act 2
+            var messageData2Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(followingMessage).DefaultTimeout();
+
+            // Assert 2
+            Assert.AreEqual(0, (await messageData2Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(10, pipeReader.Consumed);
+            Assert.AreEqual(10, pipeReader.Examined);
+
+            // Act 3
+            var messageData3Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            // Assert 3
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => messageData3Task).DefaultTimeout();
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(10, pipeReader.Consumed);
+            Assert.AreEqual(11, pipeReader.Examined); // Examined ahead to ask for more data
+        }
+
+        [Test]
+        public async Task ReadSingleMessageAsync_HeaderIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -247,7 +309,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_MessageDataIncomplete_ThrowError()
+        public async Task ReadSingleMessageAsync_MessageDataIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -272,7 +334,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_AdditionalData_ThrowError()
+        public async Task ReadSingleMessageAsync_AdditionalData_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -298,7 +360,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_AdditionalDataInSeparatePipeRead_ThrowError()
+        public async Task ReadSingleMessageAsync_AdditionalDataInSeparatePipeRead_ThrowError()
         {
             // Arrange
             var requestStream = new SyncPointMemoryStream();
@@ -333,7 +395,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageAsync_MessageInMultiplePipeReads_ReadMessageData()
+        public async Task ReadSingleMessageAsync_MessageInMultiplePipeReads_ReadMessageData()
         {
             // Arrange
             var messageData = new byte[]
@@ -346,19 +408,34 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 };
 
-            var requestStream = new SyncPointMemoryStream();
+            // Run continuations without async so ReadSingleMessageAsync immediately consumes added data
+            var requestStream = new SyncPointMemoryStream(runContinuationsAsynchronously: false);
 
-            var pipeReader = PipeReader.Create(requestStream);
+            var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
 
             // Act
             var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext).AsTask();
 
             // Assert
-            foreach (var b in messageData)
+            for (var i = 0; i < messageData.Length; i++)
             {
+                var b = messageData[i];
+                var isLast = i == messageData.Length - 1;
+
                 Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
 
                 await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
+
+                if (!isLast)
+                {
+                    Assert.AreEqual(0, pipeReader.Consumed);
+                    Assert.AreEqual(i + 1, pipeReader.Examined);
+                }
+                else
+                {
+                    Assert.AreEqual(messageData.Length, pipeReader.Consumed); // Consumed message
+                    Assert.AreEqual(messageData.Length, pipeReader.Examined);
+                }
             }
 
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
@@ -392,7 +469,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadMessageStreamAsync_MessageDataIncomplete_ThrowError()
+        public async Task ReadStreamMessageAsync_MessageDataIncomplete_ThrowError()
         {
             // Arrange
             var ms = new MemoryStream(new byte[]
@@ -638,6 +715,62 @@ namespace Grpc.AspNetCore.Server.Tests
             public Stream CreateDecompressionStream(Stream stream)
             {
                 return _inner.CreateDecompressionStream(stream);
+            }
+        }
+
+        public class TestPipeReader : PipeReader
+        {
+            private readonly PipeReader _pipeReader;
+            private ReadOnlySequence<byte> _currentBuffer;
+
+            public long Consumed { get; set; }
+            public long Examined { get; set; }
+
+            public TestPipeReader(PipeReader pipeReader)
+            {
+                _pipeReader = pipeReader;
+            }
+
+            public override void AdvanceTo(SequencePosition consumed)
+            {
+                Consumed += _currentBuffer.Slice(0, consumed).Length;
+                Examined = Consumed;
+                _pipeReader.AdvanceTo(consumed);
+            }
+
+            public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+            {
+                Consumed += _currentBuffer.Slice(0, consumed).Length;
+                Examined = Consumed + _currentBuffer.Slice(0, examined).Length;
+                _pipeReader.AdvanceTo(consumed, examined);
+            }
+
+            public override void CancelPendingRead()
+            {
+                _pipeReader.CancelPendingRead();
+            }
+
+            public override void Complete(Exception? exception = null)
+            {
+                _pipeReader.Complete(exception);
+            }
+
+            public override void OnWriterCompleted(Action<Exception, object> callback, object state)
+            {
+                _pipeReader.OnWriterCompleted(callback, state);
+            }
+
+            public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+            {
+                var result = await _pipeReader.ReadAsync(cancellationToken);
+                _currentBuffer = result.Buffer;
+
+                return result;
+            }
+
+            public override bool TryRead(out ReadResult result)
+            {
+                return _pipeReader.TryRead(out result);
             }
         }
     }
