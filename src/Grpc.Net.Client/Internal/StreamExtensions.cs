@@ -258,6 +258,8 @@ namespace Grpc.Net.Client
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
+                Log.SerializedMessage(logger, typeof(TMessage), data.Length);
+
                 if (data.Length > maximumMessageSize)
                 {
                     throw new RpcException(SendingMessageExceedsLimitStatus);
@@ -274,8 +276,6 @@ namespace Grpc.Net.Client
                         GrpcProtocolConstants.CompressionProviders,
                         data);
                 }
-
-                Log.SerializedMessage(logger, typeof(TMessage), data.Length);
 
                 await WriteHeaderAsync(stream, data.Length, isCompressed, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);

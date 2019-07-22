@@ -32,16 +32,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     public class CompressionTests : FunctionalTestBase
     {
         [Test]
-        public async Task SendCompressedMessage_ServiceHasNoCompressionConfigured_ResponseIdentityEncoding()
+        public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseGzipEncoding()
         {
             // Arrange
             var compressionMetadata = CreateClientCompressionMetadata("gzip");
 
             string? requestMessageEncoding = null;
-            using var httpClient = Fixture.CreateClient(new TestDelegateHandler(r =>
-            {
-                requestMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
-            }));
+            string? responseMessageEncoding = null;
+            using var httpClient = Fixture.CreateClient(new TestDelegateHandler(
+                r =>
+                {
+                    requestMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
+                },
+                r =>
+                {
+                    responseMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
+                }
+            ));
 
             var client = GrpcClient.Create<CompressionService.CompressionServiceClient>(httpClient, LoggerFactory);
 
@@ -52,6 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             Assert.AreEqual("Hello World", response.Message);
             Assert.AreEqual("gzip", requestMessageEncoding);
+            Assert.AreEqual("gzip", responseMessageEncoding);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)
