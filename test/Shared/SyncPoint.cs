@@ -24,8 +24,16 @@ namespace Grpc.Tests.Shared
 {
     public class SyncPoint
     {
-        private readonly TaskCompletionSource<object?> _atSyncPoint = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource<object?> _continueFromSyncPoint = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object?> _atSyncPoint;
+        private readonly TaskCompletionSource<object?> _continueFromSyncPoint;
+
+        public SyncPoint(bool runContinuationsAsynchronously = true)
+        {
+            var taskCreationOptions = runContinuationsAsynchronously ? TaskCreationOptions.RunContinuationsAsynchronously : TaskCreationOptions.None;
+
+            _atSyncPoint = new TaskCompletionSource<object?>(taskCreationOptions);
+            _continueFromSyncPoint = new TaskCompletionSource<object?>(taskCreationOptions);
+        }
 
         /// <summary>
         /// Waits for the code-under-test to reach <see cref="WaitToContinue"/>.
@@ -57,9 +65,9 @@ namespace Grpc.Tests.Shared
             return _continueFromSyncPoint.Task;
         }
 
-        public static Func<Task> Create(out SyncPoint syncPoint)
+        public static Func<Task> Create(out SyncPoint syncPoint, bool runContinuationsAsynchronously = true)
         {
-            var handler = Create(1, out var syncPoints);
+            var handler = Create(1, out var syncPoints, runContinuationsAsynchronously);
             syncPoint = syncPoints[0];
             return handler;
         }
@@ -70,13 +78,13 @@ namespace Grpc.Tests.Shared
         /// <param name="count">The number of sync points to expect</param>
         /// <param name="syncPoints">The <see cref="SyncPoint"/> objects that can be used to coordinate the sync point</param>
         /// <returns></returns>
-        public static Func<Task> Create(int count, out SyncPoint[] syncPoints)
+        public static Func<Task> Create(int count, out SyncPoint[] syncPoints, bool runContinuationsAsynchronously = true)
         {
             // Need to use a local so the closure can capture it. You can't use out vars in a closure.
             var localSyncPoints = new SyncPoint[count];
             for (var i = 0; i < count; i += 1)
             {
-                localSyncPoints[i] = new SyncPoint();
+                localSyncPoints[i] = new SyncPoint(runContinuationsAsynchronously);
             }
 
             syncPoints = localSyncPoints;
