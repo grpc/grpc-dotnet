@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
@@ -57,8 +58,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual(0, messageData.Length);
-            Assert.IsNotNull(pipeReader.Consumed); // Consume the data
-            Assert.IsNull(pipeReader.Examined); // Read complete message so there is no need to request more
+            Assert.AreEqual(5, pipeReader.Consumed);
         }
 
         [Test]
@@ -193,7 +193,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ReadStreamMessageAsync_MultipleEmptyMessage_ReturnNoDataMessageThenComplete()
+        public async Task ReadStreamMessageAsync_MultipleEmptyMessages_ReturnNoDataMessageThenComplete()
         {
             // Arrange
             var emptyMessage = new byte[]
@@ -213,24 +213,76 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert 1
             Assert.AreEqual(0, messageData1!.Length);
-            Assert.IsNotNull(pipeReader.Consumed);
-            Assert.IsNull(pipeReader.Examined);
+            Assert.AreEqual(emptyMessage.Length, pipeReader.Consumed);
 
             // Act 2
             var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 2
             Assert.AreEqual(0, messageData2!.Length);
-            Assert.IsNotNull(pipeReader.Consumed);
-            Assert.IsNull(pipeReader.Examined);
+            Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
 
             // Act 3
             var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext);
 
             // Assert 3
             Assert.IsNull(messageData3);
-            Assert.IsNotNull(pipeReader.Consumed);
-            Assert.IsNotNull(pipeReader.Examined); // Final message is null so reader set examined to try and get more data
+            Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
+        }
+
+        [Test]
+        public async Task ReadStreamMessageAsync_MessageSplitAcrossReadsWithAdditionalData_ExamineMessageOnly()
+        {
+            // Arrange
+            var emptyMessage = new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length = 0
+                    0x00, // compression = 0
+                };
+            var followingMessage = new byte[]
+                {
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length = 0
+                    0x00, // extra data
+                };
+
+            var requestStream = new SyncPointMemoryStream(runContinuationsAsynchronously: false);
+
+            var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
+
+            // Act 1
+            var messageData1Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(emptyMessage).DefaultTimeout();
+
+            // Assert 1
+            Assert.AreEqual(0, (await messageData1Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(5, pipeReader.Consumed);
+            Assert.AreEqual(5, pipeReader.Examined);
+
+            // Act 2
+            var messageData2Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(followingMessage).DefaultTimeout();
+
+            // Assert 2
+            Assert.AreEqual(0, (await messageData2Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(10, pipeReader.Consumed);
+            Assert.AreEqual(10, pipeReader.Examined);
+
+            // Act 3
+            var messageData3Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext).AsTask();
+            await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+
+            // Assert 3
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => messageData3Task).DefaultTimeout();
+            Assert.AreEqual("Incomplete message.", ex.Status.Detail);
+            Assert.AreEqual(10, pipeReader.Consumed);
+            Assert.AreEqual(11, pipeReader.Examined); // Examined ahead to ask for more data
         }
 
         [Test]
@@ -375,11 +427,13 @@ namespace Grpc.AspNetCore.Server.Tests
 
                 if (!isLast)
                 {
-                    Assert.IsNotNull(pipeReader.Examined); // Message is not complete, reporting need to read more
+                    Assert.AreEqual(0, pipeReader.Consumed);
+                    Assert.AreEqual(i + 1, pipeReader.Examined);
                 }
                 else
                 {
-                    Assert.IsNull(pipeReader.Examined); // Last segment so no need to set examined to request more data
+                    Assert.AreEqual(messageData.Length, pipeReader.Consumed); // Consumed message
+                    Assert.AreEqual(messageData.Length, pipeReader.Examined);
                 }
             }
 
@@ -666,9 +720,10 @@ namespace Grpc.AspNetCore.Server.Tests
         public class TestPipeReader : PipeReader
         {
             private readonly PipeReader _pipeReader;
+            private int _readStart;
 
-            public SequencePosition? Consumed { get; set; }
-            public SequencePosition? Examined { get; set; }
+            public int Consumed { get; set; }
+            public int Examined { get; set; }
 
             public TestPipeReader(PipeReader pipeReader)
             {
@@ -677,15 +732,15 @@ namespace Grpc.AspNetCore.Server.Tests
 
             public override void AdvanceTo(SequencePosition consumed)
             {
-                Consumed = consumed;
-                Examined = null;
+                Consumed += consumed.GetInteger() - _readStart;
+                Examined = Consumed;
                 _pipeReader.AdvanceTo(consumed);
             }
 
             public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
             {
-                Consumed = consumed;
-                Examined = examined;
+                Consumed += consumed.GetInteger() - _readStart;
+                Examined = examined.GetInteger();
                 _pipeReader.AdvanceTo(consumed, examined);
             }
 
@@ -704,9 +759,12 @@ namespace Grpc.AspNetCore.Server.Tests
                 _pipeReader.OnWriterCompleted(callback, state);
             }
 
-            public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+            public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
             {
-                return _pipeReader.ReadAsync(cancellationToken);
+                var result = await _pipeReader.ReadAsync(cancellationToken);
+                _readStart = result.Buffer.Start.GetInteger();
+
+                return result;
             }
 
             public override bool TryRead(out ReadResult result)
