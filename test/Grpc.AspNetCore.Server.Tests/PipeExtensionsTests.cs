@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual(0, messageData.Length);
             Assert.IsNotNull(pipeReader.Consumed); // Consume the data
-            Assert.IsNull(pipeReader.Examined); // Read data together so there is no need to examine
+            Assert.IsNull(pipeReader.Examined); // Read complete message so there is no need to request more
         }
 
         [Test]
@@ -355,7 +355,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     0x10
                 };
 
-            // Run continuations without async so ReadSingleMessageAsync immediately consumes data
+            // Run continuations without async so ReadSingleMessageAsync immediately consumes added data
             var requestStream = new SyncPointMemoryStream(runContinuationsAsynchronously: false);
 
             var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
@@ -373,14 +373,13 @@ namespace Grpc.AspNetCore.Server.Tests
 
                 await requestStream.AddDataAndWait(new[] { b }).DefaultTimeout();
 
-                Assert.IsNotNull(pipeReader.Consumed); // Consume the data
                 if (!isLast)
                 {
                     Assert.IsNotNull(pipeReader.Examined); // Message is not complete, reporting need to read more
                 }
                 else
                 {
-                    Assert.IsNull(pipeReader.Examined); // Last segment so examined not set
+                    Assert.IsNull(pipeReader.Examined); // Last segment so no need to set examined to request more data
                 }
             }
 
