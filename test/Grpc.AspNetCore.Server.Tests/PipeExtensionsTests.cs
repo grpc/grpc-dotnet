@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -720,10 +721,10 @@ namespace Grpc.AspNetCore.Server.Tests
         public class TestPipeReader : PipeReader
         {
             private readonly PipeReader _pipeReader;
-            private int _readStart;
+            private ReadOnlySequence<byte> _currentBuffer;
 
-            public int Consumed { get; set; }
-            public int Examined { get; set; }
+            public long Consumed { get; set; }
+            public long Examined { get; set; }
 
             public TestPipeReader(PipeReader pipeReader)
             {
@@ -732,15 +733,15 @@ namespace Grpc.AspNetCore.Server.Tests
 
             public override void AdvanceTo(SequencePosition consumed)
             {
-                Consumed += consumed.GetInteger() - _readStart;
+                Consumed += _currentBuffer.Slice(0, consumed).Length;
                 Examined = Consumed;
                 _pipeReader.AdvanceTo(consumed);
             }
 
             public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
             {
-                Consumed += consumed.GetInteger() - _readStart;
-                Examined = examined.GetInteger();
+                Consumed += _currentBuffer.Slice(0, consumed).Length;
+                Examined = Consumed + _currentBuffer.Slice(0, examined).Length;
                 _pipeReader.AdvanceTo(consumed, examined);
             }
 
@@ -762,7 +763,7 @@ namespace Grpc.AspNetCore.Server.Tests
             public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
             {
                 var result = await _pipeReader.ReadAsync(cancellationToken);
-                _readStart = result.Buffer.Start.GetInteger();
+                _currentBuffer = result.Buffer;
 
                 return result;
             }
