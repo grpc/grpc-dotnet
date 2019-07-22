@@ -22,12 +22,15 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Compression;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -65,6 +68,8 @@ namespace Grpc.AspNetCore.Server.Internal
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
+                Log.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
+
                 // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
                 var httpResponse = serverCallContext.HttpContext.Response;
                 if (!httpResponse.HasStarted)
@@ -78,7 +83,8 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (isCompressed)
                 {
-                    responsePayload = GrpcProtocolHelpers.CompressMessage(
+                    responsePayload = CompressMessage(
+                        serverCallContext.Logger,
                         serverCallContext.ResponseGrpcEncoding!,
                         serverCallContext.ServiceOptions.ResponseCompressionLevel,
                         serverCallContext.ServiceOptions.CompressionProviders,
@@ -89,8 +95,6 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     throw new RpcException(SendingMessageExceedsLimitStatus);
                 }
-
-                Log.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
 
                 WriteHeader(pipeWriter, responsePayload.Length, isCompressed);
                 pipeWriter.Write(responsePayload);
@@ -415,7 +419,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!GrpcProtocolHelpers.TryDecompressMessage(encoding, context.ServiceOptions.CompressionProviders, message, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.CompressionProviders, message, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
@@ -440,6 +444,49 @@ namespace Grpc.AspNetCore.Server.Internal
             buffer = buffer.Slice(HeaderSize + messageLength);
 
             return true;
+        }
+
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        {
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    Log.DecompressingMessage(logger, compressionProvider.EncodingName);
+
+                    var output = new MemoryStream();
+                    var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
+                    compressionStream.CopyTo(output);
+
+                    result = output.ToArray();
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
+        }
+
+        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData)
+        {
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    Log.CompressingMessage(logger, compressionProvider.EncodingName);
+
+                    var output = new MemoryStream();
+                    using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
+                    {
+                        compressionStream.Write(messageData, 0, messageData.Length);
+                    }
+
+                    return output.ToArray();
+                }
+            }
+
+            // Should never reach here
+            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
         }
     }
 }
