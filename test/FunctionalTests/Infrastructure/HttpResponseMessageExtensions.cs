@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
         }
 
-        public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response) where T : IMessage, new()
+        public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response) where T : class, IMessage, new()
         {
             response.AssertIsSuccessfulGrpcRequest();
             var data = await response.Content.ReadAsByteArrayAsync().DefaultTimeout();

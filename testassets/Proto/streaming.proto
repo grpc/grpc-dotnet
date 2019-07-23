@@ -18,9 +18,15 @@ package Streaming;
 
 service StreamService {
   rpc DuplexData (stream DataMessage) returns (stream DataMessage);
+  rpc ClientStreamedData (stream DataMessage) returns (DataComplete);
 }
 
 message DataMessage {
   bytes data = 1;
-  bool finalSegment = 2;
+  int32 serverDelayMilliseconds = 2;
+  bool finalSegment = 3;
+}
+
+message DataComplete {
+  int64 size = 1;
 }

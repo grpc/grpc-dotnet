@@ -157,45 +157,6 @@ namespace Grpc.AspNetCore.Server.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        internal static bool TryDecompressMessage(string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
-        {
-            foreach (var compressionProvider in compressionProviders)
-            {
-                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
-                {
-                    var output = new MemoryStream();
-                    var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
-                    compressionStream.CopyTo(output);
-
-                    result = output.ToArray();
-                    return true;
-                }
-            }
-
-            result = null;
-            return false;
-        }
-
-        internal static byte[] CompressMessage(string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData)
-        {
-            foreach (var compressionProvider in compressionProviders)
-            {
-                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
-                {
-                    var output = new MemoryStream();
-                    using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
-                    {
-                        compressionStream.Write(messageData, 0, messageData.Length);
-                    }
-
-                    return output.ToArray();
-                }
-            }
-
-            // Should never reach here
-            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
-        }
-
         public static void AddProtocolHeaders(HttpResponse response)
         {
             response.ContentType = GrpcProtocolConstants.GrpcContentType;

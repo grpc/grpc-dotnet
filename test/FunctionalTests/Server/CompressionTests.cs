@@ -70,9 +70,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Internal' raised.";
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'Internal' raised.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "ErrorReadingMessage" &&
+                    writeContext.State.ToString() == "Error reading message.")
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             var requestMessage = new HelloRequest
@@ -126,9 +138,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Unimplemented' raised.";
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'Unimplemented' raised." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "ErrorReadingMessage" &&
+                    writeContext.State.ToString() == "Error reading message." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip")
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             var requestMessage = new HelloRequest
@@ -181,10 +207,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Internal' raised.";
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'Internal' raised." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Request did not include grpc-encoding value with compressed message.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                    writeContext.EventId.Name == "ErrorReadingMessage" &&
+                    writeContext.State.ToString() == "Error reading message." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Request did not include grpc-encoding value with compressed message.")
+                {
+                    return true;
+                }
+
+                return false;
             });
+
 
             var requestMessage = new HelloRequest
             {
