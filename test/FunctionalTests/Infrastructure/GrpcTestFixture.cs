@@ -49,15 +49,32 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-            Client = new HttpClient();
-            Client.DefaultRequestVersion = new Version(2, 0);
-            Client.BaseAddress = new Uri(_server.Url!);
+            Client = CreateClient();
         }
 
         public ILoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
         public HttpClient Client { get; }
+
+        public HttpClient CreateClient(DelegatingHandler? messageHandler = null)
+        {
+            HttpClient client;
+            if (messageHandler != null)
+            {
+                messageHandler.InnerHandler = new HttpClientHandler();
+                client = new HttpClient(messageHandler);
+            }
+            else
+            {
+                client = new HttpClient();
+            }
+
+            client.DefaultRequestVersion = new Version(2, 0);
+            client.BaseAddress = new Uri(_server.Url!);
+
+            return client;
+        }
 
         internal event Action<LogRecord> ServerLogged
         {
