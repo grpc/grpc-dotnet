@@ -36,6 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
     [TestFixture]
     public class CompressionTests : FunctionalTestBase
     {
+        [Test]
         public async Task SendCompressedMessage_ServiceHasNoCompressionConfigured_ResponseIdentityEncoding()
         {
             // Arrange

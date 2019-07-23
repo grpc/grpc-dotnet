@@ -20,12 +20,14 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
@@ -162,19 +164,15 @@ namespace Grpc.Net.Client
                     }
 
                     // Performance improvement would be to decompress without converting to an intermediary byte array
-                    if (!GrpcProtocolHelpers.TryDecompressMessage(grpcEncoding, GrpcProtocolConstants.CompressionProviders, messageData, out var decompressedMessage))
+                    if (!TryDecompressMessage(logger, grpcEncoding, GrpcProtocolConstants.CompressionProviders, messageData, out var decompressedMessage))
                     {
                         throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName)));
                     }
 
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     messageData = decompressedMessage;
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
                 }
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 Log.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 var deserializationContext = new DefaultDeserializationContext();
                 deserializationContext.SetPayload(messageData);
@@ -198,6 +196,27 @@ namespace Grpc.Net.Client
                 Log.ErrorReadingMessage(logger, ex);
                 throw;
             }
+        }
+
+        internal static bool TryDecompressMessage(ILogger logger, string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        {
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    Log.DecompressingMessage(logger, compressionProvider.EncodingName);
+
+                    var output = new MemoryStream();
+                    var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
+                    compressionStream.CopyTo(output);
+
+                    result = output.ToArray();
+                    return true;
+                }
+            }
+
+            result = null;
+            return false;
         }
 
         private static bool ReadCompressedFlag(byte flag)
@@ -239,6 +258,8 @@ namespace Grpc.Net.Client
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
+                Log.SerializedMessage(logger, typeof(TMessage), data.Length);
+
                 if (data.Length > maximumMessageSize)
                 {
                     throw new RpcException(SendingMessageExceedsLimitStatus);
@@ -248,14 +269,13 @@ namespace Grpc.Net.Client
 
                 if (isCompressed)
                 {
-                    data = GrpcProtocolHelpers.CompressMessage(
+                    data = CompressMessage(
+                        logger,
                         grpcEncoding,
                         CompressionLevel.Fastest,
                         GrpcProtocolConstants.CompressionProviders,
                         data);
                 }
-
-                Log.SerializedMessage(logger, typeof(TMessage), data.Length);
 
                 await WriteHeaderAsync(stream, data.Length, isCompressed, cancellationToken).ConfigureAwait(false);
                 await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
@@ -268,6 +288,28 @@ namespace Grpc.Net.Client
                 Log.ErrorSendingMessage(logger, ex);
                 throw;
             }
+        }
+
+        internal static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData)
+        {
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                {
+                    Log.CompressingMessage(logger, compressionProvider.EncodingName);
+
+                    var output = new MemoryStream();
+                    using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
+                    {
+                        compressionStream.Write(messageData, 0, messageData.Length);
+                    }
+
+                    return output.ToArray();
+                }
+            }
+
+            // Should never reach here
+            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
         }
 
         private static Task WriteHeaderAsync(Stream stream, int length, bool compress, CancellationToken cancellationToken)

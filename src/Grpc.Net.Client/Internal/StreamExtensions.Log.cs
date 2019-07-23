@@ -52,6 +52,12 @@ namespace Grpc.Net.Client
             private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
                 LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(9, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
 
+            private static readonly Action<ILogger, string, Exception?> _compressingMessage =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(10, "CompressingMessage"), "Compressing message with '{MessageEncoding}' encoding.");
+
+            private static readonly Action<ILogger, string, Exception?> _decompressingMessage =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(11, "DecompressingMessage"), "Decompressing message with '{MessageEncoding}' encoding.");
+
             public static void ReadingMessage(ILogger logger)
             {
                 _readingMessage(logger, null);
@@ -95,6 +101,16 @@ namespace Grpc.Net.Client
             public static void SerializedMessage(ILogger logger, Type messageType, int messageLength)
             {
                 _serializedMessage(logger, messageType, messageLength, null);
+            }
+
+            public static void CompressingMessage(ILogger logger, string messageEncoding)
+            {
+                _compressingMessage(logger, messageEncoding, null);
+            }
+
+            public static void DecompressingMessage(ILogger logger, string messageEncoding)
+            {
+                _decompressingMessage(logger, messageEncoding, null);
             }
         }
     }

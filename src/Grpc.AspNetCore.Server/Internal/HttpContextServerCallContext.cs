@@ -476,18 +476,27 @@ namespace Grpc.AspNetCore.Server.Internal
                 while (true)
                 {
                     var separatorIndex = acceptEncoding.IndexOf(',');
-                    if (separatorIndex == -1)
-                    {
-                        break;
-                    }
 
-                    var segment = acceptEncoding.Slice(0, separatorIndex);
-                    acceptEncoding = acceptEncoding.Slice(separatorIndex);
+                    ReadOnlySpan<char> segment;
+                    if (separatorIndex != -1)
+                    {
+                        segment = acceptEncoding.Slice(0, separatorIndex);
+                        acceptEncoding = acceptEncoding.Slice(separatorIndex + 1);
+                    }
+                    else
+                    {
+                        segment = acceptEncoding;
+                    }
 
                     // Check segment
                     if (segment.SequenceEqual(encoding))
                     {
                         return true;
+                    }
+
+                    if (separatorIndex == -1)
+                    {
+                        break;
                     }
                 }
 

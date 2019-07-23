@@ -39,9 +39,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         // IAsyncStreamReader<T> should declare Current as nullable
         // Suppress warning when overriding interface definition
-#pragma warning disable CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
+#pragma warning disable CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
         public TRequest? Current { get; private set; }
-#pragma warning restore CS8612 // Nullability of reference types in type doesn't match implicitly implemented member.
+#pragma warning restore CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
 
         public void Dispose() { }
 
