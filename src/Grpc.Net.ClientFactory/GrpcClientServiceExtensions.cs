@@ -214,7 +214,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
 
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
-            services.TryAdd(ServiceDescriptor.Transient(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
+            services.TryAdd(ServiceDescriptor.Singleton(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
 
             Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
             {

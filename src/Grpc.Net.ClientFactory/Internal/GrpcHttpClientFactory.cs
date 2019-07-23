@@ -85,7 +85,11 @@ namespace Grpc.Net.ClientFactory.Internal
                 options.CallInvokerActions[i](httpClientCallInvoker);
             }
 
-            return (TClient)_cache.Activator(_services, new object[] { httpClientCallInvoker.Intercept(options.Interceptors.ToArray()) });
+            var resolvedCallInvoker = options.Interceptors.Count == 0
+                ? httpClientCallInvoker
+                : httpClientCallInvoker.Intercept(options.Interceptors.ToArray());
+
+            return (TClient)_cache.Activator(_services, new object[] { resolvedCallInvoker });
         }
 
         // The Cache should be registered as a singleton, so it that it can
