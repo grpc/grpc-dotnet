@@ -19,9 +19,9 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client
+namespace Grpc.AspNetCore.Server.Internal
 {
-    internal static partial class StreamExtensions
+    internal static partial class PipeExtensions
     {
         private static class Log
         {

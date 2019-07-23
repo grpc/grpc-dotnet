@@ -40,11 +40,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
 
         public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
         {
-            var messageData = message.ToByteArray();
-
             var pipeWriter = PipeWriter.Create(stream);
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, TestServerCallContext, flush: true).GetAwaiter().GetResult();
+            PipeExtensions.WriteMessageAsync(pipeWriter, message, TestServerCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
         }
     }
 }

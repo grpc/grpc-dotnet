@@ -78,10 +78,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(CounterService).FullName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Internal' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.";
+                if (writeContext.LoggerName == "SERVER " + typeof(CounterService).FullName &&
+                    writeContext.EventId.Name == "RpcConnectionError" &&
+                    writeContext.State.ToString() == "Error status code 'Internal' raised." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER " + typeof(CounterService).FullName &&
+                    writeContext.EventId.Name == "ErrorReadingMessage" &&
+                    writeContext.State.ToString() == "Error reading message." &&
+                    GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
+                {
+                    return true;
+                }
+
+                return false;
             });
 
             var ms = new MemoryStream();
