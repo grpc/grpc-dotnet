@@ -51,6 +51,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             throw new NotImplementedException();
         }
 
+        [Obsolete]
         public override void OnWriterCompleted(Action<Exception, object> callback, object state)
         {
             throw new NotImplementedException();
