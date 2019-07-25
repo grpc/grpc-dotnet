@@ -253,17 +253,30 @@ namespace Grpc.Dotnet.Cli.Commands
                     var directoryToSearch = Path.GetPathRoot(reference)!;
                     var searchPattern = reference.Substring(directoryToSearch.Length);
 
-                    expandedReferences.AddRange(Directory.GetFiles(directoryToSearch, searchPattern));
+                    var resolvedFiles = Directory.GetFiles(directoryToSearch, searchPattern);
+
+                    if (resolvedFiles.Length == 0)
+                    {
+                        Console.LogWarning(CoreStrings.LogWarningNoReferenceResolved, reference);
+                    }
+
+                    expandedReferences.AddRange(resolvedFiles);
                     continue;
                 }
 
                 if (Directory.Exists(Path.Combine(Project.DirectoryPath, Path.GetDirectoryName(reference)!)))
                 {
+                    var resolvedFiles = Directory.GetFiles(Project.DirectoryPath, reference);
+
+                    if (resolvedFiles.Length == 0)
+                    {
+                        Console.LogWarning(CoreStrings.LogWarningNoReferenceResolved, reference);
+                    }
+
                     expandedReferences.AddRange(
-                        Directory.GetFiles(Project.DirectoryPath, reference)
-                            // The reference is relative to the project directory but GetFiles returns the full path.
-                            // Remove the project directory portion of the path so relative references are maintained.
-                            .Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
+                        // The reference is relative to the project directory but GetFiles returns the full path.
+                        // Remove the project directory portion of the path so relative references are maintained.
+                        resolvedFiles.Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
                 }
             }
 

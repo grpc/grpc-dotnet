@@ -207,4 +207,7 @@
   <data name="ErrorOutputMustBeFilePath" xml:space="preserve">
     <value>Output path `{0}` is invalid. The path cannot be a directory path and must be a file path.</value>
   </data>
+  <data name="LogWarningNoReferenceResolved" xml:space="preserve">
+    <value>No file found matching file argument `{0}`. File reference not added.</value>
+  </data>
 </root>
