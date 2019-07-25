@@ -43,7 +43,7 @@ namespace GRPCServer
         private int _forwardedMailCount;
 
         public string Name { get; }
-        public event Func<(int totalCount, int newCount, MailboxMessage.Types.Reason reason), Task> Changed;
+        public event Func<(int totalCount, int newCount, MailboxMessage.Types.Reason reason), Task>? Changed;
 
         public MailQueue(string name)
         {

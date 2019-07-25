@@ -44,6 +44,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             return _buffer;
         }
 
+        [Obsolete]
         public override void OnReaderCompleted(Action<Exception, object> callback, object state)
         {
             throw new NotImplementedException();

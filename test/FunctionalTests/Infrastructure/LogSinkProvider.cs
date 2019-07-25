@@ -30,7 +30,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         private IExternalScopeProvider? _scopeProvider;
 
-        public event Action<LogRecord> RecordLogged;
+        public event Action<LogRecord>? RecordLogged;
 
         public ILogger CreateLogger(string categoryName)
         {
