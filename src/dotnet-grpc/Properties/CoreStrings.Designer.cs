@@ -259,6 +259,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No file reference was found for pattern `{0}`..
+        /// </summary>
+        internal static string LogWarningNoReferenceResolved {
+            get {
+                return ResourceManager.GetString("LogWarningNoReferenceResolved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The reference {0} does not reference a .proto file. This may lead to compilation errors..
         /// </summary>
         internal static string LogWarningReferenceNotProto {
