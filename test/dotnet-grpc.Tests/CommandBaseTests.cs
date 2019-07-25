@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
+using Grpc.Dotnet.Cli.Properties;
 using Grpc.Tests.Shared;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
@@ -318,33 +319,39 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void GlobReferences_ExpandsRelativeReferences()
+        public void GlobReferences_ExpandsRelativeReferences_WarnsIfReferenceNotResolved()
         {
             // Arrange
+            var testConsole = new TestConsole();
             var commandBase = new CommandBase(
-                new TestConsole(),
+                testConsole,
                 CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+            var invalidReference = Path.Combine("Proto", "invalid*reference.proto");
 
             // Act
-            var references = commandBase.GlobReferences(new[] { Path.Combine("Proto", "*.proto") });
+            var references = commandBase.GlobReferences(new[] { Path.Combine("Proto", "*.proto"), invalidReference });
 
             // Assert
             Assert.Contains(Path.Combine("Proto", "a.proto"), references);
             Assert.Contains(Path.Combine("Proto", "b.proto"), references);
+            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
         [Test]
-        public void GlobReferences_ExpandsAbsoluteReferences()
+        public void GlobReferences_ExpandsAbsoluteReferences_WarnsIfReferenceNotResolved()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var testConsole = new TestConsole();
+            var commandBase = new CommandBase(testConsole, new Project());
+            var invalidReference = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "invalid*reference.proto");
 
             // Act
-            var references = commandBase.GlobReferences(new[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "*.proto") });
+            var references = commandBase.GlobReferences(new[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "*.proto"), invalidReference });
 
             // Assert
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
+            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
         static object[] DirectoryPaths =
