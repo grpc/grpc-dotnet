@@ -25,6 +25,7 @@ using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 using Streaming;
+using Unimplemented;
 
 namespace Grpc.AspNetCore.FunctionalTests.Client
 {
@@ -40,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 data[i] = (byte)i; // Will loop around back to zero
             }
-            var client = GrpcClient.Create<StreamService.StreamServiceClient>(Fixture.Client);
+            var client = GrpcClient.Create<StreamService.StreamServiceClient>(Fixture.Client, LoggerFactory);
 
             // Act
             var call = client.DuplexData();
@@ -114,6 +115,49 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual(total, response.Size);
+        }
+
+        [Test]
+        public async Task DuplexStream_SendToUnimplementedMethod_ThrowError()
+        {
+            // Arrange
+            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
+
+            // Act
+            var call = client.DuplexData();
+
+            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+            {
+                Data = ByteString.CopyFrom(new byte[1024 * 64])
+            }).DefaultTimeout();
+
+            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+            {
+                Data = ByteString.CopyFrom(new byte[1024 * 64])
+            }).DefaultTimeout();
+        }
+
+        [Test]
+        public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
+        {
+            // Arrange
+            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
+
+            // Act
+            var call = client.DuplexData();
+
+            // Response will only be headers so the call is "done" on the server side
+            await call.ResponseHeadersAsync.DefaultTimeout();
+
+            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+            {
+                Data = ByteString.CopyFrom(new byte[1024 * 64])
+            }).DefaultTimeout();
+
+            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+            {
+                Data = ByteString.CopyFrom(new byte[1024 * 64])
+            }).DefaultTimeout();
         }
     }
 }
