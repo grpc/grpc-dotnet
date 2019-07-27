@@ -35,6 +35,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected ILoggerFactory LoggerFactory => _testContext!.LoggerFactory;
 
+        protected ILogger Logger => _testContext!.Logger;
+
         protected virtual void ConfigureServices(IServiceCollection services) { }
 
         [OneTimeSetUp]

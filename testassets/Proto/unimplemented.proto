@@ -14,7 +14,6 @@
 
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
 package Unimplemented;
 
 // No service is registered on the server so methods will return unimplemented

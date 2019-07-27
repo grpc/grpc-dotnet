@@ -108,7 +108,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<ChatMessage, ChatMessage>(ChatBufferHint);
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<ChatMessage, ChatMessage>(ChatBufferHint);
 
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage
@@ -118,7 +118,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             });
 
             var streamingContent = new StreamingContent();
-            var httpRequest = GrpcHttpHelper.Create(url);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Content = streamingContent;
 
             // Act

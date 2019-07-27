@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(SayHellosBufferHint);
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(SayHellosBufferHint);
 
             var requestMessage = new HelloRequest
             {
@@ -141,7 +141,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create(url);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act

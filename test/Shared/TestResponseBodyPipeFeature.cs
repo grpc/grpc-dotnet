@@ -16,12 +16,16 @@
 
 #endregion
 
+using System;
+using System.IO;
 using System.IO.Pipelines;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.Tests.Shared
 {
-    public class TestResponseBodyPipeFeature : IResponseBodyPipeFeature
+    public class TestResponseBodyPipeFeature : IHttpResponseBodyFeature
     {
         public TestResponseBodyPipeFeature(PipeWriter writer)
         {
@@ -29,5 +33,26 @@ namespace Grpc.Tests.Shared
         }
 
         public PipeWriter Writer { get; }
+        public Stream Stream => throw new NotImplementedException();
+
+        public Task CompleteAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DisableBuffering()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

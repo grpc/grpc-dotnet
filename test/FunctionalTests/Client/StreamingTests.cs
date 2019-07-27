@@ -17,12 +17,15 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Streaming;
 using Unimplemented;
@@ -120,44 +123,39 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task DuplexStream_SendToUnimplementedMethod_ThrowError()
         {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "ErrorSendingMessage" &&
+                    writeContext.State.ToString() == "Error sending message.")
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
             // Arrange
             var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
 
             // Act
             var call = client.DuplexData();
 
-            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
             {
-                Data = ByteString.CopyFrom(new byte[1024 * 64])
-            }).DefaultTimeout();
+                await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+                {
+                    Data = ByteString.CopyFrom(new byte[1024 * 64])
+                }).DefaultTimeout();
 
-            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
-            {
-                Data = ByteString.CopyFrom(new byte[1024 * 64])
-            }).DefaultTimeout();
-        }
+                await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+                {
+                    Data = ByteString.CopyFrom(new byte[1024 * 64])
+                }).DefaultTimeout();
+            });
 
-        [Test]
-        public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
-        {
-            // Arrange
-            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
-
-            // Act
-            var call = client.DuplexData();
-
-            // Response will only be headers so the call is "done" on the server side
-            await call.ResponseHeadersAsync.DefaultTimeout();
-
-            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
-            {
-                Data = ByteString.CopyFrom(new byte[1024 * 64])
-            }).DefaultTimeout();
-
-            await call.RequestStream.WriteAsync(new UnimplementeDataMessage
-            {
-                Data = ByteString.CopyFrom(new byte[1024 * 64])
-            }).DefaultTimeout();
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
     }
 }

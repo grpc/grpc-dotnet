@@ -19,6 +19,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
@@ -570,7 +572,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpResetFeature = new TestHttpResetFeature();
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
-            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
+            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
             httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
 
             var serverCallContext = CreateServerCallContext(httpContext);
@@ -609,7 +611,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpResetFeature = new TestHttpResetFeature();
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
-            httpContext.Features.Set<IHttpResponseCompletionFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
+            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
             httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
 
             var testSink = new TestSink();
@@ -729,7 +731,7 @@ namespace Grpc.AspNetCore.Server.Tests
             }
         }
 
-        private class TestBlockingHttpResponseCompletionFeature : IHttpResponseCompletionFeature
+        private class TestBlockingHttpResponseCompletionFeature : IHttpResponseBodyFeature
         {
             private readonly SyncPoint _syncPoint;
 
@@ -738,9 +740,27 @@ namespace Grpc.AspNetCore.Server.Tests
                 _syncPoint = syncPoint;
             }
 
+            public Stream Stream => throw new NotImplementedException();
+            public PipeWriter Writer => throw new NotImplementedException();
+
             public Task CompleteAsync()
             {
                 return _syncPoint.WaitToContinue();
+            }
+
+            public void DisableBuffering()
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken = default)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task StartAsync(CancellationToken cancellationToken = default)
+            {
+                throw new NotImplementedException();
             }
         }
 

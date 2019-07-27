@@ -178,11 +178,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -195,7 +195,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
                 (requestStream, context) => Task.FromResult<HelloReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
@@ -216,7 +216,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -229,7 +229,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task ServerMethodThrowsExceptionWithTrailers_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
             {
                 var trailers = new Metadata();
                 trailers.Add(new Metadata.Entry("test-trailer", "A value!"));
@@ -255,7 +255,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -284,11 +284,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -326,11 +326,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
