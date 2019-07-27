@@ -22,7 +22,7 @@
     <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
     <Compile Include="..\Shared\TestHttpContextAccessor.cs" Link="Infrastructure\TestHttpContextAccessor.cs" />
     <Compile Include="..\Shared\TestRequestBodyPipeFeature.cs" Link="Infrastructure\TestRequestBodyPipeFeature.cs" />
-    <Compile Include="..\Shared\TestResponseBodyPipeFeature.cs" Link="Infrastructure\TestResponseBodyPipeFeature.cs" />
+    <Compile Include="..\Shared\TestResponseBodyFeature.cs" Link="Infrastructure\TestResponseBodyFeature.cs" />
   </ItemGroup>
 
   <ItemGroup>

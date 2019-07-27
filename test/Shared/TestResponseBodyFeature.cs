@@ -25,9 +25,9 @@ using Microsoft.AspNetCore.Http.Features;
 
 namespace Grpc.Tests.Shared
 {
-    public class TestResponseBodyPipeFeature : IHttpResponseBodyFeature
+    public class TestResponseBodyFeature : IHttpResponseBodyFeature
     {
-        public TestResponseBodyPipeFeature(PipeWriter writer)
+        public TestResponseBodyFeature(PipeWriter writer)
         {
             Writer = writer;
         }
