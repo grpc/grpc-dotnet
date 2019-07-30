@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             async Task<HelloReply> UnarySuccess(HelloRequest request, ServerCallContext context)
             {
-                await tcs.Task;
+                await tcs.Task.DefaultTimeout();
 
                 return new HelloReply();
             }
@@ -119,7 +119,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             async Task<HelloReply> UnaryError(HelloRequest request, ServerCallContext context)
             {
-                await tcs.Task;
+                await tcs.Task.DefaultTimeout();
 
                 throw new Exception("Error!");
             }
@@ -233,13 +233,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             async Task DuplexStreamingMethod(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
             {
-                while (await requestStream.MoveNext())
+                while (await requestStream.MoveNext().DefaultTimeout())
                 {
 
                 }
 
-                await responseStream.WriteAsync(new HelloReply { Message = "Message 1" });
-                await responseStream.WriteAsync(new HelloReply { Message = "Message 2" });
+                await responseStream.WriteAsync(new HelloReply { Message = "Message 1" }).DefaultTimeout();
+                await responseStream.WriteAsync(new HelloReply { Message = "Message 2" }).DefaultTimeout();
             }
 
             // Arrange
@@ -267,11 +267,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 ["messages-received"] = 0,
             }).DefaultTimeout();
 
-            await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name 1" });
-            await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name 2" });
-            await call.RequestStream.CompleteAsync();
+            await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name 1" }).DefaultTimeout();
+            await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name 2" }).DefaultTimeout();
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
-            while (await call.ResponseStream.MoveNext())
+            while (await call.ResponseStream.MoveNext().DefaultTimeout())
             {
             }
 

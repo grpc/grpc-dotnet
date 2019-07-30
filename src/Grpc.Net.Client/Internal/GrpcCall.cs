@@ -609,10 +609,17 @@ namespace Grpc.Net.Client.Internal
             _writeCompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             message.Content = new PushStreamContent(
-                (stream) =>
+                async stream =>
                 {
+                    // Immediately flush request stream to send headers
+                    // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081
+                    await stream.FlushAsync().ConfigureAwait(false);
+
+                    // Pass request stream to writer
                     _writeStreamTcs.TrySetResult(stream);
-                    return _writeCompleteTcs.Task;
+
+                    // Wait for the writer to report it is complete
+                    await _writeCompleteTcs.Task.ConfigureAwait(false);
                 },
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
 
