@@ -28,6 +28,7 @@ test_projects=( $( ls test/**/*Tests.csproj ) )
 for test_project in "${test_projects[@]}"
 do
     # "dotnet test" is hanging when it writes to console for an unknown reason
+    # Tracking issue at https://github.com/microsoft/vstest/issues/2080
     # Write test output to a text file and then write the text file to console as a workaround
     {
         dotnet test $test_project -c Release -v n --no-build &> ${test_project##*/}.log.txt &&
