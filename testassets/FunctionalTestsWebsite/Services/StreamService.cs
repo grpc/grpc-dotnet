@@ -22,12 +22,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Streaming;
 
 namespace FunctionalTestsWebsite.Services
 {
     public class StreamService : Streaming.StreamService.StreamServiceBase
     {
+        private readonly ILogger _logger;
+
+        public StreamService(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<StreamService>();
+        }
+
         public override async Task DuplexData(
             IAsyncStreamReader<DataMessage> requestStream,
             IServerStreamWriter<DataMessage> responseStream,
@@ -38,6 +46,8 @@ namespace FunctionalTestsWebsite.Services
             while (await requestStream.MoveNext(CancellationToken.None))
             {
                 ms.Write(requestStream.Current.Data.Span);
+                _logger.LogInformation($"Received {ms.Length} bytes");
+
                 if (requestStream.Current.FinalSegment)
                 {
                     break;
@@ -60,6 +70,7 @@ namespace FunctionalTestsWebsite.Services
                 });
 
                 sent += writeCount;
+                _logger.LogInformation($"Sent {sent} bytes");
             }
         }
 
