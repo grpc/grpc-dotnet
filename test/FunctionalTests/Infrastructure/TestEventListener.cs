@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -95,35 +94,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             {
                 _subscriptions.Remove(listenerSubscription);
             }
-        }
-    }
-
-    public class ListenerSubscription : IDisposable
-    {
-        private readonly TestEventListener _testEventListener;
-        private TaskCompletionSource<object?> _tcs;
-
-        public ListenerSubscription(TestEventListener testEventListener, string counterName, long expectedValue)
-        {
-            _tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _testEventListener = testEventListener;
-            CounterName = counterName;
-            ExpectedValue = expectedValue;
-        }
-
-        public Task Task => _tcs.Task;
-
-        public string CounterName { get; }
-        public long ExpectedValue { get; }
-
-        public void Dispose()
-        {
-            _testEventListener.Unsubscribe(this);
-        }
-
-        internal void SetMatched()
-        {
-            _tcs.TrySetResult(null);
         }
     }
 }
