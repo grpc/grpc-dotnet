@@ -39,7 +39,37 @@ namespace Grpc.Net.Client
         /// <returns>A gRPC client.</returns>
         public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : ClientBase
         {
-            return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient, loggerFactory));
+            if (httpClient == null)
+            {
+                throw new ArgumentNullException(nameof(httpClient));
+            }
+
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            channelBuilder.SetLoggerFactory(loggerFactory);
+            var channel = channelBuilder.Build();
+
+            return CreateCore<TClient>(channel.CreateCallInvoker());
+        }
+
+        /// <summary>
+        /// Creates a gRPC client using the specified <see cref="ChannelBase"/>.
+        /// </summary>
+        /// <typeparam name="TClient">The type of the gRPC client. This type will typically be defined using generated code from a *.proto file.</typeparam>
+        /// <param name="channel">The <see cref="ChannelBase"/>.</param>
+        /// <returns>A gRPC client.</returns>
+        public static TClient Create<TClient>(ChannelBase channel) where TClient : ClientBase
+        {
+            if (channel == null)
+            {
+                throw new ArgumentNullException(nameof(channel));
+            }
+
+            return CreateCore<TClient>(channel.CreateCallInvoker());
+        }
+
+        private static TClient CreateCore<TClient>(CallInvoker callInvoker) where TClient : ClientBase
+        {
+            return Cache<TClient>.Instance.Activator(callInvoker);
         }
 
         private class Cache<TClient>

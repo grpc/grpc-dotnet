@@ -16,13 +16,18 @@
 
 #endregion
 
-using System.Net.Http;
-using Grpc.Core;
 
-namespace Grpc.Net.ClientFactory.Internal
+namespace Grpc.Net.Client
 {
-    interface INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
+    /// <summary>
+    /// A base options class for configuring a channel to use a transport.
+    /// </summary>
+    public abstract class GrpcTransportOptions
     {
-        TClient CreateClient(HttpClient httpClient, string name);
+        internal GrpcTransportOptions()
+        {
+        }
+
+        internal abstract string Target { get; }
     }
 }

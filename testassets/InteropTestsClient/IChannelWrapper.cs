@@ -19,44 +19,44 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client;
 
 namespace InteropTestsClient
 {
-    public interface IChannel
+    public interface IChannelWrapper
     {
+        ChannelBase Channel { get; }
         Task ShutdownAsync();
     }
 
-    public class HttpClientChannel : IChannel
+    public class GrpcChannelWrapper : IChannelWrapper
     {
-        public string BaseAddress { get; }
-        public HttpClientHandler HttpClientHandler { get; }
+        public ChannelBase Channel { get; }
 
-        public HttpClientChannel(string baseAddress, HttpClientHandler httpClient)
-        {
-            BaseAddress = baseAddress;
-            HttpClientHandler = httpClient;
-        }
-
-        public Task ShutdownAsync()
-        {
-            HttpClientHandler.Dispose();
-            return Task.CompletedTask;
-        }
-    }
-
-    public class CoreChannel : IChannel
-    {
-        public Channel Channel { get; }
-
-        public CoreChannel(Channel channel)
+        public GrpcChannelWrapper(GrpcChannel channel)
         {
             Channel = channel;
         }
 
         public Task ShutdownAsync()
         {
-            return Channel.ShutdownAsync();
+            return Task.CompletedTask;
+        }
+    }
+
+    public class CoreChannelWrapper : IChannelWrapper
+    {
+        private Channel _channel;
+        public ChannelBase Channel => _channel;
+
+        public CoreChannelWrapper(Channel channel)
+        {
+            _channel = channel;
+        }
+
+        public Task ShutdownAsync()
+        {
+            return _channel.ShutdownAsync();
         }
     }
 }

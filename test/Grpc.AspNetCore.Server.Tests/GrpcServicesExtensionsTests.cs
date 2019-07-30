@@ -29,7 +29,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void AddGrpc_ConfigureOptions_OptionsSet()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services
                 .AddGrpc(o =>
                 {
@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void AddServiceOptions_ConfigureOptions_OverrideGlobalOptions()
         {
             // Arrange
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services
                 .AddGrpc(o =>
                 {
