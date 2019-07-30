@@ -13,7 +13,7 @@
     <Protobuf Include=".\Proto\chat.proto" GrpcServices="Server" />
 
     <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
-    <Compile Include="..\..\test\Shared\TestResponseBodyPipeFeature.cs" Link="Internal\TestResponseBodyPipeFeature.cs" />
+    <Compile Include="..\..\test\Shared\TestResponseBodyFeature.cs" Link="Internal\TestResponseBodyFeature.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 

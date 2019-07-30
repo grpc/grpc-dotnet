@@ -75,7 +75,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create($"{url}?query=extra");
+            var httpRequest = GrpcHttpHelper.Create($"{url.FullName}?query=extra");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -84,7 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
             response.AssertTrailerStatus();
-            Assert.AreEqual($"{url}?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
+            Assert.AreEqual($"{url.FullName}?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
         }
     }
 }

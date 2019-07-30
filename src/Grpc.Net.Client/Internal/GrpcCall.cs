@@ -454,7 +454,7 @@ namespace Grpc.Net.Client.Internal
         {
             using (StartScope())
             {
-                if (_timeout != null)
+                if (_timeout != null && !CallInvoker.DisableClientDeadlineTimer)
                 {
                     Log.StartingDeadlineTimeout(Logger, _timeout.Value);
 

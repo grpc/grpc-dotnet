@@ -32,8 +32,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private readonly object _lock = new object();
 
         public ILoggerFactory LoggerFactory { get; }
-
-        private readonly ILogger _logger;
+        public ILogger Logger { get; }
 
         public VerifyNoErrorsScope Scope { get; }
 
@@ -70,10 +69,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             });
             _serviceProvider = services.BuildServiceProvider();
             LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
-            _logger = LoggerFactory.CreateLogger(nameof(GrpcTestContext));
+            Logger = LoggerFactory.CreateLogger(nameof(GrpcTestContext));
             Scope = new VerifyNoErrorsScope(LoggerFactory, wrappedDisposable: null, expectedErrorsFilter: null);
 
-            _logger.LogInformation($"Starting {GetTestName()}");
+            Logger.LogInformation($"Starting {GetTestName()}");
         }
 
         public void ServerFixtureOnServerLogged(LogRecord logRecord)
@@ -97,7 +96,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public void Dispose()
         {
-            _logger.LogInformation($"Finishing {GetTestName()}");
+            Logger.LogInformation($"Finishing {GetTestName()}");
 
             _serviceProvider.Dispose();
 

@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_Unary()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>((request, context) =>
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>((request, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_ClientStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, Empty>((requestStream, context) =>
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, Empty>((requestStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -85,7 +85,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(new MemoryStream())).DefaultTimeout();
 
             // Assert
@@ -97,7 +97,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_ServerStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<Empty, Empty>((request, responseStream, context) =>
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<Empty, Empty>((request, responseStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -109,7 +109,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = PipeReader.Create(responseStream);
@@ -123,7 +123,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task InterceptorsExecutedInRegistrationOrder_AndGlobalInterceptorExecutesFirst_DuplexStreaming()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddDuplexStreamingMethod<Empty, Empty>((requestStream, responseStream, context) =>
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<Empty, Empty>((requestStream, responseStream, context) =>
             {
                 var items = context.GetHttpContext().Items;
                 Assert.AreEqual(3, items[OrderedInterceptor.OrderHeaderKey]);
@@ -132,7 +132,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(new MemoryStream())).DefaultTimeout();
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = PipeReader.Create(responseStream);

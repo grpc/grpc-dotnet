@@ -54,6 +54,7 @@ namespace Grpc.Net.Client
         }
 
         internal Uri BaseAddress => _client.BaseAddress;
+        internal bool DisableClientDeadlineTimer { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the client.
