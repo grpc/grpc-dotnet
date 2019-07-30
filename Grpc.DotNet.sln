@@ -68,6 +68,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4
 		testassets\Proto\nested.proto = testassets\Proto\nested.proto
 		testassets\Proto\singleton.proto = testassets\Proto\singleton.proto
 		testassets\Proto\streaming.proto = testassets\Proto\streaming.proto
+		testassets\Proto\unimplemented.proto = testassets\Proto\unimplemented.proto
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionalTestsWebsite", "testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj", "{7B95289B-4992-4C0D-B26F-8EC58F81FC96}"

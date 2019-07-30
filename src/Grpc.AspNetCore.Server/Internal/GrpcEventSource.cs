@@ -48,6 +48,17 @@ namespace Grpc.AspNetCore.Server.Internal
         {
         }
 
+        [NonEvent]
+        internal void ResetCounters()
+        {
+            _totalCalls = 0;
+            _currentCalls = 0;
+            _messageSent = 0;
+            _messageReceived = 0;
+            _callsFailed = 0;
+            _callsDeadlineExceeded = 0;
+        }
+
         // Used for testing
         internal GrpcEventSource(string eventSourceName)
             : base(eventSourceName)

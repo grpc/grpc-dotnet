@@ -432,7 +432,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 // Immediately send remaining response content and trailers
                 // If feature is null then reset/abort will still end request, but response won't have trailers
-                var completionFeature = HttpContext.Features.Get<IHttpResponseCompletionFeature>();
+                var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
                 if (completionFeature != null)
                 {
                     await completionFeature.CompleteAsync();

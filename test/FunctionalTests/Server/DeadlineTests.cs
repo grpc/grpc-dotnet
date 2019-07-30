@@ -73,10 +73,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             });
 
 
-        public async Task WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(ServerStreamingServerMethod<HelloRequest, HelloReply> method)
+        public async Task WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(ServerStreamingServerMethod<HelloRequest, HelloReply> callHandler)
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(method);
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(callHandler);
 
             var requestMessage = new HelloRequest
             {
@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create(url);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
@@ -152,7 +152,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                        writeContext.Exception!.Message == "Cannot write message after request is complete.";
             });
 
-            var url = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
 
             var requestMessage = new HelloRequest
             {
@@ -162,7 +162,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create(url);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 

@@ -134,7 +134,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task ServerMethodReturnsNull_FailureResponse()
         {
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
 
             SetExpectedErrorsFilter(writeContext =>
             {
@@ -154,7 +154,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act
             var response = await Fixture.Client.PostAsync(
-                url,
+                method.FullName,
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert
@@ -198,7 +198,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             // Arrange
-            var url = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
 
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new CounterRequest
@@ -208,7 +208,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             var requestStream = new MemoryStream();
 
-            var httpRequest = GrpcHttpHelper.Create(url);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Content = new PushStreamContent(
                 async s =>
                 {
