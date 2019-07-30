@@ -19,7 +19,7 @@ source activate.sh
 
 echo "Building solution"
 
-dotnet build
+dotnet build -c Release
 
 echo "Testing solution"
 
@@ -27,9 +27,18 @@ test_projects=( $( ls test/**/*Tests.csproj ) )
 
 for test_project in "${test_projects[@]}"
 do
-    # Capturing test diagnostic logs because of hanging build
-    # https://github.com/grpc/grpc-dotnet/pull/363
-    dotnet test $test_project --no-build --diag:artifacts/${test_project##*/}.log.txt
+    # "dotnet test" is hanging when it writes to console for an unknown reason
+    # Tracking issue at https://github.com/microsoft/vstest/issues/2080
+    # Write test output to a text file and then write the text file to console as a workaround
+    {
+        dotnet test $test_project -c Release -v n --no-build &> ${test_project##*/}.log.txt &&
+        echo "Success" &&
+        cat ${test_project##*/}.log.txt
+    } || {
+        echo "Failure" &&
+        cat ${test_project##*/}.log.txt &&
+        exit 1
+    }
 done
 
 echo "Finished"

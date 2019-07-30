@@ -55,20 +55,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 const int BatchSize = 1024 * 64; // 64 KB
 
                 var writeCount = Math.Min(data.Length - sent, BatchSize);
-                var finalWrite = sent + writeCount == data.Length;
+
                 await call.RequestStream.WriteAsync(new DataMessage
                 {
-                    Data = ByteString.CopyFrom(data, sent, writeCount),
-                    FinalSegment = finalWrite
+                    Data = ByteString.CopyFrom(data, sent, writeCount)
                 }).DefaultTimeout();
 
                 sent += writeCount;
+
+                Logger.LogInformation($"Sent {sent} bytes");
             }
+
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
             var ms = new MemoryStream();
             while (await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout())
             {
                 ms.Write(call.ResponseStream.Current.Data.Span);
+
+                Logger.LogInformation($"Received {ms.Length} bytes");
             }
 
             // Assert
@@ -121,6 +126,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
+        [Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
         public async Task DuplexStream_SendToUnimplementedMethod_ThrowError()
         {
             SetExpectedErrorsFilter(writeContext =>
@@ -156,6 +162,26 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
+
+        [Test]
+        [Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
+        public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
+        {
+            // Arrange
+            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
+
+            for (int i = 0; i < 1000; i++)
+            {
+                Logger.LogInformation($"ITERATION {i}");
+
+                // Act
+                var call = client.DuplexData();
+
+                // Response will only be headers so the call is "done" on the server side
+                await call.ResponseHeadersAsync.DefaultTimeout();
+                await call.RequestStream.CompleteAsync();
+            }
         }
     }
 }
