@@ -47,11 +47,6 @@ namespace FunctionalTestsWebsite.Services
             {
                 ms.Write(requestStream.Current.Data.Span);
                 _logger.LogInformation($"Received {ms.Length} bytes");
-
-                if (requestStream.Current.FinalSegment)
-                {
-                    break;
-                }
             }
 
             // Write back to client in batches
@@ -62,11 +57,9 @@ namespace FunctionalTestsWebsite.Services
                 const int BatchSize = 1024 * 64; // 64 KB
 
                 var writeCount = Math.Min(data.Length - sent, BatchSize);
-                var finalWrite = sent + writeCount == data.Length;
                 await responseStream.WriteAsync(new DataMessage
                 {
-                    Data = ByteString.CopyFrom(data, sent, writeCount),
-                    FinalSegment = finalWrite
+                    Data = ByteString.CopyFrom(data, sent, writeCount)
                 });
 
                 sent += writeCount;

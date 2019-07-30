@@ -24,7 +24,6 @@ service StreamService {
 message DataMessage {
   bytes data = 1;
   int32 serverDelayMilliseconds = 2;
-  bool finalSegment = 3;
 }
 
 message DataComplete {
