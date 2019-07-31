@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -225,6 +226,25 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+        }
+
+        [Test]
+        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+
+            // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
         }
     }
