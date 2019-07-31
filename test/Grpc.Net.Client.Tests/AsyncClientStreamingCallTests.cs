@@ -232,9 +232,9 @@ namespace Grpc.Net.Client.Tests
         public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowsError()
         {
             // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
