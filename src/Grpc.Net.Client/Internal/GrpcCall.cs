@@ -37,7 +37,6 @@ namespace Grpc.Net.Client.Internal
     {
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<StatusCode> _callTcs;
-        private readonly CancellationTokenRegistration? _ctsRegistration;
         private readonly TimeSpan? _timeout;
         private readonly Uri _uri;
         private readonly GrpcCallScope _logScope;
@@ -45,6 +44,7 @@ namespace Grpc.Net.Client.Internal
         private Timer? _deadlineTimer;
         private Metadata? _trailers;
         private string? _headerValidationError;
+        private CancellationTokenRegistration? _ctsRegistration;
         private TaskCompletionSource<Stream>? _writeStreamTcs;
         private TaskCompletionSource<bool>? _writeCompleteTcs;
 
@@ -74,18 +74,6 @@ namespace Grpc.Net.Client.Internal
             Options = options;
             CallInvoker = callInvoker;
             Logger = callInvoker.LoggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
-
-            if (options.CancellationToken.CanBeCanceled)
-            {
-                // The cancellation token will cancel the call CTS
-                _ctsRegistration = options.CancellationToken.Register(() =>
-                {
-                    using (StartScope())
-                    {
-                        CancelCall();
-                    }
-                });
-            }
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
             {
@@ -529,6 +517,20 @@ namespace Grpc.Net.Client.Internal
 
         private async Task SendAsync(HttpClient client, HttpRequestMessage request)
         {
+            if (Options.CancellationToken.CanBeCanceled)
+            {
+                // The cancellation token will cancel the call CTS.
+                // This must be registered after the client writer has been created
+                // so that cancellation will always complete the writer.
+                _ctsRegistration = Options.CancellationToken.Register(() =>
+                {
+                    using (StartScope())
+                    {
+                        CancelCall();
+                    }
+                });
+            }
+
             if (Options.Credentials != null)
             {
                 // In C-Core the call credential auth metadata is only applied if the channel is secure
