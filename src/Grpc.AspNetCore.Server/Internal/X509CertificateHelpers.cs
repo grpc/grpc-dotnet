@@ -68,19 +68,19 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             public const string Oid = "2.5.29.17";
 
-            private static readonly string s_identifier;
+            private static readonly string? s_identifier;
             private static readonly char s_delimiter;
-            private static readonly string s_separator;
+            private static readonly string? s_separator;
 
             private static bool s_successfullyInitialized = false;
-            private static Exception s_initializationException;
+            private static Exception? s_initializationException;
 
             public static string Identifier
             {
                 get
                 {
                     EnsureInitialized();
-                    return s_identifier;
+                    return s_identifier!;
                 }
             }
 
@@ -97,7 +97,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 get
                 {
                     EnsureInitialized();
-                    return s_separator;
+                    return s_separator!;
                 }
             }
 

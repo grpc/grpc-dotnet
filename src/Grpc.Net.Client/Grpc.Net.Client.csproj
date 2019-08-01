@@ -10,13 +10,6 @@
     <PackageTags>gRPC RPC HTTP/2</PackageTags>
     <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
   </PropertyGroup>
-
-  <ItemGroup>
-    <KnownFrameworkReference Update="NETStandard.Library">
-      <!-- TODO(JamesNK): Recent .NET bits seems to have a general issue related to netstandard2.1 https://github.com/dotnet/sdk/pull/3463 -->
-      <RuntimeFrameworkName>NETStandard.Library</RuntimeFrameworkName>
-    </KnownFrameworkReference>
-  </ItemGroup>
   
   <PropertyGroup>
     <!-- Include PDB in the built .nupkg -->
