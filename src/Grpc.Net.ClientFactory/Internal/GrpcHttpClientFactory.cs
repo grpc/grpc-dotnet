@@ -30,8 +30,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
-    // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
-    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : class
+    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
     {
         private readonly Cache _cache;
         private readonly IServiceProvider _services;

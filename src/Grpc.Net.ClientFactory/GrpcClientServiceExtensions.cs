@@ -54,9 +54,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type.
         /// </para>
         /// </remarks>
-        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
-            where TClient : class
+            where TClient : ClientBase
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
 
@@ -90,9 +89,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
         /// </para>
         /// </remarks>
-        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
-            where TClient : class
+            where TClient : ClientBase
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
 
@@ -123,9 +121,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <typeparamref name="TClient"/> as the service type.
         /// </para>
         /// </remarks>
-        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
-            where TClient : class
+            where TClient : ClientBase
         {
             if (services == null)
             {
@@ -176,7 +173,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
-            where TClient : class
+            where TClient : ClientBase
         {
             if (services == null)
             {
@@ -204,7 +201,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return services.AddGrpcClientCore<TClient>(name);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : class
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : ClientBase
         {
             if (name == null)
             {

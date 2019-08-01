@@ -201,7 +201,7 @@ namespace InteropTestsClient
             return credentials;
         }
 
-        private TClient CreateClient<TClient>(IChannel channel) where TClient : LiteClientBase
+        private TClient CreateClient<TClient>(IChannel channel) where TClient : ClientBase
         {
             if (channel is CoreChannel coreChannel)
             {

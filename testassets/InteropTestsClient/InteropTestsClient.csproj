@@ -18,8 +18,9 @@
 
     <PackageReference Include="CommandLineParser" Version="$(CommandLineParserPackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Grpc.Auth" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionsPackageVersion)" />

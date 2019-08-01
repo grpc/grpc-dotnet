@@ -5,7 +5,6 @@
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
   <ItemGroup>
-    <Protobuf Include="..\Proto\*.proto" GrpcServices="Both" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
     

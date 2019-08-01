@@ -37,8 +37,7 @@ namespace Grpc.Net.Client
         /// <param name="httpClient">The <see cref="HttpClient"/>.</param>
         /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
         /// <returns>A gRPC client.</returns>
-        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
-        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : class
+        public static TClient Create<TClient>(HttpClient httpClient, ILoggerFactory? loggerFactory = null) where TClient : ClientBase
         {
             return Cache<TClient>.Instance.Activator(new HttpClientCallInvoker(httpClient, loggerFactory));
         }
