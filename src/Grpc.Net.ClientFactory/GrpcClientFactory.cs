@@ -32,7 +32,6 @@ namespace Grpc.Net.ClientFactory
         /// <typeparam name="TClient">The gRPC client type.</typeparam>
         /// <param name="name">The configuration name.</param>
         /// <returns>A gRPC client instance.</returns>
-        // Note that the constraint is set to class to allow clients inheriting from ClientBase and LiteClientBase
-        public abstract TClient CreateClient<TClient>(string name) where TClient : class;
+        public abstract TClient CreateClient<TClient>(string name) where TClient : ClientBase;
     }
 }

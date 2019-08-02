@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" ClientType="LiteClientBase" Link="Protos\greet.proto" />
-    <Protobuf Include="..\Shared\core-greet.proto" GrpcServices="Client" ClientType="ClientBase" Link="Protos\core-greet.proto" />
+    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
 
     <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
 

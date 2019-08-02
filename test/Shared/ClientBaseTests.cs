@@ -25,17 +25,10 @@ namespace Grpc.Net.Client.Tests
     public class ClientBaseTests
     {
         [Test]
-        public void ClientBaseClass_ExplicitSetting_UsesLiteClientBase()
-        {
-            // Assert
-            Assert.True(typeof(Greet.Greeter.GreeterClient).IsSubclassOf(typeof(LiteClientBase)));
-        }
-
-        [Test]
         public void ClientBaseClass_ExplicitSetting_UsesClientBase()
         {
             // Assert
-            Assert.True(typeof(CoreGreet.Greeter.GreeterClient).IsSubclassOf(typeof(ClientBase)));
+            Assert.True(typeof(Greet.Greeter.GreeterClient).IsSubclassOf(typeof(ClientBase)));
         }
     }
 }

@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    internal class TestClient<TRequest, TResponse> : LiteClientBase
+    internal class TestClient<TRequest, TResponse> : ClientBase
         where TRequest : class
         where TResponse : class
     {

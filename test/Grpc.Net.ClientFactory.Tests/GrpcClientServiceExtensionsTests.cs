@@ -108,48 +108,5 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 Assert.IsNotNull(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
             }
         }
-
-        [Test]
-        public void AddGrpcClient_AddsLiteClientBaseClient_Succeeds()
-        {
-            // Arrange
-            var baseAddress = new Uri("http://localhost");
-
-            var services = new ServiceCollection();
-            services.AddGrpcClient<CoreGreet.Greeter.GreeterClient>(o =>
-            {
-                o.BaseAddress = baseAddress;
-            });
-
-            // Act
-            var serviceProvider = services.BuildServiceProvider();
-
-            // Assert
-            using (var scope = serviceProvider.CreateScope())
-            {
-                Assert.IsNotNull(serviceProvider.GetRequiredService<CoreGreet.Greeter.GreeterClient>());
-            }
-        }
-
-        [Test]
-        public void AddGrpcClient_AddsNonCompatibleClient_Throws()
-        {
-            // Arrange
-            var baseAddress = new Uri("http://localhost");
-
-            var services = new ServiceCollection();
-            services.AddGrpcClient<GrpcClientServiceExtensionsTests>(o =>
-            {
-                o.BaseAddress = baseAddress;
-            });
-
-            // Act
-            var serviceProvider = services.BuildServiceProvider();
-
-            using (var scope = serviceProvider.CreateScope())
-            {
-                Assert.Throws<InvalidOperationException>(() => serviceProvider.GetRequiredService<GrpcClientServiceExtensionsTests>());
-            }
-        }
     }
 }
