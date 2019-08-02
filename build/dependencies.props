@@ -4,7 +4,7 @@
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
     <ConfigureAwaitCheckerAnalyzerPackageVersion>3.0.0</ConfigureAwaitCheckerAnalyzerPackageVersion>
     <GoogleProtobufPackageVersion>3.8.0</GoogleProtobufPackageVersion>
-    <GrpcPackageVersion>1.22.0-pre1</GrpcPackageVersion>
+    <GrpcPackageVersion>2.23.0-dev201908011006</GrpcPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0-preview7.19326.10</MicrosoftAspNetCorePackageVersion>

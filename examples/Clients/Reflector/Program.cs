@@ -17,10 +17,10 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Common;
+using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Reflection.V1Alpha;
 using ServerReflectionClient = Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionClient;

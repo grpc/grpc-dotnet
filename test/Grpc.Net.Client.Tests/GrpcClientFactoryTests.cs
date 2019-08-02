@@ -39,22 +39,5 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.IsNotNull(client);
         }
-
-        [Test]
-        public void Create_WithLiteClientBaseClient_ReturnInstance()
-        {
-            // Arrange & Act
-            var client = GrpcClient.Create<CoreGreet.Greeter.GreeterClient>(_httpClient);
-
-            // Assert
-            Assert.IsNotNull(client);
-        }
-
-        [Test]
-        public void Create_WithNonCompatibleClient_throws()
-        {
-            // Arrange, Act, Assert
-            Assert.Throws<InvalidOperationException>(() => GrpcClient.Create<GrpcClientFactoryTests>(_httpClient));
-        }
     }
 }
