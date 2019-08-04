@@ -67,10 +67,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 }
             }
 
-            Assert.AreEqual(statusCode.ToTrailerString(), statusString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(statusString)}");
-
             // Get message from the same collection as the status
             var messageString = GetStatusValue(statusHeadersCollection, GrpcProtocolConstants.MessageTrailer);
+
+            Assert.AreEqual(statusCode.ToTrailerString(), statusString, $"Expected grpc-status {statusCode} but got {(StatusCode)Convert.ToInt32(statusString)}. Message: {messageString}");
+
             if (messageString != null)
             {
                 Assert.AreEqual(PercentEncodingHelpers.PercentEncode(details), messageString);
