@@ -229,5 +229,60 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.AreEqual(3, reply.Count);
             response.AssertTrailerStatus();
         }
+
+        [Test]
+        public async Task StreamingEndsWithIncompleteMessage_ErrorResponse()
+        {
+            var counter = 0;
+            async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
+            {
+                while (await requestStream.MoveNext().DefaultTimeout())
+                {
+                    counter += requestStream.Current.Count;
+                }
+
+                return new CounterReply { Count = counter };
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName;
+            });
+
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new CounterRequest
+            {
+                Count = 1
+            });
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    var responseData = ms.ToArray();
+
+                    await s.WriteAsync(responseData).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+
+                    await s.WriteAsync(responseData.AsMemory().Slice(0, responseData.Length - 1)).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+                });
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            // Assert
+            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+            var response = await responseTask.DefaultTimeout();
+
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
+
+            Assert.AreEqual(1, counter);
+        }
     }
 }
