@@ -21,7 +21,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
-using Grpc.Net.Client.Internal.Compression;
+using Grpc.Net.Compression;
 
 namespace Grpc.Net.Client.Internal
 {

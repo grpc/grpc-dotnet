@@ -19,17 +19,28 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Grpc.AspNetCore.Server.Compression
+namespace Grpc.Net.Compression
 {
     /// <summary>
-    /// Provides a specific compression implementation to compress gRPC messages.
+    /// GZIP compression provider.
     /// </summary>
-    public interface ICompressionProvider
+    public class GzipCompressionProvider : ICompressionProvider
     {
+        private readonly CompressionLevel _defaultCompressionLevel;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
+        /// </summary>
+        /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
+        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
+        {
+            _defaultCompressionLevel = defaultCompressionLevel;
+        }
+
         /// <summary>
         /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
         /// </summary>
-        string EncodingName { get; }
+        public string EncodingName => "gzip";
 
         /// <summary>
         /// Create a new compression stream.
@@ -37,13 +48,19 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <param name="stream">The stream that compressed data is written to.</param>
         /// <param name="compressionLevel">The compression level.</param>
         /// <returns>A stream used to compress data.</returns>
-        Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel);
+        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
+        {
+            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel);
+        }
 
         /// <summary>
         /// Create a new decompression stream.
         /// </summary>
         /// <param name="stream">The stream that compressed data is copied from.</param>
         /// <returns>A stream used to decompress data.</returns>
-        Stream CreateDecompressionStream(Stream stream);
+        public Stream CreateDecompressionStream(Stream stream)
+        {
+            return new GZipStream(stream, CompressionMode.Decompress);
+        }
     }
 }

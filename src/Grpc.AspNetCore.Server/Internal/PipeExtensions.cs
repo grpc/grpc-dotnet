@@ -28,8 +28,8 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -83,11 +83,15 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (isCompressed)
                 {
+                    Debug.Assert(
+                        serverCallContext.ServiceOptions.ResolvedCompressionProviders != null,
+                        "Compression providers should have been resolved for service.");
+
                     responsePayload = CompressMessage(
                         serverCallContext.Logger,
                         serverCallContext.ResponseGrpcEncoding!,
                         serverCallContext.ServiceOptions.ResponseCompressionLevel,
-                        serverCallContext.ServiceOptions.CompressionProviders,
+                        serverCallContext.ServiceOptions.ResolvedCompressionProviders,
                         responsePayload);
                 }
 
@@ -408,6 +412,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (compressed)
             {
+                Debug.Assert(
+                   context.ServiceOptions.ResolvedCompressionProviders != null,
+                   "Compression providers should have been resolved for service.");
+
                 var encoding = context.GetRequestGrpcEncoding();
                 if (encoding == null)
                 {
@@ -419,13 +427,15 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.CompressionProviders, message, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.ResolvedCompressionProviders, message, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
                     // its associated description indicating the unsupported condition as well as the supported ones. The returned
                     // grpc-accept-encoding header MUST NOT contain the compression method (encoding) used.
-                    var supportedEncodings = context.ServiceOptions.CompressionProviders.Select(p => p.EncodingName).ToList();
+                    var supportedEncodings = new List<string>();
+                    supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
+                    supportedEncodings.AddRange(context.ServiceOptions.ResolvedCompressionProviders.Select(p => p.Key));
 
                     if (!context.HttpContext.Response.HasStarted)
                     {
@@ -446,43 +456,37 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, List<ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
         {
-            foreach (var compressionProvider in compressionProviders)
+            if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
-                {
-                    Log.DecompressingMessage(logger, compressionProvider.EncodingName);
+                Log.DecompressingMessage(logger, compressionProvider.EncodingName);
 
-                    var output = new MemoryStream();
-                    var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
-                    compressionStream.CopyTo(output);
+                var output = new MemoryStream();
+                var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
+                compressionStream.CopyTo(output);
 
-                    result = output.ToArray();
-                    return true;
-                }
+                result = output.ToArray();
+                return true;
             }
 
             result = null;
             return false;
         }
 
-        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, List<ICompressionProvider> compressionProviders, byte[] messageData)
+        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData)
         {
-            foreach (var compressionProvider in compressionProviders)
+            if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                if (string.Equals(compressionEncoding, compressionProvider.EncodingName, StringComparison.Ordinal))
+                Log.CompressingMessage(logger, compressionProvider.EncodingName);
+
+                var output = new MemoryStream();
+                using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
                 {
-                    Log.CompressingMessage(logger, compressionProvider.EncodingName);
-
-                    var output = new MemoryStream();
-                    using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
-                    {
-                        compressionStream.Write(messageData, 0, messageData.Length);
-                    }
-
-                    return output.ToArray();
+                    compressionStream.Write(messageData, 0, messageData.Length);
                 }
+
+                return output.ToArray();
             }
 
             // Should never reach here

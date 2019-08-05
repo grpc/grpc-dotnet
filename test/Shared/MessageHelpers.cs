@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
@@ -23,9 +24,9 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Microsoft.AspNetCore.Http;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 
@@ -54,6 +55,8 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
+            var resolvedProviders = ResolveProviders(compressionProviders);
+
             var pipeReader = PipeReader.Create(stream);
 
             var httpContext = new DefaultHttpContext();
@@ -64,7 +67,7 @@ namespace Grpc.Tests.Shared
                 serviceOptions: new GrpcServiceOptions
                 {
                     ResponseCompressionAlgorithm = compressionEncoding,
-                    CompressionProviders = compressionProviders
+                    ResolvedCompressionProviders = resolvedProviders
                 });
 
             var message = await pipeReader.ReadSingleMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
@@ -104,6 +107,8 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
+            var resolvedProviders = ResolveProviders(compressionProviders);
+
             var pipeWriter = PipeWriter.Create(stream);
 
             var httpContext = new DefaultHttpContext();
@@ -114,12 +119,26 @@ namespace Grpc.Tests.Shared
                 serviceOptions: new GrpcServiceOptions
                 {
                     ResponseCompressionAlgorithm = compressionEncoding,
-                    CompressionProviders = compressionProviders
+                    ResolvedCompressionProviders = resolvedProviders
                 });
             serverCallContext.Initialize();
 
             PipeExtensions.WriteMessageAsync(pipeWriter, message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
             stream.Seek(0, SeekOrigin.Begin);
+        }
+
+        private static Dictionary<string, ICompressionProvider> ResolveProviders(List<ICompressionProvider> compressionProviders)
+        {
+            var resolvedProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (!resolvedProviders.ContainsKey(compressionProvider.EncodingName))
+                {
+                    resolvedProviders.Add(compressionProvider.EncodingName, compressionProvider);
+                }
+            }
+
+            return resolvedProviders;
         }
 
         private static T Deserialize<T>(DeserializationContext context) where T : class, IMessage, new()

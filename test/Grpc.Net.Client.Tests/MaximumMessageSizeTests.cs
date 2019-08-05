@@ -16,20 +16,14 @@
 
 #endregion
 
-using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Internal.Compression;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 

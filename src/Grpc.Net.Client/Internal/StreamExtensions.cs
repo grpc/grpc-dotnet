@@ -27,7 +27,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Internal.Compression;
+using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
