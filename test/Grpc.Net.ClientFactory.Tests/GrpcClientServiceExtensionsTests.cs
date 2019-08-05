@@ -108,5 +108,55 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 Assert.IsNotNull(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
             }
         }
+
+        [Test]
+        public void AddGrpcClient_AddSameClientTwice_MergeConfiguration()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(options =>
+                {
+                    options.BaseAddress = new Uri("http://contoso");
+                });
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(options =>
+                {
+                    options.Interceptors.Add(new CallbackInterceptor(o => { }));
+                });
+
+            // Act
+            var serviceProvider = services.BuildServiceProvider();
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
+                var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
+
+                Assert.AreEqual("http://contoso", options.BaseAddress!.OriginalString);
+                Assert.AreEqual(1, options.Interceptors.Count);
+            }
+        }
+
+        [Test]
+        public void AddGrpcClient_AddDifferentClientsWithSameName_ThrowsError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddGrpcClient<Greeter.GreeterClient>(options => { });
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => services.AddGrpcClient<GreeterClient>(o => { }));
+
+            // Assert
+            Assert.AreEqual(
+                "The gRPC client factory already has a registered client with the name 'GreeterClient', bound to the type 'Greet.Greeter+GreeterClient'. " +
+                "Client names are computed based on the type name without considering the namespace ('GreeterClient'). Use an overload of AddGrpcClient that " +
+                "accepts a string and provide a unique name to resolve the conflict.",
+                ex.Message);
+        }
+
+        private class GreeterClient : Greeter.GreeterClient
+        {
+        }
     }
 }
