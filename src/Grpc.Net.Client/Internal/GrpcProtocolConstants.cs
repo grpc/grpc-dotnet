@@ -44,7 +44,8 @@ namespace Grpc.Net.Client.Internal
 
         internal static readonly List<ICompressionProvider> CompressionProviders = new List<ICompressionProvider>
         {
-            new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+            new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
+            new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
         };
 
         internal static readonly string MessageAcceptEncodingValue;

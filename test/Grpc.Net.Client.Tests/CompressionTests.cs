@@ -220,7 +220,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
-            Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: gzip", ex.Status.Detail);
+            Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: identity, gzip, deflate", ex.Status.Detail);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)

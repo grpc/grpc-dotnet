@@ -166,7 +166,10 @@ namespace Grpc.Net.Client
                     // Performance improvement would be to decompress without converting to an intermediary byte array
                     if (!TryDecompressMessage(logger, grpcEncoding, GrpcProtocolConstants.CompressionProviders, messageData, out var decompressedMessage))
                     {
-                        throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName)));
+                        var supportedEncodings = new List<string>();
+                        supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
+                        supportedEncodings.AddRange(GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName));
+                        throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
                     }
 
                     messageData = decompressedMessage;
