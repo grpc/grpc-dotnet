@@ -17,14 +17,14 @@
 #endregion
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
+using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
-using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using System.Linq;
-using System.Diagnostics;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
