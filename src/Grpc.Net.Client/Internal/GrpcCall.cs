@@ -307,6 +307,7 @@ namespace Grpc.Net.Client.Internal
                         Method.ResponseMarshaller.ContextualDeserializer,
                         GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                         Channel.ReceiveMaxMessageSize,
+                        Channel.CompressionProviders,
                         _callCts.Token).ConfigureAwait(false);
                     FinishResponse();
 
@@ -392,6 +393,7 @@ namespace Grpc.Net.Client.Internal
                         Method.RequestMarshaller.ContextualSerializer,
                         grpcEncoding,
                         Channel.SendMaxMessageSize,
+                        Channel.CompressionProviders,
                         Options.CancellationToken);
                     if (writeMessageTask.IsCompletedSuccessfully)
                     {
@@ -656,7 +658,7 @@ namespace Grpc.Net.Client.Internal
             // TE is required by some servers, e.g. C Core
             // A missing TE header results in servers aborting the gRPC call
             message.Headers.TE.Add(GrpcProtocolConstants.TEHeader);
-            message.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, GrpcProtocolConstants.MessageAcceptEncodingValue);
+            message.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {

@@ -16,7 +16,10 @@
 
 #endregion
 
+using System.Collections;
+using System.Collections.Generic;
 using Grpc.Core;
+using Grpc.Net.Compression;
 
 namespace Grpc.Net.Client
 {
@@ -45,5 +48,10 @@ namespace Grpc.Net.Client
         /// Gets or sets the maximum message size in bytes that can be received by the client.
         /// </summary>
         public int? ReceiveMaxMessageSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets a collection of compression providers.
+        /// </summary>
+        public IList<ICompressionProvider>? CompressionProviders { get; set; }
     }
 }

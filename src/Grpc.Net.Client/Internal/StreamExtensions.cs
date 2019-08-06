@@ -54,10 +54,11 @@ namespace Grpc.Net.Client
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             int? maximumMessageSize,
+            List<ICompressionProvider> compressionProviders,
             CancellationToken cancellationToken)
             where TResponse : class
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, cancellationToken, true, true);
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, true);
         }
 
         public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(
@@ -66,10 +67,11 @@ namespace Grpc.Net.Client
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             int? maximumMessageSize,
+            List<ICompressionProvider> compressionProviders,
             CancellationToken cancellationToken)
             where TResponse : class
         {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, cancellationToken, true, false);
+            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, false);
         }
 
         private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(
@@ -78,6 +80,7 @@ namespace Grpc.Net.Client
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             int? maximumMessageSize,
+            List<ICompressionProvider> compressionProviders,
             CancellationToken cancellationToken,
             bool canBeEmpty,
             bool singleMessage)
@@ -164,11 +167,11 @@ namespace Grpc.Net.Client
                     }
 
                     // Performance improvement would be to decompress without converting to an intermediary byte array
-                    if (!TryDecompressMessage(logger, grpcEncoding, GrpcProtocolConstants.CompressionProviders, messageData, out var decompressedMessage))
+                    if (!TryDecompressMessage(logger, grpcEncoding, compressionProviders, messageData, out var decompressedMessage))
                     {
                         var supportedEncodings = new List<string>();
                         supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
-                        supportedEncodings.AddRange(GrpcProtocolConstants.CompressionProviders.Select(c => c.EncodingName));
+                        supportedEncodings.AddRange(compressionProviders.Select(c => c.EncodingName));
                         throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
                     }
 
@@ -245,6 +248,7 @@ namespace Grpc.Net.Client
             Action<TMessage, SerializationContext> serializer,
             string grpcEncoding,
             int? maximumMessageSize,
+            List<ICompressionProvider> compressionProviders,
             CancellationToken cancellationToken)
         {
             try
@@ -276,7 +280,7 @@ namespace Grpc.Net.Client
                         logger,
                         grpcEncoding,
                         CompressionLevel.Fastest,
-                        GrpcProtocolConstants.CompressionProviders,
+                        compressionProviders,
                         data);
                 }
 

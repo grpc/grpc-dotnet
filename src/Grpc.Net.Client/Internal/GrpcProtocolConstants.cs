@@ -42,13 +42,13 @@ namespace Grpc.Net.Client.Internal
 
         internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
 
-        internal static readonly List<ICompressionProvider> CompressionProviders = new List<ICompressionProvider>
+        internal static readonly List<ICompressionProvider> DefaultCompressionProviders = new List<ICompressionProvider>
         {
             new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
             new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
         };
 
-        internal static readonly string MessageAcceptEncodingValue;
+        internal static readonly string DefaultMessageAcceptEncodingValue;
 
         internal static readonly ProductInfoHeaderValue UserAgentHeader;
         internal static readonly TransferCodingWithQualityHeaderValue TEHeader;
@@ -75,7 +75,7 @@ namespace Grpc.Net.Client.Internal
 
             TEHeader = new TransferCodingWithQualityHeaderValue("trailers");
 
-            MessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', CompressionProviders.Select(p => p.EncodingName));
+            DefaultMessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', DefaultCompressionProviders.Select(p => p.EncodingName));
         }
     }
 }

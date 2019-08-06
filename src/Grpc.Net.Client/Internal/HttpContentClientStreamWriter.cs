@@ -132,6 +132,7 @@ namespace Grpc.Net.Client.Internal
                     _call.Method.RequestMarshaller.ContextualSerializer,
                     _grpcEncoding,
                     _call.Channel.SendMaxMessageSize,
+                    _call.Channel.CompressionProviders,
                     _call.CancellationToken).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();

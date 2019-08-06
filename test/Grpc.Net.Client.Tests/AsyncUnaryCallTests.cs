@@ -107,7 +107,13 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(content);
 
             var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
-            var requestMessage = await requestContent.ReadSingleMessageAsync(NullLogger.Instance, ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer, GrpcProtocolConstants.IdentityGrpcEncoding, maximumMessageSize: null, CancellationToken.None).DefaultTimeout();
+            var requestMessage = await requestContent.ReadSingleMessageAsync(
+                NullLogger.Instance,
+                ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                GrpcProtocolConstants.IdentityGrpcEncoding,
+                maximumMessageSize: null,
+                GrpcProtocolConstants.DefaultCompressionProviders,
+                CancellationToken.None).DefaultTimeout();
 
             Assert.AreEqual("World", requestMessage.Name);
         }

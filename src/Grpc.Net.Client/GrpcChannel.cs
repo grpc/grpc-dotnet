@@ -19,9 +19,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Mail;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client
@@ -37,6 +40,8 @@ namespace Grpc.Net.Client
         internal ILoggerFactory LoggerFactory { get; }
         internal bool? IsSecure { get; }
         internal List<CallCredentials>? CallCredentials { get; }
+        internal List<ICompressionProvider> CompressionProviders { get; }
+        internal string MessageAcceptEncoding { get; }
 
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
@@ -50,6 +55,8 @@ namespace Grpc.Net.Client
             HttpClient = httpClient;
             SendMaxMessageSize = channelOptions.SendMaxMessageSize;
             ReceiveMaxMessageSize = channelOptions.ReceiveMaxMessageSize;
+            CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
+            MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = loggerFactory;
 
             if (channelOptions.Credentials != null)
@@ -62,6 +69,11 @@ namespace Grpc.Net.Client
 
                 ValidateChannelCredentials();
             }
+        }
+
+        private static List<ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)
+        {
+            return compressionProviders as List<ICompressionProvider> ?? compressionProviders?.ToList() ?? GrpcProtocolConstants.DefaultCompressionProviders;
         }
 
         private void ValidateChannelCredentials()

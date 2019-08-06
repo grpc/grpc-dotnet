@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -42,9 +43,10 @@ namespace Grpc.Net.Client.Tests
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 "gzip",
                 maximumMessageSize: null,
+                GrpcProtocolConstants.DefaultCompressionProviders,
                 CancellationToken.None);
 
-            HelloReply reply = new HelloReply
+            var reply = new HelloReply
             {
                 Message = "Hello " + helloRequest!.Name
             };
