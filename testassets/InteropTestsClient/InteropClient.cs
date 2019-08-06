@@ -125,13 +125,15 @@ namespace InteropTestsClient
 
         private async Task Run()
         {
-            IChannel channel = IsHttpClient() ? await HttpClientCreateChannel() : await CoreCreateChannel();
+            var channel = IsHttpClient() ? await HttpClientCreateChannel() : await CoreCreateChannel();
             await RunTestCaseAsync(channel, options);
             await channel.ShutdownAsync();
         }
 
-        private Task<IChannel> HttpClientCreateChannel()
+        private async Task<IChannelWrapper> HttpClientCreateChannel()
         {
+            var credentials = await CreateCredentialsAsync(useTestCaOverride: false);
+
             string scheme;
             if (!(options.UseTls ?? false))
             {
@@ -155,10 +157,16 @@ namespace InteropTestsClient
                 httpClientHandler.ClientCertificates.Add(cert);
             }
 
-            return Task.FromResult<IChannel>(new HttpClientChannel($"{scheme}://{options.ServerHost}:{options.ServerPort}", httpClientHandler));
+            var httpClient = new HttpClient(httpClientHandler);
+            httpClient.BaseAddress = new Uri($"{scheme}://{options.ServerHost}:{options.ServerPort}");
+
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            channelBuilder.SetCredentials(credentials);
+
+            return new GrpcChannelWrapper(channelBuilder.Build());
         }
 
-        private async Task<IChannel> CoreCreateChannel()
+        private async Task<IChannelWrapper> CoreCreateChannel()
         {
             var credentials = await CreateCredentialsAsync();
 
@@ -172,17 +180,19 @@ namespace InteropTestsClient
             }
             var channel = new Channel(options.ServerHost, options.ServerPort, credentials, channelOptions);
             await channel.ConnectAsync();
-            return new CoreChannel(channel);
+            return new CoreChannelWrapper(channel);
         }
 
         private bool IsHttpClient() => string.Equals(options.ClientType, "httpclient", StringComparison.OrdinalIgnoreCase);
 
-        private async Task<ChannelCredentials> CreateCredentialsAsync()
+        private async Task<ChannelCredentials> CreateCredentialsAsync(bool? useTestCaOverride = null)
         {
             var credentials = ChannelCredentials.Insecure;
             if (options.UseTls.GetValueOrDefault())
             {
-                credentials = options.UseTestCa.GetValueOrDefault() ? TestCredentials.CreateSslCredentials() : new SslCredentials();
+                credentials = useTestCaOverride ?? options.UseTestCa.GetValueOrDefault()
+                    ? TestCredentials.CreateSslCredentials()
+                    : new SslCredentials();
             }
 
             if (options.TestCase == "jwt_token_creds")
@@ -201,26 +211,12 @@ namespace InteropTestsClient
             return credentials;
         }
 
-        private TClient CreateClient<TClient>(IChannel channel) where TClient : ClientBase
+        private TClient CreateClient<TClient>(IChannelWrapper channel) where TClient : ClientBase
         {
-            if (channel is CoreChannel coreChannel)
-            {
-                return (TClient)Activator.CreateInstance(typeof(TClient), coreChannel.Channel)!;
-            }
-            else if (channel is HttpClientChannel httpClientChannel)
-            {
-                var httpClient = new HttpClient(httpClientChannel.HttpClientHandler);
-                httpClient.BaseAddress = new Uri(httpClientChannel.BaseAddress, UriKind.RelativeOrAbsolute);
-
-                return GrpcClient.Create<TClient>(httpClient, loggerFactory);
-            }
-            else
-            {
-                throw new Exception("Unexpected channel type.");
-            }
+            return (TClient)Activator.CreateInstance(typeof(TClient), channel.Channel)!;
         }
 
-        private async Task RunTestCaseAsync(IChannel channel, ClientOptions options)
+        private async Task RunTestCaseAsync(IChannelWrapper channel, ClientOptions options)
         {
             var client = CreateClient<TestService.TestServiceClient>(channel);
             switch (options.TestCase)

@@ -19,6 +19,7 @@
 using System.Net.Http;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
@@ -32,8 +33,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public TestClient(HttpClient httpClient, ILoggerFactory loggerFactory, Method<TRequest, TResponse> method, bool disableClientDeadlineTimer = false)
         {
-            _callInvoker = new HttpClientCallInvoker(httpClient, loggerFactory);
-            _callInvoker.DisableClientDeadlineTimer = disableClientDeadlineTimer;
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            channelBuilder.SetLoggerFactory(loggerFactory);
+            var channel = channelBuilder.Build();
+            channel.DisableClientDeadlineTimer = disableClientDeadlineTimer;
+
+            _callInvoker = new HttpClientCallInvoker(channel);
             _method = method;
         }
 

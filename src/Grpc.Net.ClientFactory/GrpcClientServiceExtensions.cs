@@ -194,11 +194,20 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, (options) =>
+                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options =>
                 {
                     configureClient(services, options);
                 });
             });
+
+            // `IConfigureOptions<GrpcClientFactoryOptions>` presence in builder's ServicesCollection is tested
+            // in gRPC client extension methods that take IHttpClientBuilder. Validation will throw an error if
+            // if gRPC extension methods, e.g. AddInterceptor, are used with client builders that are not from
+            // AddGrpcClient. ConfigureNamedOptions<GrpcClientFactoryOptions> needs to be the value.
+            // We need to cast the service value to the concrete type to get the name.
+            // Needed here because config options registered here are transient.
+            services.AddSingleton<IConfigureOptions<GrpcClientFactoryOptions>>(
+                new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options => { }));
 
             return services.AddGrpcClientCore<TClient>(name);
         }
@@ -227,17 +236,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 httpClient.BaseAddress = clientOptions.BaseAddress;
             };
 
-            // This configuration serves multiple purposes:
-            // 1. ExplicitlySet is tested at runtime to determine if AddGrpcClient was called for this name.
-            // 2. `IConfigureOptions<GrpcClientFactoryOptions>` presence in builder's ServicesCollection is tested
-            //    in gRPC client extension methods that take IHttpClientBuilder. Validation will throw an error if
-            //    if gRPC extension methods, e.g. AddInterceptor, are used with client builders that are not from
-            //    AddGrpcClient. ConfigureNamedOptions<GrpcClientFactoryOptions> needs to be the value.
-            //    We need to cast the service value to the concrete type to get the name.
-            //
-            services.AddSingleton<IConfigureOptions<GrpcClientFactoryOptions>>(
-                new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options => options.ExplicitlySet = true));
-
             IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
 
             return clientBuilder;
@@ -246,26 +244,22 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// This is a custom method to register the HttpClient and typed factory. Needed because we need to access the config name when creating the typed client
         /// </summary>
-        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient> configureClient)
-            where TClient : class
+        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient> configureTypedClient)
+            where TClient : ClientBase
         {
             if (services == null)
             {
                 throw new ArgumentNullException(nameof(services));
             }
 
-            services.AddHttpClient();
+            services.AddHttpClient(name, configureTypedClient);
 
             var builder = new DefaultHttpClientBuilder(services, name);
-            builder.ConfigureHttpClient(configureClient);
 
             builder.Services.AddTransient<TClient>(s =>
             {
-                var httpClientFactory = s.GetRequiredService<IHttpClientFactory>();
-                var httpClient = httpClientFactory.CreateClient(builder.Name);
-
-                var typedClientFactory = s.GetRequiredService<INamedTypedHttpClientFactory<TClient>>();
-                return typedClientFactory.CreateClient(httpClient, builder.Name);
+                var clientFactory = s.GetRequiredService<GrpcClientFactory>();
+                return clientFactory.CreateClient<TClient>(builder.Name);
             });
 
             ReserveClient(builder, typeof(TClient), name);

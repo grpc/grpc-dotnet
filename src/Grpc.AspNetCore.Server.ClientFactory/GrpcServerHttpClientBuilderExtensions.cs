@@ -49,7 +49,7 @@ namespace Microsoft.Extensions.DependencyInjection
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, (options) =>
+                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
                 {
                     options.Interceptors.Add(services.GetRequiredService<ContextPropagationInterceptor>());
                 });

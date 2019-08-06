@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Grpc.Tests.Shared;
@@ -57,8 +58,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
@@ -84,8 +84,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>("Custom");
@@ -109,8 +108,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
 
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"));
@@ -181,7 +179,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             Assert.AreEqual("http://adventureworks", adventureworksClient.CallInvoker.BaseAddress.OriginalString);
         }
 
-        public class TestGreeterClient : Greeter.GreeterClient
+        internal class TestGreeterClient : Greeter.GreeterClient
         {
             public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
             {

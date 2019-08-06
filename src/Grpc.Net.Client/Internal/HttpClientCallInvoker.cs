@@ -17,54 +17,24 @@
 #endregion
 
 using System;
-using System.Net.Http;
-using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.Net.Client
+namespace Grpc.Net.Client.Internal
 {
     /// <summary>
     /// A client-side RPC invocation using HttpClient.
     /// </summary>
-    public sealed class HttpClientCallInvoker : CallInvoker
+    internal sealed class HttpClientCallInvoker : CallInvoker
     {
-        private readonly HttpClient _client;
-        internal ILoggerFactory LoggerFactory { get; }
+        internal GrpcChannel Channel { get; }
 
-        // Override the current time for unit testing
-        internal ISystemClock Clock = SystemClock.Instance;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="HttpClientCallInvoker"/> class.
-        /// </summary>
-        /// <param name="client">The HttpClient to use for gRPC requests.</param>
-        /// <param name="loggerFactory">The <see cref="ILoggerFactory"/>.</param>
-        public HttpClientCallInvoker(HttpClient client, ILoggerFactory? loggerFactory)
+        public HttpClientCallInvoker(GrpcChannel channel)
         {
-            if (client == null)
-            {
-                throw new ArgumentNullException(nameof(client));
-            }
-
-            _client = client;
-            LoggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            Channel = channel;
         }
 
-        internal Uri BaseAddress => _client.BaseAddress;
-        internal bool DisableClientDeadlineTimer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum message size in bytes that can be sent from the client.
-        /// </summary>
-        public int? SendMaxMessageSize { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum message size in bytes that can be received by the client.
-        /// </summary>
-        public int? ReceiveMaxMessageSize { get; set; }
+        internal Uri BaseAddress => Channel.HttpClient.BaseAddress;
 
         /// <summary>
         /// Invokes a client streaming call asynchronously.
@@ -73,7 +43,7 @@ namespace Grpc.Net.Client
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartClientStreaming(_client);
+            call.StartClientStreaming(Channel.HttpClient);
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -92,7 +62,7 @@ namespace Grpc.Net.Client
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartDuplexStreaming(_client);
+            call.StartDuplexStreaming(Channel.HttpClient);
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -110,7 +80,7 @@ namespace Grpc.Net.Client
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartServerStreaming(_client, request);
+            call.StartServerStreaming(Channel.HttpClient, request);
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.ClientStreamReader,
@@ -126,7 +96,7 @@ namespace Grpc.Net.Client
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartUnary(_client, request);
+            call.StartUnary(Channel.HttpClient, request);
 
             return new AsyncUnaryCall<TResponse>(
                 responseAsync: call.GetResponseAsync(),
@@ -151,13 +121,13 @@ namespace Grpc.Net.Client
             where TRequest : class
             where TResponse : class
         {
-            if (_client.BaseAddress == null)
+            if (Channel.HttpClient.BaseAddress == null)
             {
                 throw new InvalidOperationException("Unable to send the gRPC call because no server address has been configured. " +
                     "Set HttpClient.BaseAddress on the HttpClient used to created to gRPC client.");
             }
 
-            var call = new GrpcCall<TRequest, TResponse>(method, options, this);
+            var call = new GrpcCall<TRequest, TResponse>(method, options, Channel);
 
             return call;
         }

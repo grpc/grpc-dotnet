@@ -48,8 +48,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -74,8 +74,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
@@ -101,8 +101,8 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var httpClientCallInvoker = new HttpClientCallInvoker(httpClient, null);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), httpClientCallInvoker);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
             call.StartServerStreaming(httpClient, new HelloRequest());
 
             // Act
