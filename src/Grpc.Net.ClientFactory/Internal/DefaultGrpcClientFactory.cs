@@ -27,26 +27,22 @@ namespace Grpc.Net.ClientFactory.Internal
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientOptionsMonitor;
 
-        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, IOptionsMonitor<GrpcClientFactoryOptions> clientOptionsMonitor)
+        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory)
         {
             _serviceProvider = serviceProvider;
             _httpClientFactory = httpClientFactory;
-            _clientOptionsMonitor = clientOptionsMonitor;
         }
 
         public override TClient CreateClient<TClient>(string name)
         {
-            var options = _clientOptionsMonitor.Get(name);
-            if (!options.ExplicitlySet)
+            var typedHttpClientFactory = _serviceProvider.GetService<INamedTypedHttpClientFactory<TClient>>();
+            if (typedHttpClientFactory == null)
             {
                 throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
             }
 
             var httpClient = _httpClientFactory.CreateClient(name);
-
-            var typedHttpClientFactory = _serviceProvider.GetRequiredService<INamedTypedHttpClientFactory<TClient>>();
 
             return typedHttpClientFactory.CreateClient(httpClient, name);
         }

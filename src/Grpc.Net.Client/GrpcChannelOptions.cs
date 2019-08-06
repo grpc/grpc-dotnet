@@ -16,32 +16,34 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
 
-namespace Grpc.Net.ClientFactory
+namespace Grpc.Net.Client
 {
     /// <summary>
-    /// Options used to configure a gRPC client.
+    /// An options class for configuring a <see cref="GrpcChannel"/>.
     /// </summary>
-    public class GrpcClientFactoryOptions
+    public sealed class GrpcChannelOptions
     {
         /// <summary>
-        /// The base address to use when making gRPC calls.
+        /// Gets or sets the transport options for the channel. Transport options are required
+        /// to successfully create a channel.
         /// </summary>
-        public Uri? BaseAddress { get; set; }
+        public GrpcTransportOptions? TransportOptions { get; set; }
 
         /// <summary>
-        /// Gets a list of operations used to configure a <see cref="GrpcChannelOptions"/>.
+        /// Gets or sets the credentials for the channel.
         /// </summary>
-        public IList<Action<GrpcChannelOptions>> ChannelOptionsActions { get; } = new List<Action<GrpcChannelOptions>>();
+        public ChannelCredentials? Credentials { get; set; }
 
         /// <summary>
-        /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
+        /// Gets or sets the maximum message size in bytes that can be sent from the client.
         /// </summary>
-        public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
+        public int? SendMaxMessageSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum message size in bytes that can be received by the client.
+        /// </summary>
+        public int? ReceiveMaxMessageSize { get; set; }
     }
 }

@@ -32,7 +32,8 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             var httpClient = ClientResources.CreateHttpClient("localhost:50051");
-            var client = GrpcClient.Create<Counter.CounterClient>(httpClient);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var client = new Counter.CounterClient(channelBuilder.Build());
 
             await UnaryCallExample(client);
 

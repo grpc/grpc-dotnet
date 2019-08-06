@@ -54,14 +54,14 @@ namespace Grpc.Net.Client.Internal
         public HttpResponseMessage? HttpResponse { get; private set; }
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
-        public HttpClientCallInvoker CallInvoker { get; }
+        public GrpcChannel Channel { get; }
 
         public ILogger Logger { get; }
         public Task? SendTask { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, HttpClientCallInvoker callInvoker)
+        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, GrpcChannel channel)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
@@ -72,12 +72,12 @@ namespace Grpc.Net.Client.Internal
             _uri = new Uri(method.FullName, UriKind.Relative);
             _logScope = new GrpcCallScope(method.Type, _uri);
             Options = options;
-            CallInvoker = callInvoker;
-            Logger = callInvoker.LoggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
+            Channel = channel;
+            Logger = channel.LoggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
             {
-                var timeout = options.Deadline.GetValueOrDefault() - CallInvoker.Clock.UtcNow;
+                var timeout = options.Deadline.GetValueOrDefault() - Channel.Clock.UtcNow;
                 _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
             }
         }
@@ -306,7 +306,7 @@ namespace Grpc.Net.Client.Internal
                         Logger,
                         Method.ResponseMarshaller.ContextualDeserializer,
                         GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
-                        CallInvoker.ReceiveMaxMessageSize,
+                        Channel.ReceiveMaxMessageSize,
                         _callCts.Token).ConfigureAwait(false);
                     FinishResponse();
 
@@ -391,7 +391,7 @@ namespace Grpc.Net.Client.Internal
                         request,
                         Method.RequestMarshaller.ContextualSerializer,
                         grpcEncoding,
-                        CallInvoker.SendMaxMessageSize,
+                        Channel.SendMaxMessageSize,
                         Options.CancellationToken);
                     if (writeMessageTask.IsCompletedSuccessfully)
                     {
@@ -442,7 +442,7 @@ namespace Grpc.Net.Client.Internal
         {
             using (StartScope())
             {
-                if (_timeout != null && !CallInvoker.DisableClientDeadlineTimer)
+                if (_timeout != null && !Channel.DisableClientDeadlineTimer)
                 {
                     Log.StartingDeadlineTimeout(Logger, _timeout.Value);
 
@@ -531,14 +531,26 @@ namespace Grpc.Net.Client.Internal
                 });
             }
 
-            if (Options.Credentials != null)
+            if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
             {
                 // In C-Core the call credential auth metadata is only applied if the channel is secure
                 // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
                 // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
                 if (client.BaseAddress.Scheme == Uri.UriSchemeHttps)
                 {
-                    await ReadCredentialMetadata(client, request, Options.Credentials).ConfigureAwait(false);
+                    var configurator = new DefaultCallCredentialsConfigurator();
+
+                    if (Options.Credentials != null)
+                    {
+                        await ReadCredentialMetadata(configurator, client, request, Options.Credentials).ConfigureAwait(false);
+                    }
+                    if (Channel.CallCredentials?.Count > 0)
+                    {
+                        foreach (var credentials in Channel.CallCredentials)
+                        {
+                            await ReadCredentialMetadata(configurator, client, request, credentials).ConfigureAwait(false);
+                        }
+                    }
                 }
                 else
                 {
@@ -559,9 +571,12 @@ namespace Grpc.Net.Client.Internal
             ValidateHeaders();
         }
 
-        private async Task ReadCredentialMetadata(HttpClient client, HttpRequestMessage message, CallCredentials credentials)
+        private async Task ReadCredentialMetadata(
+            DefaultCallCredentialsConfigurator configurator,
+            HttpClient client,
+            HttpRequestMessage message,
+            CallCredentials credentials)
         {
-            var configurator = new CallCredentialsConfigurator();
             credentials.InternalPopulateConfiguration(configurator, null);
 
             if (configurator.Interceptor != null)
@@ -578,9 +593,12 @@ namespace Grpc.Net.Client.Internal
 
             if (configurator.Credentials != null)
             {
-                foreach (var c in configurator.Credentials)
+                // Copy credentials locally. ReadCredentialMetadata will update it.
+                var callCredentials = configurator.Credentials;
+                foreach (var c in callCredentials)
                 {
-                    await ReadCredentialMetadata(client, message, c).ConfigureAwait(false);
+                    configurator.Reset();
+                    await ReadCredentialMetadata(configurator, client, message, c).ConfigureAwait(false);
                 }
             }
         }
@@ -675,10 +693,16 @@ namespace Grpc.Net.Client.Internal
             headers.Add(entry.Key, value);
         }
 
-        private class CallCredentialsConfigurator : CallCredentialsConfiguratorBase
+        private class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
         {
             public AsyncAuthInterceptor? Interceptor { get; private set; }
             public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
+
+            public void Reset()
+            {
+                Interceptor = null;
+                Credentials = null;
+            }
 
             public override void SetAsyncAuthInterceptorCredentials(object state, AsyncAuthInterceptor interceptor)
             {

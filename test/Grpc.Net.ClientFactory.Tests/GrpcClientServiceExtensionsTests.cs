@@ -17,11 +17,16 @@
 #endregion
 
 using System;
+using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using Greet;
+using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
@@ -36,7 +41,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Arrange
             var baseAddress = new Uri("http://localhost");
 
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
@@ -61,7 +66,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var baseAddress1 = new Uri("http://localhost");
             var baseAddress2 = new Uri("http://contoso");
 
-            ServiceCollection services = new ServiceCollection();
+            var services = new ServiceCollection();
             services
                 .AddGrpcClient<Greeter.GreeterClient>("First", o =>
                 {

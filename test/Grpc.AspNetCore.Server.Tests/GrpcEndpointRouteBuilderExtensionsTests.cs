@@ -246,7 +246,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_ServiceWithAttributeAndBuilder_TestMetdataPrecedence()
         {
             // Arrange
-            ServiceCollection services = ServicesHelpers.CreateServices();
+            var services = ServicesHelpers.CreateServices();
 
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
 
