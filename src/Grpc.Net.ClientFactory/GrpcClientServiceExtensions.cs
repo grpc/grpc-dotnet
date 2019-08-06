@@ -17,10 +17,12 @@
 #endregion
 
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
+using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
-using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -213,6 +215,10 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Singleton(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
 
+            // Registry is used to track state and report errors **DURING** service registration. This has to be an instance
+            // because we access it by reaching into the service collection.
+            services.TryAddSingleton(new GrpcClientMappingRegistry());
+
             Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
             {
                 var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
@@ -262,6 +268,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 return typedClientFactory.CreateClient(httpClient, builder.Name);
             });
 
+            ReserveClient(builder, typeof(TClient), name);
+
             return builder;
         }
 
@@ -276,6 +284,24 @@ namespace Microsoft.Extensions.DependencyInjection
             public string Name { get; }
 
             public IServiceCollection Services { get; }
+        }
+
+        private static void ReserveClient(IHttpClientBuilder builder, Type type, string name)
+        {
+            var registry = (GrpcClientMappingRegistry)builder.Services.Single(sd => sd.ServiceType == typeof(GrpcClientMappingRegistry)).ImplementationInstance;
+            Debug.Assert(registry != null);
+
+            // Check for same name registered to two different types. This won't work because we rely on named options for the configuration.
+            if (registry.NamedClientRegistrations.TryGetValue(name, out var otherType) && type != otherType)
+            {
+                var message =
+                    $"The gRPC client factory already has a registered client with the name '{name}', bound to the type '{otherType.FullName}'. " +
+                    $"Client names are computed based on the type name without considering the namespace ('{otherType.Name}'). " +
+                    $"Use an overload of AddGrpcClient that accepts a string and provide a unique name to resolve the conflict.";
+                throw new InvalidOperationException(message);
+            }
+
+            registry.NamedClientRegistrations[name] = type;
         }
     }
 }

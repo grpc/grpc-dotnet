@@ -113,7 +113,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greet.Greeter.GreeterClient>("Test"));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"));
 
             // Assert
             Assert.AreEqual("No gRPC client configured with name 'Test'.", ex.Message);
@@ -138,7 +138,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var provider = services.BuildServiceProvider();
 
             // Act
-            var clientFactory = provider.GetRequiredService<Net.ClientFactory.GrpcClientFactory>();
+            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
 
@@ -171,7 +171,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var provider = services.BuildServiceProvider();
 
             // Act
-            var clientFactory = provider.GetRequiredService<Net.ClientFactory.GrpcClientFactory>();
+            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
             var adventureworksClient = clientFactory.CreateClient<TestGreeterClient>("adventureworks");
