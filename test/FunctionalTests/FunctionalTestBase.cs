@@ -21,6 +21,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -30,12 +31,28 @@ namespace Grpc.AspNetCore.FunctionalTests
     public class FunctionalTestBase
     {
         private GrpcTestContext? _testContext;
+        private GrpcChannel? _channel;
 
         protected GrpcTestFixture<FunctionalTestsWebsite.Startup> Fixture { get; private set; } = default!;
 
         protected ILoggerFactory LoggerFactory => _testContext!.LoggerFactory;
 
         protected ILogger Logger => _testContext!.Logger;
+
+        protected GrpcChannel Channel
+        {
+            get
+            {
+                if (_channel == null)
+                {
+                    var channelBuilder = ChannelBuilder.ForHttpClient(Fixture.Client);
+                    channelBuilder.SetLoggerFactory(LoggerFactory);
+                    _channel = channelBuilder.Build();
+                }
+
+                return _channel;
+            }
+        }
 
         protected virtual void ConfigureServices(IServiceCollection services) { }
 
@@ -66,10 +83,11 @@ namespace Grpc.AspNetCore.FunctionalTests
                 Fixture.ServerLogged -= _testContext.ServerFixtureOnServerLogged;
                 _testContext.Dispose();
             }
+
+            _channel = null;
         }
 
         public IList<LogRecord> Logs => _testContext!.Scope.Logs;
-
 
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
         {

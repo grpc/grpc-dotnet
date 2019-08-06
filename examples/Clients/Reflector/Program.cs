@@ -32,7 +32,8 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             var httpClient = ClientResources.CreateHttpClient("localhost:50051");
-            var client = GrpcClient.Create<ServerReflectionClient>(httpClient);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var client = new ServerReflectionClient(channelBuilder.Build());
 
             var response = await SingleRequestAsync(client, new ServerReflectionRequest
             {

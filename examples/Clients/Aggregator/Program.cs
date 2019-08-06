@@ -37,7 +37,8 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             var httpClient = ClientResources.CreateHttpClient(Address);
-            var client = GrpcClient.Create<Aggregator.AggregatorClient>(httpClient);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var client = new Aggregator.AggregatorClient(channelBuilder.Build());
 
             await ServerStreamingCallExample(client);
 

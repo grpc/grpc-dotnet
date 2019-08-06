@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 data[i] = (byte)i; // Will loop around back to zero
             }
-            var client = GrpcClient.Create<StreamService.StreamServiceClient>(Fixture.Client, LoggerFactory);
+            var client = new StreamService.StreamServiceClient(Channel);
 
             // Act
             var call = client.DuplexData();
@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             var total = 1024 * 1024 * 64; // 64 MB
             var data = new byte[1024 * 64]; // 64 KB
-            var client = GrpcClient.Create<StreamService.StreamServiceClient>(Fixture.Client, LoggerFactory);
+            var client = new StreamService.StreamServiceClient(Channel);
             var dataMessage = new DataMessage
             {
                 Data = ByteString.CopyFrom(data)
@@ -142,7 +142,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             });
 
             // Arrange
-            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
+            var client = new UnimplementedService.UnimplementedServiceClient(Channel);
 
             // Act
             var call = client.DuplexData();
@@ -169,7 +169,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
         {
             // Arrange
-            var client = GrpcClient.Create<UnimplementedService.UnimplementedServiceClient>(Fixture.Client, LoggerFactory);
+            var client = new UnimplementedService.UnimplementedServiceClient(Channel);
 
             for (int i = 0; i < 1000; i++)
             {

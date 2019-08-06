@@ -34,7 +34,8 @@ namespace Sample.Clients
         static async Task Main(string[] args)
         {
             var httpClient = new HttpClient { BaseAddress = new Uri($"https://{Address}") };
-            var client = GrpcClient.Create<Ticketer.TicketerClient>(httpClient);
+            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            var client = new Ticketer.TicketerClient(channelBuilder.Build());
 
             Console.WriteLine("gRPC Ticketer");
             Console.WriteLine();
