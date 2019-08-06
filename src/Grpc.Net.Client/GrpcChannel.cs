@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Mail;
+using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
@@ -40,7 +41,7 @@ namespace Grpc.Net.Client
         internal ILoggerFactory LoggerFactory { get; }
         internal bool? IsSecure { get; }
         internal List<CallCredentials>? CallCredentials { get; }
-        internal List<ICompressionProvider> CompressionProviders { get; }
+        internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
 
         // Timing related options that are set in unit tests
@@ -71,9 +72,24 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static List<ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)
+        private static Dictionary<string, ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)
         {
-            return compressionProviders as List<ICompressionProvider> ?? compressionProviders?.ToList() ?? GrpcProtocolConstants.DefaultCompressionProviders;
+            if (compressionProviders == null)
+            {
+                return GrpcProtocolConstants.DefaultCompressionProviders;
+            }
+
+            var resolvedCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
+            for (int i = 0; i < compressionProviders.Count; i++)
+            {
+                var compressionProvider = compressionProviders[i];
+                if (!resolvedCompressionProviders.ContainsKey(compressionProvider.EncodingName))
+                {
+                    resolvedCompressionProviders.Add(compressionProvider.EncodingName, compressionProvider);
+                }
+            }
+
+            return resolvedCompressionProviders;
         }
 
         private void ValidateChannelCredentials()

@@ -116,7 +116,7 @@ namespace Grpc.Net.Client.Tests
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
 
-            var compressionProviders = GrpcProtocolConstants.DefaultCompressionProviders.ToList();
+            var compressionProviders = GrpcProtocolConstants.DefaultCompressionProviders.Values.ToList();
             compressionProviders.Add(new TestCompressionProvider());
 
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);

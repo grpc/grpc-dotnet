@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -42,10 +43,10 @@ namespace Grpc.Net.Client.Internal
 
         internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
 
-        internal static readonly List<ICompressionProvider> DefaultCompressionProviders = new List<ICompressionProvider>
+        internal static readonly Dictionary<string, ICompressionProvider> DefaultCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal)
         {
-            new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
-            new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+            ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
+            ["deflate"] = new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
         };
 
         internal static readonly string DefaultMessageAcceptEncodingValue;
@@ -75,7 +76,7 @@ namespace Grpc.Net.Client.Internal
 
             TEHeader = new TransferCodingWithQualityHeaderValue("trailers");
 
-            DefaultMessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', DefaultCompressionProviders.Select(p => p.EncodingName));
+            DefaultMessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', DefaultCompressionProviders.Select(p => p.Key));
         }
     }
 }

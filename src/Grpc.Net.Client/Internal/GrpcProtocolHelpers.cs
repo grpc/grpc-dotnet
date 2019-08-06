@@ -221,14 +221,14 @@ namespace Grpc.Net.Client.Internal
             return grpcEncoding;
         }
 
-        internal static string GetMessageAcceptEncoding(List<ICompressionProvider> compressionProviders)
+        internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
         {
             if (compressionProviders == GrpcProtocolConstants.DefaultCompressionProviders)
             {
                 return GrpcProtocolConstants.DefaultMessageAcceptEncodingValue;
             }
 
-            return GrpcProtocolConstants.IdentityGrpcEncoding + "," + string.Join(',', compressionProviders.Select(p => p.EncodingName));
+            return GrpcProtocolConstants.IdentityGrpcEncoding + "," + string.Join(',', compressionProviders.Select(p => p.Key));
         }
     }
 }
