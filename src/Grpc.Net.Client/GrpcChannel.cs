@@ -45,7 +45,7 @@ namespace Grpc.Net.Client
         internal GrpcChannel(GrpcChannelOptions channelOptions, GrpcTransportOptions transportOptions, ILoggerFactory loggerFactory) : base(transportOptions.Target)
         {
             var httpClient = (transportOptions as HttpClientTransportOptions)?.HttpClient;
-            Debug.Assert(httpClient != null, "HttpClientTransportOptions is the only options and have already used HttpClient on options.");
+            Debug.Assert(httpClient != null, "HttpClientTransportOptions should have been provided. It is the only implementation GrpcTransportOptions.");
 
             HttpClient = httpClient;
             SendMaxMessageSize = channelOptions.SendMaxMessageSize;
