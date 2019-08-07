@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>The gRPC Authors</Authors>
     <Copyright>Copyright 2019 The gRPC Authors</Copyright>
-    <Description>.NET client for gRPC</Description>
+    <Description>Infrastructure for common functionality in gRPC</Description>
     <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
@@ -27,17 +27,10 @@
     <!-- Roslyn analyzer that enforces ConfigureAwait(false) -->
     <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="$(ConfigureAwaitCheckerAnalyzerPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="$(SystemDiagnosticsDiagnosticSourcePackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
-    <Compile Include="..\Shared\DefaultSerializationContext.cs" Link="Internal\DefaultSerializationContext.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Grpc.Net.Common\Grpc.Net.Common.csproj" />
+    <Folder Include="Properties\" />
   </ItemGroup>
 
 </Project>

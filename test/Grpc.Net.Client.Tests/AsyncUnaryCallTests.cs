@@ -69,7 +69,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
             Assert.AreEqual(GrpcProtocolConstants.TEHeader, httpRequestMessage.Headers.TE.Single());
-            Assert.AreEqual("identity,gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
+            Assert.AreEqual("identity,gzip,deflate", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
             var userAgent = httpRequestMessage.Headers.UserAgent.Single();
             Assert.AreEqual(GrpcProtocolConstants.UserAgentHeader, userAgent);
@@ -107,7 +107,13 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(content);
 
             var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
-            var requestMessage = await requestContent.ReadSingleMessageAsync(NullLogger.Instance, ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer, GrpcProtocolConstants.IdentityGrpcEncoding, maximumMessageSize: null, CancellationToken.None).DefaultTimeout();
+            var requestMessage = await requestContent.ReadSingleMessageAsync(
+                NullLogger.Instance,
+                ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                GrpcProtocolConstants.IdentityGrpcEncoding,
+                maximumMessageSize: null,
+                GrpcProtocolConstants.DefaultCompressionProviders,
+                CancellationToken.None).DefaultTimeout();
 
             Assert.AreEqual("World", requestMessage.Name);
         }

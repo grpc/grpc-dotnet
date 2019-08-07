@@ -18,7 +18,7 @@
 
 using System.Collections.Generic;
 using System.IO.Compression;
-using Grpc.AspNetCore.Server.Compression;
+using Grpc.Net.Compression;
 
 namespace Grpc.AspNetCore.Server
 {
@@ -27,9 +27,12 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class GrpcServiceOptions
     {
-        internal List<ICompressionProvider>? _compressionProviders;
+        internal IList<ICompressionProvider>? _compressionProviders;
+
         // Fast check for interceptors is used per-request
         internal bool HasInterceptors { get; set; }
+        // Compression providers by encoding name
+        internal Dictionary<string, ICompressionProvider>? ResolvedCompressionProviders;
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
@@ -63,7 +66,7 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Gets or sets the list of compression providers used to compress and decompress gRPC messages.
         /// </summary>
-        public List<ICompressionProvider> CompressionProviders
+        public IList<ICompressionProvider> CompressionProviders
         {
             get
             {

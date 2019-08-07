@@ -20,14 +20,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -141,7 +140,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'Unimplemented' raised." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip")
+                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: identity, gzip, deflate")
                 {
                     return true;
                 }
@@ -149,7 +148,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip")
+                    GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: identity, gzip, deflate")
                 {
                     return true;
                 }
@@ -181,9 +180,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("gzip", response.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
+            Assert.AreEqual("identity,gzip,deflate", response.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
-            response.AssertTrailerStatus(StatusCode.Unimplemented, "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: gzip");
+            response.AssertTrailerStatus(StatusCode.Unimplemented, "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: identity, gzip, deflate");
         }
 
         private class DoesNotExistCompressionProvider : ICompressionProvider

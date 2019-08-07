@@ -17,8 +17,12 @@
 #endregion
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -137,6 +141,18 @@ namespace Grpc.Net.Client
         public ChannelBuilder SetLoggerFactory(ILoggerFactory? loggerFactory)
         {
             _loggerFactory = loggerFactory;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a collection of <see cref="ICompressionProvider"/> instances. Clients will select a compression
+        /// provider by matching the compression provider name to the <c>grpc-encoding</c> value.
+        /// </summary>
+        /// <param name="compressionProviders">A collection of compression providers.</param>
+        /// <returns>The same instance of the <see cref="ChannelBuilder"/> for chaining.</returns>
+        public ChannelBuilder SetCompressionProviders(IEnumerable<ICompressionProvider> compressionProviders)
+        {
+            _options.CompressionProviders = compressionProviders?.ToList();
             return this;
         }
 

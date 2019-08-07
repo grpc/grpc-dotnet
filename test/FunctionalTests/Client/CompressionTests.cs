@@ -31,11 +31,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class CompressionTests : FunctionalTestBase
     {
-        [Test]
-        public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseGzipEncoding()
+        [TestCase("identity")]
+        [TestCase("gzip")]
+        [TestCase("deflate")]
+        public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseGzipEncoding(string algorithmName)
         {
             // Arrange
-            var compressionMetadata = CreateClientCompressionMetadata("gzip");
+            var compressionMetadata = CreateClientCompressionMetadata(algorithmName);
 
             string? requestMessageEncoding = null;
             string? responseMessageEncoding = null;
@@ -60,7 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual("Hello World", response.Message);
-            Assert.AreEqual("gzip", requestMessageEncoding);
+            Assert.AreEqual(algorithmName, requestMessageEncoding);
             Assert.AreEqual("gzip", responseMessageEncoding);
         }
 
