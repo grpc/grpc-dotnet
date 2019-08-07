@@ -29,7 +29,7 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class ChannelBuilder
     {
-        private const int DefaultReceiveMaxMessageSize = 1024 * 1024 * 4; // 4 MB
+        internal const int DefaultReceiveMaxMessageSize = 1024 * 1024 * 4; // 4 MB
 
         private GrpcChannelOptions _options;
         private ILoggerFactory? _loggerFactory;
