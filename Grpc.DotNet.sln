@@ -166,6 +166,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aggregator", "examples\Clie
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore", "src\Grpc.AspNetCore\Grpc.AspNetCore.csproj", "{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Common", "src\Grpc.Net.Common\Grpc.Net.Common.csproj", "{69C50655-71EE-4E69-BC2C-ABCA568F6E76}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -296,6 +298,10 @@ Global
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -346,6 +352,7 @@ Global
 		{F7A0064A-C648-46BD-A3E8-132D5E08A970} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{BEC5E994-7EE1-4429-B5A6-870B174D8830} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{69C50655-71EE-4E69-BC2C-ABCA568F6E76} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

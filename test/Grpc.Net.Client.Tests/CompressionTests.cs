@@ -18,6 +18,8 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -26,8 +28,8 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Internal.Compression;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -56,6 +58,7 @@ namespace Grpc.Net.Client.Tests
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -100,6 +103,7 @@ namespace Grpc.Net.Client.Tests
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -111,7 +115,11 @@ namespace Grpc.Net.Client.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            var compressionProviders = GrpcProtocolConstants.DefaultCompressionProviders.Values.ToList();
+            compressionProviders.Add(new TestCompressionProvider());
+
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);
 
             // Act
             var compressionMetadata = CreateClientCompressionMetadata("gzip");
@@ -126,6 +134,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("Hello world", response.Message);
 
             Debug.Assert(httpRequestMessage != null);
+            Assert.AreEqual("identity,gzip,deflate,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
             Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
@@ -152,6 +161,7 @@ namespace Grpc.Net.Client.Tests
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -197,6 +207,7 @@ namespace Grpc.Net.Client.Tests
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -220,7 +231,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
-            Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: gzip", ex.Status.Detail);
+            Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: identity, gzip, deflate", ex.Status.Detail);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)
@@ -229,6 +240,21 @@ namespace Grpc.Net.Client.Tests
             {
                 { new Metadata.Entry(GrpcProtocolConstants.CompressionRequestAlgorithmHeader, algorithmName) }
             };
+        }
+
+        private class TestCompressionProvider : ICompressionProvider
+        {
+            public string EncodingName => "test";
+
+            public Stream CreateCompressionStream(Stream stream, System.IO.Compression.CompressionLevel? compressionLevel)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Stream CreateDecompressionStream(Stream stream)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

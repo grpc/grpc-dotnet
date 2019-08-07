@@ -17,7 +17,7 @@
 #endregion
 
 using System.IO.Compression;
-using Grpc.AspNetCore.Server.Compression;
+using Grpc.Net.Compression;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -38,6 +38,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (options._compressionProviders == null || options._compressionProviders.Count == 0)
             {
                 options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
+                options.CompressionProviders.Add(new DeflateCompressionProvider(CompressionLevel.Fastest));
             }
         }
     }

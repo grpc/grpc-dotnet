@@ -26,7 +26,7 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.Core;
-using Grpc.Net.Client.Internal.Compression;
+using Grpc.Net.Compression;
 
 namespace Grpc.Tests.Shared
 {

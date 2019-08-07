@@ -17,13 +17,14 @@
 #endregion
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -62,9 +63,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
                 SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
                 ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
-                ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel,
-                CompressionProviders = so._compressionProviders ?? go._compressionProviders ?? new List<ICompressionProvider>()
+                ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel
             };
+
+            var resolvedCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
+            AddCompressionProviders(resolvedCompressionProviders, so._compressionProviders);
+            AddCompressionProviders(resolvedCompressionProviders, go._compressionProviders);
+            _resolvedOptions.ResolvedCompressionProviders = resolvedCompressionProviders;
 
             _resolvedOptions.Interceptors.AddRange(go.Interceptors);
             _resolvedOptions.Interceptors.AddRange(so.Interceptors);
@@ -72,10 +77,23 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (_resolvedOptions.ResponseCompressionAlgorithm != null)
             {
-                var responseCompressionProvider = _resolvedOptions.CompressionProviders?.FirstOrDefault(p => string.Equals(_resolvedOptions.ResponseCompressionAlgorithm, p.EncodingName, StringComparison.Ordinal));
-                if (responseCompressionProvider == null)
+                if (!_resolvedOptions.ResolvedCompressionProviders.TryGetValue(_resolvedOptions.ResponseCompressionAlgorithm, out var _))
                 {
                     throw new InvalidOperationException($"The configured response compression algorithm '{_resolvedOptions.ResponseCompressionAlgorithm}' does not have a matching compression provider.");
+                }
+            }
+        }
+
+        private static void AddCompressionProviders(Dictionary<string, ICompressionProvider> resolvedProviders, IList<ICompressionProvider>? compressionProviders)
+        {
+            if (compressionProviders != null)
+            {
+                foreach (var compressionProvider in compressionProviders)
+                {
+                    if (!resolvedProviders.ContainsKey(compressionProvider.EncodingName))
+                    {
+                        resolvedProviders.Add(compressionProvider.EncodingName, compressionProvider);
+                    }
                 }
             }
         }

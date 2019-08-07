@@ -19,12 +19,12 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Grpc.AspNetCore.Server.Compression
+namespace Grpc.Net.Compression
 {
     /// <summary>
-    /// GZIP compression provider.
+    /// Deflate compression provider.
     /// </summary>
-    public class GzipCompressionProvider : ICompressionProvider
+    public class DeflateCompressionProvider : ICompressionProvider
     {
         private readonly CompressionLevel _defaultCompressionLevel;
 
@@ -32,7 +32,7 @@ namespace Grpc.AspNetCore.Server.Compression
         /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
         /// </summary>
         /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
-        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
+        public DeflateCompressionProvider(CompressionLevel defaultCompressionLevel)
         {
             _defaultCompressionLevel = defaultCompressionLevel;
         }
@@ -40,7 +40,7 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <summary>
         /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
         /// </summary>
-        public string EncodingName => "gzip";
+        public string EncodingName => "deflate";
 
         /// <summary>
         /// Create a new compression stream.
@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <returns>A stream used to compress data.</returns>
         public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
         {
-            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel);
+            return new DeflateStream(stream, compressionLevel ?? _defaultCompressionLevel);
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.Server.Compression
         /// <returns>A stream used to decompress data.</returns>
         public Stream CreateDecompressionStream(Stream stream)
         {
-            return new GZipStream(stream, CompressionMode.Decompress);
+            return new DeflateStream(stream, CompressionMode.Decompress);
         }
     }
 }

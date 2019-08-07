@@ -18,16 +18,16 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
@@ -639,9 +639,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var serviceOptions = new GrpcServiceOptions
             {
                 ResponseCompressionAlgorithm = "gzip",
-                CompressionProviders =
+                ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
                 {
-                    new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+                    ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
                 }
             };
 
@@ -673,9 +673,9 @@ namespace Grpc.AspNetCore.Server.Tests
             {
                 ResponseCompressionAlgorithm = "Mock",
                 ResponseCompressionLevel = System.IO.Compression.CompressionLevel.Optimal,
-                CompressionProviders =
+                ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
                 {
-                    mockCompressionProvider
+                    [mockCompressionProvider.EncodingName] = mockCompressionProvider
                 }
             };
 

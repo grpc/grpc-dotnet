@@ -19,28 +19,17 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Grpc.Net.Client.Internal.Compression
+namespace Grpc.Net.Compression
 {
     /// <summary>
-    /// GZIP compression provider.
+    /// Provides a specific compression implementation to compress gRPC messages.
     /// </summary>
-    internal class GzipCompressionProvider : ICompressionProvider
+    public interface ICompressionProvider
     {
-        private readonly CompressionLevel _defaultCompressionLevel;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
-        /// </summary>
-        /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
-        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
-        {
-            _defaultCompressionLevel = defaultCompressionLevel;
-        }
-
         /// <summary>
         /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
         /// </summary>
-        public string EncodingName => "gzip";
+        string EncodingName { get; }
 
         /// <summary>
         /// Create a new compression stream.
@@ -48,19 +37,13 @@ namespace Grpc.Net.Client.Internal.Compression
         /// <param name="stream">The stream that compressed data is written to.</param>
         /// <param name="compressionLevel">The compression level.</param>
         /// <returns>A stream used to compress data.</returns>
-        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
-        {
-            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel);
-        }
+        Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel);
 
         /// <summary>
         /// Create a new decompression stream.
         /// </summary>
         /// <param name="stream">The stream that compressed data is copied from.</param>
         /// <returns>A stream used to decompress data.</returns>
-        public Stream CreateDecompressionStream(Stream stream)
-        {
-            return new GZipStream(stream, CompressionMode.Decompress);
-        }
+        Stream CreateDecompressionStream(Stream stream);
     }
 }
