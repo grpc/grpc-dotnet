@@ -98,6 +98,25 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_MessageLargerThanDefaultReceiveMaxMessageSize_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
+            {
+                Name = new string('!', (1024 * 1024 * 4) + 1) // 4 MB + 1 B
+            });
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_MessageSmallerThanReceiveMaxMessageSize_Success()
         {
             // Arrange
