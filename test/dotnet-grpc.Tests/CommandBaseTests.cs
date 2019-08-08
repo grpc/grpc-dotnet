@@ -35,20 +35,20 @@ namespace Grpc.Dotnet.Cli.Tests
     public class CommandBaseTests : TestBase
     {
         [Test]
-        public void EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
+        public Task EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
             => EnsureNugetPackages_AddsRequiredServerPackages(Services.Server);
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredServerPackages_ForBoth()
+        public Task EnsureNugetPackages_AddsRequiredServerPackages_ForBoth()
             => EnsureNugetPackages_AddsRequiredServerPackages(Services.Both);
 
-        private void EnsureNugetPackages_AddsRequiredServerPackages(Services services)
+        private async Task EnsureNugetPackages_AddsRequiredServerPackages(Services services)
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(services);
+            await commandBase.EnsureNugetPackagesAsync(services);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -58,13 +58,13 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredClientPackages_ForNonWebClient()
+        public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForNonWebClient()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(Services.Client);
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -76,7 +76,7 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredClientPackages_ForWebClient()
+        public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForWebClient()
         {
             // Arrange
             var commandBase = new CommandBase(
@@ -84,7 +84,7 @@ namespace Grpc.Dotnet.Cli.Tests
                 CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             // Act
-            commandBase.EnsureNugetPackages(Services.Client);
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -95,13 +95,13 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
+        public async Task EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(Services.None);
+            await commandBase.EnsureNugetPackagesAsync(Services.None);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -112,14 +112,14 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
+        public async Task EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
             commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
             // Act
-            commandBase.EnsureNugetPackages(Services.None);
+            await commandBase.EnsureNugetPackagesAsync(Services.None);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert

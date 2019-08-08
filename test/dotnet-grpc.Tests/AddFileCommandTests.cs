@@ -20,6 +20,7 @@ using System;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Options;
 using NUnit.Framework;
@@ -31,7 +32,7 @@ namespace Grpc.Dotnet.Cli.Tests
     {
         [Test]
         [NonParallelizable]
-        public void AddFileCommand_AddsPackagesAndReferences()
+        public async Task AddFileCommand_AddsPackagesAndReferences()
         {
             // Arrange
             var currentDir = Directory.GetCurrentDirectory();
@@ -41,7 +42,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Act
             Directory.SetCurrentDirectory(tempDir);
             var command = new AddFileCommand(new TestConsole(), null);
-            command.AddFile(Services.Server, Access.Internal, "ImportDir", new[] { Path.Combine("Proto", "*.proto") });
+            await command.AddFileAsync(Services.Server, Access.Internal, "ImportDir", new[] { Path.Combine("Proto", "*.proto") });
             command.Project.ReevaluateIfNecessary();
 
             // Assert

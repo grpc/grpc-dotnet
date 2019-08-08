@@ -19,6 +19,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
+using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
@@ -49,12 +50,12 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AccessOption());
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(
-                (console, project, services, access, additionalImportDirs, files) =>
+                async (console, project, services, access, additionalImportDirs, files) =>
                 {
                     try
                     {
                         var command = new AddFileCommand(console, project);
-                        command.AddFile(services, access, additionalImportDirs, files);
+                        await command.AddFileAsync(services, access, additionalImportDirs, files);
 
                         return 0;
                     }
@@ -69,10 +70,10 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public void AddFile(Services services, Access access, string additionalImportDirs, string[] files)
+        public async Task AddFileAsync(Services services, Access access, string additionalImportDirs, string[] files)
         {
             var resolvedServices = ResolveServices(services);
-            EnsureNugetPackages(resolvedServices);
+            await EnsureNugetPackagesAsync(resolvedServices);
             files = GlobReferences(files);
 
             foreach (var file in files)
