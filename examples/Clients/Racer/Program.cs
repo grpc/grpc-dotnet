@@ -37,6 +37,9 @@ namespace Sample.Clients
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new Racer.RacerClient(channelBuilder.Build());
 
+            Console.WriteLine("Press any key to start race...");
+            Console.ReadKey();
+
             await BidirectionalStreamingExample(client);
 
             Console.WriteLine("Shutting down");
@@ -48,9 +51,9 @@ namespace Sample.Clients
         {
             var headers = new Metadata { new Metadata.Entry("race-duration", RaceDuration.ToString()) };
 
+            Console.WriteLine("Ready, set, go!");
             using (var call = client.ReadySetGo(new CallOptions(headers)))
             {
-                Console.WriteLine("Call started");
 
                 // Read incoming messages in a background task
                 RaceMessage? lastMessageReceived = null;
