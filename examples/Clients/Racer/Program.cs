@@ -50,6 +50,8 @@ namespace Sample.Clients
 
             using (var call = client.ReadySetGo(new CallOptions(headers)))
             {
+                Console.WriteLine("Call started");
+
                 // Read incoming messages in a background task
                 RaceMessage? lastMessageReceived = null;
                 var readTask = Task.Run(async () =>
