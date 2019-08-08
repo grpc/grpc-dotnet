@@ -18,8 +18,8 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
@@ -36,8 +36,7 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var command = new Command(
                 name: "list",
-                description: CoreStrings.RefreshCommandDescription);
-
+                description: CoreStrings.ListCommandDescription);
             command.AddOption(CommonOptions.ProjectOption());
 
             command.Handler = CommandHandler.Create<IConsole, FileInfo>(
@@ -63,19 +62,18 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public  void List()
         {
-            // TODO Resx
-            Console.Log("Protobuf references:");
+            Console.Log(CoreStrings.LogListHeader);
             Console.Log("");
 
             foreach (var reference in Project.GetItems(ProtobufElement))
             {
                 if (reference.HasMetadata(SourceUrlElement))
                 {
-                    Console.Log($"URL reference: {reference.UnevaluatedInclude} from {reference.GetMetadataValue(SourceUrlElement)}");
+                    Console.Log(string.Format(CultureInfo.CurrentCulture, CoreStrings.LogListUrlReference, reference.UnevaluatedInclude, reference.GetMetadataValue(SourceUrlElement)));
                 }
                 else
                 {
-                    Console.Log($"File reference: {reference.UnevaluatedInclude}");
+                    Console.Log(string.Format(CultureInfo.CurrentCulture, CoreStrings.LogListFileReference, reference.UnevaluatedInclude));
                 }
             }
         }

@@ -70,6 +70,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
+        private bool IsUsingWebSdk => Project.AllEvaluatedProperties.Any(p => string.Equals(WebSDKProperty, p.Name, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase));
 
         public Services ResolveServices(Services services)
         {
@@ -80,8 +82,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             // If UsingMicrosoftNETSdkWeb is true, generate Client and Server services
-            if (Project.AllEvaluatedProperties.Any(p => string.Equals(WebSDKProperty, p.Name, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase)))
+            if (IsUsingWebSdk)
             {
                 return Services.Both;
             }
@@ -98,7 +99,10 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
                 {
-                    AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+                    }
                 }
             }
         }

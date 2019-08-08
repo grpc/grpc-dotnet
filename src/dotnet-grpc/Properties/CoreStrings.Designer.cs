@@ -187,6 +187,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to List the protobuf reference(s) of the gRPC project..
+        /// </summary>
+        internal static string ListCommandDescription {
+            get {
+                return ResourceManager.GetString("ListCommandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Adding file reference {0}..
         /// </summary>
         internal static string LogAddFileReference {
@@ -219,6 +228,33 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string LogDownload {
             get {
                 return ResourceManager.GetString("LogDownload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to File reference: {0}.
+        /// </summary>
+        internal static string LogListFileReference {
+            get {
+                return ResourceManager.GetString("LogListFileReference", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Protobuf references:.
+        /// </summary>
+        internal static string LogListHeader {
+            get {
+                return ResourceManager.GetString("LogListHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to URL reference: {0} from {1}.
+        /// </summary>
+        internal static string LogListUrlReference {
+            get {
+                return ResourceManager.GetString("LogListUrlReference", resourceCulture);
             }
         }
         
@@ -259,7 +295,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No file reference was found for pattern `{0}`..
+        ///   Looks up a localized string similar to No file found matching file argument `{0}`. File reference not added..
         /// </summary>
         internal static string LogWarningNoReferenceResolved {
             get {
@@ -322,7 +358,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove protobuf references(s)..
+        ///   Looks up a localized string similar to Remove protobuf references(s) from the gRPC project..
         /// </summary>
         internal static string RemoveCommandDescription {
             get {

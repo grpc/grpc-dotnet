@@ -58,7 +58,7 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredClientPackages_ForClient()
+        public void EnsureNugetPackages_AddsRequiredClientPackages_ForNonWebClient()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
@@ -72,6 +72,25 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual(3, packageRefs.Count);
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+        }
+
+        [Test]
+        public void EnsureNugetPackages_AddsRequiredClientPackages_ForWebClient()
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+
+            // Act
+            commandBase.EnsureNugetPackages(Services.Client);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server.ClientFactory" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
             Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
         }
 
