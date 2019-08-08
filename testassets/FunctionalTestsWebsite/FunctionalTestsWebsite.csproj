@@ -16,6 +16,7 @@
     <Protobuf Include="..\Proto\greet.proto" Link="Protos\greet.proto" />
     <Protobuf Include="..\Proto\lifetime.proto" Link="Protos\lifetime.proto" />
     <Protobuf Include="..\Proto\nested.proto" Link="Protos\nested.proto" />
+    <Protobuf Include="..\Proto\race.proto" Link="Protos\race.proto" />
     <Protobuf Include="..\Proto\singleton.proto" Link="Protos\singleton.proto" />
     <Protobuf Include="..\Proto\streaming.proto" Link="Protos\streaming.proto" />
     <Protobuf Include="..\Proto\unimplemented.proto" Link="Protos\unimplemented.proto" />

@@ -27,6 +27,7 @@ using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using Race;
 using Streaming;
 using Unimplemented;
 
@@ -123,6 +124,44 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual(total, response.Size);
+        }
+
+        [Test]
+        public async Task DuplexStream_SimultaneousSendAndReceive_Success()
+        {
+            var client = new Racer.RacerClient(Channel);
+
+            TimeSpan raceDuration = TimeSpan.FromSeconds(1);
+
+            var headers = new Metadata { new Metadata.Entry("race-duration", raceDuration.ToString()) };
+
+            using (var call = client.ReadySetGo(new CallOptions(headers)))
+            {
+                // Read incoming messages in a background task
+                RaceMessage? lastMessageReceived = null;
+                var readTask = Task.Run(async () =>
+                {
+                    while (await call.ResponseStream.MoveNext().DefaultTimeout())
+                    {
+                        lastMessageReceived = call.ResponseStream.Current;
+                    }
+                });
+
+                // Write outgoing messages until timer is complete
+                var sw = Stopwatch.StartNew();
+                var sent = 0;
+                while (sw.Elapsed < raceDuration)
+                {
+                    await call.RequestStream.WriteAsync(new RaceMessage { Count = ++sent }).DefaultTimeout();
+                }
+
+                // Finish call and report results
+                await call.RequestStream.CompleteAsync().DefaultTimeout();
+                await readTask.DefaultTimeout();
+
+                Assert.Greater(sent, 0);
+                Assert.Greater(lastMessageReceived?.Count ?? 0, 0);
+            }
         }
 
         [Test]

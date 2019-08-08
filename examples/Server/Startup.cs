@@ -122,6 +122,7 @@ namespace GRPCServer
                 endpoints.MapGrpcService<TicketerService>();
                 endpoints.MapGrpcService<CertifierService>();
                 endpoints.MapGrpcService<AggregatorService>();
+                endpoints.MapGrpcService<RacerService>();
 
                 endpoints.MapGrpcReflectionService();
 
