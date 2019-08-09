@@ -43,9 +43,9 @@ namespace FunctionalTestsWebsite.Services
         {
             // Read data into MemoryStream
             var ms = new MemoryStream();
-            while (await requestStream.MoveNext(CancellationToken.None))
+            await foreach (var message in requestStream.ReadAllAsync())
             {
-                ms.Write(requestStream.Current.Data.Span);
+                ms.Write(message.Data.Span);
                 _logger.LogInformation($"Received {ms.Length} bytes");
             }
 
@@ -72,9 +72,8 @@ namespace FunctionalTestsWebsite.Services
             ServerCallContext context)
         {
             var total = 0L;
-            while (await requestStream.MoveNext(CancellationToken.None))
+            await foreach (var message in requestStream.ReadAllAsync())
             {
-                var message = requestStream.Current;
                 total += message.Data.Length;
 
                 if (message.ServerDelayMilliseconds > 0)

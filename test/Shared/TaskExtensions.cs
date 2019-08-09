@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -91,5 +92,72 @@ namespace Grpc.Tests.Shared
             => string.IsNullOrEmpty(filePath)
             ? $"The operation timed out after reaching the limit of {timeout.TotalMilliseconds}ms."
             : $"The operation at {filePath}:{lineNumber} timed out after reaching the limit of {timeout.TotalMilliseconds}ms.";
+
+        public static IAsyncEnumerable<T> DefaultTimeout<T>(this IAsyncEnumerable<T> enumerable,
+            [CallerFilePath] string? filePath = null,
+            [CallerLineNumber] int lineNumber = default)
+        {
+            return enumerable.TimeoutAfter(TimeSpan.FromSeconds(5), filePath, lineNumber);
+        }
+
+        public static IAsyncEnumerable<T> TimeoutAfter<T>(this IAsyncEnumerable<T> enumerable, TimeSpan timeout,
+            [CallerFilePath] string? filePath = null,
+            [CallerLineNumber] int lineNumber = default)
+        {
+            return new TimeoutAsyncEnumerable<T>(enumerable, timeout, filePath, lineNumber);
+        }
+
+        private class TimeoutAsyncEnumerable<T> : IAsyncEnumerable<T>
+        {
+            private readonly IAsyncEnumerable<T> _inner;
+            private readonly TimeSpan _timeout;
+            private readonly string? _filePath;
+            private readonly int _lineNumber;
+
+            public TimeoutAsyncEnumerable(IAsyncEnumerable<T> inner, TimeSpan timeout, string? filePath, int lineNumber)
+            {
+                _inner = inner;
+                _timeout = timeout;
+                _filePath = filePath;
+                _lineNumber = lineNumber;
+            }
+
+            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+            {
+                return new TimeoutAsyncEnumerator<T>(
+                    _inner.GetAsyncEnumerator(cancellationToken),
+                    _timeout,
+                    _filePath,
+                    _lineNumber);
+            }
+        }
+
+        private class TimeoutAsyncEnumerator<T> : IAsyncEnumerator<T>
+        {
+            private readonly IAsyncEnumerator<T> _enumerator;
+            private readonly TimeSpan _timeout;
+            private readonly string? _filePath;
+            private readonly int _lineNumber;
+
+            public TimeoutAsyncEnumerator(IAsyncEnumerator<T> enumerator, TimeSpan timeout, string? filePath, int lineNumber)
+            {
+                _enumerator = enumerator;
+                _timeout = timeout;
+                _filePath = filePath;
+                _lineNumber = lineNumber;
+            }
+
+            public T Current => _enumerator.Current;
+
+            public ValueTask DisposeAsync()
+            {
+                return _enumerator.DisposeAsync();
+            }
+
+            public ValueTask<bool> MoveNextAsync()
+            {
+                return new ValueTask<bool>(_enumerator.MoveNextAsync().AsTask().TimeoutAfter(_timeout, _filePath, _lineNumber));
+            }
+        }
     }
 }

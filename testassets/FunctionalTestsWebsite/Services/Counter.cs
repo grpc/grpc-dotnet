@@ -46,11 +46,11 @@ namespace FunctionalTestsWebsite.Services
 
         public override async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
-            while (await requestStream.MoveNext(CancellationToken.None))
+            await foreach (var message in requestStream.ReadAllAsync())
             {
-                _logger.LogInformation($"Incrementing count by {requestStream.Current.Count}");
+                _logger.LogInformation($"Incrementing count by {message.Count}");
 
-                _counter.Increment(requestStream.Current.Count);
+                _counter.Increment(message.Count);
             }
 
             return new CounterReply { Count = _counter.Count };
