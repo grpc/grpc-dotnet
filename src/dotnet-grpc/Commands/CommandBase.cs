@@ -26,7 +26,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
@@ -129,29 +128,11 @@ namespace Grpc.Dotnet.Cli.Commands
                 "Newtonsoft.Json": "12.0.2"
               }
             }*/
-
             try
             {
                 using var packageVersionContent = await _httpClient.GetStreamAsync(PackageVersionUrl);
-                //                using var packageVersionContent = new MemoryStream(Encoding.ASCII.GetBytes(
-                //                    "HelloWorld"
-                //@"{
-                //  ""Version"" : ""1.0"",
-                //  ""Packages""  :  {
-                //                    ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
-                //    ""Grpc.AspNetCore.Server"": ""0.1.22-pre2"",
-                //    ""Grpc.Net.ClientFactory"": ""0.1.22-pre2"",
-                //    ""Google.Protobuf"": ""1.2.3"",
-                //    ""Grpc.Tools"": ""1.22.0"",
-                //    ""NSwag.ApiDescription.Client"": ""13.0.3"",
-                //    ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
-                //    ""Newtonsoft.Json"": ""12.0.2""
-                //  }
-                //}"
-                //                    ));
                 using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionContent);
                 var packageVersionsElement = packageVersionDocument.RootElement.GetProperty("Packages");
-
                 var packageVersionsDictionary = new Dictionary<string, string>();
 
                 foreach (var packageVersion in packageVersionsElement.EnumerateObject())

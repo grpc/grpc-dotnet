@@ -16,11 +16,12 @@
 
 #endregion
 
-using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
 using NUnit.Framework;
 
@@ -28,9 +29,14 @@ namespace Grpc.Dotnet.Cli.Tests
 {
     public class TestBase
     {
+
         internal static readonly string SourceUrl = "https://contoso.com/greet.proto";
 
-        internal static readonly string ProtoContent = @"// Copyright 2019 The gRPC Authors
+        internal static Dictionary<string, string> ContentDictionary = new Dictionary<string, string>()
+        {
+            {
+                SourceUrl,
+@"// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the ""License"");
 // you may not use this file except in compliance with the License.
@@ -63,7 +69,11 @@ message HelloRequest {
 // The response message containing the greetings
 message HelloReply {
   string message = 1;
-}";
+}"
+            },
+            // Dummy entry for package version file
+            { CommandBase.PackageVersionUrl, "" }
+        };
 
         internal HttpClient TestClient = new HttpClient(new TestMessageHandler());
 
@@ -80,10 +90,11 @@ message HelloReply {
         {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                Assert.AreEqual(request.RequestUri,  new Uri(SourceUrl));
+                var requestUriString = request.RequestUri.ToString();
+                Assert.Contains(requestUriString, ContentDictionary.Keys);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(ProtoContent)
+                    Content = new StringContent(ContentDictionary[requestUriString])
                 });
             }
         }
