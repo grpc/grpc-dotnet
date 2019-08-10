@@ -18,8 +18,8 @@
 
 using System;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Threading.Tasks;
-using Common;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Reflection.V1Alpha;
@@ -31,7 +31,7 @@ namespace Sample.Clients
     {
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new ServerReflectionClient(channelBuilder.Build());
 

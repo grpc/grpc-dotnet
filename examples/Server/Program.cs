@@ -17,7 +17,6 @@
 #endregion
 
 using System.IO;
-using System.Runtime.InteropServices;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -38,17 +37,13 @@ namespace GRPCServer
                 {
                     options.ListenLocalhost(50051, listenOptions =>
                     {
-                        // ALPN is not available on macOS so only use Https on Windows and Linux
-                        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                        {
-                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                            var certPath = Path.Combine(basePath!, "Certs", "server.pfx");
+                        var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                        var certPath = Path.Combine(basePath!, "Certs", "server.pfx");
 
-                            listenOptions.UseHttps(certPath, "1111", o =>
-                            {
-                                o.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
-                            });
-                        }
+                        listenOptions.UseHttps(certPath, "1111", o =>
+                        {
+                            o.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+                        });
                         listenOptions.Protocols = HttpProtocols.Http2;
                     });
                 })

@@ -17,10 +17,10 @@
 #endregion
 
 using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Aggregate;
-using Common;
 using Count;
 using Greet;
 using Grpc.Core;
@@ -32,11 +32,9 @@ namespace Sample.Clients
     {
         static Random RNG = new Random();
 
-        private const string Address = "localhost:50051";
-
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient(Address);
+            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new Aggregator.AggregatorClient(channelBuilder.Build());
 
@@ -57,9 +55,9 @@ namespace Sample.Clients
             {
                 try
                 {
-                    while (await replies.ResponseStream.MoveNext(cts.Token))
+                    await foreach (var message in replies.ResponseStream.ReadAllAsync())
                     {
-                        Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                        Console.WriteLine("Greeting: " + message.Message);
                     }
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)

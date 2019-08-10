@@ -26,8 +26,6 @@ namespace Sample.Clients
 {
     public class Program
     {
-        private const string Address = "localhost:50051";
-
         public static void Main(string[] args)
         {
             CreateHostBuilder(args).Build().Run();
@@ -37,23 +35,10 @@ namespace Sample.Clients
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
-                    Uri baseAddress;
-
-                    // ALPN is not available on macOS so only use HTTP/2 without TLS
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-                        baseAddress = new Uri($"http://{Address}");
-                    }
-                    else
-                    {
-                        baseAddress = new Uri($"https://{Address}");
-                    }
-
                     services.AddHostedService<Worker>();
                     services.AddGrpcClient<Counter.CounterClient>(options =>
                     {
-                        options.BaseAddress = baseAddress;
+                        options.BaseAddress = new Uri("https://localhost:50051");
                     });
                 });
     }
