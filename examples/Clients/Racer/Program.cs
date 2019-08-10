@@ -17,13 +17,12 @@
 #endregion
 
 using System;
-using System.Threading;
+using System.Diagnostics;
+using System.Net.Http;
 using System.Threading.Tasks;
-using Common;
-using Race;
 using Grpc.Core;
 using Grpc.Net.Client;
-using System.Diagnostics;
+using Race;
 
 namespace Sample.Clients
 {
@@ -33,7 +32,7 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var httpClient = new HttpClient { BaseAddress = new Uri($"http://localhost:50051") };
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new Racer.RacerClient(channelBuilder.Build());
 
@@ -59,9 +58,9 @@ namespace Sample.Clients
                 RaceMessage? lastMessageReceived = null;
                 var readTask = Task.Run(async () =>
                 {
-                    while (await call.ResponseStream.MoveNext())
+                    await foreach (var message in call.ResponseStream.ReadAllAsync())
                     {
-                        lastMessageReceived = call.ResponseStream.Current;
+                        lastMessageReceived = message;
                     }
                 });
 

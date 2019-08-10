@@ -35,9 +35,9 @@ namespace GRPCServer
             RaceMessage? lastMessageReceived = null;
             var readTask = Task.Run(async () =>
             {
-                while (await requestStream.MoveNext())
+                await foreach (var message in requestStream.ReadAllAsync())
                 {
-                    lastMessageReceived = requestStream.Current;
+                    lastMessageReceived = message;
                 }
             });
 
