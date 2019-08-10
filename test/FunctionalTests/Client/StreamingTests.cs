@@ -166,6 +166,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_MoveNextThrowsError()
         {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.State.ToString() == "Server returned gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
             // Arrange
             var client = new UnimplementedService.UnimplementedServiceClient(Channel);
 
