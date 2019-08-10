@@ -100,7 +100,7 @@ namespace InteropTestsClient
                 configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
             });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         }

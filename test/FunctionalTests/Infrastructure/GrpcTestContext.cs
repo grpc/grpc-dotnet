@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 // or else console logging is not associated with the test
                 builder.AddProvider(new ExecutionContextLoggingProvider(Console.Out, ExecutionContext.Capture()!));
             });
-            _serviceProvider = services.BuildServiceProvider();
+            _serviceProvider = services.BuildServiceProvider(validateScopes: true);
             LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
             Logger = LoggerFactory.CreateLogger(nameof(GrpcTestContext));
             Scope = new VerifyNoErrorsScope(LoggerFactory, wrappedDisposable: null, expectedErrorsFilter: null);

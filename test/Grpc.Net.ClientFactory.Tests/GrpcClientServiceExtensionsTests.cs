@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
@@ -80,7 +80,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
@@ -105,7 +105,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             });
 
             // Act
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Assert
             using (var scope = serviceProvider.CreateScope())
@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 });
 
             // Act
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
             using (var scope = serviceProvider.CreateScope())
             {
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
