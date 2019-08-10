@@ -151,7 +151,7 @@ namespace Grpc.Net.Client
                     keyCertificatePair != null ||
                     verifyPeerCallback != null)
                 {
-                    throw new InvalidOperationException($"Using an explicitly specified SSL certificate is not supported by {nameof(GrpcChannel)}.");
+                    throw new InvalidOperationException($"Using {nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}.");
                 }
 
                 IsSecure = true;
