@@ -126,7 +126,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        //[Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
         public async Task DuplexStream_SendToUnimplementedMethod_ThrowError()
         {
             SetExpectedErrorsFilter(writeContext =>
@@ -165,7 +164,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        //[Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
         public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
         {
             // Arrange
