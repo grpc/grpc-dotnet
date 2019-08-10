@@ -24,7 +24,7 @@ namespace Grpc.Net.Client
     /// <summary>
     /// A transport options class for configuring a channel to use <see cref="System.Net.Http.HttpClient"/> for transport.
     /// </summary>
-    public sealed class HttpClientTransportOptions : GrpcTransportOptions
+    internal sealed class HttpClientTransportOptions : GrpcTransportOptions
     {
         /// <summary>
         /// Gets or sets the <see cref="System.Net.Http.HttpClient"/> used by the channel.

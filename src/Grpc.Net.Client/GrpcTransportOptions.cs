@@ -22,7 +22,7 @@ namespace Grpc.Net.Client
     /// <summary>
     /// A base options class for configuring a channel to use a transport.
     /// </summary>
-    public abstract class GrpcTransportOptions
+    internal abstract class GrpcTransportOptions
     {
         internal GrpcTransportOptions()
         {

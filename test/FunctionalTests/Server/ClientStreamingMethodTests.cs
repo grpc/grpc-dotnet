@@ -275,8 +275,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
             var response = await responseTask.DefaultTimeout();
 
             response.AssertIsSuccessfulGrpcRequest();
