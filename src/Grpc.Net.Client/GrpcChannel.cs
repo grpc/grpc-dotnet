@@ -31,7 +31,9 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.Net.Client
 {
     /// <summary>
-    /// The gRPC channel. A channel is used by gRPC client's to call the server.
+    /// Represents a gRPC channel. Channels are an abstraction of long-lived connections to remote servers.
+    /// Client objects can reuse the same channel. Creating a channel is an expensive operation compared to invoking
+    /// a remote call so in general you should reuse a single channel for as many calls as possible.
     /// </summary>
     public sealed class GrpcChannel : ChannelBase
     {
@@ -145,9 +147,11 @@ namespace Grpc.Net.Client
 
             public override void SetSslCredentials(object state, string rootCertificates, KeyCertificatePair keyCertificatePair, VerifyPeerCallback verifyPeerCallback)
             {
-                if (!string.IsNullOrEmpty(rootCertificates))
+                if (!string.IsNullOrEmpty(rootCertificates) ||
+                    keyCertificatePair != null ||
+                    verifyPeerCallback != null)
                 {
-                    throw new InvalidOperationException($"Using an explicitly specified SSL certificate is not supported by {nameof(GrpcChannel)}.");
+                    throw new InvalidOperationException($"Using {nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}.");
                 }
 
                 IsSecure = true;

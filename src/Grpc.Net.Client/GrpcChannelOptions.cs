@@ -32,7 +32,7 @@ namespace Grpc.Net.Client
         /// Gets or sets the transport options for the channel. Transport options are required
         /// to successfully create a channel.
         /// </summary>
-        public GrpcTransportOptions? TransportOptions { get; set; }
+        internal GrpcTransportOptions? TransportOptions { get; set; }
 
         /// <summary>
         /// Gets or sets the credentials for the channel.

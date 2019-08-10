@@ -71,7 +71,7 @@ namespace Grpc.Net.Client.Tests
             var ex = Assert.Throws<InvalidOperationException>(() => channelBuilder.Build());
 
             // Act
-            Assert.AreEqual("Using an explicitly specified SSL certificate is not supported by GrpcChannel.", ex.Message);
+            Assert.AreEqual("Using SslCredentials with non-null arguments is not supported by GrpcChannel.", ex.Message);
         }
 
         [Test]
