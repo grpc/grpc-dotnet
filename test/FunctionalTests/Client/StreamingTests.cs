@@ -193,9 +193,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 await call.RequestStream.CompleteAsync();
 
                 var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext());
+                var status = call.GetStatus();
 
                 // Assert
                 Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
+                Assert.AreEqual(StatusCode.Unimplemented, status.StatusCode);
             }
         }
     }
