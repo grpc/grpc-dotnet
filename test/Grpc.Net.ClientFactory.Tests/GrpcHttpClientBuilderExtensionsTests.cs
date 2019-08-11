@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = new Uri("http://localhost");
+                    o.Address = new Uri("http://localhost");
                 })
                 .ConfigureChannel(options =>
                 {
@@ -96,7 +96,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = new Uri("http://localhost");
+                    o.Address = new Uri("http://localhost");
                 })
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(1)))
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(2)))
@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             // Act
             services
-                .AddGrpcClient<Greeter.GreeterClient>((s, o) => o.BaseAddress = new Uri("http://localhost"))
+                .AddGrpcClient<Greeter.GreeterClient>((s, o) => o.Address = new Uri("http://localhost"))
                 .AddInterceptor<CallbackInterceptor>();
 
             // Assert
@@ -145,7 +145,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddGrpcClient<Greeter.GreeterClient>(o => { });
+            services.AddGrpcClient<Greeter.GreeterClient>();
             var client = services.AddHttpClient("TestClient");
 
             var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
@@ -185,7 +185,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = new Uri("http://localhost");
+                    o.Address = new Uri("http://localhost");
                 })
                 .AddInterceptor<CallbackInterceptor>()
                 .AddInterceptor<CallbackInterceptor>()

@@ -29,13 +29,12 @@ namespace Sample.Clients
 {
     class Program
     {
-        private const string Address = "localhost:50051";
+        private const string Address = "";
 
         static async Task Main(string[] args)
         {
-            var httpClient = new HttpClient { BaseAddress = new Uri($"https://{Address}") };
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var client = new Ticketer.TicketerClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress("https://localhost:50051");
+            var client = new Ticketer.TicketerClient(channel);
 
             Console.WriteLine("gRPC Ticketer");
             Console.WriteLine();

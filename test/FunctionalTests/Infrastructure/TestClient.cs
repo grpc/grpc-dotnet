@@ -33,9 +33,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public TestClient(HttpClient httpClient, ILoggerFactory loggerFactory, Method<TRequest, TResponse> method, bool disableClientDeadlineTimer = false)
         {
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            channelBuilder.SetLoggerFactory(loggerFactory);
-            var channel = channelBuilder.Build();
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            {
+                LoggerFactory = loggerFactory,
+                HttpClient = httpClient
+            });
             channel.DisableClientDeadlineTimer = disableClientDeadlineTimer;
 
             _callInvoker = new HttpClientCallInvoker(channel);

@@ -63,7 +63,7 @@ namespace Grpc.Net.Client.Tests
 
             var logs = testSink.Writes.Where(w => w.LogLevel >= Microsoft.Extensions.Logging.LogLevel.Debug).ToList();
 
-            Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: '/ServiceName/MethodName'.", logs[0].State.ToString());
+            Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: 'https://localhost/ServiceName/MethodName'.", logs[0].State.ToString());
             AssertScope(logs[0]);
 
             Assert.AreEqual("Sending message.", logs[1].State.ToString());

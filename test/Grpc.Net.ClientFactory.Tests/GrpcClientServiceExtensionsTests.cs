@@ -23,6 +23,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Internal;
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,7 +47,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = baseAddress;
+                    o.Address = baseAddress;
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
@@ -56,7 +58,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
 
             // Assert
-            Assert.AreEqual(baseAddress, options.BaseAddress);
+            Assert.AreEqual(baseAddress, options.Address);
         }
 
         [Test]
@@ -70,13 +72,13 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>("First", o =>
                 {
-                    o.BaseAddress = baseAddress1;
+                    o.Address = baseAddress1;
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services
                 .AddGrpcClient<Greeter.GreeterClient>("Second", o =>
                 {
-                    o.BaseAddress = baseAddress2;
+                    o.Address = baseAddress2;
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
@@ -88,8 +90,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var options2 = optionsMonitor.Get("Second");
 
             // Assert
-            Assert.AreEqual(baseAddress1, options1.BaseAddress);
-            Assert.AreEqual(baseAddress2, options2.BaseAddress);
+            Assert.AreEqual(baseAddress1, options1.Address);
+            Assert.AreEqual(baseAddress2, options2.Address);
         }
 
         [Test]
@@ -101,7 +103,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             services.AddGrpcClient<Greeter.GreeterClient>(o =>
             {
-                o.BaseAddress = baseAddress;
+                o.Address = baseAddress;
             });
 
             // Act
@@ -122,7 +124,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(options =>
                 {
-                    options.BaseAddress = new Uri("http://contoso");
+                    options.Address = new Uri("http://contoso");
                 });
             services
                 .AddGrpcClient<Greeter.GreeterClient>(options =>
@@ -137,7 +139,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
                 var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
 
-                Assert.AreEqual("http://contoso", options.BaseAddress!.OriginalString);
+                // Assert
+                Assert.AreEqual("http://contoso", options.Address!.OriginalString);
                 Assert.AreEqual(1, options.Interceptors.Count);
             }
         }
@@ -147,10 +150,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddGrpcClient<Greeter.GreeterClient>(options => { });
+            services.AddGrpcClient<Greeter.GreeterClient>();
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => services.AddGrpcClient<GreeterClient>(o => { }));
+            var ex = Assert.Throws<InvalidOperationException>(() => services.AddGrpcClient<GreeterClient>());
 
             // Assert
             Assert.AreEqual(
@@ -162,6 +165,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
         private class GreeterClient : Greeter.GreeterClient
         {
+            public GreeterClient(CallInvoker callInvoker) : base(callInvoker)
+            {
+                CallInvoker = (HttpClientCallInvoker)callInvoker;
+            }
+
+            public new HttpClientCallInvoker CallInvoker { get; }
         }
     }
 }

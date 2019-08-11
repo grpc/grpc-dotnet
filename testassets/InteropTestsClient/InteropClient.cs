@@ -158,13 +158,15 @@ namespace InteropTestsClient
             }
 
             var httpClient = new HttpClient(httpClientHandler);
-            httpClient.BaseAddress = new Uri($"{scheme}://{options.ServerHost}:{options.ServerPort}");
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            channelBuilder.SetLoggerFactory(loggerFactory);
-            channelBuilder.SetCredentials(credentials);
+            var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
+            {
+                Credentials = credentials,
+                HttpClient = httpClient,
+                LoggerFactory = loggerFactory
+            });
 
-            return new GrpcChannelWrapper(channelBuilder.Build());
+            return new GrpcChannelWrapper(channel);
         }
 
         private async Task<IChannelWrapper> CoreCreateChannel()
