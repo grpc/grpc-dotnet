@@ -62,7 +62,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     return new TestHttpMessageHandler();
                 });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
@@ -106,7 +106,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     return new TestHttpMessageHandler();
                 });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
@@ -135,7 +135,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddInterceptor<CallbackInterceptor>();
 
             // Assert
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             Assert.IsNotNull(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
         }
@@ -195,7 +195,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     return new TestHttpMessageHandler();
                 });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();

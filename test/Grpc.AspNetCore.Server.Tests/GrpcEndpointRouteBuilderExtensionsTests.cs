@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = new ServiceCollection();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<Greeter.GreeterBase>());
@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = ServicesHelpers.CreateServices();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act & Assert
             var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<ErrorService>());
@@ -96,7 +96,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = ServicesHelpers.CreateServices();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<TService>();
@@ -134,7 +134,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var services = ServicesHelpers.CreateServices();
             services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<GreeterWithAttributeService>();
@@ -167,7 +167,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var services = ServicesHelpers.CreateServices();
             services.AddSingleton<ILoggerFactory>(mockLoggerFactory.Object);
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<object>();
@@ -191,7 +191,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = ServicesHelpers.CreateServices();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<GreeterWithAttributeService>().Add(builder =>
@@ -221,7 +221,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = ServicesHelpers.CreateServices();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>();
@@ -248,7 +248,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var services = ServicesHelpers.CreateServices();
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>().Add(builder =>
@@ -283,7 +283,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 options.ResponseCompressionAlgorithm = "DOES_NOT_EXIST";
             });
 
-            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider());
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() =>

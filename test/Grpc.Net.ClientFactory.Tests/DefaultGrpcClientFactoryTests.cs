@@ -54,7 +54,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<TestGreeterClient>(o => o.BaseAddress = baseAddress)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
@@ -80,7 +80,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<TestGreeterClient>("Custom", o => o.BaseAddress = baseAddress)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
@@ -104,7 +104,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<TestGreeterClient>(o => { })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
@@ -133,7 +133,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
             services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
 
-            var provider = services.BuildServiceProvider();
+            var provider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
@@ -166,7 +166,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 })
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var provider = services.BuildServiceProvider();
+            var provider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = provider.GetRequiredService<GrpcClientFactory>();

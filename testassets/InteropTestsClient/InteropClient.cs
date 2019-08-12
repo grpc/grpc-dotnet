@@ -161,6 +161,7 @@ namespace InteropTestsClient
             httpClient.BaseAddress = new Uri($"{scheme}://{options.ServerHost}:{options.ServerPort}");
 
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            channelBuilder.SetLoggerFactory(loggerFactory);
             channelBuilder.SetCredentials(credentials);
 
             return new GrpcChannelWrapper(channelBuilder.Build());
