@@ -100,7 +100,7 @@ namespace InteropTestsClient
                 configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
             });
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+            var serviceProvider = services.BuildServiceProvider();
 
             loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         }
@@ -161,6 +161,7 @@ namespace InteropTestsClient
             httpClient.BaseAddress = new Uri($"{scheme}://{options.ServerHost}:{options.ServerPort}");
 
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
+            channelBuilder.SetLoggerFactory(loggerFactory);
             channelBuilder.SetCredentials(credentials);
 
             return new GrpcChannelWrapper(channelBuilder.Build());
