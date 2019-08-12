@@ -519,12 +519,5 @@ namespace Grpc.AspNetCore.Server.Internal
                 Log.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
             }
         }
-
-        internal bool CanWriteCompressed()
-        {
-            var canCompress = ((WriteOptions?.Flags ?? default) & WriteFlags.NoCompress) != WriteFlags.NoCompress;
-
-            return canCompress;
-        }
     }
 }
