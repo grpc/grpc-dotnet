@@ -21,7 +21,6 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Rendering;
 using System.CommandLine.Rendering.Views;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Grpc.Dotnet.Cli.Internal;
@@ -64,7 +63,7 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public  void List()
+        public void List()
         {
             var consoleRenderer = new ConsoleRenderer(Console);
             var protobufElements = Project.GetItems(ProtobufElement).ToList();

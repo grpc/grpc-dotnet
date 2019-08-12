@@ -27,44 +27,49 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class ListCommandTests : TestBase
     {
-        [NonParallelizable]
         [Test]
         public void List_ListsReferences()
         {
-            // Arrange
             var currentDir = Directory.GetCurrentDirectory();
             var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            var testConsole = new TestConsole();
-            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
 
-            // Act
-            Directory.SetCurrentDirectory(tempDir);
-            var command = new ListCommand(testConsole, null);
-            command.List();
+            try
+            {
+                // Arrange
+                var testConsole = new TestConsole();
+                new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
 
-            // Assert
-            var output = testConsole.Out.ToString()!;
-            var lines = output.Split(Environment.NewLine);
+                // Act
+                Directory.SetCurrentDirectory(tempDir);
+                var command = new ListCommand(testConsole, null);
+                command.List();
 
-            // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
-            Assert.True(lines[0].Contains("Protobuf Reference"));
-            Assert.True(lines[0].Contains("Service Type"));
-            Assert.True(lines[0].Contains("Source URL"));
-            Assert.True(lines[0].Contains("Access"));
+                // Assert
+                var output = testConsole.Out.ToString()!;
+                var lines = output.Split(Environment.NewLine);
 
-            // Second line is the reference to
-            //<Protobuf Include="Proto/a.proto">
-            //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
-            //</Protobuf>
-            Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
+                Assert.True(lines[0].Contains("Protobuf Reference"));
+                Assert.True(lines[0].Contains("Service Type"));
+                Assert.True(lines[0].Contains("Source URL"));
+                Assert.True(lines[0].Contains("Access"));
 
-            // Third line is the reference to
-            //<Protobuf Include="Proto/b.proto" Access="Internal"/>
-            Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                // Second line is the reference to
+                //<Protobuf Include="Proto/a.proto">
+                //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+                //</Protobuf>
+                Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-            // Cleanup
-            Directory.SetCurrentDirectory(currentDir);
-            Directory.Delete(tempDir, true);
+                // Third line is the reference to
+                //<Protobuf Include="Proto/b.proto" Access="Internal"/>
+                Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            }
+            finally
+            {
+                // Cleanup
+                Directory.SetCurrentDirectory(currentDir);
+                Directory.Delete(tempDir, true);
+            }
         }
     }
 }

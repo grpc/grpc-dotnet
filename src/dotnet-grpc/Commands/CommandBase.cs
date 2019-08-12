@@ -72,11 +72,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
-        private string UsingWebSdk => Project.AllEvaluatedProperties
-            .SingleOrDefault(p =>
-                string.Equals(UsingWebSDKPropertyName, p.Name, StringComparison.OrdinalIgnoreCase))
-            ?.UnevaluatedValue
-            ?? "false";
+        private bool IsUsingWebSdk => Project.AllEvaluatedProperties.Any(p => string.Equals(UsingWebSDKPropertyName, p.Name, StringComparison.OrdinalIgnoreCase)
+            && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase));
 
         public Services ResolveServices(Services services)
         {
@@ -87,7 +84,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             // If UsingMicrosoftNETSdkWeb is true, generate Client and Server services
-            if (string.Equals("true", UsingWebSdk, StringComparison.OrdinalIgnoreCase))
+            if (IsUsingWebSdk)
             {
                 return Services.Both;
             }
@@ -108,7 +105,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
                 {
                     // Check if the dependency is applicable to this SDK type
-                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, UsingWebSdk, StringComparison.OrdinalIgnoreCase))
+                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(), StringComparison.OrdinalIgnoreCase))
                     {
                         // Use the version specified from the remote file before falling back the packaged versions
                         var packageVersion = packageVersions?.GetValueOrDefault(dependency.Name) ?? dependency.Version;
@@ -139,7 +136,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 using var packageVersionStream = await _httpClient.GetStreamAsync(PackageVersionUrl);
                 using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionStream);
                 var packageVersionsElement = packageVersionDocument.RootElement.GetProperty("Packages");
-                var packageVersionsDictionary = new Dictionary<string, string>();
+                var packageVersionsDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var packageVersion in packageVersionsElement.EnumerateObject())
                 {
