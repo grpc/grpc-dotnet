@@ -48,6 +48,8 @@ namespace GRPCServer
             {
                 await responseStream.WriteAsync(new RaceMessage { Count = ++sent });
             }
+
+            await readTask;
         }
     }
 }
