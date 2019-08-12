@@ -26,8 +26,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory
 {
     /// <summary>
     /// Interceptor that will set the current request's cancellation token and deadline onto CallOptions.
-    /// This interceptor is registered with a singleton lifetime. IHttpContextAccessor picks the request up base
-    /// on an async local value.
+    /// This interceptor is registered with a singleton lifetime. The interceptor gets the request from
+    /// IHttpContextAccessor, which is also a singleton. IHttpContextAccessor uses an async local value.
     /// </summary>
     internal class ContextPropagationInterceptor : Interceptor
     {
