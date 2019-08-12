@@ -126,7 +126,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        [Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
         public async Task DuplexStream_SendToUnimplementedMethod_ThrowError()
         {
             SetExpectedErrorsFilter(writeContext =>
@@ -165,22 +164,40 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        [Ignore("Waiting on fix from https://github.com/dotnet/corefx/issues/39586")]
-        public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_Hang()
+        public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_MoveNextThrowsError()
         {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.State.ToString() == "Server returned gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
             // Arrange
             var client = new UnimplementedService.UnimplementedServiceClient(Channel);
 
-            for (int i = 0; i < 1000; i++)
+            // This is in a loop to verify a hang that existed in HttpClient when the request is not read to completion
+            // https://github.com/dotnet/corefx/issues/39586
+            for (var i = 0; i < 1000; i++)
             {
-                Logger.LogInformation($"ITERATION {i}");
-
                 // Act
                 var call = client.DuplexData();
 
                 // Response will only be headers so the call is "done" on the server side
                 await call.ResponseHeadersAsync.DefaultTimeout();
                 await call.RequestStream.CompleteAsync();
+
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext());
+                var status = call.GetStatus();
+
+                // Assert
+                Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
+                Assert.AreEqual(StatusCode.Unimplemented, status.StatusCode);
             }
         }
     }
