@@ -26,6 +26,7 @@
     <PackageReference Include="Microsoft.Build" Version="$(MicrosoftBuildPackageVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" Version="$(MicrosoftBuildLocatorPackageVersion)" />
     <PackageReference Include="System.CommandLine.Experimental" Version="$(SystemCommandLineExperimentalPackageVersion)" />
+    <PackageReference Include="System.CommandLine.Rendering" Version="$(SystemCommandLineExperimentalPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>

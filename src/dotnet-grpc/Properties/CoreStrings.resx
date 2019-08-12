@@ -210,15 +210,6 @@
   <data name="LogWarningNoReferenceResolved" xml:space="preserve">
     <value>No file found matching file argument `{0}`. File reference not added.</value>
   </data>
-  <data name="LogListFileReference" xml:space="preserve">
-    <value>File reference: {0}</value>
-  </data>
-  <data name="LogListHeader" xml:space="preserve">
-    <value>Protobuf references:</value>
-  </data>
-  <data name="LogListUrlReference" xml:space="preserve">
-    <value>URL reference: {0} from {1}</value>
-  </data>
   <data name="ListCommandDescription" xml:space="preserve">
     <value>List the protobuf reference(s) of the gRPC project.</value>
   </data>

@@ -232,33 +232,6 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to File reference: {0}.
-        /// </summary>
-        internal static string LogListFileReference {
-            get {
-                return ResourceManager.GetString("LogListFileReference", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Protobuf references:.
-        /// </summary>
-        internal static string LogListHeader {
-            get {
-                return ResourceManager.GetString("LogListHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to URL reference: {0} from {1}.
-        /// </summary>
-        internal static string LogListUrlReference {
-            get {
-                return ResourceManager.GetString("LogListUrlReference", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Removing reference to file {0}..
         /// </summary>
         internal static string LogRemoveReference {

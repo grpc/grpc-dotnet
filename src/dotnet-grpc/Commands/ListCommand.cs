@@ -16,10 +16,14 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.Rendering;
+using System.CommandLine.Rendering.Views;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
@@ -62,20 +66,37 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public  void List()
         {
-            Console.Log(CoreStrings.LogListHeader);
-            Console.Log("");
+            var consoleRenderer = new ConsoleRenderer(Console);
+            var protobufElements = Project.GetItems(ProtobufElement).ToList();
+            var table = new TableView<ProjectItem> { Items = protobufElements};
 
-            foreach (var reference in Project.GetItems(ProtobufElement))
+            // Required columns (always displayed)
+            table.AddColumn(r => r.UnevaluatedInclude, "Protobuf Reference");
+            table.AddColumn(r =>
             {
-                if (reference.HasMetadata(SourceUrlElement))
-                {
-                    Console.Log(string.Format(CultureInfo.CurrentCulture, CoreStrings.LogListUrlReference, reference.UnevaluatedInclude, reference.GetMetadataValue(SourceUrlElement)));
-                }
-                else
-                {
-                    Console.Log(string.Format(CultureInfo.CurrentCulture, CoreStrings.LogListFileReference, reference.UnevaluatedInclude));
-                }
+                var serviceType = r.GetMetadataValue(GrpcServicesElement);
+                return string.IsNullOrEmpty(serviceType) ? "Both" : serviceType;
+            }, "Service Type");
+
+            // Optional columns (only displayed if an element is not default)
+            if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(SourceUrlElement))))
+            {
+                table.AddColumn(r => r.GetMetadataValue(SourceUrlElement), "Source URL");
             }
+
+            // The default value is Public set by Grpc.Tools so skip this column if everything is default
+            if (protobufElements.Any(r => !string.Equals(r.GetMetadataValue(AccessElement), Access.Public.ToString(), StringComparison.OrdinalIgnoreCase)))
+            {
+                table.AddColumn(r => r.GetMetadataValue(AccessElement), "Access");
+            }
+
+            if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(AdditionalImportDirsElement))))
+            {
+                table.AddColumn(r => r.GetMetadataValue(AdditionalImportDirsElement), "Additional Imports");
+            }
+
+            var screen = new ScreenView(consoleRenderer, Console) { Child = table };
+            screen.Render(new Region(0, 0, System.Console.WindowWidth, System.Console.WindowWidth));
         }
     }
 }

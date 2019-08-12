@@ -48,7 +48,7 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string SourceUrlElement = "SourceUrl";
         internal static readonly string LinkElement = "Link";
         internal static readonly string ProtosFolder = "Protos";
-        internal static readonly string WebSDKProperty = "UsingMicrosoftNETSdkWeb";
+        internal static readonly string UsingWebSDKPropertyName = "UsingMicrosoftNETSdkWeb";
         internal static readonly string PackageVersionUrl = "https://go.microsoft.com/fwlink/?linkid=2099561";
 
         private readonly HttpClient _httpClient;
@@ -72,8 +72,11 @@ namespace Grpc.Dotnet.Cli.Commands
 
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
-        private bool IsUsingWebSdk => Project.AllEvaluatedProperties.Any(p => string.Equals(WebSDKProperty, p.Name, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase));
+        private string UsingWebSdk => Project.AllEvaluatedProperties
+            .SingleOrDefault(p =>
+                string.Equals(UsingWebSDKPropertyName, p.Name, StringComparison.OrdinalIgnoreCase))
+            ?.UnevaluatedValue
+            ?? "false";
 
         public Services ResolveServices(Services services)
         {
@@ -84,7 +87,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             // If UsingMicrosoftNETSdkWeb is true, generate Client and Server services
-            if (IsUsingWebSdk)
+            if (string.Equals("true", UsingWebSdk, StringComparison.OrdinalIgnoreCase))
             {
                 return Services.Both;
             }
@@ -101,18 +104,21 @@ namespace Grpc.Dotnet.Cli.Commands
 
             foreach (var dependency in GetType().Assembly.GetCustomAttributes<GrpcDependencyAttribute>())
             {
+                // Check if the dependency is applicable for this service type
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(), StringComparison.OrdinalIgnoreCase))
+                    // Check if the dependency is applicable to this SDK type
+                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, UsingWebSdk, StringComparison.OrdinalIgnoreCase))
                     {
-                        var packageVersion = packageVersions.GetValueOrDefault(dependency.Name) ?? dependency.Version;
+                        // Use the version specified from the remote file before falling back the packaged versions
+                        var packageVersion = packageVersions?.GetValueOrDefault(dependency.Name) ?? dependency.Version;
                         AddNugetPackage(dependency.Name, packageVersion, dependency.PrivateAssets);
                     }
                 }
             }
         }
 
-        private async Task<Dictionary<string, string>> ResolvePackageVersions()
+        private async Task<Dictionary<string, string>?> ResolvePackageVersions()
         {
             /* Example Json content
              {
@@ -130,8 +136,8 @@ namespace Grpc.Dotnet.Cli.Commands
             }*/
             try
             {
-                using var packageVersionContent = await _httpClient.GetStreamAsync(PackageVersionUrl);
-                using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionContent);
+                using var packageVersionStream = await _httpClient.GetStreamAsync(PackageVersionUrl);
+                using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionStream);
                 var packageVersionsElement = packageVersionDocument.RootElement.GetProperty("Packages");
                 var packageVersionsDictionary = new Dictionary<string, string>();
 
@@ -144,7 +150,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
             catch
             {
-                return new Dictionary<string, string>();
+                return null;
             }
         }
 

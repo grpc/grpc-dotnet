@@ -19,9 +19,7 @@
 using System;
 using System.CommandLine;
 using System.IO;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
-using Grpc.Dotnet.Cli.Properties;
 using NUnit.Framework;
 
 namespace Grpc.Dotnet.Cli.Tests
@@ -46,8 +44,23 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Assert
             var output = testConsole.Out.ToString()!;
-            Assert.True(output.Contains("URL reference: Proto/a.proto from https://contoso.com/greet.proto"));
-            Assert.True(output.Contains("File reference: Proto/b.proto"));
+            var lines = output.Split(Environment.NewLine);
+
+            // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
+            Assert.True(lines[0].Contains("Protobuf Reference"));
+            Assert.True(lines[0].Contains("Service Type"));
+            Assert.True(lines[0].Contains("Source URL"));
+            Assert.True(lines[0].Contains("Access"));
+
+            // Second line is the reference to
+            //<Protobuf Include="Proto/a.proto">
+            //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+            //</Protobuf>
+            Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            // Third line is the reference to
+            //<Protobuf Include="Proto/b.proto" Access="Internal"/>
+            Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
             // Cleanup
             Directory.SetCurrentDirectory(currentDir);
