@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{AC41B2B2
 		examples\Proto\count.proto = examples\Proto\count.proto
 		examples\Proto\greet.proto = examples\Proto\greet.proto
 		examples\Proto\mail.proto = examples\Proto\mail.proto
+		examples\Proto\race.proto = examples\Proto\race.proto
 		examples\Proto\ticket.proto = examples\Proto\ticket.proto
 	EndProjectSection
 EndProject
@@ -66,6 +67,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Proto", "Proto", "{BF1393D4
 		testassets\Proto\greet.proto = testassets\Proto\greet.proto
 		testassets\Proto\lifetime.proto = testassets\Proto\lifetime.proto
 		testassets\Proto\nested.proto = testassets\Proto\nested.proto
+		examples\Proto\race.proto = examples\Proto\race.proto
 		testassets\Proto\singleton.proto = testassets\Proto\singleton.proto
 		testassets\Proto\streaming.proto = testassets\Proto\streaming.proto
 		testassets\Proto\unimplemented.proto = testassets\Proto\unimplemented.proto
@@ -167,6 +169,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore", "src\Grpc.AspNetCore\Grpc.AspNetCore.csproj", "{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Common", "src\Grpc.Net.Common\Grpc.Net.Common.csproj", "{69C50655-71EE-4E69-BC2C-ABCA568F6E76}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Racer", "examples\Clients\Racer\Racer.csproj", "{05CEA45F-9EFC-4DB2-8233-5950725C92D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -302,6 +306,10 @@ Global
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -353,6 +361,7 @@ Global
 		{BEC5E994-7EE1-4429-B5A6-870B174D8830} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{05CEA45F-9EFC-4DB2-8233-5950725C92D9} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

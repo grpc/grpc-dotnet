@@ -20,6 +20,7 @@
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Both" Link="Protos\count.proto" />
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Both" Link="Protos\greet.proto" />
     <Protobuf Include="..\Proto\mail.proto" GrpcServices="Server" Link="Protos\mail.proto" />
+    <Protobuf Include="..\Proto\race.proto" GrpcServices="Server" Link="Protos\race.proto" />
     <Protobuf Include="..\Proto\ticket.proto" GrpcServices="Server" Link="Protos\ticket.proto" />
   </ItemGroup>
 </Project>

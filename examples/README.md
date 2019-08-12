@@ -28,7 +28,15 @@ The counter shows how to create unary (non-streaming) and client streaming gRPC 
 
 ## Mailer
 
-The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET Core and call it from a client.
+The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET Core and call it from a client. The server reacts to messages sent from the client.
+
+##### Scenarios:
+
+* Bi-directional streaming call
+
+## Racer
+
+The racer shows how to create a bi-directional streaming gRPC method in ASP.NET Core and call it from a client. The client and the server each send messages as quickly as possible.
 
 ##### Scenarios:
 

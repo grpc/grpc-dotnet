@@ -129,6 +129,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<AnyService>();
                 endpoints.MapGrpcService<GreeterService>();
                 endpoints.MapGrpcService<StreamService>();
+                endpoints.MapGrpcService<RacerService>();
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 
