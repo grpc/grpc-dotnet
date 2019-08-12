@@ -8,8 +8,6 @@
   <ItemGroup>
     <Protobuf Include="..\..\Proto\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
 
-    <Compile Include="..\..\Shared\ClientResources.cs" Link="ClientResources.cs" />
-
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 

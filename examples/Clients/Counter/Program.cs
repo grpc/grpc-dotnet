@@ -19,7 +19,6 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Common;
 using Count;
 using Grpc.Net.Client;
 
@@ -31,7 +30,7 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new Counter.CounterClient(channelBuilder.Build());
 

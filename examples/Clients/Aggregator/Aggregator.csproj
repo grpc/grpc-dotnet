@@ -10,8 +10,6 @@
     <Protobuf Include="..\..\Proto\greet.proto" GrpcServices="None" Link="Protos\greet.proto"/>
     <Protobuf Include="..\..\Proto\count.proto" GrpcServices="None" Link="Protos\count.proto"/>
 
-    <Compile Include="..\..\Shared\ClientResources.cs" Link="ClientResources.cs" />
-
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
