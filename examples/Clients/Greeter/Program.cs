@@ -17,9 +17,9 @@
 #endregion
 
 using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Common;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -30,7 +30,7 @@ namespace Sample.Clients
     {
         static async Task Main(string[] args)
         {
-            var httpClient = ClientResources.CreateHttpClient("localhost:50051");
+            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
             var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
             var client = new Greeter.GreeterClient(channelBuilder.Build());
 
@@ -54,13 +54,13 @@ namespace Sample.Clients
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(3.5));
 
-            using (var replies = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
+            using (var call = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
             {
                 try
                 {
-                    while (await replies.ResponseStream.MoveNext(cts.Token))
+                    await foreach (var message in call.ResponseStream.ReadAllAsync())
                     {
-                        Console.WriteLine("Greeting: " + replies.ResponseStream.Current.Message);
+                        Console.WriteLine("Greeting: " + message.Message);
                     }
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
