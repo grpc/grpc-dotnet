@@ -24,10 +24,14 @@ using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.ClientFactory
 {
+    /// <summary>
+    /// Interceptor that will set the current request's cancellation token and deadline onto CallOptions.
+    /// This interceptor is registered with a singleton lifetime. The interceptor gets the request from
+    /// IHttpContextAccessor, which is also a singleton. IHttpContextAccessor uses an async local value.
+    /// </summary>
     internal class ContextPropagationInterceptor : Interceptor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private ServerCallContext? _serverCallContext;
 
         public ContextPropagationInterceptor(IHttpContextAccessor httpContextAccessor)
         {
@@ -150,22 +154,19 @@ namespace Grpc.AspNetCore.Server.ClientFactory
 
         private ServerCallContext GetServerCallContext()
         {
-            if (_serverCallContext == null)
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
             {
-                var httpContext = _httpContextAccessor.HttpContext;
-                if (httpContext == null)
-                {
-                    throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current HttpContext.");
-                }
-
-                _serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
-                if (_serverCallContext == null)
-                {
-                    throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current gRPC ServerCallContext.");
-                }
+                throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current HttpContext.");
             }
 
-            return _serverCallContext;
+            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
+            if (serverCallContext == null)
+            {
+                throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current gRPC ServerCallContext.");
+            }
+
+            return serverCallContext;
         }
     }
 }

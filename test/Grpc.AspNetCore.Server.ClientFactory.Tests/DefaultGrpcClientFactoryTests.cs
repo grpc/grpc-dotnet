@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddInterceptor(() => new CallbackInterceptor(o => options = o))
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
@@ -111,7 +111,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .EnableCallContextPropagation()
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,
@@ -142,7 +142,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .EnableCallContextPropagation()
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             var clientFactory = new DefaultGrpcClientFactory(
                 serviceProvider,

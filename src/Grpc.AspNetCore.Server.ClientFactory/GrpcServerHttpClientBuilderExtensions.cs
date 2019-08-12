@@ -45,7 +45,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.TryAddScoped<ContextPropagationInterceptor>();
+            builder.Services.TryAddSingleton<ContextPropagationInterceptor>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
             {

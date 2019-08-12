@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
                 return new CompositeEndpointDataSource(endpointRouteBuilder.DataSources);
             });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             endpointRouteBuilder.ServiceProvider = serviceProvider;
             endpointRouteBuilder.MapGrpcService<GreeterService>();

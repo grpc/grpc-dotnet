@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     o.SendMaxMessageSize = 1;
                 });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var options = serviceProvider.GetRequiredService<IOptions<GrpcServiceOptions>>().Value;
@@ -66,7 +66,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     o.SendMaxMessageSize = 2;
                 });
 
-            var serviceProvider = services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var options = serviceProvider.GetRequiredService<IOptions<GrpcServiceOptions<object>>>().Value;
