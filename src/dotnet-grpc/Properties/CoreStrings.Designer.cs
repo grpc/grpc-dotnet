@@ -347,5 +347,50 @@ namespace Grpc.Dotnet.Cli.Properties {
                 return ResourceManager.GetString("ServiceOptionDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Access.
+        /// </summary>
+        internal static string TableColumnAccess {
+            get {
+                return ResourceManager.GetString("TableColumnAccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Additional Imports.
+        /// </summary>
+        internal static string TableColumnAdditionalImports {
+            get {
+                return ResourceManager.GetString("TableColumnAdditionalImports", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Protobuf Reference.
+        /// </summary>
+        internal static string TableColumnProtobufReference {
+            get {
+                return ResourceManager.GetString("TableColumnProtobufReference", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service Type.
+        /// </summary>
+        internal static string TableColumnServiceType {
+            get {
+                return ResourceManager.GetString("TableColumnServiceType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Source URL.
+        /// </summary>
+        internal static string TableColumnSourceUrl {
+            get {
+                return ResourceManager.GetString("TableColumnSourceUrl", resourceCulture);
+            }
+        }
     }
 }

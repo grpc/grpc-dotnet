@@ -70,28 +70,28 @@ namespace Grpc.Dotnet.Cli.Commands
             var table = new TableView<ProjectItem> { Items = protobufElements};
 
             // Required columns (always displayed)
-            table.AddColumn(r => r.UnevaluatedInclude, "Protobuf Reference");
+            table.AddColumn(r => r.UnevaluatedInclude, CoreStrings.TableColumnProtobufReference);
             table.AddColumn(r =>
             {
                 var serviceType = r.GetMetadataValue(GrpcServicesElement);
                 return string.IsNullOrEmpty(serviceType) ? "Both" : serviceType;
-            }, "Service Type");
+            }, CoreStrings.TableColumnServiceType);
 
             // Optional columns (only displayed if an element is not default)
             if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(SourceUrlElement))))
             {
-                table.AddColumn(r => r.GetMetadataValue(SourceUrlElement), "Source URL");
+                table.AddColumn(r => r.GetMetadataValue(SourceUrlElement), CoreStrings.TableColumnSourceUrl);
             }
 
             // The default value is Public set by Grpc.Tools so skip this column if everything is default
             if (protobufElements.Any(r => !string.Equals(r.GetMetadataValue(AccessElement), Access.Public.ToString(), StringComparison.OrdinalIgnoreCase)))
             {
-                table.AddColumn(r => r.GetMetadataValue(AccessElement), "Access");
+                table.AddColumn(r => r.GetMetadataValue(AccessElement), CoreStrings.TableColumnAccess);
             }
 
             if (protobufElements.Any(r => !string.IsNullOrEmpty(r.GetMetadataValue(AdditionalImportDirsElement))))
             {
-                table.AddColumn(r => r.GetMetadataValue(AdditionalImportDirsElement), "Additional Imports");
+                table.AddColumn(r => r.GetMetadataValue(AdditionalImportDirsElement), CoreStrings.TableColumnAdditionalImports);
             }
 
             var screen = new ScreenView(consoleRenderer, Console) { Child = table };
