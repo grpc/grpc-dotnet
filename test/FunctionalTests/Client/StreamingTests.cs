@@ -203,6 +203,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
+        [Ignore("Underlying bug in HttpClient - https://github.com/grpc/grpc-dotnet/issues/448")]
         public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_MoveNextThrowsError()
         {
             SetExpectedErrorsFilter(writeContext =>
