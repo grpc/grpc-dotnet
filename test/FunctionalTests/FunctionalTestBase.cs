@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;

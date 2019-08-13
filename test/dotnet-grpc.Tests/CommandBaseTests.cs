@@ -131,48 +131,6 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public async Task EnsureNugetPackages_UsesVersionsFromRemoteFile_IfAvailable()
-        {
-            // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
-            ContentDictionary[CommandBase.PackageVersionUrl] =
-            // Client package versions are omitted to model missing package information
-            @"{
-              ""Version"" : ""1.0"",
-              ""Packages""  :  {
-                ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
-                ""Grpc.AspNetCore"": ""1.2.3"",
-                ""Google.Protobuf"": ""4.5.6"",
-                ""Grpc.Tools"": ""7.8.9"",
-                ""NSwag.ApiDescription.Client"": ""13.0.3"",
-                ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
-                ""Newtonsoft.Json"": ""12.0.2""
-              }
-            }";
-
-            // Act
-            await commandBase.EnsureNugetPackagesAsync(Services.Client);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
-            var protobufReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf");
-            Assert.NotNull(protobufReference);
-            Assert.AreEqual("4.5.6", protobufReference.GetMetadataValue("Version"));
-            var toolsReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools");
-            Assert.NotNull(toolsReference);
-            Assert.AreEqual("7.8.9", toolsReference.GetMetadataValue("Version"));
-            var clientFactoryReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory");
-            Assert.NotNull(clientFactoryReference);
-            var clientFactoryVersion = GetType().Assembly
-                .GetCustomAttributes<GrpcDependencyAttribute>()
-                .Select(a => a as GrpcDependencyAttribute)
-                .Single(a => a.Name == "Grpc.Net.ClientFactory")
-                .Version;
-            Assert.AreEqual(clientFactoryVersion, clientFactoryReference.GetMetadataValue("Version"));
-        }
-
-        [Test]
         public void AddProtobufReference_ThrowsIfFileNotFound()
         {
             // Arrange
@@ -511,5 +469,58 @@ namespace Grpc.Dotnet.Cli.Tests
 
         private Project CreateIsolatedProject(string path)
             => Project.FromFile(path, new ProjectOptions { ProjectCollection = new ProjectCollection() });
+    }
+
+    [TestFixture]
+    public class CommandBaseRemoteFileTests : TestBase
+    {
+        [OneTimeSetUp]
+        public void InitializeRemoteFile()
+        {
+            RemoteContent[CommandBase.PackageVersionUrl] =
+            // Client package versions are omitted to model missing package information
+            @"{
+              ""Version"" : ""1.0"",
+              ""Packages""  :  {
+                ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
+                ""Grpc.AspNetCore"": ""1.2.3"",
+                ""Google.Protobuf"": ""4.5.6"",
+                ""Grpc.Tools"": ""7.8.9"",
+                ""NSwag.ApiDescription.Client"": ""13.0.3"",
+                ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
+                ""Newtonsoft.Json"": ""12.0.2""
+              }
+            }";
+
+            InitializeClient();
+        }
+
+        [Test]
+        public async Task EnsureNugetPackages_UsesVersionsFromRemoteFile_IfAvailable()
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+
+            // Act
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            var protobufReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf");
+            Assert.NotNull(protobufReference);
+            Assert.AreEqual("4.5.6", protobufReference.GetMetadataValue("Version"));
+            var toolsReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools");
+            Assert.NotNull(toolsReference);
+            Assert.AreEqual("7.8.9", toolsReference.GetMetadataValue("Version"));
+            var clientFactoryReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory");
+            Assert.NotNull(clientFactoryReference);
+            var clientFactoryVersion = GetType().Assembly
+                .GetCustomAttributes<GrpcDependencyAttribute>()
+                .Select(a => a as GrpcDependencyAttribute)
+                .Single(a => a.Name == "Grpc.Net.ClientFactory")
+                .Version;
+            Assert.AreEqual(clientFactoryVersion, clientFactoryReference.GetMetadataValue("Version"));
+        }
     }
 }
