@@ -19,7 +19,6 @@
 using System;
 using System.IO;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Count;
@@ -27,7 +26,6 @@ using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -41,6 +39,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task MultipleMessagesThenClose_SuccessResponse()
         {
             // Arrange
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new CounterRequest
             {
@@ -56,6 +56,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
                     await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
                     await s.FlushAsync().DefaultTimeout();
+
+                    await tcs.Task.DefaultTimeout();
                 });
 
             // Act
@@ -64,6 +66,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
+            tcs.TrySetResult(null);
 
             var response = await responseTask.DefaultTimeout();
 
@@ -120,8 +123,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
             var response = await responseTask.DefaultTimeout();
 
             // Read to end of response so headers are available
@@ -222,8 +223,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
             // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
             var response = await responseTask.DefaultTimeout();
             var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
             Assert.AreEqual(3, reply.Count);
