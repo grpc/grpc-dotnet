@@ -126,6 +126,14 @@ namespace Grpc.Net.Client.Internal
                 // Wait until the client stream has started
                 var writeStream = await _writeStreamTask.ConfigureAwait(false);
 
+                // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
+                var callOptions = _call.Options;
+                if (WriteOptions != null)
+                {
+                    // Creates a copy of the struct
+                    callOptions = callOptions.WithWriteOptions(WriteOptions);
+                }
+
                 await writeStream.WriteMessageAsync<TRequest>(
                     _call.Logger,
                     message,
@@ -133,7 +141,7 @@ namespace Grpc.Net.Client.Internal
                     _grpcEncoding,
                     _call.Channel.SendMaxMessageSize,
                     _call.Channel.CompressionProviders,
-                    _call.CancellationToken).ConfigureAwait(false);
+                    callOptions).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();
             }

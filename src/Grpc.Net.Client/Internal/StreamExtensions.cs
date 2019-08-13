@@ -246,7 +246,7 @@ namespace Grpc.Net.Client
             string grpcEncoding,
             int? maximumMessageSize,
             Dictionary<string, ICompressionProvider> compressionProviders,
-            CancellationToken cancellationToken)
+            CallOptions callOptions)
         {
             try
             {
@@ -269,7 +269,9 @@ namespace Grpc.Net.Client
                     throw new RpcException(SendingMessageExceedsLimitStatus);
                 }
 
-                var isCompressed = !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
+                var isCompressed =
+                    GrpcProtocolHelpers.CanWriteCompressed(callOptions.WriteOptions) &&
+                    !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 
                 if (isCompressed)
                 {
@@ -281,9 +283,9 @@ namespace Grpc.Net.Client
                         data);
                 }
 
-                await WriteHeaderAsync(stream, data.Length, isCompressed, cancellationToken).ConfigureAwait(false);
-                await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await WriteHeaderAsync(stream, data.Length, isCompressed, callOptions.CancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(data, callOptions.CancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
 
                 Log.MessageSent(logger);
             }
