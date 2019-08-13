@@ -147,6 +147,8 @@ namespace Grpc.Dotnet.Cli.Commands
             }
             catch
             {
+                // TODO (johluo): Consider logging a message indicating what went wrong and actions, if any, to be taken to resolve possible issues.
+                // Currently not logging anything since the fwlink is not published yet.
                 return null;
             }
         }

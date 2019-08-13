@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
@@ -35,6 +36,7 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class CommandBaseTests : TestBase
     {
+
         [Test]
         public Task EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
             => EnsureNugetPackages_AddsRequiredServerPackages(Services.Server);
@@ -385,7 +387,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
 
             // Act, Assert
             await ExceptionAssert.ThrowsAsync<CLIToolException>(() => commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
@@ -395,7 +397,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -410,7 +412,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_OverwritesIfContentDoesNotMatch()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -426,7 +428,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_SkipIfContentMatches()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -443,7 +445,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_DoesNotOverwriteForDryrun()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -474,32 +476,31 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class CommandBaseRemoteFileTests : TestBase
     {
-        [OneTimeSetUp]
-        public void InitializeRemoteFile()
-        {
-            RemoteContent[CommandBase.PackageVersionUrl] =
-            // Client package versions are omitted to model missing package information
-            @"{
-              ""Version"" : ""1.0"",
-              ""Packages""  :  {
-                ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
-                ""Grpc.AspNetCore"": ""1.2.3"",
-                ""Google.Protobuf"": ""4.5.6"",
-                ""Grpc.Tools"": ""7.8.9"",
-                ""NSwag.ApiDescription.Client"": ""13.0.3"",
-                ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
-                ""Newtonsoft.Json"": ""12.0.2""
-              }
-            }";
-
-            InitializeClient();
-        }
-
         [Test]
         public async Task EnsureNugetPackages_UsesVersionsFromRemoteFile_IfAvailable()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var content = new Dictionary<string, string>()
+            {
+                // Dummy entry for package version file
+                {
+                    CommandBase.PackageVersionUrl,
+                    // Client package versions are omitted to model missing package information
+                    @"{
+                      ""Version"" : ""1.0"",
+                      ""Packages""  :  {
+                        ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
+                        ""Grpc.AspNetCore"": ""1.2.3"",
+                        ""Google.Protobuf"": ""4.5.6"",
+                        ""Grpc.Tools"": ""7.8.9"",
+                        ""NSwag.ApiDescription.Client"": ""13.0.3"",
+                        ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
+                        ""Newtonsoft.Json"": ""12.0.2""
+                      }
+                    }"
+                }
+            };
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient(content));
 
             // Act
             await commandBase.EnsureNugetPackagesAsync(Services.Client);

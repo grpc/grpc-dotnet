@@ -31,9 +31,6 @@ namespace Grpc.Dotnet.Cli.Tests
     {
         internal static readonly string SourceUrl = "https://contoso.com/greet.proto";
 
-        protected HttpClient TestClient { get; set; } = default!;
-        protected Dictionary<string, string> RemoteContent { get; set; } = default!;
-
         [OneTimeSetUp]
         public void OneTimeInitialize()
         {
@@ -41,8 +38,11 @@ namespace Grpc.Dotnet.Cli.Tests
             {
                 MSBuildLocator.RegisterDefaults();
             }
+        }
 
-            RemoteContent = new Dictionary<string, string>()
+        protected HttpClient CreateClient()
+        {
+            var content = new Dictionary<string, string>()
             {
                 {
                     SourceUrl,
@@ -85,12 +85,12 @@ message HelloReply {
                 { CommandBase.PackageVersionUrl, "" }
             };
 
-            InitializeClient();
+            return CreateClient(content);
         }
 
-        protected void InitializeClient()
+        protected HttpClient CreateClient(Dictionary<string, string> content)
         {
-            TestClient = new HttpClient(new TestMessageHandler(RemoteContent));
+            return new HttpClient(new TestMessageHandler(content));
         }
 
         private class TestMessageHandler : HttpMessageHandler

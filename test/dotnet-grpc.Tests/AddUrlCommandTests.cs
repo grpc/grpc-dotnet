@@ -20,6 +20,7 @@ using System;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
@@ -43,7 +44,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Act
             Directory.SetCurrentDirectory(tempDir);
-            var command = new AddUrlCommand(new TestConsole(), TestClient);
+            var command = new AddUrlCommand(new TestConsole(), CreateClient());
             await command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, Path.Combine("Proto", "c.proto"));
             command.Project.ReevaluateIfNecessary();
 
@@ -78,7 +79,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Act, Assert
             Directory.SetCurrentDirectory(tempDir);
-            var command = new AddUrlCommand(new TestConsole(), TestClient);
+            var command = new AddUrlCommand(new TestConsole(), CreateClient());
             await ExceptionAssert.ThrowsAsync<CLIToolException>(() => command.AddUrlAsync(Services.Server, Access.Internal, "ImportDir", SourceUrl, string.Empty)).DefaultTimeout();
 
             // Cleanup
