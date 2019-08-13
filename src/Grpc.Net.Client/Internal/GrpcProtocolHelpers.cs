@@ -230,5 +230,17 @@ namespace Grpc.Net.Client.Internal
 
             return GrpcProtocolConstants.IdentityGrpcEncoding + "," + string.Join(',', compressionProviders.Select(p => p.Key));
         }
+
+        internal static bool CanWriteCompressed(WriteOptions? writeOptions)
+        {
+            if (writeOptions == null)
+            {
+                return true;
+            }
+
+            var canCompress = (writeOptions.Flags & WriteFlags.NoCompress) != WriteFlags.NoCompress;
+
+            return canCompress;
+        }
     }
 }

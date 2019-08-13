@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 var isCompressed =
-                    serverCallContext.CanWriteCompressed() &&
+                    GrpcProtocolHelpers.CanWriteCompressed(serverCallContext.WriteOptions) &&
                     !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 
                 if (isCompressed)

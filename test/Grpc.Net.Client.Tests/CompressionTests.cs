@@ -84,21 +84,24 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("Could not find compression provider for 'not-supported'.", ex.Message);
         }
 
-        [Test]
-        public async Task AsyncUnaryCall_CompressMetadataSentWithRequest_RequestMessageCompressed()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task AsyncUnaryCall_CompressMetadataSentWithRequest_RequestMessageCompressed(bool compressionDisabledOnOptions)
         {
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
             HelloRequest? helloRequest = null;
+            bool? isRequestNotCompressed = null;
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 httpRequestMessage = request;
 
-                var requestStream = await request.Content.ReadAsStreamAsync();
+                var requestData = await request.Content.ReadAsByteArrayAsync();
+                isRequestNotCompressed = requestData[0] == 0;
 
                 helloRequest = await StreamExtensions.ReadSingleMessageAsync(
-                    requestStream,
+                    new MemoryStream(requestData),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -121,9 +124,15 @@ namespace Grpc.Net.Client.Tests
 
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);
 
-            // Act
             var compressionMetadata = CreateClientCompressionMetadata("gzip");
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: compressionMetadata), new HelloRequest
+            var callOptions = new CallOptions(headers: compressionMetadata);
+            if (compressionDisabledOnOptions)
+            {
+                callOptions = callOptions.WithWriteOptions(new WriteOptions(WriteFlags.NoCompress));
+            }
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest
             {
                 Name = "Hello"
             });
@@ -140,6 +149,8 @@ namespace Grpc.Net.Client.Tests
 
             Debug.Assert(helloRequest != null);
             Assert.AreEqual("Hello", helloRequest.Name);
+
+            Assert.AreEqual(compressionDisabledOnOptions, isRequestNotCompressed);
         }
 
         [Test]
@@ -232,6 +243,96 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
             Assert.AreEqual("Unsupported grpc-encoding value 'not-supported'. Supported encodings: identity, gzip, deflate", ex.Status.Detail);
+        }
+
+        [Test]
+        public async Task AsyncClientStreamingCall_CompressMetadataSentWithRequest_RequestMessageCompressed()
+        {
+            // Arrange
+            HttpRequestMessage? httpRequestMessage = null;
+            HelloRequest? helloRequest1 = null;
+            HelloRequest? helloRequest2 = null;
+            bool? isRequestNotCompressed1 = null;
+            bool? isRequestNotCompressed2 = null;
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                var requestData = await request.Content.ReadAsByteArrayAsync();
+                var requestStream = new MemoryStream(requestData);
+
+                isRequestNotCompressed1 = requestData[0] == 0;
+                helloRequest1 = await StreamExtensions.ReadStreamedMessageAsync(
+                    requestStream,
+                    NullLogger.Instance,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    "gzip",
+                    maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
+                    CancellationToken.None);
+
+                isRequestNotCompressed2 = requestData[requestStream.Position] == 0;
+                helloRequest2 = await StreamExtensions.ReadStreamedMessageAsync(
+                    requestStream,
+                    NullLogger.Instance,
+                    ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                    "gzip",
+                    maximumMessageSize: null,
+                    GrpcProtocolConstants.DefaultCompressionProviders,
+                    CancellationToken.None);
+
+                var reply = new HelloReply
+                {
+                    Message = "Hello world"
+                };
+
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+
+            var compressionProviders = GrpcProtocolConstants.DefaultCompressionProviders.Values.ToList();
+            compressionProviders.Add(new TestCompressionProvider());
+
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.CompressionProviders = compressionProviders);
+
+            var compressionMetadata = CreateClientCompressionMetadata("gzip");
+            var callOptions = new CallOptions(headers: compressionMetadata);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions);
+
+            await call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "Hello One"
+            }).DefaultTimeout();
+
+            call.RequestStream.WriteOptions = new WriteOptions(WriteFlags.NoCompress);
+            await call.RequestStream.WriteAsync(new HelloRequest
+            {
+                Name = "Hello Two"
+            }).DefaultTimeout();
+
+            await call.RequestStream.CompleteAsync();
+
+            // Assert
+            var response = await call.ResponseAsync.DefaultTimeout();
+            Assert.IsNotNull(response);
+            Assert.AreEqual("Hello world", response.Message);
+
+            Debug.Assert(httpRequestMessage != null);
+            Assert.AreEqual("identity,gzip,deflate,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
+            Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
+
+            Debug.Assert(helloRequest1 != null);
+            Assert.AreEqual("Hello One", helloRequest1.Name);
+            Debug.Assert(helloRequest2 != null);
+            Assert.AreEqual("Hello Two", helloRequest2.Name);
+
+            Assert.IsFalse(isRequestNotCompressed1);
+            Assert.IsTrue(isRequestNotCompressed2);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)

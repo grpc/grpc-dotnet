@@ -394,7 +394,7 @@ namespace Grpc.Net.Client.Internal
                         grpcEncoding,
                         Channel.SendMaxMessageSize,
                         Channel.CompressionProviders,
-                        Options.CancellationToken);
+                        Options);
                     if (writeMessageTask.IsCompletedSuccessfully)
                     {
                         GrpcEventSource.Log.MessageSent();
@@ -671,7 +671,9 @@ namespace Grpc.Net.Client.Internal
                     }
                     else if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
                     {
-                        // grpc-internal-encoding-request is used in the client to set message compression
+                        // grpc-internal-encoding-request is used in the client to set message compression.
+                        // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
+                        // individual messages will not be written with compression.
                         message.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
                     }
                     else
