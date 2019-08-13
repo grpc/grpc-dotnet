@@ -38,7 +38,7 @@ namespace Sample.Clients
                     services.AddHostedService<Worker>();
                     services.AddGrpcClient<Counter.CounterClient>(options =>
                     {
-                        options.BaseAddress = new Uri("https://localhost:50051");
+                        options.Address = new Uri("https://localhost:50051");
                     });
                 });
     }

@@ -29,8 +29,6 @@ namespace Sample.Clients
 {
     class Program
     {
-        private const string Address = "localhost:50051";
-
         static async Task Main(string[] args)
         {
             // The server will return 403 (Forbidden). The method requires a certificate
@@ -48,9 +46,11 @@ namespace Sample.Clients
             try
             {
                 Console.WriteLine($"Setting up HttpClient. Client has certificate: {includeClientCertificate}");
-                var httpClient = CreateHttpClient(includeClientCertificate);
-                var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-                var client = new Certifier.CertifierClient(channelBuilder.Build());
+                var channel = GrpcChannel.ForAddress("https://localhost:50051", new GrpcChannelOptions
+                {
+                    HttpClient = CreateHttpClient(includeClientCertificate)
+                });
+                var client = new Certifier.CertifierClient(channel);
 
                 Console.WriteLine("Sending gRPC call...");
                 var certificateInfo = await client.GetCertificateInfoAsync(new Empty());
@@ -81,10 +81,7 @@ namespace Sample.Clients
             }
 
             // Create client
-            var httpClient = new HttpClient(handler);
-            httpClient.BaseAddress = new Uri($"https://{Address}");
-
-            return httpClient;
+            return new HttpClient(handler);
         }
     }
 }

@@ -49,12 +49,8 @@ namespace BenchmarkClient.Workers
 
         public Task ConnectAsync()
         {
-            var httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(BaseUri, UriKind.RelativeOrAbsolute)
-            };
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            _client = new Greeter.GreeterClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress(new Uri(BaseUri, UriKind.RelativeOrAbsolute));
+            _client = new Greeter.GreeterClient(channel);
 
             return Task.CompletedTask;
         }

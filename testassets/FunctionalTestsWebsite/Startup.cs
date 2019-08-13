@@ -56,7 +56,7 @@ namespace FunctionalTestsWebsite
             services.AddHttpContextAccessor();
 
             services
-                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
                 .EnableCallContextPropagation();
 
             services.AddAuthorization(options =>

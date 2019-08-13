@@ -52,9 +52,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
             ));
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            channelBuilder.SetLoggerFactory(LoggerFactory);
-            var client = new CompressionService.CompressionServiceClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            {
+                LoggerFactory = LoggerFactory,
+                HttpClient = httpClient
+            });
+            var client = new CompressionService.CompressionServiceClient(channel);
 
             // Act
             var call = client.SayHelloAsync(new HelloRequest { Name = "World" }, headers: compressionMetadata);
