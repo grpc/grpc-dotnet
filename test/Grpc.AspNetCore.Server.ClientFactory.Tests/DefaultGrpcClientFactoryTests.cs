@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         public void EnableCallContextPropagation_NotFromGrpcClientFactoryAndExistingGrpcClient_ThrowError()
         {
             var services = new ServiceCollection();
-            services.AddGrpcClient<Greeter.GreeterClient>(o => { });
+            services.AddGrpcClient<Greeter.GreeterClient>();
             var clientBuilder = services.AddHttpClient("TestClient");
 
             var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
@@ -73,7 +73,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = baseAddress;
+                    o.Address = baseAddress;
                 })
                 .EnableCallContextPropagation()
                 .AddInterceptor(() => new CallbackInterceptor(o => options = o))
@@ -106,7 +106,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = baseAddress;
+                    o.Address = baseAddress;
                 })
                 .EnableCallContextPropagation()
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
@@ -137,7 +137,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
-                    o.BaseAddress = baseAddress;
+                    o.Address = baseAddress;
                 })
                 .EnableCallContextPropagation()
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));

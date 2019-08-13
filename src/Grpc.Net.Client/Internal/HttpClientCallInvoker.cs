@@ -34,8 +34,6 @@ namespace Grpc.Net.Client.Internal
             Channel = channel;
         }
 
-        internal Uri BaseAddress => Channel.HttpClient.BaseAddress;
-
         /// <summary>
         /// Invokes a client streaming call asynchronously.
         /// In client streaming scenario, client sends a stream of requests and server responds with a single response.
@@ -43,7 +41,7 @@ namespace Grpc.Net.Client.Internal
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartClientStreaming(Channel.HttpClient);
+            call.StartClientStreaming();
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -62,7 +60,7 @@ namespace Grpc.Net.Client.Internal
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartDuplexStreaming(Channel.HttpClient);
+            call.StartDuplexStreaming();
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
@@ -80,7 +78,7 @@ namespace Grpc.Net.Client.Internal
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartServerStreaming(Channel.HttpClient, request);
+            call.StartServerStreaming(request);
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.ClientStreamReader,
@@ -96,7 +94,7 @@ namespace Grpc.Net.Client.Internal
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
             var call = CreateGrpcCall<TRequest, TResponse>(method, options);
-            call.StartUnary(Channel.HttpClient, request);
+            call.StartUnary(request);
 
             return new AsyncUnaryCall<TResponse>(
                 responseAsync: call.GetResponseAsync(),
@@ -121,12 +119,6 @@ namespace Grpc.Net.Client.Internal
             where TRequest : class
             where TResponse : class
         {
-            if (Channel.HttpClient.BaseAddress == null)
-            {
-                throw new InvalidOperationException("Unable to send the gRPC call because no server address has been configured. " +
-                    "Set HttpClient.BaseAddress on the HttpClient used to created to gRPC client.");
-            }
-
             var call = new GrpcCall<TRequest, TResponse>(method, options, Channel);
 
             return call;

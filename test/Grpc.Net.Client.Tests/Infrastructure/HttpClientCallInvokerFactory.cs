@@ -31,13 +31,14 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             ISystemClock? systemClock = null,
             Action<GrpcChannelOptions>? configure = null)
         {
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            channelBuilder.SetLoggerFactory(loggerFactory);
-            if (configure != null)
+            var channelOptions = new GrpcChannelOptions
             {
-                channelBuilder.Configure(configure);
-            }
-            var channel = channelBuilder.Build();
+                LoggerFactory = loggerFactory,
+                HttpClient = httpClient
+            };
+            configure?.Invoke(channelOptions);
+
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, channelOptions);
             channel.Clock = systemClock ?? SystemClock.Instance;
 
             return new HttpClientCallInvoker(channel);

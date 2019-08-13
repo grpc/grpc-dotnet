@@ -36,7 +36,42 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
         /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
-        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// will be set to the type name of <typeparamref name="TClient"/>.
+        /// </summary>
+        /// <typeparam name="TClient">
+        /// The type of the gRPC client. The type specified will be registered in the service collection as
+        /// a transient service.
+        /// </typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        /// <remarks>
+        /// <para>
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using
+        /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
+        /// </para>
+        /// <para>
+        /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
+        /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
+        /// <typeparamref name="TClient"/> as the service type.
+        /// </para>
+        /// </remarks>
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services)
+            where TClient : ClientBase
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
+
+            return services.AddGrpcClientCore<TClient>(name);
+        }
+
+        /// <summary>
+        /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
+        /// will be set to the type name of <typeparamref name="TClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
         /// The type of the gRPC client. The type specified will be registered in the service collection as
@@ -67,7 +102,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
         /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
-        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// will be set to the type name of <typeparamref name="TClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
         /// The type of the gRPC client. The type specified will be registered in the service collection as
@@ -101,8 +136,45 @@ namespace Microsoft.Extensions.DependencyInjection
 
         /// <summary>
         /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
-        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
-        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>.
+        /// </summary>
+        /// <typeparam name="TClient">
+        /// The type of the gRPC client. The type specified will be registered in the service collection as
+        /// a transient service.
+        /// </typeparam>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="name">The logical name of the <see cref="HttpClient"/> to configure.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        /// <remarks>
+        /// <para>
+        /// <see cref="HttpClient"/> instances that apply the provided configuration can be retrieved using
+        /// <see cref="IHttpClientFactory.CreateClient(string)"/> and providing the matching name.
+        /// </para>
+        /// <para>
+        /// <typeparamref name="TClient"/> instances constructed with the appropriate <see cref="HttpClient" />
+        /// can be retrieved from <see cref="IServiceProvider.GetService(Type)" /> (and related methods) by providing
+        /// <typeparamref name="TClient"/> as the service type.
+        /// </para>
+        /// </remarks>
+        public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name)
+            where TClient : ClientBase
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            return services.AddGrpcClientCore<TClient>(name);
+        }
+
+        /// <summary>
+        /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
         /// The type of the gRPC client. The type specified will be registered in the service collection as
@@ -148,8 +220,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         /// <summary>
         /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
-        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
-        /// will be set to the full name of <typeparamref name="TClient"/>.
+        /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>.
         /// </summary>
         /// <typeparam name="TClient">
         /// The type of the gRPC client. The type specified will be registered in the service collection as
@@ -233,7 +304,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
                 var clientOptions = os.Get(name);
 
-                httpClient.BaseAddress = clientOptions.BaseAddress;
+                httpClient.BaseAddress = clientOptions.Address;
             };
 
             IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);

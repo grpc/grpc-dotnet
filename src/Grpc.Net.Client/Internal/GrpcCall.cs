@@ -100,33 +100,33 @@ namespace Grpc.Net.Client.Internal
             get { return _callCts.IsCancellationRequested; }
         }
 
-        public void StartUnary(HttpClient client, TRequest request)
+        public void StartUnary(TRequest request)
         {
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
-            _ = StartAsync(client, message);
+            _ = StartAsync(message);
         }
 
-        public void StartClientStreaming(HttpClient client)
+        public void StartClientStreaming()
         {
             var message = CreateHttpRequestMessage();
             ClientStreamWriter = CreateWriter(message);
-            _ = StartAsync(client, message);
+            _ = StartAsync(message);
         }
 
-        public void StartServerStreaming(HttpClient client, TRequest request)
+        public void StartServerStreaming(TRequest request)
         {
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
-            _ = StartAsync(client, message);
+            _ = StartAsync(message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
-        public void StartDuplexStreaming(HttpClient client)
+        public void StartDuplexStreaming()
         {
             var message = CreateHttpRequestMessage();
             ClientStreamWriter = CreateWriter(message);
-            _ = StartAsync(client, message);
+            _ = StartAsync(message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
         }
 
@@ -440,7 +440,7 @@ namespace Grpc.Net.Client.Internal
             return null;
         }
 
-        private async Task StartAsync(HttpClient client, HttpRequestMessage request)
+        private async Task StartAsync(HttpRequestMessage request)
         {
             using (StartScope())
             {
@@ -479,7 +479,7 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 
-                SendTask = SendAsync(client, request);
+                SendTask = SendAsync(request);
 
                 // Wait until the call is complete
                 // TCS will be set in Dispose
@@ -517,7 +517,7 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private async Task SendAsync(HttpClient client, HttpRequestMessage request)
+        private async Task SendAsync(HttpRequestMessage request)
         {
             if (Options.CancellationToken.CanBeCanceled)
             {
@@ -538,19 +538,19 @@ namespace Grpc.Net.Client.Internal
                 // In C-Core the call credential auth metadata is only applied if the channel is secure
                 // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
                 // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
-                if (client.BaseAddress.Scheme == Uri.UriSchemeHttps)
+                if (Channel.Address.Scheme == Uri.UriSchemeHttps)
                 {
                     var configurator = new DefaultCallCredentialsConfigurator();
 
                     if (Options.Credentials != null)
                     {
-                        await ReadCredentialMetadata(configurator, client, request, Options.Credentials).ConfigureAwait(false);
+                        await ReadCredentialMetadata(configurator, Channel, request, Options.Credentials).ConfigureAwait(false);
                     }
                     if (Channel.CallCredentials?.Count > 0)
                     {
                         foreach (var credentials in Channel.CallCredentials)
                         {
-                            await ReadCredentialMetadata(configurator, client, request, credentials).ConfigureAwait(false);
+                            await ReadCredentialMetadata(configurator, Channel, request, credentials).ConfigureAwait(false);
                         }
                     }
                 }
@@ -562,7 +562,7 @@ namespace Grpc.Net.Client.Internal
 
             try
             {
-                HttpResponse = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
+                HttpResponse = await Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -575,7 +575,7 @@ namespace Grpc.Net.Client.Internal
 
         private async Task ReadCredentialMetadata(
             DefaultCallCredentialsConfigurator configurator,
-            HttpClient client,
+            GrpcChannel channel,
             HttpRequestMessage message,
             CallCredentials credentials)
         {
@@ -583,7 +583,7 @@ namespace Grpc.Net.Client.Internal
 
             if (configurator.Interceptor != null)
             {
-                var authInterceptorContext = CreateAuthInterceptorContext(client.BaseAddress, Method);
+                var authInterceptorContext = CreateAuthInterceptorContext(channel.Address, Method);
                 var metadata = new Metadata();
                 await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
 
@@ -600,7 +600,7 @@ namespace Grpc.Net.Client.Internal
                 foreach (var c in callCredentials)
                 {
                     configurator.Reset();
-                    await ReadCredentialMetadata(configurator, client, message, c).ConfigureAwait(false);
+                    await ReadCredentialMetadata(configurator, channel, message, c).ConfigureAwait(false);
                 }
             }
         }
@@ -651,7 +651,7 @@ namespace Grpc.Net.Client.Internal
 
         private HttpRequestMessage CreateHttpRequestMessage()
         {
-            var message = new HttpRequestMessage(HttpMethod.Post, _uri);
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(Channel.Address, _uri));
             message.Version = new Version(2, 0);
             // User agent is optional but recommended
             message.Headers.UserAgent.Add(GrpcProtocolConstants.UserAgentHeader);

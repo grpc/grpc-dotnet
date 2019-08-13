@@ -135,18 +135,5 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
         }
-
-        [Test]
-        public void AsyncUnaryCall_HttpClientBaseAddressNotSet_ThrowError()
-        {
-            // Arrange
-            var httpClient = new HttpClient();
-
-            // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => HttpClientCallInvokerFactory.Create(httpClient));
-
-            // Assert
-            Assert.AreEqual("Unable to create a gRPC channel because a target address couldn't be resolved from HttpClient. Ensure HttpClient.BaseAddress has a value set.", ex.Message);
-        }
     }
 }

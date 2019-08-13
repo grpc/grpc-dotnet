@@ -60,10 +60,10 @@ namespace GRPCServer
 
             // These clients will call back to the server
             services
-                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
                 .EnableCallContextPropagation();
             services
-                .AddGrpcClient<Counter.CounterClient>((s, o) => { o.BaseAddress = GetCurrentAddress(s); })
+                .AddGrpcClient<Counter.CounterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
                 .EnableCallContextPropagation();
 
             services.AddAuthorization(options =>

@@ -27,6 +27,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.Net.Client
 {
@@ -37,6 +38,9 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class GrpcChannel : ChannelBase
     {
+        internal const int DefaultReceiveMaxMessageSize = 1024 * 1024 * 4; // 4 MB
+
+        internal Uri Address { get; }
         internal HttpClient HttpClient { get; }
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
@@ -50,17 +54,15 @@ namespace Grpc.Net.Client
         internal ISystemClock Clock = SystemClock.Instance;
         internal bool DisableClientDeadlineTimer { get; set; }
 
-        internal GrpcChannel(GrpcChannelOptions channelOptions, GrpcTransportOptions transportOptions, ILoggerFactory loggerFactory) : base(transportOptions.Target)
+        internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
-            var httpClient = (transportOptions as HttpClientTransportOptions)?.HttpClient;
-            Debug.Assert(httpClient != null, "HttpClientTransportOptions should have been provided. It is the only implementation GrpcTransportOptions.");
-
-            HttpClient = httpClient;
+            Address = address;
+            HttpClient = channelOptions.HttpClient ?? new HttpClient();
             SendMaxMessageSize = channelOptions.SendMaxMessageSize;
             ReceiveMaxMessageSize = channelOptions.ReceiveMaxMessageSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
-            LoggerFactory = loggerFactory;
+            LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
 
             if (channelOptions.Credentials != null)
             {
@@ -98,13 +100,13 @@ namespace Grpc.Net.Client
         {
             if (IsSecure != null)
             {
-                if (IsSecure.Value && HttpClient.BaseAddress.Scheme == Uri.UriSchemeHttp)
+                if (IsSecure.Value && Address.Scheme == Uri.UriSchemeHttp)
                 {
-                    throw new InvalidOperationException($"Channel is configured with secure channel credentials and can't use a HttpClient with a '{HttpClient.BaseAddress.Scheme}' scheme.");
+                    throw new InvalidOperationException($"Channel is configured with secure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
                 }
-                if (!IsSecure.Value && HttpClient.BaseAddress.Scheme == Uri.UriSchemeHttps)
+                if (!IsSecure.Value && Address.Scheme == Uri.UriSchemeHttps)
                 {
-                    throw new InvalidOperationException($"Channel is configured with insecure channel credentials and can't use a HttpClient with a '{HttpClient.BaseAddress.Scheme}' scheme.");
+                    throw new InvalidOperationException($"Channel is configured with insecure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
                 }
             }
         }
@@ -156,6 +158,58 @@ namespace Grpc.Net.Client
 
                 IsSecure = true;
             }
+        }
+
+        /// <summary>
+        /// Creates a <see cref="GrpcChannel"/> for the specified address.
+        /// </summary>
+        /// <param name="address">The address the channel will use.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
+        public static GrpcChannel ForAddress(string address)
+        {
+            return ForAddress(address, new GrpcChannelOptions());
+        }
+
+        /// <summary>
+        /// Creates a <see cref="GrpcChannel"/> for the specified address and configuration options.
+        /// </summary>
+        /// <param name="address">The address the channel will use.</param>
+        /// <param name="channelOptions">The channel configuration options.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
+        public static GrpcChannel ForAddress(string address, GrpcChannelOptions channelOptions)
+        {
+            return ForAddress(new Uri(address), channelOptions);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="GrpcChannel"/> for the specified address.
+        /// </summary>
+        /// <param name="address">The address the channel will use.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
+        public static GrpcChannel ForAddress(Uri address)
+        {
+            return ForAddress(address, new GrpcChannelOptions());
+        }
+
+        /// <summary>
+        /// Creates a <see cref="GrpcChannel"/> for the specified address and configuration options.
+        /// </summary>
+        /// <param name="address">The address the channel will use.</param>
+        /// <param name="channelOptions">The channel configuration options.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
+        public static GrpcChannel ForAddress(Uri address, GrpcChannelOptions channelOptions)
+        {
+            if (address == null)
+            {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            if (channelOptions == null)
+            {
+                throw new ArgumentNullException(nameof(channelOptions));
+            }
+
+            return new GrpcChannel(address, channelOptions);
         }
     }
 }

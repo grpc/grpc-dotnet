@@ -18,8 +18,10 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Http;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client
 {
@@ -28,12 +30,6 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class GrpcChannelOptions
     {
-        /// <summary>
-        /// Gets or sets the transport options for the channel. Transport options are required
-        /// to successfully create a channel.
-        /// </summary>
-        internal GrpcTransportOptions? TransportOptions { get; set; }
-
         /// <summary>
         /// Gets or sets the credentials for the channel.
         /// </summary>
@@ -53,5 +49,23 @@ namespace Grpc.Net.Client
         /// Gets or sets a collection of compression providers.
         /// </summary>
         public IList<ICompressionProvider>? CompressionProviders { get; set; }
+
+        /// <summary>
+        /// Gets or sets the logger factory used by the channel.
+        /// </summary>
+        public ILoggerFactory? LoggerFactory { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="HttpClient"/> used by the channel.
+        /// </summary>
+        public HttpClient? HttpClient { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public GrpcChannelOptions()
+        {
+            ReceiveMaxMessageSize = GrpcChannel.DefaultReceiveMaxMessageSize;
+        }
     }
 }

@@ -29,13 +29,12 @@ namespace Sample.Clients
 {
     class Program
     {
-        private const string Address = "localhost:50051";
+        private const string Address = "https://localhost:50051";
 
         static async Task Main(string[] args)
         {
-            var httpClient = new HttpClient { BaseAddress = new Uri($"https://{Address}") };
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var client = new Ticketer.TicketerClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress(Address);
+            var client = new Ticketer.TicketerClient(channel);
 
             Console.WriteLine("gRPC Ticketer");
             Console.WriteLine();
@@ -78,7 +77,7 @@ namespace Sample.Clients
             var httpClient = new HttpClient();
             var request = new HttpRequestMessage
             {
-                RequestUri = new Uri($"https://{Address}/generateJwtToken?name={HttpUtility.UrlEncode(Environment.UserName)}"),
+                RequestUri = new Uri($"{Address}/generateJwtToken?name={HttpUtility.UrlEncode(Environment.UserName)}"),
                 Method = HttpMethod.Get,
                 Version = new Version(2, 0)
             };

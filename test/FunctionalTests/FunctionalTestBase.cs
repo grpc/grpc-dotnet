@@ -45,9 +45,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             {
                 if (_channel == null)
                 {
-                    var channelBuilder = ChannelBuilder.ForHttpClient(Fixture.Client);
-                    channelBuilder.SetLoggerFactory(LoggerFactory);
-                    _channel = channelBuilder.Build();
+                    _channel = GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+                    {
+                        LoggerFactory = LoggerFactory,
+                        HttpClient = Fixture.Client
+                    });
                 }
 
                 return _channel;

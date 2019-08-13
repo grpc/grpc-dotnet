@@ -35,9 +35,8 @@ namespace Sample.Clients
             Console.WriteLine($"Creating client to mailbox '{mailboxName}'");
             Console.WriteLine();
 
-            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var client = new Mailer.MailerClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress("https://localhost:50051");
+            var client = new Mailer.MailerClient(channel);
 
             Console.WriteLine("Client created");
             Console.WriteLine("Press escape to disconnect. Press any other key to forward mail.");

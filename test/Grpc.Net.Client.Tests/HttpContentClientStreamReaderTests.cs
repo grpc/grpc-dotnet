@@ -48,9 +48,9 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
-            call.StartServerStreaming(httpClient, new HelloRequest());
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            call.StartServerStreaming(new HelloRequest());
 
             // Act
             var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
@@ -74,9 +74,9 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
-            call.StartServerStreaming(httpClient, new HelloRequest());
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            call.StartServerStreaming(new HelloRequest());
 
             // Act
             var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
@@ -101,9 +101,9 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channelBuilder.Build());
-            call.StartServerStreaming(httpClient, new HelloRequest());
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            call.StartServerStreaming(new HelloRequest());
 
             // Act
             var moveNextTask1 = call.ClientStreamReader!.MoveNext(CancellationToken.None);

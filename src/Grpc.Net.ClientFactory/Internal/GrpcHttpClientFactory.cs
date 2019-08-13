@@ -76,8 +76,9 @@ namespace Grpc.Net.ClientFactory.Internal
                 throw new ArgumentNullException(nameof(httpClient));
             }
 
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            channelBuilder.SetLoggerFactory(_loggerFactory);
+            var channelOptions = new GrpcChannelOptions();
+            channelOptions.HttpClient = httpClient;
+            channelOptions.LoggerFactory = _loggerFactory;
 
             var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
 
@@ -85,11 +86,17 @@ namespace Grpc.Net.ClientFactory.Internal
             {
                 foreach (var applyOptions in clientFactoryOptions.ChannelOptionsActions)
                 {
-                    channelBuilder.Configure(applyOptions);
+                    applyOptions(channelOptions);
                 }
             }
 
-            var channel = channelBuilder.Build();
+            var address = clientFactoryOptions.Address ?? httpClient.BaseAddress;
+            if (address == null)
+            {
+                throw new InvalidOperationException($"Could not resolve the address for gRPC client '{name}'.");
+            }
+
+            var channel = GrpcChannel.ForAddress(address, channelOptions);
 
             var httpClientCallInvoker = channel.CreateCallInvoker();
 

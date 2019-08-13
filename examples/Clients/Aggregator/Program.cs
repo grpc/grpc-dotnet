@@ -34,9 +34,8 @@ namespace Sample.Clients
 
         static async Task Main(string[] args)
         {
-            var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:50051") };
-            var channelBuilder = ChannelBuilder.ForHttpClient(httpClient);
-            var client = new Aggregator.AggregatorClient(channelBuilder.Build());
+            var channel = GrpcChannel.ForAddress("https://localhost:50051");
+            var client = new Aggregator.AggregatorClient(channel);
 
             await ServerStreamingCallExample(client);
 

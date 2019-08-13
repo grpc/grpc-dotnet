@@ -30,9 +30,9 @@ namespace Grpc.Net.ClientFactory
     public class GrpcClientFactoryOptions
     {
         /// <summary>
-        /// The base address to use when making gRPC calls.
+        /// The address to use when making gRPC calls.
         /// </summary>
-        public Uri? BaseAddress { get; set; }
+        public Uri? Address { get; set; }
 
         /// <summary>
         /// Gets a list of operations used to configure a <see cref="GrpcChannelOptions"/>.
