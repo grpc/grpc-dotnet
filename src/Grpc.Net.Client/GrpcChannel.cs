@@ -161,47 +161,52 @@ namespace Grpc.Net.Client
         }
 
         /// <summary>
-        /// 
+        /// Creates a <see cref="GrpcChannel"/> for the specified address.
         /// </summary>
-        /// <param name="address"></param>
-        /// <returns></returns>
+        /// <param name="address">The address the channel will use.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
         public static GrpcChannel ForAddress(string address)
         {
             return ForAddress(address, new GrpcChannelOptions());
         }
 
         /// <summary>
-        /// 
+        /// Creates a <see cref="GrpcChannel"/> for the specified address and configuration options.
         /// </summary>
-        /// <param name="address"></param>
-        /// <param name="channelOptions"></param>
-        /// <returns></returns>
+        /// <param name="address">The address the channel will use.</param>
+        /// <param name="channelOptions">The channel configuration options.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
         public static GrpcChannel ForAddress(string address, GrpcChannelOptions channelOptions)
         {
             return ForAddress(new Uri(address), channelOptions);
         }
 
         /// <summary>
-        /// 
+        /// Creates a <see cref="GrpcChannel"/> for the specified address.
         /// </summary>
-        /// <param name="address"></param>
-        /// <returns></returns>
+        /// <param name="address">The address the channel will use.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
         public static GrpcChannel ForAddress(Uri address)
         {
             return ForAddress(address, new GrpcChannelOptions());
         }
 
         /// <summary>
-        /// 
+        /// Creates a <see cref="GrpcChannel"/> for the specified address and configuration options.
         /// </summary>
-        /// <param name="address"></param>
-        /// <param name="channelOptions"></param>
-        /// <returns></returns>
+        /// <param name="address">The address the channel will use.</param>
+        /// <param name="channelOptions">The channel configuration options.</param>
+        /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
         public static GrpcChannel ForAddress(Uri address, GrpcChannelOptions channelOptions)
         {
             if (address == null)
             {
                 throw new ArgumentNullException(nameof(address));
+            }
+
+            if (channelOptions == null)
+            {
+                throw new ArgumentNullException(nameof(channelOptions));
             }
 
             return new GrpcChannel(address, channelOptions);
