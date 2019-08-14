@@ -25,7 +25,9 @@ $allTests =
   "unimplemented_service",
   "unimplemented_method",
   "client_compressed_unary",
-  "client_compressed_streaming"
+  "client_compressed_streaming",
+  "server_compressed_unary",
+  "server_compressed_streaming"
 
 Write-Host "Running $($allTests.Count) tests" -ForegroundColor Cyan
 Write-Host "Use TLS: $use_tls" -ForegroundColor Cyan
