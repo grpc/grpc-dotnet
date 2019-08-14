@@ -26,6 +26,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
@@ -47,7 +48,8 @@ namespace Grpc.Dotnet.Cli.Commands
         internal static readonly string SourceUrlElement = "SourceUrl";
         internal static readonly string LinkElement = "Link";
         internal static readonly string ProtosFolder = "Protos";
-        internal static readonly string WebSDKProperty = "UsingMicrosoftNETSdkWeb";
+        internal static readonly string UsingWebSDKPropertyName = "UsingMicrosoftNETSdkWeb";
+        internal static readonly string PackageVersionUrl = "https://go.microsoft.com/fwlink/?linkid=2099561";
 
         private readonly HttpClient _httpClient;
 
@@ -70,6 +72,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         internal IConsole Console { get; set; }
         internal Project Project { get; set; }
+        private bool IsUsingWebSdk => Project.AllEvaluatedProperties.Any(p => string.Equals(UsingWebSDKPropertyName, p.Name, StringComparison.OrdinalIgnoreCase)
+            && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase));
 
         public Services ResolveServices(Services services)
         {
@@ -80,8 +84,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             // If UsingMicrosoftNETSdkWeb is true, generate Client and Server services
-            if (Project.AllEvaluatedProperties.Any(p => string.Equals(WebSDKProperty, p.Name, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals("true", p.UnevaluatedValue, StringComparison.OrdinalIgnoreCase)))
+            if (IsUsingWebSdk)
             {
                 return Services.Both;
             }
@@ -90,16 +93,63 @@ namespace Grpc.Dotnet.Cli.Commands
             return Services.Client;
         }
 
-        public void EnsureNugetPackages(Services services)
+        public async Task EnsureNugetPackagesAsync(Services services)
         {
+            var packageVersions = await ResolvePackageVersions();
+
             Debug.Assert(services != Services.Default);
 
             foreach (var dependency in GetType().Assembly.GetCustomAttributes<GrpcDependencyAttribute>())
             {
+                // Check if the dependency is applicable for this service type
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
                 {
-                    AddNugetPackage(dependency.Name, dependency.Version, dependency.PrivateAssets);
+                    // Check if the dependency is applicable to this SDK type
+                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(), StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Use the version specified from the remote file before falling back the packaged versions
+                        var packageVersion = packageVersions?.GetValueOrDefault(dependency.Name) ?? dependency.Version;
+                        AddNugetPackage(dependency.Name, packageVersion, dependency.PrivateAssets);
+                    }
                 }
+            }
+        }
+
+        private async Task<Dictionary<string, string>?> ResolvePackageVersions()
+        {
+            /* Example Json content
+             {
+              "Version" : "1.0",
+              "Packages"  :  {
+                "Microsoft.Azure.SignalR": "1.1.0-preview1-10442",
+                "Grpc.AspNetCore.Server": "0.1.22-pre2",
+                "Grpc.Net.ClientFactory": "0.1.22-pre2",
+                "Google.Protobuf": "3.8.0",
+                "Grpc.Tools": "1.22.0",
+                "NSwag.ApiDescription.Client": "13.0.3",
+                "Microsoft.Extensions.ApiDescription.Client": "0.3.0-preview7.19365.7",
+                "Newtonsoft.Json": "12.0.2"
+              }
+            }*/
+            try
+            {
+                using var packageVersionStream = await _httpClient.GetStreamAsync(PackageVersionUrl);
+                using var packageVersionDocument = await JsonDocument.ParseAsync(packageVersionStream);
+                var packageVersionsElement = packageVersionDocument.RootElement.GetProperty("Packages");
+                var packageVersionsDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var packageVersion in packageVersionsElement.EnumerateObject())
+                {
+                    packageVersionsDictionary[packageVersion.Name] = packageVersion.Value.GetString();
+                }
+
+                return packageVersionsDictionary;
+            }
+            catch
+            {
+                // TODO (johluo): Consider logging a message indicating what went wrong and actions, if any, to be taken to resolve possible issues.
+                // Currently not logging anything since the fwlink is not published yet.
+                return null;
             }
         }
 

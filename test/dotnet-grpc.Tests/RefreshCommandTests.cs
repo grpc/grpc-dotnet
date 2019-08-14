@@ -42,7 +42,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
             // Act
             Directory.SetCurrentDirectory(tempDir);
-            var command = new RefreshCommand(testConsole, TestClient);
+            var command = new RefreshCommand(testConsole, CreateClient());
             await command.RefreshAsync(dryRun, new string[0]);
 
             // Assert

@@ -25,10 +25,16 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build" Version="$(MicrosoftBuildPackageVersion)" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" Version="$(MicrosoftBuildLocatorPackageVersion)" />
-    <PackageReference Include="System.CommandLine.Experimental" Version="$(SystemCommandLineExperimentalPackageVersion)" />
+    <PackageReference Include="System.CommandLine.Experimental" Version="$(SystemCommandLinePackageVersion)" />
+    <PackageReference Include="System.CommandLine.Rendering" Version="$(SystemCommandLinePackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Parameter1: PackageName -->
+    <!-- Parameter2: PackageVersion -->
+    <!-- Parameter3: PrivateAssets -->
+    <!-- Parameter4: ApplicableServiceType -->
+    <!-- Parameter5: ApplicableToWebProjects (Optional: default is null, i.e. applies to both web and non-web projects) -->
     <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
       <_Parameter1>Google.Protobuf</_Parameter1>
       <_Parameter2>$(GoogleProtobufPackageVersion)</_Parameter2>
@@ -46,6 +52,14 @@
       <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
       <_Parameter3>Default</_Parameter3>
       <_Parameter4>Client</_Parameter4>
+      <_Parameter5>false</_Parameter5>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.AspNetCore.Server.ClientFactory</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client</_Parameter4>
+      <_Parameter5>true</_Parameter5>
     </AssemblyAttribute>
     <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
       <_Parameter1>Grpc.Tools</_Parameter1>
