@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -38,6 +39,6 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Releases the specified interceptor.
         /// </summary>
         /// <param name="interceptor">The interceptor to release.</param>
-        void Release(in GrpcActivatorHandle<Interceptor> interceptor);
+        ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor);
     }
 }

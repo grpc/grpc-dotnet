@@ -172,7 +172,7 @@ namespace Grpc.AspNetCore.Server.Tests
             throw new NotImplementedException();
         }
 
-        public void Release(in GrpcActivatorHandle<TGrpcService> service)
+        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
         {
             throw new NotImplementedException();
         }

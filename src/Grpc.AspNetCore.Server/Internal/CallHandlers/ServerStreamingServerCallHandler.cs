@@ -47,25 +47,25 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (ServiceOptions.HasInterceptors)
             {
-                ServerStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequest, responseStream, resolvedContext) =>
-                {
-                    GrpcActivatorHandle<TService> serviceHandle = default;
-                    try
-                    {
-                        serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
-                        await _invoker(serviceHandle.Instance, resolvedRequest, responseStream, resolvedContext);
-                    }
-                    finally
-                    {
-                        if (serviceHandle.Instance != null)
-                        {
-                            ServiceActivator.Release(serviceHandle);
-                        }
-                    }
-                };
-
                 var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
-                _pipelineInvoker = interceptorPipeline.ServerStreamingPipeline(resolvedInvoker);
+                _pipelineInvoker = interceptorPipeline.ServerStreamingPipeline(ResolvedInterceptorInvoker);
+            }
+        }
+
+        private async Task ResolvedInterceptorInvoker(TRequest resolvedRequest, IServerStreamWriter<TResponse> responseStream, ServerCallContext resolvedContext)
+        {
+            GrpcActivatorHandle<TService> serviceHandle = default;
+            try
+            {
+                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+                await _invoker(serviceHandle.Instance, resolvedRequest, responseStream, resolvedContext);
+            }
+            finally
+            {
+                if (serviceHandle.Instance != null)
+                {
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
+                }
             }
         }
 
@@ -90,7 +90,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 {
                     if (serviceHandle.Instance != null)
                     {
-                        ServiceActivator.Release(serviceHandle);
+                        await ServiceActivator.ReleaseAsync(serviceHandle);
                     }
                 }
             }
