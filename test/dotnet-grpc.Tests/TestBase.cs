@@ -16,11 +16,12 @@
 
 #endregion
 
-using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
 using NUnit.Framework;
 
@@ -30,7 +31,22 @@ namespace Grpc.Dotnet.Cli.Tests
     {
         internal static readonly string SourceUrl = "https://contoso.com/greet.proto";
 
-        internal static readonly string ProtoContent = @"// Copyright 2019 The gRPC Authors
+        [OneTimeSetUp]
+        public void OneTimeInitialize()
+        {
+            if (!MSBuildLocator.IsRegistered)
+            {
+                MSBuildLocator.RegisterDefaults();
+            }
+        }
+
+        protected HttpClient CreateClient()
+        {
+            var content = new Dictionary<string, string>()
+            {
+                {
+                    SourceUrl,
+@"// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the ""License"");
 // you may not use this file except in compliance with the License.
@@ -63,27 +79,36 @@ message HelloRequest {
 // The response message containing the greetings
 message HelloReply {
   string message = 1;
-}";
+}"
+                },
+                // Dummy entry for package version file
+                { CommandBase.PackageVersionUrl, "" }
+            };
 
-        internal HttpClient TestClient = new HttpClient(new TestMessageHandler());
+            return CreateClient(content);
+        }
 
-        [OneTimeSetUp]
-        public void Initialize()
+        protected HttpClient CreateClient(Dictionary<string, string> content)
         {
-            if (!MSBuildLocator.IsRegistered)
-            {
-                MSBuildLocator.RegisterDefaults();
-            }
+            return new HttpClient(new TestMessageHandler(content));
         }
 
         private class TestMessageHandler : HttpMessageHandler
         {
+            private readonly Dictionary<string, string> _contentDictionary;
+
+            public TestMessageHandler(Dictionary<string, string> contentDictionary)
+            {
+                _contentDictionary = contentDictionary;
+            }
+
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                Assert.AreEqual(request.RequestUri,  new Uri(SourceUrl));
+                var requestUriString = request.RequestUri.ToString();
+                Assert.Contains(requestUriString, _contentDictionary.Keys);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent(ProtoContent)
+                    Content = new StringContent(_contentDictionary[requestUriString])
                 });
             }
         }

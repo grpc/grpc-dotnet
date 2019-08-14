@@ -187,6 +187,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to List the protobuf reference(s) of the gRPC project..
+        /// </summary>
+        internal static string ListCommandDescription {
+            get {
+                return ResourceManager.GetString("ListCommandDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Adding file reference {0}..
         /// </summary>
         internal static string LogAddFileReference {
@@ -259,7 +268,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No file reference was found for pattern `{0}`..
+        ///   Looks up a localized string similar to No file found matching file argument `{0}`. File reference not added..
         /// </summary>
         internal static string LogWarningNoReferenceResolved {
             get {
@@ -322,7 +331,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove protobuf references(s)..
+        ///   Looks up a localized string similar to Remove protobuf references(s) from the gRPC project..
         /// </summary>
         internal static string RemoveCommandDescription {
             get {
@@ -336,6 +345,51 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string ServiceOptionDescription {
             get {
                 return ResourceManager.GetString("ServiceOptionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Access.
+        /// </summary>
+        internal static string TableColumnAccess {
+            get {
+                return ResourceManager.GetString("TableColumnAccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Additional Imports.
+        /// </summary>
+        internal static string TableColumnAdditionalImports {
+            get {
+                return ResourceManager.GetString("TableColumnAdditionalImports", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Protobuf Reference.
+        /// </summary>
+        internal static string TableColumnProtobufReference {
+            get {
+                return ResourceManager.GetString("TableColumnProtobufReference", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service Type.
+        /// </summary>
+        internal static string TableColumnServiceType {
+            get {
+                return ResourceManager.GetString("TableColumnServiceType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Source URL.
+        /// </summary>
+        internal static string TableColumnSourceUrl {
+            get {
+                return ResourceManager.GetString("TableColumnSourceUrl", resourceCulture);
             }
         }
     }

@@ -181,7 +181,7 @@
     <value>The URL(s) or file path(s) of the protobuf references to remove.</value>
   </data>
   <data name="RemoveCommandDescription" xml:space="preserve">
-    <value>Remove protobuf references(s).</value>
+    <value>Remove protobuf references(s) from the gRPC project.</value>
   </data>
   <data name="ServiceOptionDescription" xml:space="preserve">
     <value>The type of gRPC services that should be generated. If Default is specified, Both will be used for Web projects and Client will be used for non-Web projects.</value>
@@ -209,5 +209,23 @@
   </data>
   <data name="LogWarningNoReferenceResolved" xml:space="preserve">
     <value>No file found matching file argument `{0}`. File reference not added.</value>
+  </data>
+  <data name="ListCommandDescription" xml:space="preserve">
+    <value>List the protobuf reference(s) of the gRPC project.</value>
+  </data>
+  <data name="TableColumnAccess" xml:space="preserve">
+    <value>Access</value>
+  </data>
+  <data name="TableColumnAdditionalImports" xml:space="preserve">
+    <value>Additional Imports</value>
+  </data>
+  <data name="TableColumnProtobufReference" xml:space="preserve">
+    <value>Protobuf Reference</value>
+  </data>
+  <data name="TableColumnServiceType" xml:space="preserve">
+    <value>Service Type</value>
+  </data>
+  <data name="TableColumnSourceUrl" xml:space="preserve">
+    <value>Source URL</value>
   </data>
 </root>

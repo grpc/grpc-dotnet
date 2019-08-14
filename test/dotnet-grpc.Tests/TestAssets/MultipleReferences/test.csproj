@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Protobuf Include="Proto/a.proto">
+      <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+    </Protobuf>
+    <Protobuf Include="Proto/b.proto" Access="Internal"/>
+  </ItemGroup>
+</Project>

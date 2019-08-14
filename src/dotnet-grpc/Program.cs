@@ -35,6 +35,7 @@ namespace Grpc.Dotnet.Cli
                 .AddCommand(AddUrlCommand.Create())
                 .AddCommand(RefreshCommand.Create())
                 .AddCommand(RemoveCommand.Create())
+                .AddCommand(ListCommand.Create())
                 .UseDefaults()
                 .Build();
 

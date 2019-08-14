@@ -16,9 +16,11 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
@@ -34,21 +36,22 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class CommandBaseTests : TestBase
     {
+
         [Test]
-        public void EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
+        public Task EnsureNugetPackages_AddsRequiredServerPackages_ForServer()
             => EnsureNugetPackages_AddsRequiredServerPackages(Services.Server);
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredServerPackages_ForBoth()
+        public Task EnsureNugetPackages_AddsRequiredServerPackages_ForBoth()
             => EnsureNugetPackages_AddsRequiredServerPackages(Services.Both);
 
-        private void EnsureNugetPackages_AddsRequiredServerPackages(Services services)
+        private async Task EnsureNugetPackages_AddsRequiredServerPackages(Services services)
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(services);
+            await commandBase.EnsureNugetPackagesAsync(services);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -58,13 +61,13 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredClientPackages_ForClient()
+        public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForNonWebClient()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(Services.Client);
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -76,13 +79,32 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
+        public async Task EnsureNugetPackages_AddsRequiredClientPackages_ForWebClient()
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+
+            // Act
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore.Server.ClientFactory" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools" && r.HasMetadata(CommandBase.PrivateAssetsElement)));
+        }
+
+        [Test]
+        public async Task EnsureNugetPackages_AddsRequiredNonePackages_ForNone()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
 
             // Act
-            commandBase.EnsureNugetPackages(Services.None);
+            await commandBase.EnsureNugetPackagesAsync(Services.None);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -93,14 +115,14 @@ namespace Grpc.Dotnet.Cli.Tests
         }
 
         [Test]
-        public void EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
+        public async Task EnsureNugetPackages_DoesNotOverwriteExistingPackageReferences()
         {
             // Arrange
             var commandBase = new CommandBase(new TestConsole(), new Project());
             commandBase.Project.AddItem(CommandBase.PackageReferenceElement, "Grpc.Tools");
 
             // Act
-            commandBase.EnsureNugetPackages(Services.None);
+            await commandBase.EnsureNugetPackagesAsync(Services.None);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
@@ -365,7 +387,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
 
             // Act, Assert
             await ExceptionAssert.ThrowsAsync<CLIToolException>(() => commandBase.DownloadFileAsync(SourceUrl, destination)).DefaultTimeout();
@@ -375,7 +397,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -390,7 +412,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_OverwritesIfContentDoesNotMatch()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -406,7 +428,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_SkipIfContentMatches()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -423,7 +445,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public async Task DownloadFileAsync_DownloadsRemoteFile_DoesNotOverwriteForDryrun()
         {
             // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project(), TestClient);
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient());
             var tempProtoFile = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "c.proto");
 
             // Act
@@ -449,5 +471,57 @@ namespace Grpc.Dotnet.Cli.Tests
 
         private Project CreateIsolatedProject(string path)
             => Project.FromFile(path, new ProjectOptions { ProjectCollection = new ProjectCollection() });
+    }
+
+    [TestFixture]
+    public class CommandBaseRemoteFileTests : TestBase
+    {
+        [Test]
+        public async Task EnsureNugetPackages_UsesVersionsFromRemoteFile_IfAvailable()
+        {
+            // Arrange
+            var content = new Dictionary<string, string>()
+            {
+                // Dummy entry for package version file
+                {
+                    CommandBase.PackageVersionUrl,
+                    // Client package versions are omitted to model missing package information
+                    @"{
+                      ""Version"" : ""1.0"",
+                      ""Packages""  :  {
+                        ""Microsoft.Azure.SignalR"": ""1.1.0-preview1-10442"",
+                        ""Grpc.AspNetCore"": ""1.2.3"",
+                        ""Google.Protobuf"": ""4.5.6"",
+                        ""Grpc.Tools"": ""7.8.9"",
+                        ""NSwag.ApiDescription.Client"": ""13.0.3"",
+                        ""Microsoft.Extensions.ApiDescription.Client"": ""0.3.0-preview7.19365.7"",
+                        ""Newtonsoft.Json"": ""12.0.2""
+                      }
+                    }"
+                }
+            };
+            var commandBase = new CommandBase(new TestConsole(), new Project(), CreateClient(content));
+
+            // Act
+            await commandBase.EnsureNugetPackagesAsync(Services.Client);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
+            var protobufReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf");
+            Assert.NotNull(protobufReference);
+            Assert.AreEqual("4.5.6", protobufReference.GetMetadataValue("Version"));
+            var toolsReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools");
+            Assert.NotNull(toolsReference);
+            Assert.AreEqual("7.8.9", toolsReference.GetMetadataValue("Version"));
+            var clientFactoryReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory");
+            Assert.NotNull(clientFactoryReference);
+            var clientFactoryVersion = GetType().Assembly
+                .GetCustomAttributes<GrpcDependencyAttribute>()
+                .Select(a => a as GrpcDependencyAttribute)
+                .Single(a => a.Name == "Grpc.Net.ClientFactory")
+                .Version;
+            Assert.AreEqual(clientFactoryVersion, clientFactoryReference.GetMetadataValue("Version"));
+        }
     }
 }
