@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -37,6 +38,6 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Releases the specified service.
         /// </summary>
         /// <param name="service">The service to release.</param>
-        void Release(in GrpcActivatorHandle<TGrpcService> service);
+        ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
     }
 }

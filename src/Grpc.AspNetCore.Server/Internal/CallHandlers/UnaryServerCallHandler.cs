@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     {
                         if (serviceHandle.Instance != null)
                         {
-                            ServiceActivator.Release(serviceHandle);
+                            await ServiceActivator.ReleaseAsync(serviceHandle);
                         }
                     }
                 };
@@ -87,7 +87,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 {
                     if (serviceHandle.Instance != null)
                     {
-                        ServiceActivator.Release(serviceHandle);
+                        await ServiceActivator.ReleaseAsync(serviceHandle);
                     }
                 }
             }

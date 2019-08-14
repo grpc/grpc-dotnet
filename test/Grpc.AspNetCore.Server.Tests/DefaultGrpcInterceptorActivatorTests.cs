@@ -18,8 +18,10 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core.Interceptors;
+using Grpc.Tests.Shared;
 using Moq;
 using NUnit.Framework;
 
@@ -69,6 +71,16 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             public bool Disposed { get; private set; } = false;
             public void Dispose() => Disposed = true;
+        }
+
+        public class AsyncDisposableGrpcInterceptor : DisposableGrpcInterceptor, IAsyncDisposable
+        {
+            public bool AsyncDisposed { get; private set; } = false;
+            public ValueTask DisposeAsync()
+            {
+                AsyncDisposed = true;
+                return default;
+            }
         }
 
         [Test]
@@ -144,7 +156,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void Release_ResolvedFromServiceProvider_DisposeNotCalled()
+        public async Task Release_DisposableResolvedFromServiceProvider_DisposeNotCalled()
         {
             // Arrange
             var mockServiceProvider = new Mock<IServiceProvider>();
@@ -160,14 +172,14 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
 
             // Act
-            interceptorActivator.Release(interceptorHandle);
+            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
             // Assert
             Assert.False(interceptorInstance.Disposed);
         }
 
         [Test]
-        public void Release_CreatedByActivator_DisposeCalled()
+        public async Task Release_DisposableCreatedByActivator_DisposeCalled()
         {
             // Arrange
             var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
@@ -175,14 +187,30 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
 
             // Act
-            interceptorActivator.Release(interceptorHandle);
+            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
             // Assert
             Assert.True(interceptorInstance.Disposed);
         }
 
         [Test]
-        public void Release_MultipleDisposableCreatedByActivator_DisposeCalled()
+        public async Task Release_AsyncDisposableCreatedByActivator_AsyncDisposeCalled()
+        {
+            // Arrange
+            var interceptorActivator = new DefaultGrpcInterceptorActivator<AsyncDisposableGrpcInterceptor>();
+            var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<AsyncDisposableGrpcInterceptor>());
+            var interceptorInstance = (AsyncDisposableGrpcInterceptor)interceptorHandle.Instance;
+
+            // Act
+            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
+
+            // Assert
+            Assert.False(interceptorInstance.Disposed);
+            Assert.True(interceptorInstance.AsyncDisposed);
+        }
+
+        [Test]
+        public async Task Release_MultipleDisposableCreatedByActivator_DisposeCalled()
         {
             // Arrange
             var interceptorRegistration = CreateRegistration<DisposableGrpcInterceptor>();
@@ -193,9 +221,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptorHandle3 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
 
             // Act
-            interceptorActivator.Release(interceptorHandle3);
-            interceptorActivator.Release(interceptorHandle2);
-            interceptorActivator.Release(interceptorHandle1);
+            await interceptorActivator.ReleaseAsync(interceptorHandle3).AsTask().DefaultTimeout();
+            await interceptorActivator.ReleaseAsync(interceptorHandle2).AsTask().DefaultTimeout();
+            await interceptorActivator.ReleaseAsync(interceptorHandle1).AsTask().DefaultTimeout();
 
             // Assert
             Assert.True(((DisposableGrpcInterceptor)interceptorHandle1.Instance).Disposed);
@@ -204,7 +232,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public void Release_NonDisposableCreatedByActivator_DisposeNotCalled()
+        public async Task Release_NonDisposableCreatedByActivator_DisposeNotCalled()
         {
             // Arrange
             var interceptorActivator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
@@ -212,20 +240,20 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptorInstance = (GrpcInterceptor)interceptorHandle.Instance;
 
             // Act
-            interceptorActivator.Release(interceptorHandle);
+            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
             // Assert
             Assert.False(interceptorInstance.Disposed);
         }
 
         [Test]
-        public void Release_NullInterceptor_ThrowError()
+        public async Task Release_NullInterceptor_ThrowError()
         {
             // Arrange
             var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
 
             // Act
-            var ex = Assert.Throws<ArgumentException>(() => activator.Release(new GrpcActivatorHandle<Interceptor>(null!, true, state: null)));
+            var ex = await ExceptionAssert.ThrowsAsync<ArgumentException>(() => activator.ReleaseAsync(new GrpcActivatorHandle<Interceptor>(null!, true, state: null)).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("interceptor", ex.ParamName);

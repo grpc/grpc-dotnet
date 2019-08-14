@@ -49,11 +49,10 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             {
                 ClientStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequestStream, resolvedContext) =>
                 {
-                    var activator = ServiceProvider.GetRequiredService<IGrpcServiceActivator<TService>>();
                     GrpcActivatorHandle<TService> serviceHandle = default;
                     try
                     {
-                        serviceHandle = activator.Create(resolvedContext.GetHttpContext().RequestServices);
+                        serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
                         return await invoker(
                             serviceHandle.Instance,
                             resolvedRequestStream,
@@ -63,7 +62,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     {
                         if (serviceHandle.Instance != null)
                         {
-                            activator.Release(serviceHandle);
+                            await ServiceActivator.ReleaseAsync(serviceHandle);
                         }
                     }
                 };
@@ -95,7 +94,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 {
                     if (serviceHandle.Instance != null)
                     {
-                        ServiceActivator.Release(serviceHandle);
+                        await ServiceActivator.ReleaseAsync(serviceHandle);
                     }
                 }
             }

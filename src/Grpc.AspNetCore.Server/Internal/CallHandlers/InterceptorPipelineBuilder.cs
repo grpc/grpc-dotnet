@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorHandle);
+                        await interceptorActivator.ReleaseAsync(interceptorHandle);
                     }
                 };
             }
@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorHandle);
+                        await interceptorActivator.ReleaseAsync(interceptorHandle);
                     }
                 };
             }
@@ -104,7 +104,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorHandle);
+                        await interceptorActivator.ReleaseAsync(interceptorHandle);
                     }
                 };
             }
@@ -127,7 +127,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     }
                     finally
                     {
-                        interceptorActivator.Release(interceptorHandle);
+                        await interceptorActivator.ReleaseAsync(interceptorHandle);
                     }
                 };
             }
