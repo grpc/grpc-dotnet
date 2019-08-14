@@ -47,25 +47,25 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (ServiceOptions.HasInterceptors)
             {
-                UnaryServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequest, resolvedContext) =>
-                {
-                    GrpcActivatorHandle<TService> serviceHandle = default;
-                    try
-                    {
-                        serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
-                        return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
-                    }
-                    finally
-                    {
-                        if (serviceHandle.Instance != null)
-                        {
-                            await ServiceActivator.ReleaseAsync(serviceHandle);
-                        }
-                    }
-                };
-
                 var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
-                _pipelineInvoker = interceptorPipeline.UnaryPipeline(resolvedInvoker);
+                _pipelineInvoker = interceptorPipeline.UnaryPipeline(ResolvedInterceptorInvoker);
+            }
+        }
+
+        private async Task<TResponse> ResolvedInterceptorInvoker(TRequest resolvedRequest, ServerCallContext resolvedContext)
+        {
+            GrpcActivatorHandle<TService> serviceHandle = default;
+            try
+            {
+                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+                return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
+            }
+            finally
+            {
+                if (serviceHandle.Instance != null)
+                {
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
+                }
             }
         }
 

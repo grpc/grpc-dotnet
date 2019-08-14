@@ -47,28 +47,28 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (ServiceOptions.HasInterceptors)
             {
-                ClientStreamingServerMethod<TRequest, TResponse> resolvedInvoker = async (resolvedRequestStream, resolvedContext) =>
-                {
-                    GrpcActivatorHandle<TService> serviceHandle = default;
-                    try
-                    {
-                        serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
-                        return await invoker(
-                            serviceHandle.Instance,
-                            resolvedRequestStream,
-                            resolvedContext);
-                    }
-                    finally
-                    {
-                        if (serviceHandle.Instance != null)
-                        {
-                            await ServiceActivator.ReleaseAsync(serviceHandle);
-                        }
-                    }
-                };
-
                 var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
-                _pipelineInvoker = interceptorPipeline.ClientStreamingPipeline(resolvedInvoker);
+                _pipelineInvoker = interceptorPipeline.ClientStreamingPipeline(ResolvedInterceptorInvoker);
+            }
+        }
+
+        private async Task<TResponse> ResolvedInterceptorInvoker(IAsyncStreamReader<TRequest> resolvedRequestStream, ServerCallContext resolvedContext)
+        {
+            GrpcActivatorHandle<TService> serviceHandle = default;
+            try
+            {
+                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+                return await _invoker(
+                    serviceHandle.Instance,
+                    resolvedRequestStream,
+                    resolvedContext);
+            }
+            finally
+            {
+                if (serviceHandle.Instance != null)
+                {
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
+                }
             }
         }
 
