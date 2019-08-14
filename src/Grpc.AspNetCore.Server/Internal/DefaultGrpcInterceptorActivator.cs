@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,17 +45,28 @@ namespace Grpc.AspNetCore.Server.Internal
             return new GrpcActivatorHandle<Interceptor>(interceptor, created: true, state: null);
         }
 
-        public void Release(in GrpcActivatorHandle<Interceptor> interceptor)
+        public ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor)
         {
             if (interceptor.Instance == null)
             {
                 throw new ArgumentException("Interceptor instance is null.", nameof(interceptor));
             }
 
-            if (interceptor.Created && interceptor.Instance is IDisposable disposableInterceptor)
+            if (interceptor.Created)
             {
-                disposableInterceptor.Dispose();
+                if (interceptor.Instance is IAsyncDisposable asyncDisposableInterceptor)
+                {
+                    return asyncDisposableInterceptor.DisposeAsync();
+                }
+
+                if (interceptor.Instance is IDisposable disposableInterceptor)
+                {
+                    disposableInterceptor.Dispose();
+                    return default;
+                }
             }
+
+            return default;
         }
     }
 }

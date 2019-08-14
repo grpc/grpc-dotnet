@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -37,17 +38,28 @@ namespace Grpc.AspNetCore.Server.Internal
             return new GrpcActivatorHandle<TGrpcService>(service, created: false, state: null);
         }
 
-        public void Release(in GrpcActivatorHandle<TGrpcService> service)
+        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
         {
             if (service.Instance == null)
             {
                 throw new ArgumentException("Service instance is null.", nameof(service));
             }
 
-            if (service.Created && service.Instance is IDisposable disposableService)
+            if (service.Created)
             {
-                disposableService.Dispose();
+                if (service.Instance is IAsyncDisposable asyncDisposableService)
+                {
+                    return asyncDisposableService.DisposeAsync();
+                }
+
+                if (service.Instance is IDisposable disposableService)
+                {
+                    disposableService.Dispose();
+                    return default;
+                }
             }
+
+            return default;
         }
     }
 }

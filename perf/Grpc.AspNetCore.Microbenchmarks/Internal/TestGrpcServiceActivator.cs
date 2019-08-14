@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
@@ -36,8 +37,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             return new GrpcActivatorHandle<TGrpcService>(_service, created: false, state: null);
         }
 
-        public void Release(in GrpcActivatorHandle<TGrpcService> service)
+        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
         {
+            return default;
         }
     }
 }
