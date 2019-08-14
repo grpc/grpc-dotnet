@@ -284,6 +284,12 @@ namespace InteropTestsClient
                 case "client_compressed_streaming":
                     await RunClientCompressedStreamingAsync(client);
                     break;
+                case "server_compressed_unary":
+                    await RunServerCompressedUnary(client);
+                    break;
+                case "server_compressed_streaming":
+                    await RunServerCompressedStreamingAsync(client);
+                    break;
                 default:
                     throw new ArgumentException("Unknown test case " + options.TestCase);
             }
@@ -791,6 +797,56 @@ namespace InteropTestsClient
 
             var response = await call.ResponseAsync;
             Assert.AreEqual(73086, response.AggregatedPayloadSize);
+
+            Console.WriteLine("Passed!");
+        }
+
+        public static async Task RunServerCompressedUnary(TestService.TestServiceClient client)
+        {
+            Console.WriteLine("running server_compressed_unary");
+
+            var request = new SimpleRequest
+            {
+                ResponseSize = 314159,
+                Payload = CreateZerosPayload(271828),
+                ResponseCompressed = new BoolValue { Value = true }
+            };
+            var response = await client.UnaryCallAsync(request);
+
+            // Compression of response message is not verified because there is no API available
+            Assert.AreEqual(314159, response.Payload.Body.Length);
+
+            request = new SimpleRequest
+            {
+                ResponseSize = 314159,
+                Payload = CreateZerosPayload(271828),
+                ResponseCompressed = new BoolValue { Value = false }
+            };
+            response = await client.UnaryCallAsync(request);
+
+            // Compression of response message is not verified because there is no API available
+            Assert.AreEqual(314159, response.Payload.Body.Length);
+
+            Console.WriteLine("Passed!");
+        }
+
+        public static async Task RunServerCompressedStreamingAsync(TestService.TestServiceClient client)
+        {
+            Console.WriteLine("running server_compressed_streaming");
+
+            var bodySizes = new List<int> { 31415, 92653 };
+
+            var request = new StreamingOutputCallRequest
+            {
+                ResponseParameters = { bodySizes.Select((size) => new ResponseParameters { Size = size, Compressed = new BoolValue { Value = true } }) }
+            };
+
+            using (var call = client.StreamingOutputCall(request))
+            {
+                // Compression of response message is not verified because there is no API available
+                var responseList = await call.ResponseStream.ToListAsync();
+                CollectionAssert.AreEqual(bodySizes, responseList.Select((item) => item.Payload.Body.Length).ToList());
+            }
 
             Console.WriteLine("Passed!");
         }
