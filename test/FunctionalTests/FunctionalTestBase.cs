@@ -38,21 +38,15 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected ILogger Logger => _testContext!.Logger;
 
-        protected GrpcChannel Channel
-        {
-            get
-            {
-                if (_channel == null)
-                {
-                    _channel = GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
-                    {
-                        LoggerFactory = LoggerFactory,
-                        HttpClient = Fixture.Client
-                    });
-                }
+        protected GrpcChannel Channel => _channel ??= CreateChannel();
 
-                return _channel;
-            }
+        protected GrpcChannel CreateChannel()
+        {
+            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+            {
+                LoggerFactory = LoggerFactory,
+                HttpClient = Fixture.Client
+            });
         }
 
         protected virtual void ConfigureServices(IServiceCollection services) { }
