@@ -1,19 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Authors>The gRPC Authors</Authors>
-    <Copyright>Copyright 2019 The gRPC Authors</Copyright>
     <Description>gRPC meta-package for ASP.NET Core</Description>
-    <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
     <PackageTags>gRPC RPC HTTP/2 aspnetcore</PackageTags>
-    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
-  </PropertyGroup>
 
-  <PropertyGroup>
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
 
   <ItemGroup>

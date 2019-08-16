@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <Description>Automatic discovery of services for Grpc.Reflection</Description>
+    <PackageTags>gRPC RPC HTTP/2</PackageTags>
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
