@@ -55,7 +55,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 })
                 .ConfigureChannel(options =>
                 {
-                    options.SendMaxMessageSize = 100;
+                    options.MaxSendMessageSize = 100;
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {

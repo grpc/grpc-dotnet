@@ -95,7 +95,7 @@ namespace Grpc.AspNetCore.Server.Internal
                         responsePayload);
                 }
 
-                if (responsePayload.Length > serverCallContext.ServiceOptions.SendMaxMessageSize)
+                if (responsePayload.Length > serverCallContext.ServiceOptions.MaxSendMessageSize)
                 {
                     throw new RpcException(SendingMessageExceedsLimitStatus);
                 }
@@ -395,7 +395,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return false;
             }
 
-            if (messageLength > context.ServiceOptions.ReceiveMaxMessageSize)
+            if (messageLength > context.ServiceOptions.MaxReceiveMessageSize)
             {
                 throw new RpcException(ReceivedMessageExceedsLimitStatus);
             }

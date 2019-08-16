@@ -38,12 +38,12 @@ namespace Grpc.Net.Client
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the client.
         /// </summary>
-        public int? SendMaxMessageSize { get; set; }
+        public int? MaxSendMessageSize { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be received by the client.
         /// </summary>
-        public int? ReceiveMaxMessageSize { get; set; }
+        public int? MaxReceiveMessageSize { get; set; }
 
         /// <summary>
         /// Gets or sets a collection of compression providers.
@@ -65,7 +65,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public GrpcChannelOptions()
         {
-            ReceiveMaxMessageSize = GrpcChannel.DefaultReceiveMaxMessageSize;
+            MaxReceiveMessageSize = GrpcChannel.DefaultMaxReceiveMessageSize;
         }
     }
 }

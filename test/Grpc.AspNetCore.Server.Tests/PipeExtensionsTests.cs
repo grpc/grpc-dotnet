@@ -91,7 +91,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task ReadSingleMessageAsync_UnderReceiveSize_ReturnData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -116,7 +116,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task ReadSingleMessageAsync_ExceedReceiveSize_ReturnData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { ReceiveMaxMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxReceiveMessageSize = 1 });
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -593,7 +593,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_UnderSendSize_WriteData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
@@ -620,7 +620,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_ExceedSendSize_ThrowError()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { SendMaxMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
