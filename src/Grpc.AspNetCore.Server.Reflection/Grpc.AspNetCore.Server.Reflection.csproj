@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Provides integration of Grpc.Reflection into Grpc.AspNetCore.Serverfor common functionality in gRPC</Description>
+    <Description>Automatic discovery of services for Grpc.Reflection</Description>
     <PackageTags>gRPC RPC HTTP/2</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
