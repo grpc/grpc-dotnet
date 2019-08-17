@@ -13,6 +13,7 @@
 
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
+    <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(IsGrpcPublishedPackage)' == 'true' ">
@@ -32,6 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsGrpcPublishedPackage)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="$(MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 

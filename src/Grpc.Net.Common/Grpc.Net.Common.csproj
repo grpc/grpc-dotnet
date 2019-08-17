@@ -9,8 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Roslyn analyzer that enforces ConfigureAwait(false) -->
-    <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="$(ConfigureAwaitCheckerAnalyzerPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 

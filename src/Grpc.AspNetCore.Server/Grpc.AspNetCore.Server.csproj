@@ -6,6 +6,10 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    
+    <!-- Disable analysis for ConfigureAwait(false) -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
