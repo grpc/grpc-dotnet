@@ -1,0 +1,30 @@
+<Project>
+
+  <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
+  <PropertyGroup Condition=" '$(IsGrpcPublishedPackage)' == 'true' ">
+    <Authors>The gRPC Authors</Authors>
+    <Copyright>Copyright 2019 The gRPC Authors</Copyright>
+    <PackageIconUrl>https://github.com/grpc/grpc.github.io/raw/master/img/grpc_square_reverse_4x.png</PackageIconUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
+    <Version>$(GrpcDotnetVersion)</Version>
+    <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(GrpcDotnetAssemblyFileVersion)</FileVersion>
+
+    <!-- Include PDB in the built .nupkg -->
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
+  </PropertyGroup>
+
+  <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
+  <ItemGroup Condition="'$(IsGrpcPublishedPackage)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="$(MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>
