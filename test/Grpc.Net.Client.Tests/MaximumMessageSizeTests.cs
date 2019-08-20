@@ -61,7 +61,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.SendMaxMessageSize = 100);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 100);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.SendMaxMessageSize = 1);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 1);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -103,7 +103,7 @@ namespace Grpc.Net.Client.Tests
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
             {
-                Name = new string('!', GrpcChannel.DefaultReceiveMaxMessageSize + 1) // max size + 1 B
+                Name = new string('!', GrpcChannel.DefaultMaxReceiveMessageSize + 1) // max size + 1 B
             });
 
             // Assert
@@ -117,8 +117,8 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ReceiveMaxMessageSize = null);
-            var largeName = new string('!', GrpcChannel.DefaultReceiveMaxMessageSize + 1); // max size + 1 B
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = null);
+            var largeName = new string('!', GrpcChannel.DefaultMaxReceiveMessageSize + 1); // max size + 1 B
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -136,7 +136,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ReceiveMaxMessageSize = 100);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 100);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -154,7 +154,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ReceiveMaxMessageSize = 1);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 1);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -173,7 +173,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.SendMaxMessageSize = 100);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 100);
 
             // Act
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
@@ -193,7 +193,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.SendMaxMessageSize = 1);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxSendMessageSize = 1);
 
             // Act
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
@@ -212,7 +212,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ReceiveMaxMessageSize = 100);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 100);
 
             // Act
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
@@ -232,7 +232,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(HandleRequest);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ReceiveMaxMessageSize = 1);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.MaxReceiveMessageSize = 1);
 
             // Act
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());

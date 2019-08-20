@@ -38,7 +38,7 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class GrpcChannel : ChannelBase
     {
-        internal const int DefaultReceiveMaxMessageSize = 1024 * 1024 * 4; // 4 MB
+        internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 
         internal Uri Address { get; }
         internal HttpClient HttpClient { get; }
@@ -58,8 +58,8 @@ namespace Grpc.Net.Client
         {
             Address = address;
             HttpClient = channelOptions.HttpClient ?? new HttpClient();
-            SendMaxMessageSize = channelOptions.SendMaxMessageSize;
-            ReceiveMaxMessageSize = channelOptions.ReceiveMaxMessageSize;
+            SendMaxMessageSize = channelOptions.MaxSendMessageSize;
+            ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;

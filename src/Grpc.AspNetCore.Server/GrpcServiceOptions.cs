@@ -37,12 +37,12 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
         /// </summary>
-        public int? SendMaxMessageSize { get; set; }
+        public int? MaxSendMessageSize { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be received by the server.
         /// </summary>
-        public int? ReceiveMaxMessageSize { get; set; }
+        public int? MaxReceiveMessageSize { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether detailed error messages are sent to the peer.
