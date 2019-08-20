@@ -68,7 +68,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                         {
                             var currentValue = Convert.ToInt64(value);
 
-                            // For debugging when subscription failed
+                            // For debugging. Printed in message if subscription fails.
                             subscription.LastValue = currentValue;
 
                             if (subscription.ExpectedValue == currentValue)

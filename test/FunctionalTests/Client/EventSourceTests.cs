@@ -169,6 +169,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task UnaryMethod_DeadlineExceededCall_PollingCountersUpdatedCorrectly()
         {
+            // Loop to ensure test is resilent across multiple runs
             for (int i = 1; i < 3; i++)
             {
                 var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
