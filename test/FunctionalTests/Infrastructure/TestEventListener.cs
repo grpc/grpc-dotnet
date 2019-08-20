@@ -66,7 +66,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     {
                         if (subscription.CounterName == Convert.ToString(name))
                         {
-                            if (subscription.ExpectedValue == Convert.ToInt64(value))
+                            var currentValue = Convert.ToInt64(value);
+
+                            // For debugging when subscription failed
+                            subscription.LastValue = currentValue;
+
+                            if (subscription.ExpectedValue == currentValue)
                             {
                                 subscription.SetMatched();
                                 subscription.Dispose();
