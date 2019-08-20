@@ -177,7 +177,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void Dispose_CalledWhenHttpClientSpecified_Disposed()
+        public void Dispose_CalledWhenHttpClientSpecified_HttpClientNotDisposed()
         {
             // Arrange
             var handler = new TestHttpMessageHandler();
@@ -196,7 +196,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void Dispose_CalledWhenHttpClientSpecifiedAndHttpClientDisposedTrue_Disposed()
+        public void Dispose_CalledWhenHttpClientSpecifiedAndHttpClientDisposedTrue_HttpClientDisposed()
         {
             // Arrange
             var handler = new TestHttpMessageHandler();
