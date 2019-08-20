@@ -5,9 +5,10 @@
     <ConfigureAwaitCheckerAnalyzerPackageVersion>3.0.0</ConfigureAwaitCheckerAnalyzerPackageVersion>
     <GoogleProtobufPackageVersion>3.9.1</GoogleProtobufPackageVersion>
     <GrpcPackageVersion>2.23.0-pre1</GrpcPackageVersion>
-    <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
-    <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0-preview8.19405.7</MicrosoftAspNetCorePackageVersion>
+    <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
+    <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
+    <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>2.9.4</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
     <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions30PackageVersion>3.0.0-preview8.19405.4</MicrosoftExtensions30PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>

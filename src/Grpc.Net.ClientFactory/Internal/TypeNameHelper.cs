@@ -23,7 +23,7 @@ using System.Text;
 namespace Grpc.Net.ClientFactory.Internal
 {
     // Copied from https://github.com/aspnet/Extensions/blob/aa18b93adac411b6b98e4088284a1ffb7d83249f/src/Shared/src/TypeNameHelper/TypeNameHelper.cs
-    internal class TypeNameHelper
+    internal static class TypeNameHelper
     {
         private const char DefaultNestedTypeDelimiter = '+';
 
@@ -143,7 +143,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 }
             }
 
-            var genericPartIndex = type.Name.IndexOf('`');
+            var genericPartIndex = type.Name.IndexOf('`', StringComparison.Ordinal);
             if (genericPartIndex <= 0)
             {
                 builder.Append(type.Name);

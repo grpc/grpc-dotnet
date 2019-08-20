@@ -105,7 +105,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 if (dependency.ApplicableServices.Split(';').Any(s => string.Equals(s, services.ToString(), StringComparison.OrdinalIgnoreCase)))
                 {
                     // Check if the dependency is applicable to this SDK type
-                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(), StringComparison.OrdinalIgnoreCase))
+                    if (dependency.ApplicableToWeb == null || string.Equals(dependency.ApplicableToWeb, IsUsingWebSdk.ToString(CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
                     {
                         // Use the version specified from the remote file before falling back the packaged versions
                         var packageVersion = packageVersions?.GetValueOrDefault(dependency.Name) ?? dependency.Version;
@@ -326,7 +326,7 @@ namespace Grpc.Dotnet.Cli.Commands
                     expandedReferences.AddRange(
                         // The reference is relative to the project directory but GetFiles returns the full path.
                         // Remove the project directory portion of the path so relative references are maintained.
-                        resolvedFiles.Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty)));
+                        resolvedFiles.Select(r => r.Replace(Project.DirectoryPath + Path.DirectorySeparatorChar, string.Empty, StringComparison.Ordinal)));
                 }
             }
 
@@ -343,7 +343,7 @@ namespace Grpc.Dotnet.Cli.Commands
             // The user must not specify a directory
             if (Path.EndsInDirectorySeparator(destination))
             {
-                throw new CLIToolException(string.Format(CoreStrings.ErrorOutputMustBeFilePath, destination));
+                throw new CLIToolException(string.Format(CultureInfo.InvariantCulture, CoreStrings.ErrorOutputMustBeFilePath, destination));
             }
 
             var resolveDestination = Path.IsPathRooted(destination) ? destination : Path.Combine(Project.DirectoryPath, destination);
@@ -354,7 +354,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 // The user must not specify an existing directory
                 if (Directory.Exists(resolveDestination))
                 {
-                    throw new CLIToolException(string.Format(CoreStrings.ErrorOutputMustBeFilePath, destination));
+                    throw new CLIToolException(string.Format(CultureInfo.InvariantCulture, CoreStrings.ErrorOutputMustBeFilePath, destination));
                 }
 
                 // The destination file doesn't exist so content is modified.
