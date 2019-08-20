@@ -28,6 +28,10 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class InterceptorCollection : Collection<InterceptorRegistration>
     {
+        internal InterceptorCollection()
+        {
+        }
+
         /// <summary>
         /// Add an interceptor to the end of the pipeline.
         /// </summary>
@@ -35,14 +39,33 @@ namespace Grpc.AspNetCore.Server
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
         public void Add<TInterceptor>(params object[] args) where TInterceptor : Interceptor
         {
-            Add(new InterceptorRegistration(typeof(TInterceptor), args));
+            Add(typeof(TInterceptor), args);
+        }
+
+        /// <summary>
+        /// Add an interceptor to the end of the pipeline.
+        /// </summary>
+        /// <param name="interceptorType">The interceptor type.</param>
+        /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
+        public void Add(Type interceptorType, params object[] args)
+        {
+            if (interceptorType == null)
+            {
+                throw new ArgumentNullException(nameof(interceptorType));
+            }
+            if (!interceptorType.IsSubclassOf(typeof(Interceptor)))
+            {
+                throw new ArgumentException($"Type must inherit from {typeof(Interceptor).FullName}.", nameof(interceptorType));
+            }
+
+            Add(new InterceptorRegistration(interceptorType, args));
         }
 
         /// <summary>
         /// Append a set of interceptor registrations to the end of the pipeline.
         /// </summary>
         /// <param name="registrations">The set of interceptor registrations to add.</param>
-        public void AddRange(IEnumerable<InterceptorRegistration> registrations)
+        internal void AddRange(IEnumerable<InterceptorRegistration> registrations)
         {
             if (registrations == null)
             {

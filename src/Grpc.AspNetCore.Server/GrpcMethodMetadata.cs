@@ -24,7 +24,7 @@ namespace Grpc.AspNetCore.Server
     /// <summary>
     /// Metadata for a gRPC method endpoint.
     /// </summary>
-    public class GrpcMethodMetadata
+    public sealed class GrpcMethodMetadata
     {
         /// <summary>
         /// Creates a new instance of <see cref="GrpcMethodMetadata"/> with the provided service type and method.
