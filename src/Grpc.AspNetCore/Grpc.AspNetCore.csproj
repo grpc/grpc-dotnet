@@ -6,6 +6,10 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+
+    <!-- Don't include empty DLL or PDB in metapackage -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>
