@@ -197,7 +197,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = TestClientFactory.Create(Channel, method);
 
-            var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(200)));
+            var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(500)));
 
             // Assert - Call in progress
             await AssertCounters(serverEventListener, new Dictionary<string, long>
