@@ -28,19 +28,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         where TRequest : class
         where TResponse : class
     {
-        private readonly HttpClientCallInvoker _callInvoker;
+        private readonly CallInvoker _callInvoker;
         private readonly Method<TRequest, TResponse> _method;
 
-        public TestClient(HttpClient httpClient, ILoggerFactory loggerFactory, Method<TRequest, TResponse> method, bool disableClientDeadlineTimer = false)
+        public TestClient(ChannelBase channel, Method<TRequest, TResponse> method)
         {
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
-            {
-                LoggerFactory = loggerFactory,
-                HttpClient = httpClient
-            });
-            channel.DisableClientDeadlineTimer = disableClientDeadlineTimer;
-
-            _callInvoker = new HttpClientCallInvoker(channel);
+            _callInvoker = channel.CreateCallInvoker();
             _method = method;
         }
 
@@ -68,14 +61,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     internal static class TestClientFactory
     {
         public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
-            HttpClient httpClient,
-            ILoggerFactory loggerFactory,
-            Method<TRequest, TResponse> method,
-            bool disableClientDeadlineTimer = false)
+            ChannelBase channel,
+            Method<TRequest, TResponse> method)
             where TRequest : class
             where TResponse : class
         {
-            return new TestClient<TRequest, TResponse>(httpClient, loggerFactory, method, disableClientDeadlineTimer);
+            return new TestClient<TRequest, TResponse>(channel, method);
         }
     }
 }

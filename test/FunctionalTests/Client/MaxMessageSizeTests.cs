@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -52,7 +53,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-            var client = TestClientFactory.Create(Fixture.Client, LoggerFactory, method, disableClientDeadlineTimer: true);
+            var channel = CreateChannel();
+            channel.DisableClientDeadlineTimer = true;
+
+            var client = TestClientFactory.Create(channel, method);
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(new HelloRequest()).ResponseAsync).DefaultTimeout();
