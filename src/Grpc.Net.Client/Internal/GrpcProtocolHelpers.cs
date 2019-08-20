@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -139,7 +140,7 @@ namespace Grpc.Net.Client.Internal
 
         private static string FormatTimeout(long value, char ext)
         {
-            return value.ToString() + ext;
+            return value.ToString(CultureInfo.InvariantCulture) + ext;
         }
 
         private static string EncodeTimeoutSeconds(long sec)

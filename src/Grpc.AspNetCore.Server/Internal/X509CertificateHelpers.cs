@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Grpc.AspNetCore.Server.Internal
@@ -35,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     string asnString = ext.Format(false);
                     if (string.IsNullOrWhiteSpace(asnString))
                     {
-                        return new string[0];
+                        return Array.Empty<string>();
                     }
 
                     // SubjectAlternativeNames might contain something other than a dNSName, 
@@ -50,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     for (var i = 0; i < rawDnsEntries.Length; i++)
                     {
                         string[] keyval = rawDnsEntries[i].Split(X509SubjectAlternativeNameConstants.Delimiter);
-                        if (string.Equals(keyval[0], X509SubjectAlternativeNameConstants.Identifier))
+                        if (string.Equals(keyval[0], X509SubjectAlternativeNameConstants.Identifier, StringComparison.Ordinal))
                         {
                             dnsEntries.Add(keyval[1]);
                         }
@@ -59,7 +60,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return dnsEntries.ToArray();
                 }
             }
-            return new string[0];
+            return Array.Empty<string>();
         }
 
         // We don't have a strongly typed extension to parse Subject Alt Names, so we have to do a workaround 
@@ -106,6 +107,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 if (!s_successfullyInitialized)
                 {
                     throw new FormatException(string.Format(
+                        CultureInfo.InvariantCulture,
                         "There was an error detecting the identifier, delimiter, and separator for X509CertificateClaims on this platform.{0}" +
                         "Detected values were: Identifier: '{1}'; Delimiter:'{2}'; Separator:'{3}'",
                         Environment.NewLine,
@@ -138,7 +140,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     // Linux:   x509ExtensionFormattedString is: "DNS:not-real-subject-name, DNS:example.com"
                     // Parse: <identifier><delimter><value><separator(s)>
 
-                    int delimiterIndex = x509ExtensionFormattedString.IndexOf(subjectName1) - 1;
+                    int delimiterIndex = x509ExtensionFormattedString.IndexOf(subjectName1, StringComparison.Ordinal) - 1;
                     s_delimiter = x509ExtensionFormattedString[delimiterIndex];
 
                     // Make an assumption that all characters from the the start of string to the delimiter 
