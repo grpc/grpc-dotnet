@@ -1,5 +1,6 @@
 <Project>
 
+  <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
   <PropertyGroup Condition=" '$(IsGrpcPublishedPackage)' == 'true' ">
     <Authors>The gRPC Authors</Authors>
     <Copyright>Copyright 2019 The gRPC Authors</Copyright>
@@ -20,6 +21,7 @@
     <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
   </PropertyGroup>
 
+  <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
   <ItemGroup Condition="'$(IsGrpcPublishedPackage)' == 'true'">
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="$(MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
