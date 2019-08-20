@@ -1,6 +1,14 @@
 <Project>
   <PropertyGroup>
-    <!-- version of all grpc-dotnet packages -->
+
+    <!-- package version of grpc-dotnet -->
     <GrpcDotnetVersion>0.2.23-dev</GrpcDotnetVersion>
+    
+    <!-- assembly version of grpc-dotnet -->
+    <GrpcDotnetAssemblyVersion>0.2.0.0</GrpcDotnetAssemblyVersion>
+
+    <!-- file version of all grpc-dotnet -->
+    <GrpcDotnetAssemblyFileVersion>0.2.23.0</GrpcDotnetAssemblyFileVersion>
+
   </PropertyGroup>
 </Project>
