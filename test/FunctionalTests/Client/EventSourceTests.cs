@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act - Start call
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnarySuccess);
 
-            var client = TestClientFactory.Create(Fixture.Client, LoggerFactory, method);
+            var client = TestClientFactory.Create(Channel, method);
 
             var call = client.UnaryCall(new HelloRequest());
 
@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act - Start call
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryError);
 
-            var client = TestClientFactory.Create(Fixture.Client, LoggerFactory, method);
+            var client = TestClientFactory.Create(Channel, method);
 
             var call = client.UnaryCall(new HelloRequest());
 
@@ -192,7 +192,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act - Start call
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-            var client = TestClientFactory.Create(Fixture.Client, LoggerFactory, method, disableClientDeadlineTimer: true);
+            var channel = CreateChannel();
+            channel.DisableClientDeadlineTimer = true;
+
+            var client = TestClientFactory.Create(Channel, method);
 
             var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(200)));
 
@@ -249,7 +252,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act - Start call
             var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<HelloRequest, HelloReply>(DuplexStreamingMethod);
 
-            var client = TestClientFactory.Create(Fixture.Client, LoggerFactory, method);
+            var client = TestClientFactory.Create(Channel, method);
 
             var call = client.DuplexStreamingCall();
 

@@ -36,7 +36,7 @@ namespace Grpc.Net.Client
     /// Client objects can reuse the same channel. Creating a channel is an expensive operation compared to invoking
     /// a remote call so in general you should reuse a single channel for as many calls as possible.
     /// </summary>
-    public sealed class GrpcChannel : ChannelBase
+    public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 
@@ -49,13 +49,21 @@ namespace Grpc.Net.Client
         internal List<CallCredentials>? CallCredentials { get; }
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
+        internal bool Disposed { get; private set; }
 
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
         internal bool DisableClientDeadlineTimer { get; set; }
 
+        private bool _shouldDisposeHttpClient;
+
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
+            // Dispose the HttpClient if...
+            //   1. No client was specified and so the channel created the HttpClient itself
+            //   2. User has specified a client and set DisposeHttpClient to true
+            _shouldDisposeHttpClient = channelOptions.HttpClient == null || channelOptions.DisposeHttpClient;
+
             Address = address;
             HttpClient = channelOptions.HttpClient ?? new HttpClient();
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
@@ -117,6 +125,11 @@ namespace Grpc.Net.Client
         /// <returns>A new <see cref="CallInvoker"/>.</returns>
         public override CallInvoker CreateCallInvoker()
         {
+            if (Disposed)
+            {
+                throw new ObjectDisposedException(nameof(GrpcChannel));
+            }
+
             var invoker = new HttpClientCallInvoker(this);
 
             return invoker;
@@ -210,6 +223,24 @@ namespace Grpc.Net.Client
             }
 
             return new GrpcChannel(address, channelOptions);
+        }
+
+        /// <summary>
+        /// Releases the resources used by the <see cref="GrpcChannel"/> class.
+        /// Clients created with the channel can't be used after the channel is disposed.
+        /// </summary>
+        public void Dispose()
+        {
+            if (Disposed)
+            {
+                return;
+            }
+
+            if (_shouldDisposeHttpClient)
+            {
+                HttpClient.Dispose();
+            }
+            Disposed = true;
         }
     }
 }

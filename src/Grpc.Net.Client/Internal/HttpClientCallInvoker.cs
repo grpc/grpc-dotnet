@@ -119,6 +119,11 @@ namespace Grpc.Net.Client.Internal
             where TRequest : class
             where TResponse : class
         {
+            if (Channel.Disposed)
+            {
+                throw new ObjectDisposedException(nameof(GrpcChannel));
+            }
+
             var call = new GrpcCall<TRequest, TResponse>(method, options, Channel);
 
             return call;

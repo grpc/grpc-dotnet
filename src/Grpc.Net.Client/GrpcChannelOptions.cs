@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http;
 using Grpc.Core;
@@ -58,10 +57,26 @@ namespace Grpc.Net.Client
         /// <summary>
         /// Gets or sets the <see cref="HttpClient"/> used by the channel.
         /// </summary>
+        /// <remarks>
+        /// By default a <see cref="System.Net.Http.HttpClient"/> specified here will not be disposed with the channel.
+        /// To dispose the <see cref="System.Net.Http.HttpClient"/> with the channel you must set <see cref="DisposeHttpClient"/>
+        /// to <c>true</c>.
+        /// </remarks>
         public HttpClient? HttpClient { get; set; }
 
         /// <summary>
-        /// 
+        /// Gets or sets a value indicating whether the underlying <see cref="System.Net.Http.HttpClient"/> should be disposed
+        /// when the <see cref="GrpcChannel"/> instance is disposed. The default value is <c>false</c>.
+        /// </summary>
+        /// <remarks>
+        /// This setting is used when a <see cref="HttpClient"/> value is specified. If no <see cref="HttpClient"/> value is provided
+        /// then the channel will create an <see cref="System.Net.Http.HttpClient"/> instance that is always disposed when
+        /// the channel is disposed.
+        /// </remarks>
+        public bool DisposeHttpClient { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
         /// </summary>
         public GrpcChannelOptions()
         {
