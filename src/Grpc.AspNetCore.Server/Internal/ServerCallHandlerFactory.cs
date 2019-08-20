@@ -60,8 +60,8 @@ namespace Grpc.AspNetCore.Server.Internal
             _resolvedOptions = new GrpcServiceOptions
             {
                 EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
-                ReceiveMaxMessageSize = so.ReceiveMaxMessageSize ?? go.ReceiveMaxMessageSize,
-                SendMaxMessageSize = so.SendMaxMessageSize ?? go.SendMaxMessageSize,
+                MaxReceiveMessageSize = so.MaxReceiveMessageSize ?? go.MaxReceiveMessageSize,
+                MaxSendMessageSize = so.MaxSendMessageSize ?? go.MaxSendMessageSize,
                 ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
                 ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel
             };

@@ -34,8 +34,8 @@ namespace Grpc.AspNetCore.Server.Tests
                 .AddGrpc(o =>
                 {
                     o.EnableDetailedErrors = true;
-                    o.ReceiveMaxMessageSize = 1;
-                    o.SendMaxMessageSize = 1;
+                    o.MaxReceiveMessageSize = 1;
+                    o.MaxSendMessageSize = 1;
                 });
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -45,8 +45,8 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual(true, options.EnableDetailedErrors);
-            Assert.AreEqual(1, options.ReceiveMaxMessageSize);
-            Assert.AreEqual(1, options.SendMaxMessageSize);
+            Assert.AreEqual(1, options.MaxReceiveMessageSize);
+            Assert.AreEqual(1, options.MaxSendMessageSize);
         }
 
         [Test]
@@ -58,12 +58,12 @@ namespace Grpc.AspNetCore.Server.Tests
                 .AddGrpc(o =>
                 {
                     o.EnableDetailedErrors = true;
-                    o.ReceiveMaxMessageSize = 1;
-                    o.SendMaxMessageSize = 1;
+                    o.MaxReceiveMessageSize = 1;
+                    o.MaxSendMessageSize = 1;
                 })
                 .AddServiceOptions<object>(o =>
                 {
-                    o.SendMaxMessageSize = 2;
+                    o.MaxSendMessageSize = 2;
                 });
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -73,8 +73,8 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual(true, options.EnableDetailedErrors);
-            Assert.AreEqual(1, options.ReceiveMaxMessageSize);
-            Assert.AreEqual(2, options.SendMaxMessageSize);
+            Assert.AreEqual(1, options.MaxReceiveMessageSize);
+            Assert.AreEqual(2, options.MaxSendMessageSize);
         }
     }
 }

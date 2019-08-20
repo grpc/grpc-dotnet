@@ -46,8 +46,8 @@ namespace FunctionalTestsWebsite
                 })
                 .AddServiceOptions<GreeterService>(options =>
                 {
-                    options.SendMaxMessageSize = 64 * 1024;
-                    options.ReceiveMaxMessageSize = 64 * 1024;
+                    options.MaxSendMessageSize = 64 * 1024;
+                    options.MaxReceiveMessageSize = 64 * 1024;
                 })
                 .AddServiceOptions<CompressionService>(options =>
                 {
