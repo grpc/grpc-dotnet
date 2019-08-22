@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -168,67 +169,83 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task UnaryMethod_DeadlineExceededCall_PollingCountersUpdatedCorrectly()
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Ignore errors
-            SetExpectedErrorsFilter(writeContext =>
+            // Loop to ensure test is resilent across multiple runs
+            for (int i = 1; i < 3; i++)
             {
-                return true;
-            });
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            async Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+                // Ignore errors
+                SetExpectedErrorsFilter(writeContext =>
+                {
+                    return true;
+                });
+
+                async Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+                {
+                    await PollAssert(() => context.Status.StatusCode == StatusCode.DeadlineExceeded).DefaultTimeout();
+
+                    tcs.TrySetResult(true);
+
+                    return new HelloReply();
+                }
+
+                // Arrange
+                var clock = new TestSystemClock(DateTime.UtcNow);
+                var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
+                var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
+
+                // Act - Start call
+                var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+
+                var channel = CreateChannel();
+                channel.Clock = clock;
+                channel.DisableClientDeadlineTimer = true;
+
+                var client = TestClientFactory.Create(channel, method);
+
+                var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: clock.UtcNow.AddMilliseconds(200)));
+
+                // Assert - Call in progress
+                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 1,
+                    ["calls-failed"] = i - 1,
+                    ["calls-deadline-exceeded"] = i - 1,
+                }).DefaultTimeout();
+                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 1,
+                    ["calls-failed"] = i - 1,
+                    ["calls-deadline-exceeded"] = i - 1,
+                }).DefaultTimeout();
+
+                // Act - Wait for call to deadline on server
+                await tcs.Task.DefaultTimeout();
+
+                // Assert - Call complete
+                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 0,
+                    ["calls-failed"] = i,
+                    ["calls-deadline-exceeded"] = i,
+                }).DefaultTimeout();
+                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 0,
+                    ["calls-failed"] = i,
+                    ["calls-deadline-exceeded"] = i,
+                }).DefaultTimeout();
+            }
+        }
+
+        private class TestSystemClock : ISystemClock
+        {
+            public TestSystemClock(DateTime utcNow)
             {
-                await PollAssert(() => context.Status.StatusCode == StatusCode.DeadlineExceeded).DefaultTimeout();
-
-                tcs.TrySetResult(true);
-
-                return new HelloReply();
+                UtcNow = utcNow;
             }
 
-            // Arrange
-            var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
-            var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
-
-            // Act - Start call
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
-
-            var channel = CreateChannel();
-            channel.DisableClientDeadlineTimer = true;
-
-            var client = TestClientFactory.Create(Channel, method);
-
-            var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(500)));
-
-            // Assert - Call in progress
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
-            {
-                ["current-calls"] = 1,
-                ["calls-failed"] = 0,
-                ["calls-deadline-exceeded"] = 0,
-            }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
-            {
-                ["current-calls"] = 1,
-                ["calls-failed"] = 0,
-                ["calls-deadline-exceeded"] = 0,
-            }).DefaultTimeout();
-
-            // Act - Wait for call to deadline on server
-            await tcs.Task.DefaultTimeout();
-
-            // Assert - Call complete
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
-            {
-                ["current-calls"] = 0,
-                ["calls-failed"] = 1,
-                ["calls-deadline-exceeded"] = 1,
-            }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
-            {
-                ["current-calls"] = 0,
-                ["calls-failed"] = 1,
-                ["calls-deadline-exceeded"] = 1,
-            }).DefaultTimeout();
+            public DateTime UtcNow { get; }
         }
 
         [Test]
@@ -327,7 +344,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     }
                     else
                     {
-                        throw new Exception(@$"Did not get ""{subscription.CounterName}"" = {subscription.ExpectedValue} in the allowed time.");
+                        throw new Exception(@$"Did not get ""{subscription.CounterName}"" = {subscription.ExpectedValue} in the allowed time. Last value seen: {subscription.LastValue}");
                     }
                 });
                 tasks.Add(t);

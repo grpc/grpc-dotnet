@@ -39,6 +39,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public string CounterName { get; }
         public long ExpectedValue { get; }
 
+        // Set the last value encountered for debugging purposes
+        public long? LastValue { get; internal set; }
+
         public void Dispose()
         {
             _testEventListener.Unsubscribe(this);

@@ -28,7 +28,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     public class TestEventListener : EventListener
     {
         private readonly object _lock = new object();
-        private List<ListenerSubscription> _subscriptions;
+        private readonly List<ListenerSubscription> _subscriptions;
 
         private readonly int _eventId;
 
@@ -46,10 +46,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             ListenerSubscription[]? subscriptions = null;
             lock (_lock)
             {
-                subscriptions = _subscriptions.ToArray();
+                // Somehow OnEventWritten is being called when _subscriptions is null.
+                // I don't know how/why but if it is null then we can just exit the method.
+                subscriptions = _subscriptions?.ToArray();
             }
 
-            if (subscriptions.Length == 0)
+            if (subscriptions == null || subscriptions.Length == 0)
             {
                 return;
             }
@@ -66,7 +68,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     {
                         if (subscription.CounterName == Convert.ToString(name))
                         {
-                            if (subscription.ExpectedValue == Convert.ToInt64(value))
+                            var currentValue = Convert.ToInt64(value);
+
+                            // For debugging. Printed in message if subscription fails.
+                            subscription.LastValue = currentValue;
+
+                            if (subscription.ExpectedValue == currentValue)
                             {
                                 subscription.SetMatched();
                                 subscription.Dispose();
