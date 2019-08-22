@@ -58,18 +58,21 @@ namespace Grpc.Net.Client.Internal
         {
             var userAgent = "grpc-dotnet";
 
+            // Use the assembly file version in the user agent.
+            // We are not using `AssemblyInformationalVersionAttribute` because Source Link appends
+            // the git hash to it, and sending a long user agent has perf implications.
             var assemblyVersion = typeof(GrpcProtocolConstants)
                 .Assembly
-                .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
+                .GetCustomAttributes<AssemblyFileVersionAttribute>()
                 .FirstOrDefault();
 
             Debug.Assert(assemblyVersion != null);
 
-            // assembly version attribute should always be present
-            // but in case it isn't then don't include version in user-agent
+            // Assembly file version attribute should always be present,
+            // but in case it isn't then don't include version in user-agent.
             if (assemblyVersion != null)
             {
-                userAgent += "/" + assemblyVersion.InformationalVersion;
+                userAgent += "/" + assemblyVersion.Version;
             }
 
             UserAgentHeader = ProductInfoHeaderValue.Parse(userAgent);

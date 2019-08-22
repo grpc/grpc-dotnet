@@ -75,6 +75,11 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(GrpcProtocolConstants.UserAgentHeader, userAgent);
             Assert.AreEqual("grpc-dotnet", userAgent.Product.Name);
             Assert.IsTrue(!string.IsNullOrEmpty(userAgent.Product.Version));
+
+            // Santity check that the user agent doesn't have the git hash in it and isn't too long.
+            // Sending a long user agent with each call has performance implications.
+            Assert.IsTrue(!userAgent.Product.Version.Contains('+'));
+            Assert.IsTrue(userAgent.Product.Version.Length <= 10);
         }
 
         [Test]
