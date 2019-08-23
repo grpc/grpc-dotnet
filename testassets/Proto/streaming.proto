@@ -17,7 +17,8 @@ syntax = "proto3";
 package Streaming;
 
 service StreamService {
-  rpc DuplexData (stream DataMessage) returns (stream DataMessage);
+  rpc BufferAllData (stream DataMessage) returns (stream DataMessage);
+  rpc EchoAllData (stream DataMessage) returns (stream DataMessage);
   rpc ClientStreamedData (stream DataMessage) returns (DataComplete);
 }
 
