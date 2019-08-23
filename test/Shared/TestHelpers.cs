@@ -53,7 +53,7 @@ namespace Grpc.Tests.Shared
 
         public static Task RunParallel(int count, Func<Task> action)
         {
-            Task[] actionTasks = new Task[count];
+            var actionTasks = new Task[count];
             for (int i = 0; i < actionTasks.Length; i++)
             {
                 actionTasks[i] = action();
