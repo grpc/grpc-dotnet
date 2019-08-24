@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
@@ -55,7 +56,14 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
-                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error!);
+                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                return Task.CompletedTask;
+            }
+            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol)
+            {
+                var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
+                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+                httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
                 return Task.CompletedTask;
             }
 

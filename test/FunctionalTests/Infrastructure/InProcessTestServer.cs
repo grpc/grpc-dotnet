@@ -19,11 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -35,7 +33,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         internal abstract event Action<LogRecord> ServerLogged;
 
-        public abstract string? Url { get; }
+        public abstract string GetUrl(HttpProtocols httpProtocol);
 
         public abstract IWebHost? Host { get; }
 
@@ -53,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private readonly Action<IServiceCollection>? _initialConfigureServices;
         private IWebHost? _host;
         private IHostApplicationLifetime? _lifetime;
-        private string? _url;
+        private Dictionary<HttpProtocols, string>? _urls;
 
         internal override event Action<LogRecord> ServerLogged
         {
@@ -61,7 +59,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             remove => _logSinkProvider.RecordLogged -= value;
         }
 
-        public override string? Url => _url;
+        public override string GetUrl(HttpProtocols httpProtocol)
+        {
+            if (_urls == null)
+            {
+                throw new InvalidOperationException();
+            }
+
+            return _urls[httpProtocol];
+        }
 
         public override IWebHost? Host => _host;
 
@@ -78,7 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public override void StartServer()
         {
             // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
-            var url = "http://127.0.0.1:50050";
+            var url = "http://127.0.0.1";
 
             _host = new WebHostBuilder()
                 .ConfigureLogging(builder => builder
@@ -94,6 +100,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     options.ListenLocalhost(50050, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http2;
+                    });
+                    options.ListenLocalhost(50040, listenOptions =>
+                    {
+                        listenOptions.Protocols = HttpProtocols.Http1;
                     });
                 })
                 .UseUrls(url)
@@ -119,7 +129,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _logger.LogInformation("Test Server started");
 
             // Get the URL from the server
-            _url = _host.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single();
+            _urls = new Dictionary<HttpProtocols, string>
+            {
+                [HttpProtocols.Http2] = url + ":50050",
+                [HttpProtocols.Http1] = url + ":50040"
+            };
 
             _lifetime.ApplicationStopped.Register(() =>
             {
