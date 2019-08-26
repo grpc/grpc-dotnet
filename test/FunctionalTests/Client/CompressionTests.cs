@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             string? requestMessageEncoding = null;
             string? responseMessageEncoding = null;
-            using var httpClient = Fixture.CreateClient(new TestDelegateHandler(
+            using var httpClient = Fixture.CreateClient(messageHandler: new TestDelegateHandler(
                 r =>
                 {
                     requestMessageEncoding = r.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single();
