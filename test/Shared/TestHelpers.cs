@@ -50,5 +50,16 @@ namespace Grpc.Tests.Shared
 
             throw new Exception($"Assert failed after {Retrys} retries: {message}");
         }
+
+        public static Task RunParallel(int count, Func<Task> action)
+        {
+            var actionTasks = new Task[count];
+            for (int i = 0; i < actionTasks.Length; i++)
+            {
+                actionTasks[i] = action();
+            }
+
+            return Task.WhenAll(actionTasks);
+        }
     }
 }
