@@ -397,6 +397,37 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
         }
 
+        [Test]
+        public async Task InvalidProtocol_Return426Response()
+        {
+            // Arrange
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+            var streamContent = new StreamContent(ms);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
+
+            var client = Fixture.CreateClient(Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1);
+
+            // Act
+            var response = await client.PostAsync(
+                "Greet.Greeter/SayHello",
+                streamContent).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.UpgradeRequired, response.StatusCode);
+
+            var upgradeValue = response.Headers.Upgrade.Single();
+            Assert.AreEqual("HTTP", upgradeValue.Name);
+            Assert.AreEqual("2", upgradeValue.Version);
+
+            response.AssertTrailerStatus(StatusCode.Internal, "Request protocol 'HTTP/1.1' is not supported.");
+        }
+
         [TestCase("application/grpc")]
         [TestCase("APPLICATION/GRPC")]
         [TestCase("application/grpc+proto")]

@@ -19,6 +19,7 @@
 using System;
 using System.Net.Http;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -58,7 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public HttpClient Client { get; }
 
-        public HttpClient CreateClient(DelegatingHandler? messageHandler = null)
+        public HttpClient CreateClient(HttpProtocols? httpProtocol = null, DelegatingHandler? messageHandler = null)
         {
             HttpClient client;
             if (messageHandler != null)
@@ -71,8 +72,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 client = new HttpClient();
             }
 
-            client.DefaultRequestVersion = new Version(2, 0);
-            client.BaseAddress = new Uri(_server.Url!);
+            switch (httpProtocol ?? HttpProtocols.Http2)
+            {
+                case HttpProtocols.Http1:
+                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http1));
+                    break;
+                case HttpProtocols.Http2:
+                    client.DefaultRequestVersion = new Version(2, 0);
+                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http2));
+                    break;
+                default:
+                    throw new ArgumentException("Unexpected value.", nameof(httpProtocol));
+            }
 
             return client;
         }

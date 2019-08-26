@@ -25,6 +25,7 @@ namespace Grpc.AspNetCore.Server.Internal
     internal static class GrpcProtocolConstants
     {
         internal const string GrpcContentType = "application/grpc";
+        internal const string Http2Protocol = "HTTP/2";
 
         internal const string TimeoutHeader = "grpc-timeout";
         internal const string MessageEncodingHeader = "grpc-encoding";

@@ -136,7 +136,8 @@ namespace Grpc.AspNetCore.Server.Tests
         private static HttpContext CreateContext(bool isMaxRequestBodySizeFeatureReadOnly = false)
         {
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentType = "application/grpc";
+            httpContext.Request.Protocol = GrpcProtocolConstants.Http2Protocol;
+            httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
             httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
             httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(new TestMaxRequestBodySizeFeature(isMaxRequestBodySizeFeatureReadOnly, 100));
 
