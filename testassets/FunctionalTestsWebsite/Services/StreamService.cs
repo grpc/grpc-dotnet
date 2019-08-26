@@ -18,6 +18,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -36,7 +37,7 @@ namespace FunctionalTestsWebsite.Services
             _logger = loggerFactory.CreateLogger<StreamService>();
         }
 
-        public override async Task DuplexData(
+        public override async Task BufferAllData(
             IAsyncStreamReader<DataMessage> requestStream,
             IServerStreamWriter<DataMessage> responseStream,
             ServerCallContext context)
@@ -64,6 +65,27 @@ namespace FunctionalTestsWebsite.Services
 
                 sent += writeCount;
                 _logger.LogInformation($"Sent {sent} bytes");
+            }
+        }
+
+
+        public override async Task EchoAllData(
+            IAsyncStreamReader<DataMessage> requestStream,
+            IServerStreamWriter<DataMessage> responseStream,
+            ServerCallContext context)
+        {
+            var flushHeaders = context.RequestHeaders.Any(x => x.Key == "flush-headers");
+            if (flushHeaders)
+            {
+                await context.WriteResponseHeadersAsync(new Metadata());
+            }
+
+            await foreach (var message in requestStream.ReadAllAsync())
+            {
+                await responseStream.WriteAsync(new DataMessage
+                {
+                    Data = message.Data
+                });
             }
         }
 

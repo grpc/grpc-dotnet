@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
@@ -47,7 +48,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var client = new StreamService.StreamServiceClient(Channel);
 
             // Act
-            var call = client.DuplexData();
+            var call = client.BufferAllData();
 
             var sent = 0;
             while (sent < data.Length)
@@ -81,7 +82,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        public async Task ClientStream_SendLargeFileBatchedAndRecieveLargeFileBatched_Success()
+        public async Task ClientStream_SendLargeFileBatched_Success()
         {
             // Arrange
             var total = 1024 * 1024 * 64; // 64 MB
@@ -237,6 +238,89 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
                 Assert.AreEqual(StatusCode.Unimplemented, status.StatusCode);
             }
+        }
+
+        const int Size64MB = 1024 * 1024 * 64;
+        const int Size1MB = 1024 * 1024 * 1;
+        const int Size64KB = 1024 * 64;
+
+        [TestCase(0, 0)]
+        [TestCase(1, 1)]
+        [TestCase(2, 1)]
+        [TestCase(3, 2)]
+        [TestCase(Size64MB, Size64KB)]
+        [TestCase(Size64MB, Size1MB)]
+        public async Task DuplexStreaming_SimultaniousSendAndReceive_Success(int total, int batchSize)
+        {
+            // Arrange
+            var data = new byte[batchSize];
+
+            var client = new StreamService.StreamServiceClient(Channel);
+
+            var (sent, received) = await EchoData(total, data, client);
+
+            // Assert
+            Assert.AreEqual(sent, total);
+            Assert.AreEqual(received, total);
+        }
+
+        private async Task<(int sent, int received)> EchoData(int total, byte[] data, StreamService.StreamServiceClient client)
+        {
+            var sent = 0;
+            var received = 0;
+            var call = client.EchoAllData();
+
+            var readTask = Task.Run(async () =>
+            {
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
+                {
+                    received += message.Data.Length;
+
+                    Logger.LogInformation($"Received {sent} bytes");
+                }
+            });
+
+            while (sent < total)
+            {
+                var writeCount = Math.Min(total - sent, data.Length);
+
+                await call.RequestStream.WriteAsync(new DataMessage
+                {
+                    Data = ByteString.CopyFrom(data, 0, writeCount)
+                }).DefaultTimeout();
+
+                sent += writeCount;
+
+                Logger.LogInformation($"Sent {sent} bytes");
+            }
+
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
+            await readTask;
+
+            return (sent, received);
+        }
+
+        [TestCase(1)]
+        [TestCase(5)]
+        [TestCase(20)]
+        public async Task DuplexStreaming_SimultaniousSendAndReceiveInParallel_Success(int tasks)
+        {
+            // Arrange
+            const int total = 1024 * 1024 * 1;
+            const int batchSize = 1024 * 64;
+
+            var data = new byte[batchSize];
+
+            var client = new StreamService.StreamServiceClient(Channel);
+
+            await TestHelpers.RunParallel(tasks, async () =>
+            {
+                var (sent, received) = await EchoData(total, data, client);
+
+                // Assert
+                Assert.AreEqual(sent, total);
+                Assert.AreEqual(received, total);
+            });
         }
     }
 }
