@@ -54,6 +54,8 @@ namespace Grpc.Net.Client.Internal
 
         public Task CompleteAsync()
         {
+            _call.EnsureNotDisposed();
+
             using (_call.StartScope())
             {
                 Log.CompletingClientStream(_call.Logger);
@@ -63,7 +65,7 @@ namespace Grpc.Net.Client.Internal
                     // Pending writes need to be awaited first
                     if (IsWriteInProgressUnsynchronized)
                     {
-                        var ex = new InvalidOperationException("Cannot complete client stream writer because the previous write is in progress.");
+                        var ex = new InvalidOperationException("Can't complete the client stream writer because the previous write is in progress.");
                         Log.CompleteClientStreamError(_call.Logger, ex);
                         return Task.FromException(ex);
                     }
@@ -83,28 +85,34 @@ namespace Grpc.Net.Client.Internal
                 throw new ArgumentNullException(nameof(message));
             }
 
+            _call.EnsureNotDisposed();
+
             lock (_writeLock)
             {
                 using (_call.StartScope())
                 {
+                    // Call has been canceled
+                    if (_call.CancellationToken.IsCancellationRequested)
+                    {
+                        return Task.FromCanceled(_call.CancellationToken);
+                    }
+
+                    // Call has already completed
+                    if (_call.CallTask.IsCompletedSuccessfully)
+                    {
+                        return CreateErrorTask("Can't write the message because the call is complete.");
+                    }
+
                     // CompleteAsync has already been called
                     if (_completeTcs.Task.IsCompletedSuccessfully)
                     {
-                        var ex = new InvalidOperationException("Cannot write message because the client stream writer is complete.");
-                        Log.WriteMessageError(_call.Logger, ex);
-                        return Task.FromException(ex);
+                        return CreateErrorTask("Can't write the message because the client stream writer is complete.");
                     }
-                    else if (_completeTcs.Task.IsCanceled)
-                    {
-                        throw _call.CreateCanceledStatusException();
-                    }
-
+                    
                     // Pending writes need to be awaited first
                     if (IsWriteInProgressUnsynchronized)
                     {
-                        var ex = new InvalidOperationException("Cannot write message because the previous write is in progress.");
-                        Log.WriteMessageError(_call.Logger, ex);
-                        return Task.FromException(ex);
+                        return CreateErrorTask("Can't write the message because the previous write is in progress.");
                     }
 
                     // Save write task to track whether it is complete
@@ -115,40 +123,40 @@ namespace Grpc.Net.Client.Internal
             return _writeTask;
         }
 
+        private Task CreateErrorTask(string message)
+        {
+            var ex = new InvalidOperationException(message);
+            Log.WriteMessageError(_call.Logger, ex);
+            return Task.FromException(ex);
+        }
+
         public void Dispose()
         {
         }
 
         private async Task WriteAsyncCore(TRequest message)
         {
-            try
+            // Wait until the client stream has started
+            var writeStream = await _writeStreamTask.ConfigureAwait(false);
+
+            // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
+            var callOptions = _call.Options;
+            if (WriteOptions != null)
             {
-                // Wait until the client stream has started
-                var writeStream = await _writeStreamTask.ConfigureAwait(false);
-
-                // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
-                var callOptions = _call.Options;
-                if (WriteOptions != null)
-                {
-                    // Creates a copy of the struct
-                    callOptions = callOptions.WithWriteOptions(WriteOptions);
-                }
-
-                await writeStream.WriteMessageAsync<TRequest>(
-                    _call.Logger,
-                    message,
-                    _call.Method.RequestMarshaller.ContextualSerializer,
-                    _grpcEncoding,
-                    _call.Channel.SendMaxMessageSize,
-                    _call.Channel.CompressionProviders,
-                    callOptions).ConfigureAwait(false);
-
-                GrpcEventSource.Log.MessageSent();
+                // Creates a copy of the struct
+                callOptions = callOptions.WithWriteOptions(WriteOptions);
             }
-            catch (TaskCanceledException)
-            {
-                throw _call.CreateCanceledStatusException();
-            }
+
+            await writeStream.WriteMessageAsync<TRequest>(
+                _call.Logger,
+                message,
+                _call.Method.RequestMarshaller.ContextualSerializer,
+                _grpcEncoding,
+                _call.Channel.SendMaxMessageSize,
+                _call.Channel.CompressionProviders,
+                callOptions).ConfigureAwait(false);
+
+            GrpcEventSource.Log.MessageSent();
         }
 
         /// <summary>

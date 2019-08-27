@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,8 +48,9 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }
 
         [Test]
@@ -67,8 +69,9 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseHeadersTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }
 
         [Test]
@@ -84,9 +87,10 @@ namespace Grpc.Net.Client.Tests
             // Assert
             cts.Cancel();
 
-            var ex = Assert.Throws<RpcException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
 
-            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+            Assert.AreEqual("Can't get the call trailers because the call was canceled.", ex.Message);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 
         private static HttpClientCallInvoker CreateTimedoutCallInvoker()

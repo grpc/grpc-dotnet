@@ -180,7 +180,8 @@ namespace Grpc.Net.Client.Tests
             tcs.TrySetResult(true);
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<ObjectDisposedException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 
         [Test]
@@ -196,10 +197,11 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Status.Detail);
         }
 
         [Test]
@@ -216,10 +218,11 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Message);
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Status.Detail);
         }
     }
 }

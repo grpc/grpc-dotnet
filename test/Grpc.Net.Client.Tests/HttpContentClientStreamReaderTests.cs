@@ -57,8 +57,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.IsTrue(moveNextTask1.IsCompleted);
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
         }
 
         [Test]
@@ -86,8 +85,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
         }
 
         [Test]
@@ -113,7 +111,7 @@ namespace Grpc.Net.Client.Tests
             Assert.IsFalse(moveNextTask1.IsCompleted);
 
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => moveNextTask2).DefaultTimeout();
-            Assert.AreEqual("Cannot read next message because the previous read is in progress.", ex.Message);
+            Assert.AreEqual("Can't read the next message because the previous read is still in progress.", ex.Message);
         }
     }
 }

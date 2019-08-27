@@ -504,8 +504,8 @@ namespace InteropTestsClient
                 await Task.Delay(1000);
                 cts.Cancel();
 
-                var ex = await Assert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
-                Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+                await Assert.ThrowsAsync<TaskCanceledException>(() => call.ResponseAsync);
+                Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
             }
             Console.WriteLine("Passed!");
         }
@@ -534,9 +534,9 @@ namespace InteropTestsClient
                     await call.ResponseStream.MoveNext();
                     Assert.Fail();
                 }
-                catch (RpcException ex)
+                catch (OperationCanceledException)
                 {
-                    Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+                    Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
                 }
             }
             Console.WriteLine("Passed!");
@@ -553,11 +553,7 @@ namespace InteropTestsClient
                 {
                     await call.RequestStream.WriteAsync(new StreamingOutputCallRequest { Payload = CreateZerosPayload(27182) });
                 }
-                catch (InvalidOperationException)
-                {
-                    // Deadline was reached before write has started. Eat the exception and continue.
-                }
-                catch (RpcException)
+                catch (OperationCanceledException)
                 {
                     // Deadline was reached before write has started. Eat the exception and continue.
                 }
@@ -567,11 +563,13 @@ namespace InteropTestsClient
                     await call.ResponseStream.MoveNext();
                     Assert.Fail();
                 }
-                catch (RpcException ex)
+                catch (OperationCanceledException)
                 {
                     // We can't guarantee the status code always DeadlineExceeded. See issue #2685.
-                    Assert.Contains(ex.Status.StatusCode, new[] { StatusCode.DeadlineExceeded, StatusCode.Internal });
+                    
                 }
+
+                Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
             }
             Console.WriteLine("Passed!");
         }

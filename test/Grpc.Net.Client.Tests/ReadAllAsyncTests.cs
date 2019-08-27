@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
@@ -92,7 +93,7 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             var messages = new List<string>();
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(async () =>
                 {
                     await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout().WithCancellation(cts.Token))
                     {
@@ -105,7 +106,6 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(1, messages.Count);
             Assert.AreEqual("Hello world 1", messages[0]);
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
@@ -182,8 +182,8 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }
 }
