@@ -11,7 +11,7 @@ for general contribution guidelines.
 - [apolcyn](https://github.com/apolcyn), Google LLC
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
-- [JunTaoLuo](https://github.com/JunTaoLuo), Microsoft Corporation
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
+- [JunTaoLuo](https://github.com/JunTaoLuo), Microsoft Corporation
 
 ## Emeritus Maintainers (in alphabetical order)
