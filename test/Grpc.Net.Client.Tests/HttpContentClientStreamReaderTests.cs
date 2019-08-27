@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
             // Act
@@ -58,7 +58,34 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.IsTrue(moveNextTask1.IsCompleted);
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task MoveNext_TokenCanceledBeforeCall_ThrowOperationCanceledExceptionOnCancellation_ThrowError()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledOnCancellation = true });
+            var call = CreateGrpcCall(channel);
+            call.StartServerStreaming(new HelloRequest());
+
+            // Act
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+
+            // Assert
+            Assert.IsTrue(moveNextTask1.IsCompleted);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
         }
 
         [Test]
@@ -75,7 +102,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
             // Act
@@ -87,6 +114,7 @@ namespace Grpc.Net.Client.Tests
             cts.Cancel();
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
@@ -104,7 +132,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledOnCancellation = true });
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
             // Act
@@ -130,7 +158,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
-            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
             // Act
@@ -142,6 +170,18 @@ namespace Grpc.Net.Client.Tests
 
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => moveNextTask2).DefaultTimeout();
             Assert.AreEqual("Can't read the next message because the previous read is still in progress.", ex.Message);
+        }
+
+        private static GrpcCall<HelloRequest, HelloReply> CreateGrpcCall(GrpcChannel channel)
+        {
+            var uri = new Uri("http://localhost");
+
+            return new GrpcCall<HelloRequest, HelloReply>(
+                ClientTestHelpers.ServiceMethod,
+                uri,
+                new GrpcCallScope(ClientTestHelpers.ServiceMethod.Type, uri),
+                new CallOptions(),
+                channel);
         }
     }
 }

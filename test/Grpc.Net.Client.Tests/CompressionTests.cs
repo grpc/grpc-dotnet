@@ -80,8 +80,9 @@ namespace Grpc.Net.Client.Tests
             });
 
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual("Could not find compression provider for 'not-supported'.", ex.Message);
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+            Assert.AreEqual("Error starting gRPC call: Could not find compression provider for 'not-supported'.", ex.Status.Detail);
         }
 
         [TestCase(true)]

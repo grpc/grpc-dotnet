@@ -18,10 +18,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Compression;
 
@@ -29,30 +31,26 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class GrpcProtocolHelpers
     {
-        public static bool IsGrpcContentType(string contentType)
+        public static bool IsGrpcContentType(MediaTypeHeaderValue contentType)
         {
             if (contentType == null)
             {
                 return false;
             }
 
-            if (!contentType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
+            if (!contentType.MediaType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            if (contentType.Length == GrpcProtocolConstants.GrpcContentType.Length)
+            if (contentType.MediaType.Length == GrpcProtocolConstants.GrpcContentType.Length)
             {
                 // Exact match
                 return true;
             }
 
             // Support variations on the content-type (e.g. +proto, +json)
-            char nextChar = contentType[GrpcProtocolConstants.GrpcContentType.Length];
-            if (nextChar == ';')
-            {
-                return true;
-            }
+            var nextChar = contentType.MediaType[GrpcProtocolConstants.GrpcContentType.Length];
             if (nextChar == '+')
             {
                 // Accept any message format. Marshaller could be set to support third-party formats
@@ -242,6 +240,143 @@ namespace Grpc.Net.Client.Internal
             var canCompress = (writeOptions.Flags & WriteFlags.NoCompress) != WriteFlags.NoCompress;
 
             return canCompress;
+        }
+
+        internal static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
+        {
+            var authority = baseAddress.Authority;
+            if (baseAddress.Scheme == Uri.UriSchemeHttps && authority.EndsWith(":443", StringComparison.Ordinal))
+            {
+                // The service URL can be used by auth libraries to construct the "aud" fields of the JWT token,
+                // so not producing serviceUrl compatible with other gRPC implementations can lead to auth failures.
+                // For https and the default port 443, the port suffix should be stripped.
+                // https://github.com/grpc/grpc/blob/39e982a263e5c48a650990743ed398c1c76db1ac/src/core/lib/security/transport/client_auth_filter.cc#L205
+                authority = authority.Substring(0, authority.Length - 4);
+            }
+            var serviceUrl = baseAddress.Scheme + "://" + authority + baseAddress.AbsolutePath;
+            if (!serviceUrl.EndsWith("/", StringComparison.Ordinal))
+            {
+                serviceUrl += "/";
+            }
+            serviceUrl += method.ServiceName;
+            return new AuthInterceptorContext(serviceUrl, method.Name);
+        }
+
+        internal async static Task ReadCredentialMetadata(
+            DefaultCallCredentialsConfigurator configurator,
+            GrpcChannel channel,
+            HttpRequestMessage message,
+            IMethod method,
+            CallCredentials credentials)
+        {
+            credentials.InternalPopulateConfiguration(configurator, null);
+
+            if (configurator.Interceptor != null)
+            {
+                var authInterceptorContext = GrpcProtocolHelpers.CreateAuthInterceptorContext(channel.Address, method);
+                var metadata = new Metadata();
+                await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
+
+                foreach (var entry in metadata)
+                {
+                    AddHeader(message.Headers, entry);
+                }
+            }
+
+            if (configurator.Credentials != null)
+            {
+                // Copy credentials locally. ReadCredentialMetadata will update it.
+                var callCredentials = configurator.Credentials;
+                foreach (var c in callCredentials)
+                {
+                    configurator.Reset();
+                    await ReadCredentialMetadata(configurator, channel, message, method, c).ConfigureAwait(false);
+                }
+            }
+        }
+
+        public static void AddHeader(HttpRequestHeaders headers, Metadata.Entry entry)
+        {
+            var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
+            headers.Add(entry.Key, value);
+        }
+
+        public static string? GetHeaderValue(HttpHeaders? headers, string name)
+        {
+            if (headers == null)
+            {
+                return null;
+            }
+
+            if (!headers.TryGetValues(name, out var values))
+            {
+                return null;
+            }
+
+            // HttpHeaders appears to always return an array, but fallback to converting values to one just in case
+            var valuesArray = values as string[] ?? values.ToArray();
+
+            switch (valuesArray.Length)
+            {
+                case 0:
+                    return null;
+                case 1:
+                    return valuesArray[0];
+                default:
+                    throw new InvalidOperationException($"Multiple {name} headers.");
+            }
+        }
+
+        public static Status GetResponseStatus(HttpResponseMessage httpResponse)
+        {
+            Status? status;
+            try
+            {
+                if (!TryGetStatusCore(httpResponse.TrailingHeaders, out status))
+                {
+                    status = new Status(StatusCode.Cancelled, "No grpc-status found on response.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle error from parsing badly formed status
+                status = new Status(StatusCode.Cancelled, ex.Message);
+            }
+
+            return status.Value;
+        }
+
+        public static bool TryGetStatusCore(HttpResponseHeaders headers, [NotNullWhen(true)]out Status? status)
+        {
+            var grpcStatus = GrpcProtocolHelpers.GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
+
+            // grpc-status is a required trailer
+            if (grpcStatus == null)
+            {
+                status = null;
+                return false;
+            }
+
+            int statusValue;
+            if (!int.TryParse(grpcStatus, out statusValue))
+            {
+                throw new InvalidOperationException("Unexpected grpc-status value: " + grpcStatus);
+            }
+
+            // grpc-message is optional
+            // Always read the gRPC message from the same headers collection as the status
+            var grpcMessage = GrpcProtocolHelpers.GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
+
+            if (!string.IsNullOrEmpty(grpcMessage))
+            {
+                // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
+                // The value portion of Status-Message is conceptually a Unicode string description of the error,
+                // physically encoded as UTF-8 followed by percent-encoding.
+                grpcMessage = Uri.UnescapeDataString(grpcMessage);
+            }
+
+            status = new Status((StatusCode)statusValue, grpcMessage);
+            return true;
         }
     }
 }

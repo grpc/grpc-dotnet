@@ -30,8 +30,6 @@ namespace Grpc.Tests.Shared
             try
             {
                 await action();
-
-                throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");
             }
             catch (TException ex)
             {
@@ -53,6 +51,8 @@ namespace Grpc.Tests.Shared
             {
                 throw new Exception(string.Format("Exception of type {0} expected; got exception of type {1}.", typeof(TException).Name, ex.GetType().Name), ex);
             }
+
+            throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");
         }
     }
 }

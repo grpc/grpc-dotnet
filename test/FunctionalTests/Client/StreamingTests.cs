@@ -248,9 +248,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 // Response will only be headers so the call is "done" on the server side
                 await call.ResponseHeadersAsync.DefaultTimeout();
-                await call.RequestStream.CompleteAsync();
+                await call.RequestStream.CompleteAsync().DefaultTimeout();
 
-                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext());
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
                 var status = call.GetStatus();
 
                 // Assert
@@ -276,7 +276,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = new StreamService.StreamServiceClient(Channel);
 
-            var (sent, received) = await EchoData(total, data, client);
+            var (sent, received) = await EchoData(total, data, client).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(sent, total);
@@ -291,7 +291,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var readTask = Task.Run(async () =>
             {
-                await foreach (var message in call.ResponseStream.ReadAllAsync())
+                await foreach (var message in call.ResponseStream.ReadAllAsync().DefaultTimeout())
                 {
                     received += message.Data.Length;
 
@@ -314,7 +314,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
 
             await call.RequestStream.CompleteAsync().DefaultTimeout();
-            await readTask;
+            await readTask.DefaultTimeout();
 
             return (sent, received);
         }
@@ -356,7 +356,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Error starting gRPC call.'.")
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: ''.")
                 {
                     return true;
                 }

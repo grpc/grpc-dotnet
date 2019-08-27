@@ -124,7 +124,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
@@ -149,7 +149,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
@@ -244,10 +244,11 @@ namespace Grpc.Net.Client.Tests
                 var content = new StreamContent(stream);
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcStatusCode: null));
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var systemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: systemClock);
 
             // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: systemClock.UtcNow.AddMilliseconds(10)));
 
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
@@ -293,13 +294,13 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(0.5)), new HelloRequest());
 
             // Assert
-            var result = await call;
+            var result = await call.ResponseAsync.DefaultTimeout();
             Assert.IsNotNull(result);
 
             // Wait for deadline to trigger
             await Task.Delay(1000);
 
-            Assert.IsNotNull(await call.ResponseHeadersAsync);
+            Assert.IsNotNull(await call.ResponseHeadersAsync.DefaultTimeout());
 
             Assert.IsNotNull(call.GetTrailers());
 
