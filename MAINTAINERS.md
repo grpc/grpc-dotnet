@@ -9,9 +9,9 @@ for general contribution guidelines.
 
 ## Maintainers (in alphabetical order)
 - [apolcyn](https://github.com/apolcyn), Google LLC
-- [davidfowl](https://github.com/davidfowl), Microsoft
-- [JamesNK](https://github.com/JamesNK), Microsoft
-- [JunTaoLuo](https://github.com/JunTaoLuo), Microsoft
+- [davidfowl](https://github.com/davidfowl), Microsoft Corporation
+- [JamesNK](https://github.com/JamesNK), Microsoft Corporation
+- [JunTaoLuo](https://github.com/JunTaoLuo), Microsoft Corporation
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
 
 ## Emeritus Maintainers (in alphabetical order)
