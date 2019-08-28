@@ -565,7 +565,6 @@ namespace InteropTestsClient
                 }
                 catch (OperationCanceledException)
                 {
-                    // We can't guarantee the status code always DeadlineExceeded. See issue #2685.
                     Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
                 }
             }
