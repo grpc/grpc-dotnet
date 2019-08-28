@@ -263,7 +263,7 @@ namespace Grpc.Net.Client.Internal
                 // Wait for send to finish so the HttpResponse is available
                 await SendTask.ConfigureAwait(false);
 
-                if (CallTask.IsCompleted)
+                if (CallTask.IsCompletedSuccessfully)
                 {
                     throw new RpcException(CallTask.Result);
                 }

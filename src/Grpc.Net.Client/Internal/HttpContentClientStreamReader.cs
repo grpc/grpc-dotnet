@@ -66,7 +66,7 @@ namespace Grpc.Net.Client.Internal
                 return Task.FromCanceled<bool>(_call.CancellationToken);
             }
 
-            if (_call.CallTask.IsCompleted)
+            if (_call.CallTask.IsCompletedSuccessfully)
             {
                 var status = _call.CallTask.Result;
                 if (status.StatusCode == StatusCode.OK)
@@ -76,7 +76,7 @@ namespace Grpc.Net.Client.Internal
                 }
                 else
                 {
-                    return Task.FromException<bool>(new RpcException(_call.CallTask.Result));
+                    return Task.FromException<bool>(new RpcException(status));
                 }
             }
 
