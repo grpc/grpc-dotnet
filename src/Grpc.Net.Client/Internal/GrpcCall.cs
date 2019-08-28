@@ -196,19 +196,20 @@ namespace Grpc.Net.Client.Internal
             ResponseFinished = true;
             Debug.Assert(HttpResponse != null);
 
-            try
+            if (status == null)
             {
-                if (status == null)
+                try
                 {
                     if (!TryGetStatusCore(HttpResponse, out status))
                     {
                         status = new Status(StatusCode.Cancelled, "No grpc-status found on response.");
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                status = new Status(StatusCode.Cancelled, ex.Message);
+                catch (Exception ex)
+                {
+                    // Handle error from parsing badly formed status
+                    status = new Status(StatusCode.Cancelled, ex.Message);
+                }
             }
 
             // Clean up call resources once this call is finished
@@ -296,42 +297,39 @@ namespace Grpc.Net.Client.Internal
 
         private void ValidateHeaders()
         {
+            // We don't want to throw in this method, even for non-success situations.
+            // Response is still needed to return headers in GetResponseHeadersAsync.
+
             Log.ResponseHeadersReceived(Logger);
 
-            string? headerValidationError = null;
             Debug.Assert(HttpResponse != null);
             if (HttpResponse.StatusCode != HttpStatusCode.OK)
             {
-                headerValidationError = "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode;
+                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode));
+                return;
             }
-            else if (HttpResponse.Content?.Headers.ContentType == null)
+            
+            if (HttpResponse.Content?.Headers.ContentType == null)
             {
-                headerValidationError = "Bad gRPC response. Response did not have a content-type header.";
+                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header."));
+                return;
+            }
+
+            var grpcEncoding = HttpResponse.Content.Headers.ContentType.ToString();
+            if (!GrpcProtocolHelpers.IsGrpcContentType(grpcEncoding))
+            {
+                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding));
+                return;
             }
             else
             {
-                var grpcEncoding = HttpResponse.Content.Headers.ContentType.ToString();
-                if (!GrpcProtocolHelpers.IsGrpcContentType(grpcEncoding))
+                if (TryGetStatusCore(HttpResponse.Headers, out var status))
                 {
-                    headerValidationError = "Bad gRPC response. Invalid content-type value: " + grpcEncoding;
+                    // grpc-status is returned in the header when there is no message body
+                    // For example, unimplemented method/service status
+                    FinishResponse(throwOnFail: false, status);
+                    return;
                 }
-                else
-                {
-                    if (TryGetStatusCore(HttpResponse.Headers, out _))
-                    {
-                        // grpc-status is returned in the header when there is no message body
-                        // For example, unimplemented method/service status
-                        // Don't throw error on non-OK status
-                        FinishResponse(throwOnFail: false);
-                    }
-                }
-            }
-
-            if (headerValidationError != null)
-            {
-                // Response is not valid gRPC
-                // Clean up/cancel any pending operations
-                FinishResponse(throwOnFail: true, new Status(StatusCode.Cancelled, headerValidationError));
             }
 
             // Success!
