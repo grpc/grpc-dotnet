@@ -246,9 +246,9 @@ namespace Grpc.Net.Client.Internal
         {
             using (StartScope())
             {
-                if (_callTcs.Task.IsCompleted)
+                if (CallTask.IsCompletedSuccessfully)
                 {
-                    return _callTcs.Task.Result;
+                    return CallTask.Result;
                 }
 
                 throw new InvalidOperationException("Unable to get the status because the call is not complete.");
@@ -264,6 +264,8 @@ namespace Grpc.Net.Client.Internal
                 // Wait for send to finish so the HttpResponse is available
                 await SendTask.ConfigureAwait(false);
 
+                // Verify the call is not complete. The call should be complete once the grpc-status
+                // has been read from trailers, which happens AFTER the message has been read.
                 if (CallTask.IsCompletedSuccessfully)
                 {
                     throw new RpcException(CallTask.Result);
@@ -458,7 +460,7 @@ namespace Grpc.Net.Client.Internal
 
                 // Wait until the call is complete
                 // TCS will be set in Dispose
-                var status = await _callTcs.Task.ConfigureAwait(false);
+                var status = await CallTask.ConfigureAwait(false);
 
                 if (status.StatusCode != StatusCode.OK)
                 {
@@ -804,6 +806,8 @@ namespace Grpc.Net.Client.Internal
             // Call could have been canceled or deadline exceeded
             if (_callCts.IsCancellationRequested)
             {
+                // Throw InvalidOperationException here because documentation on GetTrailers says that
+                // InvalidOperationException is thrown if the call is not complete.
                 throw new InvalidOperationException("Can't get the call trailers because the call was canceled.");
             }
 
