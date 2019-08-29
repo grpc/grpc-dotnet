@@ -333,18 +333,30 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 foreach (var entry in responseHeaders)
                 {
-                    if (entry.IsBinary)
+                    if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
                     {
-                        HttpContext.Response.Headers[entry.Key] = Convert.ToBase64String(entry.ValueBytes);
+                        // grpc-internal-encoding-request is used in the server to set message compression
+                        // on a per-call bassis.
+                        // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
+                        // individual messages will not be written with compression.
+                        ResponseGrpcEncoding = entry.Value;
+                        HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
                     }
                     else
                     {
-                        HttpContext.Response.Headers[entry.Key] = entry.Value;
+                        if (entry.IsBinary)
+                        {
+                            HttpContext.Response.Headers[entry.Key] = Convert.ToBase64String(entry.ValueBytes);
+                        }
+                        else
+                        {
+                            HttpContext.Response.Headers[entry.Key] = entry.Value;
+                        }
                     }
                 }
             }
 
-            return HttpContext.Response.Body.FlushAsync();
+            return HttpContext.Response.BodyWriter.FlushAsync().GetAsTask();
         }
 
         // Clock is for testing

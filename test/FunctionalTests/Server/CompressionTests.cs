@@ -18,6 +18,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -35,6 +36,159 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
     [TestFixture]
     public class CompressionTests : FunctionalTestBase
     {
+        [Test]
+        public async Task SendCompressedMessage_UnaryEnabledInCallWithInvalidSetting_UncompressedMessageReturned()
+        {
+            async Task<HelloReply> UnaryEnableCompression(HelloRequest request, ServerCallContext context)
+            {
+                var headers = new Metadata { new Metadata.Entry("grpc-internal-encoding-request", "PURPLE_MONKEY_DISHWASHER") };
+                await context.WriteResponseHeadersAsync(headers);
+
+                return new HelloReply { Message = "Hello " + request.Name };
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryEnableCompression);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new HelloRequest
+            {
+                Name = "World"
+            });
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+                });
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest);
+
+            // Assert
+            var response = await responseTask.DefaultTimeout();
+
+            response.AssertIsSuccessfulGrpcRequest();
+
+            // Because the client didn't send this encoding in accept, the server has sent the message uncompressed.
+            Assert.AreEqual("PURPLE_MONKEY_DISHWASHER", response.Headers.GetValues("grpc-encoding").Single());
+
+            var returnedMessageData = await response.Content.ReadAsByteArrayAsync().DefaultTimeout();
+            Assert.AreEqual(0, returnedMessageData[0]);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(returnedMessageData);
+            Assert.AreEqual("Hello World", responseMessage.Message);
+            response.AssertTrailerStatus();
+        }
+
+        [Test]
+        public async Task SendCompressedMessage_UnaryEnabledInCall_CompressedMessageReturned()
+        {
+            async Task<HelloReply> UnaryEnableCompression(HelloRequest request, ServerCallContext context)
+            {
+                var headers = new Metadata { new Metadata.Entry("grpc-internal-encoding-request", "gzip") };
+                await context.WriteResponseHeadersAsync(headers);
+
+                return new HelloReply { Message = "Hello " + request.Name };
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryEnableCompression);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new HelloRequest
+            {
+                Name = "World"
+            });
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+                });
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest);
+
+            // Assert
+            var response = await responseTask.DefaultTimeout();
+
+            response.AssertIsSuccessfulGrpcRequest();
+
+            Assert.AreEqual("gzip", response.Headers.GetValues("grpc-encoding").Single());
+
+            var returnedMessageData = await response.Content.ReadAsByteArrayAsync().DefaultTimeout();
+            Assert.AreEqual(1, returnedMessageData[0]);
+
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(returnedMessageData, "gzip");
+            Assert.AreEqual("Hello World", responseMessage.Message);
+            response.AssertTrailerStatus();
+        }
+
+        [Test]
+        public async Task SendCompressedMessage_ServerStreamingEnabledInCall_CompressedMessageReturned()
+        {
+            async Task ServerStreamingEnableCompression(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                var headers = new Metadata { new Metadata.Entry("grpc-internal-encoding-request", "gzip") };
+                await context.WriteResponseHeadersAsync(headers);
+
+                await responseStream.WriteAsync(new HelloReply { Message = "Hello 1" });
+
+                responseStream.WriteOptions = new WriteOptions(WriteFlags.NoCompress);
+                await responseStream.WriteAsync(new HelloReply { Message = "Hello 2" });
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(ServerStreamingEnableCompression);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new HelloRequest
+            {
+                Name = "World"
+            });
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Content = new PushStreamContent(
+                async s =>
+                {
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+                });
+
+            // Act
+            var responseTask = Fixture.Client.SendAsync(httpRequest);
+
+            // Assert
+            var response = await responseTask.DefaultTimeout();
+
+            response.AssertIsSuccessfulGrpcRequest();
+
+            Assert.AreEqual("gzip", response.Headers.GetValues("grpc-encoding").Single());
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = PipeReader.Create(responseStream);
+
+            ReadResult readResult;
+
+            readResult = await pipeReader.ReadAsync();
+            Assert.AreEqual(1, readResult.Buffer.FirstSpan[0]); // Message is compressed
+            var greeting1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader, "gzip").DefaultTimeout();
+            Assert.AreEqual($"Hello 1", greeting1.Message);
+
+            readResult = await pipeReader.ReadAsync();
+            Assert.AreEqual(0, readResult.Buffer.FirstSpan[0]); // Message is uncompressed
+            var greeting2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader, "gzip").DefaultTimeout();
+            Assert.AreEqual($"Hello 2", greeting2.Message);
+
+            var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+            Assert.IsNull(await finishedTask.DefaultTimeout());
+        }
+
         [Test]
         public async Task SendCompressedMessage_ServiceHasNoCompressionConfigured_ResponseIdentityEncoding()
         {
