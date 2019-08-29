@@ -268,7 +268,18 @@ namespace Grpc.Net.Client.Internal
                 // has been read from trailers, which happens AFTER the message has been read.
                 if (CallTask.IsCompletedSuccessfully)
                 {
-                    throw new RpcException(CallTask.Result);
+                    var status = CallTask.Result;
+                    if (status.StatusCode != StatusCode.OK)
+                    {
+                        throw new RpcException(status);
+                    }
+                    else
+                    {
+                        // The server should never return StatusCode.OK in the header for a unary call.
+                        // If it does then throw an error that no message was returned from the server.
+                        Log.MessageNotReturned(Logger);
+                        throw new InvalidOperationException("Call did not return a response message");
+                    }
                 }
 
                 Debug.Assert(HttpResponse != null);

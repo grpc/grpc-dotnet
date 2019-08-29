@@ -140,5 +140,35 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
         }
+
+        [Test]
+        public async Task AsyncUnaryCall_SuccessTrailersOnly_ThrowNoMessageError()
+        {
+            // Arrange
+            HttpResponseMessage? responseMessage = null;
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
+                responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
+                responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, "Detail!");
+                return Task.FromResult(responseMessage);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+            var response = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.NotNull(responseMessage);
+            Assert.IsFalse(responseMessage!.TrailingHeaders.Any()); // sanity check that there are no trailers
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+            Assert.AreEqual("Detail!", call.GetStatus().Detail);
+
+            Assert.AreEqual(0, headers.Count);
+            Assert.AreEqual(0, call.GetTrailers().Count);
+        }
     }
 }
