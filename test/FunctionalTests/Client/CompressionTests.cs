@@ -33,7 +33,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     {
         [TestCase("identity")]
         [TestCase("gzip")]
-        [TestCase("deflate")]
         public async Task SendCompressedMessage_ServiceCompressionConfigured_ResponseGzipEncoding(string algorithmName)
         {
             // Arrange

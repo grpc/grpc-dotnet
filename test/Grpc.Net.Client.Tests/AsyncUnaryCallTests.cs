@@ -69,7 +69,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
             Assert.AreEqual(GrpcProtocolConstants.TEHeader, httpRequestMessage.Headers.TE.Single());
-            Assert.AreEqual("identity,gzip,deflate", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
+            Assert.AreEqual("identity,gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
             var userAgent = httpRequestMessage.Headers.UserAgent.Single();
             Assert.AreEqual(GrpcProtocolConstants.UserAgentHeader, userAgent);
