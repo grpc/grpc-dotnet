@@ -89,11 +89,18 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
-            {
-                ResponseCompressionAlgorithm = compressionEncoding,
-                CompressionProviders = compressionProviders
-            });
+            var resolvedProviders = ResolveProviders(compressionProviders);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
+
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                serviceOptions: new GrpcServiceOptions
+                {
+                    ResponseCompressionAlgorithm = compressionEncoding,
+                    ResolvedCompressionProviders = resolvedProviders
+                });
 
             var message = await pipeReader.ReadStreamMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 

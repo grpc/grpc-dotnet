@@ -35,7 +35,7 @@ namespace Grpc.Testing
 
         public override async Task<SimpleResponse> UnaryCall(SimpleRequest request, ServerCallContext context)
         {
-            await EnsureEchoMetadataAsync(context);
+            await EnsureEchoMetadataAsync(context, request.ResponseCompressed?.Value ?? false);
             EnsureEchoStatus(request.ResponseStatus, context);
             EnsureCompression(request.ExpectCompressed, context);
 
@@ -45,11 +45,15 @@ namespace Grpc.Testing
 
         public override async Task StreamingOutputCall(StreamingOutputCallRequest request, IServerStreamWriter<StreamingOutputCallResponse> responseStream, ServerCallContext context)
         {
-            await EnsureEchoMetadataAsync(context);
+            await EnsureEchoMetadataAsync(context, request.ResponseParameters.Any(rp => rp.Compressed?.Value ?? false));
             EnsureEchoStatus(request.ResponseStatus, context);
 
             foreach (var responseParam in request.ResponseParameters)
             {
+                responseStream.WriteOptions = !(responseParam.Compressed?.Value ?? false)
+                    ? new WriteOptions(WriteFlags.NoCompress)
+                    : null;
+
                 var response = new StreamingOutputCallResponse { Payload = CreateZerosPayload(responseParam.Size) };
                 await responseStream.WriteAsync(response);
             }
@@ -95,9 +99,16 @@ namespace Grpc.Testing
             return new Payload { Body = ByteString.CopyFrom(new byte[size]) };
         }
 
-        private static async Task EnsureEchoMetadataAsync(ServerCallContext context)
+        private static async Task EnsureEchoMetadataAsync(ServerCallContext context, bool enableCompression = false)
         {
             var echoInitialList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-initial").ToList();
+
+            // Append grpc internal compression header if compression is requested by the client
+            if (enableCompression)
+            {
+                echoInitialList.Add(new Metadata.Entry("grpc-internal-encoding-request", "gzip"));
+            }
+
             if (echoInitialList.Any()) {
                 var entry = echoInitialList.Single();
                 await context.WriteResponseHeadersAsync(new Metadata { entry });
@@ -118,7 +129,7 @@ namespace Grpc.Testing
             }
         }
 
-        private static void EnsureCompression(BoolValue expectCompressed, ServerCallContext context)
+        private static void EnsureCompression(BoolValue? expectCompressed, ServerCallContext context)
         {
             if (expectCompressed != null)
             {
