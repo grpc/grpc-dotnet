@@ -46,7 +46,7 @@ namespace Grpc.Net.Client.Internal
         internal static readonly Dictionary<string, ICompressionProvider> DefaultCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal)
         {
             ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
-            ["deflate"] = new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+            // deflate is not supported. .NET's DeflateStream does not support RFC1950 - https://github.com/dotnet/corefx/issues/7570
         };
 
         internal static readonly string DefaultMessageAcceptEncodingValue;
