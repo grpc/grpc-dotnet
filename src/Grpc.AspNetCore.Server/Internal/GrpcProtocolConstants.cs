@@ -31,6 +31,8 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string MessageEncodingHeader = "grpc-encoding";
         internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
 
+        internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
+
         internal const string StatusTrailer = "grpc-status";
         internal const string MessageTrailer = "grpc-message";
 

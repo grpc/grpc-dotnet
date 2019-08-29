@@ -39,7 +39,7 @@ using Newtonsoft.Json.Linq;
 
 namespace InteropTestsClient
 {
-    public class InteropClient
+    public class InteropClient : IDisposable
     {
         internal const string CompressionRequestAlgorithmMetadataKey = "grpc-internal-encoding-request";
 
@@ -86,6 +86,7 @@ namespace InteropTestsClient
             public string? ServiceAccountKeyFile { get; set; }
         }
 
+        private ServiceProvider serviceProvider;
         private ILoggerFactory loggerFactory;
         private ClientOptions options;
 
@@ -100,9 +101,14 @@ namespace InteropTestsClient
                 configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
             });
 
-            var serviceProvider = services.BuildServiceProvider();
+            serviceProvider = services.BuildServiceProvider();
 
             loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        }
+
+        public void Dispose()
+        {
+            serviceProvider.Dispose();
         }
 
         public static void Run(string[] args)
@@ -118,8 +124,10 @@ namespace InteropTestsClient
                     Console.WriteLine("Server host: " + options.ServerHost);
                     Console.WriteLine("Server port: " + options.ServerPort);
 
-                    var interopClient = new InteropClient(options);
-                    interopClient.Run().Wait();
+                    using (var interopClient = new InteropClient(options))
+                    {
+                        interopClient.Run().Wait();
+                    }
                 });
         }
 

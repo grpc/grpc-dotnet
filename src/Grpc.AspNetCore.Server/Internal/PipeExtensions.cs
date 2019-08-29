@@ -77,22 +77,28 @@ namespace Grpc.AspNetCore.Server.Internal
                     await httpResponse.StartAsync();
                 }
 
-                var isCompressed =
+                var canCompress =
                     GrpcProtocolHelpers.CanWriteCompressed(serverCallContext.WriteOptions) &&
                     !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
-
-                if (isCompressed)
+                
+                var isCompressed = false;
+                if (canCompress)
                 {
                     Debug.Assert(
                         serverCallContext.ServiceOptions.ResolvedCompressionProviders != null,
                         "Compression providers should have been resolved for service.");
 
-                    responsePayload = CompressMessage(
+                    if (TryCompressMessage(
                         serverCallContext.Logger,
                         serverCallContext.ResponseGrpcEncoding!,
                         serverCallContext.ServiceOptions.ResponseCompressionLevel,
                         serverCallContext.ServiceOptions.ResolvedCompressionProviders,
-                        responsePayload);
+                        responsePayload,
+                        out var result))
+                    {
+                        responsePayload = result;
+                        isCompressed = true;
+                    }
                 }
 
                 if (responsePayload.Length > serverCallContext.ServiceOptions.MaxSendMessageSize)
@@ -474,7 +480,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData)
+        private static bool TryCompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -486,11 +492,12 @@ namespace Grpc.AspNetCore.Server.Internal
                     compressionStream.Write(messageData, 0, messageData.Length);
                 }
 
-                return output.ToArray();
+                result = output.ToArray();
+                return true;
             }
 
-            // Should never reach here
-            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
+            result = null;
+            return false;
         }
     }
 }
