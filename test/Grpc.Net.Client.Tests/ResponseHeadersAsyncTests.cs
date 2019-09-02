@@ -185,6 +185,34 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ThrowRpcExceptionOnCancellation_ReturnsError()
+        {
+            // Arrange
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async (request, ct) =>
+            {
+                await tcs.Task.DefaultTimeout();
+                ct.ThrowIfCancellationRequested();
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            call.Dispose();
+            tcs.TrySetResult(true);
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
+
+        [Test]
         public async Task AsyncClientStreamingCall_NotFoundStatus_ResponseHeadersPopulated()
         {
             // Arrange

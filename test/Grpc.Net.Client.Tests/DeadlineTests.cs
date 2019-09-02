@@ -143,6 +143,31 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncClientStreamingCall_DeadlineDuringSend_ThrowRpcExceptionOnCancellation_ResponseThrowsDeadlineExceededStatus()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var content = (PushStreamContent)request.Content;
+                await content.PushComplete.DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+            });
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)));
+
+            // Assert
+            var responseTask = call.ResponseAsync;
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+            Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+        }
+
+        [Test]
         public async Task AsyncClientStreamingCall_DeadlineBeforeWrite_ResponseThrowsDeadlineExceededStatus()
         {
             // Arrange

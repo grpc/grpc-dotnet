@@ -94,6 +94,34 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_DisposeAfterHeadersAndBeforeMessage_ThrowRpcExceptionOnCancellation_ThrowsError()
+        {
+            // Arrange
+            var stream = new SyncPointMemoryStream();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(stream));
+                response.Headers.Add("custom", "value!");
+                return Task.FromResult(response);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+            var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
+            call.Dispose();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+
+            var header = responseHeaders.Single(h => h.Key == "custom");
+            Assert.AreEqual("value!", header.Value);
+        }
+
+        [Test]
         public void AsyncUnaryCall_ErrorSendingRequest_ThrowsError()
         {
             // Arrange

@@ -185,5 +185,45 @@ namespace Grpc.Net.Client.Tests
             await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
+
+        [Test]
+        public async Task MoveNextAsync_CancelCall_ThrowRpcExceptionOnCancellation_EnumeratorThrows()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                    new HelloReply
+                    {
+                        Message = "Hello world 1"
+                    },
+                    new HelloReply
+                    {
+                        Message = "Hello world 2"
+                    }).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var cts = new CancellationTokenSource();
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+
+            var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
+
+            // Assert
+            Assert.IsNull(enumerator.Current);
+
+            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+            Assert.IsNotNull(enumerator.Current);
+            Assert.AreEqual("Hello world 1", enumerator.Current.Message);
+
+            cts.Cancel();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
     }
 }

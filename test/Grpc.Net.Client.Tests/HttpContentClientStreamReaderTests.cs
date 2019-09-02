@@ -89,6 +89,35 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task MoveNext_TokenCanceledDuringCall_ThrowRpcExceptionOnCancellation_ThrowError()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowRpcExceptionOnCancellation = true });
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            call.StartServerStreaming(new HelloRequest());
+
+            // Act
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+
+            // Assert
+            Assert.IsFalse(moveNextTask1.IsCompleted);
+
+            cts.Cancel();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
+
+        [Test]
         public async Task MoveNext_MultipleCallsWithoutAwait_ThrowError()
         {
             // Arrange

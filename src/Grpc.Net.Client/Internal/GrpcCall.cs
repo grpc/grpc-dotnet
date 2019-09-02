@@ -185,6 +185,12 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
+        public Exception CreateCanceledStatusException()
+        {
+            var status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+            return new RpcException(status);
+        }
+
         /// <summary>
         /// Marks the response as finished, i.e. all response content has been read and trailers are available.
         /// Can be called by <see cref="GetResponseAsync"/> for unary and client streaming calls, or
@@ -232,13 +238,20 @@ namespace Grpc.Net.Client.Internal
         {
             Debug.Assert(SendTask != null);
 
-            using (StartScope())
+            try
             {
-                await SendTask.ConfigureAwait(false);
-                Debug.Assert(HttpResponse != null);
+                using (StartScope())
+                {
+                    await SendTask.ConfigureAwait(false);
+                    Debug.Assert(HttpResponse != null);
 
-                // The task of this method is cached so there is no need to cache the headers here
-                return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
+                    // The task of this method is cached so there is no need to cache the headers here
+                    return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
+                }
+            }
+            catch (OperationCanceledException) when (Channel.ThrowRpcExceptionOnCancellation)
+            {
+                throw CreateCanceledStatusException();
             }
         }
 
@@ -259,52 +272,59 @@ namespace Grpc.Net.Client.Internal
         {
             Debug.Assert(SendTask != null);
 
-            using (StartScope())
+            try
             {
-                // Wait for send to finish so the HttpResponse is available
-                await SendTask.ConfigureAwait(false);
-
-                // Verify the call is not complete. The call should be complete once the grpc-status
-                // has been read from trailers, which happens AFTER the message has been read.
-                if (CallTask.IsCompletedSuccessfully)
+                using (StartScope())
                 {
-                    var status = CallTask.Result;
-                    if (status.StatusCode != StatusCode.OK)
+                    // Wait for send to finish so the HttpResponse is available
+                    await SendTask.ConfigureAwait(false);
+
+                    // Verify the call is not complete. The call should be complete once the grpc-status
+                    // has been read from trailers, which happens AFTER the message has been read.
+                    if (CallTask.IsCompletedSuccessfully)
                     {
-                        throw new RpcException(status);
+                        var status = CallTask.Result;
+                        if (status.StatusCode != StatusCode.OK)
+                        {
+                            throw new RpcException(status);
+                        }
+                        else
+                        {
+                            // The server should never return StatusCode.OK in the header for a unary call.
+                            // If it does then throw an error that no message was returned from the server.
+                            Log.MessageNotReturned(Logger);
+                            throw new InvalidOperationException("Call did not return a response message");
+                        }
                     }
-                    else
+
+                    Debug.Assert(HttpResponse != null);
+
+                    // Trailers are only available once the response body had been read
+                    var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    var message = await responseStream.ReadSingleMessageAsync(
+                        Logger,
+                        Method.ResponseMarshaller.ContextualDeserializer,
+                        GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
+                        Channel.ReceiveMaxMessageSize,
+                        Channel.CompressionProviders,
+                        _callCts.Token).ConfigureAwait(false);
+                    FinishResponse(throwOnFail: true);
+
+                    if (message == null)
                     {
-                        // The server should never return StatusCode.OK in the header for a unary call.
-                        // If it does then throw an error that no message was returned from the server.
                         Log.MessageNotReturned(Logger);
                         throw new InvalidOperationException("Call did not return a response message");
                     }
+
+                    GrpcEventSource.Log.MessageReceived();
+
+                    // The task of this method is cached so there is no need to cache the message here
+                    return message;
                 }
-
-                Debug.Assert(HttpResponse != null);
-
-                // Trailers are only available once the response body had been read
-                var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var message = await responseStream.ReadSingleMessageAsync(
-                    Logger,
-                    Method.ResponseMarshaller.ContextualDeserializer,
-                    GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
-                    Channel.ReceiveMaxMessageSize,
-                    Channel.CompressionProviders,
-                    _callCts.Token).ConfigureAwait(false);
-                FinishResponse(throwOnFail: true);
-
-                if (message == null)
-                {
-                    Log.MessageNotReturned(Logger);
-                    throw new InvalidOperationException("Call did not return a response message");
-                }
-
-                GrpcEventSource.Log.MessageReceived();
-
-                // The task of this method is cached so there is no need to cache the message here
-                return message;
+            }
+            catch (OperationCanceledException) when (Channel.ThrowRpcExceptionOnCancellation)
+            {
+                throw CreateCanceledStatusException();
             }
         }
 

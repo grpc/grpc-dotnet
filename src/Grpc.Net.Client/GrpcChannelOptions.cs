@@ -76,6 +76,13 @@ namespace Grpc.Net.Client
         public bool DisposeHttpClient { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether clients will throw <see cref="RpcException"/> for a call when its
+        /// <see cref="CallOptions.CancellationToken"/> is triggered or its <see cref="CallOptions.Deadline"/> is exceeded.
+        /// The default value is <c>false</c>.
+        /// </summary>
+        public bool ThrowRpcExceptionOnCancellation { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
         /// </summary>
         public GrpcChannelOptions()

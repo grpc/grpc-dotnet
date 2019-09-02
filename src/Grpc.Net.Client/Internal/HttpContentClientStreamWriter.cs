@@ -94,7 +94,14 @@ namespace Grpc.Net.Client.Internal
                     // Call has been canceled
                     if (_call.CancellationToken.IsCancellationRequested)
                     {
-                        return Task.FromCanceled(_call.CancellationToken);
+                        if (_call.Channel.ThrowRpcExceptionOnCancellation)
+                        {
+                            return Task.FromException(_call.CreateCanceledStatusException());
+                        }
+                        else
+                        {
+                            return Task.FromCanceled(_call.CancellationToken);
+                        }
                     }
 
                     // Call has already completed
@@ -136,27 +143,34 @@ namespace Grpc.Net.Client.Internal
 
         private async Task WriteAsyncCore(TRequest message)
         {
-            // Wait until the client stream has started
-            var writeStream = await _writeStreamTask.ConfigureAwait(false);
-
-            // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
-            var callOptions = _call.Options;
-            if (WriteOptions != null)
+            try
             {
-                // Creates a copy of the struct
-                callOptions = callOptions.WithWriteOptions(WriteOptions);
+                // Wait until the client stream has started
+                var writeStream = await _writeStreamTask.ConfigureAwait(false);
+
+                // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
+                var callOptions = _call.Options;
+                if (WriteOptions != null)
+                {
+                    // Creates a copy of the struct
+                    callOptions = callOptions.WithWriteOptions(WriteOptions);
+                }
+
+                await writeStream.WriteMessageAsync<TRequest>(
+                    _call.Logger,
+                    message,
+                    _call.Method.RequestMarshaller.ContextualSerializer,
+                    _grpcEncoding,
+                    _call.Channel.SendMaxMessageSize,
+                    _call.Channel.CompressionProviders,
+                    callOptions).ConfigureAwait(false);
+
+                GrpcEventSource.Log.MessageSent();
             }
-
-            await writeStream.WriteMessageAsync<TRequest>(
-                _call.Logger,
-                message,
-                _call.Method.RequestMarshaller.ContextualSerializer,
-                _grpcEncoding,
-                _call.Channel.SendMaxMessageSize,
-                _call.Channel.CompressionProviders,
-                callOptions).ConfigureAwait(false);
-
-            GrpcEventSource.Log.MessageSent();
+            catch (OperationCanceledException) when (_call.Channel.ThrowRpcExceptionOnCancellation)
+            {
+                throw _call.CreateCanceledStatusException();
+            }
         }
 
         /// <summary>
