@@ -35,7 +35,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.AspNetCore.Microbenchmarks
+namespace Grpc.AspNetCore.Microbenchmarks.Server
 {
     public class UnaryServerCallHandlerBenchmarkBase
     {

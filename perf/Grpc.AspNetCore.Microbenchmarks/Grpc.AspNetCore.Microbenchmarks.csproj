@@ -11,7 +11,12 @@
 
   <ItemGroup>
     <Protobuf Include=".\Proto\chat.proto" GrpcServices="Server" />
+    <Protobuf Include=".\Proto\greet.proto" GrpcServices="Client" />
 
+    <Compile Include="..\..\test\Shared\ClientTestHelpers.cs" Link="Internal\ClientTestHelpers.cs" />
+    <Compile Include="..\..\test\Shared\ResponseUtils.cs" Link="Internal\ResponseUtils.cs" />
+    <Compile Include="..\..\test\Shared\TaskExtensions.cs" Link="Internal\TaskExtensions.cs" />
+    <Compile Include="..\..\test\Shared\TestHttpMessageHandler.cs" Link="Internal\TestHttpMessageHandler.cs" />
     <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
     <Compile Include="..\..\test\Shared\TestResponseBodyFeature.cs" Link="Internal\TestResponseBodyFeature.cs" />
 
