@@ -18,20 +18,19 @@
 
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Grpc.AspNetCore.Server.Internal;
-using Microsoft.AspNetCore.Http;
+using Grpc.AspNetCore.Microbenchmarks.Internal;
 
-namespace Grpc.AspNetCore.Microbenchmarks
+namespace Grpc.AspNetCore.Microbenchmarks.Server
 {
-    public class DeadlineUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    public class InterceptedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
     {
-        protected override void SetupHttpContext(HttpContext httpContext)
+        public InterceptedUnaryServerCallHandlerBenchmark()
         {
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1H";
+            ServiceOptions.Interceptors.Add<UnaryAwaitInterceptor>();
         }
 
         [Benchmark]
-        public Task DeadlineHandleCallAsync()
+        public Task InterceptedHandleCallAsync()
         {
             return InvokeUnaryRequestAsync();
         }

@@ -22,15 +22,20 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
 
 namespace Grpc.Tests.Shared
 {
     internal static class ResponseUtils
     {
+        internal static readonly MediaTypeHeaderValue GrpcContentTypeHeaderValue = new MediaTypeHeaderValue("application/grpc");
+        internal const string MessageEncodingHeader = "grpc-encoding";
+        internal const string IdentityGrpcEncoding = "identity";
+        internal const string StatusTrailer = "grpc-status";
+
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode) =>
             CreateResponse(statusCode, string.Empty);
 
@@ -39,18 +44,18 @@ namespace Grpc.Tests.Shared
 
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK, string? grpcEncoding = null)
         {
-            payload.Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
+            payload.Headers.ContentType = GrpcContentTypeHeaderValue;
 
             var message = new HttpResponseMessage(statusCode)
             {
                 Content = payload
             };
 
-            message.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, grpcEncoding ?? GrpcProtocolConstants.IdentityGrpcEncoding);
+            message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
 
             if (grpcStatusCode != null)
             {
-                message.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, grpcStatusCode.Value.ToString("D"));
+                message.TrailingHeaders.Add(StatusTrailer, grpcStatusCode.Value.ToString("D"));
             }
 
             return message;
