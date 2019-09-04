@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +92,7 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
             var messages = new List<string>();
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(async () =>
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
                 {
                     await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout().WithCancellation(cts.Token))
                     {
@@ -104,6 +103,7 @@ namespace Grpc.Net.Client.Tests
                 }).DefaultTimeout();
 
             // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(1, messages.Count);
             Assert.AreEqual("Hello world 1", messages[0]);
         }
@@ -182,12 +182,13 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 
         [Test]
-        public async Task MoveNextAsync_CancelCall_ThrowRpcExceptionOnCancellation_EnumeratorThrows()
+        public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledExceptionOnCancellation_EnumeratorThrows()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
@@ -204,7 +205,7 @@ namespace Grpc.Net.Client.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
             var cts = new CancellationTokenSource();
 
             // Act
@@ -221,8 +222,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }

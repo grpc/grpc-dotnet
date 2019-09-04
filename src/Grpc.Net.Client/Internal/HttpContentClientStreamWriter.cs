@@ -94,7 +94,7 @@ namespace Grpc.Net.Client.Internal
                     // Call has been canceled
                     if (_call.CancellationToken.IsCancellationRequested)
                     {
-                        if (_call.Channel.ThrowRpcExceptionOnCancellation)
+                        if (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
                         {
                             return Task.FromException(_call.CreateCanceledStatusException());
                         }
@@ -167,7 +167,7 @@ namespace Grpc.Net.Client.Internal
 
                 GrpcEventSource.Log.MessageSent();
             }
-            catch (OperationCanceledException) when (_call.Channel.ThrowRpcExceptionOnCancellation)
+            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
             {
                 throw _call.CreateCanceledStatusException();
             }

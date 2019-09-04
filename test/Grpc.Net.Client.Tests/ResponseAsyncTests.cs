@@ -86,7 +86,8 @@ namespace Grpc.Net.Client.Tests
             call.Dispose();
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
             var header = responseHeaders.Single(h => h.Key == "custom");
@@ -94,7 +95,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_DisposeAfterHeadersAndBeforeMessage_ThrowRpcExceptionOnCancellation_ThrowsError()
+        public async Task AsyncUnaryCall_DisposeAfterHeadersAndBeforeMessage_ThrowOperationCanceledExceptionOnCancellation_ThrowsError()
         {
             // Arrange
             var stream = new SyncPointMemoryStream();
@@ -105,7 +106,7 @@ namespace Grpc.Net.Client.Tests
                 response.Headers.Add("custom", "value!");
                 return Task.FromResult(response);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
@@ -113,8 +114,7 @@ namespace Grpc.Net.Client.Tests
             call.Dispose();
 
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
             var header = responseHeaders.Single(h => h.Key == "custom");

@@ -297,7 +297,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 syncPoint.Continue();
 
-                await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+                Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
                 // Assert - Call complete
                 await AssertCounters(serverEventListener, new Dictionary<string, long>

@@ -138,12 +138,13 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var responseTask = call.ResponseAsync;
 
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => responseTask).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
 
         [Test]
-        public async Task AsyncClientStreamingCall_DeadlineDuringSend_ThrowRpcExceptionOnCancellation_ResponseThrowsDeadlineExceededStatus()
+        public async Task AsyncClientStreamingCall_DeadlineDuringSend_ThrowOperationCanceledExceptionOnCancellation_ResponseThrowsDeadlineExceededStatus()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
@@ -154,7 +155,7 @@ namespace Grpc.Net.Client.Tests
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)));
@@ -162,8 +163,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var responseTask = call.ResponseAsync;
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
 
@@ -186,7 +186,8 @@ namespace Grpc.Net.Client.Tests
             await Task.Delay(200); // Ensure the deadline has passed
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
 
@@ -206,7 +207,8 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)));
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
 
@@ -226,7 +228,8 @@ namespace Grpc.Net.Client.Tests
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.5)), new HelloRequest());
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
 

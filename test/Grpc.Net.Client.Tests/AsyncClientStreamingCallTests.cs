@@ -255,29 +255,29 @@ namespace Grpc.Net.Client.Tests
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
 
-            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 
         [Test]
-        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowRpcExceptionOnCancellation_ThrowsError()
+        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowOperationCanceledExceptionOnCancellation_ThrowsError()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }

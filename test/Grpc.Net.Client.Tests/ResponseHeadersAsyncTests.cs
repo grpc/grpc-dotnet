@@ -180,12 +180,13 @@ namespace Grpc.Net.Client.Tests
             tcs.TrySetResult(true);
 
             // Assert
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 
         [Test]
-        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ThrowRpcExceptionOnCancellation_ReturnsError()
+        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ThrowOperationCanceledExceptionOnCancellation_ReturnsError()
         {
             // Arrange
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -199,7 +200,7 @@ namespace Grpc.Net.Client.Tests
                 response.Headers.Add("custom", "ABC");
                 return response;
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
@@ -207,8 +208,7 @@ namespace Grpc.Net.Client.Tests
             tcs.TrySetResult(true);
 
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseHeadersAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
 

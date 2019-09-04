@@ -48,7 +48,8 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
             Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }
@@ -69,17 +70,18 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseHeadersTask).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
             Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }
 
         [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowRpcExceptionOnCancellation_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledExceptionOnCancellation_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
@@ -90,18 +92,17 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
             Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }
 
         [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowRpcExceptionOnCancellation_ResponseHeadersThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledExceptionOnCancellation_ResponseHeadersThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowRpcExceptionOnCancellation = true);
+            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
@@ -112,8 +113,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseHeadersTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
             Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
         }

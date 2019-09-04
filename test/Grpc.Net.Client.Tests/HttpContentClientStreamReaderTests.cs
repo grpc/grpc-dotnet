@@ -57,7 +57,8 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.IsTrue(moveNextTask1.IsCompleted);
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
@@ -85,11 +86,12 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
-        public async Task MoveNext_TokenCanceledDuringCall_ThrowRpcExceptionOnCancellation_ThrowError()
+        public async Task MoveNext_TokenCanceledDuringCall_ThrowOperationCanceledExceptionOnCancellation_ThrowError()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -101,7 +103,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowRpcExceptionOnCancellation = true });
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledExceptionOnCancellation = true });
             var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -113,8 +115,7 @@ namespace Grpc.Net.Client.Tests
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
         }
 
         [Test]

@@ -397,7 +397,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.ClientStreamedData();
 
-            await ExceptionAssert.ThrowsAsync<TaskCanceledException>(async () =>
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
             {
                 while (true)
                 {
@@ -408,6 +408,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }).DefaultTimeout();
 
             // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }
