@@ -97,7 +97,10 @@ namespace BenchmarkServer
                             });
                         }
 
-                        listenOptions.Protocols = HttpProtocols.Http2;
+                        var httpProtocols = Enum.Parse<HttpProtocols>(context.Configuration["HttpProtocols"]);
+                        Console.WriteLine($"Protocol: {httpProtocols}");
+
+                        listenOptions.Protocols = httpProtocols;
                     });
                 });
 

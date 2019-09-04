@@ -45,7 +45,11 @@ namespace NativeServer
 
             Server server = new Server
             {
-                Services = { Greet.Greeter.BindService(new GreeterService()) },
+                Services =
+                {
+                    Greet.GreetService.BindService(new GreeterService()),
+                    Data.DataService.BindService(new DataService())
+                },
                 Ports =
                 {
                     { host, endpoint.Port, UseCertificate ? GetCertificateCredentials() : ServerCredentials.Insecure }

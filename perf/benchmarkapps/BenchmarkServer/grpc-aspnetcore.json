@@ -12,9 +12,34 @@
     },
     "Port": 50051
   },
+
   "GrpcUnaryAspNetCore": {
     "ClientProperties": {
       "Scenario": "Unary"
+    }
+  },
+
+  "GrpcUnaryAspNetCore-h2load": {
+    "Client": "h2load",
+    "Path": "/Greet.Greeter/SayHello",
+    "Headers": {
+      "content-type": "application/grpc"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "AAAAAAcKBVdvcmxk"
+    }
+  },
+
+  "GrpcJsonAspNetCore-h2load": {
+    "Client": "h2load",
+    "Path": "/greet/jsongreeter",
+    "Headers": {
+      "content-type": "application/json"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "eyJOYW1lIjoiV29ybGQifQ=="
     }
   }
 }

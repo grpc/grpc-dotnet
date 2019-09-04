@@ -30,13 +30,15 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcRawUnaryWorker : IWorker
     {
+        private readonly bool _useClientCertificate;
         private readonly DateTime? _deadline;
         private HttpClient? _client;
 
-        public GrpcRawUnaryWorker(int id, string target, DateTime? deadline = null)
+        public GrpcRawUnaryWorker(int id, string target, bool useClientCertificate, DateTime? deadline = null)
         {
             Id = id;
             Target = target;
+            _useClientCertificate = useClientCertificate;
             _deadline = deadline;
         }
 
@@ -59,7 +61,10 @@ namespace BenchmarkClient.Workers
             BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(1, 4), (uint)messageSize);
             messageBytes.CopyTo(data.AsSpan(5));
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://" + Target + "/Greet.Greeter/SayHello");
+            var url = _useClientCertificate ? "https://" : "http://";
+            url += Target;
+
+            var request = new HttpRequestMessage(HttpMethod.Post, url + "/Greet.GreetService/SayHello");
             request.Version = new Version(2, 0);
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");

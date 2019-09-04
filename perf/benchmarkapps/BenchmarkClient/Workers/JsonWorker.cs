@@ -29,13 +29,15 @@ namespace BenchmarkClient.Workers
 {
     public class JsonWorker : IWorker
     {
+        private readonly bool _useClientCertificate;
         private readonly string _path;
         private HttpClient? _client;
 
-        public JsonWorker(int id, string target, string path)
+        public JsonWorker(int id, string target, bool useClientCertificate, string path)
         {
             Id = id;
             Target = target;
+            _useClientCertificate = useClientCertificate;
             _path = path;
         }
 
@@ -52,7 +54,10 @@ namespace BenchmarkClient.Workers
             var json = JsonConvert.SerializeObject(message);
             var data = Encoding.UTF8.GetBytes(json);
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://" + Target + _path);
+            var url = _useClientCertificate ? "https://" : "http://";
+            url += Target;
+
+            var request = new HttpRequestMessage(HttpMethod.Post, url + _path);
             request.Version = new Version(2, 0);
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");

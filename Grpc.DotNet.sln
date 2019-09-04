@@ -89,8 +89,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{310E57
 		perf\benchmarkapps\Shared\ca.crt = perf\benchmarkapps\Shared\ca.crt
 		perf\benchmarkapps\Shared\client.crt = perf\benchmarkapps\Shared\client.crt
 		perf\benchmarkapps\Shared\client.key = perf\benchmarkapps\Shared\client.key
+		perf\benchmarkapps\Shared\data.proto = perf\benchmarkapps\Shared\data.proto
 		perf\benchmarkapps\Shared\greet.proto = perf\benchmarkapps\Shared\greet.proto
-		perf\benchmarkapps\Shared\Greeter.cs = perf\benchmarkapps\Shared\Greeter.cs
+		perf\benchmarkapps\Shared\GreetService.cs = perf\benchmarkapps\Shared\GreetService.cs
 		perf\benchmarkapps\Shared\server.pfx = perf\benchmarkapps\Shared\server.pfx
 	EndProjectSection
 EndProject
