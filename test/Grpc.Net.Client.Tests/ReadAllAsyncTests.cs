@@ -16,8 +16,8 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,9 +103,9 @@ namespace Grpc.Net.Client.Tests
                 }).DefaultTimeout();
 
             // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(1, messages.Count);
             Assert.AreEqual("Hello world 1", messages[0]);
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]
@@ -184,6 +184,46 @@ namespace Grpc.Net.Client.Tests
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
+
+        [Test]
+        public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledExceptionOnCancellation_EnumeratorThrows()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                    new HelloReply
+                    {
+                        Message = "Hello world 1"
+                    },
+                    new HelloReply
+                    {
+                        Message = "Hello world 2"
+                    }).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var cts = new CancellationTokenSource();
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+
+            var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
+
+            // Assert
+            Assert.IsNull(enumerator.Current);
+
+            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+            Assert.IsNotNull(enumerator.Current);
+            Assert.AreEqual("Hello world 1", enumerator.Current.Message);
+
+            cts.Cancel();
+
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }
 }

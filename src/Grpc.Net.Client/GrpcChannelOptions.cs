@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using Grpc.Core;
@@ -74,6 +75,14 @@ namespace Grpc.Net.Client
         /// the channel is disposed.
         /// </remarks>
         public bool DisposeHttpClient { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether clients will throw <see cref="OperationCanceledException"/> for a call when its
+        /// <see cref="CallOptions.CancellationToken"/> is triggered or its <see cref="CallOptions.Deadline"/> is exceeded.
+        /// The default value is <c>false</c>.
+        /// Note: experimental API that can change or be removed without any prior notice.
+        /// </summary>
+        public bool ThrowOperationCanceledExceptionOnCancellation { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.

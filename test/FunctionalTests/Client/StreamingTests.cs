@@ -22,8 +22,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -176,6 +176,20 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.State.ToString() == "Call failed with gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "WriteMessageError" &&
+                    writeContext.Message == "Error writing message.")
+                {
+                    return true;
+                }
+
                 return false;
             });
 
@@ -185,7 +199,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.DuplexData();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            await ExceptionAssert.ThrowsAsync<Exception>(async () =>
             {
                 await call.RequestStream.WriteAsync(new UnimplementeDataMessage
                 {
@@ -198,8 +212,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }).DefaultTimeout();
             });
 
+            await call.ResponseHeadersAsync.DefaultTimeout();
+
             // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Unimplemented, call.GetStatus().StatusCode);
         }
 
         [Test]
@@ -209,7 +225,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.State.ToString() == "Server returned gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
+                    writeContext.State.ToString() == "Call failed with gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
                 {
                     return true;
                 }
@@ -222,8 +238,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // This is in a loop to verify a hang that existed in HttpClient when the request is not read to completion
             // https://github.com/dotnet/corefx/issues/39586
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < 100; i++)
             {
+                Logger.LogInformation("Iteration " + i);
+
                 // Act
                 var call = client.DuplexData();
 
@@ -321,6 +339,77 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 Assert.AreEqual(sent, total);
                 Assert.AreEqual(received, total);
             });
+        }
+
+        [Test]
+        public async Task ClientStream_HttpClientWithTimeout_Success()
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "ErrorStartingCall" &&
+                    writeContext.Exception is TaskCanceledException)
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Error starting gRPC call.'.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "WriteMessageError" &&
+                    writeContext.Exception is InvalidOperationException &&
+                    writeContext.Exception.Message == "Can't write the message because the call is complete.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "SERVER FunctionalTestsWebsite.Services.StreamService")
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+            // Arrange
+            var data = new byte[1024 * 64]; // 64 KB
+
+            var httpClient = Fixture.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(0.5);
+
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            {
+                HttpClient = httpClient,
+                LoggerFactory = LoggerFactory
+            });
+
+            var client = new StreamService.StreamServiceClient(channel);
+            var dataMessage = new DataMessage
+            {
+                Data = ByteString.CopyFrom(data)
+            };
+
+            // Act
+            var call = client.ClientStreamedData();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            {
+                while (true)
+                {
+                    await call.RequestStream.WriteAsync(dataMessage).DefaultTimeout();
+
+                    await Task.Delay(100);
+                }
+            }).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }
 }

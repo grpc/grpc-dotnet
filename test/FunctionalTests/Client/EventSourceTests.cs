@@ -151,7 +151,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act - Complete call
             tcs.SetResult(true);
 
-            await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync.DefaultTimeout()).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync.DefaultTimeout()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
+            Assert.AreEqual("Exception was thrown by handler. Exception: Error!", ex.Status.Detail);                
 
             // Assert - Call complete
             await AssertCounters(serverEventListener, new Dictionary<string, long>
@@ -238,6 +240,82 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
         }
 
+        [Test]
+        public async Task UnaryMethod_CancelCall_PollingCountersUpdatedCorrectly()
+        {
+            // Loop to ensure test is resilent across multiple runs
+            for (int i = 1; i < 3; i++)
+            {
+                var syncPoint = new SyncPoint();
+                var cts = new CancellationTokenSource();
+
+                // Ignore errors
+                SetExpectedErrorsFilter(writeContext =>
+                {
+                    return true;
+                });
+
+                async Task<HelloReply> UnaryCancel(HelloRequest request, ServerCallContext context)
+                {
+                    await syncPoint.WaitToContinue().DefaultTimeout();
+
+                    return new HelloReply();
+                }
+
+                // Arrange
+                var clock = new TestSystemClock(DateTime.UtcNow);
+                var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
+                var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
+
+                // Act - Start call
+                var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCancel);
+
+                var channel = CreateChannel();
+
+                var client = TestClientFactory.Create(channel, method);
+
+                var call = client.UnaryCall(new HelloRequest(), new CallOptions(cancellationToken: cts.Token));
+
+                // Assert - Call in progress
+                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 1,
+                    ["calls-failed"] = i - 1,
+                    ["calls-deadline-exceeded"] = 0,
+                }).DefaultTimeout();
+                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 1,
+                    ["calls-failed"] = i - 1,
+                    ["calls-deadline-exceeded"] = 0,
+                }).DefaultTimeout();
+
+                // Act - Wait for call to deadline on server
+                await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+                cts.Cancel();
+
+                syncPoint.Continue();
+
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+                Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+                // Assert - Call complete
+                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 0,
+                    ["calls-failed"] = i,
+                    ["calls-deadline-exceeded"] = 0,
+                }).DefaultTimeout();
+                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                {
+                    ["current-calls"] = 0,
+                    ["calls-failed"] = i,
+                    ["calls-deadline-exceeded"] = 0,
+                }).DefaultTimeout();
+            }
+        }
+
         private class TestSystemClock : ISystemClock
         {
             public TestSystemClock(DateTime utcNow)
@@ -279,12 +357,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 ["current-calls"] = 1,
                 ["messages-sent"] = 0,
                 ["messages-received"] = 0,
+                ["calls-failed"] = 0,
             }).DefaultTimeout();
             await AssertCounters(clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 1,
                 ["messages-sent"] = 0,
                 ["messages-received"] = 0,
+                ["calls-failed"] = 0,
             }).DefaultTimeout();
 
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name 1" }).DefaultTimeout();
@@ -301,12 +381,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 ["current-calls"] = 0,
                 ["messages-sent"] = 2,
                 ["messages-received"] = 2,
+                ["calls-failed"] = 0,
             }).DefaultTimeout();
             await AssertCounters(clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 0,
                 ["messages-sent"] = 2,
                 ["messages-received"] = 2,
+                ["calls-failed"] = 0,
             }).DefaultTimeout();
         }
 

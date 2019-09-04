@@ -154,7 +154,7 @@ namespace Grpc.Net.Client.Tests
             var writeTask2 = call.RequestStream.WriteAsync(new HelloRequest { Name = "2" });
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask2).DefaultTimeout();
 
-            Assert.AreEqual("Cannot write message because the previous write is in progress.", ex.Message);
+            Assert.AreEqual("Can't write the message because the previous write is in progress.", ex.Message);
         }
 
         [Test]
@@ -178,7 +178,7 @@ namespace Grpc.Net.Client.Tests
             var completeTask = call.RequestStream.CompleteAsync();
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => completeTask).DefaultTimeout();
 
-            Assert.AreEqual("Cannot complete client stream writer because the previous write is in progress.", ex.Message);
+            Assert.AreEqual("Can't complete the client stream writer because the previous write is in progress.", ex.Message);
         }
 
         [Test]
@@ -199,7 +199,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();
 
-            Assert.AreEqual("Cannot write message because the client stream writer is complete.", ex.Message);
+            Assert.AreEqual("Can't write the message because the client stream writer is complete.", ex.Message);
         }
 
         [Test]
@@ -219,7 +219,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();
 
-            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+            Assert.AreEqual("Can't write the message because the call is complete.", ex.Message);
         }
 
         [Test]
@@ -235,9 +235,11 @@ namespace Grpc.Net.Client.Tests
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+
             // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+            Assert.AreEqual("Can't write the message because the call is complete.", ex.Message);
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
 
         [Test]
@@ -256,7 +258,27 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
+
+        [Test]
+        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowOperationCanceledExceptionOnCancellation_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));
+
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
     }
 }
