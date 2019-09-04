@@ -84,6 +84,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     {
                         return true;
                     }
+
+                    if (writeContext.EventId.Name == "GrpcStatusError")
+                    {
+                        if (writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'." ||
+                            writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Error starting gRPC call.'.")
+                        {
+                            return true;
+                        }
+                    }
                 }
 
                 return false;

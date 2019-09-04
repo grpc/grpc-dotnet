@@ -58,15 +58,33 @@ namespace Grpc.Net.Client.Internal
 
         public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
+            _call.EnsureNotDisposed();
+
             // HTTP response has finished
-            if (_call.ResponseFinished)
+            if (_call.CancellationToken.IsCancellationRequested)
             {
-                return FinishedTask;
+                if (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
+                {
+                    return Task.FromException<bool>(_call.CreateCanceledStatusException());
+                }
+                else
+                {
+                    return Task.FromCanceled<bool>(_call.CancellationToken);
+                }
             }
 
-            if (_call.IsCancellationRequested)
+            if (_call.CallTask.IsCompletedSuccessfully)
             {
-                throw _call.CreateCanceledStatusException();
+                var status = _call.CallTask.Result;
+                if (status.StatusCode == StatusCode.OK)
+                {
+                    // Response is finished and it was successful so just return false
+                    return FinishedTask;
+                }
+                else
+                {
+                    return Task.FromException<bool>(new RpcException(status));
+                }
             }
 
             lock (_moveNextLock)
@@ -76,7 +94,7 @@ namespace Grpc.Net.Client.Internal
                     // Pending move next need to be awaited first
                     if (IsMoveNextInProgressUnsynchronized)
                     {
-                        var ex = new InvalidOperationException("Cannot read next message because the previous read is in progress.");
+                        var ex = new InvalidOperationException("Can't read the next message because the previous read is still in progress.");
                         Log.ReadMessageError(_call.Logger, ex);
                         return Task.FromException<bool>(ex);
                     }
@@ -117,7 +135,29 @@ namespace Grpc.Net.Client.Internal
                 }
                 if (_responseStream == null)
                 {
-                    _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    try
+                    {
+                        _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // The response was disposed while waiting for the content stream to start.
+                        // This will happen if there is no content stream (e.g. a streaming call finishes with no messages).
+                        if (_call.ResponseFinished)
+                        {
+                            // Call status will have been set before dispose.
+                            var status = await _call.CallTask.ConfigureAwait(false);
+                            if (status.StatusCode != StatusCode.OK)
+                            {
+                                throw new RpcException(status);
+                            }
+
+                            // Return false to indicate that the stream is complete without a message.
+                            return false;
+                        }
+
+                        throw;
+                    }
                 }
 
                 Current = await _responseStream.ReadStreamedMessageAsync(
@@ -130,14 +170,14 @@ namespace Grpc.Net.Client.Internal
                 if (Current == null)
                 {
                     // No more content in response so mark as finished
-                    _call.FinishResponse();
+                    _call.FinishResponse(throwOnFail: true);
                     return false;
                 }
 
                 GrpcEventSource.Log.MessageReceived();
                 return true;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
             {
                 throw _call.CreateCanceledStatusException();
             }

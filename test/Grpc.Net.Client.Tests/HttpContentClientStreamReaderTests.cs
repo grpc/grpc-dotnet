@@ -91,6 +91,34 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task MoveNext_TokenCanceledDuringCall_ThrowOperationCanceledExceptionOnCancellation_ThrowError()
+        {
+            // Arrange
+            var cts = new CancellationTokenSource();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var stream = new SyncPointMemoryStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledExceptionOnCancellation = true });
+            var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
+            call.StartServerStreaming(new HelloRequest());
+
+            // Act
+            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+
+            // Assert
+            Assert.IsFalse(moveNextTask1.IsCompleted);
+
+            cts.Cancel();
+
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
+        }
+
+        [Test]
         public async Task MoveNext_MultipleCallsWithoutAwait_ThrowError()
         {
             // Arrange
@@ -113,7 +141,7 @@ namespace Grpc.Net.Client.Tests
             Assert.IsFalse(moveNextTask1.IsCompleted);
 
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => moveNextTask2).DefaultTimeout();
-            Assert.AreEqual("Cannot read next message because the previous read is in progress.", ex.Message);
+            Assert.AreEqual("Can't read the next message because the previous read is still in progress.", ex.Message);
         }
     }
 }

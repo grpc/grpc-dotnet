@@ -295,7 +295,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void AsyncClientStreamingCall_NotFoundStatus_ThrowsError()
+        public void AsyncClientStreamingCall_NotFoundStatus_ReturnEmpty()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
@@ -307,14 +307,14 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Message);
+            Assert.AreEqual(0, trailers.Count);
         }
 
         [Test]
-        public void AsyncClientStreamingCall_InvalidContentType_ThrowsError()
+        public void AsyncClientStreamingCall_InvalidContentType_ReturnEmpty()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
@@ -327,10 +327,10 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual("Bad gRPC response. Invalid content-type value: text/plain", ex.Message);
+            Assert.AreEqual(0, trailers.Count);
         }
     }
 }
