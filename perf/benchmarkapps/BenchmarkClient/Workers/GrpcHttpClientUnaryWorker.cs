@@ -27,18 +27,20 @@ namespace BenchmarkClient.Workers
 {
     public class GrpcHttpClientUnaryWorker : IWorker
     {
+        private readonly bool _useClientCertificate;
         private readonly DateTime? _deadline;
-        private Greeter.GreeterClient? _client;
+        private GreetService.GreetServiceClient? _client;
 
-        public GrpcHttpClientUnaryWorker(int id, string baseUri, DateTime? deadline = null)
+        public GrpcHttpClientUnaryWorker(int id, string target, bool useClientCertificate, DateTime? deadline = null)
         {
             Id = id;
-            BaseUri = baseUri;
+            Target = target;
+            _useClientCertificate = useClientCertificate;
             _deadline = deadline;
         }
 
         public int Id { get; }
-        public string BaseUri { get; }
+        public string Target { get; }
 
         public async Task CallAsync()
         {
@@ -49,8 +51,11 @@ namespace BenchmarkClient.Workers
 
         public Task ConnectAsync()
         {
-            var channel = GrpcChannel.ForAddress(new Uri(BaseUri, UriKind.RelativeOrAbsolute));
-            _client = new Greeter.GreeterClient(channel);
+            var url = _useClientCertificate ? "https://" : "http://";
+            url += Target;
+
+            var channel = GrpcChannel.ForAddress(new Uri(url, UriKind.RelativeOrAbsolute));
+            _client = new GreetService.GreetServiceClient(channel);
 
             return Task.CompletedTask;
         }

@@ -27,7 +27,7 @@ namespace BenchmarkClient.Workers
     public class GrpcCoreUnaryWorker : IWorker
     {
         private Channel? _channel;
-        private Greeter.GreeterClient? _client;
+        private GreetService.GreetServiceClient? _client;
         private bool _useClientCertificate;
 
         public GrpcCoreUnaryWorker(int id, string target, bool useClientCertificate)
@@ -53,7 +53,7 @@ namespace BenchmarkClient.Workers
                 : ChannelCredentials.Insecure;
 
             _channel = new Channel(Target, credentials);
-            _client = new Greeter.GreeterClient(_channel);
+            _client = new GreetService.GreetServiceClient(_channel);
 
             return _channel.ConnectAsync();
         }

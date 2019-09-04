@@ -2,5 +2,6 @@
   "urls": "",
   "server.urls": "",
   "UseTls": "false", // Changing this will impact benchmarks run in ASP.NET perf lab
-  "RequireClientCertificate": "false"
+  "RequireClientCertificate": "false",
+  "HttpProtocols": "Http2"
 }
