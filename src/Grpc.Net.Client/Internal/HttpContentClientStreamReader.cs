@@ -63,7 +63,7 @@ namespace Grpc.Net.Client.Internal
             // HTTP response has finished
             if (_call.CancellationToken.IsCancellationRequested)
             {
-                if (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
+                if (!_call.Channel.ThrowOperationCanceledOnCancellation)
                 {
                     return Task.FromException<bool>(_call.CreateCanceledStatusException());
                 }
@@ -177,7 +177,7 @@ namespace Grpc.Net.Client.Internal
                 GrpcEventSource.Log.MessageReceived();
                 return true;
             }
-            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledExceptionOnCancellation)
+            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
             {
                 throw _call.CreateCanceledStatusException();
             }

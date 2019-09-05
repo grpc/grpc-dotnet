@@ -81,7 +81,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
@@ -102,7 +102,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = CreateTimedoutCallInvoker(configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));

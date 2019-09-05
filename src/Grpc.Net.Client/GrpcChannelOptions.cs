@@ -82,7 +82,7 @@ namespace Grpc.Net.Client
         /// The default value is <c>false</c>.
         /// Note: experimental API that can change or be removed without any prior notice.
         /// </summary>
-        public bool ThrowOperationCanceledExceptionOnCancellation { get; set; }
+        public bool ThrowOperationCanceledOnCancellation { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.

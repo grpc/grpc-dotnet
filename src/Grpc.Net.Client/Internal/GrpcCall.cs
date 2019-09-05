@@ -249,7 +249,7 @@ namespace Grpc.Net.Client.Internal
                     return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
                 }
             }
-            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledExceptionOnCancellation)
+            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledOnCancellation)
             {
                 throw CreateCanceledStatusException();
             }
@@ -322,7 +322,7 @@ namespace Grpc.Net.Client.Internal
                     return message;
                 }
             }
-            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledExceptionOnCancellation)
+            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledOnCancellation)
             {
                 throw CreateCanceledStatusException();
             }

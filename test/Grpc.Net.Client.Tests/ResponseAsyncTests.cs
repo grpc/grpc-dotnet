@@ -106,7 +106,7 @@ namespace Grpc.Net.Client.Tests
                 response.Headers.Add("custom", "value!");
                 return Task.FromResult(response);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });

@@ -45,7 +45,7 @@ namespace Grpc.Net.Client
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
         internal ILoggerFactory LoggerFactory { get; }
-        internal bool ThrowOperationCanceledExceptionOnCancellation { get; }
+        internal bool ThrowOperationCanceledOnCancellation { get; }
         internal bool? IsSecure { get; }
         internal List<CallCredentials>? CallCredentials { get; }
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
@@ -72,7 +72,7 @@ namespace Grpc.Net.Client
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
-            ThrowOperationCanceledExceptionOnCancellation = channelOptions.ThrowOperationCanceledExceptionOnCancellation;
+            ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
 
             if (channelOptions.Credentials != null)
             {
