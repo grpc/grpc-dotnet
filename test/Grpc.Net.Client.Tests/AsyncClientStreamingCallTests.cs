@@ -270,7 +270,7 @@ namespace Grpc.Net.Client.Tests
             {
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: new CancellationToken(true)));

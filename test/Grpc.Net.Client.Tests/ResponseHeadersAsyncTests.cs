@@ -200,7 +200,7 @@ namespace Grpc.Net.Client.Tests
                 response.Headers.Add("custom", "ABC");
                 return response;
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());

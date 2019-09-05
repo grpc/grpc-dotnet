@@ -205,7 +205,7 @@ namespace Grpc.Net.Client.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
             var cts = new CancellationTokenSource();
 
             // Act

@@ -103,7 +103,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledExceptionOnCancellation = true });
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledOnCancellation = true });
             var call = new GrpcCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, new CallOptions(), channel);
             call.StartServerStreaming(new HelloRequest());
 

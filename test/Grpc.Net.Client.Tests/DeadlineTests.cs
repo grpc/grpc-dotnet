@@ -155,7 +155,7 @@ namespace Grpc.Net.Client.Tests
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledExceptionOnCancellation = true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledOnCancellation = true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)));
