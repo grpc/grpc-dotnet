@@ -13,6 +13,34 @@
     "Port": 50051
   },
 
+  "GrpcUnaryNative-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcServerStreamingNative-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcUnaryNative-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcServerStreamingNative-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
   "GrpcUnaryNative-h2load": {
     "Client": "h2load",
     "Path": "/Greet.Greeter/SayHello",
@@ -22,12 +50,6 @@
     "ClientProperties": {
       "protocol": "h2c",
       "RequestBody": "AAAAAAcKBVdvcmxk"
-    }
-  },
-
-  "GrpcUnaryNative": {
-    "ClientProperties": {
-      "Scenario": "Unary"
     }
   }
 }

@@ -35,9 +35,10 @@ class GreeterService : GreetService.GreetServiceBase
 
     public override async Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
     {
+        var message = "Hello " + request.Name;
+
         while (!context.CancellationToken.IsCancellationRequested)
         {
-            var message = "Hello " + request.Name;
             await responseStream.WriteAsync(new HelloReply
             {
                 Message = message,
