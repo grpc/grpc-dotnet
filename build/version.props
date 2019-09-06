@@ -5,7 +5,7 @@
     <GrpcDotnetVersion>2.23.0</GrpcDotnetVersion>
     
     <!-- assembly version of grpc-dotnet -->
-    <GrpcDotnetAssemblyVersion>0.2.0.0</GrpcDotnetAssemblyVersion>
+    <GrpcDotnetAssemblyVersion>2.0.0.0</GrpcDotnetAssemblyVersion>
 
     <!-- file version of all grpc-dotnet -->
     <GrpcDotnetAssemblyFileVersion>2.23.0.0</GrpcDotnetAssemblyFileVersion>
