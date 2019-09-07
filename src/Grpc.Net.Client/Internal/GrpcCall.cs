@@ -424,11 +424,12 @@ namespace Grpc.Net.Client.Internal
             {
                 Log.CanceledCall(Logger);
 
-                // Cancel inprogress HttpClient.SendAsync and Stream.ReadAsync.
+                // Cancel in-progress HttpClient.SendAsync and Stream.ReadAsync.
                 // Cancellation will also cause reader/writer to throw if used afterwards.
                 _callCts.Cancel();
 
-                //
+                // Cancellation token won't cancel call that has returned response.
+                // Dispose to cancel server and duplex streaming calls.
                 HttpResponse?.Dispose();
 
                 // Canceling call will cancel pending writes to the stream
@@ -577,8 +578,6 @@ namespace Grpc.Net.Client.Internal
 
             try
             {
-                _callCts.Token.Register(() => Logger.LogInformation("SendAsync canceled!"));
-
                 HttpResponse = await Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
             }
             catch (Exception ex)
