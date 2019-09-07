@@ -424,12 +424,13 @@ namespace Grpc.Net.Client.Internal
             {
                 Log.CanceledCall(Logger);
 
-                // Cancel in-progress HttpClient.SendAsync and Stream.ReadAsync.
+                // Cancel in-progress HttpClient.SendAsync and Stream.ReadAsync tasks.
+                // Cancel will send RST_STREAM if HttpClient.SendAsync isn't complete.
                 // Cancellation will also cause reader/writer to throw if used afterwards.
                 _callCts.Cancel();
 
-                // Cancellation token won't cancel call that has returned response.
-                // Dispose to cancel server and duplex streaming calls.
+                // Cancellation token won't send RST_STREAM if HttpClient.SendAsync is complete.
+                // Dispose HttpResponseMessage to send RST_STREAM to server for in-progress calls.
                 HttpResponse?.Dispose();
 
                 // Canceling call will cancel pending writes to the stream
