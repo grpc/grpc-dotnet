@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -52,7 +53,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER FunctionalTestsWebsite.Services.StreamService")
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
                 {
                     // Kestrel cancellation error message
                     if (writeContext.Exception is IOException &&

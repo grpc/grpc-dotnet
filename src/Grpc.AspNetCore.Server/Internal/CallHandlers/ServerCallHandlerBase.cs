@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             ServiceOptions = serviceOptions;
             ServiceActivator = serviceActivator;
             ServiceProvider = serviceProvider;
-            Logger = loggerFactory.CreateLogger(typeof(TService));
+            Logger = loggerFactory.CreateLogger(typeof(ServerCallHandlerBase<TService, TRequest, TResponse>));
         }
 
         public Task HandleCallAsync(HttpContext httpContext)
