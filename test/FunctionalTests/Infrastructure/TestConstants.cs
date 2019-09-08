@@ -20,6 +20,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     internal static class TestConstants
     {
-        public const string ServerCallHandlerTestName = "SERVER Grpc.AspNetCore.Server.Internal.CallHandlers.ServerCallHandlerBase";
+        public const string ServerCallHandlerTestName = "SERVER Grpc.AspNetCore.Server.ServerCallHandler";
     }
 }
