@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
@@ -368,7 +369,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER FunctionalTestsWebsite.Services.StreamService")
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
                 {
                     return true;
                 }

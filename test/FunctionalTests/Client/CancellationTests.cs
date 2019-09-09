@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER FunctionalTestsWebsite.Services.StreamService")
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
                 {
                     // Kestrel cancellation error message
                     if (writeContext.Exception is IOException &&

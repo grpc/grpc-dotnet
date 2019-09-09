@@ -223,14 +223,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'Internal' raised.")
                 {
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message.")
                 {
@@ -291,7 +291,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'Unimplemented' raised." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: identity, gzip")
@@ -299,7 +299,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Unsupported grpc-encoding value 'DOES_NOT_EXIST'. Supported encodings: identity, gzip")
@@ -360,7 +360,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'Internal' raised." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Request did not include grpc-encoding value with compressed message.")
@@ -368,7 +368,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Request did not include grpc-encoding value with compressed message.")
