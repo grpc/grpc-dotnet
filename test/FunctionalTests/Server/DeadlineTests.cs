@@ -146,7 +146,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
                        writeContext.Exception!.Message == "Cannot write message after request is complete.";

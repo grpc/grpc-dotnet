@@ -32,6 +32,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TRequest : class
         where TResponse : class
     {
+        private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
+
         protected Method<TRequest, TResponse> Method { get; }
         protected GrpcServiceOptions ServiceOptions { get; }
         protected IGrpcServiceActivator<TService> ServiceActivator { get; }
@@ -49,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             ServiceOptions = serviceOptions;
             ServiceActivator = serviceActivator;
             ServiceProvider = serviceProvider;
-            Logger = loggerFactory.CreateLogger(typeof(TService));
+            Logger = loggerFactory.CreateLogger(LoggerName);
         }
 
         public Task HandleCallAsync(HttpContext httpContext)

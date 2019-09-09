@@ -101,14 +101,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'Internal' raised.")
                 {
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message.")
                 {
@@ -164,7 +164,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                        writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
                        writeContext.Exception!.Message == "Response headers can only be sent once per call.";
@@ -200,7 +200,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
@@ -239,7 +239,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                        writeContext.EventId.Name == "RpcConnectionError" &&
                        writeContext.State.ToString() == "Error status code 'Unknown' raised." &&
                        GetRpcExceptionDetail(writeContext.Exception) == "User error";
@@ -316,7 +316,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == "SERVER " + typeof(DynamicService).FullName &&
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                        writeContext.EventId.Name == "ErrorExecutingServiceMethod";
             });
 
