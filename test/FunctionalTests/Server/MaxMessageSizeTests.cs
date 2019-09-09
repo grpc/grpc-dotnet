@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "RpcConnectionError" &&
                     writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "SERVER " + typeof(GreeterService).FullName &&
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorSendingMessage" &&
                     writeContext.State.ToString() == "Error sending message." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
