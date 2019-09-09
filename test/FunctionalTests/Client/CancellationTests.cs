@@ -22,6 +22,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -128,6 +129,141 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     cts.Cancel();
                 }
             });
+        }
+
+        [Test]
+        public async Task ServerStreaming_CancellationOnClientWithoutResponseHeaders_CancellationSentToServer()
+        {
+            var syncPoint = new SyncPoint();
+            var serverCompleteTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task ServerStreamingCall(DataMessage request, IServerStreamWriter<DataMessage> streamWriter, ServerCallContext context)
+            {
+                await syncPoint.WaitToContinue().DefaultTimeout();
+
+                // Wait until the client cancels
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(10));
+                }
+
+                serverCompleteTcs.TrySetResult(null);
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                // Kestrel cancellation error message
+                if (writeContext.Exception is IOException &&
+                    writeContext.Exception.Message == "The client reset the request stream.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "ErrorStartingCall" &&
+                    writeContext.Message == "Error starting gRPC call.")
+                {
+                    return true;
+                }
+
+                // Ignore all logging related errors for now
+                return false;
+            });
+
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
+
+            var channel = CreateChannel();
+            var cts = new CancellationTokenSource();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+            await syncPoint.WaitForSyncPoint();
+            syncPoint.Continue();
+
+            // Assert
+            var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
+
+            cts.Cancel();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            await serverCompleteTcs.Task.DefaultTimeout();
+        }
+
+        [Test]
+        public async Task ServerStreaming_CancellationOnClientAfterResponseHeadersReceived_CancellationSentToServer()
+        {
+            var serverCompleteTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task ServerStreamingCall(DataMessage request, IServerStreamWriter<DataMessage> streamWriter, ServerCallContext context)
+            {
+                // Write until the client cancels
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await streamWriter.WriteAsync(new DataMessage());
+                    await Task.Delay(TimeSpan.FromMilliseconds(10));
+                }
+
+                serverCompleteTcs.TrySetResult(null);
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                // Kestrel cancellation error message
+                if (writeContext.Exception is IOException &&
+                    writeContext.Exception.Message == "The client reset the request stream.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
+                {
+                    return true;
+                }
+
+                // Ignore all logging related errors for now
+                return false;
+            });
+
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
+
+            var channel = CreateChannel();
+            var cts = new CancellationTokenSource();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+            // Assert
+
+            // 1. Lets read some messages
+            Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+            Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+
+            // 2. Cancel the token that was passed to the gRPC call. This was given to HttpClient.SendAsync
+            cts.Cancel();
+
+            // 3. Read from the response stream. This will throw a cancellation exception locally
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            // 4. Check that the cancellation was sent to the server. This will 
+            await serverCompleteTcs.Task.DefaultTimeout();
         }
     }
 }
