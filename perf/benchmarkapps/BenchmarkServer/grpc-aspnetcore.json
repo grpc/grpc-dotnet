@@ -13,9 +13,31 @@
     "Port": 50051
   },
 
-  "GrpcUnaryAspNetCore": {
+  "GrpcUnaryAspNetCore-GrpcCore": {
     "ClientProperties": {
-      "Scenario": "Unary"
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcServerStreamingAspNetCore-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcUnaryAspNetCore-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcServerStreamingAspNetCore-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcNetClient"
     }
   },
 
