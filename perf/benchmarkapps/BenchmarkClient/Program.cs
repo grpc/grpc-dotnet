@@ -41,9 +41,11 @@ namespace BenchmarkClient
             var benchmarkResults = new List<BenchmarkResult>();
 
             benchmarkResults.Add(await ExecuteBenchmark("GrpcHttpClientUnary", id => new GrpcHttpClientUnaryWorker(id, Target, UseClientCertificate)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcHttpClientServerStreamingWorker", id => new GrpcHttpClientServerStreamingWorker(id, Target, UseClientCertificate)));
             benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseClientCertificate, "/raw/greeter")));
             benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseClientCertificate, "/api/greeter")));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcCoreUnary", id => new GrpcCoreUnaryWorker(id, Target, UseClientCertificate)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCoreServerStreamingWorker", id => new GrpcCoreServerStreamingWorker(id, Target, UseClientCertificate)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcRawUnary", id => new GrpcRawUnaryWorker(id, Target, UseClientCertificate)));
 
             Log($"Results:");
