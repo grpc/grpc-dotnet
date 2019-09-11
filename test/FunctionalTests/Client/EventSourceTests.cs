@@ -206,7 +206,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 var client = TestClientFactory.Create(channel, method);
 
                 // Need a high deadline to avoid flakyness. No way to disable server deadline timer.
-                var deadline = clock.UtcNow.AddMilliseconds(400);
+                var deadline = clock.UtcNow.AddMilliseconds(500);
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: deadline));
 
                 // Assert - Call in progress
@@ -224,6 +224,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 // Act - Wait for call to deadline on server
                 await syncPoint.WaitForSyncPoint().DefaultTimeout();
                 syncPoint.Continue();
+
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+                Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
 
                 // Assert - Call complete
                 await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
