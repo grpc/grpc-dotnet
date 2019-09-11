@@ -205,7 +205,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 var client = TestClientFactory.Create(channel, method);
 
-                // Need a high deadline to avoid flakyness. No way to disable server deadline timer.
+                // Need a high deadline to avoid flakiness. No way to disable server deadline timer.
                 var deadline = clock.UtcNow.AddMilliseconds(500);
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: deadline));
 
