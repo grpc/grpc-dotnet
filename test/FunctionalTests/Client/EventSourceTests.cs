@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         private static Dictionary<string, string?> EnableCountersArgs =
             new Dictionary<string, string?>
             {
-                ["EventCounterIntervalSec"] = "0.1"
+                ["EventCounterIntervalSec"] = "0.001"
             };
 
         [SetUp]
@@ -70,14 +70,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var call = client.UnaryCall(new HelloRequest());
 
             // Assert - Call in progress
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in progress", serverEventListener, new Dictionary<string, long>
             {
                 ["total-calls"] = 1,
                 ["current-calls"] = 1,
                 ["messages-sent"] = 0,
                 ["messages-received"] = 1,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call in progress", clientEventListener, new Dictionary<string, long>
             {
                 ["total-calls"] = 1,
                 ["current-calls"] = 1,
@@ -91,14 +91,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             await call.ResponseAsync.DefaultTimeout();
 
             // Assert - Call complete
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
             {
                 ["total-calls"] = 1,
                 ["current-calls"] = 0,
                 ["messages-sent"] = 1,
                 ["messages-received"] = 1,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call complete", clientEventListener, new Dictionary<string, long>
             {
                 ["total-calls"] = 1,
                 ["current-calls"] = 0,
@@ -137,12 +137,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var call = client.UnaryCall(new HelloRequest());
 
             // Assert - Call in progress
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in progress", serverEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 1,
                 ["calls-failed"] = 0,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call in progress", clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 1,
                 ["calls-failed"] = 0,
@@ -156,12 +156,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual("Exception was thrown by handler. Exception: Error!", ex.Status.Detail);                
 
             // Assert - Call complete
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 0,
                 ["calls-failed"] = 1,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call complete", clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 0,
                 ["calls-failed"] = 1,
@@ -174,7 +174,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Loop to ensure test is resilent across multiple runs
             for (int i = 1; i < 3; i++)
             {
-                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var syncPoint = new SyncPoint();
 
                 // Ignore errors
                 SetExpectedErrorsFilter(writeContext =>
@@ -186,7 +186,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 {
                     await PollAssert(() => context.Status.StatusCode == StatusCode.DeadlineExceeded).DefaultTimeout();
 
-                    tcs.TrySetResult(true);
+                    await syncPoint.WaitToContinue().DefaultTimeout();
 
                     return new HelloReply();
                 }
@@ -205,33 +205,34 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 var client = TestClientFactory.Create(channel, method);
 
-                var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: clock.UtcNow.AddMilliseconds(200)));
+                // Need a high deadline to avoid flakyness. No way to disable server deadline timer.
+                var deadline = clock.UtcNow.AddMilliseconds(400);
+                var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: deadline));
 
                 // Assert - Call in progress
-                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                await AssertCounters("Server call in progress", serverEventListener, new Dictionary<string, long>
                 {
-                    ["current-calls"] = 1,
                     ["calls-failed"] = i - 1,
                     ["calls-deadline-exceeded"] = i - 1,
                 }).DefaultTimeout();
-                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                await AssertCounters("Client call in progress", clientEventListener, new Dictionary<string, long>
                 {
-                    ["current-calls"] = 1,
                     ["calls-failed"] = i - 1,
                     ["calls-deadline-exceeded"] = i - 1,
                 }).DefaultTimeout();
 
                 // Act - Wait for call to deadline on server
-                await tcs.Task.DefaultTimeout();
+                await syncPoint.WaitForSyncPoint().DefaultTimeout();
+                syncPoint.Continue();
 
                 // Assert - Call complete
-                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 0,
                     ["calls-failed"] = i,
                     ["calls-deadline-exceeded"] = i,
                 }).DefaultTimeout();
-                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                await AssertCounters("Client call complete", clientEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 0,
                     ["calls-failed"] = i,
@@ -277,13 +278,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(cancellationToken: cts.Token));
 
                 // Assert - Call in progress
-                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                await AssertCounters("Server call in progress", serverEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 1,
                     ["calls-failed"] = i - 1,
                     ["calls-deadline-exceeded"] = 0,
                 }).DefaultTimeout();
-                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                await AssertCounters("Client call in progress", clientEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 1,
                     ["calls-failed"] = i - 1,
@@ -301,13 +302,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
                 // Assert - Call complete
-                await AssertCounters(serverEventListener, new Dictionary<string, long>
+                await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 0,
                     ["calls-failed"] = i,
                     ["calls-deadline-exceeded"] = 0,
                 }).DefaultTimeout();
-                await AssertCounters(clientEventListener, new Dictionary<string, long>
+                await AssertCounters("Client call complete", clientEventListener, new Dictionary<string, long>
                 {
                     ["current-calls"] = 0,
                     ["calls-failed"] = i,
@@ -352,14 +353,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var call = client.DuplexStreamingCall();
 
             // Assert - Call in progress
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in progress", serverEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 1,
                 ["messages-sent"] = 0,
                 ["messages-received"] = 0,
                 ["calls-failed"] = 0,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call in progress", clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 1,
                 ["messages-sent"] = 0,
@@ -376,14 +377,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
 
             // Assert - Call complete
-            await AssertCounters(serverEventListener, new Dictionary<string, long>
+            await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 0,
                 ["messages-sent"] = 2,
                 ["messages-received"] = 2,
                 ["calls-failed"] = 0,
             }).DefaultTimeout();
-            await AssertCounters(clientEventListener, new Dictionary<string, long>
+            await AssertCounters("Client call complete", clientEventListener, new Dictionary<string, long>
             {
                 ["current-calls"] = 0,
                 ["messages-sent"] = 2,
@@ -405,7 +406,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
         }
 
-        private async Task AssertCounters(TestEventListener listener, IDictionary<string, long> expectedValues)
+        private async Task AssertCounters(string description, TestEventListener listener, IDictionary<string, long> expectedValues)
         {
             var subscriptions = new List<ListenerSubscription>();
             foreach (var expectedValue in expectedValues)
@@ -426,7 +427,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     }
                     else
                     {
-                        throw new Exception(@$"Did not get ""{subscription.CounterName}"" = {subscription.ExpectedValue} in the allowed time. Last value seen: {subscription.LastValue}");
+                        throw new Exception(@$"{description} - Did not get ""{subscription.CounterName}"" = {subscription.ExpectedValue} in the allowed time. Last value seen: {subscription.LastValue}");
                     }
                 });
                 tasks.Add(t);
