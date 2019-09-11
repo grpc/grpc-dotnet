@@ -186,7 +186,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ThrowOperationCanceledExceptionOnCancellation_ReturnsError()
+        public async Task AsyncServerStreamingCall_DisposeBeforeHeadersReceived_ThrowOperationCanceledOnCancellation_ReturnsError()
         {
             // Arrange
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

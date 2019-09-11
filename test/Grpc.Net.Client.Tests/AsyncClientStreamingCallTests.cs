@@ -263,7 +263,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowOperationCanceledExceptionOnCancellation_ThrowsError()
+        public async Task ClientStreamWriter_CancelledBeforeCallStarts_ThrowOperationCanceledOnCancellation_ThrowsError()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
