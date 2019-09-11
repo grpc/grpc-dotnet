@@ -83,6 +83,39 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_Success_BaseAddressPreserved()
+        {
+            // Arrange
+            HttpRequestMessage? httpRequestMessage = null;
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                HelloReply reply = new HelloReply
+                {
+                    Message = "Hello world"
+                };
+
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            }, new Uri("https://localhost/base-path/"));
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+            // Assert
+            Assert.AreEqual("Hello world", rs.Message);
+
+            Assert.IsNotNull(httpRequestMessage);
+            Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
+            Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
+            Assert.AreEqual(new Uri("https://localhost/base-path/ServiceName/MethodName"), httpRequestMessage.RequestUri);
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_Success_RequestContentSent()
         {
             // Arrange

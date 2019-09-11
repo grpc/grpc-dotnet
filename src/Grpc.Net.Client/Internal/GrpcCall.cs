@@ -68,7 +68,7 @@ namespace Grpc.Net.Client.Internal
             _callCts = new CancellationTokenSource();
             _callTcs = new TaskCompletionSource<Status>(TaskContinuationOptions.RunContinuationsAsynchronously);
             Method = method;
-            _uri = new Uri(method.FullName, UriKind.Relative);
+            _uri = new Uri(RemoveLeadingSlash(method.FullName), UriKind.Relative);
             _logScope = new GrpcCallScope(method.Type, _uri);
             Options = options;
             Channel = channel;
@@ -88,6 +88,8 @@ namespace Grpc.Net.Client.Internal
                 throw new InvalidOperationException("Deadline must have a kind DateTimeKind.Utc or be equal to DateTime.MaxValue or DateTime.MinValue.");
             }
         }
+
+        private string RemoveLeadingSlash(string uri) => uri.StartsWith('/') ? uri.Substring(1) : uri;
 
         public Task<Status> CallTask => _callTcs.Task;
 

@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var scope = (IReadOnlyList<KeyValuePair<string, object>>)log.Scope;
                 Assert.AreEqual(MethodType.Unary, scope[0].Value);
-                Assert.AreEqual(new Uri("/ServiceName/MethodName", UriKind.Relative), scope[1].Value);
+                Assert.AreEqual(new Uri("ServiceName/MethodName", UriKind.Relative), scope[1].Value);
             }
         }
     }
