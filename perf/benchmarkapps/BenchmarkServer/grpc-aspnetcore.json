@@ -45,7 +45,8 @@
     "Client": "h2load",
     "Path": "/Greet.Greeter/SayHello",
     "Headers": {
-      "content-type": "application/grpc"
+      "content-type": "application/grpc",
+      "TE": "trailers"
     },
     "ClientProperties": {
       "protocol": "h2c",
