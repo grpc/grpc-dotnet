@@ -31,7 +31,7 @@ namespace Common
 
             if (string.IsNullOrEmpty(url))
             {
-                return new IPEndPoint(IPAddress.Loopback, 50051);
+                return new IPEndPoint(IPAddress.Loopback, 5000);
             }
 
             var address = BindingAddress.Parse(url);

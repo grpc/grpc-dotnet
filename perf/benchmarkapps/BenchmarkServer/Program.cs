@@ -77,30 +77,26 @@ namespace BenchmarkServer
 
                     options.Listen(endPoint, listenOptions =>
                     {
-                        var useTls = Convert.ToBoolean(context.Configuration["UseTls"]);
-                        Console.WriteLine($"Enabling connection encryption: {useTls}");
+                        var protocol = config["protocol"] ?? "";
 
-                        if (useTls)
+                        Console.WriteLine($"Protocol: {protocol}");
+
+                        if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
                         {
-                            var requireClientCertificate = Convert.ToBoolean(context.Configuration["RequireClientCertificate"]);
-                            Console.WriteLine($"Require client certificate: {requireClientCertificate}");
+                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
 
                             var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                            var certPath = Path.Combine(basePath!, "Certs/server.pfx");
-
-                            listenOptions.UseHttps(certPath, "1111", httpsOptions =>
-                            {
-                                if (requireClientCertificate)
-                                {
-                                    httpsOptions.ClientCertificateMode = ClientCertificateMode.RequireCertificate;
-                                }
-                            });
+                            var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
+                            listenOptions.UseHttps(certPath, "testPassword");
                         }
-
-                        var httpProtocols = Enum.Parse<HttpProtocols>(context.Configuration["HttpProtocols"]);
-                        Console.WriteLine($"Protocol: {httpProtocols}");
-
-                        listenOptions.Protocols = httpProtocols;
+                        else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
+                        {
+                            listenOptions.Protocols = HttpProtocols.Http2;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Unexpected protocol: {protocol}");
+                        }
                     });
                 });
 

@@ -68,6 +68,7 @@ namespace BenchmarkClient.Workers
             request.Version = new Version(2, 0);
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
+            request.Headers.TE.Add(new TransferCodingWithQualityHeaderValue("trailers"));
             if (_deadline != null)
             {
                 request.Headers.Add("grpc-timeout", "1S");
