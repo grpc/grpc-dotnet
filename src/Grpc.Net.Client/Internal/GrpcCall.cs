@@ -223,11 +223,16 @@ namespace Grpc.Net.Client.Internal
             // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
             Cleanup(status.Value);
 
-            // Get status from response before dispose
-            // This may throw an error if the grpc-status is missing or malformed
-            if (status.Value.StatusCode != StatusCode.OK)
+            if (throwOnFail)
             {
-                if (throwOnFail)
+                // Get status from response before dispose
+                // This may throw an error if the grpc-status is missing or malformed
+                if (status.Value.StatusCode == StatusCode.DeadlineExceeded &&
+                    Channel.ThrowOperationCanceledOnCancellation)
+                {
+                    throw new OperationCanceledException("Call returned a deadline exceeded status.");
+                }
+                else if (status.Value.StatusCode != StatusCode.OK)
                 {
                     throw new RpcException(status.Value);
                 }

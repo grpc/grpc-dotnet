@@ -91,7 +91,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task MoveNext_TokenCanceledDuringCall_ThrowOperationCanceledExceptionOnCancellation_ThrowError()
+        public async Task MoveNext_TokenCanceledDuringCall_ThrowOperationCanceledOnCancellation_ThrowError()
         {
             // Arrange
             var cts = new CancellationTokenSource();
