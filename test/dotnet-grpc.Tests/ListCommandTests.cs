@@ -18,7 +18,6 @@
 
 using System;
 using System.CommandLine;
-using System.CommandLine.Rendering;
 using System.IO;
 using Grpc.Dotnet.Cli.Commands;
 using NUnit.Framework;
@@ -29,7 +28,6 @@ namespace Grpc.Dotnet.Cli.Tests
     public class ListCommandTests : TestBase
     {
         [Test]
-        //[Ignore("https://github.com/grpc/grpc-dotnet/issues/457")]
         public void List_ListsReferences()
         {
             var currentDir = Directory.GetCurrentDirectory();
