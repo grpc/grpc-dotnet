@@ -95,7 +95,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_DisposeAfterHeadersAndBeforeMessage_ThrowOperationCanceledExceptionOnCancellation_ThrowsError()
+        public async Task AsyncUnaryCall_DisposeAfterHeadersAndBeforeMessage_ThrowOperationCanceledOnCancellation_ThrowsError()
         {
             // Arrange
             var stream = new SyncPointMemoryStream();

@@ -77,7 +77,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledExceptionOnCancellation_ResponseThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -98,7 +98,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledExceptionOnCancellation_ResponseHeadersThrowsCancelledStatus()
+        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseHeadersThrowsCancelledStatus()
         {
             // Arrange
             var cts = new CancellationTokenSource();

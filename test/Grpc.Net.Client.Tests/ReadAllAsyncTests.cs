@@ -188,7 +188,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledExceptionOnCancellation_EnumeratorThrows()
+        public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledOnCancellation_EnumeratorThrows()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
