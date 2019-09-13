@@ -31,7 +31,7 @@ namespace BenchmarkClient
         private const int DurationSeconds = 15;
         private const bool UseClientCertificate = false;
         // The host name is tied to some certificates
-        private const string Target = "localhost:50051";
+        private const string Target = "localhost:5000";
         private readonly static bool StopOnError = false;
 
         static async Task Main(string[] args)

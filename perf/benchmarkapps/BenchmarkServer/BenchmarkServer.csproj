@@ -15,7 +15,7 @@
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
     <Protobuf Include="..\Shared\data.proto" GrpcServices="Server" Link="Protos\data.proto" />
 
-    <None Include="..\..\..\examples\Certs\*.*" LinkBase="Certs">
+    <None Include="..\Shared\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 

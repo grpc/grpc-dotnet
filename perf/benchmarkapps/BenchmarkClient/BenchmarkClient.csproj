@@ -10,37 +10,11 @@
     <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
     <Protobuf Include="..\Shared\data.proto" GrpcServices="Client" Link="Protos\data.proto" />
 
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\Shared\*.cs" />
-
     <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\Shared\Certs\ca.crt" Link="Certs\ca.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\client.crt" Link="Certs\client.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\client.key" Link="Certs\client.key">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\Shared\Certs\ca.crt" Link="Certs\ca.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\client.crt" Link="Certs\client.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\client.key" Link="Certs\client.key">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 </Project>

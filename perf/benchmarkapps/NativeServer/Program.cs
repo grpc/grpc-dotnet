@@ -17,8 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.IO;
 using Common;
 using Grpc.Core;
 using Microsoft.Extensions.Configuration;
@@ -27,9 +25,6 @@ namespace NativeServer
 {
     class Program
     {
-        private const bool UseCertificate = false;
-        private const bool RequireClientCertificate = false;
-
         public static void Main(string[] args)
         {
             var config = new ConfigurationBuilder()
@@ -38,10 +33,16 @@ namespace NativeServer
                .AddCommandLine(args)
                .Build();
 
+            var protocol = config["protocol"] ?? string.Empty;
+            if (!protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Only h2c is supported by C-core benchmark server.");
+            }
+
             var endpoint = config.CreateIPEndPoint();
             var host = endpoint.Address.ToString();
 
-            Console.WriteLine($"Starting nativeServer listening on {host}:{endpoint.Port}");
+            Console.WriteLine($"Starting C-core server listening on {host}:{endpoint.Port}");
 
             Server server = new Server
             {
@@ -52,7 +53,8 @@ namespace NativeServer
                 },
                 Ports =
                 {
-                    { host, endpoint.Port, UseCertificate ? GetCertificateCredentials() : ServerCredentials.Insecure }
+                    // C-core benchmarks currently only support insecure (h2c)
+                    { host, endpoint.Port, ServerCredentials.Insecure }
                 }
             };
             server.Start();
@@ -62,18 +64,6 @@ namespace NativeServer
             Console.ReadKey();
 
             server.ShutdownAsync().Wait();
-        }
-
-        private static ServerCredentials GetCertificateCredentials()
-        {
-            var pair = new List<KeyCertificatePair>
-                {
-                    new KeyCertificatePair(File.ReadAllText(@"Certs\server.crt"), File.ReadAllText(@"Certs\server.key"))
-                };
-            
-            return RequireClientCertificate
-                ? new SslServerCredentials(pair, File.ReadAllText(@"Certs\ca.crt"), SslClientCertificateRequestType.RequestAndRequireAndVerify)
-                : new SslServerCredentials(pair);
         }
     }
 }

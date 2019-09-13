@@ -27,18 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\Shared\Certs\ca.crt" Link="Certs\ca.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\server.crt" Link="Certs\server.crt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\Shared\Certs\server.key" Link="Certs\server.key">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\..\src\Grpc.Net.Common\Grpc.Net.Common.csproj" />
   </ItemGroup>
 

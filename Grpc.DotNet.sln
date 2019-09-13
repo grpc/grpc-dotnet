@@ -105,14 +105,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mailer", "examples\Clients\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Certs", "Certs", "{39320CA8-D8F0-45B6-B704-A04C16870226}"
 	ProjectSection(SolutionItems) = preProject
-		perf\benchmarkapps\Shared\Certs\ca.crt = perf\benchmarkapps\Shared\Certs\ca.crt
-		perf\benchmarkapps\Shared\Certs\ca.key = perf\benchmarkapps\Shared\Certs\ca.key
-		perf\benchmarkapps\Shared\Certs\client.crt = perf\benchmarkapps\Shared\Certs\client.crt
-		perf\benchmarkapps\Shared\Certs\client.key = perf\benchmarkapps\Shared\Certs\client.key
-		perf\benchmarkapps\Shared\Certs\Readme.md = perf\benchmarkapps\Shared\Certs\Readme.md
-		perf\benchmarkapps\Shared\Certs\server.crt = perf\benchmarkapps\Shared\Certs\server.crt
-		perf\benchmarkapps\Shared\Certs\server.key = perf\benchmarkapps\Shared\Certs\server.key
-		perf\benchmarkapps\Shared\Certs\server.pfx = perf\benchmarkapps\Shared\Certs\server.pfx
+		perf\benchmarkapps\Shared\Certs\testCert.pfx = perf\benchmarkapps\Shared\Certs\testCert.pfx
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server.Reflection", "src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj", "{55813F20-1269-4B19-B03E-7E4A90148F92}"
