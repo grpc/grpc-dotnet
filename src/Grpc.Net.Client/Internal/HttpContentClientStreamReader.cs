@@ -132,7 +132,7 @@ namespace Grpc.Net.Client.Internal
                     var (httpResponse, status) = await HttpResponseTcs.Task.ConfigureAwait(false);
                     if (status != null && status.Value.StatusCode != StatusCode.OK)
                     {
-                        throw new RpcException(status.Value);
+                        throw _call.CreateFailureStatusException(status.Value);
                     }
 
                     _httpResponse = httpResponse;
@@ -166,7 +166,7 @@ namespace Grpc.Net.Client.Internal
                     _call.FinishResponse(status);
                     if (status.StatusCode != StatusCode.OK)
                     {
-                        throw new RpcException(status);
+                        throw _call.CreateFailureStatusException(status);
                     }
 
                     return false;

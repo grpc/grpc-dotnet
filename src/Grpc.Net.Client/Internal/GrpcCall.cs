@@ -379,7 +379,7 @@ namespace Grpc.Net.Client.Internal
                             // gRPC status in the header
                             if (status.Value.StatusCode != StatusCode.OK)
                             {
-                                _responseTcs.TrySetException(new RpcException(status.Value));
+                                SetFailedResult(status.Value);
                             }
                             else
                             {
@@ -397,22 +397,22 @@ namespace Grpc.Net.Client.Internal
                         if (_responseTcs != null)
                         {
                             // Read entire response body immediately and read status from trailers
-                                // Trailers are only available once the response body had been read
-                                var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                                var message = await responseStream.ReadSingleMessageAsync(
-                                    Logger,
-                                    Method.ResponseMarshaller.ContextualDeserializer,
-                                    GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
-                                    Channel.ReceiveMaxMessageSize,
-                                    Channel.CompressionProviders,
-                                    _callCts.Token).ConfigureAwait(false);
-                                status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
-                                FinishResponse(status.Value);
+                            // Trailers are only available once the response body had been read
+                            var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                            var message = await responseStream.ReadSingleMessageAsync(
+                                Logger,
+                                Method.ResponseMarshaller.ContextualDeserializer,
+                                GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
+                                Channel.ReceiveMaxMessageSize,
+                                Channel.CompressionProviders,
+                                _callCts.Token).ConfigureAwait(false);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
+                            FinishResponse(status.Value);
 
                             if (message == null)
                             {
                                 Log.MessageNotReturned(Logger);
-                                _responseTcs.TrySetException(new RpcException(status.Value));
+                                SetFailedResult(status.Value);
                             }
                             else
                             {
@@ -424,7 +424,7 @@ namespace Grpc.Net.Client.Internal
                                 }
                                 else
                                 {
-                                    _responseTcs.TrySetException(new RpcException(status.Value));
+                                    SetFailedResult(status.Value);
                                 }
                             }
                         }
@@ -466,6 +466,40 @@ namespace Grpc.Net.Client.Internal
                 }
 
                 FinishCall(request, diagnosticSourceEnabled, activity, status);
+            }
+        }
+
+        private void SetFailedResult(Status status)
+        {
+            Debug.Assert(_responseTcs != null);
+
+            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                // Convert status response of DeadlineExceeded to OperationCanceledException when
+                // ThrowOperationCanceledOnCancellation is true.
+                // This avoids a race between the client-side timer and the server status throwing different
+                // errors on deadline exceeded.
+                _responseTcs.TrySetCanceled();
+            }
+            else
+            {
+                _responseTcs.TrySetException(new RpcException(status));
+            }
+        }
+
+        public Exception CreateFailureStatusException(Status status)
+        {
+            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                // Convert status response of DeadlineExceeded to OperationCanceledException when
+                // ThrowOperationCanceledOnCancellation is true.
+                // This avoids a race between the client-side timer and the server status throwing different
+                // errors on deadline exceeded.
+                return new OperationCanceledException();
+            }
+            else
+            {
+                return new RpcException(status);
             }
         }
 
