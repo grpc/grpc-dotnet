@@ -21,9 +21,26 @@ using Grpc.Core;
 
 namespace BenchmarkClient.ChannelFactory
 {
-    public interface IChannelFactory
+    public class GrpcCoreChannelFactory : IChannelFactory
     {
-        Task<ChannelBase> CreateAsync();
-        Task DisposeAsync(ChannelBase channel);
+        private readonly string _target;
+
+        public GrpcCoreChannelFactory(string target)
+        {
+            _target = target;
+        }
+
+        public async Task<ChannelBase> CreateAsync()
+        {
+            var channel = new Channel(_target, ChannelCredentials.Insecure);
+            await channel.ConnectAsync();
+
+            return channel;
+        }
+
+        public Task DisposeAsync(ChannelBase channel)
+        {
+            return ((Channel)channel).ShutdownAsync();
+        }
     }
 }
