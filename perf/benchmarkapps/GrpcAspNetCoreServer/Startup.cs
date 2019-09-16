@@ -16,36 +16,30 @@
 
 #endregion
 
-using System;
 using System.IO;
 using System.Text;
-using Google.Protobuf.WellKnownTypes;
-using Greet;
+using Grpc.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
-namespace BenchmarkServer
+namespace GrpcAspNetCoreServer
 {
     public class Startup
     {
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
             services.AddControllers();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<GreeterService>();
-                endpoints.MapGrpcService<DataService>();
+                endpoints.MapGrpcService<BenchmarkServiceImpl>();
 
                 endpoints.MapControllers();
                 
@@ -54,19 +48,19 @@ namespace BenchmarkServer
                     return context.Response.WriteAsync("Benchmark Server");
                 });
 
-                endpoints.MapPost("/raw/greeter", async context =>
+                endpoints.MapPost("/unary", async context =>
                 {
                     MemoryStream ms = new MemoryStream();
                     await context.Request.Body.CopyToAsync(ms);
                     ms.Seek(0, SeekOrigin.Begin);
 
                     JsonSerializer serializer = new JsonSerializer();
-                    var message = serializer.Deserialize<HelloRequest>(new JsonTextReader(new StreamReader(ms)));
+                    var message = serializer.Deserialize<SimpleRequest>(new JsonTextReader(new StreamReader(ms)));
 
                     ms.Seek(0, SeekOrigin.Begin);
                     using (var writer = new JsonTextWriter(new StreamWriter(ms, Encoding.UTF8, 1024, true)))
                     {
-                        serializer.Serialize(writer, new HelloReply { Message = "Hello " + message.Name, Timestamp = Timestamp.FromDateTime(DateTime.UtcNow) });
+                        serializer.Serialize(writer, BenchmarkServiceImpl.CreateResponse(message));
                     }
 
                     context.Response.StatusCode = StatusCodes.Status200OK;

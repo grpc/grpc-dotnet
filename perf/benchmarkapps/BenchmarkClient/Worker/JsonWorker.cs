@@ -22,10 +22,10 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Greet;
+using Grpc.Testing;
 using Newtonsoft.Json;
 
-namespace BenchmarkClient.Workers
+namespace BenchmarkClient.Worker
 {
     public class JsonWorker : IWorker
     {
@@ -46,9 +46,9 @@ namespace BenchmarkClient.Workers
 
         public async Task CallAsync()
         {
-            var message = new HelloRequest
+            var message = new SimpleRequest
             {
-                Name = "World"
+                ResponseSize = 10
             };
 
             var json = JsonConvert.SerializeObject(message);

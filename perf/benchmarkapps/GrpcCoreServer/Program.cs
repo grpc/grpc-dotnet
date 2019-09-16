@@ -19,9 +19,10 @@
 using System;
 using Common;
 using Grpc.Core;
+using Grpc.Testing;
 using Microsoft.Extensions.Configuration;
 
-namespace NativeServer
+namespace GrpcCoreServer
 {
     class Program
     {
@@ -48,8 +49,7 @@ namespace NativeServer
             {
                 Services =
                 {
-                    Greet.GreetService.BindService(new GreeterService()),
-                    Data.DataService.BindService(new DataService())
+                    BenchmarkService.BindService(new BenchmarkServiceImpl())
                 },
                 Ports =
                 {
