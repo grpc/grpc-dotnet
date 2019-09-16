@@ -18,6 +18,15 @@
     }
   },
 
+  "GrpcUnary-1MB-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcCore",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
   "GrpcServerStreaming-GrpcCore": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
@@ -45,6 +54,15 @@
     "ClientProperties": {
       "Scenario": "Unary",
       "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcUnary-1MB-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcNetClient",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
     }
   },
 
