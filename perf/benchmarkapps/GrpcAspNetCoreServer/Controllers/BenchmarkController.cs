@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,17 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Data;
+using Grpc.Testing;
+using Microsoft.AspNetCore.Mvc;
 
-import "google/protobuf/timestamp.proto";
-
-service DataService {
-  rpc DuplexStream (stream DataMessage) returns (stream DataMessage);
-}
-
-message DataMessage {
-  bytes data = 1;
-  google.protobuf.Timestamp timestamp = 2;
+namespace GrpcAspNetCoreServer.Controllers
+{
+    [Route("api/[controller]")]
+    public class BenchmarkController : Controller
+    {
+        [HttpPost("unary")]
+        public SimpleResponse Post([FromBody]SimpleRequest request)
+        {
+            return BenchmarkServiceImpl.CreateResponse(request);
+        }
+    }
 }

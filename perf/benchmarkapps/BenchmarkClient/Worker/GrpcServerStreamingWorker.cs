@@ -17,37 +17,32 @@
 #endregion
 
 using System;
-using System.IO;
-using System.Net.Http;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Greet;
+using BenchmarkClient.ChannelFactory;
 using Grpc.Core;
-using Grpc.Net.Client;
+using Grpc.Testing;
 
-namespace BenchmarkClient.Workers
+namespace BenchmarkClient.Worker
 {
-    public class GrpcCoreServerStreamingWorker : IWorker
+    public class GrpcServerStreamingWorker : IWorker
     {
-        private readonly bool _useClientCertificate;
+        private readonly IChannelFactory _channelFactory;
         private readonly DateTime? _deadline;
         private readonly CancellationTokenSource _cts;
-        private Channel? _channel;
-        private GreetService.GreetServiceClient? _client;
-        private AsyncServerStreamingCall<HelloReply>? _call;
+        private ChannelBase? _channel;
+        private BenchmarkService.BenchmarkServiceClient? _client;
+        private AsyncServerStreamingCall<SimpleResponse>? _call;
 
-        public GrpcCoreServerStreamingWorker(int id, string target, bool useClientCertificate, DateTime? deadline = null)
+        public GrpcServerStreamingWorker(int id, IChannelFactory channelFactory, DateTime? deadline = null)
         {
             Id = id;
-            Target = target;
-            _useClientCertificate = useClientCertificate;
+            _channelFactory = channelFactory;
             _deadline = deadline;
             _cts = new CancellationTokenSource();
         }
 
         public int Id { get; }
-        public string Target { get; }
 
         public async Task CallAsync()
         {
@@ -66,17 +61,11 @@ namespace BenchmarkClient.Workers
 
         public async Task ConnectAsync()
         {
-            var credentials = _useClientCertificate
-                ? GetCertificateCredentials()
-                : ChannelCredentials.Insecure;
-
-            _channel = new Channel(Target, credentials);
-            _client = new GreetService.GreetServiceClient(_channel);
-
-            await _channel.ConnectAsync();
+            _channel = await _channelFactory.CreateAsync();
+            _client = new BenchmarkService.BenchmarkServiceClient(_channel);
 
             var options = new CallOptions(deadline: _deadline, cancellationToken: _cts.Token);
-            _call = _client.SayHellos(new HelloRequest { Name = "World" }, options);
+            _call = _client.StreamingFromServer(new SimpleRequest { ResponseSize = 10 }, options);
         }
 
         public async Task DisconnectAsync()
@@ -85,19 +74,8 @@ namespace BenchmarkClient.Workers
             _call?.Dispose();
             if (_channel != null)
             {
-                await _channel.ShutdownAsync();
+                await _channelFactory.DisposeAsync(_channel);
             }
-        }
-
-        private static ChannelCredentials GetCertificateCredentials()
-        {
-            var currentPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location)!;
-
-            return new SslCredentials(
-              File.ReadAllText(Path.Combine(currentPath, "Certs", "ca.crt")),
-              new KeyCertificatePair(
-                  File.ReadAllText(Path.Combine(currentPath, "Certs", "client.crt")),
-                  File.ReadAllText(Path.Combine(currentPath, "Certs", "client.key"))));
         }
     }
 }

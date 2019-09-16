@@ -16,26 +16,31 @@
 
 #endregion
 
-using System;
-using Google.Protobuf.WellKnownTypes;
-using Greet;
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using Grpc.Core;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
-namespace BenchmarkServer
+namespace BenchmarkClient.ChannelFactory
 {
-    [Route("api/[controller]")]
-    public class GreeterController : Controller
+    public class GrpcCoreChannelFactory : IChannelFactory
     {
-        [HttpPost]
-        public HelloReply Post([FromBody]HelloRequest request)
+        private readonly string _target;
+
+        public GrpcCoreChannelFactory(string target)
         {
-            return new HelloReply
-            {
-                Message = "Hello " + request.Name,
-                Timestamp = Timestamp.FromDateTime(DateTime.UtcNow)
-            };
+            _target = target;
+        }
+
+        public async Task<ChannelBase> CreateAsync()
+        {
+            var channel = new Channel(_target, ChannelCredentials.Insecure);
+            await channel.ConnectAsync();
+
+            return channel;
+        }
+
+        public Task DisposeAsync(ChannelBase channel)
+        {
+            return ((Channel)channel).ShutdownAsync();
         }
     }
 }

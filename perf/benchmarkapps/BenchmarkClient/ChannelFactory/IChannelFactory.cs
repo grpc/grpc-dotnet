@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,22 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-package Greet;
+using System.Threading.Tasks;
+using Grpc.Core;
 
-import "google/protobuf/timestamp.proto";
-
-service GreetService {
-  rpc SayHello (HelloRequest) returns (HelloReply);
-  rpc SayHellos (HelloRequest) returns (stream HelloReply);
-}
-
-message HelloRequest {
-  string name = 1;
-}
-
-message HelloReply {
-  string message = 1;
-  google.protobuf.Timestamp timestamp = 2;
+namespace BenchmarkClient.ChannelFactory
+{
+    public interface IChannelFactory
+    {
+        Task<ChannelBase> CreateAsync();
+        Task DisposeAsync(ChannelBase channel);
+    }
 }

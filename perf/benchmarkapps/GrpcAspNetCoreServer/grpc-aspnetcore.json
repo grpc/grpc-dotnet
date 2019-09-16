@@ -1,0 +1,116 @@
+{
+  "Default": {
+    "Client": "Grpc",
+    "ClientProperties": {
+    },
+
+    "Source": {
+      "Repository": "https://github.com/grpc/grpc-dotnet.git",
+      "BranchOrCommit": "master",
+      "Project": "perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj"
+    }
+  },
+
+  "GrpcUnary-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcUnary-1MB-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcCore",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
+  "GrpcServerStreaming-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcPingPongStreaming-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
+  "GrpcPingPongStreaming-1MB-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcCore",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
+  "GrpcUnary-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcUnary-1MB-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "Unary",
+      "GrpcClientType": "GrpcNetClient",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
+  "GrpcServerStreaming-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcPingPongStreaming-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcPingPongStreaming-1MB-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcNetClient",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
+  "GrpcUnary-h2load": {
+    "Client": "h2load",
+    "Path": "/grpc.testing.BenchmarkService/UnaryCall",
+    "Headers": {
+      "content-type": "application/grpc",
+      "TE": "trailers"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "AAAAAAcKBVdvcmxk"
+    }
+  },
+
+  "GrpcJson-h2load": {
+    "Client": "h2load",
+    "Path": "/unary",
+    "Headers": {
+      "content-type": "application/json"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "eyJOYW1lIjoiV29ybGQifQ=="
+    }
+  }
+}

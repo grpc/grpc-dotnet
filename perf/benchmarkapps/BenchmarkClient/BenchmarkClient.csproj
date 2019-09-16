@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
-    <Protobuf Include="..\Shared\data.proto" GrpcServices="Client" Link="Protos\data.proto" />
+    <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Client" Link="Protos\benchmark_service.proto" />
+    <Protobuf Include="..\Shared\messages.proto" GrpcServices="Client" Link="Protos\messages.proto" />
 
     <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
