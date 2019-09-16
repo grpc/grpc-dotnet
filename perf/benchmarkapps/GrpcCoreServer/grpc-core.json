@@ -25,6 +25,13 @@
     }
   },
 
+  "GrpcPingPongStreaming-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcCore"
+    }
+  },
+
   "GrpcUnary-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "Unary",
@@ -35,6 +42,13 @@
   "GrpcServerStreaming-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
+      "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcPingPongStreaming-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
       "GrpcClientType": "GrpcNetClient"
     }
   },
