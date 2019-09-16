@@ -12,16 +12,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Shared\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
-    <Protobuf Include="..\Shared\data.proto" GrpcServices="Server" Link="Protos\data.proto" />
+    <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Server" Link="Protos\benchmark_service.proto" />
+    <Protobuf Include="..\Shared\messages.proto" GrpcServices="Server" Link="Protos\messages.proto" />
 
     <None Include="..\Shared\Certs\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
     <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
-    <Compile Include="..\Shared\GreetService.cs" Link="Services\GreetService.cs" />
-    <Compile Include="..\Shared\DataService.cs" Link="Services\DataService.cs" />
+    <Compile Include="..\Shared\BenchmarkServiceImpl.cs" Link="Services\BenchmarkServiceImpl.cs" />
 
     <Content Update="hosting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

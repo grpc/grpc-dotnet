@@ -16,26 +16,18 @@
 
 #endregion
 
-using System;
-using Google.Protobuf.WellKnownTypes;
-using Greet;
+using Grpc.Testing;
 using Microsoft.AspNetCore.Mvc;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
-namespace BenchmarkServer
+namespace GrpcAspNetCoreServer.Controllers
 {
     [Route("api/[controller]")]
-    public class GreeterController : Controller
+    public class BenchmarkController : Controller
     {
-        [HttpPost]
-        public HelloReply Post([FromBody]HelloRequest request)
+        [HttpPost("unary")]
+        public SimpleResponse Post([FromBody]SimpleRequest request)
         {
-            return new HelloReply
-            {
-                Message = "Hello " + request.Name,
-                Timestamp = Timestamp.FromDateTime(DateTime.UtcNow)
-            };
+            return BenchmarkServiceImpl.CreateResponse(request);
         }
     }
 }

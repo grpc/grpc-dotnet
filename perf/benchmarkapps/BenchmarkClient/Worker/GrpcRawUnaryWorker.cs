@@ -24,9 +24,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using Greet;
+using Grpc.Testing;
 
-namespace BenchmarkClient.Workers
+namespace BenchmarkClient.Worker
 {
     public class GrpcRawUnaryWorker : IWorker
     {
@@ -47,9 +47,9 @@ namespace BenchmarkClient.Workers
 
         public async Task CallAsync()
         {
-            var message = new HelloRequest
+            var message = new SimpleRequest
             {
-                Name = "World"
+                ResponseSize = 10
             };
 
             var messageSize = message.CalculateSize();
@@ -64,7 +64,7 @@ namespace BenchmarkClient.Workers
             var url = _useClientCertificate ? "https://" : "http://";
             url += Target;
 
-            var request = new HttpRequestMessage(HttpMethod.Post, url + "/Greet.GreetService/SayHello");
+            var request = new HttpRequestMessage(HttpMethod.Post, url + "/grpc.testing.BenchmarkService/UnaryCall");
             request.Version = new Version(2, 0);
             request.Content = new StreamContent(new MemoryStream(data));
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");

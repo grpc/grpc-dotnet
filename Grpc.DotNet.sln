@@ -79,20 +79,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarkapps", "benchmarka
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkClient", "perf\benchmarkapps\BenchmarkClient\BenchmarkClient.csproj", "{B10D4986-25D2-4414-B500-627D89505914}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BenchmarkServer", "perf\benchmarkapps\BenchmarkServer\BenchmarkServer.csproj", "{7769DC99-1A21-40CF-933F-E3A47D486659}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NativeServer", "perf\benchmarkapps\NativeServer\NativeServer.csproj", "{D53BCA42-8B5C-40BA-88B2-01315D710AC2}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{310E5783-455A-4D09-A7AE-39DC2AB09504}"
 	ProjectSection(SolutionItems) = preProject
+		perf\benchmarkapps\Shared\benchmark_service.proto = perf\benchmarkapps\Shared\benchmark_service.proto
 		perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs = perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs
-		perf\benchmarkapps\Shared\ca.crt = perf\benchmarkapps\Shared\ca.crt
-		perf\benchmarkapps\Shared\client.crt = perf\benchmarkapps\Shared\client.crt
-		perf\benchmarkapps\Shared\client.key = perf\benchmarkapps\Shared\client.key
-		perf\benchmarkapps\Shared\data.proto = perf\benchmarkapps\Shared\data.proto
-		perf\benchmarkapps\Shared\greet.proto = perf\benchmarkapps\Shared\greet.proto
-		perf\benchmarkapps\Shared\GreetService.cs = perf\benchmarkapps\Shared\GreetService.cs
-		perf\benchmarkapps\Shared\server.pfx = perf\benchmarkapps\Shared\server.pfx
+		perf\benchmarkapps\Shared\BenchmarkServiceImpl.cs = perf\benchmarkapps\Shared\BenchmarkServiceImpl.cs
+		perf\benchmarkapps\Shared\messages.proto = perf\benchmarkapps\Shared\messages.proto
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Microbenchmarks", "perf\Grpc.AspNetCore.Microbenchmarks\Grpc.AspNetCore.Microbenchmarks.csproj", "{98500D54-FC3F-4A42-B74D-51930C19B175}"
@@ -166,6 +158,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Common", "src\Grpc
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Racer", "examples\Clients\Racer\Racer.csproj", "{05CEA45F-9EFC-4DB2-8233-5950725C92D9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrpcAspNetCoreServer", "perf\benchmarkapps\GrpcAspNetCoreServer\GrpcAspNetCoreServer.csproj", "{1D9AB69D-244C-4871-867E-DCEC52B552A4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrpcCoreServer", "perf\benchmarkapps\GrpcCoreServer\GrpcCoreServer.csproj", "{781111FC-8F3C-433E-BC96-D88ADAEE3064}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -204,14 +200,6 @@ Global
 		{B10D4986-25D2-4414-B500-627D89505914}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B10D4986-25D2-4414-B500-627D89505914}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B10D4986-25D2-4414-B500-627D89505914}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7769DC99-1A21-40CF-933F-E3A47D486659}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7769DC99-1A21-40CF-933F-E3A47D486659}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7769DC99-1A21-40CF-933F-E3A47D486659}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7769DC99-1A21-40CF-933F-E3A47D486659}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D53BCA42-8B5C-40BA-88B2-01315D710AC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D53BCA42-8B5C-40BA-88B2-01315D710AC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D53BCA42-8B5C-40BA-88B2-01315D710AC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D53BCA42-8B5C-40BA-88B2-01315D710AC2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{98500D54-FC3F-4A42-B74D-51930C19B175}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{98500D54-FC3F-4A42-B74D-51930C19B175}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98500D54-FC3F-4A42-B74D-51930C19B175}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -304,6 +292,14 @@ Global
 		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{05CEA45F-9EFC-4DB2-8233-5950725C92D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D9AB69D-244C-4871-867E-DCEC52B552A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D9AB69D-244C-4871-867E-DCEC52B552A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D9AB69D-244C-4871-867E-DCEC52B552A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D9AB69D-244C-4871-867E-DCEC52B552A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -325,8 +321,6 @@ Global
 		{7B95289B-4992-4C0D-B26F-8EC58F81FC96} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{1B8B6117-CE39-4580-BAFA-D8026102767A} = {4163E1B3-4D75-46B4-9107-9A158FD708FC}
 		{B10D4986-25D2-4414-B500-627D89505914} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
-		{7769DC99-1A21-40CF-933F-E3A47D486659} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
-		{D53BCA42-8B5C-40BA-88B2-01315D710AC2} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 		{310E5783-455A-4D09-A7AE-39DC2AB09504} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 		{98500D54-FC3F-4A42-B74D-51930C19B175} = {4163E1B3-4D75-46B4-9107-9A158FD708FC}
 		{A551D7B1-D75A-43F0-A8E3-BAEA5EDF616A} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
@@ -356,6 +350,8 @@ Global
 		{F6CA82C9-85C6-4A5F-B892-4DF8A20B1C05} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{05CEA45F-9EFC-4DB2-8233-5950725C92D9} = {F6E0F9D7-64E5-4C7B-A9BC-3C2AD687710B}
+		{1D9AB69D-244C-4871-867E-DCEC52B552A4} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
+		{781111FC-8F3C-433E-BC96-D88ADAEE3064} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

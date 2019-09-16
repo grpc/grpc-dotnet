@@ -21,14 +21,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BenchmarkClient.Workers;
+using BenchmarkClient.ChannelFactory;
+using BenchmarkClient.Worker;
 
 namespace BenchmarkClient
 {
     class Program
     {
         private const int Connections = 8;
-        private const int DurationSeconds = 15;
+        private const int DurationSeconds = 5;
         private const bool UseClientCertificate = false;
         // The host name is tied to some certificates
         private const string Target = "localhost:5000";
@@ -40,13 +41,18 @@ namespace BenchmarkClient
 
             var benchmarkResults = new List<BenchmarkResult>();
 
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcHttpClientUnary", id => new GrpcHttpClientUnaryWorker(id, Target, UseClientCertificate)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcHttpClientServerStreamingWorker", id => new GrpcHttpClientServerStreamingWorker(id, Target, UseClientCertificate)));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseClientCertificate, "/raw/greeter")));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseClientCertificate, "/api/greeter")));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcCoreUnary", id => new GrpcCoreUnaryWorker(id, Target, UseClientCertificate)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcCoreServerStreamingWorker", id => new GrpcCoreServerStreamingWorker(id, Target, UseClientCertificate)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcRawUnary", id => new GrpcRawUnaryWorker(id, Target, UseClientCertificate)));
+            var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseClientCertificate);
+            var grpcCoreChannelFactory = new GrpcCoreChannelFactory(Target);
+
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseClientCertificate)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-UnaryWorker", id => new GrpcUnaryWorker(id, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseClientCertificate, "/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseClientCertificate, "/api/benchmark/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-UnaryWorker", id => new GrpcUnaryWorker(id, grpcCoreChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcCoreChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcCoreChannelFactory)));
 
             Log($"Results:");
 

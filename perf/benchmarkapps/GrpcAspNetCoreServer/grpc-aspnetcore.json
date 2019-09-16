@@ -7,41 +7,41 @@
     "Source": {
       "Repository": "https://github.com/grpc/grpc-dotnet.git",
       "BranchOrCommit": "master",
-      "Project": "perf/benchmarkapps/BenchmarkServer/BenchmarkServer.csproj"
+      "Project": "perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj"
     }
   },
 
-  "GrpcUnaryAspNetCore-GrpcCore": {
+  "GrpcUnary-GrpcCore": {
     "ClientProperties": {
       "Scenario": "Unary",
       "GrpcClientType": "GrpcCore"
     }
   },
 
-  "GrpcServerStreamingAspNetCore-GrpcCore": {
+  "GrpcServerStreaming-GrpcCore": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
       "GrpcClientType": "GrpcCore"
     }
   },
 
-  "GrpcUnaryAspNetCore-GrpcNetClient": {
+  "GrpcUnary-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "Unary",
       "GrpcClientType": "GrpcNetClient"
     }
   },
 
-  "GrpcServerStreamingAspNetCore-GrpcNetClient": {
+  "GrpcServerStreaming-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
       "GrpcClientType": "GrpcNetClient"
     }
   },
 
-  "GrpcUnaryAspNetCore-h2load": {
+  "GrpcUnary-h2load": {
     "Client": "h2load",
-    "Path": "/Greet.Greeter/SayHello",
+    "Path": "/grpc.testing.BenchmarkService/UnaryCall",
     "Headers": {
       "content-type": "application/grpc",
       "TE": "trailers"
@@ -52,9 +52,9 @@
     }
   },
 
-  "GrpcJsonAspNetCore-h2load": {
+  "GrpcJson-h2load": {
     "Client": "h2load",
-    "Path": "/greet/jsongreeter",
+    "Path": "/unary",
     "Headers": {
       "content-type": "application/json"
     },

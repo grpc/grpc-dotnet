@@ -7,44 +7,44 @@
     "Source": {
       "Repository": "https://github.com/grpc/grpc-dotnet.git",
       "BranchOrCommit": "master",
-      "Project": "perf/benchmarkapps/NativeServer/NativeServer.csproj"
+      "Project": "perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj"
     }
   },
 
-  "GrpcUnaryNative-GrpcCore": {
+  "GrpcUnary-GrpcCore": {
     "ClientProperties": {
       "Scenario": "Unary",
       "GrpcClientType": "GrpcCore"
     }
   },
 
-  "GrpcServerStreamingNative-GrpcCore": {
+  "GrpcServerStreaming-GrpcCore": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
       "GrpcClientType": "GrpcCore"
     }
   },
 
-  "GrpcUnaryNative-GrpcNetClient": {
+  "GrpcUnary-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "Unary",
       "GrpcClientType": "GrpcNetClient"
     }
   },
 
-  "GrpcServerStreamingNative-GrpcNetClient": {
+  "GrpcServerStreaming-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "ServerStreaming",
       "GrpcClientType": "GrpcNetClient"
     }
   },
 
-  "GrpcUnaryNative-h2load": {
+  "GrpcUnary-h2load": {
     "Client": "h2load",
-    "Path": "/Greet.Greeter/SayHello",
+    "Path": "/grpc.testing.BenchmarkService/UnaryCall",
     "Headers": {
       "content-type": "application/grpc",
-      "TE":  "trailers"
+      "TE": "trailers"
     },
     "ClientProperties": {
       "protocol": "h2c",

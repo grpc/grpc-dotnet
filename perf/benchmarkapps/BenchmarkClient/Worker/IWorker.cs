@@ -18,7 +18,7 @@
 
 using System.Threading.Tasks;
 
-namespace BenchmarkClient.Workers
+namespace BenchmarkClient.Worker
 {
     public interface IWorker
     {
