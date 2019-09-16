@@ -32,6 +32,15 @@
     }
   },
 
+  "GrpcPingPongStreaming-1MB-GrpcCore": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcCore",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
+    }
+  },
+
   "GrpcUnary-GrpcNetClient": {
     "ClientProperties": {
       "Scenario": "Unary",
@@ -50,6 +59,15 @@
     "ClientProperties": {
       "Scenario": "PingPongStreaming",
       "GrpcClientType": "GrpcNetClient"
+    }
+  },
+
+  "GrpcPingPongStreaming-1MB-GrpcNetClient": {
+    "ClientProperties": {
+      "Scenario": "PingPongStreaming",
+      "GrpcClientType": "GrpcNetClient",
+      "RequestSize": 1048576,
+      "ResponseSize": 1048576
     }
   },
 
