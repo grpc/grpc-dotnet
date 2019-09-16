@@ -95,7 +95,17 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             var screen = new ScreenView(consoleRenderer, Console) { Child = table };
-            screen.Render(new Region(0, 0, System.Console.WindowWidth, System.Console.WindowWidth));
+            Region region;
+            try
+            {
+                // System.Console.WindowWidth can throw an IOException when runnning without a console attached
+                region = new Region(0, 0, System.Console.WindowWidth, System.Console.WindowHeight);
+            }
+            catch (IOException)
+            {
+                region = new Region(0, 0, int.MaxValue, int.MaxValue);
+            }
+            screen.Child?.Render(consoleRenderer, region);
         }
     }
 }
