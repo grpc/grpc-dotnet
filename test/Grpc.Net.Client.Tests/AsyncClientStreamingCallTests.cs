@@ -280,5 +280,25 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
+
+        [Test]
+        public async Task ClientStreamWriter_CallThrowsException_WriteAsyncThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromException<HttpResponseMessage>(new InvalidOperationException("Error!"));
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
     }
 }
