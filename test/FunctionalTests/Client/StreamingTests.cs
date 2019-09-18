@@ -412,5 +412,44 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
+
+        [Test]
+        public async Task DuplexStreaming_ParallelCallsFromOneChannel_Success()
+        {
+            async Task UnaryDeadlineExceeded(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                await foreach (var message in requestStream.ReadAllAsync())
+                {
+                    await responseStream.WriteAsync(message);
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<DataMessage, DataMessage>(UnaryDeadlineExceeded);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call1 = client.DuplexStreamingCall();
+            var call2 = client.DuplexStreamingCall();
+
+            await call1.RequestStream.WriteAsync(new DataMessage() { Data = ByteString.CopyFrom(new byte[1]) }).DefaultTimeout();
+            await call2.RequestStream.WriteAsync(new DataMessage() { Data = ByteString.CopyFrom(new byte[2]) }).DefaultTimeout();
+
+            // Assert
+            Assert.IsTrue(await call1.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.IsTrue(await call2.ResponseStream.MoveNext().DefaultTimeout());
+
+            Assert.AreEqual(1, call1.ResponseStream.Current.Data.Length);
+            Assert.AreEqual(2, call2.ResponseStream.Current.Data.Length);
+
+            await call1.RequestStream.CompleteAsync().DefaultTimeout();
+            await call2.RequestStream.CompleteAsync().DefaultTimeout();
+
+            Assert.IsFalse(await call1.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.IsFalse(await call2.ResponseStream.MoveNext().DefaultTimeout());
+        }
     }
 }
