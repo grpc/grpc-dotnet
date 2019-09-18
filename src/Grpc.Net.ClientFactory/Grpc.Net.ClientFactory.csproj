@@ -5,6 +5,7 @@
     <PackageTags>gRPC RPC HTTP/2</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
 

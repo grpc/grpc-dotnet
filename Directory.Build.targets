@@ -16,7 +16,6 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
   </PropertyGroup>
