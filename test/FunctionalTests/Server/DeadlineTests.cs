@@ -208,7 +208,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 var errorLogged = Logs.Any(r =>
                     r.EventId.Name == "ErrorExecutingServiceMethod" &&
                     r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                    r.Exception!.Message == "Cannot write message after request is complete.");
+                    (r.Exception!.Message == "Cannot write message after request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
 
                 return errorLogged;
             }, "Expected error not thrown.");
