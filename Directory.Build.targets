@@ -10,6 +10,7 @@
     <Version>$(GrpcDotnetVersion)</Version>
     <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>
     <FileVersion>$(GrpcDotnetAssemblyFileVersion)</FileVersion>
+    <Deterministic>false</Deterministic>
 
     <!-- Include PDB in the built .nupkg -->
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
