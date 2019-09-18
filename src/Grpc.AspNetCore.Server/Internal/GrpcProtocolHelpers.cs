@@ -123,7 +123,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static void SendHttpError(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
+        public static void BuildHttpErrorResponse(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
             response.StatusCode = httpStatusCode;
             SetStatus(GetTrailersDestination(response), new Status(grpcStatusCode, message));

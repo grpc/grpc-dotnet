@@ -90,6 +90,44 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "UnableToDisableMaxRequestBodySizeLimit"));
         }
 
+        [Test]
+        public async Task ContentTypeValidation_InvalidContentType_Logged()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
+            var httpContext = CreateContext(contentType: "text/plain");
+            var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
+
+            // Act
+            await call.HandleCallAsync(httpContext);
+
+            // Assert
+            var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestContentType");
+            Assert.IsNotNull(log);
+            Assert.AreEqual("Request content-type of 'text/plain' is not supported.", log.Message);
+        }
+
+        [Test]
+        public async Task ProtocolValidation_InvalidProtocol_Logged()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
+            var httpContext = CreateContext(protocol: "HTTP/1.1");
+            var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
+
+            // Act
+            await call.HandleCallAsync(httpContext);
+
+            // Assert
+            var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
+            Assert.IsNotNull(log);
+            Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log.Message);
+        }
+
         private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(MethodType methodType, ILoggerFactory? loggerFactory = null)
         {
             var method = new Method<TestMessage, TestMessage>(methodType, "test", "test", _marshaller, _marshaller);
@@ -133,11 +171,14 @@ namespace Grpc.AspNetCore.Server.Tests
             }
         }
 
-        private static HttpContext CreateContext(bool isMaxRequestBodySizeFeatureReadOnly = false)
+        private static HttpContext CreateContext(
+            bool isMaxRequestBodySizeFeatureReadOnly = false,
+            string? protocol = null,
+            string? contentType = null)
         {
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Protocol = GrpcProtocolConstants.Http2Protocol;
-            httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
+            httpContext.Request.Protocol = protocol ?? GrpcProtocolConstants.Http2Protocol;
+            httpContext.Request.ContentType = contentType ?? GrpcProtocolConstants.GrpcContentType;
             httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
             httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(new TestMaxRequestBodySizeFeature(isMaxRequestBodySizeFeatureReadOnly, 100));
 
