@@ -40,6 +40,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly IGrpcServiceActivator<TService> _serviceActivator;
         private readonly IServiceProvider _serviceProvider;
         private readonly GrpcServiceOptions _resolvedOptions;
+        private readonly IDictionary<string, GrpcServiceMethodOptions> _resolvedServiceMethods;
 
         public ServerCallHandlerFactory(
             ILoggerFactory loggerFactory,
@@ -75,6 +76,8 @@ namespace Grpc.AspNetCore.Server.Internal
             _resolvedOptions.Interceptors.AddRange(so.Interceptors);
             _resolvedOptions.HasInterceptors = _resolvedOptions.Interceptors.Count > 0;
 
+            _resolvedServiceMethods = so.Methods.ToDictionary(k => k.Name);
+
             if (_resolvedOptions.ResponseCompressionAlgorithm != null)
             {
                 if (!_resolvedOptions.ResolvedCompressionProviders.TryGetValue(_resolvedOptions.ResponseCompressionAlgorithm, out var _))
@@ -98,11 +101,27 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
+        private GrpcServiceMethodOptions GetServiceMethod(string name)
+        {
+            if (_resolvedServiceMethods.TryGetValue(name, out var serviceMethod) == false || serviceMethod == null)
+            {
+                serviceMethod = new GrpcServiceMethodOptions(name);
+            }
+
+            serviceMethod.Interceptors.InsertRange(0, _resolvedOptions.Interceptors);
+            serviceMethod.HasInterceptors = serviceMethod.Interceptors.Count > 0;
+
+            return serviceMethod;
+        }
+
+        public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker, Action<GrpcServiceMethodOptions> configure)
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            var serviceMethod = GetServiceMethod(method.Name);
+            configure(serviceMethod);
+
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethod, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)

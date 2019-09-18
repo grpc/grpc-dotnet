@@ -61,6 +61,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             _callHandler = new UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>(
                 method,
                 (service, request, context) => result,
+                new GrpcServiceMethodOptions(method.Name),
                 ServiceOptions,
                 NullLoggerFactory.Instance,
                 new TestGrpcServiceActivator<TestService>(new TestService()),

@@ -100,6 +100,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new UnaryServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
+                        new GrpcServiceMethodOptions(method.Name),
                         new GrpcServiceOptions(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),

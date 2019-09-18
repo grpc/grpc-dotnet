@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
@@ -51,7 +52,23 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
-            var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, invoker);
+            AddUnaryMethod(method, metadata, invoker, options => { });
+        }
+
+        /// <summary>
+        /// Adds a unary method to a service.
+        /// </summary>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The method invoker that is executed when the method is called.</param>
+        /// <param name="configure">The callback to override service method configuration.</param>
+        public void AddUnaryMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, IList<object> metadata, UnaryServerMethod<TService, TRequest, TResponse> invoker, Action<GrpcServiceMethodOptions> configure)
+            where TRequest : class
+            where TResponse : class
+        {
+            var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, invoker, configure);
             var methodModel = new MethodModel(method, metadata, callHandler.HandleCallAsync);
 
             Methods.Add(methodModel);

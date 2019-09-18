@@ -65,16 +65,31 @@ namespace Grpc.AspNetCore.Server
         /// Append a set of interceptor registrations to the end of the pipeline.
         /// </summary>
         /// <param name="registrations">The set of interceptor registrations to add.</param>
-        internal void AddRange(IEnumerable<InterceptorRegistration> registrations)
+        internal void AddRange(IReadOnlyList<InterceptorRegistration> registrations)
         {
             if (registrations == null)
             {
                 throw new ArgumentNullException(nameof(registrations));
             }
 
-            foreach (var interceptorRegistration in registrations)
+            InsertRange(Count, registrations);
+        }
+
+        /// <summary>
+        /// Insert a set of interceptor registrations starting at a specified index.
+        /// </summary>
+        /// <param name="index">The index to start inserting the registrations at.</param>
+        /// <param name="registrations">The list of registrations to insert.</param>
+        internal void InsertRange(int index, IReadOnlyList<InterceptorRegistration> registrations)
+        {
+            if (registrations == null)
             {
-                Add(interceptorRegistration);
+                throw new ArgumentNullException(nameof(registrations));
+            }
+
+            for (var i = 0; i < registrations.Count; i++)
+            {
+                Insert(index + i, registrations[i]);
             }
         }
     }

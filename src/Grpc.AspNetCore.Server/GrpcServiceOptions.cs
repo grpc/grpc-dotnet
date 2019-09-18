@@ -91,5 +91,22 @@ namespace Grpc.AspNetCore.Server
     /// <typeparam name="TService">The service type to configure.</typeparam>
     public class GrpcServiceOptions<TService> : GrpcServiceOptions where TService : class
     {
+        internal IList<GrpcServiceMethodOptions>? _serviceMethods;
+
+        /// <summary>
+        /// Gets or sets the list of service method options.
+        /// </summary>
+        public IList<GrpcServiceMethodOptions> Methods
+        {
+            get
+            {
+                if (_serviceMethods == null)
+                {
+                    _serviceMethods = new List<GrpcServiceMethodOptions>();
+                }
+                return _serviceMethods;
+            }
+            set => _serviceMethods = value;
+        }
     }
 }

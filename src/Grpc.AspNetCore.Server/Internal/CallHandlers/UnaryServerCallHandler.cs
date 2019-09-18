@@ -21,7 +21,6 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
@@ -37,6 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         public UnaryServerCallHandler(
             Method<TRequest, TResponse> method,
             UnaryServerMethod<TService, TRequest, TResponse> invoker,
+            GrpcServiceMethodOptions serviceMethodOptions,
             GrpcServiceOptions serviceOptions,
             ILoggerFactory loggerFactory,
             IGrpcServiceActivator<TService> serviceActivator,
@@ -45,9 +45,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             _invoker = invoker;
 
-            if (ServiceOptions.HasInterceptors)
+            if (serviceMethodOptions.HasInterceptors)
             {
-                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(serviceMethodOptions.Interceptors, ServiceProvider);
                 _pipelineInvoker = interceptorPipeline.UnaryPipeline(ResolvedInterceptorInvoker);
             }
         }

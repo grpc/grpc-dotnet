@@ -51,6 +51,26 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
+        /// Adds service method specific options to the specified <see cref="GrpcServiceOptions" />.
+        /// </summary>
+        /// <typeparam name="TService">The service type to configure the methods options on.</typeparam>
+        /// <param name="serviceOptions">The <see cref="GrpcServiceOptions" /> to add the method options to.</param>
+        /// <param name="name">The name of the method.</param>
+        /// <param name="configure">A callback to configure the service options.</param>
+        public static void AddMethodOptions<TService>(this GrpcServiceOptions<TService> serviceOptions, string name, Action<GrpcServiceMethodOptions> configure) where TService : class
+        {
+            if (serviceOptions == null)
+            {
+                throw new ArgumentNullException(nameof(serviceOptions));
+            }
+
+            var serviceMethodOptions = new GrpcServiceMethodOptions(name);
+            configure(serviceMethodOptions);
+
+            serviceOptions.Methods.Add(serviceMethodOptions);
+        }
+
+        /// <summary>
         /// Adds gRPC services to the specified <see cref="IServiceCollection" />.
         /// </summary>
         /// <param name="services">The <see cref="IServiceCollection"/> for adding services.</param>
