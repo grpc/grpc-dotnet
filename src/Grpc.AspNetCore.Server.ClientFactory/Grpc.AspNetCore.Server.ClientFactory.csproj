@@ -5,6 +5,7 @@
     <PackageTags>gRPC RPC HTTP/2 aspnetcore</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TargetFramework>netcoreapp3.0</TargetFramework>
 
     <!-- Disable analysis for ConfigureAwait(false) -->
