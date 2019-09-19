@@ -3,17 +3,17 @@
     {
       "src": [
         {
-          "files": ["Grpc.Core.Api/Grpc.Core.Api.csproj",
-                    "Grpc.Core/Grpc.Core.csproj",
-                    "Grpc.Auth/Grpc.Auth.csproj",
-                    "Grpc.Core.Testing/Grpc.Core.Testing.csproj",
-                    "Grpc.HealthCheck/Grpc.HealthCheck.csproj",
-                    "Grpc.Reflection/Grpc.HealthCheck.csproj"],
+          "files": ["src/Grpc.AspNetCore/Grpc.AspNetCore.csproj",
+            "src/Grpc.AspNetCore.Server/Grpc.AspNetCore.Server.csproj",
+            "src/Grpc.AspNetCore.Server.ClientFactory/Grpc.AspNetCore.Server.ClientFactory.csproj",
+            "src/Grpc.AspNetCore.Server.Reflection/Grpc.AspNetCore.Server.Reflection.csproj",
+            "src/Grpc.Net.Client/Grpc.Net.Client.csproj",
+            "src/Grpc.Net.ClientFactory/Grpc.Net.ClientFactory.csproj",
+            "src/Grpc.Net.Common/Grpc.Net.Common.csproj"],
           "exclude": [ "**/bin/**", "**/obj/**" ],
           "cwd": ".."
         }
       ],
-      "properties": { "TargetFramework": "net45" },
       "dest": "obj/api"
     }
   ],
@@ -29,7 +29,7 @@
       }
     ],
     "globalMetadata": {
-      "_appTitle": "gRPC C#",
+      "_appTitle": "gRPC for .NET",
       "_enableSearch": true,
       "_disableContribution": true
     },
