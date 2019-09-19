@@ -16,6 +16,7 @@
           "cwd": ".."
         }
       ],
+      "properties": { "TargetFramework": "netcoreapp3.0" },
       "dest": "obj/api"
     }
   ],

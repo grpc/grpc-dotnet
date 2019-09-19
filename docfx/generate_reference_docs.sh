@@ -20,9 +20,10 @@ cd $(dirname $0)
 # cleanup temporary files
 rm -rf html obj grpc-gh-pages grpc-main-repo
 
+# clone the grpc/grpc repository to gain access to be able to include Grpc.Core.Api docs
 git clone -b v1.24.0-pre2 -o upstream git@github.com:grpc/grpc.git grpc-main-repo
 
-# generate into src/csharp/docfx/html directory
+# generate into docfx/html directory
 cd ..
 docker run --rm -v "$(pwd)":/work -w /work/docfx --user "$(id -u):$(id -g)" -it tsgkadot/docker-docfx:latest docfx --disableGitFeatures
 cd docfx
@@ -34,7 +35,7 @@ cd grpc-gh-pages
 git remote add origin "git@github.com:${GITHUB_USER}/grpc.git"
 
 # replace old generated docs by the ones we just generated
-rm -r csharp
-cp -r ../html csharp
+rm -r csharp-dotnet
+cp -r ../html csharp-dotnet
 
 echo "Done. Go to src/csharp/docfx/grpc-gh-pages git repository and create a pull request to update the generated docs."
