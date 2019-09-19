@@ -8,6 +8,9 @@ Install docfx based on instructions here: https://github.com/dotnet/docfx
 ```
 # generate docfx documentation into ./html directory
 $ docfx
+
+# view the resulting docs
+$ docfx server html
 ```
 
 ## Release process: script for regenerating the docs automatically
