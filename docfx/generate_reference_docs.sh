@@ -18,7 +18,9 @@ set -ex
 cd $(dirname $0)
 
 # cleanup temporary files
-rm -rf html obj grpc-gh-pages
+rm -rf html obj grpc-gh-pages grpc-main-repo
+
+git clone -b v1.24.0-pre2 -o upstream git@github.com:grpc/grpc.git grpc-main-repo
 
 # generate into src/csharp/docfx/html directory
 cd ..
