@@ -10,13 +10,13 @@
     <Version>$(GrpcDotnetVersion)</Version>
     <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>
     <FileVersion>$(GrpcDotnetAssemblyFileVersion)</FileVersion>
+    <Deterministic>false</Deterministic>
 
     <!-- Include PDB in the built .nupkg -->
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
   </PropertyGroup>
