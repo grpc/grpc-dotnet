@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -49,7 +50,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var call = CreateHandler(methodType);
 
             // Act
-            await call.HandleCallAsync(httpContext);
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(hasRequestBodyDataRate, httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate != null);
@@ -66,14 +67,14 @@ namespace Grpc.AspNetCore.Server.Tests
             var call = CreateHandler(methodType);
 
             // Act
-            await call.HandleCallAsync(httpContext);
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(hasMaxRequestBodySize, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
         }
 
         [Test]
-        public async Task MaxRequestBodySizeFeature_FeatureIsReadOnly_Logged()
+        public async Task MaxRequestBodySizeFeature_FeatureIsReadOnly_FailureLogged()
         {
             // Arrange
             var testSink = new TestSink();
@@ -83,7 +84,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
-            await call.HandleCallAsync(httpContext);
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(true, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
@@ -91,7 +92,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ContentTypeValidation_InvalidContentType_Logged()
+        public async Task ContentTypeValidation_InvalidContentType_FailureLogged()
         {
             // Arrange
             var testSink = new TestSink();
@@ -101,7 +102,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
-            await call.HandleCallAsync(httpContext);
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestContentType");
@@ -110,7 +111,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task ProtocolValidation_InvalidProtocol_Logged()
+        public async Task ProtocolValidation_InvalidProtocol_FailureLogged()
         {
             // Arrange
             var testSink = new TestSink();
@@ -120,12 +121,30 @@ namespace Grpc.AspNetCore.Server.Tests
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
-            await call.HandleCallAsync(httpContext);
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
             Assert.IsNotNull(log);
             Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log.Message);
+        }
+
+        [Test]
+        public async Task ProtocolValidation_IISHttp2Protocol_Success()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
+            var httpContext = CreateContext(protocol: GrpcProtocolConstants.Http20Protocol);
+            var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
+
+            // Act
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
+
+            // Assert
+            var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
+            Assert.IsNull(log);
         }
 
         private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(MethodType methodType, ILoggerFactory? loggerFactory = null)

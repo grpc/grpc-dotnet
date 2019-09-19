@@ -63,7 +63,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
                 return Task.CompletedTask;
             }
-            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol)
+            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
+                httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
             {
                 Log.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
 
