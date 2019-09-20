@@ -10,13 +10,13 @@ gRPC functionality for .NET Core 3.0 includes:
 * [Grpc.Net.Client](https://www.nuget.org/packages/Grpc.Net.Client) &ndash; A gRPC client for .NET Core that builds upon the familiar `HttpClient`. The client uses new HTTP/2 functionality in .NET Core.
 * [Grpc.Net.ClientFactory](https://www.nuget.org/packages/Grpc.Net.ClientFactory) &ndash; gRPC client integration with `HttpClientFactory`. The client factory allows gRPC clients to be centrally configured and injected into your app with DI.
 
-Please note that gRPC for .NET does not replace [gRPC for C#](https://github.com/grpc/grpc/tree/master/src/csharp) (gRPC C# API over native C-core binaries). These implementations coexist and share many of the same APIs to make moving between them possible. There are currently no plans for one implementation to replace the other one. gRPC for C# is the recommended solution for frameworks that gRPC for .NET does not support, such as .NET Framework and Xamarin.
+Please note that gRPC for .NET does not replace [gRPC for C#](https://github.com/grpc/grpc/tree/master/src/csharp) (gRPC C# API over native C-core binaries). These implementations coexist and share many of the same APIs to avoid lock-in. There are currently no plans for one implementation to replace the other one. gRPC for C# is the recommended solution for frameworks that gRPC for .NET does not support, such as .NET Framework.
 
 For more information, see [An introduction to gRPC on .NET](https://docs.microsoft.com/aspnet/core/grpc/).
 
 ## To start using gRPC for .NET
 
-The best place to start using gRPC for ASP.NET Core is the gRPC template that comes with .NET Core 3.0. Use the template to [create a gRPC service website and client](https://docs.microsoft.com/aspnet/core/tutorials/grpc/grpc-start).
+The best place to start using gRPC for .NET is the gRPC template that comes with .NET Core 3.0. Use the template to [create a gRPC service website and client](https://docs.microsoft.com/aspnet/core/tutorials/grpc/grpc-start).
 
 For additional examples of using gRPC in .NET refer to https://github.com/grpc/grpc-dotnet/tree/master/examples.
 
