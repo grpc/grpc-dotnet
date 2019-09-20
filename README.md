@@ -7,10 +7,10 @@ gRPC is a modern, open source, high-performance remote procedure call (RPC) fram
 gRPC functionality for .NET Core 3.0 includes:
 
 * [Grpc.AspNetCore](https://www.nuget.org/packages/Grpc.AspNetCore) &ndash; An ASP.NET Core framework for hosting gRPC services. gRPC on ASP.NET Core integrates with standard ASP.NET Core features like logging, dependency injection (DI), authentication and authorization.
-* [Grpc.Net.Client](https://www.nuget.org/packages/Grpc.Net.Client) &ndash; A gRPC client for .NET Core that builds upon the familiar `HttpClient`.
-* [Grpc.Net.ClientFactory](https://www.nuget.org/packages/Grpc.Net.ClientFactory) &ndash; gRPC client integration with `HttpClientFactory`.
+* [Grpc.Net.Client](https://www.nuget.org/packages/Grpc.Net.Client) &ndash; A gRPC client for .NET Core that builds upon the familiar `HttpClient`. The client uses new HTTP/2 functionality in .NET Core.
+* [Grpc.Net.ClientFactory](https://www.nuget.org/packages/Grpc.Net.ClientFactory) &ndash; gRPC client integration with `HttpClientFactory`. The client factory allows gRPC clients to be centrally configured and injected into your app with DI.
 
-Please note that gRPC for .NET does not replace [gRPC for C#](https://grpc.io/docs/quickstart/csharp/) (gRPC C# API over native C-core binaries). These implementations coexist; there are currently no plans for one implementation to replace the other one. gRPC for C# is the recommended solution for frameworks that gRPC for .NET does not support such as .NET Framework and Xamarin.
+Please note that gRPC for .NET does not replace [gRPC for C#](https://github.com/grpc/grpc/tree/master/src/csharp) (gRPC C# API over native C-core binaries). These implementations coexist and share many of the same APIs to make moving between them possible. There are currently no plans for one implementation to replace the other one. gRPC for C# is the recommended solution for frameworks that gRPC for .NET does not support, such as .NET Framework and Xamarin.
 
 For more information, see [An introduction to gRPC on .NET](https://docs.microsoft.com/aspnet/core/grpc/).
 
