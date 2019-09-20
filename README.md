@@ -2,7 +2,7 @@
 
 ## Available now on .NET Core 3.0!
 
-[gRPC](https://grpc.io/) is a popular, high-performance RPC (remote procedure call) framework that offers an opinionated contract-first approach to API development. It uses modern technologies such as HTTP/2 for transport, and Protocol Buffers as the interface description language and binary serialization format. gRPC provides features such as authentication, bidirectional streaming and flow control, and cancellation and timeouts.
+gRPC is a modern, open source, high-performance remote procedure call (RPC) framework that can run anywhere. gRPC enables client and server applications to communicate transparently, and simplifies the building of connected systems.
 
 gRPC functionality for .NET Core 3.0 includes:
 
