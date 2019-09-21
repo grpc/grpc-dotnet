@@ -109,6 +109,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
+                        new GrpcServiceMethodOptions(method.Name),
                         new GrpcServiceOptions(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
@@ -117,6 +118,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, request, writer, context) => Task.FromResult(new TestMessage()),
+                        new GrpcServiceMethodOptions(method.Name),
                         new GrpcServiceOptions(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
@@ -125,6 +127,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, writer, context) => Task.CompletedTask,
+                        new GrpcServiceMethodOptions(method.Name),
                         new GrpcServiceOptions(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),

@@ -118,31 +118,40 @@ namespace Grpc.AspNetCore.Server.Internal
             where TRequest : class
             where TResponse : class
         {
-            var serviceMethod = GetServiceMethod(method.Name);
-            configure(serviceMethod);
+            var serviceMethodOptions = GetServiceMethod(method.Name);
+            configure(serviceMethodOptions);
 
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethod, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethodOptions, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
-        public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker, Action<GrpcServiceMethodOptions> configure)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            var serviceMethodOptions = GetServiceMethod(method.Name);
+            configure(serviceMethodOptions);
+
+            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethodOptions, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
-        public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker, Action<GrpcServiceMethodOptions> configure)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            var serviceMethodOptions = GetServiceMethod(method.Name);
+            configure(serviceMethodOptions);
+
+            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethodOptions, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
-        public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker, Action<GrpcServiceMethodOptions> configure)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            var serviceMethodOptions = GetServiceMethod(method.Name);
+            configure(serviceMethodOptions);
+
+            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, serviceMethodOptions, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public RequestDelegate CreateUnimplementedMethod()

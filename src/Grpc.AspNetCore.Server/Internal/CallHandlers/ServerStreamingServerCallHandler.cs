@@ -37,6 +37,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         public ServerStreamingServerCallHandler(
             Method<TRequest, TResponse> method,
             ServerStreamingServerMethod<TService, TRequest, TResponse> invoker,
+            GrpcServiceMethodOptions serviceMethodOptions,
             GrpcServiceOptions serviceOptions,
             ILoggerFactory loggerFactory,
             IGrpcServiceActivator<TService> serviceActivator,
@@ -45,9 +46,9 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             _invoker = invoker;
 
-            if (ServiceOptions.HasInterceptors)
+            if (serviceMethodOptions.HasInterceptors)
             {
-                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(serviceMethodOptions.Interceptors, ServiceProvider);
                 _pipelineInvoker = interceptorPipeline.ServerStreamingPipeline(ResolvedInterceptorInvoker);
             }
         }
