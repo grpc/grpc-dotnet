@@ -34,7 +34,7 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
         await foreach (var item in requestStream.ReadAllAsync())
         {
             await responseStream.WriteAsync(CreateResponse(item));
-        };
+        }
     }
 
     public override async Task StreamingFromServer(SimpleRequest request, IServerStreamWriter<SimpleResponse> responseStream, ServerCallContext context)
