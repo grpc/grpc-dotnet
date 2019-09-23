@@ -1,0 +1,41 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "docfx/grpc-main-repo/src/csharp/Grpc.Core.Api/Grpc.Core.Api.csproj",
+            "src/Grpc.AspNetCore/Grpc.AspNetCore.csproj",
+            "src/Grpc.AspNetCore.Server/Grpc.AspNetCore.Server.csproj",
+            "src/Grpc.AspNetCore.Server.ClientFactory/Grpc.AspNetCore.Server.ClientFactory.csproj",
+            "src/Grpc.AspNetCore.Server.Reflection/Grpc.AspNetCore.Server.Reflection.csproj",
+            "src/Grpc.Net.Client/Grpc.Net.Client.csproj",
+            "src/Grpc.Net.ClientFactory/Grpc.Net.ClientFactory.csproj",
+            "src/Grpc.Net.Common/Grpc.Net.Common.csproj"],
+          "exclude": [ "**/bin/**", "**/obj/**" ],
+          "cwd": ".."
+        }
+      ],
+      "properties": { "TargetFramework": "netcoreapp3.0" },
+      "dest": "obj/api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [ "**/*.yml" ],
+        "cwd": "obj/api",
+        "dest": "api"
+      },
+      {
+        "files": [ "toc.yml"]
+      }
+    ],
+    "globalMetadata": {
+      "_appTitle": "gRPC for .NET",
+      "_enableSearch": true,
+      "_disableContribution": true
+    },
+    "dest": "html"
+  }
+}
