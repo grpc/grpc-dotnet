@@ -14,11 +14,13 @@
     <MicrosoftExtensions30PackageVersion>3.0.0-preview8.19405.4</MicrosoftExtensions30PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
+    <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.13.0</Nunit3TestAdapterPackageVersion>
     <SystemCommandLinePackageVersion>0.3.0-alpha.19405.1</SystemCommandLinePackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
+    <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
   </PropertyGroup>
 </Project>
