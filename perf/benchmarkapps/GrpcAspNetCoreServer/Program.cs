@@ -60,7 +60,7 @@ namespace GrpcAspNetCoreServer
                 {
                     loggerFactory.ClearProviders();
 
-                    if (Enum.TryParse(config["LogLevel"], out LogLevel logLevel))
+                    if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel))
                     {
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
                         loggerFactory.AddConsole().SetMinimumLevel(logLevel);
