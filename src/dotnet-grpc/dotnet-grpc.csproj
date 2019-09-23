@@ -13,6 +13,9 @@
     <!-- Disable analysis for ConfigureAwait(false) -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA2007</NoWarn>
+
+    <!-- The runtimeconfig.template.json file is used to allow roll-forward for future runtimes. We target netcoreapp3.0 as the lowest TFM. 
+      See https://github.com/dotnet/core-setup/blob/master/Documentation/design-docs/roll-forward-on-no-candidate-fx.md#roll-forward-in-absence-of-candidate-fx for details-->
   </PropertyGroup>
 
   <ItemGroup>
