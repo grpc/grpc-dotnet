@@ -7,7 +7,7 @@
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    
+
     <!-- Disable analysis for ConfigureAwait(false) -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA2007</NoWarn>
@@ -22,7 +22,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.Net.Common\Grpc.Net.Common.csproj" />
-    
+
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 
