@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
@@ -21,4 +23,5 @@
     <Protobuf Include="..\Proto\streaming.proto" Link="Protos\streaming.proto" />
     <Protobuf Include="..\Proto\unimplemented.proto" Link="Protos\unimplemented.proto" />
   </ItemGroup>
+  
 </Project>
