@@ -8,9 +8,6 @@
     <PackageIconFullPath>$(MSBuildThisFileDirectory)packageIcon.png</PackageIconFullPath>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/grpc/grpc-dotnet</PackageProjectUrl>
-    <Version>$(GrpcDotnetVersion)</Version>
-    <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>
-    <FileVersion>$(GrpcDotnetAssemblyFileVersion)</FileVersion>
     <Deterministic>false</Deterministic>
 
     <!-- Include PDB in the built .nupkg -->

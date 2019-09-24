@@ -2,9 +2,8 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
-    <ConfigureAwaitCheckerAnalyzerPackageVersion>3.0.0</ConfigureAwaitCheckerAnalyzerPackageVersion>
     <GoogleProtobufPackageVersion>3.9.1</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>0.2.23-pre2</GrpcDotNetPackageVersion>
+    <GrpcDotNetPackageVersion>2.23.2</GrpcDotNetPackageVersion>
     <GrpcPackageVersion>2.23.0</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0-preview8.19405.7</MicrosoftAspNetCorePackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
@@ -13,7 +12,7 @@
     <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions30PackageVersion>3.0.0-preview8.19405.4</MicrosoftExtensions30PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>
-    <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
+    <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-19367-01</MicrosoftSourceLinkGitHubPackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
