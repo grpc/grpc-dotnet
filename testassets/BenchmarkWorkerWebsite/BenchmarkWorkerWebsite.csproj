@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
-    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
+
   <ItemGroup>
     <Protobuf Include="grpc\core\grpc_core_stats.proto" GrpcServices="Server" />
     <Protobuf Include="grpc\testing\benchmark_service.proto" GrpcServices="Server" />
@@ -16,4 +17,5 @@
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
   </ItemGroup>
+
 </Project>
