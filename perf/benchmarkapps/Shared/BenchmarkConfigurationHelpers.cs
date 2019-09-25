@@ -44,7 +44,7 @@ namespace Common
             }
             else if (!IPAddress.TryParse(address.Host, out ip))
             {
-                ip = IPAddress.IPv6Any;
+                ip = IPAddress.Loopback;
             }
 
             return new IPEndPoint(ip, address.Port);
