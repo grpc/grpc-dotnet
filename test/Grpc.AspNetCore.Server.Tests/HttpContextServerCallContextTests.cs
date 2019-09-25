@@ -27,6 +27,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
@@ -293,11 +294,6 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.OK.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
             Assert.AreEqual(Convert.ToBase64String(trailerBytes), responseTrailers["trailer-bin"]);
-        }
-
-        private class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
-        {
-            public IHeaderDictionary Trailers { get; set; } = new HeaderDictionary();
         }
 
         private class TestHttpResponseFeature : HttpResponseFeature
