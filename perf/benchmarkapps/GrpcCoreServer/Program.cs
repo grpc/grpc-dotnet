@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Diagnostics;
 using Common;
 using Grpc.Core;
 using Grpc.Testing;

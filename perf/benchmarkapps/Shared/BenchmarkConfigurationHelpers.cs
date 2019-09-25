@@ -25,14 +25,9 @@ namespace Common
 {
     public static class BenchmarkConfigurationHelpers
     {
-        public static string ResolveServerUrl(this IConfiguration config)
-        {
-            return config["server.urls"] ?? config["urls"];
-        }
-
         public static BindingAddress CreateBindingAddress(this IConfiguration config)
         {
-            var url = config.ResolveServerUrl();
+            var url = config["server.urls"] ?? config["urls"];
 
             if (string.IsNullOrEmpty(url))
             {
