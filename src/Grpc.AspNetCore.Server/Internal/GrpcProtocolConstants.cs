@@ -25,7 +25,8 @@ namespace Grpc.AspNetCore.Server.Internal
     internal static class GrpcProtocolConstants
     {
         internal const string GrpcContentType = "application/grpc";
-        internal const string Http2Protocol = "HTTP/2";
+        internal const string Http2Protocol = "HTTP/2"; // This is what Kestrel sets
+        internal const string Http20Protocol = "HTTP/2.0"; // This is what IIS sets
 
         internal const string TimeoutHeader = "grpc-timeout";
         internal const string MessageEncodingHeader = "grpc-encoding";

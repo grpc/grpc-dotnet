@@ -58,13 +58,18 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
-                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                Log.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
                 return Task.CompletedTask;
             }
-            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol)
+            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
+                httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
             {
+                Log.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
+
                 var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
-                GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
                 httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
                 return Task.CompletedTask;
             }
@@ -143,9 +148,25 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             private static readonly Action<ILogger, Exception?> _unableToDisableMaxRequestBodySize =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(1, "UnableToDisableMaxRequestBodySizeLimit"), "Unable to disable the max request body size limit.");
 
+            private static readonly Action<ILogger, string?, Exception?> _unsupportedRequestContentType =
+                LoggerMessage.Define<string?>(LogLevel.Information, new EventId(2, "UnsupportedRequestContentType"), "Request content-type of '{ContentType}' is not supported.");
+
+            private static readonly Action<ILogger, string?, Exception?> _unsupportedRequestProtocol =
+                LoggerMessage.Define<string?>(LogLevel.Information, new EventId(3, "UnsupportedRequestProtocol"), "Request protocol of '{Protocol}' is not supported.");
+
             public static void UnableToDisableMaxRequestBodySize(ILogger logger)
             {
                 _unableToDisableMaxRequestBodySize(logger, null);
+            }
+
+            public static void UnsupportedRequestContentType(ILogger logger, string? contentType)
+            {
+                _unsupportedRequestContentType(logger, contentType, null);
+            }
+
+            public static void UnsupportedRequestProtocol(ILogger logger, string? protocol)
+            {
+                _unsupportedRequestProtocol(logger, protocol, null);
             }
         }
     }
