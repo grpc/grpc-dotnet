@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using Common;
 using Grpc.Core;
 using Grpc.Testing;
@@ -29,10 +30,26 @@ namespace GrpcCoreServer
         public static void Main(string[] args)
         {
             var config = new ConfigurationBuilder()
-               .AddJsonFile("hosting.json", optional: true)
-               .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-               .AddCommandLine(args)
-               .Build();
+              .AddJsonFile("hosting.json", optional: true)
+              .AddEnvironmentVariables(prefix: "ASPNETCORE_")
+              .AddCommandLine(args)
+              .Build();
+
+            try
+            {
+                Run(config);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                Console.WriteLine("Global error thrown. Exiting");
+                throw;
+            }
+        }
+
+        private static void Run(IConfigurationRoot config)
+        {
+            Debugger.Launch();
 
             var protocol = config["protocol"] ?? string.Empty;
             if (!protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
