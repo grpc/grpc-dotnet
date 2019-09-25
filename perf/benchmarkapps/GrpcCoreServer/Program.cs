@@ -49,8 +49,6 @@ namespace GrpcCoreServer
 
         private static void Run(IConfigurationRoot config)
         {
-            Debugger.Launch();
-
             var protocol = config["protocol"] ?? string.Empty;
             if (!protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
             {
