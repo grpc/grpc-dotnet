@@ -57,10 +57,9 @@ namespace GrpcCoreServer
                 throw new InvalidOperationException("Only h2c is supported by C-core benchmark server.");
             }
 
-            var endpoint = config.CreateIPEndPoint();
-            var host = endpoint.Address.ToString();
+            var address = config.CreateBindingAddress();
 
-            Console.WriteLine($"Starting C-core server listening on {host}:{endpoint.Port}");
+            Console.WriteLine($"Starting C-core server listening on {address.Host}:{address.Port}");
 
             Server server = new Server
             {
@@ -71,7 +70,7 @@ namespace GrpcCoreServer
                 Ports =
                 {
                     // C-core benchmarks currently only support insecure (h2c)
-                    { host, endpoint.Port, ServerCredentials.Insecure }
+                    { address.Host, address.Port, ServerCredentials.Insecure }
                 }
             };
             server.Start();
