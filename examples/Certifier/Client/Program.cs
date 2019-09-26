@@ -66,10 +66,10 @@ namespace Client
             {
                 Console.WriteLine($"gRPC error from calling service: {ex.Status.Detail}");
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Unexpected error calling service:");
-                Console.WriteLine(ex);
+                Console.WriteLine($"Unexpected error calling service.");
+                throw;
             }
         }
 
