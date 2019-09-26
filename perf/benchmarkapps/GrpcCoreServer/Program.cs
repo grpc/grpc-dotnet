@@ -29,21 +29,34 @@ namespace GrpcCoreServer
         public static void Main(string[] args)
         {
             var config = new ConfigurationBuilder()
-               .AddJsonFile("hosting.json", optional: true)
-               .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-               .AddCommandLine(args)
-               .Build();
+              .AddJsonFile("hosting.json", optional: true)
+              .AddEnvironmentVariables(prefix: "ASPNETCORE_")
+              .AddCommandLine(args)
+              .Build();
 
+            try
+            {
+                Run(config);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                Console.WriteLine("Global error thrown. Exiting");
+                throw;
+            }
+        }
+
+        private static void Run(IConfigurationRoot config)
+        {
             var protocol = config["protocol"] ?? string.Empty;
             if (!protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("Only h2c is supported by C-core benchmark server.");
             }
 
-            var endpoint = config.CreateIPEndPoint();
-            var host = endpoint.Address.ToString();
+            var address = config.CreateBindingAddress();
 
-            Console.WriteLine($"Starting C-core server listening on {host}:{endpoint.Port}");
+            Console.WriteLine($"Starting C-core server listening on {address.Host}:{address.Port}");
 
             Server server = new Server
             {
@@ -54,7 +67,7 @@ namespace GrpcCoreServer
                 Ports =
                 {
                     // C-core benchmarks currently only support insecure (h2c)
-                    { host, endpoint.Port, ServerCredentials.Insecure }
+                    { address.Host, address.Port, ServerCredentials.Insecure }
                 }
             };
             server.Start();
