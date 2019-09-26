@@ -25,16 +25,21 @@ namespace Common
 {
     public static class BenchmarkConfigurationHelpers
     {
-        public static IPEndPoint CreateIPEndPoint(this IConfiguration config)
+        public static BindingAddress CreateBindingAddress(this IConfiguration config)
         {
             var url = config["server.urls"] ?? config["urls"];
 
             if (string.IsNullOrEmpty(url))
             {
-                return new IPEndPoint(IPAddress.Loopback, 5000);
+                return BindingAddress.Parse("http://localhost:5000");
             }
 
-            var address = BindingAddress.Parse(url);
+            return BindingAddress.Parse(url);
+        }
+
+        public static IPEndPoint CreateIPEndPoint(this IConfiguration config)
+        {
+            var address = config.CreateBindingAddress();
 
             IPAddress ip;
 
