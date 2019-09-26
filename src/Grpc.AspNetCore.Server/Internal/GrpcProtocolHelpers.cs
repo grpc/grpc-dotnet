@@ -188,7 +188,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 var feature = response.HttpContext.Features.Get<IHttpResponseTrailersFeature>();
                 if (feature?.Trailers == null || feature.Trailers.IsReadOnly)
                 {
-                    throw new InvalidOperationException("Trailers are not supported for this response.");
+                    throw new InvalidOperationException("Trailers are not supported for this response. The server may not support gRPC.");
                 }
 
                 return feature.Trailers;
