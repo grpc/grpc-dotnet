@@ -23,6 +23,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Certify;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Grpc.Net.Client;
 
 namespace Client
@@ -61,9 +62,14 @@ namespace Client
                     Console.WriteLine($"Client certificate name: {certificateInfo.Name}");
                 }
             }
+            catch (RpcException ex)
+            {
+                Console.WriteLine($"gRPC error from calling service: {ex.Status.Detail}");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error calling service: {ex.Message}");
+                Console.WriteLine($"Unexpected error calling service:");
+                Console.WriteLine(ex);
             }
         }
 
