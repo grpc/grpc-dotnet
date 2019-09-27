@@ -39,8 +39,7 @@ namespace Grpc.Net.Client.Internal
         private readonly TaskCompletionSource<Status> _callTcs;
         private readonly TaskCompletionSource<Metadata> _metadataTcs;
         private readonly TimeSpan? _timeout;
-        private readonly Uri _uri;
-        private readonly GrpcCallScope _logScope;
+        private readonly GrpcMethodInfo _grpcMethodInfo;
 
         private Timer? _deadlineTimer;
         private Metadata? _trailers;
@@ -59,7 +58,7 @@ namespace Grpc.Net.Client.Internal
         public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, Uri uri, GrpcCallScope logScope, CallOptions options, GrpcChannel channel)
+        public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
@@ -69,8 +68,7 @@ namespace Grpc.Net.Client.Internal
             _callTcs = new TaskCompletionSource<Status>();
             _metadataTcs = new TaskCompletionSource<Metadata>(TaskCreationOptions.RunContinuationsAsynchronously);
             Method = method;
-            _uri = uri;
-            _logScope = logScope;
+            _grpcMethodInfo = grpcMethodInfo;
             Options = options;
             Channel = channel;
             Logger = channel.LoggerFactory.CreateLogger(LoggerName);
@@ -336,7 +334,7 @@ namespace Grpc.Net.Client.Internal
             // in at least Critical level for performance
             if (Logger.IsEnabled(LogLevel.Critical))
             {
-                return Logger.BeginScope(_logScope);
+                return Logger.BeginScope(_grpcMethodInfo.LogScope);
             }
 
             return null;
@@ -638,7 +636,7 @@ namespace Grpc.Net.Client.Internal
 
         private HttpRequestMessage CreateHttpRequestMessage()
         {
-            var message = new HttpRequestMessage(HttpMethod.Post, _uri);
+            var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
             message.Version = GrpcProtocolConstants.ProtocolVersion;
 
             // Set raw headers on request using name/values. Typed headers allocate additional objects.

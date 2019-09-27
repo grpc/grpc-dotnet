@@ -53,11 +53,11 @@ namespace Grpc.Net.Client.Tests
             call.StartServerStreaming(new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+            var moveNextTask = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
-            Assert.IsTrue(moveNextTask1.IsCompleted);
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+            Assert.IsTrue(moveNextTask.IsCompleted);
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
@@ -81,11 +81,11 @@ namespace Grpc.Net.Client.Tests
             call.StartServerStreaming(new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+            var moveNextTask = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
-            Assert.IsTrue(moveNextTask1.IsCompleted);
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
+            Assert.IsTrue(moveNextTask.IsCompleted);
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask).DefaultTimeout();
         }
 
         [Test]
@@ -106,14 +106,14 @@ namespace Grpc.Net.Client.Tests
             call.StartServerStreaming(new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+            var moveNextTask = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
-            Assert.IsFalse(moveNextTask1.IsCompleted);
+            Assert.IsFalse(moveNextTask.IsCompleted);
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask1).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
@@ -136,14 +136,14 @@ namespace Grpc.Net.Client.Tests
             call.StartServerStreaming(new HelloRequest());
 
             // Act
-            var moveNextTask1 = call.ClientStreamReader!.MoveNext(cts.Token);
+            var moveNextTask = call.ClientStreamReader!.MoveNext(cts.Token);
 
             // Assert
-            Assert.IsFalse(moveNextTask1.IsCompleted);
+            Assert.IsFalse(moveNextTask.IsCompleted);
 
             cts.Cancel();
 
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask1).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask).DefaultTimeout();
         }
 
         [Test]
@@ -178,8 +178,7 @@ namespace Grpc.Net.Client.Tests
 
             return new GrpcCall<HelloRequest, HelloReply>(
                 ClientTestHelpers.ServiceMethod,
-                uri,
-                new GrpcCallScope(ClientTestHelpers.ServiceMethod.Type, uri),
+                new GrpcMethodInfo(new GrpcCallScope(ClientTestHelpers.ServiceMethod.Type, uri), uri),
                 new CallOptions(),
                 channel);
         }

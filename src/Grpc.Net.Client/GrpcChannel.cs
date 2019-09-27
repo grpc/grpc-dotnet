@@ -88,7 +88,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        internal GrpcMethodInfo GrpcMethodInfo(IMethod method)
+        internal GrpcMethodInfo GetCachedGrpcMethodInfo(IMethod method)
         {
             return _methodInfoCache.GetOrAdd(method, _createMethodInfoFunc);
         }
