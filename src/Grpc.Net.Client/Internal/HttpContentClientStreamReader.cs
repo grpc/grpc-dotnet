@@ -36,6 +36,7 @@ namespace Grpc.Net.Client.Internal
         private readonly GrpcCall<TRequest, TResponse> _call;
         private readonly object _moveNextLock;
 
+        public TaskCompletionSource<(HttpResponseMessage, Status?)> HttpResponseTcs { get; }
         private HttpResponseMessage? _httpResponse;
         private Stream? _responseStream;
         private Task<bool>? _moveNextTask;
@@ -44,6 +45,7 @@ namespace Grpc.Net.Client.Internal
         {
             _call = call;
             _moveNextLock = new object();
+            HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         // IAsyncStreamReader<T> should declare Current as nullable
@@ -127,11 +129,13 @@ namespace Grpc.Net.Client.Internal
 
                 if (_httpResponse == null)
                 {
-                    Debug.Assert(_call.SendTask != null);
-                    await _call.SendTask.ConfigureAwait(false);
+                    var (httpResponse, status) = await HttpResponseTcs.Task.ConfigureAwait(false);
+                    if (status != null && status.Value.StatusCode != StatusCode.OK)
+                    {
+                        throw _call.CreateFailureStatusException(status.Value);
+                    }
 
-                    Debug.Assert(_call.HttpResponse != null);
-                    _httpResponse = _call.HttpResponse;
+                    _httpResponse = httpResponse;
                 }
                 if (_responseStream == null)
                 {
@@ -143,20 +147,8 @@ namespace Grpc.Net.Client.Internal
                     {
                         // The response was disposed while waiting for the content stream to start.
                         // This will happen if there is no content stream (e.g. a streaming call finishes with no messages).
-                        if (_call.ResponseFinished)
-                        {
-                            // Call status will have been set before dispose.
-                            var status = await _call.CallTask.ConfigureAwait(false);
-                            if (status.StatusCode != StatusCode.OK)
-                            {
-                                throw new RpcException(status);
-                            }
-
-                            // Return false to indicate that the stream is complete without a message.
-                            return false;
-                        }
-
-                        throw;
+                        // Treat this like a cancellation.
+                        throw new OperationCanceledException();
                     }
                 }
 
@@ -170,7 +162,13 @@ namespace Grpc.Net.Client.Internal
                 if (Current == null)
                 {
                     // No more content in response so mark as finished
-                    _call.FinishResponse(throwOnFail: true);
+                    var status = GrpcProtocolHelpers.GetResponseStatus(_httpResponse);
+                    _call.FinishResponse(status);
+                    if (status.StatusCode != StatusCode.OK)
+                    {
+                        throw _call.CreateFailureStatusException(status);
+                    }
+
                     return false;
                 }
 
@@ -179,6 +177,17 @@ namespace Grpc.Net.Client.Internal
             }
             catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
             {
+                if (_call.ResponseFinished)
+                {
+                    // Call status will have been set before dispose.
+                    var status = await _call.CallTask.ConfigureAwait(false);
+                    if (status.StatusCode == StatusCode.OK)
+                    {
+                        // Return false to indicate that the stream is complete without a message.
+                        return false;
+                    }
+                }
+
                 throw _call.CreateCanceledStatusException();
             }
             finally

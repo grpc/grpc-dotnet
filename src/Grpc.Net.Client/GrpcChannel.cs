@@ -17,12 +17,9 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Mail;
-using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
@@ -40,6 +37,9 @@ namespace Grpc.Net.Client
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 
+        private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
+        private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
+
         internal Uri Address { get; }
         internal HttpClient HttpClient { get; }
         internal int? SendMaxMessageSize { get; }
@@ -51,7 +51,6 @@ namespace Grpc.Net.Client
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
-
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
         internal bool DisableClientDeadlineTimer { get; set; }
@@ -60,6 +59,8 @@ namespace Grpc.Net.Client
 
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
+            _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
+
             // Dispose the HttpClient if...
             //   1. No client was specified and so the channel created the HttpClient itself
             //   2. User has specified a client and set DisposeHttpClient to true
@@ -73,6 +74,7 @@ namespace Grpc.Net.Client
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
+            _createMethodInfoFunc = CreateMethodInfo;
 
             if (channelOptions.Credentials != null)
             {
@@ -84,6 +86,19 @@ namespace Grpc.Net.Client
 
                 ValidateChannelCredentials();
             }
+        }
+
+        internal GrpcMethodInfo GetCachedGrpcMethodInfo(IMethod method)
+        {
+            return _methodInfoCache.GetOrAdd(method, _createMethodInfoFunc);
+        }
+
+        private GrpcMethodInfo CreateMethodInfo(IMethod method)
+        {
+            var uri = new Uri(method.FullName, UriKind.Relative);
+            var scope = new GrpcCallScope(method.Type, uri);
+
+            return new GrpcMethodInfo(scope, new Uri(Address, uri));
         }
 
         private static Dictionary<string, ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)

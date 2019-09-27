@@ -25,19 +25,29 @@ using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal class PushStreamContent : HttpContent
+    internal class PushStreamContent<TRequest, TResponse> : HttpContent
+        where TRequest : class
+        where TResponse : class
     {
-        private readonly Func<Stream, Task> _onStreamAvailable;
+        private readonly HttpContentClientStreamWriter<TRequest, TResponse> _streamWriter;
 
-        public PushStreamContent(Func<Stream, Task> onStreamAvailable, MediaTypeHeaderValue mediaType)
+        public PushStreamContent(HttpContentClientStreamWriter<TRequest, TResponse> streamWriter, MediaTypeHeaderValue mediaType)
         {
-            _onStreamAvailable = onStreamAvailable;
             Headers.ContentType = mediaType;
+            _streamWriter = streamWriter;
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
-            return _onStreamAvailable(stream);
+            // Immediately flush request stream to send headers
+            // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081
+            await stream.FlushAsync().ConfigureAwait(false);
+
+            // Pass request stream to writer
+            _streamWriter.WriteStreamTcs.TrySetResult(stream);
+
+            // Wait for the writer to report it is complete
+            await _streamWriter.CompleteTcs.Task.ConfigureAwait(false);
         }
 
         protected override bool TryComputeLength(out long length)

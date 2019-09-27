@@ -68,11 +68,10 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
-            Assert.AreEqual(GrpcProtocolConstants.TEHeader, httpRequestMessage.Headers.TE.Single());
+            Assert.AreEqual(GrpcProtocolConstants.TEHeaderValue, httpRequestMessage.Headers.TE.Single().Value);
             Assert.AreEqual("identity,gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
 
             var userAgent = httpRequestMessage.Headers.UserAgent.Single();
-            Assert.AreEqual(GrpcProtocolConstants.UserAgentHeader, userAgent);
             Assert.AreEqual("grpc-dotnet", userAgent.Product.Name);
             Assert.IsTrue(!string.IsNullOrEmpty(userAgent.Product.Version));
 
@@ -118,7 +117,7 @@ namespace Grpc.Net.Client.Tests
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
-                CancellationToken.None).DefaultTimeout();
+                CancellationToken.None).AsTask().DefaultTimeout();
 
             Assert.AreEqual("World", requestMessage.Name);
         }

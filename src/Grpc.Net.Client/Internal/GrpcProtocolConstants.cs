@@ -51,8 +51,12 @@ namespace Grpc.Net.Client.Internal
 
         internal static readonly string DefaultMessageAcceptEncodingValue;
 
-        internal static readonly ProductInfoHeaderValue UserAgentHeader;
-        internal static readonly TransferCodingWithQualityHeaderValue TEHeader;
+        internal static readonly Version ProtocolVersion = new Version(2, 0);
+
+        internal static readonly string UserAgentHeader;
+        internal static readonly string UserAgentHeaderValue;
+        internal static readonly string TEHeader;
+        internal static readonly string TEHeaderValue;
 
         static GrpcProtocolConstants()
         {
@@ -75,9 +79,10 @@ namespace Grpc.Net.Client.Internal
                 userAgent += "/" + assemblyVersion.Version;
             }
 
-            UserAgentHeader = ProductInfoHeaderValue.Parse(userAgent);
-
-            TEHeader = new TransferCodingWithQualityHeaderValue("trailers");
+            UserAgentHeader = "User-Agent";
+            UserAgentHeaderValue = userAgent;
+            TEHeader = "TE";
+            TEHeaderValue = "trailers";
 
             DefaultMessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', DefaultCompressionProviders.Select(p => p.Key));
         }

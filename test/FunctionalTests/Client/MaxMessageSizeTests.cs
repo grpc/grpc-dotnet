@@ -43,7 +43,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.State.ToString() == "Error reading message.")
+                    writeContext.Message == "Error reading message.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'ResourceExhausted', Message: 'Received message exceeds the maximum configured message size.'.")
                 {
                     return true;
                 }
