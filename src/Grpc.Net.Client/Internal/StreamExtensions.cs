@@ -48,7 +48,7 @@ namespace Grpc.Net.Client
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static Task<TResponse?> ReadSingleMessageAsync<TResponse>(
+        public static ValueTask<TResponse?> ReadSingleMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
@@ -61,7 +61,7 @@ namespace Grpc.Net.Client
             return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, true);
         }
 
-        public static Task<TResponse?> ReadStreamedMessageAsync<TResponse>(
+        public static ValueTask<TResponse?> ReadStreamedMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
@@ -74,7 +74,7 @@ namespace Grpc.Net.Client
             return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, false);
         }
 
-        private static async Task<TResponse?> ReadMessageCoreAsync<TResponse>(
+        private static async ValueTask<TResponse?> ReadMessageCoreAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
@@ -98,7 +98,7 @@ namespace Grpc.Net.Client
 
                 int read;
                 var received = 0;
-                while ((read = await responseStream.ReadAsync(header, received, header.Length - received, cancellationToken).ConfigureAwait(false)) > 0)
+                while ((read = await responseStream.ReadAsync(header.AsMemory(received, header.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
                 {
                     received += read;
 
@@ -138,7 +138,7 @@ namespace Grpc.Net.Client
                 {
                     received = 0;
                     messageData = new byte[length];
-                    while ((read = await responseStream.ReadAsync(messageData, received, messageData.Length - received, cancellationToken).ConfigureAwait(false)) > 0)
+                    while ((read = await responseStream.ReadAsync(messageData.AsMemory(received, messageData.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
                     {
                         received += read;
 
@@ -188,7 +188,7 @@ namespace Grpc.Net.Client
                 {
                     // Check that there is no additional content in the stream for a single message
                     // There is no ReadByteAsync on stream. Reuse header array with ReadAsync, we don't need it anymore
-                    if (await responseStream.ReadAsync(header, 0, 1).ConfigureAwait(false) > 0)
+                    if (await responseStream.ReadAsync(header.AsMemory(0, 1)).ConfigureAwait(false) > 0)
                     {
                         throw new InvalidDataException("Unexpected data after finished reading message.");
                     }
@@ -238,7 +238,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        public static async Task WriteMessageAsync<TMessage>(
+        public static async ValueTask WriteMessageAsync<TMessage>(
             this Stream stream,
             ILogger logger,
             TMessage message,
@@ -315,7 +315,7 @@ namespace Grpc.Net.Client
             throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
         }
 
-        private static Task WriteHeaderAsync(Stream stream, int length, bool compress, CancellationToken cancellationToken)
+        private static ValueTask WriteHeaderAsync(Stream stream, int length, bool compress, CancellationToken cancellationToken)
         {
             var headerData = new byte[HeaderSize];
 
@@ -325,7 +325,7 @@ namespace Grpc.Net.Client
             // Message length
             EncodeMessageLength(length, headerData.AsSpan(1));
 
-            return stream.WriteAsync(headerData, 0, headerData.Length, cancellationToken);
+            return stream.WriteAsync(headerData.AsMemory(0, headerData.Length), cancellationToken);
         }
 
         private static void EncodeMessageLength(int messageLength, Span<byte> destination)

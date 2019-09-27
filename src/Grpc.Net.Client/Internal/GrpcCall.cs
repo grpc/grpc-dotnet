@@ -17,14 +17,10 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -36,17 +32,18 @@ namespace Grpc.Net.Client.Internal
         where TRequest : class
         where TResponse : class
     {
+        // Getting logger name from generic type is slow
+        private const string LoggerName = "Grpc.Net.Client.Internal.GrpcCall";
+
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
+        private readonly TaskCompletionSource<Metadata> _metadataTcs;
         private readonly TimeSpan? _timeout;
-        private readonly Uri _uri;
-        private readonly GrpcCallScope _logScope;
+        private readonly GrpcMethodInfo _grpcMethodInfo;
 
         private Timer? _deadlineTimer;
         private Metadata? _trailers;
         private CancellationTokenRegistration? _ctsRegistration;
-        private TaskCompletionSource<Stream>? _writeStreamTcs;
-        private TaskCompletionSource<bool>? _writeCompleteTcs;
 
         public bool Disposed { get; private set; }
         public bool ResponseFinished { get; private set; }
@@ -54,25 +51,27 @@ namespace Grpc.Net.Client.Internal
         public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
         public GrpcChannel Channel { get; }
-
         public ILogger Logger { get; }
-        public Task? SendTask { get; private set; }
+
+        // These are set depending on the type of gRPC call
+        private TaskCompletionSource<TResponse>? _responseTcs;
         public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, CallOptions options, GrpcChannel channel)
+        public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
 
             _callCts = new CancellationTokenSource();
-            _callTcs = new TaskCompletionSource<Status>(TaskContinuationOptions.RunContinuationsAsynchronously);
+            // Run the callTcs continuation immediately to keep the same context. Required for Activity.
+            _callTcs = new TaskCompletionSource<Status>();
+            _metadataTcs = new TaskCompletionSource<Metadata>(TaskCreationOptions.RunContinuationsAsynchronously);
             Method = method;
-            _uri = new Uri(method.FullName, UriKind.Relative);
-            _logScope = new GrpcCallScope(method.Type, _uri);
+            _grpcMethodInfo = grpcMethodInfo;
             Options = options;
             Channel = channel;
-            Logger = channel.LoggerFactory.CreateLogger<GrpcCall<TRequest, TResponse>>();
+            Logger = channel.LoggerFactory.CreateLogger(LoggerName);
 
             if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
             {
@@ -98,32 +97,36 @@ namespace Grpc.Net.Client.Internal
 
         public void StartUnary(TRequest request)
         {
+            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
-            _ = StartAsync(message);
+            _ = RunCall(message);
         }
 
         public void StartClientStreaming()
         {
+            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             var message = CreateHttpRequestMessage();
-            ClientStreamWriter = CreateWriter(message);
-            _ = StartAsync(message);
+            CreateWriter(message);
+            _ = RunCall(message);
         }
 
         public void StartServerStreaming(TRequest request)
         {
             var message = CreateHttpRequestMessage();
             SetMessageContent(request, message);
-            _ = StartAsync(message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
+            _ = RunCall(message);
         }
 
         public void StartDuplexStreaming()
         {
             var message = CreateHttpRequestMessage();
-            ClientStreamWriter = CreateWriter(message);
-            _ = StartAsync(message);
+            CreateWriter(message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
+            _ = RunCall(message);
         }
 
         public void Dispose()
@@ -157,12 +160,11 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                _writeStreamTcs?.TrySetCanceled();
-                _writeCompleteTcs?.TrySetCanceled();
-
-                // If response has successfully finished then the status will come from the trailers
-                // If it didn't finish then complete with a status
                 _callTcs.TrySetResult(status);
+
+                ClientStreamWriter?.WriteStreamTcs.TrySetCanceled();
+                ClientStreamWriter?.CompleteTcs.TrySetCanceled();
+                ClientStreamReader?.HttpResponseTcs.TrySetCanceled();
             }
 
             _ctsRegistration?.Dispose();
@@ -171,10 +173,10 @@ namespace Grpc.Net.Client.Internal
             ClientStreamReader?.Dispose();
             ClientStreamWriter?.Dispose();
 
-            // To avoid racing with Dispose, skip disposing the call CTS
-            // This avoid Dispose potentially calling cancel on a disposed CTS
+            // To avoid racing with Dispose, skip disposing the call CTS.
+            // This avoid Dispose potentially calling cancel on a disposed CTS.
             // The call CTS is not exposed externally and all dependent registrations
-            // are cleaned up
+            // are cleaned up.
         }
 
         public void EnsureNotDisposed()
@@ -190,74 +192,26 @@ namespace Grpc.Net.Client.Internal
             var status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
             return new RpcException(status);
         }
-
+        
         /// <summary>
         /// Marks the response as finished, i.e. all response content has been read and trailers are available.
         /// Can be called by <see cref="GetResponseAsync"/> for unary and client streaming calls, or
         /// <see cref="HttpContentClientStreamReader{TRequest,TResponse}.MoveNextCore(CancellationToken)"/>
         /// for server streaming and duplex streaming calls.
         /// </summary>
-        public void FinishResponse(bool throwOnFail, Status? status = null)
+        public void FinishResponse(Status status)
         {
             ResponseFinished = true;
-            Debug.Assert(HttpResponse != null);
-
-            if (status == null)
-            {
-                try
-                {
-                    if (!TryGetStatusCore(HttpResponse, out status))
-                    {
-                        status = new Status(StatusCode.Cancelled, "No grpc-status found on response.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Handle error from parsing badly formed status
-                    status = new Status(StatusCode.Cancelled, ex.Message);
-                }
-            }
 
             // Clean up call resources once this call is finished
             // Call may not be explicitly disposed when used with unary methods
             // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
-            Cleanup(status.Value);
-
-            if (throwOnFail)
-            {
-                // Get status from response before dispose
-                // This may throw an error if the grpc-status is missing or malformed
-                if (status.Value.StatusCode == StatusCode.DeadlineExceeded &&
-                    Channel.ThrowOperationCanceledOnCancellation)
-                {
-                    throw new OperationCanceledException("Call returned a deadline exceeded status.");
-                }
-                else if (status.Value.StatusCode != StatusCode.OK)
-                {
-                    throw new RpcException(status.Value);
-                }
-            }
+            Cleanup(status);
         }
 
-        public async Task<Metadata> GetResponseHeadersAsync()
+        public Task<Metadata> GetResponseHeadersAsync()
         {
-            Debug.Assert(SendTask != null);
-
-            try
-            {
-                using (StartScope())
-                {
-                    await SendTask.ConfigureAwait(false);
-                    Debug.Assert(HttpResponse != null);
-
-                    // The task of this method is cached so there is no need to cache the headers here
-                    return GrpcProtocolHelpers.BuildMetadata(HttpResponse.Headers);
-                }
-            }
-            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledOnCancellation)
-            {
-                throw CreateCanceledStatusException();
-            }
+            return _metadataTcs.Task;
         }
 
         public Status GetStatus()
@@ -273,104 +227,42 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        public async Task<TResponse> GetResponseAsync()
+        public Task<TResponse> GetResponseAsync()
         {
-            Debug.Assert(SendTask != null);
-
-            try
-            {
-                using (StartScope())
-                {
-                    // Wait for send to finish so the HttpResponse is available
-                    await SendTask.ConfigureAwait(false);
-
-                    // Verify the call is not complete. The call should be complete once the grpc-status
-                    // has been read from trailers, which happens AFTER the message has been read.
-                    if (CallTask.IsCompletedSuccessfully)
-                    {
-                        var status = CallTask.Result;
-                        if (status.StatusCode != StatusCode.OK)
-                        {
-                            throw new RpcException(status);
-                        }
-                        else
-                        {
-                            // The server should never return StatusCode.OK in the header for a unary call.
-                            // If it does then throw an error that no message was returned from the server.
-                            Log.MessageNotReturned(Logger);
-                            throw new InvalidOperationException("Call did not return a response message");
-                        }
-                    }
-
-                    Debug.Assert(HttpResponse != null);
-
-                    // Trailers are only available once the response body had been read
-                    var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    var message = await responseStream.ReadSingleMessageAsync(
-                        Logger,
-                        Method.ResponseMarshaller.ContextualDeserializer,
-                        GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
-                        Channel.ReceiveMaxMessageSize,
-                        Channel.CompressionProviders,
-                        _callCts.Token).ConfigureAwait(false);
-                    FinishResponse(throwOnFail: true);
-
-                    if (message == null)
-                    {
-                        Log.MessageNotReturned(Logger);
-                        throw new InvalidOperationException("Call did not return a response message");
-                    }
-
-                    GrpcEventSource.Log.MessageReceived();
-
-                    // The task of this method is cached so there is no need to cache the message here
-                    return message;
-                }
-            }
-            catch (OperationCanceledException) when (!Channel.ThrowOperationCanceledOnCancellation)
-            {
-                throw CreateCanceledStatusException();
-            }
+            Debug.Assert(_responseTcs != null);
+            return _responseTcs.Task;
         }
 
-        private void ValidateHeaders()
+        private Status? ValidateHeaders(HttpResponseMessage httpResponse)
         {
-            // We don't want to throw in this method, even for non-success situations.
-            // Response is still needed to return headers in GetResponseHeadersAsync.
-
             Log.ResponseHeadersReceived(Logger);
 
-            Debug.Assert(HttpResponse != null);
-            if (HttpResponse.StatusCode != HttpStatusCode.OK)
+            if (httpResponse.StatusCode != HttpStatusCode.OK)
             {
-                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)HttpResponse.StatusCode));
-                return;
+                return new Status(StatusCode.Cancelled, "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)httpResponse.StatusCode);
             }
             
-            if (HttpResponse.Content?.Headers.ContentType == null)
+            if (httpResponse.Content?.Headers.ContentType == null)
             {
-                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header."));
-                return;
+                return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");
             }
 
-            var grpcEncoding = HttpResponse.Content.Headers.ContentType.ToString();
+            var grpcEncoding = httpResponse.Content.Headers.ContentType;
             if (!GrpcProtocolHelpers.IsGrpcContentType(grpcEncoding))
             {
-                FinishResponse(throwOnFail: false, new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding));
-                return;
+                return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
             }
             else
             {
-                if (TryGetStatusCore(HttpResponse.Headers, out var status))
+                // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
+                if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
                 {
-                    // grpc-status is returned in the header when there is no message body
-                    // For example, unimplemented method/service status
-                    FinishResponse(throwOnFail: false, status);
-                    return;
+                    return status;
                 }
             }
 
-            // Success!
+            // Call is still in progress
+            return null;
         }
 
         public Metadata GetTrailers()
@@ -391,38 +283,20 @@ namespace Grpc.Net.Client.Internal
 
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
         {
-            message.Content = new PushStreamContent(
-                (stream) =>
-                {
-                    var grpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
-
-                    var writeMessageTask = stream.WriteMessageAsync<TRequest>(
-                        Logger,
-                        request,
-                        Method.RequestMarshaller.ContextualSerializer,
-                        grpcEncoding,
-                        Channel.SendMaxMessageSize,
-                        Channel.CompressionProviders,
-                        Options);
-                    if (writeMessageTask.IsCompletedSuccessfully)
-                    {
-                        GrpcEventSource.Log.MessageSent();
-                        return Task.CompletedTask;
-                    }
-
-                    return WriteMessageCore(writeMessageTask);
-                },
+            message.Content = new PushUnaryContent<TRequest, TResponse>(
+                request,
+                this,
+                GrpcProtocolHelpers.GetRequestEncoding(message.Headers),
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
-
-            static async Task WriteMessageCore(Task writeMessageTask)
-            {
-                await writeMessageTask.ConfigureAwait(false);
-                GrpcEventSource.Log.MessageSent();
-            }
         }
 
         private void CancelCall(Status status)
         {
+            // Set overall call status first. Status can be used in throw RpcException from cancellation.
+            // If response has successfully finished then the status will come from the trailers.
+            // If it didn't finish then complete with a status.
+            _callTcs.TrySetResult(status);
+
             // Checking if cancellation has already happened isn't threadsafe
             // but there is no adverse effect other than an extra log message
             if (!_callCts.IsCancellationRequested)
@@ -439,13 +313,19 @@ namespace Grpc.Net.Client.Internal
                 HttpResponse?.Dispose();
 
                 // Canceling call will cancel pending writes to the stream
-                _writeCompleteTcs?.TrySetCanceled();
-                _writeStreamTcs?.TrySetCanceled();
-            }
+                ClientStreamWriter?.WriteStreamTcs.TrySetCanceled();
+                ClientStreamWriter?.CompleteTcs.TrySetCanceled();
+                ClientStreamReader?.HttpResponseTcs.TrySetCanceled();
 
-            // If response has successfully finished then the status will come from the trailers
-            // If it didn't finish then complete with a status
-            _callTcs.TrySetResult(status);
+                if (!Channel.ThrowOperationCanceledOnCancellation)
+                {
+                    _metadataTcs.TrySetException(new RpcException(status));
+                }
+                else
+                {
+                    _metadataTcs.TrySetCanceled(_callCts.Token);
+                }
+            }
         }
 
         internal IDisposable? StartScope()
@@ -454,93 +334,220 @@ namespace Grpc.Net.Client.Internal
             // in at least Critical level for performance
             if (Logger.IsEnabled(LogLevel.Critical))
             {
-                return Logger.BeginScope(_logScope);
+                return Logger.BeginScope(_grpcMethodInfo.LogScope);
             }
 
             return null;
         }
 
-        private async Task StartAsync(HttpRequestMessage request)
+        private async ValueTask RunCall(HttpRequestMessage request)
         {
             using (StartScope())
             {
-                if (_timeout != null && !Channel.DisableClientDeadlineTimer)
-                {
-                    Log.StartingDeadlineTimeout(Logger, _timeout.Value);
+                var (diagnosticSourceEnabled, activity) = InitializeCall(request);
 
-                    // Deadline timer will cancel the call CTS
-                    // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
-                    // the call CTS before they are created and leave them in a non-canceled state
-                    _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+                if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
+                {
+                    await ReadCredentials(request).ConfigureAwait(false);
                 }
 
-                Log.StartingCall(Logger, Method.Type, request.RequestUri);
-                GrpcEventSource.Log.CallStart(Method.FullName);
+                Status? status = null;
 
-                var diagnosticSourceEnabled =
-                    GrpcDiagnostics.DiagnosticListener.IsEnabled() &&
-                    GrpcDiagnostics.DiagnosticListener.IsEnabled(GrpcDiagnostics.ActivityName, request);
-
-                Activity? activity = null;
-
-                // Set activity if:
-                // 1. Diagnostic source is enabled
-                // 2. Logging is enabled
-                // 3. There is an existing activity (to enable activity propagation)
-                if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+                try
                 {
-                    activity = new Activity(GrpcDiagnostics.ActivityName);
-                    activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
-                    activity.Start();
-
-                    if (diagnosticSourceEnabled)
+                    try
                     {
-                        GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStartKey, new { Request = request });
+                        HttpResponse = await Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
                     }
-                }
-
-                SendTask = SendAsync(request);
-
-                // Wait until the call is complete
-                // TCS will be set in Dispose
-                var status = await CallTask.ConfigureAwait(false);
-
-                if (status.StatusCode != StatusCode.OK)
-                {
-                    Log.GrpcStatusError(Logger, status.StatusCode, status.Detail);
-                    GrpcEventSource.Log.CallFailed(status.StatusCode);
-                }
-                Log.FinishedCall(Logger);
-                GrpcEventSource.Log.CallStop();
-
-                // Activity needs to be stopped in the same execution context it was started
-                if (activity != null)
-                {
-                    var statusText = status.StatusCode.ToString("D");
-                    if (statusText != null)
+                    catch (Exception ex)
                     {
-                        activity.AddTag(GrpcDiagnostics.GrpcStatusCodeTagName, statusText);
+                        Log.ErrorStartingCall(Logger, ex);
+                        throw;
                     }
 
-                    if (diagnosticSourceEnabled)
+                    BuildMetadata(HttpResponse);
+
+                    status = ValidateHeaders(HttpResponse);
+
+                    // A status means either the call has failed or grpc-status was returned in the response header
+                    if (status != null)
                     {
-                        // Stop sets the end time if it was unset, but we want it set before we issue the write
-                        // so we do it now.   
-                        if (activity.Duration == TimeSpan.Zero)
+                        if (_responseTcs != null)
                         {
-                            activity.SetEndTime(DateTime.UtcNow);
+                            // gRPC status in the header
+                            if (status.Value.StatusCode != StatusCode.OK)
+                            {
+                                SetFailedResult(status.Value);
+                            }
+                            else
+                            {
+                                // The server should never return StatusCode.OK in the header for a unary call.
+                                // If it does then throw an error that no message was returned from the server.
+                                Log.MessageNotReturned(Logger);
+                                _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
+                            }
                         }
 
-                        GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStopKey, new { Request = request, Response = HttpResponse });
+                        FinishResponse(status.Value);
+                    }
+                    else
+                    {
+                        if (_responseTcs != null)
+                        {
+                            // Read entire response body immediately and read status from trailers
+                            // Trailers are only available once the response body had been read
+                            var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                            var message = await responseStream.ReadSingleMessageAsync(
+                                Logger,
+                                Method.ResponseMarshaller.ContextualDeserializer,
+                                GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
+                                Channel.ReceiveMaxMessageSize,
+                                Channel.CompressionProviders,
+                                _callCts.Token).ConfigureAwait(false);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
+                            FinishResponse(status.Value);
+
+                            if (message == null)
+                            {
+                                Log.MessageNotReturned(Logger);
+                                SetFailedResult(status.Value);
+                            }
+                            else
+                            {
+                                GrpcEventSource.Log.MessageReceived();
+
+                                if (status.Value.StatusCode == StatusCode.OK)
+                                {
+                                    _responseTcs.TrySetResult(message);
+                                }
+                                else
+                                {
+                                    SetFailedResult(status.Value);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Duplex or server streaming call
+                            Debug.Assert(ClientStreamReader != null);
+                            ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
+
+                            // Wait until the response has been read and status read from trailers.
+                            // TCS will also be set in Dispose.
+                            status = await CallTask.ConfigureAwait(false);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Exception resolvedException;
+                    if (ex is OperationCanceledException)
+                    {
+                        status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+                        resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : new RpcException(status.Value);
+                    }
+                    else if (ex is RpcException rpcException)
+                    {
+                        status = rpcException.Status;
+                        resolvedException = new RpcException(status.Value);
+                    }
+                    else
+                    {
+                        status = new Status(StatusCode.Internal, "Error starting gRPC call: " + ex.Message);
+                        resolvedException = new RpcException(status.Value);
                     }
 
-                    activity.Stop();
+                    _metadataTcs.TrySetException(resolvedException);
+                    _responseTcs?.TrySetException(resolvedException);
+
+                    Cleanup(status!.Value);
                 }
+
+                FinishCall(request, diagnosticSourceEnabled, activity, status);
             }
         }
 
-        private async Task SendAsync(HttpRequestMessage request)
+        private void SetFailedResult(Status status)
         {
+            Debug.Assert(_responseTcs != null);
+
+            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                // Convert status response of DeadlineExceeded to OperationCanceledException when
+                // ThrowOperationCanceledOnCancellation is true.
+                // This avoids a race between the client-side timer and the server status throwing different
+                // errors on deadline exceeded.
+                _responseTcs.TrySetCanceled();
+            }
+            else
+            {
+                _responseTcs.TrySetException(new RpcException(status));
+            }
+        }
+
+        public Exception CreateFailureStatusException(Status status)
+        {
+            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                // Convert status response of DeadlineExceeded to OperationCanceledException when
+                // ThrowOperationCanceledOnCancellation is true.
+                // This avoids a race between the client-side timer and the server status throwing different
+                // errors on deadline exceeded.
+                return new OperationCanceledException();
+            }
+            else
+            {
+                return new RpcException(status);
+            }
+        }
+
+        private void BuildMetadata(HttpResponseMessage httpResponse)
+        {
+            try
+            {
+                _metadataTcs.TrySetResult(GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers));
+            }
+            catch (Exception ex)
+            {
+                _metadataTcs.TrySetException(ex);
+            }
+        }
+
+        private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request)
+        {
+            if (_timeout != null && !Channel.DisableClientDeadlineTimer)
+            {
+                Log.StartingDeadlineTimeout(Logger, _timeout.Value);
+
+                // Deadline timer will cancel the call CTS
+                // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
+                // the call CTS before they are created and leave them in a non-canceled state
+                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+            }
+
+            Log.StartingCall(Logger, Method.Type, request.RequestUri);
+            GrpcEventSource.Log.CallStart(Method.FullName);
+
+            var diagnosticSourceEnabled = GrpcDiagnostics.DiagnosticListener.IsEnabled() &&
+                GrpcDiagnostics.DiagnosticListener.IsEnabled(GrpcDiagnostics.ActivityName, request);
+            Activity? activity = null;
+
+            // Set activity if:
+            // 1. Diagnostic source is enabled
+            // 2. Logging is enabled
+            // 3. There is an existing activity (to enable activity propagation)
+            if (diagnosticSourceEnabled || Logger.IsEnabled(LogLevel.Critical) || Activity.Current != null)
+            {
+                activity = new Activity(GrpcDiagnostics.ActivityName);
+                activity.AddTag(GrpcDiagnostics.GrpcMethodTagName, Method.FullName);
+                activity.Start();
+
+                if (diagnosticSourceEnabled)
+                {
+                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStartKey, new { Request = request });
+                }
+            }
+
             if (Options.CancellationToken.CanBeCanceled)
             {
                 // The cancellation token will cancel the call CTS.
@@ -555,133 +562,92 @@ namespace Grpc.Net.Client.Internal
                 });
             }
 
-            if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
-            {
-                // In C-Core the call credential auth metadata is only applied if the channel is secure
-                // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
-                // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
-                if (Channel.Address.Scheme == Uri.UriSchemeHttps)
-                {
-                    var configurator = new DefaultCallCredentialsConfigurator();
+            return (diagnosticSourceEnabled, activity);
+        }
 
-                    if (Options.Credentials != null)
+        private void FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status? status)
+        {
+            if (status!.Value.StatusCode != StatusCode.OK)
+            {
+                Log.GrpcStatusError(Logger, status.Value.StatusCode, status.Value.Detail);
+                GrpcEventSource.Log.CallFailed(status.Value.StatusCode);
+            }
+            Log.FinishedCall(Logger);
+            GrpcEventSource.Log.CallStop();
+
+            // Activity needs to be stopped in the same execution context it was started
+            if (activity != null)
+            {
+                var statusText = status.Value.StatusCode.ToString("D");
+                if (statusText != null)
+                {
+                    activity.AddTag(GrpcDiagnostics.GrpcStatusCodeTagName, statusText);
+                }
+
+                if (diagnosticSourceEnabled)
+                {
+                    // Stop sets the end time if it was unset, but we want it set before we issue the write
+                    // so we do it now.   
+                    if (activity.Duration == TimeSpan.Zero)
                     {
-                        await ReadCredentialMetadata(configurator, Channel, request, Options.Credentials).ConfigureAwait(false);
+                        activity.SetEndTime(DateTime.UtcNow);
                     }
-                    if (Channel.CallCredentials?.Count > 0)
+
+                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStopKey, new { Request = request, Response = HttpResponse });
+                }
+
+                activity.Stop();
+            }
+        }
+
+        private async Task ReadCredentials(HttpRequestMessage request)
+        {
+            // In C-Core the call credential auth metadata is only applied if the channel is secure
+            // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
+            // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
+            if (Channel.Address.Scheme == Uri.UriSchemeHttps)
+            {
+                var configurator = new DefaultCallCredentialsConfigurator();
+
+                if (Options.Credentials != null)
+                {
+                    await GrpcProtocolHelpers.ReadCredentialMetadata(configurator, Channel, request, Method, Options.Credentials).ConfigureAwait(false);
+                }
+                if (Channel.CallCredentials?.Count > 0)
+                {
+                    foreach (var credentials in Channel.CallCredentials)
                     {
-                        foreach (var credentials in Channel.CallCredentials)
-                        {
-                            await ReadCredentialMetadata(configurator, Channel, request, credentials).ConfigureAwait(false);
-                        }
+                        await GrpcProtocolHelpers.ReadCredentialMetadata(configurator, Channel, request, Method, credentials).ConfigureAwait(false);
                     }
                 }
-                else
-                {
-                    Log.CallCredentialsNotUsed(Logger);
-                }
             }
-
-            try
+            else
             {
-                HttpResponse = await Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Log.ErrorStartingCall(Logger, ex);
-                CancelCall(new Status(StatusCode.Cancelled, "Error starting gRPC call."));
-                throw;
-            }
-
-            ValidateHeaders();
-        }
-
-        private async Task ReadCredentialMetadata(
-            DefaultCallCredentialsConfigurator configurator,
-            GrpcChannel channel,
-            HttpRequestMessage message,
-            CallCredentials credentials)
-        {
-            credentials.InternalPopulateConfiguration(configurator, null);
-
-            if (configurator.Interceptor != null)
-            {
-                var authInterceptorContext = CreateAuthInterceptorContext(channel.Address, Method);
-                var metadata = new Metadata();
-                await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
-
-                foreach (var entry in metadata)
-                {
-                    AddHeader(message.Headers, entry);
-                }
-            }
-
-            if (configurator.Credentials != null)
-            {
-                // Copy credentials locally. ReadCredentialMetadata will update it.
-                var callCredentials = configurator.Credentials;
-                foreach (var c in callCredentials)
-                {
-                    configurator.Reset();
-                    await ReadCredentialMetadata(configurator, channel, message, c).ConfigureAwait(false);
-                }
+                Log.CallCredentialsNotUsed(Logger);
             }
         }
 
-        private static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
+        private void CreateWriter(HttpRequestMessage message)
         {
-            var authority = baseAddress.Authority;
-            if (baseAddress.Scheme == Uri.UriSchemeHttps && authority.EndsWith(":443", StringComparison.Ordinal))
-            {
-                // The service URL can be used by auth libraries to construct the "aud" fields of the JWT token,
-                // so not producing serviceUrl compatible with other gRPC implementations can lead to auth failures.
-                // For https and the default port 443, the port suffix should be stripped.
-                // https://github.com/grpc/grpc/blob/39e982a263e5c48a650990743ed398c1c76db1ac/src/core/lib/security/transport/client_auth_filter.cc#L205
-                authority = authority.Substring(0, authority.Length - 4);
-            }
-            var serviceUrl = baseAddress.Scheme + "://" + authority + baseAddress.AbsolutePath;
-            if (!serviceUrl.EndsWith("/", StringComparison.Ordinal))
-            {
-                serviceUrl += "/";
-            }
-            serviceUrl += method.ServiceName;
-            return new AuthInterceptorContext(serviceUrl, method.Name);
-        }
+            ClientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this, message);
 
-        private HttpContentClientStreamWriter<TRequest, TResponse> CreateWriter(HttpRequestMessage message)
-        {
-            _writeStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _writeCompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            message.Content = new PushStreamContent(
-                async stream =>
-                {
-                    // Immediately flush request stream to send headers
-                    // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081
-                    await stream.FlushAsync().ConfigureAwait(false);
-
-                    // Pass request stream to writer
-                    _writeStreamTcs.TrySetResult(stream);
-
-                    // Wait for the writer to report it is complete
-                    await _writeCompleteTcs.Task.ConfigureAwait(false);
-                },
-                GrpcProtocolConstants.GrpcContentTypeHeaderValue);
-
-            var writer = new HttpContentClientStreamWriter<TRequest, TResponse>(this, message, _writeStreamTcs.Task, _writeCompleteTcs);
-            return writer;
+            message.Content = new PushStreamContent<TRequest, TResponse>(ClientStreamWriter, GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
 
         private HttpRequestMessage CreateHttpRequestMessage()
         {
-            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(Channel.Address, _uri));
-            message.Version = new Version(2, 0);
-            // User agent is optional but recommended
-            message.Headers.UserAgent.Add(GrpcProtocolConstants.UserAgentHeader);
-            // TE is required by some servers, e.g. C Core
-            // A missing TE header results in servers aborting the gRPC call
-            message.Headers.TE.Add(GrpcProtocolConstants.TEHeader);
-            message.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
+            var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
+            message.Version = GrpcProtocolConstants.ProtocolVersion;
+
+            // Set raw headers on request using name/values. Typed headers allocate additional objects.
+            var headers = message.Headers;
+
+            // User agent is optional but recommended.
+            headers.Add(GrpcProtocolConstants.UserAgentHeader, GrpcProtocolConstants.UserAgentHeaderValue);
+            // TE is required by some servers, e.g. C Core.
+            // A missing TE header results in servers aborting the gRPC call.
+            headers.Add(GrpcProtocolConstants.TEHeader, GrpcProtocolConstants.TEHeaderValue);
+            headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {
@@ -697,49 +663,21 @@ namespace Grpc.Net.Client.Internal
                         // grpc-internal-encoding-request is used in the client to set message compression.
                         // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
                         // individual messages will not be written with compression.
-                        message.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
+                        headers.Add(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
                     }
                     else
                     {
-                        AddHeader(message.Headers, entry);
+                        GrpcProtocolHelpers.AddHeader(headers, entry);
                     }
                 }
             }
 
             if (_timeout != null)
             {
-                message.Headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(Convert.ToInt64(_timeout.Value.TotalMilliseconds)));
+                headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(Convert.ToInt64(_timeout.Value.TotalMilliseconds)));
             }
 
             return message;
-        }
-
-        private static void AddHeader(HttpRequestHeaders headers, Metadata.Entry entry)
-        {
-            var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-            headers.Add(entry.Key, value);
-        }
-
-        private class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
-        {
-            public AsyncAuthInterceptor? Interceptor { get; private set; }
-            public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
-
-            public void Reset()
-            {
-                Interceptor = null;
-                Credentials = null;
-            }
-
-            public override void SetAsyncAuthInterceptorCredentials(object state, AsyncAuthInterceptor interceptor)
-            {
-                Interceptor = interceptor;
-            }
-
-            public override void SetCompositeCredentials(object state, IReadOnlyList<CallCredentials> credentials)
-            {
-                Credentials = credentials;
-            }
         }
 
         private void DeadlineExceeded(object state)
@@ -755,82 +693,6 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private static bool TryGetStatusCore(HttpResponseMessage httpResponseMessage, [NotNullWhen(true)]out Status? status)
-        {
-            if (TryGetStatusCore(httpResponseMessage.TrailingHeaders, out status))
-            {
-                return true;
-            }
-
-            // A gRPC server may return gRPC status in the headers when the response stream is empty
-            // For example, C Core server returns them together in the empty_stream interop test
-            if (TryGetStatusCore(httpResponseMessage.Headers, out status))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryGetStatusCore(HttpResponseHeaders headers, [NotNullWhen(true)]out Status? status)
-        {
-            var grpcStatus = GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
-
-            // grpc-status is a required trailer
-            if (grpcStatus == null)
-            {
-                status = null;
-                return false;
-            }
-
-            int statusValue;
-            if (!int.TryParse(grpcStatus, out statusValue))
-            {
-                throw new InvalidOperationException("Unexpected grpc-status value: " + grpcStatus);
-            }
-
-            // grpc-message is optional
-            // Always read the gRPC message from the same headers collection as the status
-            var grpcMessage = GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
-
-            if (!string.IsNullOrEmpty(grpcMessage))
-            {
-                // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#responses
-                // The value portion of Status-Message is conceptually a Unicode string description of the error,
-                // physically encoded as UTF-8 followed by percent-encoding.
-                grpcMessage = Uri.UnescapeDataString(grpcMessage);
-            }
-
-            status = new Status((StatusCode)statusValue, grpcMessage);
-            return true;
-        }
-
-        private static string? GetHeaderValue(HttpHeaders? headers, string name)
-        {
-            if (headers == null)
-            {
-                return null;
-            }
-
-            if (!headers.TryGetValues(name, out var values))
-            {
-                return null;
-            }
-
-            // HttpHeaders appears to always return an array, but fallback to converting values to one just in case
-            var valuesArray = values as string[] ?? values.ToArray();
-
-            switch (valuesArray.Length)
-            {
-                case 0:
-                    return null;
-                case 1:
-                    return valuesArray[0];
-                default:
-                    throw new InvalidOperationException($"Multiple {name} headers.");
-            }
-        }
-
         private void ValidateTrailersAvailable()
         {
             // Response is finished
@@ -839,22 +701,9 @@ namespace Grpc.Net.Client.Internal
                 return;
             }
 
-            // HttpClient.SendAsync could have failed
-            Debug.Assert(SendTask != null);
-            if (SendTask.IsFaulted)
-            {
-                throw new InvalidOperationException("Can't get the call trailers because an error occured when making the request.", SendTask.Exception);
-            }
-
-            // Call could have been canceled or deadline exceeded
-            if (_callCts.IsCancellationRequested)
-            {
-                // Throw InvalidOperationException here because documentation on GetTrailers says that
-                // InvalidOperationException is thrown if the call is not complete.
-                throw new InvalidOperationException("Can't get the call trailers because the call was canceled.");
-            }
-
-            throw new InvalidOperationException("Can't get the call trailers because the call is not complete.");
+            // Throw InvalidOperationException here because documentation on GetTrailers says that
+            // InvalidOperationException is thrown if the call is not complete.
+            throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
         }
     }
 }
