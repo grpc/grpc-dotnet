@@ -294,11 +294,11 @@ namespace Grpc.Net.Client.Tests
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+            Assert.AreEqual("Can't write the message because the call is complete.", ex.Message);
+            Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         }
     }
 }

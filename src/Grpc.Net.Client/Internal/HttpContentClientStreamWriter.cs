@@ -90,28 +90,29 @@ namespace Grpc.Net.Client.Internal
             {
                 using (_call.StartScope())
                 {
-                    // Call has been canceled
-                    if (_call.CancellationToken.IsCancellationRequested)
-                    {
-                        if (!_call.Channel.ThrowOperationCanceledOnCancellation)
-                        {
-                            return Task.FromException(_call.CreateCanceledStatusException());
-                        }
-                        else
-                        {
-                            return Task.FromCanceled(_call.CancellationToken);
-                        }
-                    }
-
                     // Call has already completed
                     if (_call.CallTask.IsCompletedSuccessfully)
                     {
+                        var status = _call.CallTask.Result;
+                        if (_call.CancellationToken.IsCancellationRequested &&
+                            (status.StatusCode == StatusCode.Cancelled || status.StatusCode == StatusCode.DeadlineExceeded))
+                        {
+                            if (!_call.Channel.ThrowOperationCanceledOnCancellation)
+                            {
+                                return Task.FromException(_call.CreateCanceledStatusException());
+                            }
+                            else
+                            {
+                                return Task.FromCanceled(_call.CancellationToken);
+                            }
+                        }
+
                         return CreateErrorTask("Can't write the message because the call is complete.");
                     }
 
                     // CompleteAsync has already been called
                     // Use IsCompleted here because that will track success and cancellation
-                    else if (CompleteTcs.Task.IsCompleted)
+                    if (CompleteTcs.Task.IsCompleted)
                     {
                         return CreateErrorTask("Can't write the message because the client stream writer is complete.");
                     }
