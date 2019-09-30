@@ -146,10 +146,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                       writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                       writeContext.Exception!.Message == "Cannot write message after request is complete.";
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                {
+                    // Deadline happened before write
+                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
+                    {
+                        return true;
+                    }
+
+                    // Deadline happened during write (error raised from pipeline writer)
+                    if (writeContext.Exception is InvalidOperationException &&
+                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             });
 
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
