@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Internal
                 }
                 else
                 {
-                    return Task.FromException<bool>(new RpcException(status));
+                    return Task.FromException<bool>(_call.CreateRpcException(status));
                 }
             }
 
