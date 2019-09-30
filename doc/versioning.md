@@ -16,11 +16,11 @@ This document covers versioning policies of the packages produced in this repo:
 
 ### Major version number
 
-The initial major version number was set to 2 to match the release of corresponding Grpc.Core packages. Going forward, the major version will be incremented when there's a need to ingest a major Grpc.Core or ASP.NET Core dependency for breaking changes.
+The initial major version number was set to 2 to match the release of corresponding Grpc.Core packages. Going forward, the major version will be incremented when there's a need to ingest a major Grpc.Core or ASP.NET Core dependency for breaking changes. Grpc.Core follows these [versioning policies](https://github.com/grpc/grpc/blob/master/doc/versioning.md) and major version is only incremented on rare occasions.
 
 ### Minor version number
 
-The initial minor version number was set to 23 to match the release of corresponding Grpc.Core packages. Going forward, we will be releasing on the Grpc.Core schedule and should match the minor version number of the corresponding release.
+The initial minor version number was set to 23 to match the release of corresponding Grpc.Core packages. Going forward, we will be releasing on the Grpc.Core schedule and should match the minor version number of the corresponding release. The Grpc.Core release schedule can be found [here](https://github.com/grpc/grpc/blob/master/doc/grpc_release_schedule.md).
 
 ### Patch version number
 
