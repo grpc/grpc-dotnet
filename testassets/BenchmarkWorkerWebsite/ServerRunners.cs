@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace BenchmarkWorkerWebsite
@@ -42,7 +43,7 @@ namespace BenchmarkWorkerWebsite
         {
             logger.LogInformation("ServerConfig: {0}", config);
 
-            var webHostBuilder = WebHost.CreateDefaultBuilder();
+            var hostBuilder = Host.CreateDefaultBuilder();
 
             if (config.AsyncServerThreads != 0)
             {
@@ -69,36 +70,39 @@ namespace BenchmarkWorkerWebsite
                 logger.LogWarning("Grpc.AspNetCore server doesn't support autoselecting of listening port. Setting port explictly to " + port);
             }
 
-            webHostBuilder.ConfigureKestrel((context, options) =>
+            hostBuilder.ConfigureWebHostDefaults(webHostBuilder =>
             {
-                options.ListenAnyIP(port, listenOptions =>
+                webHostBuilder.ConfigureKestrel((context, options) =>
                 {
-                    // TODO(jtattermusch): use TLS if config.SecurityParams != null
-                    listenOptions.Protocols = HttpProtocols.Http2;
+                    options.ListenAnyIP(port, listenOptions =>
+                    {
+                        // TODO(jtattermusch): use TLS if config.SecurityParams != null
+                        listenOptions.Protocols = HttpProtocols.Http2;
+                    });
                 });
+
+                if (config.ServerType == ServerType.AsyncServer)
+                {
+                    GrpcPreconditions.CheckArgument(config.PayloadConfig == null,
+                        "ServerConfig.PayloadConfig shouldn't be set for BenchmarkService based server.");
+                    webHostBuilder.UseStartup<BenchmarkServiceStartup>();
+                }
+                else if (config.ServerType == ServerType.AsyncGenericServer)
+                {
+                    var genericService = new GenericServiceImpl(config.PayloadConfig.BytebufParams.RespSize);
+                    // TODO(jtattermusch): use startup with given generic service
+                    throw new ArgumentException("Generice service is not yet implemented.");
+                }
+                else
+                {
+                    throw new ArgumentException("Unsupported ServerType");
+                }
             });
 
-            if (config.ServerType == ServerType.AsyncServer)
-            {
-               GrpcPreconditions.CheckArgument(config.PayloadConfig == null,
-                   "ServerConfig.PayloadConfig shouldn't be set for BenchmarkService based server.");
-               webHostBuilder.UseStartup<BenchmarkServiceStartup>();
-            }
-            else if (config.ServerType == ServerType.AsyncGenericServer)
-            {
-               var genericService = new GenericServiceImpl(config.PayloadConfig.BytebufParams.RespSize);
-               // TODO(jtattermusch): use startup with given generic service
-               throw new ArgumentException("Generice service is not yet implemented.");
-            }
-            else
-            {
-               throw new ArgumentException("Unsupported ServerType");
-            }
-
             // Don't log requests handled by the benchmarking service
-            webHostBuilder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
+            hostBuilder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
 
-            var webHost = webHostBuilder.Build();
+            var webHost = hostBuilder.Build();
             webHost.Start();
             return new ServerRunnerImpl(webHost, logger, port);
         }
@@ -150,14 +154,14 @@ namespace BenchmarkWorkerWebsite
     /// </summary>
     public class ServerRunnerImpl : IServerRunner
     {
-        readonly IWebHost webHost;
+        readonly IHost host;
         readonly ILogger logger;
         readonly int boundPort;
         readonly TimeStats timeStats = new TimeStats();
 
-        public ServerRunnerImpl(IWebHost webHost, ILogger logger, int boundPort)
+        public ServerRunnerImpl(IHost host, ILogger logger, int boundPort)
         {
-            this.webHost = webHost;
+            this.host = host;
             this.logger = logger;
             this.boundPort = boundPort;
         }
@@ -189,7 +193,7 @@ namespace BenchmarkWorkerWebsite
         /// <returns>Task that finishes when server has shutdown.</returns>
         public Task StopAsync()
         {
-            return webHost.StopAsync();
+            return host.StopAsync();
         }
     }
 }
