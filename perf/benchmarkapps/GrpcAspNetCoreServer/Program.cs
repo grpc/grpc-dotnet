@@ -33,10 +33,10 @@ namespace GrpcAspNetCoreServer
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            CreateHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args)
+        public static IHostBuilder CreateHostBuilder(string[] args)
         {
             Console.WriteLine();
             Console.WriteLine("ASP.NET Core gRPC Benchmarks");
@@ -51,16 +51,47 @@ namespace GrpcAspNetCoreServer
                 .AddCommandLine(args)
                 .Build();
 
-            var webHostBuilder =
-                WebHost.CreateDefaultBuilder(args)
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseConfiguration(config)
-                .UseStartup<Startup>()
+            var hostBuilder = Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseContentRoot(Directory.GetCurrentDirectory());
+                    webBuilder.UseConfiguration(config);
+                    webBuilder.UseStartup<Startup>();
+
+                    webBuilder.ConfigureKestrel((context, options) =>
+                    {
+                        var endPoint = config.CreateIPEndPoint();
+
+                        options.Listen(endPoint, listenOptions =>
+                        {
+                            var protocol = config["protocol"] ?? "";
+
+                            Console.WriteLine($"Protocol: {protocol}");
+
+                            if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+
+                                var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                                var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
+                                listenOptions.UseHttps(certPath, "testPassword");
+                            }
+                            else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http2;
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException($"Unexpected protocol: {protocol}");
+                            }
+                        });
+                    });
+                })
                 .ConfigureLogging(loggerFactory =>
                 {
                     loggerFactory.ClearProviders();
 
-                    if (Enum.TryParse(config["LogLevel"], out LogLevel logLevel))
+                    if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel))
                     {
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
                         loggerFactory.AddConsole().SetMinimumLevel(logLevel);
@@ -69,37 +100,9 @@ namespace GrpcAspNetCoreServer
                 .UseDefaultServiceProvider((context, options) =>
                 {
                     options.ValidateScopes = context.HostingEnvironment.IsDevelopment();
-                })
-                .ConfigureKestrel((context, options) =>
-                {
-                    var endPoint = config.CreateIPEndPoint();
-
-                    options.Listen(endPoint, listenOptions =>
-                    {
-                        var protocol = config["protocol"] ?? "";
-
-                        Console.WriteLine($"Protocol: {protocol}");
-
-                        if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
-                        {
-                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-
-                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                            var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
-                            listenOptions.UseHttps(certPath, "testPassword");
-                        }
-                        else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
-                        {
-                            listenOptions.Protocols = HttpProtocols.Http2;
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException($"Unexpected protocol: {protocol}");
-                        }
-                    });
                 });
 
-            return webHostBuilder;
+            return hostBuilder;
         }
     }
 }

@@ -31,20 +31,19 @@ namespace Grpc.Net.Client.Internal
     {
         private readonly GrpcCall<TRequest, TResponse> _call;
         private readonly string _grpcEncoding;
-        private readonly Task<Stream> _writeStreamTask;
-        private readonly TaskCompletionSource<bool> _completeTcs;
         private readonly object _writeLock;
         private Task? _writeTask;
 
+        public TaskCompletionSource<Stream> WriteStreamTcs { get; }
+        public TaskCompletionSource<bool> CompleteTcs { get; }
+
         public HttpContentClientStreamWriter(
             GrpcCall<TRequest, TResponse> call,
-            HttpRequestMessage message,
-            Task<Stream> writeStreamTask,
-            TaskCompletionSource<bool> completeTcs)
+            HttpRequestMessage message)
         {
             _call = call;
-            _writeStreamTask = writeStreamTask;
-            _completeTcs = completeTcs;
+            WriteStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+            CompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _writeLock = new object();
             WriteOptions = _call.Options.WriteOptions;
             _grpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
@@ -71,7 +70,7 @@ namespace Grpc.Net.Client.Internal
                     }
 
                     // Notify that the client stream is complete
-                    _completeTcs.TrySetResult(true);
+                    CompleteTcs.TrySetResult(true);
                 }
             }
 
@@ -91,27 +90,29 @@ namespace Grpc.Net.Client.Internal
             {
                 using (_call.StartScope())
                 {
-                    // Call has been canceled
-                    if (_call.CancellationToken.IsCancellationRequested)
-                    {
-                        if (!_call.Channel.ThrowOperationCanceledOnCancellation)
-                        {
-                            return Task.FromException(_call.CreateCanceledStatusException());
-                        }
-                        else
-                        {
-                            return Task.FromCanceled(_call.CancellationToken);
-                        }
-                    }
-
                     // Call has already completed
                     if (_call.CallTask.IsCompletedSuccessfully)
                     {
+                        var status = _call.CallTask.Result;
+                        if (_call.CancellationToken.IsCancellationRequested &&
+                            (status.StatusCode == StatusCode.Cancelled || status.StatusCode == StatusCode.DeadlineExceeded))
+                        {
+                            if (!_call.Channel.ThrowOperationCanceledOnCancellation)
+                            {
+                                return Task.FromException(_call.CreateCanceledStatusException());
+                            }
+                            else
+                            {
+                                return Task.FromCanceled(_call.CancellationToken);
+                            }
+                        }
+
                         return CreateErrorTask("Can't write the message because the call is complete.");
                     }
 
                     // CompleteAsync has already been called
-                    if (_completeTcs.Task.IsCompletedSuccessfully)
+                    // Use IsCompleted here because that will track success and cancellation
+                    if (CompleteTcs.Task.IsCompleted)
                     {
                         return CreateErrorTask("Can't write the message because the client stream writer is complete.");
                     }
@@ -146,7 +147,7 @@ namespace Grpc.Net.Client.Internal
             try
             {
                 // Wait until the client stream has started
-                var writeStream = await _writeStreamTask.ConfigureAwait(false);
+                var writeStream = await WriteStreamTcs.Task.ConfigureAwait(false);
 
                 // WriteOptions set on the writer take precedence over the CallOptions.WriteOptions
                 var callOptions = _call.Options;

@@ -13,6 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Avoid NU5128 warning. TFM in dependencies group of the nuspec must match lib/ref content. -->
+    <None Include="lib\**\*">
+      <Pack>True</Pack>
+      <PackagePath>lib</PackagePath>
+    </None>
+
     <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
     <ProjectReference Include="..\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" PrivateAssets="None" />
 

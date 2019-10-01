@@ -19,6 +19,7 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Hosting;
 
 namespace FunctionalTestsWebsite
 {
@@ -26,18 +27,21 @@ namespace FunctionalTestsWebsite
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            CreateHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .ConfigureKestrel(options =>
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    options.ListenLocalhost(50051, listenOptions =>
+                    webBuilder.ConfigureKestrel(options =>
                     {
-                        listenOptions.Protocols = HttpProtocols.Http2;
+                        options.ListenLocalhost(50051, listenOptions =>
+                        {
+                            listenOptions.Protocols = HttpProtocols.Http2;
+                        });
                     });
-                })
-                .UseStartup<Startup>();
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }

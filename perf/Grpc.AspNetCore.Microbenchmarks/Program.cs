@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
         {
             var benchmark = new Client.UnaryClientBenchmark();
             benchmark.GlobalSetup();
-            for (var i = 0; i < 100; i++)
+            for (var i = 0; i < 1000; i++)
             {
                 await benchmark.HandleCallAsync();
             }

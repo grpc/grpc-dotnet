@@ -32,7 +32,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ReceivedMessageExceedsDefaultSize_ThrowError()
         {
-            Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+            Task<HelloReply> ReturnLargeMessage(HelloRequest request, ServerCallContext context)
             {
                 // Return message is 4 MB + 1 B. Default receive size is 4 MB
                 return Task.FromResult(new HelloReply { Message = new string('!', (1024 * 1024 * 4) + 1) });
@@ -43,7 +43,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.State.ToString() == "Error reading message.")
+                    writeContext.Message == "Error reading message.")
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "GrpcStatusError" &&
+                    writeContext.Message == "Call failed with gRPC error status. Status code: 'ResourceExhausted', Message: 'Received message exceeds the maximum configured message size.'.")
                 {
                     return true;
                 }
@@ -51,7 +58,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 return false;
             });
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnLargeMessage);
 
             var channel = CreateChannel();
             channel.DisableClientDeadlineTimer = true;

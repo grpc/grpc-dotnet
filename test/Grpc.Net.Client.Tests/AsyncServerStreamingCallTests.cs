@@ -186,8 +186,8 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var headers = await call.ResponseHeadersAsync;
-            await call.ResponseStream.MoveNext(CancellationToken.None);
+            var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+            Assert.IsFalse(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
 
             // Assert
             Assert.NotNull(responseMessage);
@@ -215,8 +215,8 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var headers = await call.ResponseHeadersAsync;
-            await call.ResponseStream.MoveNext(CancellationToken.None);
+            var headers = await call.ResponseHeadersAsync.DefaultTimeout();
+            await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout();
 
             // Assert
             Assert.IsTrue(responseMessage!.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers

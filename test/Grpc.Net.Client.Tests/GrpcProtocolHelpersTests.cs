@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net.Http.Headers;
 using Grpc.Net.Client.Internal;
 using NUnit.Framework;
 
@@ -51,6 +52,21 @@ namespace Grpc.Net.Client.Tests
         {
             var encoded = GrpcProtocolHelpers.EncodeTimeout(milliseconds);
             Assert.AreEqual(expected, encoded);
+        }
+
+        [TestCase("application/grpc", true)]
+        [TestCase("APPLICATION/GRPC", true)]
+        [TestCase("application/grpc+proto", true)]
+        [TestCase("application/grpc+json", true)]
+        [TestCase("application/grpc+BLAH", true)]
+        [TestCase("application/grpc+json; charset=utf8", true)]
+        [TestCase("text/plain", false)]
+        [TestCase("text/plain+json", false)]
+        public void IsGrpcContentType(string contentType, bool valid)
+        {
+            var v = MediaTypeHeaderValue.Parse(contentType);
+
+            Assert.AreEqual(valid, GrpcProtocolHelpers.IsGrpcContentType(v));
         }
     }
 }

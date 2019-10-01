@@ -4,6 +4,11 @@
   <Import Project="build\version.props" />
 
   <PropertyGroup>
+    <!-- Set versions for all projects. Avoids warnings from non-preview projects referencing preview projects -->
+    <Version>$(GrpcDotnetVersion)</Version>
+    <AssemblyVersion>$(GrpcDotnetAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(GrpcDotnetAssemblyFileVersion)</FileVersion>
+
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)keys\Grpc.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

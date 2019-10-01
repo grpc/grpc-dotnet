@@ -124,7 +124,8 @@ namespace Grpc.Net.Client.Internal
                 throw new ObjectDisposedException(nameof(GrpcChannel));
             }
 
-            var call = new GrpcCall<TRequest, TResponse>(method, options, Channel);
+            var methodInfo = Channel.GetCachedGrpcMethodInfo(method);
+            var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, Channel);
 
             return call;
         }

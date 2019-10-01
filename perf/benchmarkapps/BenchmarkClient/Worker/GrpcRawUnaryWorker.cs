@@ -89,7 +89,7 @@ namespace BenchmarkClient.Worker
         public Task ConnectAsync()
         {
             var handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
             _client = new HttpClient(handler);
             return Task.CompletedTask;
