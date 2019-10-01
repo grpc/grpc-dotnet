@@ -51,7 +51,7 @@ namespace GrpcAspNetCoreServer
                 .AddCommandLine(args)
                 .Build();
 
-            var webHostBuilder = Host.CreateDefaultBuilder(args)
+            var hostBuilder = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseContentRoot(Directory.GetCurrentDirectory());
@@ -102,7 +102,7 @@ namespace GrpcAspNetCoreServer
                     options.ValidateScopes = context.HostingEnvironment.IsDevelopment();
                 });
 
-            return webHostBuilder;
+            return hostBuilder;
         }
     }
 }
