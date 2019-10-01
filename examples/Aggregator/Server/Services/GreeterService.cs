@@ -48,7 +48,6 @@ namespace Server
 
                 await responseStream.WriteAsync(new HelloReply { Message = message });
 
-                // Gotta look busy
                 await Task.Delay(1000);
             }
         }
