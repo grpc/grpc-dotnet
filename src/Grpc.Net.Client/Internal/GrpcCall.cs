@@ -237,6 +237,13 @@ namespace Grpc.Net.Client.Internal
         {
             Log.ResponseHeadersReceived(Logger);
 
+            // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
+            // An explicitly specified status header has priority over other failing statuses
+            if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
+            {
+                return status;
+            }
+
             if (httpResponse.StatusCode != HttpStatusCode.OK)
             {
                 var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
@@ -252,14 +259,6 @@ namespace Grpc.Net.Client.Internal
             if (!GrpcProtocolHelpers.IsGrpcContentType(grpcEncoding))
             {
                 return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
-            }
-            else
-            {
-                // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
-                if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
-                {
-                    return status;
-                }
             }
 
             // Call is still in progress

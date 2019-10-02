@@ -66,6 +66,30 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_Non200HttpStatusCodeWithGrpcStatusCode_GrpcStatusCodeTakesPriority()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var response = new HttpResponseMessage { StatusCode = HttpStatusCode.Continue };
+                response.Headers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.DataLoss.ToString("D"));
+                return Task.FromResult(response);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DataLoss, ex.StatusCode);
+
+            var status = call.GetStatus();
+            Assert.AreEqual(StatusCode.DataLoss, status.StatusCode);
+            Assert.AreEqual(null, status.Detail);
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_ValidStatusReturned_ReturnsStatus()
         {
             // Arrange
