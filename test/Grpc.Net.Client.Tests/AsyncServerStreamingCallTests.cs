@@ -166,8 +166,8 @@ namespace Grpc.Net.Client.Tests
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
 
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual("Bad gRPC response. Expected HTTP status code 200. Got status code: 404", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Unimplemented, ex.StatusCode);
+            Assert.AreEqual("Bad gRPC response. HTTP status code: 404", ex.Status.Detail);
         }
 
         [Test]
