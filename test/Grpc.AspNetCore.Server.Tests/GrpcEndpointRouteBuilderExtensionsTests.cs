@@ -21,6 +21,7 @@ using System.Linq;
 using Greet;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
+using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttributeRouting;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
@@ -89,6 +90,12 @@ namespace Grpc.AspNetCore.Server.Tests
         public void MapGrpcService_CanBindSubSubclass_CreatesEndpoints()
         {
             BindServiceCore<GreeterWithAttributeServiceSubSubClass>();
+        }
+
+        [Test]
+        public void MapGrpcService_CanBindAttributeRoutedClass_CreatesEndpoints()
+        {
+            BindServiceCore<GreeterWithAttributeRoutingService>();
         }
 
         private void BindServiceCore<TService>() where TService : class
