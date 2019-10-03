@@ -31,6 +31,17 @@ The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET
 
 * Bi-directional streaming call
 
+## [Logger](./logger)
+
+The logger shows how to use interceptors on the client and server. The client interceptor adds additional metadata to each call and the server interceptor logs that metadata on the server.
+
+##### Scenarios:
+
+* Creating a client interceptor
+* Using a client interceptor
+* Creating a server interceptor
+* Using a server interceptor
+
 ## Racer
 
 The racer shows how to create a bi-directional streaming gRPC method in ASP.NET Core and call it from a client. The client and the server each send messages as quickly as possible.
