@@ -106,4 +106,4 @@ dotnet run --EnableOpenTelemetry=true
 * Client factory
 * Client canceling a call
 * Cancellation propagation
-* Capture traces with [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-dotnet) (optional)
+* Capture tracing with [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-dotnet) (optional)
