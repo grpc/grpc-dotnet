@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Unimplemented;
+package unimplemented;
 
 // No service is registered on the server so methods will return unimplemented
 service UnimplementedService {

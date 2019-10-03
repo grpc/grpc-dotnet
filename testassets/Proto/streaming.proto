@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Streaming;
+package streaming;
 
 service StreamService {
   rpc BufferAllData (stream DataMessage) returns (stream DataMessage);

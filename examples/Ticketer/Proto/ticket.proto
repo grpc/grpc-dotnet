@@ -15,7 +15,8 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-package Ticket;
+
+package ticket;
 
 // The banker service definition.
 service Ticketer {

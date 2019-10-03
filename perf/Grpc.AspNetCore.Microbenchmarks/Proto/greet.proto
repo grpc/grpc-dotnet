@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Greet;
+package greet;
 
 import "google/protobuf/timestamp.proto";
 

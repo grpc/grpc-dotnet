@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Race;
+package race;
 
 service Racer {
   rpc ReadySetGo (stream RaceMessage) returns (stream RaceMessage);

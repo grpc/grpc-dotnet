@@ -15,7 +15,8 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-package Certify;
+
+package certify;
 
 service Certifier {
   rpc GetCertificateInfo (google.protobuf.Empty) returns (CertificateInfoResponse);

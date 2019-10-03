@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Chat;
+package chat;
 
 // The greeting service definition.
 service Chatter {
