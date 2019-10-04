@@ -16,12 +16,14 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Text;
 using Grpc.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 
 namespace GrpcAspNetCoreServer
@@ -34,8 +36,11 @@ namespace GrpcAspNetCoreServer
             services.AddControllers();
         }
 
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
         {
+            // Required to notify performance infrastructure that it can begin benchmarks
+            applicationLifetime.ApplicationStarted.Register(() => Console.WriteLine("Application started."));
+
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {

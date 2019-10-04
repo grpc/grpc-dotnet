@@ -19,6 +19,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using Common;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -29,6 +30,18 @@ using Microsoft.Extensions.Logging;
 
 namespace GrpcAspNetCoreServer
 {
+    public class sdfsf : IHostApplicationLifetime
+    {
+        public CancellationToken ApplicationStarted { get; }
+        public CancellationToken ApplicationStopped { get; }
+        public CancellationToken ApplicationStopping { get; }
+
+        public void StopApplication()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class Program
     {
         public static void Main(string[] args)
@@ -86,6 +99,10 @@ namespace GrpcAspNetCoreServer
                             }
                         });
                     });
+                })
+                .ConfigureServices(services =>
+                {
+
                 })
                 .ConfigureLogging(loggerFactory =>
                 {
