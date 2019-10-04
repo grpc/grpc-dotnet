@@ -2,7 +2,7 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
-    <GoogleProtobufPackageVersion>3.9.1</GoogleProtobufPackageVersion>
+    <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.23.2</GrpcDotNetPackageVersion>
     <GrpcPackageVersion>2.23.0</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0-preview8.19405.7</MicrosoftAspNetCorePackageVersion>
