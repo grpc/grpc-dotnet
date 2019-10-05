@@ -4,11 +4,17 @@ using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttributeRouting
 {
+    public sealed class EmptyMarshaller<T> : Marshaller<T> where T : new()
+    {
+        public EmptyMarshaller() : base(t => new byte[0], b => new T()) { }
+    }
+
     [GrpcService]
     public sealed class GreeterWithAttributeRoutingService
     {
         [GrpcMethod]
-        public Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        [return: GrpcMarshaller(typeof(EmptyMarshaller<HelloReply>))]
+        public Task<HelloReply> SayHello([GrpcMarshaller(typeof(EmptyMarshaller<HelloRequest>))] HelloRequest request, ServerCallContext context)
         {
             throw new RpcException(new Status(StatusCode.Unimplemented, ""));
         }

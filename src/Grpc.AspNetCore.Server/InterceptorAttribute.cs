@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GlassTerra.LiveTerrain.Admin.Api.Grpc
+namespace Grpc.AspNetCore.Server
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public sealed class InterceptorAttribute : Attribute

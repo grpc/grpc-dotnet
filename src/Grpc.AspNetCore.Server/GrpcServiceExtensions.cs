@@ -94,7 +94,6 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddSingleton<ServiceMethodsRegistry>();
             services.TryAddSingleton(typeof(ServiceRouteBuilder<>));
             services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(BinderServiceMethodProvider<>)));
-            services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(PocoServiceMethodProvider<>)));
 
             return new GrpcServerBuilder(services);
         }

@@ -29,6 +29,7 @@ namespace Grpc.Tests.Shared
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddGrpc(configureGrpc ?? (o => { }));
+            services.AddGrpcExperimental();
             return services;
         }
     }

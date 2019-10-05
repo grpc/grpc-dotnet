@@ -1,0 +1,230 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Threading.Tasks;
+using Grpc.Core;
+using Microsoft.AspNetCore.Http;
+
+namespace Grpc.AspNetCore.Server.Model.Internal
+{
+    internal sealed class ServiceMethodProvider<TService> : IServiceMethodProvider<TService> where TService : class
+    {
+        static readonly MethodInfo RegisterUnaryMethod = FindMethod(nameof(AddUnaryMethod));
+
+        readonly IUnaryServerMethodBuilder<TService> _unaryServerMethodBuilder;
+
+        public ServiceMethodProvider(IUnaryServerMethodBuilder<TService> unaryServerMethodBuilder)
+        {
+            _unaryServerMethodBuilder = unaryServerMethodBuilder;
+        }
+
+        public void OnServiceMethodDiscovery(ServiceMethodProviderContext<TService> context)
+        {
+            var serviceAttribute = typeof(TService).GetCustomAttribute<GrpcServiceAttribute>();
+
+            if (serviceAttribute == null)
+            {
+                // we should allow this and treat the GrpcServiceAttribute as an override to the default 
+                // conventions but that means that we could potentially duplicate the methods as the 
+                // binder service works first
+                return;
+            }
+
+            var serviceName = serviceAttribute.Name ?? typeof(TService).FullName;
+
+            if (serviceName == null)
+            {
+                throw new ArgumentException("Could not determine Service Name.");
+            }
+
+            foreach (var (serviceMethod, serviceMethodAttribute) in FindMethods())
+            {
+                MethodInfo method;
+                switch (serviceMethodAttribute.MethodType ?? GuessMethodType(serviceMethod))
+                {
+                    case MethodType.Unary:
+                        method = RegisterUnaryMethod
+                            .MakeGenericMethod(
+                                serviceMethodAttribute.RequestType ?? FindRequestType(MethodType.Unary, serviceMethod),
+                                serviceMethodAttribute.ResponseType ?? FindResponseType(MethodType.Unary, serviceMethod));
+                        break;
+
+                    //case MethodType.ClientStreaming:
+                    //case MethodType.DuplexStreaming:
+                    //case MethodType.ServerStreaming:
+                    default:
+                        continue;
+                }
+
+                method.Invoke(this, new object[] { context, serviceName, serviceMethod });
+            }
+        }
+
+        void AddUnaryMethod<TRequest, TResponse>(ServiceMethodProviderContext<TService> context, string serviceName, MethodInfo method) 
+            where TRequest : class 
+            where TResponse : class
+        {
+            var unaryMethod = CreateUnaryMethod<TRequest, TResponse>(serviceName, method);
+
+            context.AddUnaryMethod(
+                unaryMethod,
+                Array.Empty<object>(),
+                _unaryServerMethodBuilder.Build<TRequest, TResponse>(method),
+                options =>
+                {
+                    foreach (var interceptor in FindInterceptors(method))
+                    {
+                        options.Interceptors.Add(interceptor.InterceptorType, interceptor.Args);
+                    }
+                });
+        }
+
+        static Method<TRequest, TResponse> CreateUnaryMethod<TRequest, TResponse>(string serviceName, MethodInfo method)
+        {
+            var serviceMethodAttribute = method.GetCustomAttribute<GrpcMethodAttribute>();
+
+            return new Method<TRequest, TResponse>(
+                MethodType.Unary, 
+                serviceName, 
+                serviceMethodAttribute?.Name ?? method.Name,
+                CreateRequestMarshaller<TRequest>(method), 
+                CreateResponseMarshaller<TResponse>(method));
+        }
+
+        static Marshaller<TRequest> CreateRequestMarshaller<TRequest>(MethodInfo method)
+        {
+            var parameter = method.GetParameters().SingleOrDefault(p => p.ParameterType == typeof(TRequest));
+
+            if (parameter == null)
+            {
+                throw CouldNotCreateRequestMarshallerException();
+            }
+
+            var attribute = parameter.GetCustomAttribute<GrpcMarshallerAttribute>();
+
+            if (attribute == null)
+            {
+                throw CouldNotCreateRequestMarshallerException();
+            }
+
+            var marshaller = CreateMarshaller<TRequest>(attribute);
+
+            if (marshaller == null)
+            {
+                throw CouldNotCreateRequestMarshallerException();
+            }
+
+            return marshaller;
+
+            static Exception CouldNotCreateRequestMarshallerException() => new InvalidOperationException("Could not create a Request Marshaller.");
+        }
+
+        static Marshaller<TResponse> CreateResponseMarshaller<TResponse>(MethodInfo method)
+        {
+            if (method.ReturnParameter == null)
+            {
+                throw CouldNotCreateResponseMarshallerException();
+            }
+
+            var attribute = method.ReturnParameter.GetCustomAttribute<GrpcMarshallerAttribute>();
+
+            if (attribute == null)
+            {
+                throw CouldNotCreateResponseMarshallerException();
+            }
+
+            var marshaller = CreateMarshaller<TResponse>(attribute);
+
+            if (marshaller == null)
+            {
+                throw CouldNotCreateResponseMarshallerException();
+            }
+
+            return marshaller;
+
+            static Exception CouldNotCreateResponseMarshallerException() => new InvalidOperationException("Could create a Response Marshaller.");
+        }
+
+        static Marshaller<T>? CreateMarshaller<T>(GrpcMarshallerAttribute attribute)
+        {
+            if (attribute == null)
+            {
+                throw new ArgumentNullException(nameof(attribute));
+            }
+
+            return Activator.CreateInstance(attribute.MarshallerType) as Marshaller<T>;
+        }
+
+        static MethodType GuessMethodType(MethodInfo method)
+        {
+            // TODO: guess the method type based on the method signature
+            return MethodType.Unary;
+        }
+
+        static MethodInfo FindMethod(string name)
+        {
+            var bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
+
+            var method = typeof(ServiceMethodProvider<TService>).GetMethod(name, bindingFlags);
+
+            if (method == null)
+            {
+                throw new InvalidOperationException($"Method {name} could not be found.");
+            }
+
+            return method;
+        }
+
+        static IEnumerable<(MethodInfo, GrpcMethodAttribute)> FindMethods()
+        {
+            foreach (var method in typeof(TService).GetRuntimeMethods())
+            {
+                var attribute = method.GetCustomAttribute<GrpcMethodAttribute>();
+
+                if (attribute != null)
+                {
+                    yield return (method, attribute);
+                }
+            }
+        }
+
+        static Type FindRequestType(MethodType methodType, MethodInfo method)
+        {
+            foreach (var parameter in method.GetParameters())
+            {
+                if (Attribute.IsDefined(parameter, typeof(FromServiceAttribute)))
+                {
+                    continue;
+                }
+
+                if (parameter.ParameterType == typeof(ServerCallContext))
+                {
+                    continue;
+                }
+
+                return parameter.ParameterType;
+            }
+
+            throw new InvalidOperationException("Could not find a parameter to use as the request type.");
+        }
+
+        static Type FindResponseType(MethodType methodType, MethodInfo method)
+        {
+            var type = method.ReturnType;
+
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                type = type.GetGenericArguments()[0];
+            }
+
+            return type;
+        }
+
+        static IEnumerable<InterceptorAttribute> FindInterceptors(MemberInfo method)
+        {
+            return method.GetCustomAttributes<InterceptorAttribute>();
+        }
+    }
+}
