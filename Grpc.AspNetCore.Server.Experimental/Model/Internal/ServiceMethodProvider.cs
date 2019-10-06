@@ -1,23 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
     internal sealed class ServiceMethodProvider<TService> : IServiceMethodProvider<TService> where TService : class
     {
         static readonly MethodInfo RegisterUnaryMethod = FindMethod(nameof(AddUnaryMethod));
+        static readonly MethodInfo RegisterServerStreamingMethod = FindMethod(nameof(AddServerStreamingMethod));
 
         readonly IUnaryServerMethodBuilder<TService> _unaryServerMethodBuilder;
+        readonly IServerStreamingServerMethodBuilder<TService> _serverStreamingSeverMethodBuilder;
 
-        public ServiceMethodProvider(IUnaryServerMethodBuilder<TService> unaryServerMethodBuilder)
+        public ServiceMethodProvider(
+            IUnaryServerMethodBuilder<TService> unaryServerMethodBuilder,
+            IServerStreamingServerMethodBuilder<TService> serverStreamingSeverMethodBuilder)
         {
             _unaryServerMethodBuilder = unaryServerMethodBuilder;
+            _serverStreamingSeverMethodBuilder = serverStreamingSeverMethodBuilder;
         }
 
         public void OnServiceMethodDiscovery(ServiceMethodProviderContext<TService> context)
@@ -51,9 +54,15 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                                 serviceMethodAttribute.ResponseType ?? FindResponseType(MethodType.Unary, serviceMethod));
                         break;
 
+                    case MethodType.ServerStreaming:
+                        method = RegisterServerStreamingMethod
+                            .MakeGenericMethod(
+                                serviceMethodAttribute.RequestType ?? FindRequestType(MethodType.ServerStreaming, serviceMethod),
+                                serviceMethodAttribute.ResponseType ?? FindResponseType(MethodType.ServerStreaming, serviceMethod));
+                        break;
+
                     //case MethodType.ClientStreaming:
                     //case MethodType.DuplexStreaming:
-                    //case MethodType.ServerStreaming:
                     default:
                         continue;
                 }
@@ -66,7 +75,16 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             where TRequest : class 
             where TResponse : class
         {
-            var unaryMethod = CreateUnaryMethod<TRequest, TResponse>(serviceName, method);
+            var serviceMethodAttribute = method.GetCustomAttribute<GrpcMethodAttribute>();
+
+            var unaryMethod = new Method<TRequest, TResponse>(
+                MethodType.Unary,
+                serviceName,
+                serviceMethodAttribute?.Name ?? method.Name,
+                CreateRequestMarshaller<TRequest>(
+                    serviceMethodAttribute?.RequestMarshallerType ?? FindRequestMarshaller<TRequest>(method)),
+                CreateResponseMarshaller<TResponse>(
+                    serviceMethodAttribute?.ResponseMarshallerType ?? FindResponseMarshaller<TResponse>(method)));
 
             context.AddUnaryMethod(
                 unaryMethod,
@@ -81,19 +99,35 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 });
         }
 
-        static Method<TRequest, TResponse> CreateUnaryMethod<TRequest, TResponse>(string serviceName, MethodInfo method)
+        void AddServerStreamingMethod<TRequest, TResponse>(ServiceMethodProviderContext<TService> context, string serviceName, MethodInfo method)
+            where TRequest : class
+            where TResponse : class
         {
             var serviceMethodAttribute = method.GetCustomAttribute<GrpcMethodAttribute>();
 
-            return new Method<TRequest, TResponse>(
-                MethodType.Unary, 
-                serviceName, 
+            var serverStreamingMethod = new Method<TRequest, TResponse>(
+                MethodType.ServerStreaming,
+                serviceName,
                 serviceMethodAttribute?.Name ?? method.Name,
-                CreateRequestMarshaller<TRequest>(method), 
-                CreateResponseMarshaller<TResponse>(method));
+                CreateRequestMarshaller<TRequest>(
+                    serviceMethodAttribute?.RequestMarshallerType ?? FindRequestMarshaller<TRequest>(method)),
+                CreateResponseMarshaller<TResponse>(
+                    serviceMethodAttribute?.ResponseMarshallerType ?? FindResponseMarshaller<TResponse>(method)));
+
+            context.AddServerStreamingMethod(
+                serverStreamingMethod,
+                Array.Empty<object>(),
+                _serverStreamingSeverMethodBuilder.Build<TRequest, TResponse>(method),
+                options =>
+                {
+                    foreach (var interceptor in FindInterceptors(method))
+                    {
+                        options.Interceptors.Add(interceptor.InterceptorType, interceptor.Args);
+                    }
+                });
         }
 
-        static Marshaller<TRequest> CreateRequestMarshaller<TRequest>(MethodInfo method)
+        static Type FindRequestMarshaller<TRequest>(MethodInfo method)
         {
             var parameter = method.GetParameters().SingleOrDefault(p => p.ParameterType == typeof(TRequest));
 
@@ -109,7 +143,14 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 throw CouldNotCreateRequestMarshallerException();
             }
 
-            var marshaller = CreateMarshaller<TRequest>(attribute);
+            return attribute.MarshallerType;
+
+            static Exception CouldNotCreateRequestMarshallerException() => new InvalidOperationException("Could not find a type to use as the Request Marshaller.");
+        }
+
+        static Marshaller<TRequest> CreateRequestMarshaller<TRequest>(Type type)
+        {
+            var marshaller = CreateMarshaller<TRequest>(type);
 
             if (marshaller == null)
             {
@@ -118,10 +159,10 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             return marshaller;
 
-            static Exception CouldNotCreateRequestMarshallerException() => new InvalidOperationException("Could not create a Request Marshaller.");
+            static Exception CouldNotCreateRequestMarshallerException() => new InvalidOperationException("Could not create an instance of a Request Marshaller.");
         }
 
-        static Marshaller<TResponse> CreateResponseMarshaller<TResponse>(MethodInfo method)
+        static Type FindResponseMarshaller<TResponse>(MethodInfo method)
         {
             if (method.ReturnParameter == null)
             {
@@ -135,7 +176,14 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 throw CouldNotCreateResponseMarshallerException();
             }
 
-            var marshaller = CreateMarshaller<TResponse>(attribute);
+            return attribute.MarshallerType;
+
+            static Exception CouldNotCreateResponseMarshallerException() => new InvalidOperationException("Could find a type to use as the Response Marshaller.");
+        }
+
+        static Marshaller<TResponse> CreateResponseMarshaller<TResponse>(Type type)
+        {
+            var marshaller = CreateMarshaller<TResponse>(type);
 
             if (marshaller == null)
             {
@@ -144,28 +192,35 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             return marshaller;
 
-            static Exception CouldNotCreateResponseMarshallerException() => new InvalidOperationException("Could create a Response Marshaller.");
+            static Exception CouldNotCreateResponseMarshallerException() => new InvalidOperationException("Could create an instance of a Response Marshaller.");
         }
 
-        static Marshaller<T>? CreateMarshaller<T>(GrpcMarshallerAttribute attribute)
+        static Marshaller<T>? CreateMarshaller<T>(Type type)
         {
-            if (attribute == null)
+            if (type == null)
             {
-                throw new ArgumentNullException(nameof(attribute));
+                throw new ArgumentNullException(nameof(type));
             }
 
-            return Activator.CreateInstance(attribute.MarshallerType) as Marshaller<T>;
+            return Activator.CreateInstance(type) as Marshaller<T>;
         }
 
         static MethodType GuessMethodType(MethodInfo method)
         {
-            // TODO: guess the method type based on the method signature
+            foreach (var parameter in method.GetParameters())
+            {
+                if (parameter.ParameterType.IsServerStreamWriter())
+                {
+                    return MethodType.ServerStreaming;
+                }
+            }
+
             return MethodType.Unary;
         }
 
         static MethodInfo FindMethod(string name)
         {
-            var bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
+            const BindingFlags bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
 
             var method = typeof(ServiceMethodProvider<TService>).GetMethod(name, bindingFlags);
 

@@ -19,9 +19,12 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttributeRouting
             throw new RpcException(new Status(StatusCode.Unimplemented, ""));
         }
 
-        //public Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        //{
-        //    throw new RpcException(new Status(StatusCode.Unimplemented, ""));
-        //}
+        [GrpcMethod(
+            ResponseType = typeof(HelloReply),
+            ResponseMarshallerType = typeof(EmptyMarshaller<HelloReply>))]
+        public Task SayHellos([GrpcMarshaller(typeof(EmptyMarshaller<HelloRequest>))] HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        {
+            throw new RpcException(new Status(StatusCode.Unimplemented, ""));
+        }
     }
 }

@@ -36,8 +36,18 @@ namespace Grpc.AspNetCore.Server
         public Type? RequestType { get; set; }
 
         /// <summary>
+        /// The type to use as the request marshaller.
+        /// </summary>
+        public Type? RequestMarshallerType { get; set; }
+
+        /// <summary>
         /// The response type for the method.
         /// </summary>
         public Type? ResponseType { get; set; }
+
+        /// <summary>
+        /// The type to use as the response marshaller.
+        /// </summary>
+        public Type? ResponseMarshallerType { get; set; }
     }
 }

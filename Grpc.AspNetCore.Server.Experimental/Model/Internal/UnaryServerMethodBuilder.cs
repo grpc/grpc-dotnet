@@ -8,11 +8,6 @@ using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
-    interface IUnaryServerMethodBuilder<TService>
-    {
-        UnaryServerMethod<TService, TRequest, TResponse> Build<TRequest, TResponse>(MethodInfo method);
-    }
-
     internal sealed class UnaryServerMethodBuilder<TService> : IUnaryServerMethodBuilder<TService>
     {
         static readonly MethodInfo? GetServiceMethod = typeof(IServiceProvider).GetMethod(nameof(IServiceProvider.GetService));

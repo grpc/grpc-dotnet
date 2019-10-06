@@ -23,7 +23,9 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(ServiceMethodProvider<>)));
+            
             services.TryAddTransient(typeof(IUnaryServerMethodBuilder<>), typeof(UnaryServerMethodBuilder<>));
+            services.TryAddTransient(typeof(IServerStreamingServerMethodBuilder<>), typeof(ServerStreamingServerMethodBuilder<>));
 
             return services;
         }
