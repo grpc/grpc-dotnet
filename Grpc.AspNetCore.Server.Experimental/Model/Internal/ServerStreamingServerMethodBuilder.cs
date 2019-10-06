@@ -1,4 +1,8 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Threading.Tasks;
+using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
@@ -6,7 +10,13 @@ namespace Grpc.AspNetCore.Server.Model.Internal
     {
         public ServerStreamingServerMethod<TService, TRequest, TResponse> Build<TRequest, TResponse>(MethodInfo method)
         {
-            throw new System.NotImplementedException();
+            return new ServerStreamingServerMethod<TService, TRequest, TResponse>(CreateExpression<TRequest, TResponse>(method).Compile());
+        }
+
+        static Expression<Func<TService, TRequest, IServerStreamWriter<TResponse>, ServerCallContext, Task>> CreateExpression<TRequest, TResponse>(MethodInfo method)
+        {
+            // TODO
+            return (service, request, writer, context) => Task.CompletedTask;
         }
     }
 }

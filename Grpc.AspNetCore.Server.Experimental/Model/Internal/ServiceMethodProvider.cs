@@ -259,6 +259,11 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     continue;
                 }
 
+                if (parameter.ParameterType.IsServerStreamWriter())
+                {
+                    continue;
+                }
+
                 return parameter.ParameterType;
             }
 

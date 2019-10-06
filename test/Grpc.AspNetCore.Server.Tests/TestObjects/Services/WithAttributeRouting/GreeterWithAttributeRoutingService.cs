@@ -9,7 +9,7 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttributeRouting
         public EmptyMarshaller() : base(t => new byte[0], b => new T()) { }
     }
 
-    [GrpcService]
+    [GrpcService("Greet.Greeter")]
     public sealed class GreeterWithAttributeRoutingService
     {
         [GrpcMethod]
@@ -20,9 +20,11 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttributeRouting
         }
 
         [GrpcMethod(
+            RequestType = typeof(HelloRequest),
+            RequestMarshallerType = typeof(EmptyMarshaller<HelloRequest>),
             ResponseType = typeof(HelloReply),
             ResponseMarshallerType = typeof(EmptyMarshaller<HelloReply>))]
-        public Task SayHellos([GrpcMarshaller(typeof(EmptyMarshaller<HelloRequest>))] HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        public Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
         {
             throw new RpcException(new Status(StatusCode.Unimplemented, ""));
         }
