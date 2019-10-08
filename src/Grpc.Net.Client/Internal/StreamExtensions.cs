@@ -48,47 +48,20 @@ namespace Grpc.Net.Client
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static ValueTask<TResponse?> ReadSingleMessageAsync<TResponse>(
+        public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
             int? maximumMessageSize,
             Dictionary<string, ICompressionProvider> compressionProviders,
+            bool singleMessage,
             CancellationToken cancellationToken)
-            where TResponse : class
-        {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, true);
-        }
-
-        public static ValueTask<TResponse?> ReadStreamedMessageAsync<TResponse>(
-            this Stream responseStream,
-            ILogger logger,
-            Func<DeserializationContext, TResponse> deserializer,
-            string grpcEncoding,
-            int? maximumMessageSize,
-            Dictionary<string, ICompressionProvider> compressionProviders,
-            CancellationToken cancellationToken)
-            where TResponse : class
-        {
-            return responseStream.ReadMessageCoreAsync(logger, deserializer, grpcEncoding, maximumMessageSize, compressionProviders, cancellationToken, true, false);
-        }
-
-        private static async ValueTask<TResponse?> ReadMessageCoreAsync<TResponse>(
-            this Stream responseStream,
-            ILogger logger,
-            Func<DeserializationContext, TResponse> deserializer,
-            string grpcEncoding,
-            int? maximumMessageSize,
-            Dictionary<string, ICompressionProvider> compressionProviders,
-            CancellationToken cancellationToken,
-            bool canBeEmpty,
-            bool singleMessage)
             where TResponse : class
         {
             try
             {
-                Log.ReadingMessage(logger);
+                GrpcCallLog.ReadingMessage(logger);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Read the header first
@@ -110,9 +83,9 @@ namespace Grpc.Net.Client
 
                 if (received < header.Length)
                 {
-                    if (received == 0 && canBeEmpty)
+                    if (received == 0)
                     {
-                        Log.NoMessageReturned(logger);
+                        GrpcCallLog.NoMessageReturned(logger);
                         return default;
                     }
 
@@ -178,7 +151,7 @@ namespace Grpc.Net.Client
                     messageData = decompressedMessage;
                 }
 
-                Log.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
+                GrpcCallLog.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
 
                 var deserializationContext = new DefaultDeserializationContext();
                 deserializationContext.SetPayload(messageData);
@@ -194,21 +167,21 @@ namespace Grpc.Net.Client
                     }
                 }
 
-                Log.ReceivedMessage(logger);
+                GrpcCallLog.ReceivedMessage(logger);
                 return message;
             }
             catch (Exception ex)
             {
-                Log.ErrorReadingMessage(logger, ex);
+                GrpcCallLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
         }
 
-        internal static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                Log.DecompressingMessage(logger, compressionProvider.EncodingName);
+                GrpcCallLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
                 var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
@@ -250,7 +223,7 @@ namespace Grpc.Net.Client
         {
             try
             {
-                Log.SendingMessage(logger);
+                GrpcCallLog.SendingMessage(logger);
 
                 // Serialize message first. Need to know size to prefix the length in the header
                 var serializationContext = new DefaultSerializationContext();
@@ -262,7 +235,7 @@ namespace Grpc.Net.Client
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
-                Log.SerializedMessage(logger, typeof(TMessage), data.Length);
+                GrpcCallLog.SerializedMessage(logger, typeof(TMessage), data.Length);
 
                 if (data.Length > maximumMessageSize)
                 {
@@ -287,20 +260,20 @@ namespace Grpc.Net.Client
                 await stream.WriteAsync(data, callOptions.CancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
 
-                Log.MessageSent(logger);
+                GrpcCallLog.MessageSent(logger);
             }
             catch (Exception ex)
             {
-                Log.ErrorSendingMessage(logger, ex);
+                GrpcCallLog.ErrorSendingMessage(logger, ex);
                 throw;
             }
         }
 
-        internal static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData)
+        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                Log.CompressingMessage(logger, compressionProvider.EncodingName);
+                GrpcCallLog.CompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
                 using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))

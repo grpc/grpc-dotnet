@@ -52,13 +52,14 @@ namespace Grpc.Net.Client.Tests
 
                 var requestStream = await request.Content.ReadAsStreamAsync();
 
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+                helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: true,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -101,13 +102,14 @@ namespace Grpc.Net.Client.Tests
                 var requestData = await request.Content.ReadAsByteArrayAsync();
                 isRequestNotCompressed = requestData[0] == 0;
 
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+                helloRequest = await StreamExtensions.ReadMessageAsync(
                     new MemoryStream(requestData),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: true,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -167,13 +169,14 @@ namespace Grpc.Net.Client.Tests
 
                 var requestStream = await request.Content.ReadAsStreamAsync();
 
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+                helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: true,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -213,13 +216,14 @@ namespace Grpc.Net.Client.Tests
 
                 var requestStream = await request.Content.ReadAsStreamAsync();
 
-                helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+                helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: true,
                     CancellationToken.None);
 
                 HelloReply reply = new HelloReply
@@ -264,23 +268,25 @@ namespace Grpc.Net.Client.Tests
                 var requestStream = new MemoryStream(requestData);
 
                 isRequestNotCompressed1 = requestData[0] == 0;
-                helloRequest1 = await StreamExtensions.ReadStreamedMessageAsync(
+                helloRequest1 = await StreamExtensions.ReadMessageAsync(
                     requestStream,
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: false,
                     CancellationToken.None);
 
                 isRequestNotCompressed2 = requestData[requestStream.Position] == 0;
-                helloRequest2 = await StreamExtensions.ReadStreamedMessageAsync(
+                helloRequest2 = await StreamExtensions.ReadMessageAsync(
                     requestStream,
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
                     maximumMessageSize: null,
                     GrpcProtocolConstants.DefaultCompressionProviders,
+                    singleMessage: false,
                     CancellationToken.None);
 
                 var reply = new HelloReply

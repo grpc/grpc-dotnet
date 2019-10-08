@@ -29,7 +29,11 @@ namespace Grpc.Net.Client.Internal
         where TRequest : class
         where TResponse : class
     {
+        // Getting logger name from generic type is slow
+        private const string LoggerName = "Grpc.Net.Client.Internal.HttpContentClientStreamWriter";
+
         private readonly GrpcCall<TRequest, TResponse> _call;
+        private readonly ILogger _logger;
         private readonly string _grpcEncoding;
         private readonly object _writeLock;
         private Task? _writeTask;
@@ -42,6 +46,8 @@ namespace Grpc.Net.Client.Internal
             HttpRequestMessage message)
         {
             _call = call;
+            _logger = call.Channel.LoggerFactory.CreateLogger(LoggerName);
+
             WriteStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
             CompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _writeLock = new object();
@@ -57,7 +63,7 @@ namespace Grpc.Net.Client.Internal
 
             using (_call.StartScope())
             {
-                Log.CompletingClientStream(_call.Logger);
+                Log.CompletingClientStream(_logger);
 
                 lock (_writeLock)
                 {
@@ -65,7 +71,7 @@ namespace Grpc.Net.Client.Internal
                     if (IsWriteInProgressUnsynchronized)
                     {
                         var ex = new InvalidOperationException("Can't complete the client stream writer because the previous write is in progress.");
-                        Log.CompleteClientStreamError(_call.Logger, ex);
+                        Log.CompleteClientStreamError(_logger, ex);
                         return Task.FromException(ex);
                     }
 
@@ -134,7 +140,7 @@ namespace Grpc.Net.Client.Internal
         private Task CreateErrorTask(string message)
         {
             var ex = new InvalidOperationException(message);
-            Log.WriteMessageError(_call.Logger, ex);
+            Log.WriteMessageError(_logger, ex);
             return Task.FromException(ex);
         }
 
@@ -157,14 +163,7 @@ namespace Grpc.Net.Client.Internal
                     callOptions = callOptions.WithWriteOptions(WriteOptions);
                 }
 
-                await writeStream.WriteMessageAsync<TRequest>(
-                    _call.Logger,
-                    message,
-                    _call.Method.RequestMarshaller.ContextualSerializer,
-                    _grpcEncoding,
-                    _call.Channel.SendMaxMessageSize,
-                    _call.Channel.CompressionProviders,
-                    callOptions).ConfigureAwait(false);
+                await _call.WriteMessageAsync(writeStream, message, _grpcEncoding, callOptions);
 
                 GrpcEventSource.Log.MessageSent();
             }

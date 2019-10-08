@@ -31,20 +31,28 @@ namespace Grpc.Net.Client.Internal
         where TRequest : class
         where TResponse : class
     {
+        // Getting logger name from generic type is slow
+        private const string LoggerName = "Grpc.Net.Client.Internal.HttpContentClientStreamReader";
+
         private static readonly Task<bool> FinishedTask = Task.FromResult(false);
 
         private readonly GrpcCall<TRequest, TResponse> _call;
+        private readonly ILogger _logger;
         private readonly object _moveNextLock;
 
         public TaskCompletionSource<(HttpResponseMessage, Status?)> HttpResponseTcs { get; }
+
         private HttpResponseMessage? _httpResponse;
+        private string? _grpcEncoding;
         private Stream? _responseStream;
         private Task<bool>? _moveNextTask;
 
         public HttpContentClientStreamReader(GrpcCall<TRequest, TResponse> call)
         {
             _call = call;
+            _logger = call.Channel.LoggerFactory.CreateLogger(LoggerName);
             _moveNextLock = new object();
+
             HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
@@ -97,7 +105,7 @@ namespace Grpc.Net.Client.Internal
                     if (IsMoveNextInProgressUnsynchronized)
                     {
                         var ex = new InvalidOperationException("Can't read the next message because the previous read is still in progress.");
-                        Log.ReadMessageError(_call.Logger, ex);
+                        Log.ReadMessageError(_logger, ex);
                         return Task.FromException<bool>(ex);
                     }
 
@@ -136,6 +144,7 @@ namespace Grpc.Net.Client.Internal
                     }
 
                     _httpResponse = httpResponse;
+                    _grpcEncoding = GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse);
                 }
                 if (_responseStream == null)
                 {
@@ -152,12 +161,12 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 
-                Current = await _responseStream.ReadStreamedMessageAsync(
-                    _call.Logger,
-                    _call.Method.ResponseMarshaller.ContextualDeserializer,
-                    GrpcProtocolHelpers.GetGrpcEncoding(_httpResponse),
-                    _call.Channel.ReceiveMaxMessageSize,
-                    _call.Channel.CompressionProviders,
+                Debug.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
+
+                Current = await _call.ReadMessageAsync(
+                    _responseStream,
+                    _grpcEncoding,
+                    singleMessage: false,
                     cancellationToken).ConfigureAwait(false);
                 if (Current == null)
                 {

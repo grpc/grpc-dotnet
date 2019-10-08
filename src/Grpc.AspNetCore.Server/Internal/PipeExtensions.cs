@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var logger = serverCallContext.Logger;
             try
             {
-                Log.SendingMessage(logger);
+                GrpcServerLog.SendingMessage(logger);
 
                 var serializationContext = serverCallContext.SerializationContext;
                 serializer(response, serializationContext);
@@ -68,7 +68,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
-                Log.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
+                GrpcServerLog.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
 
                 // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
                 var httpResponse = serverCallContext.HttpContext.Response;
@@ -123,12 +123,12 @@ namespace Grpc.AspNetCore.Server.Internal
                     serverCallContext.HasBufferedMessage = true;
                 }
 
-                Log.MessageSent(serverCallContext.Logger);
+                GrpcServerLog.MessageSent(serverCallContext.Logger);
                 GrpcEventSource.Log.MessageSent();
             }
             catch (Exception ex)
             {
-                Log.ErrorSendingMessage(logger, ex);
+                GrpcServerLog.ErrorSendingMessage(logger, ex);
                 throw;
             }
         }
@@ -224,7 +224,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             try
             {
-                Log.ReadingMessage(logger);
+                GrpcServerLog.ReadingMessage(logger);
 
                 byte[]? completeMessageData = null;
 
@@ -288,13 +288,13 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                 }
 
-                Log.DeserializingMessage(logger, completeMessageData.Length, typeof(T));
+                GrpcServerLog.DeserializingMessage(logger, completeMessageData.Length, typeof(T));
 
                 serverCallContext.DeserializationContext.SetPayload(completeMessageData);
                 var request = deserializer(serverCallContext.DeserializationContext);
                 serverCallContext.DeserializationContext.SetPayload(null);
 
-                Log.ReceivedMessage(logger);
+                GrpcServerLog.ReceivedMessage(logger);
 
                 GrpcEventSource.Log.MessageReceived();
 
@@ -302,7 +302,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             catch (Exception ex)
             {
-                Log.ErrorReadingMessage(logger, ex);
+                GrpcServerLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
         }
@@ -321,7 +321,7 @@ namespace Grpc.AspNetCore.Server.Internal
             var logger = serverCallContext.Logger;
             try
             {
-                Log.ReadingMessage(logger);
+                GrpcServerLog.ReadingMessage(logger);
 
                 byte[]? data;
                 while (true)
@@ -351,7 +351,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             if (buffer.Length == 0)
                             {
                                 // Finished and there is no more data
-                                Log.NoMessageReturned(logger);
+                                GrpcServerLog.NoMessageReturned(logger);
                                 return default;
                             }
 
@@ -374,13 +374,13 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                 }
 
-                Log.DeserializingMessage(logger, data!.Length, typeof(T));
+                GrpcServerLog.DeserializingMessage(logger, data!.Length, typeof(T));
 
                 serverCallContext.DeserializationContext.SetPayload(data);
                 var request = deserializer(serverCallContext.DeserializationContext);
                 serverCallContext.DeserializationContext.SetPayload(null);
 
-                Log.ReceivedMessage(logger);
+                GrpcServerLog.ReceivedMessage(logger);
 
                 GrpcEventSource.Log.MessageReceived();
 
@@ -388,7 +388,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             catch (Exception ex)
             {
-                Log.ErrorReadingMessage(logger, ex);
+                GrpcServerLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
         }
@@ -466,7 +466,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                Log.DecompressingMessage(logger, compressionProvider.EncodingName);
+                GrpcServerLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
                 var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
@@ -484,7 +484,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
-                Log.CompressingMessage(logger, compressionProvider.EncodingName);
+                GrpcServerLog.CompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
                 using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))

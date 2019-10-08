@@ -117,20 +117,22 @@ namespace Grpc.Net.Client.Tests
 
             Assert.IsNotNull(content);
             var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
-            var requestMessage = await requestContent.ReadStreamedMessageAsync(
+            var requestMessage = await requestContent.ReadMessageAsync(
                 NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
+                singleMessage: false,
                 CancellationToken.None).AsTask().DefaultTimeout();
             Assert.AreEqual("1", requestMessage.Name);
-            requestMessage = await requestContent.ReadStreamedMessageAsync(
+            requestMessage = await requestContent.ReadMessageAsync(
                 NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
+                singleMessage: false,
                 CancellationToken.None).AsTask().DefaultTimeout();
             Assert.AreEqual("2", requestMessage.Name);
 

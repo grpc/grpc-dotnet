@@ -19,6 +19,7 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -235,7 +236,7 @@ namespace Grpc.Net.Client.Internal
 
         private Status? ValidateHeaders(HttpResponseMessage httpResponse)
         {
-            Log.ResponseHeadersReceived(Logger);
+            GrpcCallLog.ResponseHeadersReceived(Logger);
 
             // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
             // An explicitly specified status header has priority over other failing statuses
@@ -352,7 +353,7 @@ namespace Grpc.Net.Client.Internal
             // but there is no adverse effect other than an extra log message
             if (!_callCts.IsCancellationRequested)
             {
-                Log.CanceledCall(Logger);
+                GrpcCallLog.CanceledCall(Logger);
 
                 // Cancel in-progress HttpClient.SendAsync and Stream.ReadAsync tasks.
                 // Cancel will send RST_STREAM if HttpClient.SendAsync isn't complete.
@@ -418,7 +419,7 @@ namespace Grpc.Net.Client.Internal
                     }
                     catch (Exception ex)
                     {
-                        Log.ErrorStartingCall(Logger, ex);
+                        GrpcCallLog.ErrorStartingCall(Logger, ex);
                         throw;
                     }
 
@@ -440,7 +441,7 @@ namespace Grpc.Net.Client.Internal
                             {
                                 // The server should never return StatusCode.OK in the header for a unary call.
                                 // If it does then throw an error that no message was returned from the server.
-                                Log.MessageNotReturned(Logger);
+                                GrpcCallLog.MessageNotReturned(Logger);
                                 _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
                             }
                         }
@@ -454,19 +455,20 @@ namespace Grpc.Net.Client.Internal
                             // Read entire response body immediately and read status from trailers
                             // Trailers are only available once the response body had been read
                             var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                            var message = await responseStream.ReadSingleMessageAsync(
+                            var message = await responseStream.ReadMessageAsync(
                                 Logger,
                                 Method.ResponseMarshaller.ContextualDeserializer,
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 Channel.ReceiveMaxMessageSize,
                                 Channel.CompressionProviders,
+                                singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
                             status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
                             FinishResponse(status.Value);
 
                             if (message == null)
                             {
-                                Log.MessageNotReturned(Logger);
+                                GrpcCallLog.MessageNotReturned(Logger);
                                 SetFailedResult(status.Value);
                             }
                             else
@@ -574,7 +576,7 @@ namespace Grpc.Net.Client.Internal
         {
             if (_timeout != null && !Channel.DisableClientDeadlineTimer)
             {
-                Log.StartingDeadlineTimeout(Logger, _timeout.Value);
+                GrpcCallLog.StartingDeadlineTimeout(Logger, _timeout.Value);
 
                 // Deadline timer will cancel the call CTS
                 // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
@@ -582,7 +584,7 @@ namespace Grpc.Net.Client.Internal
                 _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
             }
 
-            Log.StartingCall(Logger, Method.Type, request.RequestUri);
+            GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri);
             GrpcEventSource.Log.CallStart(Method.FullName);
 
             var diagnosticSourceEnabled = GrpcDiagnostics.DiagnosticListener.IsEnabled() &&
@@ -626,10 +628,10 @@ namespace Grpc.Net.Client.Internal
         {
             if (status!.Value.StatusCode != StatusCode.OK)
             {
-                Log.GrpcStatusError(Logger, status.Value.StatusCode, status.Value.Detail);
+                GrpcCallLog.GrpcStatusError(Logger, status.Value.StatusCode, status.Value.Detail);
                 GrpcEventSource.Log.CallFailed(status.Value.StatusCode);
             }
-            Log.FinishedCall(Logger);
+            GrpcCallLog.FinishedCall(Logger);
             GrpcEventSource.Log.CallStop();
 
             // Activity needs to be stopped in the same execution context it was started
@@ -680,7 +682,7 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                Log.CallCredentialsNotUsed(Logger);
+                GrpcCallLog.CallCredentialsNotUsed(Logger);
             }
         }
 
@@ -743,11 +745,43 @@ namespace Grpc.Net.Client.Internal
             // the response has not been finished or canceled
             if (!_callCts.IsCancellationRequested && !ResponseFinished)
             {
-                Log.DeadlineExceeded(Logger);
+                GrpcCallLog.DeadlineExceeded(Logger);
                 GrpcEventSource.Log.CallDeadlineExceeded();
 
                 CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
             }
+        }
+
+        internal ValueTask WriteMessageAsync(
+            Stream stream,
+            TRequest message,
+            string grpcEncoding,
+            CallOptions callOptions)
+        {
+            return stream.WriteMessageAsync(
+                Logger,
+                message,
+                Method.RequestMarshaller.ContextualSerializer,
+                grpcEncoding,
+                Channel.SendMaxMessageSize,
+                Channel.CompressionProviders,
+                callOptions);
+        }
+
+        internal ValueTask<TResponse?> ReadMessageAsync(
+            Stream responseStream,
+            string grpcEncoding,
+            bool singleMessage,
+            CancellationToken cancellationToken)
+        {
+            return responseStream.ReadMessageAsync(
+                Logger,
+                Method.ResponseMarshaller.ContextualDeserializer,
+                grpcEncoding,
+                Channel.ReceiveMaxMessageSize,
+                Channel.CompressionProviders,
+                singleMessage,
+                cancellationToken);
         }
     }
 }
