@@ -42,14 +42,7 @@ namespace Grpc.Net.Client.Internal
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
-            var writeMessageTask = stream.WriteMessageAsync<TRequest>(
-                _call.Logger,
-                _content,
-                _call.Method.RequestMarshaller.ContextualSerializer,
-                _grpcEncoding,
-                _call.Channel.SendMaxMessageSize,
-                _call.Channel.CompressionProviders,
-                _call.Options);
+            var writeMessageTask = _call.WriteMessageAsync(stream, _content, _grpcEncoding, _call.Options);
             if (writeMessageTask.IsCompletedSuccessfully)
             {
                 GrpcEventSource.Log.MessageSent();

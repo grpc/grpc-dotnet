@@ -37,13 +37,14 @@ namespace Grpc.Net.Client.Tests
         {
             var requestStream = await request.Content.ReadAsStreamAsync();
 
-            var helloRequest = await StreamExtensions.ReadSingleMessageAsync(
+            var helloRequest = await StreamExtensions.ReadMessageAsync(
                 requestStream,
                 NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 "gzip",
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
+                singleMessage: true,
                 CancellationToken.None);
 
             var reply = new HelloReply

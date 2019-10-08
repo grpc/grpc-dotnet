@@ -152,7 +152,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
-                Log.RpcConnectionError(Logger, rpcException.StatusCode, ex);
+                GrpcServerLog.RpcConnectionError(Logger, rpcException.StatusCode, ex);
 
                 // There are two sources of metadata entries on the server-side:
                 // 1. serverCallContext.ResponseTrailers
@@ -168,7 +168,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             else
             {
-                Log.ErrorExecutingServiceMethod(Logger, method, ex);
+                GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
 
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
@@ -422,7 +422,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return timeout;
                 }
 
-                Log.InvalidTimeoutIgnored(Logger, values);
+                GrpcServerLog.InvalidTimeoutIgnored(Logger, values);
             }
 
             return TimeSpan.Zero;
@@ -432,7 +432,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             try
             {
-                Log.DeadlineExceeded(Logger, GetTimeout());
+                GrpcServerLog.DeadlineExceeded(Logger, GetTimeout());
                 GrpcEventSource.Log.CallDeadlineExceeded();
 
                 var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
@@ -465,7 +465,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             catch (Exception ex)
             {
-                Log.DeadlineCancellationError(Logger, ex);
+                GrpcServerLog.DeadlineCancellationError(Logger, ex);
             }
         }
 
@@ -528,7 +528,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
             {
-                Log.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
+                GrpcServerLog.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
             }
         }
     }

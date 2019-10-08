@@ -184,7 +184,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.HttpContentClientStreamWriter" &&
                     writeContext.EventId.Name == "WriteMessageError" &&
                     writeContext.Message == "Error writing message.")
                 {
