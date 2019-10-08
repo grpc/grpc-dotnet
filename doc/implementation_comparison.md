@@ -141,6 +141,7 @@ https://github.com/grpc/grpc/blob/master/doc/keepalive.md
 ### Fine-grained Transport Control: RPC Wait-for-ready
 
 Grpc.Core: supported, provided by C-core
+
 grpc-dotnet: not supported (implementing the wait_for_ready flag requires supporting channel connectivity first).
 
 https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md
