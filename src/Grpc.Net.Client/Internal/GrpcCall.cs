@@ -190,7 +190,7 @@ namespace Grpc.Net.Client.Internal
         public Exception CreateCanceledStatusException()
         {
             var status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
-            return new RpcException(status);
+            return CreateRpcException(status);
         }
         
         /// <summary>
@@ -241,6 +241,9 @@ namespace Grpc.Net.Client.Internal
             // An explicitly specified status header has priority over other failing statuses
             if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
             {
+                // Trailers are in the header because there is no message.
+                // Note that some default headers will end up in the trailers (e.g. Date, Server).
+                _trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
                 return status;
             }
 
@@ -298,16 +301,35 @@ namespace Grpc.Net.Client.Internal
         {
             using (StartScope())
             {
-                if (_trailers == null)
+                if (!TryGetTrailers(out var trailers))
                 {
-                    ValidateTrailersAvailable();
-
-                    Debug.Assert(HttpResponse != null);
-                    _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
+                    // Throw InvalidOperationException here because documentation on GetTrailers says that
+                    // InvalidOperationException is thrown if the call is not complete.
+                    throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
                 }
 
-                return _trailers;
+                return trailers;
             }
+        }
+
+        private bool TryGetTrailers([NotNullWhen(true)] out Metadata? trailers)
+        {
+            if (_trailers == null)
+            {
+                // Trailers are read from the end of the request.
+                // If the request isn't finished then we can't get the trailers.
+                if (!ResponseFinished)
+                {
+                    trailers = null;
+                    return false;
+                }
+
+                Debug.Assert(HttpResponse != null);
+                _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
+            }
+
+            trailers = _trailers;
+            return true;
         }
 
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
@@ -348,7 +370,7 @@ namespace Grpc.Net.Client.Internal
 
                 if (!Channel.ThrowOperationCanceledOnCancellation)
                 {
-                    _metadataTcs.TrySetException(new RpcException(status));
+                    _metadataTcs.TrySetException(CreateRpcException(status));
                 }
                 else
                 {
@@ -367,6 +389,12 @@ namespace Grpc.Net.Client.Internal
             }
 
             return null;
+        }
+
+        internal RpcException CreateRpcException(Status status)
+        {
+            TryGetTrailers(out var trailers);
+            return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
         private async ValueTask RunCall(HttpRequestMessage request)
@@ -473,17 +501,17 @@ namespace Grpc.Net.Client.Internal
                     if (ex is OperationCanceledException)
                     {
                         status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
-                        resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : new RpcException(status.Value);
+                        resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : CreateRpcException(status.Value);
                     }
                     else if (ex is RpcException rpcException)
                     {
                         status = rpcException.Status;
-                        resolvedException = new RpcException(status.Value);
+                        resolvedException = CreateRpcException(status.Value);
                     }
                     else
                     {
                         status = new Status(StatusCode.Internal, "Error starting gRPC call: " + ex.Message);
-                        resolvedException = new RpcException(status.Value);
+                        resolvedException = CreateRpcException(status.Value);
                     }
 
                     _metadataTcs.TrySetException(resolvedException);
@@ -510,7 +538,7 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                _responseTcs.TrySetException(new RpcException(status));
+                _responseTcs.TrySetException(CreateRpcException(status));
             }
         }
 
@@ -526,7 +554,7 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                return new RpcException(status);
+                return CreateRpcException(status);
             }
         }
 
@@ -720,19 +748,6 @@ namespace Grpc.Net.Client.Internal
 
                 CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
             }
-        }
-
-        private void ValidateTrailersAvailable()
-        {
-            // Response is finished
-            if (ResponseFinished)
-            {
-                return;
-            }
-
-            // Throw InvalidOperationException here because documentation on GetTrailers says that
-            // InvalidOperationException is thrown if the call is not complete.
-            throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
         }
     }
 }
