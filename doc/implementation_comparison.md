@@ -185,3 +185,13 @@ Bindings for idiomatic integration of RPC with the "Rich error model" based on t
 Currently not implemented for any of the implementations.
 
 https://cloud.google.com/apis/design/errors#error_model
+
+### Addon: `HttpClientFactory` integration
+
+grpc-dotnet supports integration with `HttpClientFactory` via the Grpc.Net.ClientFactory package. Client factory integration offers:
+
+- Central configuration of gRPC clients
+- Inject clients into your application with .NET dependency injection
+- Reuse of channel instances
+
+https://docs.microsoft.com/en-us/aspnet/core/grpc/clientfactory
