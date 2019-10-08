@@ -93,8 +93,17 @@ The worker shows how a [.NET worker service](https://devblogs.microsoft.com/aspn
 
 The aggregator shows how a to make nested gRPC calls (a gRPC service calling another gRPC service). The gRPC client factory is used in ASP.NET Core to inject a client into services. The gRPC client factory is configured to propagate the context from the original call to the nested call. In this example the cancellation from the client will automatically propagate through to nested gRPC calls.
 
+The aggregator can optionally be run with [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-dotnet) enabled. OpenTelemetry is configured to capture tracing information and send it to [Zipkin](https://zipkin.io), a distributed tracing system. A Zipkin server needs to be running to receive traces. The simplest way to do that is [run the Zipkin Docker image](https://zipkin.io/pages/quickstart.html).
+
+To run the aggregator server with OpenTelemetry enabled:
+
+```console
+dotnet run --EnableOpenTelemetry=true
+```
+
 ##### Scenarios:
 
 * Client factory
 * Client canceling a call
 * Cancellation propagation
+* Capture tracing with [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-dotnet) (optional)

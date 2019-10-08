@@ -17,22 +17,38 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using Count;
 using Greet;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Server
 {
-    public class Startup
+    public partial class Startup
     {
+        private readonly IConfiguration _configuration;
+        private const string EnableOpenTelemetryKey = "EnableOpenTelemetry";
+
+        public Startup(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
             services.AddSingleton<IncrementingCounter>();
+
+            if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
+            {
+                ConfigureOpenTelemetryServices(services);
+            }
 
             // These clients will call back to the server
             services
@@ -60,6 +76,11 @@ namespace Server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+            }
+
+            if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
+            {
+                ConfigureOpenTelemetry(app.ApplicationServices);
             }
 
             app.UseRouting();
