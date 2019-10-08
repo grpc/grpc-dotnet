@@ -228,6 +228,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
+                // Cancellation happened after checking token but before writing message
+                if (writeContext.LoggerName == "Grpc.AspNetCore.Server.ServerCallHandler" &&
+                    writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                    writeContext.Exception is InvalidOperationException &&
+                    writeContext.Exception.Message == "Cannot write message after request is complete.")
+                {
+                    return true;
+                }
+
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "GrpcStatusError" &&
                     writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
