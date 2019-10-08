@@ -47,8 +47,8 @@ Both implementations support client and server interceptors from Grpc.Core.Inter
 
 In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at a HTTP/2 level:
 
-- Incoming gRPC HTTP/2 requests can be processed using [ASP.NET Core middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/)
-- Outgoing gRPC HTTP/2 requests can be processed using [HttpClient HttpMessageHandlers](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpmessagehandler)
+- Incoming gRPC HTTP/2 requests can be processed using [ASP.NET Core middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/).
+- Outgoing gRPC HTTP/2 requests can be processed using [HttpClient HttpMessageHandlers](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpmessagehandler).
 
 ### Load Balancing
 
@@ -79,7 +79,7 @@ grpc-dotnet only supports the default transport.
 Notes:
 
 - Grpc.Core allows connections over UDS socket (both server and client) on Unix systems. It doesn't support named pipes on windows.
-- Grpc.Core supports additional "transports" like ALTS and cfstream thanks to being build on top of C-core
+- Grpc.Core supports additional "transports" like ALTS and cfstream thanks to being build on top of C-core.
 - Grpc.Core could provide an inprocess transport support but currently this functionality is not exposed in C# API.
 - grpc-dotnet support for TLS is platform dependent. TLS is fully supported on Windows and Linux, but doesn't work on MacOS.
 
@@ -190,8 +190,9 @@ https://cloud.google.com/apis/design/errors#error_model
 
 grpc-dotnet supports integration with `HttpClientFactory` via the Grpc.Net.ClientFactory package. Client factory integration offers:
 
-- Central configuration of gRPC clients
-- Inject clients into your application with .NET dependency injection
-- Reuse of channel instances
+- Central configuration of gRPC clients.
+- Inject clients into your application with .NET dependency injection.
+- Reuse of channel instances.
+- Automatic propagation of cancellation and deadline when used in a `Grpc.AspNetCore` hosted gRPC service.
 
 https://docs.microsoft.com/en-us/aspnet/core/grpc/clientfactory
