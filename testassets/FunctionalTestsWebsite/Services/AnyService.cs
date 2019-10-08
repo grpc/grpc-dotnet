@@ -31,14 +31,14 @@ namespace FunctionalTestsWebsite.Services
             AnyMessageResponse anyMessageResponse;
             switch (request.TypeUrl)
             {
-                case "type.googleapis.com/Any.AnyProductRequest":
+                case "type.googleapis.com/any.AnyProductRequest":
                     var product = request.Unpack<AnyProductRequest>();
                     anyMessageResponse = new AnyMessageResponse
                     {
                         Message = $"{product.Quantity} x {product.Name}"
                     };
                     break;
-                case "type.googleapis.com/Any.AnyUserRequest":
+                case "type.googleapis.com/any.AnyUserRequest":
                     var user = request.Unpack<AnyUserRequest>();
                     anyMessageResponse = new AnyMessageResponse
                     {

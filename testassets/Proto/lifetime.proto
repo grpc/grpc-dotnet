@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "google/protobuf/empty.proto";
 
-package Lifetime;
+package lifetime;
 
 service LifetimeService {
   rpc GetScopedValue (google.protobuf.Empty) returns (ValueResponse);

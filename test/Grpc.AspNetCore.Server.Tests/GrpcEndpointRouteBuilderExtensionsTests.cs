@@ -109,14 +109,14 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint1.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
+            Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
-            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("POST", routeEndpoint2.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Single());
-            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
+            Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.Metadata.GetMetadata<GrpcMethodMetadata>().Method.FullName);
         }
 
         [Test]
@@ -146,10 +146,10 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Discovering gRPC methods for Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute.GreeterWithAttributeService.", s1);
 
             var s2 = writes[1].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHello' to service 'Greet.Greeter'. Method type: 'Unary', route pattern: '/Greet.Greeter/SayHello'.", s2);
+            Assert.AreEqual("Added gRPC method 'SayHello' to service 'greet.Greeter'. Method type: 'Unary', route pattern: '/greet.Greeter/SayHello'.", s2);
 
             var s3 = writes[2].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'Greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/Greet.Greeter/SayHellos'.", s3);
+            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/greet.Greeter/SayHellos'.", s3);
         }
 
         [Test]
@@ -207,11 +207,11 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint1.Metadata.GetMetadata<CustomMetadata>());
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
-            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
         }
 
@@ -234,11 +234,11 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
             Assert.AreEqual("Method", routeEndpoint1.Metadata.GetMetadata<CustomAttribute>().Value);
 
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
-            Assert.AreEqual("/Greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.AreEqual("Class", routeEndpoint2.Metadata.GetMetadata<CustomAttribute>().Value);
         }
 
@@ -264,7 +264,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(2, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
-            Assert.AreEqual("/Greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
+            Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
 
             var orderedMetadata = routeEndpoint1.Metadata.GetOrderedMetadata<CustomAttribute>().ToList();
             Assert.AreEqual("Class", orderedMetadata[0].Value);

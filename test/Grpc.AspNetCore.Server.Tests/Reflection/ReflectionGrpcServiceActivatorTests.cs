@@ -77,7 +77,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
 
             var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
-            Assert.AreEqual("Greet.Greeter", serviceResponse.Name);
+            Assert.AreEqual("greet.Greeter", serviceResponse.Name);
         }
 
         private class GreeterService : Greeter.GreeterBase

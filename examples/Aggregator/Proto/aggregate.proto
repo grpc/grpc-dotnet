@@ -17,9 +17,9 @@ syntax = "proto3";
 import "count.proto";
 import "greet.proto";
 
-package Aggregate;
+package aggregate;
 
 service Aggregator {
-  rpc AccumulateCount (stream Count.CounterRequest) returns (Count.CounterReply);
-  rpc SayHellos (Greet.HelloRequest) returns (stream Greet.HelloReply);
+  rpc AccumulateCount (stream count.CounterRequest) returns (count.CounterReply);
+  rpc SayHellos (greet.HelloRequest) returns (stream greet.HelloReply);
 }

@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Authorize;
+package authorize;
 
 // The greeting service definition.
 service AuthorizedGreeter {

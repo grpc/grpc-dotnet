@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package Mail;
+package mail;
 
 // The mail service definition.
 service Mailer {
