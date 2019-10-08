@@ -45,7 +45,10 @@ Grpc.Core: currently not supported.
 
 Both implementations support client and server interceptors from Grpc.Core.Interceptors namespace. Interceptors operate at post-deserialization and pre-serialization level (no access to binary payloads).
 
-In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at a HTTP/2 level because under ASP.NET core, all RPCs are also HTTP/2 handlers. 
+In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at a HTTP/2 level:
+
+- Incoming gRPC HTTP/2 requests can be processed using [ASP.NET Core middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/)
+- Outgoing gRPC HTTP/2 requests can be processed using [HttpClient HttpMessageHandlers](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpmessagehandler)
 
 ### Load Balancing
 
