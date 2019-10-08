@@ -237,9 +237,17 @@ namespace Grpc.Net.Client.Internal
         {
             Log.ResponseHeadersReceived(Logger);
 
+            // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
+            // An explicitly specified status header has priority over other failing statuses
+            if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
+            {
+                return status;
+            }
+
             if (httpResponse.StatusCode != HttpStatusCode.OK)
             {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Expected HTTP status code 200. Got status code: " + (int)httpResponse.StatusCode);
+                var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
+                return new Status(statusCode, "Bad gRPC response. HTTP status code: " + (int)httpResponse.StatusCode);
             }
             
             if (httpResponse.Content?.Headers.ContentType == null)
@@ -252,17 +260,38 @@ namespace Grpc.Net.Client.Internal
             {
                 return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
             }
-            else
-            {
-                // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
-                if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
-                {
-                    return status;
-                }
-            }
 
             // Call is still in progress
             return null;
+        }
+
+        private static StatusCode MapHttpStatusToGrpcCode(HttpStatusCode httpStatusCode)
+        {
+            switch (httpStatusCode)
+            {
+                case HttpStatusCode.BadRequest:  // 400
+                case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
+                    return StatusCode.Internal;
+                case HttpStatusCode.Unauthorized:  // 401
+                    return StatusCode.Unauthenticated;
+                case HttpStatusCode.Forbidden:  // 403
+                    return StatusCode.PermissionDenied;
+                case HttpStatusCode.NotFound:  // 404
+                    return StatusCode.Unimplemented;
+                case HttpStatusCode.TooManyRequests:  // 429
+                case HttpStatusCode.BadGateway:  // 502
+                case HttpStatusCode.ServiceUnavailable:  // 503
+                case HttpStatusCode.GatewayTimeout:  // 504
+                    return StatusCode.Unavailable;
+                default:
+                    if ((int)httpStatusCode >= 100 && (int)httpStatusCode < 200)
+                    {
+                        // 1xx. These headers should have been ignored.
+                        return StatusCode.Internal;
+                    }
+
+                    return StatusCode.Unknown;
+            }
         }
 
         public Metadata GetTrailers()
