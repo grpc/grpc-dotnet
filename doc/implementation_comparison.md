@@ -162,6 +162,7 @@ Features that don't necessarily require changes to implementation's internals. T
 
 ### Addon: Server Reflection
 Grpc.Core: supported via Grpc.Reflection nuget package
+
 grpc-dotnet: supported via Grpc.Reflection nuget package and Grpc.AspNetCore.Server.Reflection helper.
 
 https://github.com/grpc/grpc/blob/master/doc/server-reflection.md
