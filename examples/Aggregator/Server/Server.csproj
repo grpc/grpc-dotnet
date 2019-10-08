@@ -11,13 +11,13 @@
 
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
 
-    <PackageReference Include="OpenTelemetry" Version="0.2.0-alpha.51" />
-    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="0.2.0-alpha.51" />
-    <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="0.2.0-alpha.51" />
-    <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="0.2.0-alpha.51" />
+    <PackageReference Include="OpenTelemetry" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
   </ItemGroup>
   
-  <!-- Required because the project is using a preview of OpenTelemtry from MyGet -->
+  <!-- Required because the project is using a preview version of OpenTelemtry from MyGet -->
   <PropertyGroup Label="RestoreSources">
     <RestoreSources>
       $(RestoreSources);
