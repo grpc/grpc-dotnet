@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
+using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
@@ -316,19 +317,6 @@ namespace Grpc.AspNetCore.Server.Tests
 
         public bool IsReadOnly { get; }
         public long? MaxRequestBodySize { get; set; }
-    }
-
-    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class, new()
-    {
-        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
-        {
-            return new GrpcActivatorHandle<TGrpcService>(new TGrpcService(), false, null);
-        }
-
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
-        {
-            return default;
-        }
     }
 
     public class TestServiceProvider : IServiceProvider
