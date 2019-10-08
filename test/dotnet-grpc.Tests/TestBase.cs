@@ -62,7 +62,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
 syntax = ""proto3"";
 
-package Greet;
+package greet;
 
 // The greeting service definition.
 service Greeter {

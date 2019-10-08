@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 
-package Any;
+package any;
 
 service AnyService {
   rpc DoAny (google.protobuf.Any) returns (AnyMessageResponse);

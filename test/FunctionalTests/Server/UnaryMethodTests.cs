@@ -346,7 +346,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act 1
             var response = await Fixture.Client.PostAsync(
-                "SingletonCount.Counter/IncrementCount",
+                "singleton_count.Counter/IncrementCount",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 1
@@ -360,7 +360,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act 2
             response = await Fixture.Client.PostAsync(
-                "SingletonCount.Counter/IncrementCount",
+                "singleton_count.Counter/IncrementCount",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 2
@@ -473,7 +473,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act 1
             var response = await Fixture.Client.PostAsync(
-                "Any.AnyService/DoAny",
+                "any.AnyService/DoAny",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 1
@@ -493,7 +493,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Act 2
             response = await Fixture.Client.PostAsync(
-                "Any.AnyService/DoAny",
+                "any.AnyService/DoAny",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 
             // Assert 2
