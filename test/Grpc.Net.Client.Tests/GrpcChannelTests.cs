@@ -43,6 +43,16 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public void Build_NoHttpClient_InternalHttpClientHasInfiniteTimeout()
+        {
+            // Arrange & Act
+            var channel = GrpcChannel.ForAddress("https://localhost");
+
+            // Assert
+            Assert.AreEqual(Timeout.InfiniteTimeSpan, channel.HttpClient.Timeout);
+        }
+
+        [Test]
         public void Build_SslCredentialsWithHttp_ThrowsError()
         {
             // Arrange & Act

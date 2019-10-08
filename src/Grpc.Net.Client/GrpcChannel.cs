@@ -20,6 +20,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
@@ -67,7 +68,7 @@ namespace Grpc.Net.Client
             _shouldDisposeHttpClient = channelOptions.HttpClient == null || channelOptions.DisposeHttpClient;
 
             Address = address;
-            HttpClient = channelOptions.HttpClient ?? new HttpClient();
+            HttpClient = channelOptions.HttpClient ?? CreateInternalHttpClient();
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
             ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
@@ -86,6 +87,23 @@ namespace Grpc.Net.Client
 
                 ValidateChannelCredentials();
             }
+        }
+
+        private static HttpClient CreateInternalHttpClient()
+        {
+            var httpClient = new HttpClient();
+
+            // Long running server and duplex streaming gRPC requests may not
+            // return any messages for over 100 seconds, triggering a cancellation
+            // of HttpClient.SendAsync. Disable timeout in internally created
+            // HttpClient for channel.
+            //
+            // gRPC deadline should be the recommended way to timeout gRPC calls.
+            //
+            // https://github.com/dotnet/corefx/issues/41650
+            httpClient.Timeout = Timeout.InfiniteTimeSpan;
+
+            return httpClient;
         }
 
         internal GrpcMethodInfo GetCachedGrpcMethodInfo(IMethod method)

@@ -43,6 +43,27 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
     public class DefaultGrpcClientFactoryTests
     {
         [Test]
+        public void CreateClient_Default_InternalHttpClientHasInfiniteTimeout()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = new DefaultGrpcClientFactory(
+                serviceProvider,
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
+
+            // Act
+            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+
+            // Assert
+            Assert.AreEqual(Timeout.InfiniteTimeSpan, client.CallInvoker.Channel.HttpClient.Timeout);
+        }
+
+        [Test]
         public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
         {
             // Arrange

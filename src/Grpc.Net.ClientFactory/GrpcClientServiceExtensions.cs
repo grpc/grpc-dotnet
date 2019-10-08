@@ -20,6 +20,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
@@ -305,6 +306,16 @@ namespace Microsoft.Extensions.DependencyInjection
                 var clientOptions = os.Get(name);
 
                 httpClient.BaseAddress = clientOptions.Address;
+
+                // Long running server and duplex streaming gRPC requests may not
+                // return any messages for over 100 seconds, triggering a cancellation
+                // of HttpClient.SendAsync. Disable timeout in internally created
+                // HttpClient for channel.
+                //
+                // gRPC deadline should be the recommended way to timeout gRPC calls.
+                //
+                // https://github.com/dotnet/corefx/issues/41650
+                httpClient.Timeout = Timeout.InfiniteTimeSpan;
             };
 
             IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
