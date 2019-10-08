@@ -71,7 +71,9 @@ Both implementations fully support gRPC over HTTP/2 in both TLS and plaintext.
 
 Grpc.Core gets support for other transports supported by C-Core for free. Some (minor) integration work might be required to actually use these transports with gRPC C#.
 
-grpc-dotnet only supports the default transport.
+grpc-dotnet only supports the default transport. 
+
+Note that TLS support in grpc-dotnet is platform dependent. TLS is fully supported on Windows and Linux, but doesn't work on MacOS.
 
 Notes:
 
