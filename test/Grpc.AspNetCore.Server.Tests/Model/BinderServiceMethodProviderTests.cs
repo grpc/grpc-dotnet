@@ -16,10 +16,14 @@
 
 #endregion
 
+using System.IO;
+using System.Threading.Tasks;
+using Greet;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
+using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -31,7 +35,7 @@ namespace Grpc.AspNetCore.Server.Tests.Model
     public class BinderServiceMethodProviderTests
     {
         [Test]
-        public void OnServiceMethodDiscovery_ServiceWithDuplicateMethodNames_Success()
+        public async Task OnServiceMethodDiscovery_ServiceWithDuplicateMethodNames_Success()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -51,8 +55,24 @@ namespace Grpc.AspNetCore.Server.Tests.Model
 
             // Assert
             Assert.AreEqual(2, context.Methods.Count);
-            Assert.AreEqual("SayHello", context.Methods[0].Method.Name);
-            Assert.AreEqual("SayHellos", context.Methods[1].Method.Name);
+
+            var methodModel = context.Methods[0];
+            Assert.AreEqual("SayHello", methodModel.Method.Name);
+
+            var httpContext = HttpContextHelpers.CreateContext();
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new HelloRequest
+            {
+                Name = "World"
+            });
+            ms.Seek(0, SeekOrigin.Begin);
+            httpContext.Request.Body = ms;
+
+            await methodModel.RequestDelegate(httpContext);
+
+            // Expect 12 (unimplemented) from base type
+            Assert.AreEqual("12", httpContext.Response.Headers["grpc-status"]);
         }
     }
 }

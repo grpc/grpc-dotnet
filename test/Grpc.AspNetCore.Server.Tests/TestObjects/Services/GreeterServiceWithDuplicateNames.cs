@@ -25,9 +25,9 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
     public class GreeterServiceWithDuplicateNames : Greeter.GreeterBase
     {
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        public new Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
-            return base.SayHello(request, context);
+            throw new RpcException(new Status(StatusCode.OutOfRange, ""));
         }
 
         public static Task<HelloReply> SayHello(ServerCallContext context)

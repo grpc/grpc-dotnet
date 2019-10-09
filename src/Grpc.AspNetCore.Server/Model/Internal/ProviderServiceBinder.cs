@@ -26,10 +26,12 @@ namespace Grpc.AspNetCore.Server.Model.Internal
     internal class ProviderServiceBinder<TService> : ServiceBinderBase where TService : class
     {
         private readonly ServiceMethodProviderContext<TService> _context;
+        private readonly Type _declaringType;
 
-        internal ProviderServiceBinder(ServiceMethodProviderContext<TService> context)
+        internal ProviderServiceBinder(ServiceMethodProviderContext<TService> context, Type declaringType)
         {
             _context = context;
+            _declaringType = declaringType;
         }
 
         public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
@@ -70,12 +72,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private (TDelegate invoker, List<object> metadata) CreateModelCore<TDelegate>(string methodName, Type[] methodParameters) where TDelegate : Delegate
         {
-            var handlerMethod = typeof(TService).GetMethod(
-                methodName,
-                BindingFlags.Public | BindingFlags.Instance,
-                binder: null,
-                types: methodParameters,
-                modifiers: null);
+            var handlerMethod = GetMethod(methodName, methodParameters);
 
             if (handlerMethod == null)
             {
@@ -91,6 +88,40 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
 
             return (invoker, metadata);
+        }
+
+        private MethodInfo? GetMethod(string methodName, Type[] methodParameters)
+        {
+            Type? currentType = typeof(TService);
+            while (currentType != null)
+            {
+                var matchingMethod = currentType.GetMethod(
+                    methodName,
+                    BindingFlags.Public | BindingFlags.Instance,
+                    binder: null,
+                    types: methodParameters,
+                    modifiers: null);
+
+                if (matchingMethod == null)
+                {
+                    return null;
+                }
+
+                // Validate that the method overrides the virtual method on the base type.
+                // We want to ignore non-virtual method with the same name that hides the base method.
+                if (matchingMethod.IsVirtual)
+                {
+                    var baseDefinitionMethod = matchingMethod.GetBaseDefinition();
+                    if (baseDefinitionMethod != null && baseDefinitionMethod.DeclaringType == _declaringType)
+                    {
+                        return matchingMethod;
+                    }
+                }
+
+                currentType = currentType.BaseType;
+            }
+
+            return null;
         }
     }
 }
