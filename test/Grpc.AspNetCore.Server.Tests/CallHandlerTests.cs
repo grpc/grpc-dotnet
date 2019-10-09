@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
+using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
@@ -50,7 +51,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task MinRequestBodyDataRateFeature_MethodType_HasRequestBodyDataRate(MethodType methodType, bool hasRequestBodyDataRate)
         {
             // Arrange
-            var httpContext = CreateContext();
+            var httpContext = HttpContextHelpers.CreateContext();
             var call = CreateHandler(methodType);
 
             // Act
@@ -67,7 +68,7 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task MaxRequestBodySizeFeature_MethodType_HasMaxRequestBodySize(MethodType methodType, bool hasMaxRequestBodySize)
         {
             // Arrange
-            var httpContext = CreateContext();
+            var httpContext = HttpContextHelpers.CreateContext();
             var call = CreateHandler(methodType);
 
             // Act
@@ -84,7 +85,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
-            var httpContext = CreateContext(isMaxRequestBodySizeFeatureReadOnly: true);
+            var httpContext = HttpContextHelpers.CreateContext(isMaxRequestBodySizeFeatureReadOnly: true);
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -102,7 +103,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
-            var httpContext = CreateContext(contentType: "text/plain");
+            var httpContext = HttpContextHelpers.CreateContext(contentType: "text/plain");
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -121,7 +122,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
-            var httpContext = CreateContext(skipTrailerFeatureSet: true);
+            var httpContext = HttpContextHelpers.CreateContext(skipTrailerFeatureSet: true);
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -138,7 +139,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
-            var httpContext = CreateContext(protocol: "HTTP/1.1");
+            var httpContext = HttpContextHelpers.CreateContext(protocol: "HTTP/1.1");
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -157,7 +158,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
-            var httpContext = CreateContext(protocol: GrpcProtocolConstants.Http20Protocol);
+            var httpContext = HttpContextHelpers.CreateContext(protocol: GrpcProtocolConstants.Http20Protocol);
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -210,125 +211,6 @@ namespace Grpc.AspNetCore.Server.Tests
                     throw new ArgumentException();
             }
         }
-
-        private static HttpContext CreateContext(
-            bool isMaxRequestBodySizeFeatureReadOnly = false,
-            bool skipTrailerFeatureSet = false,
-            string? protocol = null,
-            string? contentType = null)
-        {
-            var httpContext = new DefaultHttpContext();
-            var responseFeature = new TestHttpResponseFeature();
-            var responseBodyFeature = new TestHttpResponseBodyFeature(httpContext.Features.Get<IHttpResponseBodyFeature>(), responseFeature);
-
-            httpContext.Request.Protocol = protocol ?? GrpcProtocolConstants.Http2Protocol;
-            httpContext.Request.ContentType = contentType ?? GrpcProtocolConstants.GrpcContentType;
-            httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
-            httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(new TestMaxRequestBodySizeFeature(isMaxRequestBodySizeFeatureReadOnly, 100));
-            httpContext.Features.Set<IHttpResponseFeature>(responseFeature);
-            httpContext.Features.Set<IHttpResponseBodyFeature>(responseBodyFeature);
-            if (!skipTrailerFeatureSet)
-            {
-                httpContext.Features.Set<IHttpResponseTrailersFeature>(new TestHttpResponseTrailersFeature());
-            }
-
-            return httpContext;
-        }
-    }
-
-    public class TestService { }
-
-    public class TestMessage { }
-
-    public class TestHttpResponseBodyFeature : IHttpResponseBodyFeature
-    {
-        private readonly IHttpResponseBodyFeature _innerResponseBodyFeature;
-        private readonly TestHttpResponseFeature _responseFeature;
-
-        public Stream Stream => _innerResponseBodyFeature.Stream;
-        public PipeWriter Writer => _innerResponseBodyFeature.Writer;
-
-        public TestHttpResponseBodyFeature(IHttpResponseBodyFeature innerResponseBodyFeature, TestHttpResponseFeature responseFeature)
-        {
-            _innerResponseBodyFeature = innerResponseBodyFeature ?? throw new ArgumentNullException(nameof(innerResponseBodyFeature));
-            _responseFeature = responseFeature ?? throw new ArgumentNullException(nameof(responseFeature));
-        }
-
-        public Task CompleteAsync()
-        {
-            return _innerResponseBodyFeature.CompleteAsync();
-        }
-
-        public void DisableBuffering()
-        {
-            _innerResponseBodyFeature.DisableBuffering();
-        }
-
-        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken = default)
-        {
-            return _innerResponseBodyFeature.SendFileAsync(path, offset, count, cancellationToken);
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken = default)
-        {
-            _responseFeature.HasStarted = true;
-            return _innerResponseBodyFeature.StartAsync(cancellationToken);
-        }
-    }
-
-    public class TestHttpResponseFeature : IHttpResponseFeature
-    {
-        public Stream Body { get; set; }
-        public bool HasStarted { get; internal set; }
-        public IHeaderDictionary Headers { get; set; }
-        public string? ReasonPhrase { get; set; }
-        public int StatusCode { get; set; }
-
-        public TestHttpResponseFeature()
-        {
-            StatusCode = 200;
-            Headers = new HeaderDictionary();
-            Body = Stream.Null;
-        }
-
-        public void OnCompleted(Func<object, Task> callback, object state)
-        {
-        }
-
-        public void OnStarting(Func<object, Task> callback, object state)
-        {
-            HasStarted = true;
-        }
-    }
-
-    public class TestMinRequestBodyDataRateFeature : IHttpMinRequestBodyDataRateFeature
-    {
-        public MinDataRate MinDataRate { get; set; } = new MinDataRate(1, TimeSpan.FromSeconds(5));
-    }
-
-    public class TestMaxRequestBodySizeFeature : IHttpMaxRequestBodySizeFeature
-    {
-        public TestMaxRequestBodySizeFeature(bool isReadOnly, long? maxRequestBodySize)
-        {
-            IsReadOnly = isReadOnly;
-            MaxRequestBodySize = maxRequestBodySize;
-        }
-
-        public bool IsReadOnly { get; }
-        public long? MaxRequestBodySize { get; set; }
-    }
-
-    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class, new()
-    {
-        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
-        {
-            return new GrpcActivatorHandle<TGrpcService>(new TGrpcService(), false, null);
-        }
-
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
-        {
-            return default;
-        }
     }
 
     public class TestServiceProvider : IServiceProvider
@@ -340,4 +222,8 @@ namespace Grpc.AspNetCore.Server.Tests
             throw new NotImplementedException();
         }
     }
+
+    public class TestService { }
+
+    public class TestMessage { }
 }

@@ -37,7 +37,10 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             // Invoke BindService(ServiceBinderBase, BaseType)
             if (bindMethodInfo != null)
             {
-                var binder = new ProviderServiceBinder<TService>(context);
+                // The second parameter is always the service base type
+                var serviceParameter = bindMethodInfo.GetParameters()[1];
+
+                var binder = new ProviderServiceBinder<TService>(context, serviceParameter.ParameterType);
 
                 try
                 {
