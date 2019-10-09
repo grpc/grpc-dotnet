@@ -116,3 +116,12 @@ The tester shows how to test gRPC services. The unit tests create and test a gRP
 
 * Unit testing
 * Functional testing
+
+## [Progressor](./Progressor)
+
+The progressor shows how to use server streaming to notify the caller about progress on the server.
+
+##### Scenarios:
+
+* Server streaming
+* Using [`Progress<T>`](https://docs.microsoft.com/en-us/dotnet/api/system.progress-1) to notify progress on the client
