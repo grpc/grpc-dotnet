@@ -107,8 +107,9 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     return null;
                 }
 
-                // Validate that the method overrides the virtual method on the base type.
-                // We want to ignore non-virtual method with the same name that hides the base method.
+                // Validate that the method overrides the virtual method on the base service type.
+                // If there is a method with the same name it will hide the base method. Ignore it,
+                // and continue searching on the base type.
                 if (matchingMethod.IsVirtual)
                 {
                     var baseDefinitionMethod = matchingMethod.GetBaseDefinition();
