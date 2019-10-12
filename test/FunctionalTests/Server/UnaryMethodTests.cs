@@ -32,6 +32,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
@@ -411,7 +412,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var streamContent = new StreamContent(ms);
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
 
-            var client = Fixture.CreateClient(Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1);
+            var client = Fixture.CreateClient(nameof(HttpProtocols.Http1));
 
             // Act
             var response = await client.PostAsync(
