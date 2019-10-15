@@ -82,6 +82,7 @@ Notes:
 - Grpc.Core supports additional "transports" like ALTS and cfstream thanks to being build on top of C-core.
 - Grpc.Core could provide an inprocess transport support but currently this functionality is not exposed in C# API.
 - grpc-dotnet support for TLS is platform dependent. TLS is fully supported on Windows and Linux, but doesn't work on MacOS.
+- grpc-dotnet support UDS socket on the server-side (On Unix systems, but also on [Windows](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/))
 
 ### Retries / Request Hedging
 
