@@ -5,10 +5,9 @@ This document summarizes the differences between the two available implementatio
 ## Where both implementations are the same
 
 - 100% wire compatible and interoperable with each other and with other gRPC implementations
-- same API for invoking and handling RPC calls
+- same API for invoking and handling RPC calls. Note that the way server and client are configured at the startup is [different](https://docs.microsoft.com/en-us/aspnet/core/grpc/migration?view=aspnetcore-3.0)
 - basic functionality (streaming, metadata, deadline, cancellation, ...)
 - using same codegen tooling and MSBuild Integration (Grpc.Tools)
-- differences in setting up server and client are documented here: https://docs.microsoft.com/en-us/aspnet/core/grpc/migration?view=aspnetcore-3.0
 
 ## Criteria for choosing between grpc-dotnet and gRPC C#
 
