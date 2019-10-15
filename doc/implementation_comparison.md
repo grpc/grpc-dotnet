@@ -103,6 +103,7 @@ https://github.com/grpc/proposal/blob/master/A14-channelz.md
 ### Binary logging
 
 Grpc.Core: Implemented in C-core, but not exposed in the C# layer.
+
 grpc-dotnet: not implemented
 
 https://github.com/grpc/grpc/blob/master/doc/binary-logging.md
