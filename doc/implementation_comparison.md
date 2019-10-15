@@ -38,7 +38,8 @@ Also see:
 
 ### Tracing
 
-grpc-dotnet has tracing bindings that come from ASP.NET Core, and it works with OpenTelemetry SDK, OpenCensus support is TBD.
+grpc-dotnet has tracing bindings that come from ASP.NET Core, and it works with OpenTelemetry SDK, OpenCensus support is TBD. See [OpenTelemetry Example](https://github.com/grpc/grpc-dotnet/tree/master/examples#aggregator).
+
 Grpc.Core: currently not supported.
 
 ### Interceptors
