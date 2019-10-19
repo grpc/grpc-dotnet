@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
+    <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
+    <Compile Include="..\Shared\DefaultSerializationContext.cs" Link="Internal\DefaultSerializationContext.cs" />
   </ItemGroup>
 
 </Project>
