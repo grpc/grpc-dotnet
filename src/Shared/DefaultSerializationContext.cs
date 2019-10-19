@@ -18,58 +18,95 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using Grpc.Core;
 
 namespace Grpc.Shared
 {
     internal sealed class DefaultSerializationContext : SerializationContext
     {
-        private object? _payload;
-        private bool _isComplete;
-        public bool TryConsumePayload(out ReadOnlyMemory<byte> payload)
+        private ArrayBufferWriter<byte>? _writer;
+        private byte[]? _array;
+        private InternalState _state;
+        enum InternalState
         {
-            if (_isComplete)
+            Initialized,
+            CompleteArray,
+            IncompleteBufferWriter,
+            CompleteBufferWriter,
+        }
+
+        public void Reset()
+        {
+            _array = null;
+            _writer?.Clear();
+            _state = InternalState.Initialized;
+        }
+
+        /// <summary>
+        /// Obtains the payload from this operation, and returns a boolean indicating
+        /// whether the serialization was complete; the state is reset either way.
+        /// </summary>
+        public bool TryGetPayload(out ReadOnlyMemory<byte> payload)
+        {
+            switch (_state)
             {
-                payload = _payload switch
-                {
-                    byte[] arr => arr,
-                    ArrayBufferWriter<byte> bw => bw.WrittenMemory,
-                    _ => default,
-                };
-                _payload = null;
-                return true;
+                case InternalState.CompleteArray:
+                    payload = _array;
+                    return true;
+                case InternalState.CompleteBufferWriter:
+                    payload = _writer!.WrittenMemory;
+                    return true;
+                default:
+                    payload = default;
+                    return false;
             }
-            payload = default;
-            return false;
         }
 
         public override void Complete(byte[] payload)
         {
-            if (_isComplete || _payload != null) throw new InvalidOperationException();
-            _payload = payload;
-            _isComplete = true;
+            switch (_state)
+            {
+                case InternalState.Initialized:
+                    _array = payload;
+                    _state = InternalState.CompleteArray;
+                    break;
+                default:
+                    ThrowInvalidState(_state);
+                    break;
+            }
         }
 
         public override IBufferWriter<byte> GetBufferWriter()
         {
-            switch (_payload)
+            switch (_state)
             {
-                case null:
-                    var newWriter = new ArrayBufferWriter<byte>();
-                    _payload = newWriter;
-                    return newWriter;
-                case ArrayBufferWriter<byte> oldWriter:
-                    return oldWriter;
+                case InternalState.Initialized:
+                    _state = InternalState.IncompleteBufferWriter;
+                    goto case InternalState.IncompleteBufferWriter;
+                case InternalState.IncompleteBufferWriter:
+                    return _writer ?? (_writer = new ArrayBufferWriter<byte>());
                 default:
-                    throw new InvalidOperationException();
+                    ThrowInvalidState(_state);
+                    return default!;
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowInvalidState(InternalState state)
+            => throw new InvalidOperationException(state.ToString());
+
         public override void Complete()
         {
-            if (_isComplete || !(_payload is ArrayBufferWriter<byte>))
-                throw new InvalidOperationException();
-            _isComplete = true;
+            switch (_state)
+            {
+                case InternalState.IncompleteBufferWriter:
+                    _state = InternalState.CompleteBufferWriter;
+                    break;
+                default:
+                    ThrowInvalidState(_state);
+                    break;
+            }
         }
     }
 }
