@@ -60,12 +60,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 GrpcServerLog.SendingMessage(logger);
 
                 var serializationContext = serverCallContext.SerializationContext;
+                serializationContext.Reset();
                 serializer(response, serializationContext);
-
-                if (!serializationContext.TryConsumePayload(out var responsePayload))
+                if (!serializationContext.TryGetPayload(out var responsePayload))
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
+
                 GrpcServerLog.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
 
                 // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader

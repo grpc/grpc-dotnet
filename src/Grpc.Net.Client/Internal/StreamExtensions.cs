@@ -234,8 +234,9 @@ namespace Grpc.Net.Client
 
                 // Serialize message first. Need to know size to prefix the length in the header
                 var serializationContext = new DefaultSerializationContext();
+                serializationContext.Reset();
                 serializer(message, serializationContext);
-                if (!serializationContext.TryConsumePayload(out var data))
+                if (!serializationContext.TryGetPayload(out var data))
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
