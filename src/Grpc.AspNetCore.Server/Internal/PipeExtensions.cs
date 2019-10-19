@@ -61,14 +61,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var serializationContext = serverCallContext.SerializationContext;
                 serializer(response, serializationContext);
-                var responsePayload = serializationContext.Payload;
-                serializationContext.Payload = null;
 
-                if (responsePayload == null)
+                if (!serializationContext.TryConsumePayload(out var responsePayload))
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
-
                 GrpcServerLog.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
 
                 // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
@@ -108,7 +105,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 WriteHeader(pipeWriter, responsePayload.Length, isCompressed);
-                pipeWriter.Write(responsePayload);
+                pipeWriter.Write(responsePayload.Span);
 
                 // Flush messages unless WriteOptions.Flags has BufferHint set
                 var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
@@ -481,7 +478,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        private static bool TryCompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        private static bool TryCompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlyMemory<byte> messageData, [NotNullWhen(true)]out byte[]? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -490,7 +487,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 var output = new MemoryStream();
                 using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
                 {
-                    compressionStream.Write(messageData, 0, messageData.Length);
+                    compressionStream.Write(messageData.Span);
                 }
 
                 result = output.ToArray();
