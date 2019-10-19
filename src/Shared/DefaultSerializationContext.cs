@@ -16,17 +16,60 @@
 
 #endregion
 
+using System;
+using System.Buffers;
 using Grpc.Core;
 
 namespace Grpc.Shared
 {
     internal sealed class DefaultSerializationContext : SerializationContext
     {
-        public byte[]? Payload { get; set; }
+        private object? _payload;
+        private bool _isComplete;
+        public bool TryConsumePayload(out ReadOnlyMemory<byte> payload)
+        {
+            if (_isComplete)
+            {
+                payload = _payload switch
+                {
+                    byte[] arr => arr,
+                    ArrayBufferWriter<byte> bw => bw.WrittenMemory,
+                    _ => default,
+                };
+                _payload = null;
+                return true;
+            }
+            payload = default;
+            return false;
+        }
 
         public override void Complete(byte[] payload)
         {
-            Payload = payload;
+            if (_isComplete || _payload != null) throw new InvalidOperationException();
+            _payload = payload;
+            _isComplete = true;
+        }
+
+        public override IBufferWriter<byte> GetBufferWriter()
+        {
+            switch (_payload)
+            {
+                case null:
+                    var newWriter = new ArrayBufferWriter<byte>();
+                    _payload = newWriter;
+                    return newWriter;
+                case ArrayBufferWriter<byte> oldWriter:
+                    return oldWriter;
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        public override void Complete()
+        {
+            if (_isComplete || !(_payload is ArrayBufferWriter<byte>))
+                throw new InvalidOperationException();
+            _isComplete = true;
         }
     }
 }
