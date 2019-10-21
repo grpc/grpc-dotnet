@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -128,6 +129,7 @@ namespace Grpc.Net.Client
 
                 cancellationToken.ThrowIfCancellationRequested();
 
+                ReadOnlySequence<byte> payload;
                 if (compressed)
                 {
                     if (grpcEncoding == null)
@@ -148,14 +150,19 @@ namespace Grpc.Net.Client
                         throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
                     }
 
-                    messageData = decompressedMessage;
+                    payload = decompressedMessage.GetValueOrDefault();
+                }
+                else
+                {
+                    payload = new ReadOnlySequence<byte>(messageData);
                 }
 
                 GrpcCallLog.DeserializingMessage(logger, messageData.Length, typeof(TResponse));
 
                 var deserializationContext = new DefaultDeserializationContext();
-                deserializationContext.SetPayload(messageData);
+                deserializationContext.SetPayload(payload);
                 var message = deserializer(deserializationContext);
+                deserializationContext.SetPayload(null);
 
                 if (singleMessage)
                 {
@@ -177,7 +184,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -187,7 +194,7 @@ namespace Grpc.Net.Client
                 var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
                 compressionStream.CopyTo(output);
 
-                result = output.ToArray();
+                result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
                 return true;
             }
 

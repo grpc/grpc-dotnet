@@ -24,9 +24,9 @@ namespace Grpc.Shared
 {
     internal sealed class DefaultDeserializationContext : DeserializationContext
     {
-        private byte[]? _payload;
+        private ReadOnlySequence<byte>? _payload;
 
-        public void SetPayload(byte[]? payload)
+        public void SetPayload(in ReadOnlySequence<byte>? payload)
         {
             _payload = payload;
         }
@@ -34,15 +34,15 @@ namespace Grpc.Shared
         public override byte[] PayloadAsNewBuffer()
         {
             Debug.Assert(_payload != null, "Payload must be set.");
-            return _payload;
+            return _payload.GetValueOrDefault().ToArray();
         }
 
         public override ReadOnlySequence<byte> PayloadAsReadOnlySequence()
         {
             Debug.Assert(_payload != null, "Payload must be set.");
-            return new ReadOnlySequence<byte>(_payload);
+            return _payload.GetValueOrDefault();
         }
 
-        public override int PayloadLength => _payload?.Length ?? 0;
+        public override int PayloadLength => _payload.HasValue ? (int)_payload.GetValueOrDefault().Length : 0;
     }
 }

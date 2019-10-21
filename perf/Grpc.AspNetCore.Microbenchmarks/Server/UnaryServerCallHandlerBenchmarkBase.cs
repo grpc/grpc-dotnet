@@ -51,6 +51,16 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
         [GlobalSetup]
         public void GlobalSetup()
         {
+            var message = new ChatMessage
+            {
+                Name =
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
+                    "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
+                    "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
+                    "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
+                    "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate."
+            };
+
             var services = new ServiceCollection();
             services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
             var serviceProvider = services.BuildServiceProvider();
@@ -68,14 +78,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
 
             _trailers = new HeaderDictionary();
 
-            var message = new ChatMessage
-            {
-                Name = "Joe"
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, message);
-            _requestMessage = ms.ToArray();
+            _requestMessage = GetMessageData(message);
 
             _requestPipe = new TestPipeReader();
 
@@ -84,6 +87,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             _httpContext = new DefaultHttpContext();
             _httpContext.RequestServices = _requestServices;
             _httpContext.Request.ContentType = GrpcProtocolConstants.GrpcContentType;
+            _httpContext.Request.Protocol = GrpcProtocolConstants.Http2Protocol;
 
             _httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(_requestPipe));
             _httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(new TestPipeWriter()));
@@ -96,6 +100,13 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
 
         protected virtual void SetupHttpContext(HttpContext httpContext)
         {
+        }
+
+        protected virtual byte[] GetMessageData(ChatMessage message)
+        {
+             var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, message);
+            return ms.ToArray();
         }
 
         protected Task InvokeUnaryRequestAsync()

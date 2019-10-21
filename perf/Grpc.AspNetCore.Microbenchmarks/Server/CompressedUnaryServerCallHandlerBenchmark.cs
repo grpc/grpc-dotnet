@@ -1,0 +1,85 @@
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
+using Chat;
+using Grpc.AspNetCore.Microbenchmarks.Internal;
+using Grpc.AspNetCore.Server.Internal;
+using Grpc.Net.Compression;
+using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http;
+
+namespace Grpc.AspNetCore.Microbenchmarks.Server
+{
+    public class CompressedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    {
+        public CompressedUnaryServerCallHandlerBenchmark()
+        {
+            ServiceOptions.ResponseCompressionAlgorithm = TestCompressionProvider.Name;
+            ServiceOptions.ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
+            {
+                [TestCompressionProvider.Name] = new TestCompressionProvider()
+            };
+        }
+
+        protected override void SetupHttpContext(HttpContext httpContext)
+        {
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = TestCompressionProvider.Name;
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "identity," + TestCompressionProvider.Name;
+        }
+
+        protected override byte[] GetMessageData(ChatMessage message)
+        {
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
+
+            var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions: ServiceOptions);
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, message, callContext);
+            return ms.ToArray();
+        }
+
+        [Benchmark]
+        public Task CompressedHandleCallAsync()
+        {
+            return InvokeUnaryRequestAsync();
+        }
+    }
+
+    public class TestCompressionProvider : ICompressionProvider
+    {
+        public const string Name = "test-provider";
+
+        public string EncodingName => Name;
+
+        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
+        {
+            return stream;
+        }
+
+        public Stream CreateDecompressionStream(Stream stream)
+        {
+            return stream;
+        }
+    }
+}

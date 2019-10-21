@@ -38,11 +38,12 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             TestServerCallContext.Initialize();
         }
 
-        public static void WriteMessage<T>(Stream stream, T message) where T : IMessage
+        public static void WriteMessage<T>(Stream stream, T message, HttpContextServerCallContext? callContext = null)
+            where T : class, IMessage
         {
             var pipeWriter = PipeWriter.Create(stream);
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, message, TestServerCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
+            PipeExtensions.WriteMessageAsync(pipeWriter, message, callContext ?? TestServerCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
         }
     }
 }
