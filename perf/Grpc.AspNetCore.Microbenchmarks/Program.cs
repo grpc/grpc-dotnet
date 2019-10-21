@@ -22,7 +22,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
 {
     public class Program
     {
-#if PROFILE
+#if !PROFILE
         static void Main(string[] args)
         {
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
