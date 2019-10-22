@@ -42,22 +42,33 @@
   - Provide SME guidance where applicable
 
 - Testing existing client libraries on both implementations
-    -	There are APIs and SDKs to share between the implementations
-    -	@Jan Tattermusch you mentioned that you have a doc noting the differences that you can share?
+    - There are APIs and SDKs to share between the implementations
+    - @Jan Tattermusch you mentioned that you have a doc noting the differences that you can share?
+    - Here is the list of client libraries that grpc-dotnet should work with
+        - https://github.com/googleapis/google-cloud-dotnet
+        - there's an add-on library https://github.com/GoogleCloudPlatform/grpc-gcp-csharp that is used to provide some of the functionality (like channel affinity) for some of the APIs.
+
+It would also be useful to help with figuring out a way to make the client libraries not depend on Grpc.Core directly (which is currently the case).
 
 - Load balancing
     -	Integration with XDS load balancing APIs
     -	May need Connectivity APIs work in HttpClient
+    - We should start with supporting round_robin loadbalancing as a first step. The features needed for that are very likely to be needed for XDS loadbalancing as well.
+
 
 - Connection Features
-    -	Keep alive
-    -	Connection idle
+    -	Keep alive, without keepalive support it can be difficult to have long-lived streaming call that only rarely sends messages (e.g. "client subscribes for receiving updates from server " scenario)
+    -	Connection idle: https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md
     -	Wait for ready
     -	These features are often needed for production ready services
 
 - Support status.proto
-    -	Trailing rich metadata for error details
-    -	Works across different implementation
+    - Trailing rich metadata for error details
+    - Works across different implementation
+    - For details, see "Richer error model" here: https://grpc.io/docs/guides/error/ and also https://cloud.google.com/apis/design/errors#error_model
+example what we've done for e.g. python: https://github.com/grpc/proposal/blob/master/L44-python-rich-status.md
+the expectation is that we'll ship this as a separate nuget (e.g. "Grpc.StatusProto")
+
 
 - Channelz support
     -	Observability of server status
