@@ -48,7 +48,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                var response = new HttpResponseMessage { StatusCode = httpStatusCode };
+                var response = ResponseUtils.CreateResponse(httpStatusCode);
                 return Task.FromResult(response);
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);

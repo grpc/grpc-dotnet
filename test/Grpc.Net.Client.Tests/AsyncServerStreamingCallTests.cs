@@ -156,7 +156,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NotFound));
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 

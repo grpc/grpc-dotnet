@@ -32,6 +32,7 @@ namespace Grpc.Tests.Shared
     internal static class ResponseUtils
     {
         internal static readonly MediaTypeHeaderValue GrpcContentTypeHeaderValue = new MediaTypeHeaderValue("application/grpc");
+        internal static readonly Version ProtocolVersion = new Version(2, 0);
         internal const string MessageEncodingHeader = "grpc-encoding";
         internal const string IdentityGrpcEncoding = "identity";
         internal const string StatusTrailer = "grpc-status";
@@ -42,13 +43,19 @@ namespace Grpc.Tests.Shared
         public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string payload) =>
             CreateResponse(statusCode, new StringContent(payload));
 
-        public static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, HttpContent payload, StatusCode? grpcStatusCode = StatusCode.OK, string? grpcEncoding = null)
+        public static HttpResponseMessage CreateResponse(
+            HttpStatusCode statusCode,
+            HttpContent payload,
+            StatusCode? grpcStatusCode = StatusCode.OK,
+            string? grpcEncoding = null,
+            Version? version = null)
         {
             payload.Headers.ContentType = GrpcContentTypeHeaderValue;
 
             var message = new HttpResponseMessage(statusCode)
             {
-                Content = payload
+                Content = payload,
+                Version = version ?? ProtocolVersion
             };
 
             message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);

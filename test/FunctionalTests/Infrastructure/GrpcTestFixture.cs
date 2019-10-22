@@ -59,30 +59,38 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public HttpClient Client { get; }
 
-        public HttpClient CreateClient(HttpProtocols? httpProtocol = null, DelegatingHandler? messageHandler = null)
+        public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
         {
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
             HttpClient client;
             if (messageHandler != null)
             {
-                messageHandler.InnerHandler = new HttpClientHandler();
+                messageHandler.InnerHandler = httpClientHandler;
                 client = new HttpClient(messageHandler);
             }
             else
             {
-                client = new HttpClient();
+                client = new HttpClient(httpClientHandler);
             }
 
-            switch (httpProtocol ?? HttpProtocols.Http2)
+            endpointName ??= TestServerEndpointName.Http2;
+
+            switch (endpointName)
             {
-                case HttpProtocols.Http1:
-                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http1));
+                case TestServerEndpointName.Http1:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
                     break;
-                case HttpProtocols.Http2:
+                case TestServerEndpointName.Http2:
                     client.DefaultRequestVersion = new Version(2, 0);
-                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http2));
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+                    break;
+                case TestServerEndpointName.Http1WithTls:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
                     break;
                 default:
-                    throw new ArgumentException("Unexpected value.", nameof(httpProtocol));
+                    throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
             }
 
             return client;

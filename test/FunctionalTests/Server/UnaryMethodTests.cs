@@ -32,6 +32,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
@@ -231,8 +232,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
             {
-                var trailers = new Metadata();
-                trailers.Add(new Metadata.Entry("test-trailer", "A value!"));
+                var trailers = new Metadata
+                {
+                    new Metadata.Entry("test-trailer", "A value!")
+                };
 
                 return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
             });
@@ -411,7 +414,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var streamContent = new StreamContent(ms);
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
 
-            var client = Fixture.CreateClient(Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1);
+            var client = Fixture.CreateClient(TestServerEndpointName.Http1);
 
             // Act
             var response = await client.PostAsync(
