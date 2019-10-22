@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         internal abstract event Action<LogRecord> ServerLogged;
 
-        public abstract string GetUrl(string endpointName);
+        public abstract string GetUrl(TestServerEndpointName endpointName);
 
         public abstract IWebHost? Host { get; }
 
@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private readonly Action<IServiceCollection>? _initialConfigureServices;
         private IWebHost? _host;
         private IHostApplicationLifetime? _lifetime;
-        private Dictionary<string, string>? _urls;
+        private Dictionary<TestServerEndpointName, string>? _urls;
 
         internal override event Action<LogRecord> ServerLogged
         {
@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             remove => _logSinkProvider.RecordLogged -= value;
         }
 
-        public override string GetUrl(string endpointName)
+        public override string GetUrl(TestServerEndpointName endpointName)
         {
             if (_urls == null)
             {
@@ -83,9 +83,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public override void StartServer()
         {
-            // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
-            //var url = "http://127.0.0.1";
-
             _host = new WebHostBuilder()
                 .ConfigureLogging(builder => builder
                     .SetMinimumLevel(LogLevel.Trace)
@@ -136,11 +133,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _logger.LogInformation("Test Server started");
 
             // Get the URL from the server
-            _urls = new Dictionary<string, string>
+            _urls = new Dictionary<TestServerEndpointName, string>
             {
-                [nameof(HttpProtocols.Http2)] = "http://127.0.0.1" + ":50050",
-                [nameof(HttpProtocols.Http1)] = "http://127.0.0.1" + ":50040",
-                [$"{nameof(HttpProtocols.Http1)}-tls"] = "https://127.0.0.1" + ":50030"
+                [TestServerEndpointName.Http2] = "http://127.0.0.1:50050",
+                [TestServerEndpointName.Http1] = "http://127.0.0.1:50040",
+                [TestServerEndpointName.Http1WithTls] = "https://127.0.0.1:50030"
             };
 
             _lifetime.ApplicationStopped.Register(() =>

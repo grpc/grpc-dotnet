@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public HttpClient Client { get; }
 
-        public HttpClient CreateClient(string? endpointName = null, DelegatingHandler? messageHandler = null)
+        public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
         {
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
@@ -75,19 +75,19 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 client = new HttpClient(httpClientHandler);
             }
 
-            endpointName ??= nameof(HttpProtocols.Http2);
+            endpointName ??= TestServerEndpointName.Http2;
 
             switch (endpointName)
             {
-                case nameof(HttpProtocols.Http1):
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName));
+                case TestServerEndpointName.Http1:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
                     break;
-                case nameof(HttpProtocols.Http2):
+                case TestServerEndpointName.Http2:
                     client.DefaultRequestVersion = new Version(2, 0);
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName));
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
                     break;
-                case nameof(HttpProtocols.Http1) + "-tls":
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName));
+                case TestServerEndpointName.Http1WithTls:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
                     break;
                 default:
                     throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));

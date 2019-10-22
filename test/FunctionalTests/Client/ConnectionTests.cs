@@ -18,6 +18,7 @@
 
 using System.Threading.Tasks;
 using Greet;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
@@ -45,7 +46,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 return false;
             });
 
-            var httpClient = Fixture.CreateClient(nameof(HttpProtocols.Http1) + "-tls");
+            var httpClient = Fixture.CreateClient(TestServerEndpointName.Http1WithTls);
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
             {
