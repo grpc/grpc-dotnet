@@ -107,3 +107,12 @@ dotnet run --EnableOpenTelemetry=true
 * Client canceling a call
 * Cancellation propagation
 * Capture tracing with [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-dotnet) (optional)
+
+## [Tester](./Tester)
+
+The tester shows how to test gRPC services. The unit tests create and test a gRPC service directly. The functional tests show how to use [Microsoft.AspNetCore.TestHost](https://www.nuget.org/packages/Microsoft.AspNetCore.TestHost/) to host a gRPC service with an in-memory test server and call it using a gRPC client.
+
+##### Scenarios:
+
+* Unit testing
+* Functional testing

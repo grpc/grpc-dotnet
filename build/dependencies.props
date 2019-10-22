@@ -3,14 +3,14 @@
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
     <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.23.2</GrpcDotNetPackageVersion>
-    <GrpcPackageVersion>2.23.0</GrpcPackageVersion>
-    <MicrosoftAspNetCorePackageVersion>3.0.0-preview8.19405.7</MicrosoftAspNetCorePackageVersion>
+    <GrpcDotNetPackageVersion>2.24.0</GrpcDotNetPackageVersion>
+    <GrpcPackageVersion>2.24.0</GrpcPackageVersion>
+    <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
     <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>2.9.4</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
     <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensions30PackageVersion>3.0.0-preview8.19405.4</MicrosoftExtensions30PackageVersion>
+    <MicrosoftExtensions30PackageVersion>3.0.0</MicrosoftExtensions30PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-19367-01</MicrosoftSourceLinkGitHubPackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
