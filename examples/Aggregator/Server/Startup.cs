@@ -27,6 +27,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace.Configuration;
 
 namespace Server
 {
@@ -47,7 +48,12 @@ namespace Server
 
             if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
             {
-                ConfigureOpenTelemetryServices(services);
+                services.AddOpenTelemetry(telemetry =>
+                {
+                    telemetry.UseZipkin(o => o.ServiceName = "aggregator");
+                    telemetry.AddDependencyCollector();
+                    telemetry.AddRequestCollector();
+                });
             }
 
             // These clients will call back to the server
@@ -76,11 +82,6 @@ namespace Server
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }
-
-            if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
-            {
-                ConfigureOpenTelemetry(app.ApplicationServices);
             }
 
             app.UseRouting();

@@ -11,7 +11,7 @@
 
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
 
-    <PackageReference Include="OpenTelemetry" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Hosting" Version="$(OpenTelemetryPackageVersion)" />
     <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
     <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="$(OpenTelemetryPackageVersion)" />
     <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
