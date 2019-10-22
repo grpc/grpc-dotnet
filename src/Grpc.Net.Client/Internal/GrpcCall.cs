@@ -248,6 +248,13 @@ namespace Grpc.Net.Client.Internal
                 return status;
             }
 
+            // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
+            // Check that the response wasn't downgraded to HTTP/1.1.
+            if (httpResponse.Version < GrpcProtocolConstants.ProtocolVersion)
+            {
+                return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
+            }
+
             if (httpResponse.StatusCode != HttpStatusCode.OK)
             {
                 var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
