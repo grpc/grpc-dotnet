@@ -61,18 +61,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
         {
-            var httpClientHandler = new HttpClientHandler();
-            httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-
             HttpClient client;
             if (messageHandler != null)
             {
-                messageHandler.InnerHandler = httpClientHandler;
+                messageHandler.InnerHandler = _server.CreateHandler();
                 client = new HttpClient(messageHandler);
             }
             else
             {
-                client = new HttpClient(httpClientHandler);
+                client = new HttpClient(_server.CreateHandler());
             }
 
             endpointName ??= TestServerEndpointName.Http2;

@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -40,6 +41,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public abstract void StartServer();
 
         public abstract void Dispose();
+
+        public abstract HttpMessageHandler CreateHandler();
     }
 
     public class InProcessTestServer<TStartup> : InProcessTestServer
@@ -170,6 +173,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _host?.Dispose();
             _loggerFactory.Dispose();
         }
+
+        public override HttpMessageHandler CreateHandler() => new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
 
         private class ForwardingLoggerProvider : ILoggerProvider
         {
