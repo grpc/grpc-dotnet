@@ -60,33 +60,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public HttpClient Client { get; }
 
         public HttpClient CreateClient(HttpProtocols? httpProtocol = null, DelegatingHandler? messageHandler = null)
-        {
-            HttpClient client;
-            if (messageHandler != null)
-            {
-                messageHandler.InnerHandler = new HttpClientHandler();
-                client = new HttpClient(messageHandler);
-            }
-            else
-            {
-                client = new HttpClient();
-            }
-
-            switch (httpProtocol ?? HttpProtocols.Http2)
-            {
-                case HttpProtocols.Http1:
-                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http1));
-                    break;
-                case HttpProtocols.Http2:
-                    client.DefaultRequestVersion = new Version(2, 0);
-                    client.BaseAddress = new Uri(_server.GetUrl(HttpProtocols.Http2));
-                    break;
-                default:
-                    throw new ArgumentException("Unexpected value.", nameof(httpProtocol));
-            }
-
-            return client;
-        }
+            => _server.CreateClient(httpProtocol, messageHandler);
 
         internal event Action<LogRecord> ServerLogged
         {

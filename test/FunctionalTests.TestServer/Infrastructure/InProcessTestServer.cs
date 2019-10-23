@@ -19,10 +19,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public abstract void StartServer();
 
         public abstract void Dispose();
+        
+        public abstract HttpClient CreateClient(HttpProtocols? httpProtocol = null, DelegatingHandler? messageHandler = null);
     }
 
     public class InProcessTestServer<TStartup> : InProcessTestServer
@@ -52,6 +55,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private IWebHost? _host;
         private IHostApplicationLifetime? _lifetime;
         private Dictionary<HttpProtocols, string>? _urls;
+        private TestServer? _server;
 
         internal override event Action<LogRecord> ServerLogged
         {
@@ -86,46 +90,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
             var url = "http://127.0.0.1";
 
-            _host = new WebHostBuilder()
+            _server = new TestServer(new WebHostBuilder()
                 .ConfigureLogging(builder => builder
                     .SetMinimumLevel(LogLevel.Trace)
                     .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
-                .ConfigureServices(services =>
-                {
-                    _initialConfigureServices?.Invoke(services);
-                })
+                .ConfigureServices(services => { _initialConfigureServices?.Invoke(services); })
                 .UseStartup(typeof(TStartup))
                 .UseKestrel(options =>
                 {
-                    options.ListenLocalhost(50050, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-                    options.ListenLocalhost(50040, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1;
-                    });
+                    options.ListenLocalhost(50050, listenOptions => { listenOptions.Protocols = HttpProtocols.Http2; });
+                    options.ListenLocalhost(50040, listenOptions => { listenOptions.Protocols = HttpProtocols.Http1; });
                 })
                 .UseUrls(url)
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .Build();
+                .UseContentRoot(Directory.GetCurrentDirectory()));
 
-            var t = Task.Run(() => _host.Start());
+            _host = _server.Host;
+
             _logger.LogInformation("Starting test server...");
             _lifetime = _host.Services.GetRequiredService<IHostApplicationLifetime>();
 
-            // This only happens once per fixture, so we can afford to wait a little bit on it.
-            if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(20)))
-            {
-                // t probably faulted
-                if (t.IsFaulted)
-                {
-                    throw t.Exception!.InnerException!;
-                }
-
-                var logs = _logSinkProvider.GetLogs();
-                throw new TimeoutException($"Timed out waiting for application to start.{Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
-            }
             _logger.LogInformation("Test Server started");
 
             // Get the URL from the server
@@ -141,28 +124,43 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             });
         }
 
-        private string RenderLogs(IList<LogRecord> logs)
+        public override HttpClient CreateClient(HttpProtocols? httpProtocol = null,
+            DelegatingHandler? messageHandler = null)
         {
-            var builder = new StringBuilder();
-            foreach (var log in logs)
+            var client = CreateHttpClientInner(messageHandler);
+            
+            switch (httpProtocol ?? HttpProtocols.Http2)
             {
-                builder.AppendLine($"{log.Timestamp:O} {log.LoggerName} {log.LogLevel}: {log.Formatter(log.State, log.Exception)}");
-                if (log.Exception != null)
-                {
-                    var message = log.Exception.ToString();
-                    foreach (var line in message.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
-                    {
-                        builder.AppendLine($"| {line}");
-                    }
-                }
+                case HttpProtocols.Http1:
+                    client.BaseAddress = new Uri(GetUrl(HttpProtocols.Http1));
+                    break;
+                case HttpProtocols.Http2:
+                    client.DefaultRequestVersion = new Version(2, 0);
+                    client.BaseAddress = new Uri(GetUrl(HttpProtocols.Http2));
+                    break;
+                default:
+                    throw new ArgumentException("Unexpected value.", nameof(httpProtocol));
             }
-            return builder.ToString();
+            
+            return client;
+        }
+
+        private HttpClient CreateHttpClientInner(DelegatingHandler? messageHandler)
+        {
+            if (messageHandler == null)
+            {
+                return _server?.CreateClient() ?? new HttpClient();
+            }
+
+            messageHandler.InnerHandler = _server?.CreateHandler();
+
+            return new HttpClient(messageHandler);
         }
 
         public override void Dispose()
         {
             _logger.LogInformation("Shutting down test server");
-            _host?.Dispose();
+            _server?.Dispose();
             _loggerFactory.Dispose();
         }
 
