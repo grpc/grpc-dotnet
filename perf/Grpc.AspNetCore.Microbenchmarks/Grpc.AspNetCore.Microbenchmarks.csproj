@@ -14,6 +14,7 @@
     <Protobuf Include=".\Proto\greet.proto" GrpcServices="Client" />
 
     <Compile Include="..\..\test\Shared\ClientTestHelpers.cs" Link="Internal\ClientTestHelpers.cs" />
+    <Compile Include="..\..\test\Shared\HttpContextServerCallContextHelpers.cs" Link="Internal\HttpContextServerCallContextHelpers.cs" />
     <Compile Include="..\..\test\Shared\ResponseUtils.cs" Link="Internal\ResponseUtils.cs" />
     <Compile Include="..\..\test\Shared\TaskExtensions.cs" Link="Internal\TaskExtensions.cs" />
     <Compile Include="..\..\test\Shared\TestHttpMessageHandler.cs" Link="Internal\TestHttpMessageHandler.cs" />

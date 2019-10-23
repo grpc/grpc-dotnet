@@ -23,6 +23,7 @@ using Grpc.Core;
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal class HttpContextStreamWriter<TResponse> : IServerStreamWriter<TResponse>
+        where TResponse : class
     {
         private readonly HttpContextServerCallContext _context;
         private readonly Action<TResponse, SerializationContext> _serializer;

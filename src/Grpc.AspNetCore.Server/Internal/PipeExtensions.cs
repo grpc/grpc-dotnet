@@ -52,6 +52,7 @@ namespace Grpc.AspNetCore.Server.Internal
         }
 
         public static async Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, bool canFlush)
+            where TResponse : class
         {
             var logger = serverCallContext.Logger;
             try
@@ -219,6 +220,7 @@ namespace Grpc.AspNetCore.Server.Internal
         /// <param name="deserializer">Message deserializer.</param>
         /// <returns>Complete message data.</returns>
         public static async ValueTask<T> ReadSingleMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer)
+            where T : class
         {
             var logger = serverCallContext.Logger;
 
@@ -226,7 +228,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcServerLog.ReadingMessage(logger);
 
-                byte[]? completeMessageData = null;
+                T? request = null;
 
                 while (true)
                 {
@@ -242,22 +244,32 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         if (!buffer.IsEmpty)
                         {
-                            if (completeMessageData != null)
+                            if (request != null)
                             {
                                 throw new RpcException(AdditionalDataStatus);
                             }
 
                             if (TryReadMessage(ref buffer, serverCallContext, out var data))
                             {
-                                // Store the message data
+                                // Finished and the complete message has arrived
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.GetValueOrDefault().Length, typeof(T));
+
+                                serverCallContext.DeserializationContext.SetPayload(data);
+                                request = deserializer(serverCallContext.DeserializationContext);
+                                serverCallContext.DeserializationContext.SetPayload(null);
+
+                                GrpcServerLog.ReceivedMessage(logger);
+
+                                GrpcEventSource.Log.MessageReceived();
+
+                                // Store the request
                                 // Need to verify the request completes with no additional data
-                                completeMessageData = data;
                             }
                         }
 
                         if (result.IsCompleted)
                         {
-                            if (completeMessageData != null)
+                            if (request != null)
                             {
                                 // Additional data came with message
                                 if (buffer.Length > 0)
@@ -265,8 +277,7 @@ namespace Grpc.AspNetCore.Server.Internal
                                     throw new RpcException(AdditionalDataStatus);
                                 }
 
-                                // Finished and the complete message has arrived
-                                break;
+                                return request;
                             }
 
                             throw new RpcException(IncompleteMessageStatus);
@@ -275,7 +286,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     finally
                     {
                         // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                        if (completeMessageData != null)
+                        if (request != null)
                         {
                             input.AdvanceTo(buffer.Start);
                         }
@@ -287,18 +298,6 @@ namespace Grpc.AspNetCore.Server.Internal
                         }
                     }
                 }
-
-                GrpcServerLog.DeserializingMessage(logger, completeMessageData.Length, typeof(T));
-
-                serverCallContext.DeserializationContext.SetPayload(completeMessageData);
-                var request = deserializer(serverCallContext.DeserializationContext);
-                serverCallContext.DeserializationContext.SetPayload(null);
-
-                GrpcServerLog.ReceivedMessage(logger);
-
-                GrpcEventSource.Log.MessageReceived();
-
-                return request;
             }
             catch (Exception ex)
             {
@@ -323,7 +322,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcServerLog.ReadingMessage(logger);
 
-                byte[]? data;
+                ReadOnlySequence<byte>? data;
                 while (true)
                 {
                     var completeMessage = false;
@@ -342,7 +341,18 @@ namespace Grpc.AspNetCore.Server.Internal
                             if (TryReadMessage(ref buffer, serverCallContext, out data))
                             {
                                 completeMessage = true;
-                                break;
+
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.Value.Length, typeof(T));
+
+                                serverCallContext.DeserializationContext.SetPayload(data);
+                                var request = deserializer(serverCallContext.DeserializationContext);
+                                serverCallContext.DeserializationContext.SetPayload(null);
+
+                                GrpcServerLog.ReceivedMessage(logger);
+
+                                GrpcEventSource.Log.MessageReceived();
+
+                                return request;
                             }
                         }
 
@@ -373,18 +383,6 @@ namespace Grpc.AspNetCore.Server.Internal
                         }
                     }
                 }
-
-                GrpcServerLog.DeserializingMessage(logger, data!.Length, typeof(T));
-
-                serverCallContext.DeserializationContext.SetPayload(data);
-                var request = deserializer(serverCallContext.DeserializationContext);
-                serverCallContext.DeserializationContext.SetPayload(null);
-
-                GrpcServerLog.ReceivedMessage(logger);
-
-                GrpcEventSource.Log.MessageReceived();
-
-                return request;
             }
             catch (Exception ex)
             {
@@ -393,7 +391,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out byte[]? message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out ReadOnlySequence<byte>? message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
@@ -414,7 +412,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
             // Convert message to byte array
             var messageBuffer = buffer.Slice(HeaderSize, messageLength);
-            message = messageBuffer.ToArray();
 
             if (compressed)
             {
@@ -433,7 +430,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.ResolvedCompressionProviders, message, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.ResolvedCompressionProviders, messageBuffer, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
@@ -455,6 +452,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 message = decompressedMessage;
             }
+            else
+            {
+                message = messageBuffer;
+            }
 
             // Update buffer to remove message
             buffer = buffer.Slice(HeaderSize + messageLength);
@@ -462,17 +463,17 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
                 GrpcServerLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
-                var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
+                var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData));
                 compressionStream.CopyTo(output);
 
-                result = output.ToArray();
+                result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
                 return true;
             }
 
