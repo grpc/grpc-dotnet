@@ -37,17 +37,17 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         public DuplexStreamingServerCallHandler(
             Method<TRequest, TResponse> method,
             DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker,
-            GrpcServiceOptions serviceOptions,
+            MethodContext methodContext,
             ILoggerFactory loggerFactory,
             IGrpcServiceActivator<TService> serviceActivator,
             IServiceProvider serviceProvider)
-            : base(method, serviceOptions, loggerFactory, serviceActivator, serviceProvider)
+            : base(method, methodContext, loggerFactory, serviceActivator, serviceProvider)
         {
             _invoker = invoker;
 
-            if (ServiceOptions.HasInterceptors)
+            if (MethodContext.HasInterceptors)
             {
-                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(ServiceOptions.Interceptors, ServiceProvider);
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(MethodContext.Interceptors, ServiceProvider);
                 _pipelineInvoker = interceptorPipeline.DuplexStreamingPipeline(ResolvedInterceptorInvoker);
             }
         }

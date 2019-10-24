@@ -34,8 +34,8 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
     {
         public CompressedUnaryServerCallHandlerBenchmark()
         {
-            ServiceOptions.ResponseCompressionAlgorithm = TestCompressionProvider.Name;
-            ServiceOptions.ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
+            ResponseCompressionAlgorithm = TestCompressionProvider.Name;
+            CompressionProviders = new Dictionary<string, ICompressionProvider>
             {
                 [TestCompressionProvider.Name] = new TestCompressionProvider()
             };
@@ -52,7 +52,10 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
 
-            var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions: ServiceOptions);
+            var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext,
+                responseCompressionAlgorithm: ResponseCompressionAlgorithm,
+                compressionProviders: CompressionProviders);
 
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, message, callContext);

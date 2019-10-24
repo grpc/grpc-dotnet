@@ -35,20 +35,20 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
 
         protected Method<TRequest, TResponse> Method { get; }
-        protected GrpcServiceOptions ServiceOptions { get; }
+        protected MethodContext MethodContext { get; }
         protected IGrpcServiceActivator<TService> ServiceActivator { get; }
         protected IServiceProvider ServiceProvider { get; }
         protected ILogger Logger { get; }
 
         protected ServerCallHandlerBase(
             Method<TRequest, TResponse> method,
-            GrpcServiceOptions serviceOptions,
+            MethodContext methodContext,
             ILoggerFactory loggerFactory,
             IGrpcServiceActivator<TService> serviceActivator,
             IServiceProvider serviceProvider)
         {
             Method = method;
-            ServiceOptions = serviceOptions;
+            MethodContext = methodContext;
             ServiceActivator = serviceActivator;
             ServiceProvider = serviceProvider;
             Logger = loggerFactory.CreateLogger(LoggerName);
@@ -74,7 +74,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, MethodContext, Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);

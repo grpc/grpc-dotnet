@@ -64,11 +64,8 @@ namespace Grpc.Tests.Shared
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                serviceOptions: new GrpcServiceOptions
-                {
-                    ResponseCompressionAlgorithm = compressionEncoding,
-                    ResolvedCompressionProviders = resolvedProviders
-                });
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
 
             var message = await pipeReader.ReadSingleMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
@@ -96,11 +93,8 @@ namespace Grpc.Tests.Shared
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                serviceOptions: new GrpcServiceOptions
-                {
-                    ResponseCompressionAlgorithm = compressionEncoding,
-                    ResolvedCompressionProviders = resolvedProviders
-                });
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
 
             var message = await pipeReader.ReadStreamMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
@@ -123,14 +117,11 @@ namespace Grpc.Tests.Shared
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                serviceOptions: new GrpcServiceOptions
-                {
-                    ResponseCompressionAlgorithm = compressionEncoding,
-                    ResolvedCompressionProviders = resolvedProviders
-                });
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
             serverCallContext.Initialize();
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
+            pipeWriter.WriteMessageAsync(message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
             stream.Seek(0, SeekOrigin.Begin);
         }
 
