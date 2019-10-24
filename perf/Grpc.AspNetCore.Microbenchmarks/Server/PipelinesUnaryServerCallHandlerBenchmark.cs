@@ -18,21 +18,36 @@
 
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Grpc.AspNetCore.Microbenchmarks.Internal;
-using Grpc.AspNetCore.Server;
+using Chat;
+using Grpc.Core;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Server
 {
-    public class InterceptedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    public class PipelinesUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
     {
-        public InterceptedUnaryServerCallHandlerBenchmark()
+        protected override Marshaller<ChatMessage> CreateMarshaller()
         {
-            Interceptors = new InterceptorCollection();
-            Interceptors.Add<UnaryAwaitInterceptor>();
+            var marshaller = new Marshaller<ChatMessage>(
+                (ChatMessage data, SerializationContext c) =>
+                {
+                    var size = data.CalculateSize();
+                    c.SetPayloadLength(size);
+                    var writer = c.GetBufferWriter();
+                    writer.GetSpan(size);
+                    writer.Advance(size);
+                    c.Complete();
+                },
+                (DeserializationContext c) =>
+                {
+                    c.PayloadAsReadOnlySequence();
+                    return new ChatMessage();
+                });
+
+            return marshaller;
         }
 
         [Benchmark]
-        public Task InterceptedHandleCallAsync()
+        public Task PipelinesHandleCallAsync()
         {
             return InvokeUnaryRequestAsync();
         }

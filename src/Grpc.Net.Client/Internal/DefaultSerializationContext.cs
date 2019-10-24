@@ -18,17 +18,21 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 
-namespace Grpc.Shared
+namespace Grpc.Net.Client.Internal
 {
     internal sealed class DefaultSerializationContext : SerializationContext
     {
-        private ArrayBufferWriter<byte>? _writer;
         private byte[]? _array;
         private InternalState _state;
-        enum InternalState
+
+        public int? PayloadLength { get; set; }
+        private ArrayBufferWriter<byte>? _bufferWriter;
+
+        private enum InternalState : byte
         {
             Initialized,
             CompleteArray,
@@ -38,8 +42,13 @@ namespace Grpc.Shared
 
         public void Reset()
         {
+            PayloadLength = null;
+            if (_bufferWriter != null)
+            {
+                // Reuse existing buffer writer
+                _bufferWriter.Clear();
+            }
             _array = null;
-            _writer?.Clear();
             _state = InternalState.Initialized;
         }
 
@@ -55,12 +64,21 @@ namespace Grpc.Shared
                     payload = _array;
                     return true;
                 case InternalState.CompleteBufferWriter:
-                    payload = _writer!.WrittenMemory;
-                    return true;
-                default:
-                    payload = default;
-                    return false;
+                    if (_bufferWriter != null)
+                    {
+                        payload = _bufferWriter.WrittenMemory;
+                        return true;
+                    }
+                    break;
             }
+
+            payload = default;
+            return false;
+        }
+
+        public override void SetPayloadLength(int payloadLength)
+        {
+            PayloadLength = payloadLength;
         }
 
         public override void Complete(byte[] payload)
@@ -83,13 +101,18 @@ namespace Grpc.Shared
             {
                 case InternalState.Initialized:
                     _state = InternalState.IncompleteBufferWriter;
-                    goto case InternalState.IncompleteBufferWriter;
+                    return ResolveBufferWriter();
                 case InternalState.IncompleteBufferWriter:
-                    return _writer ?? (_writer = new ArrayBufferWriter<byte>());
+                    return ResolveBufferWriter();
                 default:
                     ThrowInvalidState(_state);
                     return default!;
             }
+        }
+
+        private IBufferWriter<byte> ResolveBufferWriter()
+        {
+            return _bufferWriter ??= new ArrayBufferWriter<byte>();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

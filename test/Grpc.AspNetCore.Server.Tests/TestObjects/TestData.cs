@@ -16,25 +16,18 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
-using Grpc.AspNetCore.Microbenchmarks.Internal;
-using Grpc.AspNetCore.Server;
+using System;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
+namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
-    public class InterceptedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    public class TestData
     {
-        public InterceptedUnaryServerCallHandlerBenchmark()
-        {
-            Interceptors = new InterceptorCollection();
-            Interceptors.Add<UnaryAwaitInterceptor>();
-        }
+        private ReadOnlyMemory<byte> _content;
+        public ReadOnlySpan<byte> Span => _content.Span;
 
-        [Benchmark]
-        public Task InterceptedHandleCallAsync()
+        public TestData(ReadOnlyMemory<byte> content)
         {
-            return InvokeUnaryRequestAsync();
+            _content = content;
         }
     }
 }

@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -27,6 +28,7 @@ using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -179,7 +181,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new UnaryServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
-                        new GrpcServiceOptions(),
+                        HttpContextServerCallContextHelper.CreateMethodContext(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
@@ -187,7 +189,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, context) => Task.FromResult(new TestMessage()),
-                        new GrpcServiceOptions(),
+                        HttpContextServerCallContextHelper.CreateMethodContext(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
@@ -195,7 +197,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, request, writer, context) => Task.FromResult(new TestMessage()),
-                        new GrpcServiceOptions(),
+                        HttpContextServerCallContextHelper.CreateMethodContext(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
@@ -203,7 +205,7 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         method,
                         (service, reader, writer, context) => Task.CompletedTask,
-                        new GrpcServiceOptions(),
+                        HttpContextServerCallContextHelper.CreateMethodContext(),
                         loggerFactory ?? NullLoggerFactory.Instance,
                         new TestGrpcServiceActivator<TestService>(),
                         TestServiceProvider.Instance);
