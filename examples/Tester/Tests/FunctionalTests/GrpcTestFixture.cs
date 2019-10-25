@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Tests.FunctionalTests
@@ -29,6 +30,7 @@ namespace Tests.FunctionalTests
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
         private readonly TestServer _server;
+        private readonly IHost _host;
 
         public GrpcTestFixture() : this(null) { }
 
@@ -36,15 +38,20 @@ namespace Tests.FunctionalTests
         {
             LoggerFactory = new LoggerFactory();
 
-            var builder = new WebHostBuilder()
+            var builder = new HostBuilder()
                 .ConfigureServices(services =>
                 {
                     initialConfigureServices?.Invoke(services);
                     services.TryAddSingleton<ILoggerFactory>(LoggerFactory);
                 })
-                .UseStartup<TStartup>();
-
-            _server = new TestServer(builder);
+                .ConfigureWebHostDefaults(webHost =>
+                {
+                    webHost
+                        .UseTestServer()
+                        .UseStartup<TStartup>();
+                });
+            _host = builder.Start();
+            _server = _host.GetTestServer();
 
             Client = _server.CreateClient();
             Client.BaseAddress = new Uri("http://localhost");
@@ -57,6 +64,7 @@ namespace Tests.FunctionalTests
         public void Dispose()
         {
             Client.Dispose();
+            _host.Dispose();
             _server.Dispose();
         }
     }
