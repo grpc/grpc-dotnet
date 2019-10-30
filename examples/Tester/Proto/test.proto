@@ -20,6 +20,7 @@ service Tester {
   rpc SayHelloUnary (HelloRequest) returns (HelloReply);
   rpc SayHelloServerStreaming (HelloRequest) returns (stream HelloReply);
   rpc SayHelloClientStreaming (stream HelloRequest) returns (HelloReply);
+  rpc SayHelloBidirectionalStreaming (stream HelloRequest) returns (stream HelloReply);
 }
 
 message HelloRequest {

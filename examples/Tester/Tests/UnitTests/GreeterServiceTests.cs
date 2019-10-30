@@ -16,12 +16,14 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Test;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using Server;
+using Test;
+using Tests.UnitTests.Helpers;
 
 namespace Tests.UnitTests
 {
@@ -49,8 +51,7 @@ namespace Tests.UnitTests
 
             var cts = new CancellationTokenSource();
             var callContext = TestServerCallContext.Create(cancellationToken: cts.Token);
-            var responseTcs = new TaskCompletionSource<HelloReply>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var responseStream = new TestServerStreamWriter<HelloReply>(callContext, message => responseTcs.TrySetResult(message));
+            var responseStream = new TestServerStreamWriter<HelloReply>(callContext);
 
             // Act
             var call = service.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, responseStream, callContext);
@@ -58,11 +59,20 @@ namespace Tests.UnitTests
             // Assert
             Assert.IsFalse(call.IsCompletedSuccessfully, "Method should run until cancelled.");
 
-            var firstResponse = await responseTcs.Task;
-            Assert.AreEqual("How are you Joe? 1", firstResponse.Message);
-
             cts.Cancel();
+
             await call;
+            responseStream.Complete();
+
+            var allMessages = new List<HelloReply>();
+            await foreach (var message in responseStream.ReadAllAsync())
+            {
+                allMessages.Add(message);
+            }
+
+            Assert.GreaterOrEqual(allMessages.Count, 1);
+
+            Assert.AreEqual("How are you Joe? 1", allMessages[0].Message);
         }
 
         [Test]
@@ -85,6 +95,37 @@ namespace Tests.UnitTests
             // Assert
             var response = await call;
             Assert.AreEqual("Hello James, Jo, Lee", response.Message);
+        }
+
+        [Test]
+        public async Task SayHelloBidirectionStreamingTest()
+        {
+            // Arrange
+            var service = new TesterService(NullLoggerFactory.Instance);
+
+            var callContext = TestServerCallContext.Create();
+            var requestStream = new TestAsyncStreamReader<HelloRequest>(callContext);
+            var responseStream = new TestServerStreamWriter<HelloReply>(callContext);
+
+            // Act
+            var call = service.SayHelloBidirectionalStreaming(requestStream, responseStream, callContext);
+
+            // Assert
+            requestStream.AddMessage(new HelloRequest { Name = "James" });
+            Assert.AreEqual("Hello James", (await responseStream.ReadNextAsync())!.Message);
+
+            requestStream.AddMessage(new HelloRequest { Name = "Jo" });
+            Assert.AreEqual("Hello Jo", (await responseStream.ReadNextAsync())!.Message);
+
+            requestStream.AddMessage(new HelloRequest { Name = "Lee" });
+            Assert.AreEqual("Hello Lee", (await responseStream.ReadNextAsync())!.Message);
+
+            requestStream.Complete();
+
+            await call;
+            responseStream.Complete();
+
+            Assert.IsNull(await responseStream.ReadNextAsync());
         }
     }
 }

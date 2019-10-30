@@ -65,5 +65,13 @@ namespace Server
 
             return new HelloReply { Message = "Hello " + string.Join(", ", names) };
         }
+
+        public override async Task SayHelloBidirectionalStreaming(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        {
+            await foreach (var message in requestStream.ReadAllAsync())
+            {
+                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
+            }
+        }
     }
 }

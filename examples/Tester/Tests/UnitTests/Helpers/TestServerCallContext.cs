@@ -22,7 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace Tests.UnitTests
+namespace Tests.UnitTests.Helpers
 {
     public class TestServerCallContext : ServerCallContext
     {

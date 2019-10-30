@@ -17,14 +17,12 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Grpc.Core;
-using NUnit.Framework;
 
-namespace Tests.UnitTests
+namespace Tests.UnitTests.Helpers
 {
     public class TestAsyncStreamReader<T> : IAsyncStreamReader<T> where T : class
     {

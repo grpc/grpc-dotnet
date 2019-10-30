@@ -18,25 +18,47 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace Tests.UnitTests
+namespace Tests.UnitTests.Helpers
 {
-    public class TestServerStreamWriter<T> : IServerStreamWriter<T>
+    public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
     {
         private readonly ServerCallContext _serverCallContext;
-        private readonly Action<T>? _writeCallback;
-
-        public IList<T> Messages { get; }
+        private readonly Channel<T> _channel;
 
         public WriteOptions? WriteOptions { get; set; }
 
-        public TestServerStreamWriter(ServerCallContext serverCallContext, Action<T>? writeCallback = null)
+        public TestServerStreamWriter(ServerCallContext serverCallContext)
         {
-            Messages = new List<T>();
+            _channel = Channel.CreateUnbounded<T>();
+
             _serverCallContext = serverCallContext;
-            _writeCallback = writeCallback;
+        }
+
+        public void Complete()
+        {
+            _channel.Writer.Complete();
+        }
+
+        public IAsyncEnumerable<T> ReadAllAsync()
+        {
+            return _channel.Reader.ReadAllAsync();
+        }
+
+        public async Task<T?> ReadNextAsync()
+        {
+            if (await _channel.Reader.WaitToReadAsync())
+            {
+                _channel.Reader.TryRead(out var message);
+                return message;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public Task WriteAsync(T message)
@@ -46,8 +68,11 @@ namespace Tests.UnitTests
                 return Task.FromCanceled(_serverCallContext.CancellationToken);
             }
 
-            Messages.Add(message);
-            _writeCallback?.Invoke(message);
+            if (!_channel.Writer.TryWrite(message))
+            {
+                throw new InvalidOperationException("Unable to write message.");
+            }
+
             return Task.CompletedTask;
         }
     }

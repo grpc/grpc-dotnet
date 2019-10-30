@@ -16,11 +16,12 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Test;
 using Grpc.Core;
 using NUnit.Framework;
+using Test;
 
 namespace Tests.FunctionalTests
 {
@@ -95,6 +96,35 @@ namespace Tests.FunctionalTests
             // Assert
             Assert.IsTrue(hasMessages);
             Assert.IsTrue(callCancelled);
+        }
+
+        [Test]
+        [Ignore("Bidirectional streaming is currently not supported in TestServer: https://github.com/aspnet/AspNetCore/pull/15591")]
+        public async Task SayHelloBidirectionStreamingTest()
+        {
+            // Arrange
+            var client = new Tester.TesterClient(Channel);
+
+            var names = new[] { "James", "Jo", "Lee" };
+            var messages = new List<string>();
+
+            // Act
+            using (var call = client.SayHelloBidirectionalStreaming())
+            {
+                foreach (var name in names)
+                {
+                    await call.RequestStream.WriteAsync(new HelloRequest { Name = name });
+
+                    Assert.IsTrue(await call.ResponseStream.MoveNext());
+                    messages.Add(call.ResponseStream.Current.Message);
+                }
+
+                await call.RequestStream.CompleteAsync();
+            }
+
+            // Assert
+            Assert.AreEqual(1, messages.Count);
+            Assert.AreEqual("Hello James", messages[0]);
         }
     }
 }
