@@ -234,10 +234,9 @@ namespace Grpc.Net.Client
 
                 // Serialize message first. Need to know size to prefix the length in the header
                 var serializationContext = new DefaultSerializationContext();
+                serializationContext.Reset();
                 serializer(message, serializationContext);
-                var data = serializationContext.Payload;
-
-                if (data == null)
+                if (!serializationContext.TryGetPayload(out var data))
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
@@ -276,7 +275,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData)
+        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlyMemory<byte> messageData)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -285,7 +284,7 @@ namespace Grpc.Net.Client
                 var output = new MemoryStream();
                 using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
                 {
-                    compressionStream.Write(messageData, 0, messageData.Length);
+                    compressionStream.Write(messageData.Span);
                 }
 
                 return output.ToArray();

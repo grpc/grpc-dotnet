@@ -37,9 +37,10 @@ namespace Grpc.AspNetCore.Server.Internal
     internal partial class ServerCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
+        private readonly GrpcServiceOptions _globalOptions;
+        private readonly GrpcServiceOptions<TService> _serviceOptions;
         private readonly IGrpcServiceActivator<TService> _serviceActivator;
         private readonly IServiceProvider _serviceProvider;
-        private readonly GrpcServiceOptions _resolvedOptions;
 
         public ServerCallHandlerFactory(
             ILoggerFactory loggerFactory,
@@ -49,39 +50,36 @@ namespace Grpc.AspNetCore.Server.Internal
             IServiceProvider serviceProvider)
         {
             _loggerFactory = loggerFactory;
+            _serviceOptions = serviceOptions.Value;
+            _globalOptions = globalOptions.Value;
             _serviceActivator = serviceActivator;
             _serviceProvider = serviceProvider;
+        }
 
-            var so = serviceOptions.Value;
-            var go = globalOptions.Value;
-
+        private MethodContext CreateMethodContext<TRequest, TResponse>()
+        {
             // This is required to get ensure that service methods without any explicit configuration
             // will continue to get the global configuration options
-            _resolvedOptions = new GrpcServiceOptions
-            {
-                EnableDetailedErrors = so.EnableDetailedErrors ?? go.EnableDetailedErrors,
-                MaxReceiveMessageSize = so.MaxReceiveMessageSize ?? go.MaxReceiveMessageSize,
-                MaxSendMessageSize = so.MaxSendMessageSize ?? go.MaxSendMessageSize,
-                ResponseCompressionAlgorithm = so.ResponseCompressionAlgorithm ?? go.ResponseCompressionAlgorithm,
-                ResponseCompressionLevel = so.ResponseCompressionLevel ?? go.ResponseCompressionLevel
-            };
-
             var resolvedCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
-            AddCompressionProviders(resolvedCompressionProviders, so._compressionProviders);
-            AddCompressionProviders(resolvedCompressionProviders, go._compressionProviders);
-            _resolvedOptions.ResolvedCompressionProviders = resolvedCompressionProviders;
+            AddCompressionProviders(resolvedCompressionProviders, _serviceOptions._compressionProviders);
+            AddCompressionProviders(resolvedCompressionProviders, _globalOptions._compressionProviders);
 
-            _resolvedOptions.Interceptors.AddRange(go.Interceptors);
-            _resolvedOptions.Interceptors.AddRange(so.Interceptors);
-            _resolvedOptions.HasInterceptors = _resolvedOptions.Interceptors.Count > 0;
+            var interceptors = new InterceptorCollection();
+            interceptors.AddRange(_globalOptions.Interceptors);
+            interceptors.AddRange(_serviceOptions.Interceptors);
 
-            if (_resolvedOptions.ResponseCompressionAlgorithm != null)
-            {
-                if (!_resolvedOptions.ResolvedCompressionProviders.TryGetValue(_resolvedOptions.ResponseCompressionAlgorithm, out var _))
-                {
-                    throw new InvalidOperationException($"The configured response compression algorithm '{_resolvedOptions.ResponseCompressionAlgorithm}' does not have a matching compression provider.");
-                }
-            }
+            return new MethodContext
+            (
+                requestType: typeof(TRequest),
+                responseType: typeof(TResponse),
+                compressionProviders: resolvedCompressionProviders,
+                interceptors: interceptors,
+                maxSendMessageSize: _serviceOptions.MaxSendMessageSize ?? _globalOptions.MaxSendMessageSize,
+                maxReceiveMessageSize: _serviceOptions.MaxReceiveMessageSize ?? _globalOptions.MaxReceiveMessageSize,
+                enableDetailedErrors: _serviceOptions.EnableDetailedErrors ?? _globalOptions.EnableDetailedErrors,
+                responseCompressionAlgorithm: _serviceOptions.ResponseCompressionAlgorithm ?? _globalOptions.ResponseCompressionAlgorithm,
+                responseCompressionLevel: _serviceOptions.ResponseCompressionLevel ?? _globalOptions.ResponseCompressionLevel
+            );
         }
 
         private static void AddCompressionProviders(Dictionary<string, ICompressionProvider> resolvedProviders, IList<ICompressionProvider>? compressionProviders)
@@ -102,28 +100,28 @@ namespace Grpc.AspNetCore.Server.Internal
             where TRequest : class
             where TResponse : class
         {
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            return new UnaryServerCallHandler<TService, TRequest, TResponse>(method, invoker, CreateMethodContext<TRequest, TResponse>(), _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, CreateMethodContext<TRequest, TResponse>(), _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, CreateMethodContext<TRequest, TResponse>(), _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
-            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, _resolvedOptions, _loggerFactory, _serviceActivator, _serviceProvider);
+            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(method, invoker, CreateMethodContext<TRequest, TResponse>(), _loggerFactory, _serviceActivator, _serviceProvider);
         }
 
         public RequestDelegate CreateUnimplementedMethod()

@@ -26,6 +26,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
@@ -35,10 +36,9 @@ using NUnit.Framework;
 namespace Grpc.AspNetCore.Server.Tests
 {
     [TestFixture]
-    public class PipeExtensionsTests
+    public abstract class PipeExtensionsTestsBase
     {
-        private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
-        private static readonly Marshaller<byte[]> Marshaller = new Marshaller<byte[]>((byte[] data, SerializationContext c) => c.Complete(data), c => c.PayloadAsNewBuffer());
+        protected abstract Marshaller<TestData> TestDataMarshaller { get; }
 
         [Test]
         public async Task ReadSingleMessageAsync_EmptyMessage_ReturnNoData()
@@ -56,10 +56,10 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(ms));
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer);
 
             // Assert
-            Assert.AreEqual(0, messageData.Length);
+            Assert.AreEqual(0, messageData.Span.Length);
             Assert.AreEqual(5, pipeReader.Consumed);
         }
 
@@ -80,18 +80,18 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer);
 
             // Assert
-            Assert.AreEqual(1, messageData.Length);
-            Assert.AreEqual(0x10, messageData[0]);
+            Assert.AreEqual(1, messageData.Span.Length);
+            Assert.AreEqual(0x10, messageData.Span[0]);
         }
 
         [Test]
         public async Task ReadSingleMessageAsync_UnderReceiveSize_ReturnData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxSendMessageSize: 1);
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -105,18 +105,18 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(context, Marshaller.ContextualDeserializer);
+            var messageData = await pipeReader.ReadSingleMessageAsync(context, TestDataMarshaller.ContextualDeserializer);
 
             // Assert
-            Assert.AreEqual(1, messageData.Length);
-            Assert.AreEqual(0x10, messageData[0]);
+            Assert.AreEqual(1, messageData.Span.Length);
+            Assert.AreEqual(0x10, messageData.Span[0]);
         }
 
         [Test]
         public async Task ReadSingleMessageAsync_ExceedReceiveSize_ReturnData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxReceiveMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxReceiveMessageSize: 1);
             var ms = new MemoryStream(new byte[]
                 {
                     0x00, // compression = 0
@@ -131,7 +131,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeReader.ReadSingleMessageAsync(context, TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Received message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -159,11 +159,11 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer);
 
             // Assert
-            Assert.AreEqual(449, messageData.Length);
-            CollectionAssert.AreEqual(content, messageData);
+            Assert.AreEqual(449, messageData.Span.Length);
+            CollectionAssert.AreEqual(content, messageData.Span.ToArray());
         }
 
         [Test]
@@ -187,11 +187,11 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(ms);
 
             // Act
-            var messageData = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer);
 
             // Assert
-            Assert.AreEqual(449, messageData!.Length);
-            CollectionAssert.AreEqual(content, messageData);
+            Assert.AreEqual(449, messageData!.Span.Length);
+            CollectionAssert.AreEqual(content, messageData.Span.ToArray());
         }
 
         [Test]
@@ -209,23 +209,24 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new MemoryStream(emptyMessage.Concat(emptyMessage).ToArray());
 
             var pipeReader = new TestPipeReader(PipeReader.Create(ms));
+            var testServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
             // Act 1
-            var messageData1 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData1 = await pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer);
 
             // Assert 1
-            Assert.AreEqual(0, messageData1!.Length);
+            Assert.AreEqual(0, messageData1!.Span.Length);
             Assert.AreEqual(emptyMessage.Length, pipeReader.Consumed);
 
             // Act 2
-            var messageData2 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData2 = await pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer);
 
             // Assert 2
-            Assert.AreEqual(0, messageData2!.Length);
+            Assert.AreEqual(0, messageData2!.Span.Length);
             Assert.AreEqual(emptyMessage.Length * 2, pipeReader.Consumed);
 
             // Act 3
-            var messageData3 = await pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer);
+            var messageData3 = await pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer);
 
             // Assert 3
             Assert.IsNull(messageData3);
@@ -257,27 +258,28 @@ namespace Grpc.AspNetCore.Server.Tests
             var requestStream = new SyncPointMemoryStream(runContinuationsAsynchronously: false);
 
             var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
+            var testServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
             // Act 1
-            var messageData1Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
+            var messageData1Task = pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(emptyMessage).DefaultTimeout();
 
             // Assert 1
-            Assert.AreEqual(0, (await messageData1Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(0, (await messageData1Task.DefaultTimeout())!.Span.Length);
             Assert.AreEqual(5, pipeReader.Consumed);
             Assert.AreEqual(5, pipeReader.Examined);
 
             // Act 2
-            var messageData2Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
+            var messageData2Task = pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(followingMessage).DefaultTimeout();
 
             // Assert 2
-            Assert.AreEqual(0, (await messageData2Task.DefaultTimeout())!.Length);
+            Assert.AreEqual(0, (await messageData2Task.DefaultTimeout())!.Span.Length);
             Assert.AreEqual(10, pipeReader.Consumed);
             Assert.AreEqual(10, pipeReader.Examined);
 
             // Act 3
-            var messageData3Task = pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
+            var messageData3Task = pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer).AsTask();
             await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
             // Assert 3
@@ -302,7 +304,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -327,7 +329,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -353,7 +355,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Additional data after the message received.", ex.Status.Detail);
@@ -369,7 +371,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = PipeReader.Create(requestStream);
 
             // Act
-            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
+            var readTask = pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask();
 
             // Assert
             Assert.IsFalse(readTask.IsCompleted, "Still waiting for data");
@@ -415,7 +417,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeReader = new TestPipeReader(PipeReader.Create(requestStream));
 
             // Act
-            var readTask = pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask();
+            var readTask = pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask();
 
             // Assert
             for (var i = 0; i < messageData.Length; i++)
@@ -444,7 +446,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var readMessageData = await readTask.DefaultTimeout();
 
             // Assert
-            CollectionAssert.AreEqual(new byte[] { 0x10 }, readMessageData);
+            CollectionAssert.AreEqual(new byte[] { 0x10 }, readMessageData.Span.ToArray());
         }
 
         [Test]
@@ -462,7 +464,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadSingleMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -487,7 +489,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Act
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
-                () => pipeReader.ReadStreamMessageAsync(TestServerCallContext, Marshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
+                () => pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualDeserializer).AsTask()).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Incomplete message.", ex.Status.Detail);
@@ -502,7 +504,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Encoding.UTF8.GetBytes("Hello world"), TestServerCallContext, Marshaller.ContextualSerializer, canFlush: false);
+            await pipeWriter.WriteMessageAsync(new TestData(Encoding.UTF8.GetBytes("Hello world")), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: false);
 
             // Assert
             var messageData = ms.ToArray();
@@ -517,7 +519,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(Array.Empty<byte>(), TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(Array.Empty<byte>()), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -542,7 +544,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -572,7 +574,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 + "nisl, vitae tincidunt purus vestibulum sit amet. Interdum et malesuada fames ac ante ipsum primis in faucibus.");
 
             // Act
-            await pipeWriter.WriteMessageAsync(content, TestServerCallContext, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(content), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -590,15 +592,62 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public async Task WriteMessageAsync_MultipleOneByteMessages_WriteData()
+        {
+            // Arrange
+            var ms = new MemoryStream();
+            var pipeWriter = PipeWriter.Create(ms);
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext();
+
+            // Act 1
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+
+            // Assert 1
+            var messageData = ms.ToArray();
+
+            CollectionAssert.AreEqual(
+                new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01, // length = 1
+                    0x10
+                },
+                messageData);
+
+            ms.Seek(0, SeekOrigin.Begin);
+
+            // Act 2
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x20 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+
+            // Assert 2
+            messageData = ms.ToArray();
+
+            CollectionAssert.AreEqual(
+                new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01, // length = 1
+                    0x20
+                },
+                messageData);
+        }
+
+        [Test]
         public async Task WriteMessageAsync_UnderSendSize_WriteData()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxSendMessageSize: 1);
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
@@ -620,12 +669,12 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_ExceedSendSize_ThrowError()
         {
             // Arrange
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions { MaxSendMessageSize = 1 });
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxSendMessageSize: 1);
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new byte[] { 0x10, 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true)).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10, 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -636,32 +685,35 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_GzipCompressed_WriteCompressedData()
         {
             // Arrange
-            var serviceOptions = new GrpcServiceOptions
+            var compressionProviders = new Dictionary<string, ICompressionProvider>
             {
-                ResponseCompressionAlgorithm = "gzip",
-                ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
-                {
-                    ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
-                }
+                ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
             };
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "gzip";
 
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext,
+                responseCompressionAlgorithm: "gzip",
+                compressionProviders: compressionProviders);
             context.Initialize();
 
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             var messageData = ms.ToArray();
 
             Assert.AreEqual(1, messageData[0]); // compression
-            Assert.AreEqual(21, messageData[4]); // message length
+            Assert.AreEqual(17, messageData[4]); // message length
+
+            byte[] result = Decompress(compressionProviders["gzip"], messageData);
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(0x10, result[0]);
         }
 
         [Test]
@@ -669,27 +721,25 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var mockCompressionProvider = new MockCompressionProvider();
-            var serviceOptions = new GrpcServiceOptions
-            {
-                ResponseCompressionAlgorithm = "Mock",
-                ResponseCompressionLevel = System.IO.Compression.CompressionLevel.Optimal,
-                ResolvedCompressionProviders = new Dictionary<string, ICompressionProvider>
-                {
-                    [mockCompressionProvider.EncodingName] = mockCompressionProvider
-                }
-            };
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "Mock";
 
-            var context = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, serviceOptions);
+            var context = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext,
+                responseCompressionAlgorithm: "Mock",
+                responseCompressionLevel: System.IO.Compression.CompressionLevel.Optimal,
+                compressionProviders: new Dictionary<string, ICompressionProvider>
+                {
+                    [mockCompressionProvider.EncodingName] = mockCompressionProvider
+                });
             context.Initialize();
 
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new byte[] { 0x10 }, context, Marshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
 
             // Assert
             Assert.AreEqual(System.IO.Compression.CompressionLevel.Optimal, mockCompressionProvider.ArgumentCompression);
@@ -697,7 +747,23 @@ namespace Grpc.AspNetCore.Server.Tests
             var messageData = ms.ToArray();
 
             Assert.AreEqual(1, messageData[0]); // compression
-            Assert.AreEqual(21, messageData[4]); // message length
+            Assert.AreEqual(17, messageData[4]); // message length
+
+            byte[] result = Decompress(mockCompressionProvider, messageData);
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(0x10, result[0]);
+        }
+
+        private static byte[] Decompress(ICompressionProvider compressionProvider, byte[] messageData)
+        {
+            var output = new MemoryStream();
+
+            var content = new MemoryStream(messageData.AsMemory(5).ToArray());
+            var decompressionStream = compressionProvider.CreateDecompressionStream(content);
+            decompressionStream.CopyTo(output);
+
+            var result = output.ToArray();
+            return result;
         }
 
         public class MockCompressionProvider : ICompressionProvider

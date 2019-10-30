@@ -16,17 +16,18 @@
 
 #endregion
 
-using Grpc.Core;
+using System;
 
-namespace Grpc.Shared
+namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
-    internal sealed class DefaultSerializationContext : SerializationContext
+    public class TestData
     {
-        public byte[]? Payload { get; set; }
+        private ReadOnlyMemory<byte> _content;
+        public ReadOnlySpan<byte> Span => _content.Span;
 
-        public override void Complete(byte[] payload)
+        public TestData(ReadOnlyMemory<byte> content)
         {
-            Payload = payload;
+            _content = content;
         }
     }
 }

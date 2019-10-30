@@ -292,7 +292,8 @@ namespace Grpc.AspNetCore.Server.Tests
             });
 
             // Assert
-            Assert.AreEqual("The configured response compression algorithm 'DOES_NOT_EXIST' does not have a matching compression provider.", ex.Message);
+            Assert.AreEqual("Error binding gRPC service 'GreeterWithAttributeService'.", ex.Message);
+            Assert.AreEqual("The configured response compression algorithm 'DOES_NOT_EXIST' does not have a matching compression provider.", ex.InnerException!.InnerException!.Message);
         }
 
         public IEndpointRouteBuilder CreateTestEndpointRouteBuilder(IServiceProvider serviceProvider)
