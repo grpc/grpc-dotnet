@@ -40,24 +40,24 @@ namespace Grpc.AspNetCore.Server.Internal
         private AuthContext? _authContext;
         // Internal for tests
         internal ServerCallDeadlineManager? DeadlineManager;
-        private DefaultSerializationContext? _serializationContext;
+        private HttpContextSerializationContext? _serializationContext;
         private DefaultDeserializationContext? _deserializationContext;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, GrpcServiceOptions serviceOptions, ILogger logger)
+        internal HttpContextServerCallContext(HttpContext httpContext, MethodContext methodContext, ILogger logger)
         {
             HttpContext = httpContext;
-            ServiceOptions = serviceOptions;
+            MethodContext = methodContext;
             Logger = logger;
         }
 
         internal ILogger Logger { get; }
         internal HttpContext HttpContext { get; }
-        internal GrpcServiceOptions ServiceOptions { get; }
+        internal MethodContext MethodContext { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
 
-        internal DefaultSerializationContext SerializationContext
+        internal HttpContextSerializationContext SerializationContext
         {
-            get => _serializationContext ??= new DefaultSerializationContext();
+            get => _serializationContext ??= new HttpContextSerializationContext(this);
         }
         internal DefaultDeserializationContext DeserializationContext
         {
@@ -170,7 +170,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
 
-                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, ServiceOptions.EnableDetailedErrors);
+                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, MethodContext.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
             }
 
@@ -377,7 +377,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
             }
 
-            var serviceDefaultCompression = ServiceOptions.ResponseCompressionAlgorithm;
+            var serviceDefaultCompression = MethodContext.ResponseCompressionAlgorithm;
             if (serviceDefaultCompression != null &&
                 !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
                 IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))

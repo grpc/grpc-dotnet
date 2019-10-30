@@ -16,7 +16,9 @@
 
 #endregion
 
+using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
@@ -28,12 +30,14 @@ using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.Core;
+using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Primitives;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Server
 {
@@ -43,10 +47,13 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
         private ServiceProvider? _requestServices;
         private DefaultHttpContext? _httpContext;
         private HeaderDictionary? _trailers;
+        private IHeaderDictionary? _headers;
         private byte[]? _requestMessage;
         private TestPipeReader? _requestPipe;
 
-        internal GrpcServiceOptions ServiceOptions { get; } = new GrpcServiceOptions();
+        protected InterceptorCollection? Interceptors { get; set; }
+        protected Dictionary<string, ICompressionProvider>? CompressionProviders { get; set; }
+        protected string? ResponseCompressionAlgorithm { get; set; }
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -65,13 +72,17 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             services.TryAddSingleton<IGrpcInterceptorActivator<UnaryAwaitInterceptor>>(new TestGrpcInterceptorActivator<UnaryAwaitInterceptor>(new UnaryAwaitInterceptor()));
             var serviceProvider = services.BuildServiceProvider();
 
-            var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
+            var marshaller = CreateMarshaller();
+
             var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
-            var result = Task.FromResult(new ChatMessage());
+            var result = Task.FromResult(message);
             _callHandler = new UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>(
                 method,
                 (service, request, context) => result,
-                ServiceOptions,
+                HttpContextServerCallContextHelper.CreateMethodContext(
+                    compressionProviders: CompressionProviders,
+                    responseCompressionAlgorithm: ResponseCompressionAlgorithm,
+                    interceptors: Interceptors),
                 NullLoggerFactory.Instance,
                 new TestGrpcServiceActivator<TestService>(new TestService()),
                 serviceProvider);
@@ -95,7 +106,14 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             {
                 Trailers = _trailers
             });
+            _headers = _httpContext.Response.Headers;
             SetupHttpContext(_httpContext);
+        }
+
+        protected virtual Marshaller<ChatMessage> CreateMarshaller()
+        {
+            var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
+            return marshaller;
         }
 
         protected virtual void SetupHttpContext(HttpContext httpContext)
@@ -104,18 +122,31 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
 
         protected virtual byte[] GetMessageData(ChatMessage message)
         {
-             var ms = new MemoryStream();
+            var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, message);
             return ms.ToArray();
         }
 
-        protected Task InvokeUnaryRequestAsync()
+        protected async Task InvokeUnaryRequestAsync()
         {
-            _httpContext!.Response.Headers.Clear();
+            _headers!.Clear();
             _trailers!.Clear();
             _requestPipe!.ReadResults.Add(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_requestMessage!), false, true)));
 
-            return _callHandler!.HandleCallAsync(_httpContext);
+            await _callHandler!.HandleCallAsync(_httpContext!);
+
+            StringValues value;
+            if (_trailers.TryGetValue("grpc-status", out value) || _headers.TryGetValue("grpc-status", out value))
+            {
+                if (!value.Equals("0"))
+                {
+                    throw new InvalidOperationException("Unexpected grpc-status: " + Enum.Parse<StatusCode>(value));
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("No grpc-status returned.");
+            }
         }
     }
 }

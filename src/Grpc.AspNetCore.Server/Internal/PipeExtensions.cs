@@ -42,7 +42,6 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Status MessageCancelledStatus = new Status(StatusCode.Internal, "Incoming message cancelled.");
         private static readonly Status AdditionalDataStatus = new Status(StatusCode.Internal, "Additional data after the message received.");
         private static readonly Status IncompleteMessageStatus = new Status(StatusCode.Internal, "Incomplete message.");
-        private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
@@ -57,20 +56,6 @@ namespace Grpc.AspNetCore.Server.Internal
             var logger = serverCallContext.Logger;
             try
             {
-                GrpcServerLog.SendingMessage(logger);
-
-                var serializationContext = serverCallContext.SerializationContext;
-                serializer(response, serializationContext);
-                var responsePayload = serializationContext.Payload;
-                serializationContext.Payload = null;
-
-                if (responsePayload == null)
-                {
-                    throw new InvalidOperationException("Serialization did not return a payload.");
-                }
-
-                GrpcServerLog.SerializedMessage(serverCallContext.Logger, typeof(TResponse), responsePayload.Length);
-
                 // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
                 var httpResponse = serverCallContext.HttpContext.Response;
                 if (!httpResponse.HasStarted)
@@ -78,37 +63,12 @@ namespace Grpc.AspNetCore.Server.Internal
                     await httpResponse.StartAsync();
                 }
 
-                var canCompress =
-                    GrpcProtocolHelpers.CanWriteCompressed(serverCallContext.WriteOptions) &&
-                    !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
-                
-                var isCompressed = false;
-                if (canCompress)
-                {
-                    Debug.Assert(
-                        serverCallContext.ServiceOptions.ResolvedCompressionProviders != null,
-                        "Compression providers should have been resolved for service.");
+                GrpcServerLog.SendingMessage(logger);
 
-                    if (TryCompressMessage(
-                        serverCallContext.Logger,
-                        serverCallContext.ResponseGrpcEncoding!,
-                        serverCallContext.ServiceOptions.ResponseCompressionLevel,
-                        serverCallContext.ServiceOptions.ResolvedCompressionProviders,
-                        responsePayload,
-                        out var result))
-                    {
-                        responsePayload = result;
-                        isCompressed = true;
-                    }
-                }
-
-                if (responsePayload.Length > serverCallContext.ServiceOptions.MaxSendMessageSize)
-                {
-                    throw new RpcException(SendingMessageExceedsLimitStatus);
-                }
-
-                WriteHeader(pipeWriter, responsePayload.Length, isCompressed);
-                pipeWriter.Write(responsePayload);
+                var serializationContext = serverCallContext.SerializationContext;
+                serializationContext.Reset();
+                serializationContext.ResponseBufferWriter = pipeWriter;
+                serializer(response, serializationContext);
 
                 // Flush messages unless WriteOptions.Flags has BufferHint set
                 var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
@@ -132,26 +92,6 @@ namespace Grpc.AspNetCore.Server.Internal
                 GrpcServerLog.ErrorSendingMessage(logger, ex);
                 throw;
             }
-        }
-
-        private static void WriteHeader(PipeWriter pipeWriter, int length, bool compress)
-        {
-            var headerData = pipeWriter.GetSpan(HeaderSize);
-
-            // Compression flag
-            headerData[0] = compress ? (byte)1 : (byte)0;
-
-            // Message length
-            EncodeMessageLength(length, headerData.Slice(1));
-
-            pipeWriter.Advance(HeaderSize);
-        }
-
-        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
-        {
-            Debug.Assert(destination.Length >= MessageDelimiterSize, "Buffer too small to encode message length.");
-
-            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
         }
 
         private static int DecodeMessageLength(ReadOnlySpan<byte> buffer)
@@ -399,7 +339,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return false;
             }
 
-            if (messageLength > context.ServiceOptions.MaxReceiveMessageSize)
+            if (messageLength > context.MethodContext.MaxReceiveMessageSize)
             {
                 throw new RpcException(ReceivedMessageExceedsLimitStatus);
             }
@@ -415,10 +355,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (compressed)
             {
-                Debug.Assert(
-                   context.ServiceOptions.ResolvedCompressionProviders != null,
-                   "Compression providers should have been resolved for service.");
-
                 var encoding = context.GetRequestGrpcEncoding();
                 if (encoding == null)
                 {
@@ -430,7 +366,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!TryDecompressMessage(context.Logger, encoding, context.ServiceOptions.ResolvedCompressionProviders, messageBuffer, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.MethodContext.CompressionProviders, messageBuffer, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
@@ -438,7 +374,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     // grpc-accept-encoding header MUST NOT contain the compression method (encoding) used.
                     var supportedEncodings = new List<string>();
                     supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
-                    supportedEncodings.AddRange(context.ServiceOptions.ResolvedCompressionProviders.Select(p => p.Key));
+                    supportedEncodings.AddRange(context.MethodContext.CompressionProviders.Select(p => p.Key));
 
                     if (!context.HttpContext.Response.HasStarted)
                     {
@@ -470,31 +406,13 @@ namespace Grpc.AspNetCore.Server.Internal
                 GrpcServerLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
-                var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData));
-                compressionStream.CopyTo(output);
-
-                result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
-                return true;
-            }
-
-            result = null;
-            return false;
-        }
-
-        private static bool TryCompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out byte[]? result)
-        {
-            if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
-            {
-                GrpcServerLog.CompressingMessage(logger, compressionProvider.EncodingName);
-
-                var output = new MemoryStream();
-                using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
+                using (var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData)))
                 {
-                    compressionStream.Write(messageData, 0, messageData.Length);
-                }
+                    compressionStream.CopyTo(output);
 
-                result = output.ToArray();
-                return true;
+                    result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
+                    return true;
+                }
             }
 
             result = null;

@@ -29,11 +29,6 @@ namespace Grpc.AspNetCore.Server
     {
         internal IList<ICompressionProvider>? _compressionProviders;
 
-        // Fast check for interceptors is used per-request
-        internal bool HasInterceptors { get; set; }
-        // Compression providers by encoding name
-        internal Dictionary<string, ICompressionProvider>? ResolvedCompressionProviders;
-
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
         /// </summary>
