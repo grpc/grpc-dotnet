@@ -50,7 +50,7 @@ namespace Grpc.Net.Compression
         /// <returns>A stream used to compress data.</returns>
         public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
         {
-            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel);
+            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
         }
 
         /// <summary>
@@ -60,7 +60,7 @@ namespace Grpc.Net.Compression
         /// <returns>A stream used to decompress data.</returns>
         public Stream CreateDecompressionStream(Stream stream)
         {
-            return new GZipStream(stream, CompressionMode.Decompress);
+            return new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
         }
     }
 }

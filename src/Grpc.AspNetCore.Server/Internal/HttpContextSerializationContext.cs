@@ -225,13 +225,15 @@ namespace Grpc.AspNetCore.Server.Internal
             GrpcServerLog.CompressingMessage(_serverCallContext.Logger, _compressionProvider.EncodingName);
 
             var output = new MemoryStream();
+
+            // Compression stream must be disposed before its content is read.
+            // GZipStream writes final Adler32 at the end of the stream on dispose.
             using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _serverCallContext.MethodContext.ResponseCompressionLevel))
             {
                 compressionStream.Write(messageData);
-                compressionStream.Flush();
-
-                return output.GetBuffer().AsSpan(0, (int)output.Length);
             }
+
+            return output.GetBuffer().AsSpan(0, (int)output.Length);
         }
     }
 }
