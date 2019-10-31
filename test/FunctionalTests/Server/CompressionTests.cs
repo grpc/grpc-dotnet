@@ -353,6 +353,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 return new WrapperStream(stream);
             }
 
+            // Returned stream is disposed. Wrapper leaves the inner stream open.
             private class WrapperStream : Stream
             {
                 private readonly Stream _innerStream;
