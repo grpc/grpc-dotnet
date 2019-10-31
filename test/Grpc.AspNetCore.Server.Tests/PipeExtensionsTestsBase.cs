@@ -709,7 +709,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var messageData = ms.ToArray();
 
             Assert.AreEqual(1, messageData[0]); // compression
-            Assert.AreEqual(17, messageData[4]); // message length
+            Assert.AreEqual(21, messageData[4]); // message length
 
             byte[] result = Decompress(compressionProviders["gzip"], messageData);
             Assert.AreEqual(1, result.Length);
@@ -747,7 +747,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var messageData = ms.ToArray();
 
             Assert.AreEqual(1, messageData[0]); // compression
-            Assert.AreEqual(17, messageData[4]); // message length
+            Assert.AreEqual(21, messageData[4]); // message length
 
             byte[] result = Decompress(mockCompressionProvider, messageData);
             Assert.AreEqual(1, result.Length);

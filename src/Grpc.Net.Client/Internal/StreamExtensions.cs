@@ -191,8 +191,10 @@ namespace Grpc.Net.Client
                 GrpcCallLog.DecompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
-                var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData));
-                compressionStream.CopyTo(output);
+                using (var compressionStream = compressionProvider.CreateDecompressionStream(new MemoryStream(messageData)))
+                {
+                    compressionStream.CopyTo(output);
+                }
 
                 result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
                 return true;
@@ -282,6 +284,9 @@ namespace Grpc.Net.Client
                 GrpcCallLog.CompressingMessage(logger, compressionProvider.EncodingName);
 
                 var output = new MemoryStream();
+
+                // Compression stream must be disposed before its content is read.
+                // GZipStream writes final Adler32 at the end of the stream.
                 using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
                 {
                     compressionStream.Write(messageData.Span);

@@ -409,10 +409,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 using (var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData)))
                 {
                     compressionStream.CopyTo(output);
-
-                    result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
-                    return true;
                 }
+
+                result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
+                return true;
             }
 
             result = null;
