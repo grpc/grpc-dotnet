@@ -277,7 +277,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static byte[] CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlyMemory<byte> messageData)
+        private static ReadOnlyMemory<byte> CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlyMemory<byte> messageData)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -292,7 +292,7 @@ namespace Grpc.Net.Client
                     compressionStream.Write(messageData.Span);
                 }
 
-                return output.ToArray();
+                return output.GetBuffer().AsMemory(0, (int)output.Length);
             }
 
             // Should never reach here
