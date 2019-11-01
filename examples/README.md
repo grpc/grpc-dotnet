@@ -82,7 +82,7 @@ The certifier shows how to configure the client and the server to use a [TLS cli
 
 ## [Worker](./Worker)
 
-The worker shows how to use gRPC with a [.NET worker service](https://docs.microsoft.com/aspnet/core/fundamentals/host/hosted-services). In this example both the client and server are running in their own worker service.
+The worker shows how to use gRPC with a [.NET worker service](https://docs.microsoft.com/aspnet/core/fundamentals/host/hosted-services). In this example the client and server are each running in their own worker service app.
 
 The client uses the worker service to make a gRPC call on a timed internal. The gRPC client factory is used to create a client, which is injected into the service using dependency injection.
 
