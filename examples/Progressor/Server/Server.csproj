@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Proto\progress.proto" GrpcServices="Server" Link="Protos\progress.proto" />
+
+    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Monarchs-of-England.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
