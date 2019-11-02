@@ -3,7 +3,7 @@
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
     <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.24.0</GrpcDotNetPackageVersion>
+    <GrpcDotNetPackageVersion>2.25.0-pre1</GrpcDotNetPackageVersion>
     <GrpcPackageVersion>2.25.0-pre1</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
