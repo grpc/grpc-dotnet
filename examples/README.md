@@ -82,7 +82,14 @@ The certifier shows how to configure the client and the server to use a [TLS cli
 
 ## [Worker](./Worker)
 
-The worker shows how a [.NET worker service](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/) can use the gRPC client factory to make gRPC calls.
+The worker shows how to use gRPC with a [.NET worker service](https://docs.microsoft.com/aspnet/core/fundamentals/host/hosted-services). In this example the client and server are each running in their own worker service app.
+
+The client uses the worker service to make a gRPC call on a timed internal. The gRPC client factory is used to create a client, which is injected into the service using dependency injection.
+
+The server uses the worker service to host a gRPC server. The server can be run as a [Windows service](https://en.wikipedia.org/wiki/Windows_service) or [systemd service](https://www.freedesktop.org/wiki/Software/systemd/) with some minor changes to the project file and startup logic:
+
+* [.NET Core Workers as Windows Services](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/)
+* [.NET Core and systemd](https://devblogs.microsoft.com/dotnet/net-core-and-systemd/)
 
 ##### Scenarios:
 
@@ -111,6 +118,8 @@ dotnet run --EnableOpenTelemetry=true
 ## [Tester](./Tester)
 
 The tester shows how to test gRPC services. The unit tests create and test a gRPC service directly. The functional tests show how to use [Microsoft.AspNetCore.TestHost](https://www.nuget.org/packages/Microsoft.AspNetCore.TestHost/) to host a gRPC service with an in-memory test server and call it using a gRPC client.
+
+> **NOTE:** There is a known issue in ASP.NET Core 3.0 that prevents functional testing of bidirectional gRPC methods. Bidirectional gRPC methods can still be unit tested.
 
 ##### Scenarios:
 

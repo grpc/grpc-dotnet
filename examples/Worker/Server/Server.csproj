@@ -1,12 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <UserSecretsId>dotnet-Server-6F5B7B30-7731-4D23-BE00-5D7906864D7A</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Server" Link="Protos\count.proto" />
 
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>
 
