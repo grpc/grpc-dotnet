@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>gRPC meta-package for ASP.NET Core</Description>
+    <PackageTags>gRPC RPC HTTP/2 aspnetcore</PackageTags>
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+
+    <!-- Don't include empty DLL or PDB in metapackage -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avoid NU5128 warning. TFM in dependencies group of the nuspec must match lib/ref content. -->
+    <None Include="lib\**\*">
+      <Pack>True</Pack>
+      <PackagePath>lib</PackagePath>
+    </None>
+
+    <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
+    <ProjectReference Include="..\Grpc.AspNetCore.Server.ClientFactory\Grpc.AspNetCore.Server.ClientFactory.csproj" PrivateAssets="None" />
+
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="None" />
+  </ItemGroup>
+
+</Project>

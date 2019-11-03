@@ -18,10 +18,8 @@
 
 using System;
 using System.Net.Http;
-using FunctionalTestsWebsite.Infrastructure;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.TestHost;
+using Grpc.Net.Client;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -29,45 +27,80 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
-        private readonly TestServer _server;
+        private readonly InProcessTestServer _server;
 
-        public GrpcTestFixture()
+        public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices = null)
         {
-            TrailersContainer = new TrailersContainer();
-
             LoggerFactory = new LoggerFactory();
 
             Action<IServiceCollection> configureServices = services =>
             {
-                // Register trailers container so tests can assert trailer headers
-                // Not thread safe for parallel calls
-                services.AddSingleton(TrailersContainer);
-
                 // Registers a service for tests to add new methods
                 services.AddSingleton<DynamicGrpcServiceRegistry>();
-
-                services.AddSingleton<ILoggerFactory>(LoggerFactory);
-
-                services.AddSingleton<IPrimaryMessageHandlerProvider, TestPrimaryMessageHandlerProvider>(s => new TestPrimaryMessageHandlerProvider(_server));
             };
 
-            var builder = new WebHostBuilder()
-                .ConfigureServices(configureServices)
-                .UseStartup<TStartup>();
+            _server = new InProcessTestServer<TStartup>(services =>
+            {
+                initialConfigureServices?.Invoke(services);
+                configureServices(services);
+            });
 
-            _server = new TestServer(builder);
+            _server.StartServer();
 
-            DynamicGrpc = _server.Host.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
+            DynamicGrpc = _server.Host!.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
 
-            Client = _server.CreateClient();
-            Client.BaseAddress = new Uri("http://localhost");
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+            Client = CreateClient();
         }
 
-        public TrailersContainer TrailersContainer { get; }
-        public LoggerFactory LoggerFactory { get; }
+        public ILoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
         public HttpClient Client { get; }
+
+        public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
+        {
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+            HttpClient client;
+            if (messageHandler != null)
+            {
+                messageHandler.InnerHandler = httpClientHandler;
+                client = new HttpClient(messageHandler);
+            }
+            else
+            {
+                client = new HttpClient(httpClientHandler);
+            }
+
+            endpointName ??= TestServerEndpointName.Http2;
+
+            switch (endpointName)
+            {
+                case TestServerEndpointName.Http1:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+                    break;
+                case TestServerEndpointName.Http2:
+                    client.DefaultRequestVersion = new Version(2, 0);
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+                    break;
+                case TestServerEndpointName.Http1WithTls:
+                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+                    break;
+                default:
+                    throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
+            }
+
+            return client;
+        }
+
+        internal event Action<LogRecord> ServerLogged
+        {
+            add => _server.ServerLogged += value;
+            remove => _server.ServerLogged -= value;
+        }
 
         public void Dispose()
         {

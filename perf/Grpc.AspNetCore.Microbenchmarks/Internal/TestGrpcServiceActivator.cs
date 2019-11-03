@@ -16,11 +16,13 @@
 
 #endregion
 
-using Grpc.AspNetCore.Server;
+using System;
+using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
-    public class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
+    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
         where TGrpcService : class
     {
         public readonly TGrpcService _service;
@@ -30,13 +32,14 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             _service = service;
         }
 
-        public TGrpcService Create()
+        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
         {
-            return _service;
+            return new GrpcActivatorHandle<TGrpcService>(_service, created: false, state: null);
         }
 
-        public void Release(TGrpcService service)
+        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
         {
+            return default;
         }
     }
 }

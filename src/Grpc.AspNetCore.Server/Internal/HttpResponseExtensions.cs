@@ -25,23 +25,19 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         public static void ConsolidateTrailers(this HttpResponse httpResponse, HttpContextServerCallContext context)
         {
+            var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(httpResponse);
+
             if (context.HasResponseTrailers)
             {
                 foreach (var trailer in context.ResponseTrailers)
                 {
-                    if (trailer.IsBinary)
-                    {
-                        httpResponse.AppendTrailer(trailer.Key, Convert.ToBase64String(trailer.ValueBytes));
-                    }
-                    else
-                    {
-                        httpResponse.AppendTrailer(trailer.Key, trailer.Value);
-                    }
+                    var value = (trailer.IsBinary) ? Convert.ToBase64String(trailer.ValueBytes) : trailer.Value;
+                    trailersDestination.Append(trailer.Key, value);
                 }
             }
 
             // Append status trailers, these overwrite any existing status trailers set via ServerCallContext.ResponseTrailers
-            GrpcProtocolHelpers.SetStatusTrailers(httpResponse, context.Status);
+            GrpcProtocolHelpers.SetStatus(trailersDestination, context.Status);
         }
     }
 }

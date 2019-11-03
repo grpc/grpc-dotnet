@@ -16,11 +16,13 @@
 
 #endregion
 
-using System.Runtime.InteropServices;
+using System;
+using System.IO;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace InteropTestsWebsite
 {
@@ -28,28 +30,36 @@ namespace InteropTestsWebsite
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            CreateHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .ConfigureKestrel((context, options) =>
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    // Support --port and --use_tls cmdline arguments normally supported
-                    // by gRPC interop servers.
-                    int port = context.Configuration.GetValue<int>("port", 50052);
-                    bool useTls = context.Configuration.GetValue<bool>("use_tls", false);
-
-                    options.Limits.MinRequestBodyDataRate = null;
-                    options.ListenAnyIP(port, listenOptions =>
+                    webBuilder.ConfigureKestrel((context, options) =>
                     {
-                        if (useTls)
+                        // Support --port and --use_tls cmdline arguments normally supported
+                        // by gRPC interop servers.
+                        var port = context.Configuration.GetValue<int>("port", 50052);
+                        var useTls = context.Configuration.GetValue<bool>("use_tls", false);
+
+                        options.Limits.MinRequestBodyDataRate = null;
+                        options.ListenAnyIP(port, listenOptions =>
                         {
-                            listenOptions.UseHttps(Resources.ServerPFXPath, "1111");
-                        }
-                        listenOptions.Protocols = HttpProtocols.Http2;
+                            Console.WriteLine($"Enabling connection encryption: {useTls}");
+
+                            if (useTls)
+                            {
+                                var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                                var certPath = Path.Combine(basePath!, "Certs", "server1.pfx");
+
+                                listenOptions.UseHttps(certPath, "1111");
+                            }
+                            listenOptions.Protocols = HttpProtocols.Http2;
+                        });
                     });
-                })
-                .UseStartup<Startup>();
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }

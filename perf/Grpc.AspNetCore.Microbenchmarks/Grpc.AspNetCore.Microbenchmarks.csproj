@@ -6,20 +6,24 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include=".\Proto\*.proto" GrpcServices="Server" Generator="MSBuild:Compile" />
+    <Protobuf Include=".\Proto\chat.proto" GrpcServices="Server" />
+    <Protobuf Include=".\Proto\greet.proto" GrpcServices="Client" />
 
-    <None Remove="@(Protobuf)" />
-    <Content Include="@(Protobuf)" LinkBase="" />
+    <Compile Include="..\..\test\Shared\ClientTestHelpers.cs" Link="Internal\ClientTestHelpers.cs" />
+    <Compile Include="..\..\test\Shared\HttpContextServerCallContextHelpers.cs" Link="Internal\HttpContextServerCallContextHelpers.cs" />
+    <Compile Include="..\..\test\Shared\ResponseUtils.cs" Link="Internal\ResponseUtils.cs" />
+    <Compile Include="..\..\test\Shared\TaskExtensions.cs" Link="Internal\TaskExtensions.cs" />
+    <Compile Include="..\..\test\Shared\TestHttpMessageHandler.cs" Link="Internal\TestHttpMessageHandler.cs" />
+    <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
+    <Compile Include="..\..\test\Shared\TestResponseBodyFeature.cs" Link="Internal\TestResponseBodyFeature.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <PackageReference Include="BenchmarkDotNet" Version="$(BenchmarkDotNetPackageVersion)" />
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

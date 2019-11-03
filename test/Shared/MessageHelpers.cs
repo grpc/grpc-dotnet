@@ -16,116 +16,141 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Greet;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Compression;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
+using Grpc.Net.Compression;
 using Microsoft.AspNetCore.Http;
+using CompressionLevel = System.IO.Compression.CompressionLevel;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.Tests.Shared
 {
     internal static class MessageHelpers
     {
+        public static readonly Marshaller<HelloRequest> HelloRequestMarshaller = Marshallers.Create<HelloRequest>(r => r.ToByteArray(), data => HelloRequest.Parser.ParseFrom(data));
+        public static readonly Marshaller<HelloReply> HelloReplyMarshaller = Marshallers.Create<HelloReply>(r => r.ToByteArray(), data => HelloReply.Parser.ParseFrom(data));
+
+        public static readonly Method<HelloRequest, HelloReply> ServiceMethod = new Method<HelloRequest, HelloReply>(MethodType.Unary, "ServiceName", "MethodName", HelloRequestMarshaller, HelloReplyMarshaller);
+
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
-        public static T AssertReadMessage<T>(byte[] messageData, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static T AssertReadMessage<T>(byte[] messageData, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             var ms = new MemoryStream(messageData);
 
             return AssertReadMessageAsync<T>(ms, compressionEncoding, compressionProviders).GetAwaiter().GetResult();
         }
 
-        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var pipeReader = new StreamPipeReader(stream);
+            var resolvedProviders = ResolveProviders(compressionProviders);
+
+            var pipeReader = PipeReader.Create(stream);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                serviceOptions: new GrpcServiceOptions
-                {
-                    ResponseCompressionAlgorithm = compressionEncoding,
-                    CompressionProviders = compressionProviders
-                });
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
 
-            var messageData = await pipeReader.ReadSingleMessageAsync(serverCallContext);
-
-            var message = new T();
-            message.MergeFrom(messageData);
+            var message = await pipeReader.ReadSingleMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
             return message;
         }
 
-        public static Task<T> AssertReadStreamMessageAsync<T>(Stream stream, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static Task<T?> AssertReadStreamMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
-            var pipeReader = new StreamPipeReader(stream);
+            var pipeReader = PipeReader.Create(stream);
 
             return AssertReadStreamMessageAsync<T>(pipeReader, compressionEncoding, compressionProviders);
         }
 
-        public static async Task<T> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage, new()
+        public static async Task<T?> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(serviceOptions: new GrpcServiceOptions
-            {
-                ResponseCompressionAlgorithm = compressionEncoding,
-                CompressionProviders = compressionProviders
-            });
+            var resolvedProviders = ResolveProviders(compressionProviders);
 
-            var messageData = await pipeReader.ReadStreamMessageAsync(serverCallContext);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
 
-            if (messageData == null)
-            {
-                return default;
-            }
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+                httpContext: httpContext,
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
 
-            var message = new T();
-            message.MergeFrom(messageData);
+            var message = await pipeReader.ReadStreamMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
 
             return message;
         }
 
-        public static void WriteMessage<T>(Stream stream, T message, string compressionEncoding = null, List<ICompressionProvider> compressionProviders = null) where T : IMessage
+        public static void WriteMessage<T>(Stream stream, T message, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var messageData = message.ToByteArray();
+            var resolvedProviders = ResolveProviders(compressionProviders);
 
-            var pipeWriter = new StreamPipeWriter(stream);
+            var pipeWriter = PipeWriter.Create(stream);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = compressionEncoding;
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                serviceOptions: new GrpcServiceOptions
-                {
-                    ResponseCompressionAlgorithm = compressionEncoding,
-                    CompressionProviders = compressionProviders
-                });
+                compressionProviders: resolvedProviders,
+                responseCompressionAlgorithm: compressionEncoding);
             serverCallContext.Initialize();
 
-            PipeExtensions.WriteMessageAsync(pipeWriter, messageData, serverCallContext, flush: true).GetAwaiter().GetResult();
-			stream.Seek(0, SeekOrigin.Begin);
+            pipeWriter.WriteMessageAsync(message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
+            stream.Seek(0, SeekOrigin.Begin);
+        }
+
+        private static Dictionary<string, ICompressionProvider> ResolveProviders(List<ICompressionProvider> compressionProviders)
+        {
+            var resolvedProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
+            foreach (var compressionProvider in compressionProviders)
+            {
+                if (!resolvedProviders.ContainsKey(compressionProvider.EncodingName))
+                {
+                    resolvedProviders.Add(compressionProvider.EncodingName, compressionProvider);
+                }
+            }
+
+            return resolvedProviders;
+        }
+
+        private static T Deserialize<T>(DeserializationContext context) where T : class, IMessage, new()
+        {
+            var data = context.PayloadAsNewBuffer();
+
+            if (data == null)
+            {
+                return null!;
+            }
+
+            var message = new T();
+            message.MergeFrom(data);
+            return message;
         }
     }
 }

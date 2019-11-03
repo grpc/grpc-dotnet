@@ -16,14 +16,10 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
+using BenchmarkWorkerWebsite;
 using Google.Protobuf;
 using Grpc.Core;
-using Grpc.Core.Utils;
-using BenchmarkWorkerWebsite;
 
 namespace Grpc.Testing
 {

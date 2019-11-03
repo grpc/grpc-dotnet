@@ -18,44 +18,129 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Features;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse> : IServerCallHandler
+    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
+        where TService : class
+        where TRequest : class
+        where TResponse : class
     {
+        private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
+
         protected Method<TRequest, TResponse> Method { get; }
-        protected GrpcServiceOptions ServiceOptions { get; }
+        protected MethodContext MethodContext { get; }
+        protected IGrpcServiceActivator<TService> ServiceActivator { get; }
+        protected IServiceProvider ServiceProvider { get; }
         protected ILogger Logger { get; }
 
-        protected ServerCallHandlerBase(Method<TRequest, TResponse> method, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory)
+        protected ServerCallHandlerBase(
+            Method<TRequest, TResponse> method,
+            MethodContext methodContext,
+            ILoggerFactory loggerFactory,
+            IGrpcServiceActivator<TService> serviceActivator,
+            IServiceProvider serviceProvider)
         {
             Method = method;
-            ServiceOptions = serviceOptions;
-            Logger = loggerFactory.CreateLogger(typeof(TService));
+            MethodContext = methodContext;
+            ServiceActivator = serviceActivator;
+            ServiceProvider = serviceProvider;
+            Logger = loggerFactory.CreateLogger(LoggerName);
         }
 
         public Task HandleCallAsync(HttpContext httpContext)
         {
-            if (!GrpcProtocolHelpers.IsValidContentType(httpContext, out var error))
+            if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
-                return GrpcProtocolHelpers.SendHttpError(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                return Task.CompletedTask;
+            }
+            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
+                httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
+            {
+                GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
+
+                var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+                httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
+                return Task.CompletedTask;
             }
 
-            return HandleCallAsyncCore(httpContext);
-        }
-
-        protected abstract Task HandleCallAsyncCore(HttpContext httpContext);
-
-        protected HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext)
-        {
-            var serverCallContext = new HttpContextServerCallContext(httpContext, ServiceOptions, Logger);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, MethodContext, Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
-            return serverCallContext;
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+            try
+            {
+                serverCallContext.Initialize();
+
+                var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
+
+                if (handleCallTask.IsCompletedSuccessfully)
+                {
+                    return serverCallContext.EndCallAsync();
+                }
+                else
+                {
+                    return AwaitHandleCall(serverCallContext, Method, handleCallTask);
+                }
+            }
+            catch (Exception ex)
+            {
+                return serverCallContext.ProcessHandlerErrorAsync(ex, Method.Name);
+            }
+
+            static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+            {
+                try
+                {
+                    await handleCall;
+                    await serverCallContext.EndCallAsync();
+                }
+                catch (Exception ex)
+                {
+                    await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+                }
+            }
+        }
+
+        protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
+
+        /// <summary>
+        /// This should only be called from client streaming calls
+        /// </summary>
+        /// <param name="httpContext"></param>
+        protected void DisableMinRequestBodyDataRateAndMaxRequestBodySize(HttpContext httpContext)
+        {
+            var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
+            if (minRequestBodyDataRateFeature != null)
+            {
+                minRequestBodyDataRateFeature.MinDataRate = null;
+            }
+
+            var maxRequestBodySizeFeature = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+            if (maxRequestBodySizeFeature != null)
+            {
+                if (!maxRequestBodySizeFeature.IsReadOnly)
+                {
+                    maxRequestBodySizeFeature.MaxRequestBodySize = null;
+                }
+                else
+                {
+                    // IsReadOnly could be true if middleware has already started reading the request body
+                    // In that case we can't disable the max request body size for the request stream
+                    GrpcServerLog.UnableToDisableMaxRequestBodySize(Logger);
+                }
+            }
         }
     }
 }

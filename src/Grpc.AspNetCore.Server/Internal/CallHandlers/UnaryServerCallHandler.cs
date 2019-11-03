@@ -18,6 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,65 +31,79 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         where TResponse : class
         where TService : class
     {
-
         private readonly UnaryServerMethod<TService, TRequest, TResponse> _invoker;
+        private readonly UnaryServerMethod<TRequest, TResponse>? _pipelineInvoker;
 
-        public UnaryServerCallHandler(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker, GrpcServiceOptions serviceOptions, ILoggerFactory loggerFactory) : base(method, serviceOptions, loggerFactory)
+        public UnaryServerCallHandler(
+            Method<TRequest, TResponse> method,
+            UnaryServerMethod<TService, TRequest, TResponse> invoker,
+            MethodContext methodContext,
+            ILoggerFactory loggerFactory,
+            IGrpcServiceActivator<TService> serviceActivator,
+            IServiceProvider serviceProvider)
+            : base(method, methodContext, loggerFactory, serviceActivator, serviceProvider)
         {
             _invoker = invoker;
+
+            if (MethodContext.HasInterceptors)
+            {
+                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(MethodContext.Interceptors, ServiceProvider);
+                _pipelineInvoker = interceptorPipeline.UnaryPipeline(ResolvedInterceptorInvoker);
+            }
         }
 
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext)
+        private async Task<TResponse> ResolvedInterceptorInvoker(TRequest resolvedRequest, ServerCallContext resolvedContext)
         {
-            var serverCallContext = CreateServerCallContext(httpContext);
-
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
-
-            var activator = httpContext.RequestServices.GetRequiredService<IGrpcServiceActivator<TService>>();
-            TService service = null;
-
-            TResponse response = null;
+            GrpcActivatorHandle<TService> serviceHandle = default;
             try
             {
-                serverCallContext.Initialize();
-
-                var requestPayload = await httpContext.Request.BodyReader.ReadSingleMessageAsync(serverCallContext);
-
-                var request = Method.RequestMarshaller.Deserializer(requestPayload);
-
-                service = activator.Create();
-
-                response = await _invoker(
-                    service,
-                    request,
-                    serverCallContext);
-
-                if (response == null)
-                {
-                    // This is consistent with Grpc.Core when a null value is returned
-                    throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
-                }
-
-                var responseBodyWriter = httpContext.Response.BodyWriter;
-                await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.Serializer);
-            }
-            catch (Exception ex)
-            {
-                serverCallContext.ProcessHandlerError(ex, Method.Name);
+                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
+                return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
             }
             finally
             {
-                serverCallContext.Dispose();
-                if (service != null)
+                if (serviceHandle.Instance != null)
                 {
-                    activator.Release(service);
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
                 }
             }
+        }
 
-            httpContext.Response.ConsolidateTrailers(serverCallContext);
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+        {
+            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, Method.RequestMarshaller.ContextualDeserializer);
 
-            // Flush any buffered content
-            await httpContext.Response.BodyWriter.FlushAsync();
+            TResponse? response = null;
+
+            if (_pipelineInvoker == null)
+            {
+                GrpcActivatorHandle<TService> serviceHandle = default;
+                try
+                {
+                    serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
+                    response = await _invoker(serviceHandle.Instance, request, serverCallContext);
+                }
+                finally
+                {
+                    if (serviceHandle.Instance != null)
+                    {
+                        await ServiceActivator.ReleaseAsync(serviceHandle);
+                    }
+                }
+            }
+            else
+            {
+                response = await _pipelineInvoker(request, serverCallContext);
+            }
+
+            if (response == null)
+            {
+                // This is consistent with Grpc.Core when a null value is returned
+                throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
+            }
+
+            var responseBodyWriter = httpContext.Response.BodyWriter;
+            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
         }
     }
 }

@@ -18,13 +18,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Google.Protobuf;
+using BenchmarkWorkerWebsite;
 using Grpc.Core;
 using Grpc.Core.Utils;
-using BenchmarkWorkerWebsite;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Testing
 {

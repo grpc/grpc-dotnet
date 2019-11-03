@@ -16,11 +16,8 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
@@ -34,8 +31,8 @@ namespace FunctionalTestsWebsite.Infrastructure
     public class DynamicEndpointDataSource : EndpointDataSource
     {
         private readonly List<Endpoint> _endpoints = new List<Endpoint>();
-        private CancellationTokenSource _cts;
-        private CancellationChangeToken _cct;
+        private CancellationTokenSource? _cts;
+        private CancellationChangeToken? _cct;
 
         public override IReadOnlyList<Endpoint> Endpoints => _endpoints;
 
@@ -44,6 +41,9 @@ namespace FunctionalTestsWebsite.Infrastructure
             if (_cts == null)
             {
                 _cts = new CancellationTokenSource();
+            }
+            if (_cct == null)
+            {
                 _cct = new CancellationChangeToken(_cts.Token);
             }
 

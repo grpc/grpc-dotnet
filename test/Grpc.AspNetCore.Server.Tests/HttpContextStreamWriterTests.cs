@@ -19,12 +19,12 @@
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
-using Google.Protobuf;
 using Greet;
-using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests
@@ -39,9 +39,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new MemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Response.BodyWriter = new StreamPipeWriter(ms);
+            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualSerializer);
 
             // Act 1
             await writer.WriteAsync(new HelloReply
@@ -62,12 +62,12 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(40, ms.Length);
 
             ms.Seek(0, SeekOrigin.Begin);
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1.Message);
+            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
             var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2.Message);
+            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
         }
 
         [Test]
@@ -77,9 +77,9 @@ namespace Grpc.AspNetCore.Server.Tests
             var ms = new MemoryStream();
 
             var httpContext = new DefaultHttpContext();
-            httpContext.Response.BodyWriter = new StreamPipeWriter(ms);
+            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, (message) => message.ToByteArray());
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualSerializer);
             serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
 
             // Act 1 
@@ -103,12 +103,12 @@ namespace Grpc.AspNetCore.Server.Tests
             await httpContext.Response.BodyWriter.FlushAsync();
 
             ms.Seek(0, SeekOrigin.Begin);
-            var pipeReader = new StreamPipeReader(ms);
+            var pipeReader = PipeReader.Create(ms);
 
             var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1.Message);
+            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
             var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2.Message);
+            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
         }
     }
 }

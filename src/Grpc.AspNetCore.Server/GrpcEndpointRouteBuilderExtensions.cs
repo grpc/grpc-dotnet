@@ -17,13 +17,11 @@
 #endregion
 
 using System;
-using System.Reflection;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.Core;
+using Grpc.AspNetCore.Server.Model.Internal;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -37,25 +35,8 @@ namespace Microsoft.AspNetCore.Builder
         /// </summary>
         /// <typeparam name="TService">The service type to map requests to.</typeparam>
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder) where TService : class
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            return builder.MapGrpcService<TService>(configureOptions: null);
-        }
-
-        /// <summary>
-        /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
-        /// </summary>
-        /// <typeparam name="TService">The service type to map requests to.</typeparam>
-        /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <param name="configureOptions">A callback to configure binding options.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder, Action<GrpcBindingOptions<TService>> configureOptions) where TService : class
+        /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+        public static GrpcServiceEndpointConventionBuilder MapGrpcService<TService>(this IEndpointRouteBuilder builder) where TService : class
         {
             if (builder == null)
             {
@@ -64,59 +45,10 @@ namespace Microsoft.AspNetCore.Builder
 
             ValidateServicesRegistered(builder.ServiceProvider);
 
-            var options = new GrpcBindingOptions<TService>();
-            options.BindAction = ReflectionBind;
-            options.ModelFactory = new ReflectionMethodModelFactory<TService>();
+            var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
+            var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
 
-            configureOptions?.Invoke(options);
-
-            var callHandlerFactory = builder.ServiceProvider.GetRequiredService<ServerCallHandlerFactory<TService>>();
-            var serviceMethodsRegistry = builder.ServiceProvider.GetRequiredService<ServiceMethodsRegistry>();
-            var loggerFactory = builder.ServiceProvider.GetRequiredService<ILoggerFactory>();
-
-            var serviceBinder = new GrpcServiceBinder<TService>(builder, options.ModelFactory, callHandlerFactory, serviceMethodsRegistry, loggerFactory);
-
-            try
-            {
-                options.BindAction(serviceBinder, null);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error binding gRPC service '{typeof(TService).Name}'.", ex);
-            }
-
-            serviceBinder.CreateUnimplementedEndpoints();
-
-            return new CompositeEndpointConventionBuilder(serviceBinder.EndpointConventionBuilders);
-        }
-
-        private static void ReflectionBind<TService>(ServiceBinderBase binder, TService service)
-        {
-            var serviceType = typeof(TService);
-
-            // TService is an implementation of the gRPC service. It ultimately derives from Foo.TServiceBase base class.
-            // We need to access the static BindService method on Foo which implicitly derives from Object.
-            var baseType = serviceType.BaseType;
-
-            // Handle services that have multiple levels of inheritence
-            while (baseType?.BaseType?.BaseType != null)
-            {
-                baseType = baseType.BaseType;
-            }
-
-            // We need to call Foo.BindService from the declaring type.
-            var declaringType = baseType?.DeclaringType;
-
-            // The method we want to call is public static void BindService(ServiceBinderBase, BaseType)
-            var bindService = declaringType?.GetMethod("BindService", BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(ServiceBinderBase), baseType }, Array.Empty<ParameterModifier>());
-
-            if (bindService == null)
-            {
-                throw new InvalidOperationException($"Cannot locate BindService(ServiceBinderBase, ServiceBase) method for the current service type: {serviceType.FullName}.");
-            }
-
-            // Invoke BindService(ServiceBinderBase, BaseType)
-            bindService.Invoke(null, new object[] { binder, service });
+            return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
         }
 
         private static void ValidateServicesRegistered(IServiceProvider serviceProvider)

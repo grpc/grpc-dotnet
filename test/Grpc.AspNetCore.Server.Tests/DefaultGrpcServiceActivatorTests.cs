@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Tests.Shared;
 using Moq;
 using NUnit.Framework;
 
@@ -36,30 +38,53 @@ namespace Grpc.AspNetCore.Server.Tests
             public bool Disposed { get; private set; } = false;
             public void Dispose() => Disposed = true;
         }
-
-        [Test]
-        public void GrpcServiceCreatedIfNotResolvedFromServiceProvider()
+        public class AsyncDisposableGrpcService : DisposableGrpcService, IAsyncDisposable
         {
-            Assert.NotNull(
-                new DefaultGrpcServiceActivator<GrpcService>(Mock.Of<IServiceProvider>()).Create());
+            public bool AsyncDisposed { get; private set; } = false;
+
+            public ValueTask DisposeAsync()
+            {
+                AsyncDisposed = true;
+                return default;
+            }
         }
 
         [Test]
-        public void GrpcServiceCanBeResolvedFromServiceProvider()
+        public void Create_NotResolvedFromServiceProvider_CreatedByActivator()
         {
+            // Arrange
+            var activator = new DefaultGrpcServiceActivator<GrpcService>();
+
+            // Act
+            var handle = activator.Create(Mock.Of<IServiceProvider>());
+
+            // Assert
+            Assert.NotNull(handle.Instance);
+            Assert.IsTrue(handle.Created);
+        }
+
+        [Test]
+        public void Create_ResolvedFromServiceProvider_NotCreatedByActivator()
+        {
+            // Arrange
             var service = new GrpcService();
             var mockServiceProvider = new Mock<IServiceProvider>();
             mockServiceProvider
                 .Setup(sp => sp.GetService(typeof(GrpcService)))
                 .Returns(service);
 
-            Assert.AreSame(service,
-                new DefaultGrpcServiceActivator<GrpcService>(mockServiceProvider.Object).Create());
+            // Act
+            var handle = new DefaultGrpcServiceActivator<GrpcService>().Create(mockServiceProvider.Object);
+
+            // Assert
+            Assert.AreSame(service, handle.Instance);
+            Assert.IsFalse(handle.Created);
         }
 
         [Test]
-        public void DisposeNotCalledForServicesResolvedFromServiceProvider()
+        public async Task Release_DisposableResolvedFromServiceProvider_DisposeNotCalled()
         {
+            // Arrange
             var mockServiceProvider = new Mock<IServiceProvider>();
             mockServiceProvider
                 .Setup(sp => sp.GetService(typeof(DisposableGrpcService)))
@@ -68,39 +93,70 @@ namespace Grpc.AspNetCore.Server.Tests
                     return new DisposableGrpcService();
                 });
 
-            var serviceActivator = new DefaultGrpcServiceActivator<DisposableGrpcService>(mockServiceProvider.Object);
-            var service = serviceActivator.Create();
-            serviceActivator.Release(service);
+            var serviceActivator = new DefaultGrpcServiceActivator<DisposableGrpcService>();
+            var service = serviceActivator.Create(mockServiceProvider.Object);
 
-            Assert.False(service.Disposed);
+            // Act
+            await serviceActivator.ReleaseAsync(service).AsTask().DefaultTimeout();
+
+            // Assert
+            Assert.False(service.Instance.Disposed);
         }
 
         [Test]
-        public void DisposeCalledForDisposableServicesCreatedByActivator()
+        public async Task Release_DisposableCreatedByActivator_DisposeCalled()
         {
-            var serviceActivator = new DefaultGrpcServiceActivator<DisposableGrpcService>(Mock.Of<IServiceProvider>());
-            var service = serviceActivator.Create();
-            serviceActivator.Release(service);
+            // Arrange
+            var serviceActivator = new DefaultGrpcServiceActivator<DisposableGrpcService>();
+            var service = serviceActivator.Create(Mock.Of<IServiceProvider>());
 
-            Assert.True(service.Disposed);
+            // Act
+            await serviceActivator.ReleaseAsync(service).AsTask().DefaultTimeout();
+
+            // Assert
+            Assert.True(service.Instance.Disposed);
         }
 
         [Test]
-        public void DisposeNotCalledForUndisposableServicesCreatedByActivator()
+        public async Task Release_AsyncDisposableCreatedByActivator_DisposeAsyncCalled()
         {
-            var serviceActivator = new DefaultGrpcServiceActivator<GrpcService>(Mock.Of<IServiceProvider>());
-            var service = serviceActivator.Create();
-            serviceActivator.Release(service);
+            // Arrange
+            var serviceActivator = new DefaultGrpcServiceActivator<AsyncDisposableGrpcService>();
+            var service = serviceActivator.Create(Mock.Of<IServiceProvider>());
 
-            Assert.False(service.Disposed);
+            // Act
+            await serviceActivator.ReleaseAsync(service).AsTask().DefaultTimeout();
+
+            // Assert
+            Assert.False(service.Instance.Disposed);
+            Assert.True(service.Instance.AsyncDisposed);
         }
 
         [Test]
-        public void CannotReleaseNullService()
+        public async Task Release_NonDisposableCreatedByActivator_DisposeNotCalled()
         {
-            Assert.AreEqual("service",
-                Assert.Throws<ArgumentNullException>(
-                    () => new DefaultGrpcServiceActivator<GrpcService>(Mock.Of<IServiceProvider>()).Release(null)).ParamName);
+            // Arrange
+            var serviceActivator = new DefaultGrpcServiceActivator<GrpcService>();
+            var service = serviceActivator.Create(Mock.Of<IServiceProvider>());
+
+            // Act
+            await serviceActivator.ReleaseAsync(service).AsTask().DefaultTimeout();
+
+            // Assert
+            Assert.False(service.Instance.Disposed);
+        }
+
+        [Test]
+        public async Task Release_NullService_ThrowError()
+        {
+            // Arrange
+            var activator = new DefaultGrpcServiceActivator<GrpcService>();
+
+            // Act
+            var ex = await ExceptionAssert.ThrowsAsync<ArgumentException>(() => activator.ReleaseAsync(new GrpcActivatorHandle<GrpcService>(null!, created: true, state: null)).AsTask()).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("service", ex.ParamName);
         }
     }
 }

@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -28,13 +29,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     /// </summary>
     public class VerifyNoErrorsScope : IDisposable
     {
-        private readonly IDisposable _wrappedDisposable;
+        private readonly IDisposable? _wrappedDisposable;
         private readonly LogSinkProvider _sink;
 
-        public Func<LogRecord, bool> ExpectedErrorsFilter { get; set; }
+        public Func<LogRecord, bool>? ExpectedErrorsFilter { get; set; }
         public ILoggerFactory LoggerFactory { get; }
 
-        public VerifyNoErrorsScope(ILoggerFactory loggerFactory = null, IDisposable wrappedDisposable = null, Func<LogRecord, bool> expectedErrorsFilter = null)
+        public VerifyNoErrorsScope(ILoggerFactory? loggerFactory = null, IDisposable? wrappedDisposable = null, Func<LogRecord, bool>? expectedErrorsFilter = null)
         {
             _wrappedDisposable = wrappedDisposable;
             ExpectedErrorsFilter = expectedErrorsFilter;
@@ -44,13 +45,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             LoggerFactory.AddProvider(_sink);
         }
 
+        public IList<LogRecord> Logs => _sink.GetLogs();
+
         public void Dispose()
         {
             _wrappedDisposable?.Dispose();
 
             var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error || w.EventId.Name == "RpcConnectionError").ToList();
 
-            if (ExpectedErrorsFilter != null)
+            if (results.Count > 0 && ExpectedErrorsFilter != null)
             {
                 results = results.Where(w => !ExpectedErrorsFilter(w)).ToList();
             }

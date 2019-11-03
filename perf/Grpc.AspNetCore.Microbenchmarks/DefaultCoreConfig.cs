@@ -43,10 +43,9 @@ namespace Grpc.AspNetCore.Microbenchmarks
 
             Add(JitOptimizationsValidator.FailOnError);
 
-            // TODO(JamesNK): Change to out of process and enable server GC when https://github.com/dotnet/BenchmarkDotNet/issues/1023 is fixed
             Add(Job.Core
                 .With(CsProjCoreToolchain.From(new NetCoreAppSettings("netcoreapp3.0", null, ".NET Core 3.0")))
-                .With(InProcessToolchain.Instance)
+                .With(new GcMode { Server = true })
                 .With(RunStrategy.Throughput));
         }
     }

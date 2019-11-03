@@ -18,25 +18,27 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.Tests.Shared
 {
     /// <summary>
     /// A memory stream that waits for data when reading and allows the sender of data to wait for it to be read.
     /// </summary>
     public class SyncPointMemoryStream : Stream
     {
+        private readonly bool _runContinuationsAsynchronously;
+
         private SyncPoint _syncPoint;
         private Func<Task> _awaiter;
         private byte[] _currentData;
 
-        public SyncPointMemoryStream()
+        public SyncPointMemoryStream(bool runContinuationsAsynchronously = true)
         {
+            _runContinuationsAsynchronously = runContinuationsAsynchronously;
             _currentData = Array.Empty<byte>();
-            ResetSyncPoint();
+            _awaiter = SyncPoint.Create(out _syncPoint, _runContinuationsAsynchronously);
         }
 
         /// <summary>
@@ -112,7 +114,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
         private void ResetSyncPoint()
         {
-            _awaiter = SyncPoint.Create(out _syncPoint);
+            _awaiter = SyncPoint.Create(out _syncPoint, _runContinuationsAsynchronously);
         }
 
         #region Stream implementation

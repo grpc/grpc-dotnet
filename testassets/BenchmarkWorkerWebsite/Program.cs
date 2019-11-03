@@ -18,11 +18,11 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace BenchmarkWorkerWebsite
 {
@@ -31,7 +31,7 @@ namespace BenchmarkWorkerWebsite
         static readonly CancellationTokenSource QuitWorkerCts = new CancellationTokenSource();
         public static async Task Main(string[] args)
         {
-            await CreateWebHostBuilder(args).Build().RunAsync(QuitWorkerCts.Token);
+            await CreateHostBuilder(args).Build().RunAsync(QuitWorkerCts.Token);
         }
 
         public static void QuitWorker()
@@ -39,19 +39,21 @@ namespace BenchmarkWorkerWebsite
             QuitWorkerCts.Cancel();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .ConfigureKestrel((context, options) =>
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    // Port on which to listen to commands from QpsDriver
-                    int driverPort = context.Configuration.GetValue<int>("driver_port", 50053);
-
-                    options.Limits.MinRequestBodyDataRate = null;
-                    options.ListenAnyIP(driverPort, listenOptions =>
+                    webBuilder.ConfigureKestrel((context, options) =>
                     {
-                        listenOptions.Protocols = HttpProtocols.Http2;
+                        // Port on which to listen to commands from QpsDriver
+                        int driverPort = context.Configuration.GetValue<int>("driver_port", 50053);
+
+                        options.ListenAnyIP(driverPort, listenOptions =>
+                        {
+                            listenOptions.Protocols = HttpProtocols.Http2;
+                        });
                     });
-                })
-                .UseStartup<Startup>();
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }

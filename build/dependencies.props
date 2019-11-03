@@ -1,19 +1,26 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
-    <GoogleProtobufPackageVersion>3.7.0</GoogleProtobufPackageVersion>
-    <GrpcCorePackageVersion>1.20.0-pre3</GrpcCorePackageVersion>
-    <GrpcCoreApiPackageVersion>1.20.0-pre3</GrpcCoreApiPackageVersion>
-    <GrpcToolsPackageVersion>1.20.0-pre3</GrpcToolsPackageVersion>
-    <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>3.0.0-preview-19075-0444</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
-    <MicrosoftAspNetCoreTestHostPackageVersion>3.0.0-preview-18579-0056</MicrosoftAspNetCoreTestHostPackageVersion>
-    <MicrosoftExtensionsLoggingTestingPackageVersion>2.0.0-*</MicrosoftExtensionsLoggingTestingPackageVersion>
-    <MicrosoftNETTestSdkPackageVersion>16.0.0-preview-20181205-02</MicrosoftNETTestSdkPackageVersion>
-    <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-18618-05</MicrosoftSourceLinkGitHubPackageVersion>
+    <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
+    <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
+    <GrpcDotNetPackageVersion>2.25.0-pre1</GrpcDotNetPackageVersion>
+    <GrpcPackageVersion>2.25.0-pre1</GrpcPackageVersion>
+    <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
+    <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
+    <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
+    <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>2.9.4</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
+    <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensions30PackageVersion>3.0.0</MicrosoftExtensions30PackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>16.2.0</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftSourceLinkGitHubPackageVersion>1.0.0-beta2-19367-01</MicrosoftSourceLinkGitHubPackageVersion>
+    <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
-    <NewtonsoftJsonPackageVersion>12.0.1</NewtonsoftJsonPackageVersion>
-    <NunitPackageVersion>3.11.0</NunitPackageVersion>
-    <Nunit3TestAdapterPackageVersion>3.12.0</Nunit3TestAdapterPackageVersion>
-    <SystemIOPipelinesPackageVersion>4.6.0-preview.19073.11</SystemIOPipelinesPackageVersion>
+    <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
+    <NunitPackageVersion>3.12.0</NunitPackageVersion>
+    <Nunit3TestAdapterPackageVersion>3.13.0</Nunit3TestAdapterPackageVersion>
+    <OpenTelemetryPackageVersion>0.2.0-alpha.74</OpenTelemetryPackageVersion>
+    <SystemCommandLinePackageVersion>0.3.0-alpha.19405.1</SystemCommandLinePackageVersion>
+    <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
+    <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
   </PropertyGroup>
 </Project>

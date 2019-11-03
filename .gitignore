@@ -39,3 +39,4 @@ global.json
 *.binlog
 build/feed
 .dotnet/
+*.log.txt

@@ -1,0 +1,62 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Grpc.Dotnet.Cli.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="TestAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+
+    <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
+    <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
+
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <ProjectReference Include="..\..\src\dotnet-grpc\dotnet-grpc.csproj" />
+  </ItemGroup>
+
+  <!-- Flow package versions for testing -->
+  <ItemGroup>
+    <!-- Parameter1: PackageName -->
+    <!-- Parameter2: PackageVersion -->
+    <!-- Parameter3: PrivateAssets -->
+    <!-- Parameter4: ApplicableServiceType -->
+    <!-- Parameter5: ApplicableToWebProjects (Optional: default is null, i.e. applies to both web and non-web projects) -->
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Google.Protobuf</_Parameter1>
+      <_Parameter2>$(GoogleProtobufPackageVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client;None</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.AspNetCore</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Both;Server</_Parameter4>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.Net.ClientFactory</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client</_Parameter4>
+      <_Parameter5>false</_Parameter5>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.AspNetCore.Server.ClientFactory</_Parameter1>
+      <_Parameter2>$(GrpcDotnetVersion)</_Parameter2>
+      <_Parameter3>Default</_Parameter3>
+      <_Parameter4>Client</_Parameter4>
+      <_Parameter5>true</_Parameter5>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
+      <_Parameter1>Grpc.Tools</_Parameter1>
+      <_Parameter2>$(GrpcPackageVersion)</_Parameter2>
+      <_Parameter3>All</_Parameter3>
+      <_Parameter4>Client;None</_Parameter4>
+    </AssemblyAttribute>
+
+  </ItemGroup>
+
+</Project>

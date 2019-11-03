@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-package Chat;
+package chat;
 
 // The greeting service definition.
 service Chatter {
   // Sends a greeting
-  rpc Chat (stream ChatMessage) returns (stream ChatMessage) {}
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
 }
 
 // The chat message.

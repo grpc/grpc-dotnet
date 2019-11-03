@@ -17,27 +17,29 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
 namespace Common
 {
     public static class BenchmarkConfigurationHelpers
     {
-        public static IPEndPoint CreateIPEndPoint(this IConfiguration config)
+        public static BindingAddress CreateBindingAddress(this IConfiguration config)
         {
             var url = config["server.urls"] ?? config["urls"];
 
             if (string.IsNullOrEmpty(url))
             {
-                return new IPEndPoint(IPAddress.Loopback, 50051);
+                return BindingAddress.Parse("http://localhost:5000");
             }
 
-            var address = BindingAddress.Parse(url);
+            return BindingAddress.Parse(url);
+        }
+
+        public static IPEndPoint CreateIPEndPoint(this IConfiguration config)
+        {
+            var address = config.CreateBindingAddress();
 
             IPAddress ip;
 

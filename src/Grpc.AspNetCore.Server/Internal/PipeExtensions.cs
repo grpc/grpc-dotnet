@@ -21,16 +21,20 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Compression;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal static class PipeExtensions
+    internal static partial class PipeExtensions
     {
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
@@ -38,7 +42,6 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Status MessageCancelledStatus = new Status(StatusCode.Internal, "Incoming message cancelled.");
         private static readonly Status AdditionalDataStatus = new Status(StatusCode.Internal, "Additional data after the message received.");
         private static readonly Status IncompleteMessageStatus = new Status(StatusCode.Internal, "Incomplete message.");
-        private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
@@ -47,98 +50,48 @@ namespace Grpc.AspNetCore.Server.Internal
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Func<TResponse, byte[]> serializer)
+        public static async Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, bool canFlush)
+            where TResponse : class
         {
-            var responsePayload = serializer(response);
-
-            // Flush messages unless WriteOptions.Flags has BufferHint set
-            var flush = ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
-
-            return pipeWriter.WriteMessageAsync(responsePayload, serverCallContext, flush);
-        }
-
-        public static Task WriteMessageAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush = false)
-        {
-            if (messageData.Length > serverCallContext.ServiceOptions.SendMaxMessageSize)
+            var logger = serverCallContext.Logger;
+            try
             {
-                return Task.FromException(new RpcException(SendingMessageExceedsLimitStatus));
-            }
-
-            // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
-            var response = serverCallContext.HttpContext.Response;
-            if (!response.HasStarted)
-            {
-                var startAsyncTask = response.StartAsync();
-                if (!startAsyncTask.IsCompletedSuccessfully)
+                // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
+                var httpResponse = serverCallContext.HttpContext.Response;
+                if (!httpResponse.HasStarted)
                 {
-                    return pipeWriter.WriteMessageCoreAsyncAwaited(messageData, serverCallContext, flush, startAsyncTask);
-                }
-            }
-
-            return pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
-        }
-
-        private static async Task WriteMessageCoreAsyncAwaited(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush, Task startAsyncTask)
-        {
-            await startAsyncTask;
-            await pipeWriter.WriteMessageCoreAsync(messageData, serverCallContext, flush);
-        }
-
-        private static Task WriteMessageCoreAsync(this PipeWriter pipeWriter, byte[] messageData, HttpContextServerCallContext serverCallContext, bool flush)
-        {
-            Debug.Assert(serverCallContext.ResponseGrpcEncoding != null);
-
-            var isCompressed =
-                serverCallContext.CanWriteCompressed() &&
-                !string.Equals(serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
-
-            if (isCompressed)
-            {
-                messageData = GrpcProtocolHelpers.CompressMessage(
-                    serverCallContext.ResponseGrpcEncoding,
-                    serverCallContext.ServiceOptions.ResponseCompressionLevel,
-                    serverCallContext.ServiceOptions.CompressionProviders,
-                    messageData);
-            }
-
-            WriteHeader(pipeWriter, messageData.Length, isCompressed);
-            pipeWriter.Write(messageData);
-
-            if (flush)
-            {
-                var valueTask = pipeWriter.FlushAsync();
-
-                if (valueTask.IsCompletedSuccessfully)
-                {
-                    // We do this to reset the underlying value task (which happens in GetResult())
-                    valueTask.GetAwaiter().GetResult();
-                    return Task.CompletedTask;
+                    await httpResponse.StartAsync();
                 }
 
-                return valueTask.AsTask();
+                GrpcServerLog.SendingMessage(logger);
+
+                var serializationContext = serverCallContext.SerializationContext;
+                serializationContext.Reset();
+                serializationContext.ResponseBufferWriter = pipeWriter;
+                serializer(response, serializationContext);
+
+                // Flush messages unless WriteOptions.Flags has BufferHint set
+                var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
+
+                if (flush)
+                {
+                    serverCallContext.HasBufferedMessage = false;
+                    await pipeWriter.FlushAsync();
+                }
+                else
+                {
+                    // Set flag so buffered message will be written at the end
+                    serverCallContext.HasBufferedMessage = true;
+                }
+
+                GrpcServerLog.MessageSent(serverCallContext.Logger);
+                GrpcEventSource.Log.MessageSent();
             }
-
-            return Task.CompletedTask;
-        }
-
-        private static void WriteHeader(PipeWriter pipeWriter, int length, bool compress)
-        {
-            var headerData = pipeWriter.GetSpan(HeaderSize);
-
-            // Compression flag
-            headerData[0] = compress ? (byte)1 : (byte)0;
-
-            // Message length
-            EncodeMessageLength(length, headerData.Slice(1));
-
-            pipeWriter.Advance(HeaderSize);
-        }
-
-        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
-        {
-            Debug.Assert(destination.Length >= MessageDelimiterSize, "Buffer too small to encode message length.");
-
-            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
+            catch (Exception ex)
+            {
+                GrpcServerLog.ErrorSendingMessage(logger, ex);
+                throw;
+            }
         }
 
         private static int DecodeMessageLength(ReadOnlySpan<byte> buffer)
@@ -203,57 +156,93 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Read a single message from the pipe reader. Ensure the reader completes without additional data.
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
-        /// <param name="context">The request context.</param>
+        /// <param name="serverCallContext">The request context.</param>
+        /// <param name="deserializer">Message deserializer.</param>
         /// <returns>Complete message data.</returns>
-        public static async ValueTask<byte[]> ReadSingleMessageAsync(this PipeReader input, HttpContextServerCallContext context)
+        public static async ValueTask<T> ReadSingleMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer)
+            where T : class
         {
-            byte[] completeMessageData = null;
+            var logger = serverCallContext.Logger;
 
-            while (true)
+            try
             {
-                var result = await input.ReadAsync();
-                var buffer = result.Buffer;
+                GrpcServerLog.ReadingMessage(logger);
 
-                try
+                T? request = null;
+
+                while (true)
                 {
-                    if (result.IsCanceled)
+                    var result = await input.ReadAsync();
+                    var buffer = result.Buffer;
+
+                    try
                     {
-                        throw new RpcException(MessageCancelledStatus);
+                        if (result.IsCanceled)
+                        {
+                            throw new RpcException(MessageCancelledStatus);
+                        }
+
+                        if (!buffer.IsEmpty)
+                        {
+                            if (request != null)
+                            {
+                                throw new RpcException(AdditionalDataStatus);
+                            }
+
+                            if (TryReadMessage(ref buffer, serverCallContext, out var data))
+                            {
+                                // Finished and the complete message has arrived
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.GetValueOrDefault().Length, typeof(T));
+
+                                serverCallContext.DeserializationContext.SetPayload(data);
+                                request = deserializer(serverCallContext.DeserializationContext);
+                                serverCallContext.DeserializationContext.SetPayload(null);
+
+                                GrpcServerLog.ReceivedMessage(logger);
+
+                                GrpcEventSource.Log.MessageReceived();
+
+                                // Store the request
+                                // Need to verify the request completes with no additional data
+                            }
+                        }
+
+                        if (result.IsCompleted)
+                        {
+                            if (request != null)
+                            {
+                                // Additional data came with message
+                                if (buffer.Length > 0)
+                                {
+                                    throw new RpcException(AdditionalDataStatus);
+                                }
+
+                                return request;
+                            }
+
+                            throw new RpcException(IncompleteMessageStatus);
+                        }
                     }
-
-                    if (!buffer.IsEmpty)
+                    finally
                     {
-                        if (completeMessageData != null)
+                        // The buffer was sliced up to where it was consumed, so we can just advance to the start.
+                        if (request != null)
                         {
-                            throw new RpcException(AdditionalDataStatus);
+                            input.AdvanceTo(buffer.Start);
                         }
-
-                        if (TryReadMessage(ref buffer, context, out var data))
+                        else
                         {
-                            // Store the message data
-                            // Need to verify the request completes with no additional data
-                            completeMessageData = data;
+                            // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                            // before yielding the read again.
+                            input.AdvanceTo(buffer.Start, buffer.End);
                         }
-                    }
-
-                    if (result.IsCompleted)
-                    {
-                        if (completeMessageData != null)
-                        {
-                            // Finished and the complete message has arrived
-                            return completeMessageData;
-                        }
-
-                        throw new RpcException(IncompleteMessageStatus);
                     }
                 }
-                finally
-                {
-                    // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                    // before yielding the read again.
-                    input.AdvanceTo(buffer.Start, buffer.End);
-                }
+            }
+            catch (Exception ex)
+            {
+                GrpcServerLog.ErrorReadingMessage(logger, ex);
+                throw;
             }
         }
 
@@ -261,60 +250,88 @@ namespace Grpc.AspNetCore.Server.Internal
         /// Read a message in a stream from the pipe reader. Additional message data is left in the reader.
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
-        /// <param name="context">The request content.</param>
+        /// <param name="serverCallContext">The request content.</param>
+        /// <param name="deserializer">Message deserializer.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        public static async ValueTask<byte[]> ReadStreamMessageAsync(this PipeReader input, HttpContextServerCallContext context, CancellationToken cancellationToken = default)
+        public static async ValueTask<T?> ReadStreamMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer, CancellationToken cancellationToken = default)
+            where T : class
         {
-            while (true)
+            var logger = serverCallContext.Logger;
+            try
             {
-                var result = await input.ReadAsync(cancellationToken);
-                var buffer = result.Buffer;
+                GrpcServerLog.ReadingMessage(logger);
 
-                try
+                ReadOnlySequence<byte>? data;
+                while (true)
                 {
-                    if (result.IsCanceled)
-                    {
-                        throw new RpcException(MessageCancelledStatus);
-                    }
+                    var completeMessage = false;
+                    var result = await input.ReadAsync(cancellationToken);
+                    var buffer = result.Buffer;
 
-                    if (!buffer.IsEmpty)
+                    try
                     {
-                        if (TryReadMessage(ref buffer, context, out var data))
+                        if (result.IsCanceled)
                         {
-                            return data;
-                        }
-                    }
-
-                    if (result.IsCompleted)
-                    {
-                        if (buffer.Length == 0)
-                        {
-                            // Finished and there is no more data
-                            return null;
+                            throw new RpcException(MessageCancelledStatus);
                         }
 
-                        throw new RpcException(IncompleteMessageStatus);
+                        if (!buffer.IsEmpty)
+                        {
+                            if (TryReadMessage(ref buffer, serverCallContext, out data))
+                            {
+                                completeMessage = true;
+
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.Value.Length, typeof(T));
+
+                                serverCallContext.DeserializationContext.SetPayload(data);
+                                var request = deserializer(serverCallContext.DeserializationContext);
+                                serverCallContext.DeserializationContext.SetPayload(null);
+
+                                GrpcServerLog.ReceivedMessage(logger);
+
+                                GrpcEventSource.Log.MessageReceived();
+
+                                return request;
+                            }
+                        }
+
+                        if (result.IsCompleted)
+                        {
+                            if (buffer.Length == 0)
+                            {
+                                // Finished and there is no more data
+                                GrpcServerLog.NoMessageReturned(logger);
+                                return default;
+                            }
+
+                            throw new RpcException(IncompleteMessageStatus);
+                        }
+                    }
+                    finally
+                    {
+                        // The buffer was sliced up to where it was consumed, so we can just advance to the start.
+                        if (completeMessage)
+                        {
+                            input.AdvanceTo(buffer.Start);
+                        }
+                        else
+                        {
+                            // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                            // before yielding the read again.
+                            input.AdvanceTo(buffer.Start, buffer.End);
+                        }
                     }
                 }
-                finally
-                {
-                    // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                    // before yielding the read again.
-                    input.AdvanceTo(buffer.Start, buffer.End);
-                }
+            }
+            catch (Exception ex)
+            {
+                GrpcServerLog.ErrorReadingMessage(logger, ex);
+                throw;
             }
         }
 
-        private enum ReadMessageResult
-        {
-            Read,
-            Incomplete,
-            Stop
-        }
-
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, out byte[] message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out ReadOnlySequence<byte>? message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
@@ -322,7 +339,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return false;
             }
 
-            if (messageLength > context.ServiceOptions.ReceiveMaxMessageSize)
+            if (messageLength > context.MethodContext.MaxReceiveMessageSize)
             {
                 throw new RpcException(ReceivedMessageExceedsLimitStatus);
             }
@@ -335,11 +352,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
             // Convert message to byte array
             var messageBuffer = buffer.Slice(HeaderSize, messageLength);
-            message = messageBuffer.ToArray();
 
             if (compressed)
             {
-                string encoding = context.GetRequestGrpcEncoding();
+                var encoding = context.GetRequestGrpcEncoding();
                 if (encoding == null)
                 {
                     throw new RpcException(NoMessageEncodingMessageStatus);
@@ -350,13 +366,15 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!GrpcProtocolHelpers.TryDecompressMessage(encoding, context.ServiceOptions.CompressionProviders, message, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.MethodContext.CompressionProviders, messageBuffer, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
                     // its associated description indicating the unsupported condition as well as the supported ones. The returned
                     // grpc-accept-encoding header MUST NOT contain the compression method (encoding) used.
-                    var supportedEncodings = context.ServiceOptions.CompressionProviders.Select(p => p.EncodingName).ToList();
+                    var supportedEncodings = new List<string>();
+                    supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
+                    supportedEncodings.AddRange(context.MethodContext.CompressionProviders.Select(p => p.Key));
 
                     if (!context.HttpContext.Response.HasStarted)
                     {
@@ -370,11 +388,35 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 message = decompressedMessage;
             }
+            else
+            {
+                message = messageBuffer;
+            }
 
             // Update buffer to remove message
             buffer = buffer.Slice(HeaderSize + messageLength);
 
             return true;
+        }
+
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
+        {
+            if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
+            {
+                GrpcServerLog.DecompressingMessage(logger, compressionProvider.EncodingName);
+
+                var output = new MemoryStream();
+                using (var compressionStream = compressionProvider.CreateDecompressionStream(new ReadOnlySequenceStream(messageData)))
+                {
+                    compressionStream.CopyTo(output);
+                }
+
+                result = new ReadOnlySequence<byte>(output.GetBuffer(), 0, (int)output.Length);
+                return true;
+            }
+
+            result = null;
+            return false;
         }
     }
 }

@@ -17,9 +17,7 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.IO.Pipelines;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -46,6 +44,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             return _buffer;
         }
 
+        [Obsolete]
         public override void OnReaderCompleted(Action<Exception, object> callback, object state)
         {
             throw new NotImplementedException();
@@ -56,7 +55,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             throw new NotImplementedException();
         }
 
-        public override void Complete(Exception exception = null)
+        public override void Complete(Exception? exception = null)
         {
             throw new NotImplementedException();
         }

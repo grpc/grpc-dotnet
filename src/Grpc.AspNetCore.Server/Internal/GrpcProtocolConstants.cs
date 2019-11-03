@@ -16,20 +16,43 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
+using Microsoft.Net.Http.Headers;
+
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal static class GrpcProtocolConstants
     {
         internal const string GrpcContentType = "application/grpc";
+        internal const string Http2Protocol = "HTTP/2"; // This is what Kestrel sets
+        internal const string Http20Protocol = "HTTP/2.0"; // This is what IIS sets
 
         internal const string TimeoutHeader = "grpc-timeout";
         internal const string MessageEncodingHeader = "grpc-encoding";
+        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
+
+        internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
 
         internal const string StatusTrailer = "grpc-status";
         internal const string MessageTrailer = "grpc-message";
 
-        internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
-
         internal const string IdentityGrpcEncoding = "identity";
+        internal const int ResetStreamNoError = 0;
+
+        internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            MessageEncodingHeader,
+            MessageAcceptEncodingHeader,
+            TimeoutHeader,
+            HeaderNames.ContentType,
+            HeaderNames.TE,
+            HeaderNames.Host,
+            HeaderNames.AcceptEncoding
+        };
+
+        internal const string X509SubjectAlternativeNameId = "2.5.29.17";
+        internal const string X509SubjectAlternativeNameKey = "x509_subject_alternative_name";
+        internal const string X509CommonNameKey = "x509_common_name";
     }
 }

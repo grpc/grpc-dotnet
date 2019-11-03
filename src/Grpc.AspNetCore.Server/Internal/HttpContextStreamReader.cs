@@ -23,27 +23,31 @@ using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest>
+    internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
     {
         private static readonly Task<bool> True = Task.FromResult(true);
         private static readonly Task<bool> False = Task.FromResult(false);
 
         private readonly HttpContextServerCallContext _serverCallContext;
-        private readonly Func<byte[], TRequest> _deserializer;
+        private readonly Func<DeserializationContext, TRequest> _deserializer;
 
-        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<byte[], TRequest> deserializer)
+        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
         {
             _serverCallContext = serverCallContext;
             _deserializer = deserializer;
         }
 
-        public TRequest Current { get; private set; }
+        // IAsyncStreamReader<T> should declare Current as nullable
+        // Suppress warning when overriding interface definition
+#pragma warning disable CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
+        public TRequest? Current { get; private set; }
+#pragma warning restore CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
 
         public void Dispose() { }
 
         public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            async Task<bool> MoveNextAsync(ValueTask<byte[]> readStreamTask)
+            async Task<bool> MoveNextAsync(ValueTask<TRequest?> readStreamTask)
             {
                 return ProcessPayload(await readStreamTask);
             }
@@ -53,25 +57,25 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromCanceled<bool>(cancellationToken);
             }
 
-            var readStreamTask = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, cancellationToken);
-            if (!readStreamTask.IsCompletedSuccessfully)
+            var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
+            if (!request.IsCompletedSuccessfully)
             {
-                return MoveNextAsync(readStreamTask);
+                return MoveNextAsync(request);
             }
 
-            return ProcessPayload(readStreamTask.Result) ? True : False;
+            return ProcessPayload(request.Result) ? True : False;
         }
 
-        private bool ProcessPayload(byte[] requestPayload)
+        private bool ProcessPayload(TRequest? request)
         {
             // Stream is complete
-            if (requestPayload == null)
+            if (request == null)
             {
-                Current = default;
+                Current = null;
                 return false;
             }
 
-            Current = _deserializer(requestPayload);
+            Current = request;
             return true;
         }
     }
