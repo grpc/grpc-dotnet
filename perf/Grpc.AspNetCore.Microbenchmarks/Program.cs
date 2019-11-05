@@ -31,18 +31,18 @@ namespace Grpc.AspNetCore.Microbenchmarks
         // Profiling option. This will call methods explicitly, in-process
         static async System.Threading.Tasks.Task Main(string[] args)
         {
-            var benchmark = new Server.CompressedUnaryServerCallHandlerBenchmark();
+            var benchmark = new Client.CompressedUnaryServerCallHandlerBenchmark();
             benchmark.GlobalSetup();
             for (var i = 0; i < 10000; i++)
             {
-                await benchmark.CompressedHandleCallAsync();
+                await benchmark.CompressedSayHelloAsync();
             }
 
             System.Console.WriteLine("Press any key to start.");
             System.Console.ReadKey();
             for (var i = 0; i < 1; i++)
             {
-                await benchmark.CompressedHandleCallAsync();
+                await benchmark.CompressedSayHelloAsync();
             }
 
             System.Console.WriteLine("Done. Press any key to exit.");
