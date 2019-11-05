@@ -20,33 +20,34 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Chat;
+using Greet;
 using Grpc.AspNetCore.Microbenchmarks.Internal;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
+namespace Grpc.AspNetCore.Microbenchmarks.Client
 {
-    public class CompressedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    public class CompressedUnaryClientBenchmark : UnaryClientBenchmarkBase
     {
-        public CompressedUnaryServerCallHandlerBenchmark()
+        private readonly Metadata _compressionMetadata;
+
+        public CompressedUnaryClientBenchmark()
         {
             ResponseCompressionAlgorithm = TestCompressionProvider.Name;
             CompressionProviders = new Dictionary<string, ICompressionProvider>
             {
                 [TestCompressionProvider.Name] = new TestCompressionProvider()
             };
+            _compressionMetadata = new Metadata
+            {
+                { new Metadata.Entry("grpc-internal-encoding-request", TestCompressionProvider.Name) }
+            };
         }
 
-        protected override void SetupHttpContext(HttpContext httpContext)
-        {
-            httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = TestCompressionProvider.Name;
-            httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = "identity," + TestCompressionProvider.Name;
-        }
-
-        protected override byte[] GetMessageData(ChatMessage message)
+        protected override byte[] GetMessageData(HelloReply message)
         {
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
@@ -62,9 +63,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
         }
 
         [Benchmark]
-        public Task CompressedHandleCallAsync()
+        public Task CompressedSayHelloAsync()
         {
-            return InvokeUnaryRequestAsync();
+            return InvokeSayHelloAsync(new CallOptions(headers: _compressionMetadata));
         }
     }
 }
