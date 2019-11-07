@@ -3,8 +3,8 @@
     <BenchmarkDotNetPackageVersion>0.11.3</BenchmarkDotNetPackageVersion>
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
     <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.25.0-pre1</GrpcDotNetPackageVersion>
-    <GrpcPackageVersion>2.25.0-pre1</GrpcPackageVersion>
+    <GrpcDotNetPackageVersion>2.25.0</GrpcDotNetPackageVersion>  <!-- Only use for example projects -->
+    <GrpcPackageVersion>2.25.0</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
