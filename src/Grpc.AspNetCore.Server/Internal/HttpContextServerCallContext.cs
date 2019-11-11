@@ -452,14 +452,17 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 // HttpResetFeature should always be set on context,
                 // but in case it isn't, fall back to HttpContext.Abort.
-                // Abort will send error code INTERNAL_ERROR instead of NO_ERROR
+                // Abort will send error code INTERNAL_ERROR instead of NO_ERROR.
                 var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
                 if (resetFeature != null)
                 {
+                    GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
                     resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
                 }
                 else
                 {
+                    // Note that some clients will fail with error code INTERNAL_ERROR.
+                    GrpcServerLog.AbortingResponse(Logger);
                     HttpContext.Abort();
                 }
             }
