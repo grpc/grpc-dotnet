@@ -84,6 +84,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Action<ILogger, string, Exception?> _decompressingMessage =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(20, "DecompressingMessage"), "Decompressing message with '{MessageEncoding}' encoding.");
 
+        private static readonly Action<ILogger, int, Exception?> _resettingResponse =
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(21, "ResettingResponse"), "Resetting response stream with error code {ErrorCode}.");
+
+        private static readonly Action<ILogger, Exception?> _abortingResponse =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(22, "AbortingResponse"), "IHttpResetFeature is not available so unable to cleanly reset response stream. Aborting response stream.");
+
         public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
         {
             _deadlineExceeded(logger, timeout, null);
@@ -182,6 +188,16 @@ namespace Grpc.AspNetCore.Server.Internal
         public static void DecompressingMessage(ILogger logger, string messageEncoding)
         {
             _decompressingMessage(logger, messageEncoding, null);
+        }
+
+        public static void ResettingResponse(ILogger logger, int errorCode)
+        {
+            _resettingResponse(logger, errorCode, null);
+        }
+
+        public static void AbortingResponse(ILogger logger)
+        {
+            _abortingResponse(logger, null);
         }
     }
 }
