@@ -456,7 +456,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
                 if (resetFeature != null)
                 {
-                    GrpcServerLog.ResetingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
+                    GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
                     resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
                 }
                 else
