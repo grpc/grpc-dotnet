@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TODO(JamesNK): Reference Grpc.AspNetCore.HealthChecks package when it is available on NuGet -->
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj" />
+  </ItemGroup>
+
+</Project>

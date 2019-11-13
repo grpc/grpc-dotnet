@@ -136,3 +136,13 @@ The progressor shows how to use server streaming to notify the caller about prog
 
 * Server streaming
 * Using [`Progress<T>`](https://docs.microsoft.com/en-us/dotnet/api/system.progress-1) to notify progress on the client
+
+## [Vigor](./Vigor)
+
+The vigor example shows how to integrate [ASP.NET Core health checks](https://docs.microsoft.com/aspnet/core/host-and-deploy/health-checks) with the [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md) service, and call its methods from a client.
+
+##### Scenarios:
+
+* Hosting gRPC Health Checking Protocol service
+* Integrate [ASP.NET Core health checks](https://docs.microsoft.com/aspnet/core/host-and-deploy/health-checks) with gRPC health checks
+* Calling service with `Grpc.HealthCheck` client

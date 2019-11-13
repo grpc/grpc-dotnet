@@ -21,7 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
+namespace Grpc.Tests.Shared
 {
     public class TestServerCallContext : ServerCallContext
     {
