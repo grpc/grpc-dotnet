@@ -16,16 +16,19 @@
 
 #endregion
 
+using System;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using Tests.FunctionalTests.Helpers;
 
 namespace Tests.FunctionalTests
 {
     public class FunctionalTestBase
     {
         private GrpcChannel? _channel;
+        private IDisposable? _testContext;
 
         protected GrpcTestFixture<Server.Startup> Fixture { get; private set; } = default!;
 
@@ -56,6 +59,19 @@ namespace Tests.FunctionalTests
         public void OneTimeTearDown()
         {
             Fixture.Dispose();
+        }
+
+        [SetUp]
+        public void SetUp()
+        {
+            _testContext = Fixture.GetTestContext();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            _testContext?.Dispose();
+            _channel = null;
         }
     }
 }
