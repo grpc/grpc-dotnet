@@ -23,9 +23,9 @@ namespace Tests.FunctionalTests.Helpers
 {
     internal class ForwardingLoggerProvider : ILoggerProvider
     {
-        private readonly Action<LogLevel, string, EventId, string, Exception> _logAction;
+        private readonly LogMessage _logAction;
 
-        public ForwardingLoggerProvider(Action<LogLevel, string, EventId, string, Exception> logAction)
+        public ForwardingLoggerProvider(LogMessage logAction)
         {
             _logAction = logAction;
         }
@@ -42,9 +42,9 @@ namespace Tests.FunctionalTests.Helpers
         internal class ForwardingLogger : ILogger
         {
             private readonly string _categoryName;
-            private readonly Action<LogLevel, string, EventId, string, Exception> _logAction;
+            private readonly LogMessage _logAction;
 
-            public ForwardingLogger(string categoryName, Action<LogLevel, string, EventId, string, Exception> logAction)
+            public ForwardingLogger(string categoryName, LogMessage logAction)
             {
                 _categoryName = categoryName;
                 _logAction = logAction;

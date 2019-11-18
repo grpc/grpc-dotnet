@@ -28,12 +28,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Tests.FunctionalTests.Helpers
 {
+    public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception exception);
+
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
         private readonly TestServer _server;
         private readonly IHost _host;
 
-        public event Action<LogLevel, string, EventId, string, Exception>? LoggedMessage;
+        public event LogMessage? LoggedMessage;
 
         public GrpcTestFixture() : this(null) { }
 
