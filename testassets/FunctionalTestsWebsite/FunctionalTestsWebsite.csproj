@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
@@ -25,6 +25,7 @@
     <Protobuf Include="..\Proto\unimplemented.proto" Link="Protos\unimplemented.proto" />
     <Protobuf Include="..\Proto\echo.proto" Link="Protos\echo.proto" />
     <Protobuf Include="..\Proto\issue.proto" Link="Protos\issue.proto" />
+    <Protobuf Include="..\Proto\test.proto" Link="Protos\test.proto" />
   </ItemGroup>
   
 </Project>

@@ -119,9 +119,7 @@ dotnet run --EnableOpenTelemetry=true
 
 ## [Tester](./Tester)
 
-The tester shows how to test gRPC services. The unit tests create and test a gRPC service directly. The functional tests show how to use [Microsoft.AspNetCore.TestHost](https://www.nuget.org/packages/Microsoft.AspNetCore.TestHost/) to host a gRPC service with an in-memory test server and call it using a gRPC client. The functional tests write client and server logs to the test output.
-
-> **NOTE:** There is a known issue in ASP.NET Core 3.0 that prevents functional testing of bidirectional gRPC methods. Bidirectional gRPC methods can still be unit tested.
+The tester shows how to test gRPC services. The unit tests create and test a gRPC service directly. The functional tests show how to use [Microsoft.AspNetCore.TestHost](https://www.nuget.org/packages/Microsoft.AspNetCore.TestHost/) (version 3.1.2 or greater required) to host a gRPC service with an in-memory test server and call it using a gRPC client. The functional tests write client and server logs to the test output.
 
 ##### Scenarios:
 
