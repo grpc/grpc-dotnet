@@ -16,13 +16,5 @@
     <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="$(OpenTelemetryPackageVersion)" />
     <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
   </ItemGroup>
-  
-  <!-- Required because the project is using a preview version of OpenTelemtry from MyGet -->
-  <PropertyGroup Label="RestoreSources">
-    <RestoreSources>
-      $(RestoreSources);
-      https://www.myget.org/F/opentelemetry/api/v3/index.json;
-    </RestoreSources>
-  </PropertyGroup>
 
 </Project>
