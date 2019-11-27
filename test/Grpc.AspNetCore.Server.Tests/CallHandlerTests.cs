@@ -25,15 +25,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -123,8 +126,10 @@ namespace Grpc.AspNetCore.Server.Tests
             // Arrange
             var testSink = new TestSink();
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton<TestService>();
 
-            var httpContext = HttpContextHelpers.CreateContext(skipTrailerFeatureSet: true);
+            var httpContext = HttpContextHelpers.CreateContext(skipTrailerFeatureSet: true, serviceProvider: serviceCollection.BuildServiceProvider());
             var call = CreateHandler(MethodType.ClientStreaming, testLoggerFactory);
 
             // Act
@@ -179,36 +184,36 @@ namespace Grpc.AspNetCore.Server.Tests
             {
                 case MethodType.Unary:
                     return new UnaryServerCallHandler<TestService, TestMessage, TestMessage>(
-                        method,
-                        (service, reader, context) => Task.FromResult(new TestMessage()),
-                        HttpContextServerCallContextHelper.CreateMethodContext(),
-                        loggerFactory ?? NullLoggerFactory.Instance,
-                        new TestGrpcServiceActivator<TestService>(),
-                        TestServiceProvider.Instance);
+                        new UnaryServerMethodInvoker<TestService, TestMessage, TestMessage>(
+                            (service, reader, context) => Task.FromResult(new TestMessage()),
+                            method,
+                            HttpContextServerCallContextHelper.CreateMethodOptions(),
+                            new TestGrpcServiceActivator<TestService>()),
+                        loggerFactory ?? NullLoggerFactory.Instance);
                 case MethodType.ClientStreaming:
                     return new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
-                        method,
-                        (service, reader, context) => Task.FromResult(new TestMessage()),
-                        HttpContextServerCallContextHelper.CreateMethodContext(),
-                        loggerFactory ?? NullLoggerFactory.Instance,
-                        new TestGrpcServiceActivator<TestService>(),
-                        TestServiceProvider.Instance);
+                        new ClientStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
+                            (service, reader, context) => Task.FromResult(new TestMessage()),
+                            method,
+                            HttpContextServerCallContextHelper.CreateMethodOptions(),
+                            new TestGrpcServiceActivator<TestService>()),
+                        loggerFactory ?? NullLoggerFactory.Instance);
                 case MethodType.ServerStreaming:
                     return new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
-                        method,
-                        (service, request, writer, context) => Task.FromResult(new TestMessage()),
-                        HttpContextServerCallContextHelper.CreateMethodContext(),
-                        loggerFactory ?? NullLoggerFactory.Instance,
-                        new TestGrpcServiceActivator<TestService>(),
-                        TestServiceProvider.Instance);
+                        new ServerStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
+                            (service, request, writer, context) => Task.FromResult(new TestMessage()),
+                            method,
+                            HttpContextServerCallContextHelper.CreateMethodOptions(),
+                            new TestGrpcServiceActivator<TestService>()),
+                        loggerFactory ?? NullLoggerFactory.Instance);
                 case MethodType.DuplexStreaming:
                     return new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
-                        method,
-                        (service, reader, writer, context) => Task.CompletedTask,
-                        HttpContextServerCallContextHelper.CreateMethodContext(),
-                        loggerFactory ?? NullLoggerFactory.Instance,
-                        new TestGrpcServiceActivator<TestService>(),
-                        TestServiceProvider.Instance);
+                        new DuplexStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
+                            (service, reader, writer, context) => Task.CompletedTask,
+                            method,
+                            HttpContextServerCallContextHelper.CreateMethodOptions(),
+                            new TestGrpcServiceActivator<TestService>()),
+                        loggerFactory ?? NullLoggerFactory.Instance);
                 default:
                     throw new ArgumentException();
             }

@@ -20,7 +20,9 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Net.Compression;
+using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,7 +33,7 @@ namespace Grpc.Tests.Shared
     {
         public static HttpContextServerCallContext CreateServerCallContext(
             HttpContext? httpContext = null,
-            Dictionary<string, ICompressionProvider>? compressionProviders = null,
+            List<ICompressionProvider>? compressionProviders = null,
             string? responseCompressionAlgorithm = null,
             CompressionLevel? responseCompressionLevel = null,
             int? maxSendMessageSize = null,
@@ -39,7 +41,7 @@ namespace Grpc.Tests.Shared
             ILogger? logger = null,
             bool initialize = true)
         {
-            var methodContext = CreateMethodContext(
+            var options = CreateMethodOptions(
                 compressionProviders,
                 responseCompressionAlgorithm,
                 responseCompressionLevel,
@@ -48,7 +50,9 @@ namespace Grpc.Tests.Shared
 
             var context = new HttpContextServerCallContext(
                 httpContext ?? new DefaultHttpContext(),
-                methodContext,
+                options,
+                typeof(object),
+                typeof(object),
                 logger ?? NullLogger.Instance);
             if (initialize)
             {
@@ -58,26 +62,23 @@ namespace Grpc.Tests.Shared
             return context;
         }
 
-        public static MethodContext CreateMethodContext(
-            Dictionary<string, ICompressionProvider>? compressionProviders = null,
+        public static MethodOptions CreateMethodOptions(
+            List<ICompressionProvider>? compressionProviders = null,
             string? responseCompressionAlgorithm = null,
             CompressionLevel? responseCompressionLevel = null,
             int? maxSendMessageSize = null,
             int? maxReceiveMessageSize = null,
             InterceptorCollection? interceptors = null)
         {
-            return new MethodContext
-            (
-                requestType: typeof(object),
-                responseType: typeof(object),
-                compressionProviders: compressionProviders ?? new Dictionary<string, ICompressionProvider>(),
-                interceptors: interceptors ?? new InterceptorCollection(),
-                maxSendMessageSize: maxSendMessageSize,
-                maxReceiveMessageSize: maxReceiveMessageSize,
-                enableDetailedErrors: null,
-                responseCompressionAlgorithm: responseCompressionAlgorithm,
-                responseCompressionLevel: responseCompressionLevel
-            );
+            var serviceOptions = new GrpcServiceOptions();
+            serviceOptions.CompressionProviders = compressionProviders ?? new List<ICompressionProvider>();
+            serviceOptions.Interceptors.AddRange(interceptors ?? new InterceptorCollection());
+            serviceOptions.MaxSendMessageSize = maxSendMessageSize;
+            serviceOptions.MaxReceiveMessageSize = maxReceiveMessageSize;
+            serviceOptions.ResponseCompressionAlgorithm = responseCompressionAlgorithm;
+            serviceOptions.ResponseCompressionLevel = responseCompressionLevel;
+
+            return MethodOptions.Create(new[] { serviceOptions });
         }
     }
 }

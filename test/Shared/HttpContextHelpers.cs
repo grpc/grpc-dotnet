@@ -45,12 +45,14 @@ namespace Grpc.Tests.Shared
             bool isMaxRequestBodySizeFeatureReadOnly = false,
             bool skipTrailerFeatureSet = false,
             string? protocol = null,
-            string? contentType = null)
+            string? contentType = null,
+            IServiceProvider? serviceProvider = null)
         {
             var httpContext = new DefaultHttpContext();
             var responseFeature = new TestHttpResponseFeature();
             var responseBodyFeature = new TestHttpResponseBodyFeature(httpContext.Features.Get<IHttpResponseBodyFeature>(), responseFeature);
 
+            httpContext.RequestServices = serviceProvider;
             httpContext.Request.Protocol = protocol ?? GrpcProtocolConstants.Http2Protocol;
             httpContext.Request.ContentType = contentType ?? GrpcProtocolConstants.GrpcContentType;
             httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());

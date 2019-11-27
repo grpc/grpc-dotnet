@@ -685,9 +685,9 @@ namespace Grpc.AspNetCore.Server.Tests
         public async Task WriteMessageAsync_GzipCompressed_WriteCompressedData()
         {
             // Arrange
-            var compressionProviders = new Dictionary<string, ICompressionProvider>
+            var compressionProviders = new List<ICompressionProvider>
             {
-                ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
+                new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest)
             };
 
             var httpContext = new DefaultHttpContext();
@@ -711,7 +711,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual(1, messageData[0]); // compression
             Assert.AreEqual(21, messageData[4]); // message length
 
-            byte[] result = Decompress(compressionProviders["gzip"], messageData);
+            byte[] result = Decompress(compressionProviders.Single(), messageData);
             Assert.AreEqual(1, result.Length);
             Assert.AreEqual(0x10, result[0]);
         }
@@ -729,9 +729,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 httpContext,
                 responseCompressionAlgorithm: "Mock",
                 responseCompressionLevel: System.IO.Compression.CompressionLevel.Optimal,
-                compressionProviders: new Dictionary<string, ICompressionProvider>
+                compressionProviders: new List<ICompressionProvider>
                 {
-                    [mockCompressionProvider.EncodingName] = mockCompressionProvider
+                    mockCompressionProvider
                 });
             context.Initialize();
 
