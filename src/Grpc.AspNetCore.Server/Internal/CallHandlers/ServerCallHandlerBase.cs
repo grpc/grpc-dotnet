@@ -18,7 +18,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Model;
+using Grpc.AspNetCore.Server.Internal.Web;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
@@ -49,28 +49,46 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         public Task HandleCallAsync(HttpContext httpContext)
         {
-            if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
+            if (!GrpcProtocolHelpers.TryGetGrpcProtocol(httpContext, MethodInvoker.Options.EnableGrpcWeb.GetValueOrDefault(), out var protocol, out var error))
             {
                 GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
 
                 GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
                 return Task.CompletedTask;
             }
-            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
-                httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
-            {
-                GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
 
-                var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
-                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
-                httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
-                return Task.CompletedTask;
+            if (protocol == GrpcProtocol.Grpc)
+            {
+                // gRPC (non-web) requires HTTP/2
+                if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
+                    httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
+                {
+                    GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
+
+                    var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
+                    GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+                    httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
+                    return Task.CompletedTask;
+                }
+            }
+            else if (protocol == GrpcProtocol.GrpcWebText)
+            {
+                // Wrap request reader and response writer to automatically handle base64 content
+                var grpcWebPipeWrapperFeature = new GrpcWebPipeWrapperFeature(httpContext);
+                httpContext.Features.Set<IRequestBodyPipeFeature>(grpcWebPipeWrapperFeature);
+                httpContext.Features.Set<IHttpResponseBodyFeature>(grpcWebPipeWrapperFeature);
+                httpContext.Features.Set<IHttpResponseTrailersFeature>(grpcWebPipeWrapperFeature);
+            }
+            else if (protocol == GrpcProtocol.GrpcWeb)
+            {
+                var grpcWebPipeWrapperFeature = new GrpcWebPipeWrapperFeature(httpContext);
+                httpContext.Features.Set<IHttpResponseTrailersFeature>(grpcWebPipeWrapperFeature);
             }
 
             var serverCallContext = new HttpContextServerCallContext(httpContext, MethodInvoker.Options, typeof(TRequest), typeof(TResponse), Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, protocol);
 
             try
             {
@@ -78,13 +96,13 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
                 var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
 
-                if (handleCallTask.IsCompletedSuccessfully)
+                if (handleCallTask.IsCompletedSuccessfully && protocol == GrpcProtocol.Grpc)
                 {
                     return serverCallContext.EndCallAsync();
                 }
                 else
                 {
-                    return AwaitHandleCall(serverCallContext, MethodInvoker.Method, handleCallTask);
+                    return AwaitHandleCall(serverCallContext, MethodInvoker.Method, protocol, handleCallTask);
                 }
             }
             catch (Exception ex)
@@ -92,21 +110,54 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return serverCallContext.ProcessHandlerErrorAsync(ex, MethodInvoker.Method.Name);
             }
 
-            static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+            static async Task AwaitHandleCall(
+                HttpContextServerCallContext serverCallContext,
+                Method<TRequest, TResponse> method,
+                GrpcProtocol protocol,
+                Task handleCall)
             {
                 try
                 {
                     await handleCall;
                     await serverCallContext.EndCallAsync();
+
+                    await ProcessTrailers(serverCallContext, protocol);
                 }
                 catch (Exception ex)
                 {
-                    await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+                    await ProcessHandlerError(serverCallContext, method, protocol, ex);
                 }
+            }
+
+            static async Task ProcessHandlerError(
+                HttpContextServerCallContext serverCallContext,
+                Method<TRequest, TResponse> method,
+                GrpcProtocol protocol,
+                Exception ex)
+            {
+                await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+                await ProcessTrailers(serverCallContext, protocol);
             }
         }
 
         protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
+
+        private static Task ProcessTrailers(HttpContextServerCallContext serverCallContext, GrpcProtocol protocol)
+        {
+            switch (protocol)
+            {
+                case GrpcProtocol.GrpcWeb:
+                case GrpcProtocol.GrpcWebText:
+                    var trailers = serverCallContext.HttpContext.Features.Get<IHttpResponseTrailersFeature>()?.Trailers;
+                    if (trailers != null && trailers.Count > 0)
+                    {
+                        return GrpcWebProtocolHelpers.WriteTrailers(trailers, serverCallContext.HttpContext.Response.BodyWriter);
+                    }
+                    break;
+            }
+
+            return Task.CompletedTask;
+        }
 
         /// <summary>
         /// This should only be called from client streaming calls

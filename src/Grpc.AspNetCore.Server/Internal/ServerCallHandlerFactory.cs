@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
 using Grpc.AspNetCore.Server.Model;
@@ -101,7 +103,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+                SetResponseContentType(httpContext, _serviceOptions.EnableGrpcWeb ?? _globalOptions.EnableGrpcWeb ?? false);
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
                 Log.MethodUnimplemented(logger, unimplementedMethod);
@@ -118,7 +120,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
-                GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+                SetResponseContentType(httpContext, _globalOptions.EnableGrpcWeb ?? false);
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
                 Log.ServiceUnimplemented(logger, unimplementedService);
@@ -127,6 +129,16 @@ namespace Grpc.AspNetCore.Server.Internal
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
                 return Task.CompletedTask;
             };
+        }
+
+        private static void SetResponseContentType(HttpContext httpContext, bool enableGrpcWeb)
+        {
+            if (!GrpcProtocolHelpers.TryGetGrpcProtocol(httpContext, enableGrpcWeb, out var protocol, out _))
+            {
+                Debug.Assert(false, "The constraint on unimplemented endpoints should mean that we never get here.");
+            }
+
+            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response, protocol);
         }
 
         private static class Log

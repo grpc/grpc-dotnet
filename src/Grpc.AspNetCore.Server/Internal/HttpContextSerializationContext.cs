@@ -209,13 +209,21 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             EnsureMessageSizeAllowed(data.Length);
 
-            if (_compressionProvider != null)
+            if (data.Length > 0)
             {
-                data = CompressMessage(data);
-            }
+                if (_compressionProvider != null)
+                {
+                    data = CompressMessage(data);
+                }
 
-            WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
-            ResponseBufferWriter.Write(data);
+                WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
+                ResponseBufferWriter.Write(data);
+            }
+            else
+            {
+                // Optimize when there is no data to write
+                WriteHeader(ResponseBufferWriter, 0, compress: _compressionProvider != null);
+            }
         }
 
         private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData)

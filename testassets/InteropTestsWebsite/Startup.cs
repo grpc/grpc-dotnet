@@ -28,16 +28,32 @@ namespace InteropTestsWebsite
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
+            services.AddGrpc()
+                .AddServiceOptions<EchoService>(o =>
+                {
+                    o.EnableGrpcWeb = true;
+                });
+            services.AddCors(o =>
+            {
+                o.AddPolicy("InteropTests", builder =>
+                {
+                    builder.AllowAnyOrigin();
+                    builder.AllowAnyMethod();
+                    builder.AllowAnyHeader();
+                    builder.WithExposedHeaders("Grpc-Status", "Grpc-Message");
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
             app.UseRouting();
+            app.UseCors();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<TestServiceImpl>();
+                endpoints.MapGrpcService<EchoService>().RequireCors("InteropTests");
             });
         }
     }

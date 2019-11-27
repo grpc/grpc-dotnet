@@ -16,18 +16,25 @@
 
 #endregion
 
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
+using System.IO.Pipelines;
 using Grpc.AspNetCore.Server.Internal;
+using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Web.Server
 {
-    public class GrpcStreamContent : StreamContent
+    [TestFixture]
+    public class GrpcWebUnaryMethodTests : UnaryMethodTestsBase
     {
-        public GrpcStreamContent(Stream content, string contentType = GrpcProtocolConstants.GrpcContentType) : base(content)
+        protected override string ContentType => GrpcProtocolConstants.GrpcWebContentType;
+
+        protected override PipeReader ResolvePipeReader(PipeReader pipeReader)
         {
-            Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            return pipeReader;
+        }
+
+        protected override PipeWriter ResolvePipeWriter(PipeWriter pipeWriter)
+        {
+            return pipeWriter;
         }
     }
 }

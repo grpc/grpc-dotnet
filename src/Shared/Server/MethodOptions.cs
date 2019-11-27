@@ -69,6 +69,11 @@ namespace Grpc.Shared.Server
         /// </summary>
         public CompressionLevel? ResponseCompressionLevel { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether gRPC-Web is enabled.
+        /// </summary>
+        public bool? EnableGrpcWeb { get; }
+
         // Fast check for whether the service has any interceptors
         internal bool HasInterceptors { get; }
 
@@ -79,7 +84,8 @@ namespace Grpc.Shared.Server
             int? maxReceiveMessageSize,
             bool? enableDetailedErrors,
             string? responseCompressionAlgorithm,
-            CompressionLevel? responseCompressionLevel)
+            CompressionLevel? responseCompressionLevel,
+            bool? enableGrpcWeb)
         {
             CompressionProviders = compressionProviders;
             Interceptors = interceptors;
@@ -89,6 +95,7 @@ namespace Grpc.Shared.Server
             EnableDetailedErrors = enableDetailedErrors;
             ResponseCompressionAlgorithm = responseCompressionAlgorithm;
             ResponseCompressionLevel = responseCompressionLevel;
+            EnableGrpcWeb = enableGrpcWeb;
 
             if (ResponseCompressionAlgorithm != null)
             {
@@ -117,6 +124,7 @@ namespace Grpc.Shared.Server
             bool? enableDetailedErrors = null;
             string? responseCompressionAlgorithm = null;
             CompressionLevel? responseCompressionLevel = null;
+            bool? enableGrpcWeb = null;
 
             foreach (var options in serviceOptions.Reverse())
             {
@@ -127,6 +135,7 @@ namespace Grpc.Shared.Server
                 enableDetailedErrors ??= options.EnableDetailedErrors;
                 responseCompressionAlgorithm ??= options.ResponseCompressionAlgorithm;
                 responseCompressionLevel ??= options.ResponseCompressionLevel;
+                enableGrpcWeb ??= options.EnableGrpcWeb;
             }
 
             var interceptors = new InterceptorCollection();
@@ -140,7 +149,8 @@ namespace Grpc.Shared.Server
                 maxReceiveMessageSize: maxReceiveMessageSize,
                 enableDetailedErrors: enableDetailedErrors,
                 responseCompressionAlgorithm: responseCompressionAlgorithm,
-                responseCompressionLevel: responseCompressionLevel
+                responseCompressionLevel: responseCompressionLevel,
+                enableGrpcWeb: enableGrpcWeb
             );
         }
 

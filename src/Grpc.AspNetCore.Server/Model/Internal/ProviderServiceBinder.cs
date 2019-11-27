@@ -89,6 +89,9 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
             metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
 
+            // TODO - is always accepting Cors preflight ok? Maybe only allow if gRPC-Web is enabled
+            metadata.Add(new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true));
+
             return (invoker, metadata);
         }
 

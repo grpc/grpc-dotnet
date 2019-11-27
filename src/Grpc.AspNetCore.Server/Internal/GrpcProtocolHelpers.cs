@@ -29,6 +29,14 @@ using Microsoft.Extensions.Primitives;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
+    internal enum GrpcProtocol
+    {
+        Unknown,
+        Grpc,
+        GrpcWeb,
+        GrpcWebText
+    }
+
     internal static class GrpcProtocolHelpers
     {
         public static bool TryDecodeTimeout(StringValues values, out TimeSpan timeout)
@@ -73,26 +81,26 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static bool IsGrpcContentType(string contentType)
+        public static bool IsContentType(string contentType, string s)
         {
-            if (contentType == null)
+            if (s == null)
             {
                 return false;
             }
 
-            if (!contentType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
+            if (!s.StartsWith(contentType, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
-            if (contentType.Length == GrpcProtocolConstants.GrpcContentType.Length)
+            if (s.Length == contentType.Length)
             {
                 // Exact match
                 return true;
             }
 
             // Support variations on the content-type (e.g. +proto, +json)
-            char nextChar = contentType[GrpcProtocolConstants.GrpcContentType.Length];
+            char nextChar = s[contentType.Length];
             if (nextChar == ';')
             {
                 return true;
@@ -106,20 +114,38 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static bool IsInvalidContentType(HttpContext httpContext, [NotNullWhen(true)]out string? error)
+        public static bool TryGetGrpcProtocol(HttpContext httpContext, bool enableGrpcWeb, [NotNullWhen(false)]out GrpcProtocol protocol, [NotNullWhen(false)]out string? error)
         {
-            if (httpContext.Request.ContentType == null)
+            if (IsContentType(GrpcProtocolConstants.GrpcContentType, httpContext.Request.ContentType))
+            {
+                error = null;
+                protocol = GrpcProtocol.Grpc;
+                return true;
+            }
+            else if (enableGrpcWeb)
+            {
+                if (IsContentType(GrpcProtocolConstants.GrpcWebContentType, httpContext.Request.ContentType))
+                {
+                    error = null;
+                    protocol = GrpcProtocol.GrpcWeb;
+                    return true;
+                }
+                else if (IsContentType(GrpcProtocolConstants.GrpcWebTextContentType, httpContext.Request.ContentType))
+                {
+                    error = null;
+                    protocol = GrpcProtocol.GrpcWebText;
+                    return true;
+                }
+            }
+            else if (httpContext.Request.ContentType == null)
             {
                 error = "Content-Type is missing from the request.";
-                return true;
-            }
-            else if (!IsGrpcContentType(httpContext.Request.ContentType))
-            {
-                error = $"Content-Type '{httpContext.Request.ContentType}' is not supported.";
-                return true;
+                protocol = GrpcProtocol.Unknown;
+                return false;
             }
 
-            error = null;
+            error = $"Content-Type '{httpContext.Request.ContentType}' is not supported.";
+            protocol = GrpcProtocol.Unknown;
             return false;
         }
 
@@ -154,9 +180,20 @@ namespace Grpc.AspNetCore.Server.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        public static void AddProtocolHeaders(HttpResponse response)
+        public static void AddProtocolHeaders(HttpResponse response, GrpcProtocol protocol)
         {
-            response.ContentType = GrpcProtocolConstants.GrpcContentType;
+            if (protocol == GrpcProtocol.Grpc)
+            {
+                response.ContentType = GrpcProtocolConstants.GrpcContentType;
+            }
+            else if (protocol == GrpcProtocol.GrpcWeb)
+            {
+                response.ContentType = GrpcProtocolConstants.GrpcWebContentType;
+            }
+            else
+            {
+                response.ContentType = GrpcProtocolConstants.GrpcWebTextContentType;
+            }
         }
 
         public static void SetStatus(IHeaderDictionary destination, Status status)

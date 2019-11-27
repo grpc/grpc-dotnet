@@ -59,6 +59,11 @@ namespace Grpc.AspNetCore.Server
         public CompressionLevel? ResponseCompressionLevel { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether gRPC-Web is enabled.
+        /// </summary>
+        public bool? EnableGrpcWeb { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of compression providers used to compress and decompress gRPC messages.
         /// </summary>
         public IList<ICompressionProvider> CompressionProviders

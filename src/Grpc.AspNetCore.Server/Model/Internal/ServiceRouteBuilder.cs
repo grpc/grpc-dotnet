@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
@@ -35,17 +36,23 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
         private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
         private readonly ILogger _logger;
+        private readonly GrpcServiceOptions<TService> _serviceOptions;
+        private readonly GrpcServiceOptions _globalOptions;
 
         public ServiceRouteBuilder(
             IEnumerable<IServiceMethodProvider<TService>> serviceMethodProviders,
             ServerCallHandlerFactory<TService> serverCallHandlerFactory,
             ServiceMethodsRegistry serviceMethodsRegistry,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IOptions<GrpcServiceOptions> globalOptions,
+            IOptions<GrpcServiceOptions<TService>> serviceOptions)
         {
             _serviceMethodProviders = serviceMethodProviders.ToList();
             _serverCallHandlerFactory = serverCallHandlerFactory;
             _serviceMethodsRegistry = serviceMethodsRegistry;
             _logger = loggerFactory.CreateLogger<ServiceRouteBuilder<TService>>();
+            _serviceOptions = serviceOptions.Value;
+            _globalOptions = globalOptions.Value;
         }
 
         internal List<IEndpointConventionBuilder> Build(IEndpointRouteBuilder endpointRouteBuilder)
@@ -88,8 +95,6 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             CreateUnimplementedEndpoints(
                 endpointRouteBuilder,
-                _serviceMethodsRegistry,
-                _serverCallHandlerFactory,
                 serviceMethodProviderContext.Methods);
 
             _serviceMethodsRegistry.Methods.AddRange(serviceMethodProviderContext.Methods);
@@ -97,18 +102,20 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             return endpointConventionBuilders;
         }
 
-        internal static void CreateUnimplementedEndpoints(
+        internal void CreateUnimplementedEndpoints(
             IEndpointRouteBuilder endpointRouteBuilder,
-            ServiceMethodsRegistry serviceMethodsRegistry,
-            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
             List<MethodModel> serviceMethods)
         {
             // Return UNIMPLEMENTED status for missing service:
             // - /{service}/{method} + content-type header = grpc/application
-            if (serviceMethodsRegistry.Methods.Count == 0)
+            if (_serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
-                CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
+                CreateUnimplementedEndpoint(
+                    endpointRouteBuilder,
+                    _globalOptions.EnableGrpcWeb ?? false,
+                    "{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service",
+                    _serverCallHandlerFactory.CreateUnimplementedService());
             }
 
             // Return UNIMPLEMENTED status for missing method:
@@ -119,19 +126,24 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             // In case the bind method sets up multiple services in one call we'll loop over them
             foreach (var serviceName in serviceNames)
             {
-                if (serviceMethodsRegistry.Methods.Any(m => string.Equals(m.Method.ServiceName, serviceName, StringComparison.Ordinal)))
+                if (_serviceMethodsRegistry.Methods.Any(m => string.Equals(m.Method.ServiceName, serviceName, StringComparison.Ordinal)))
                 {
                     // Only one unimplemented method endpoint is need for the service
                     continue;
                 }
 
-                CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"gRPC - Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
+                CreateUnimplementedEndpoint(
+                    endpointRouteBuilder,
+                    _serviceOptions.EnableGrpcWeb ?? _globalOptions.EnableGrpcWeb ?? false,
+                    serviceName + "/{unimplementedMethod}",
+                    $"gRPC - Unimplemented method for {serviceName}",
+                    _serverCallHandlerFactory.CreateUnimplementedMethod());
             }
         }
 
-        private static void CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
+        private void CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, bool enableGrpcWeb, string pattern, string displayName, RequestDelegate requestDelegate)
         {
-            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
+            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.GetInstance(enableGrpcWeb) });
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
 
             endpointBuilder.Add(ep =>
@@ -143,7 +155,15 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private class GrpcContentTypeConstraint : IRouteConstraint
         {
-            public static readonly GrpcContentTypeConstraint Instance = new GrpcContentTypeConstraint();
+            private static readonly GrpcContentTypeConstraint Instance = new GrpcContentTypeConstraint(enableGrpcWeb: false);
+            private static readonly GrpcContentTypeConstraint InstanceWithGrpcWeb = new GrpcContentTypeConstraint(enableGrpcWeb: true);
+            
+            public static GrpcContentTypeConstraint GetInstance(bool enableGrpcWeb)
+            {
+                return !enableGrpcWeb ? Instance : InstanceWithGrpcWeb;
+            }
+            
+            private readonly bool _enableGrpcWeb;
 
             public bool Match(HttpContext httpContext, IRouter route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
             {
@@ -152,11 +172,12 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     return false;
                 }
 
-                return GrpcProtocolHelpers.IsGrpcContentType(httpContext.Request.ContentType);
+                return GrpcProtocolHelpers.TryGetGrpcProtocol(httpContext, _enableGrpcWeb, out _, out _);
             }
 
-            private GrpcContentTypeConstraint()
+            private GrpcContentTypeConstraint(bool enableGrpcWeb)
             {
+                _enableGrpcWeb = enableGrpcWeb;
             }
         }
 
