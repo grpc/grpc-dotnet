@@ -1,4 +1,4 @@
-// Copyright 2019 The gRPC Authors
+// Copyright (c) 2015, Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,28 +14,18 @@
 
 syntax = "proto3";
 
-import "google/api/annotations.proto";
+package google.api;
 
-package greet;
+import "google/api/http.proto";
+import "google/protobuf/descriptor.proto";
 
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {
-    option (google.api.http) = {
-      get: "v1/greeter/{name}"
-    };
-  }
-  rpc SayHellos (HelloRequest) returns (stream HelloReply);
-}
+option go_package = "google.golang.org/genproto/googleapis/api/annotations;annotations";
+option java_multiple_files = true;
+option java_outer_classname = "AnnotationsProto";
+option java_package = "com.google.api";
+option objc_class_prefix = "GAPI";
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-  string test_name = 2;
-}
-
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
+extend google.protobuf.MethodOptions {
+  // See `HttpRule`.
+  HttpRule http = 72295728;
 }

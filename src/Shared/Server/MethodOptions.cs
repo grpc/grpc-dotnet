@@ -130,7 +130,10 @@ namespace Grpc.Shared.Server
             }
 
             var interceptors = new InterceptorCollection();
-            interceptors.AddRange(tempInterceptors);
+            foreach (var interceptor in tempInterceptors)
+            {
+                interceptors.Add(interceptor);
+            }
 
             return new MethodOptions
             (

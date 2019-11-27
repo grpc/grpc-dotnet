@@ -34,8 +34,6 @@ namespace Client
 
             await UnaryCallExample(client);
 
-            await ServerStreamingCallExample(client);
-
             Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
@@ -45,27 +43,6 @@ namespace Client
         {
             var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
             Console.WriteLine("Greeting: " + reply.Message);
-        }
-
-        private static async Task ServerStreamingCallExample(Greeter.GreeterClient client)
-        {
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
-
-            using (var call = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
-            {
-                try
-                {
-                    await foreach (var message in call.ResponseStream.ReadAllAsync())
-                    {
-                        Console.WriteLine("Greeting: " + message.Message);
-                    }
-                }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    Console.WriteLine("Stream cancelled.");
-                }
-            }
         }
     }
 }

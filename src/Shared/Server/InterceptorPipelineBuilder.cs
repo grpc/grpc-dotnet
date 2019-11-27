@@ -18,9 +18,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.Shared.Server
 {
@@ -28,24 +30,24 @@ namespace Grpc.Shared.Server
         where TRequest : class
         where TResponse : class
     {
-        private readonly IReadOnlyList<InterceptorRegistration> _interceptors;
+        private readonly List<InterceptorActivatorHandle> _interceptors;
 
         public InterceptorPipelineBuilder(IReadOnlyList<InterceptorRegistration> interceptors)
         {
-            _interceptors = interceptors;
+            _interceptors = interceptors.Select(i => new InterceptorActivatorHandle(i)).ToList();
         }
 
         public ClientStreamingServerMethod<TRequest, TResponse> ClientStreamingPipeline(ClientStreamingServerMethod<TRequest, TResponse> innerInvoker)
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ClientStreamingServerMethod<TRequest, TResponse> next)
+            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorActivatorHandle interceptorActivatorHandle, ClientStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, context) =>
                 {
                     var serviceProvider = context.GetHttpContext().RequestServices;
-                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
+                    var interceptorActivator = interceptorActivatorHandle.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorActivatorHandle, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -63,13 +65,13 @@ namespace Grpc.Shared.Server
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, DuplexStreamingServerMethod<TRequest, TResponse> next)
+            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorActivatorHandle interceptorActivatorHandle, DuplexStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, responseStream, context) =>
                 {
                     var serviceProvider = context.GetHttpContext().RequestServices;
-                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
+                    var interceptorActivator = interceptorActivatorHandle.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorActivatorHandle, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -87,18 +89,13 @@ namespace Grpc.Shared.Server
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse> next)
+            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorActivatorHandle interceptorActivatorHandle, ServerStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (request, responseStream, context) =>
                 {
                     var serviceProvider = context.GetHttpContext().RequestServices;
-                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
-
-                    if (interceptorHandle.Instance == null)
-                    {
-                        throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
-                    }
+                    var interceptorActivator = interceptorActivatorHandle.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorActivatorHandle, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -116,13 +113,13 @@ namespace Grpc.Shared.Server
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, UnaryServerMethod<TRequest, TResponse> next)
+            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorActivatorHandle interceptorActivatorHandle, UnaryServerMethod<TRequest, TResponse> next)
             {
                 return async (request, context) =>
                 {
                     var serviceProvider = context.GetHttpContext().RequestServices;
-                    var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
+                    var interceptorActivator = interceptorActivatorHandle.GetActivator(serviceProvider);
+                    var interceptorHandle = CreateInterceptor(interceptorActivatorHandle, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -136,7 +133,7 @@ namespace Grpc.Shared.Server
             }
         }
 
-        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, T, T> wrapInvoker)
+        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorActivatorHandle, T, T> wrapInvoker)
         {
             // The inner invoker will create the service instance and invoke the method
             var resolvedInvoker = innerInvoker;
@@ -150,16 +147,43 @@ namespace Grpc.Shared.Server
             return resolvedInvoker;
         }
 
-        private static GrpcActivatorHandle<Interceptor> CreateInterceptor(InterceptorRegistration interceptorRegistration, IGrpcInterceptorActivator interceptorActivator, IServiceProvider serviceProvider)
+        private static GrpcActivatorHandle<Interceptor> CreateInterceptor(
+            InterceptorActivatorHandle interceptorActivatorHandle,
+            IGrpcInterceptorActivator interceptorActivator,
+            IServiceProvider serviceProvider)
         {
-            var interceptorHandle = interceptorActivator.Create(serviceProvider, interceptorRegistration);
+            var interceptorHandle = interceptorActivator.Create(serviceProvider, interceptorActivatorHandle.Registration);
 
             if (interceptorHandle.Instance == null)
             {
-                throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorRegistration.Type.FullName}");
+                throw new InvalidOperationException($"Could not construct Interceptor instance for type {interceptorActivatorHandle.Registration.Type.FullName}");
             }
 
             return interceptorHandle;
+        }
+
+        private class InterceptorActivatorHandle
+        {
+            public InterceptorRegistration Registration { get; }
+
+            private IGrpcInterceptorActivator? _interceptorActivator;
+
+            public InterceptorActivatorHandle(InterceptorRegistration interceptorRegistration)
+            {
+                Registration = interceptorRegistration;
+            }
+
+            public IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
+            {
+                // Not thread safe. Side effect is resolving the service twice.
+                if (_interceptorActivator == null)
+                {
+                    var activatorType = typeof(IGrpcInterceptorActivator<>).MakeGenericType(Registration.Type);
+                    _interceptorActivator = (IGrpcInterceptorActivator)serviceProvider.GetRequiredService(activatorType);
+                }
+
+                return _interceptorActivator;
+            }
         }
     }
 }

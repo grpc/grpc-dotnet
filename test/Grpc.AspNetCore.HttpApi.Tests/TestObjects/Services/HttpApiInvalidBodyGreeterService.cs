@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,30 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-import "google/api/annotations.proto";
+using HttpApi;
 
-package greet;
-
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {
-    option (google.api.http) = {
-      get: "v1/greeter/{name}"
-    };
-  }
-  rpc SayHellos (HelloRequest) returns (stream HelloReply);
-}
-
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-  string test_name = 2;
-}
-
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
+namespace Grpc.AspNetCore.Server.Tests.TestObjects
+{
+    public class HttpApiInvalidBodyGreeterService : HttpApiInvalidBodyGreeter.HttpApiInvalidBodyGreeterBase
+    {
+    }
 }

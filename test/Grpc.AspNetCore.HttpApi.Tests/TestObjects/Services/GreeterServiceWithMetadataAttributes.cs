@@ -1,4 +1,4 @@
-#region Copyright notice and license
+﻿#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,25 +18,22 @@
 
 using System.Threading.Tasks;
 using Greet;
-using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 
-namespace Server
+namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
-    public class GreeterService : Greeter.GreeterBase
+    [Custom("Class")]
+    public class GreeterServiceWithMetadataAttributes : Greeter.GreeterBase
     {
-        private readonly ILogger _logger;
-
-        public GreeterService(ILoggerFactory loggerFactory)
-        {
-            _logger = loggerFactory.CreateLogger<GreeterService>();
-        }
-
+        [Custom("Method")]
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
-            _logger.LogInformation($"Sending hello to {request.Name}");
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            return base.SayHello(request, context);
+        }
+
+        public override Task SayHellos(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        {
+            return base.SayHellos(request, responseStream, context);
         }
     }
 }

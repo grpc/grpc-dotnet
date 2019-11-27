@@ -63,19 +63,7 @@ namespace Grpc.AspNetCore.Server
         /// </summary>
         public IReadOnlyList<object> Arguments => _args;
 
-        private IGrpcInterceptorActivator? _interceptorActivator;
         private ObjectFactory? _factory;
-
-        internal IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
-        {
-            // Not thread safe. Side effect is resolving the service twice.
-            if (_interceptorActivator == null)
-            {
-                _interceptorActivator = (IGrpcInterceptorActivator)serviceProvider.GetRequiredService(typeof(IGrpcInterceptorActivator<>).MakeGenericType(Type));
-            }
-
-            return _interceptorActivator;
-        }
 
         internal ObjectFactory GetFactory()
         {

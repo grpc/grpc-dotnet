@@ -53,8 +53,8 @@ namespace Grpc.Tests.Shared
             var responseBodyFeature = new TestHttpResponseBodyFeature(httpContext.Features.Get<IHttpResponseBodyFeature>(), responseFeature);
 
             httpContext.RequestServices = serviceProvider;
-            httpContext.Request.Protocol = protocol ?? GrpcProtocolConstants.Http2Protocol;
-            httpContext.Request.ContentType = contentType ?? GrpcProtocolConstants.GrpcContentType;
+            httpContext.Request.Protocol = protocol ?? "HTTP/2";
+            httpContext.Request.ContentType = contentType ?? "application/grpc";
             httpContext.Features.Set<IHttpMinRequestBodyDataRateFeature>(new TestMinRequestBodyDataRateFeature());
             httpContext.Features.Set<IHttpMaxRequestBodySizeFeature>(new TestMaxRequestBodySizeFeature(isMaxRequestBodySizeFeatureReadOnly, 100));
             httpContext.Features.Set<IHttpResponseFeature>(responseFeature);

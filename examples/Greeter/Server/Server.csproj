@@ -2,12 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
+    <NoWarn>NU1605</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
+    <PackageReference Include="Google.Api.CommonProtos" Version="1.7.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.8.0" />
 
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server.HttpApi\Grpc.AspNetCore.Server.HttpApi.csproj" />
   </ItemGroup>
 
 </Project>

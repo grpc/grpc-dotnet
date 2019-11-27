@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Automatic discovery of services for Grpc.Reflection</Description>
+    <PackageTags>gRPC RPC HTTP/2</PackageTags>
+    <NoWarn>NU1605</NoWarn>
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+
+    <!-- Disable analysis for ConfigureAwait(false) -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\Server\BindMethodFinder.cs" Link="Internal\BindMethodFinder.cs" />
+    <Compile Include="..\Shared\Server\ClientStreamingServerMethodInvoker.cs" Link="Internal\ClientStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\DuplexStreamingServerMethodInvoker.cs" Link="Internal\DuplexStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\InterceptorPipelineBuilder.cs" Link="Internal\InterceptorPipelineBuilder.cs" />
+    <Compile Include="..\Shared\Server\MethodOptions.cs" Link="Internal\MethodOptions.cs" />
+    <Compile Include="..\Shared\Server\ServerMethodInvokerBase.cs" Link="Internal\ServerMethodInvokerBase.cs" />
+    <Compile Include="..\Shared\Server\ServerStreamingServerMethodInvoker.cs" Link="Internal\ServerStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\UnaryServerMethodInvoker.cs" Link="Internal\UnaryServerMethodInvoker.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Google.Api.CommonProtos" Version="1.7.0" />
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+
+    <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Internal\" />
+  </ItemGroup>
+
+</Project>

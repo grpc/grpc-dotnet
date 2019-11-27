@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
+    <PackageReference Include="Google.Api.CommonProtos" Version="1.7.0" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />

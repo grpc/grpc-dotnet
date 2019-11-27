@@ -6,31 +6,31 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Proto\greet.proto" GrpcServices="Both" />
+    <None Remove="Proto\httpapi.proto" />
+  </ItemGroup>
 
-    <Compile Include="..\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
+  <ItemGroup>
+    <Protobuf Include="Proto\httpapi.proto" GrpcServices="Both" />
+    <Protobuf Include="Proto\greet.proto" GrpcServices="Both" />
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
     <Compile Include="..\Shared\HttpContextHelpers.cs" Link="Infrastructure\HttpContextHelpers.cs" />
-    <Compile Include="..\Shared\HttpContextServerCallContextHelpers.cs" Link="Infrastructure\HttpContextServerCallContextHelpers.cs" />
     <Compile Include="..\Shared\ObserverToList.cs" Link="Infrastructure\ObserverToList.cs" />
-    <Compile Include="..\Shared\MessageHelpers.cs" Link="Infrastructure\MessageHelpers.cs" />
     <Compile Include="..\Shared\ResponseUtils.cs" Link="Infrastructure\ResponseUtils.cs" />
     <Compile Include="..\Shared\ServicesHelpers.cs" Link="Infrastructure\ServicesHelpers.cs" />
     <Compile Include="..\Shared\SyncPoint.cs" Link="Infrastructure\SyncPoint.cs" />
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
     <Compile Include="..\Shared\TaskExtensions.cs" Link="Infrastructure\TaskExtensions.cs" />
+    <Compile Include="..\Shared\TestGrpcServiceActivator.cs" Link="Infrastructure\TestGrpcServiceActivator.cs" />
     <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
     <Compile Include="..\Shared\TestHttpContextAccessor.cs" Link="Infrastructure\TestHttpContextAccessor.cs" />
     <Compile Include="..\Shared\TestRequestBodyPipeFeature.cs" Link="Infrastructure\TestRequestBodyPipeFeature.cs" />
     <Compile Include="..\Shared\TestResponseBodyFeature.cs" Link="Infrastructure\TestResponseBodyFeature.cs" />
-    <Compile Include="..\Shared\TestServerCallContext.cs" Link="Infrastructure\TestServerCallContext.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.HttpApi\Grpc.AspNetCore.Server.HttpApi.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
 
@@ -45,5 +45,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <!--<Target Name="AddAssemblyAliasToReactiveAsync" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <ReferencePath Condition=" '%(FileName)' == 'Grpc.AspNetCore.Server' ">
+        <Aliases>reactive</Aliases>
+      </ReferencePath>
+    </ItemGroup>
+  </Target>-->
 
 </Project>

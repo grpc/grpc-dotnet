@@ -16,33 +16,27 @@
 
 #endregion
 
+using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Routing;
 
-namespace Server
+namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
-    public class Startup
+    public class TestEndpointRouteBuilder : IEndpointRouteBuilder
     {
-        public void ConfigureServices(IServiceCollection services)
+        public TestEndpointRouteBuilder(IServiceProvider serviceProvider)
         {
-            services.AddGrpcHttpApi();
+            ServiceProvider = serviceProvider;
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public IServiceProvider ServiceProvider { get; set; }
+
+        public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
+
+        public IApplicationBuilder CreateApplicationBuilder()
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseRouting();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapGrpcService<GreeterService>();
-            });
+            throw new NotImplementedException();
         }
     }
 }

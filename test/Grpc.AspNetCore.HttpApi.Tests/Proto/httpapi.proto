@@ -1,0 +1,139 @@
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+package http_api;
+
+service HttpApiGreeter {
+  rpc SayHello (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/greeter/{name}"
+    };
+  }
+  rpc ResponseBody (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/greeter/{name}"
+      response_body: "message"
+    };
+  }
+  rpc Custom (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      custom: {
+        kind: "HEAD",
+        path: "/v1/greeter/{name}"
+      }
+    };
+  }
+  rpc AdditionalBindings (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/additional_bindings/{name}"
+      additional_bindings {
+        delete: "/v1/additional_bindings/{name}"
+      }
+    };
+  }
+  rpc NoOption (HelloRequest) returns (HelloReply);
+  rpc ServerStreamingGetOption (HelloRequest) returns (stream HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/greeter/{name}"
+    };
+  }
+  rpc Body (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      post: "/v1/greeter"
+      body: "*"
+    };
+  }
+  rpc SubBody (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      post: "/v1/greeter"
+      body: "sub"
+    };
+  }
+}
+
+service HttpApiInvalidResponseBodyGreeter {
+  rpc BadResponseBody (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/greeter/{name}"
+      response_body: "NoMatch"
+    };
+  }
+}
+
+service HttpApiInvalidBodyGreeter {
+  rpc BadBody (HelloRequest) returns (HelloReply) {
+    option (google.api.http) = {
+      get: "/v1/greeter/{name}"
+      body: "NoMatch"
+    };
+  }
+}
+
+message HelloRequest {
+  message SubMessage {
+    string subfield = 1;
+    repeated string subfields = 2;
+  }
+  message DataTypes {
+    enum NestedEnum {
+      NESTED_ENUM_UNSPECIFIED = 0;
+      FOO = 1;
+      BAR = 2;
+      BAZ = 3;
+      NEG = -1;  // Intentionally negative.
+    }
+    int32 single_int32 = 1;
+    int64 single_int64 = 2;
+    uint32 single_uint32 = 3;
+    uint64 single_uint64 = 4;
+    sint32 single_sint32 = 5;
+    sint64 single_sint64 = 6;
+    fixed32 single_fixed32 = 7;
+    fixed64 single_fixed64 = 8;
+    sfixed32 single_sfixed32 = 9;
+    sfixed64 single_sfixed64 = 10;
+    float single_float = 11;
+    double single_double = 12;
+    bool single_bool = 13;
+    string single_string = 14;
+    bytes single_bytes = 15;
+    NestedEnum single_enum = 16;
+  }
+  message Wrappers {
+    google.protobuf.StringValue string_value = 1;
+    google.protobuf.Int32Value int32_value = 2;
+    google.protobuf.Int64Value int64_value = 3;
+    google.protobuf.FloatValue float_value = 4;
+    google.protobuf.DoubleValue double_value = 5;
+    google.protobuf.BoolValue bool_value = 6;
+    google.protobuf.UInt32Value uint32_value = 7;
+    google.protobuf.UInt64Value uint64_value = 8;
+    google.protobuf.BytesValue bytes_value = 9;
+  }
+  string name = 1;
+  SubMessage sub = 2;
+  DataTypes data = 3;
+  Wrappers wrappers = 4;
+}
+
+message HelloReply {
+  string message = 1;
+  repeated string values = 2;
+}
