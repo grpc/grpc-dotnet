@@ -73,6 +73,8 @@ The reflector shows how to host the [gRPC Server Reflection Protocol](https://gi
 
 The certifier shows how to configure the client and the server to use a [TLS client certificate](https://blogs.msdn.microsoft.com/kaushal/2015/05/27/client-certificate-authentication-part-1/) with a gRPC call. The server is configured to require a client certificate using [ASP.NET Core client certificate authentication](https://docs.microsoft.com/en-us/aspnet/core/security/authentication/certauth).
 
+> **NOTE:** client.pfx is a self-signed certificate. When running the client you may get an error that the certificate is not trusted: `The certificate chain was issued by an authority that is not trusted`. [Add the certificate](https://www.thesslstore.com/knowledgebase/ssl-install/how-to-import-intermediate-root-certificates-using-mmc/) to your computer's trusted root cert store to fix this error. Don't use this certificate in production environments.
+
 ##### Scenarios:
 
 * Client certificate authentication
