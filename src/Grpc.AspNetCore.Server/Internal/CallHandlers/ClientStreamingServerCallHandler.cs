@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             ClientStreamingServerMethod<TService, TRequest, TResponse> invoker,
             MethodContext methodContext,
             ILoggerFactory loggerFactory,
-            IGrpcServiceActivator<TService> serviceActivator,
+            IGrpcServiceActivator serviceActivator,
             IServiceProvider serviceProvider)
             : base(method, methodContext, loggerFactory, serviceActivator, serviceProvider)
         {
@@ -54,21 +54,18 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         private async Task<TResponse> ResolvedInterceptorInvoker(IAsyncStreamReader<TRequest> resolvedRequestStream, ServerCallContext resolvedContext)
         {
-            GrpcActivatorHandle<TService> serviceHandle = default;
+            var service = (TService)ServiceActivator.Create(resolvedContext, typeof(TService));
+
             try
             {
-                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
                 return await _invoker(
-                    serviceHandle.Instance,
+                    service,
                     resolvedRequestStream,
                     resolvedContext);
             }
             finally
             {
-                if (serviceHandle.Instance != null)
-                {
-                    await ServiceActivator.ReleaseAsync(serviceHandle);
-                }
+                await ServiceActivator.ReleaseAsync(service);
             }
         }
 
@@ -81,21 +78,18 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (_pipelineInvoker == null)
             {
-                GrpcActivatorHandle<TService> serviceHandle = default;
+                var service = (TService)ServiceActivator.Create(serverCallContext, typeof(TService));
+
                 try
                 {
-                    serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
                     response = await _invoker(
-                        serviceHandle.Instance,
+                        service,
                         new HttpContextStreamReader<TRequest>(serverCallContext, Method.RequestMarshaller.ContextualDeserializer),
                         serverCallContext);
                 }
                 finally
                 {
-                    if (serviceHandle.Instance != null)
-                    {
-                        await ServiceActivator.ReleaseAsync(serviceHandle);
-                    }
+                    await ServiceActivator.ReleaseAsync(service);
                 }
             }
             else

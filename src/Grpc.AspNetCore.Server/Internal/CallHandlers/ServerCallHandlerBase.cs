@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         protected Method<TRequest, TResponse> Method { get; }
         protected MethodContext MethodContext { get; }
-        protected IGrpcServiceActivator<TService> ServiceActivator { get; }
+        protected IGrpcServiceActivator ServiceActivator { get; }
         protected IServiceProvider ServiceProvider { get; }
         protected ILogger Logger { get; }
 
@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             Method<TRequest, TResponse> method,
             MethodContext methodContext,
             ILoggerFactory loggerFactory,
-            IGrpcServiceActivator<TService> serviceActivator,
+            IGrpcServiceActivator serviceActivator,
             IServiceProvider serviceProvider)
         {
             Method = method;

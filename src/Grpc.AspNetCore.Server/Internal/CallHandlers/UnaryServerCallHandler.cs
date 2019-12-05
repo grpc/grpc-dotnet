@@ -26,7 +26,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal class UnaryServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+    internal class UnaryServerCallHandler<TService, TRequest, TResponse>
+        : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class
@@ -39,7 +40,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             UnaryServerMethod<TService, TRequest, TResponse> invoker,
             MethodContext methodContext,
             ILoggerFactory loggerFactory,
-            IGrpcServiceActivator<TService> serviceActivator,
+            IGrpcServiceActivator serviceActivator,
             IServiceProvider serviceProvider)
             : base(method, methodContext, loggerFactory, serviceActivator, serviceProvider)
         {
@@ -47,25 +48,26 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (MethodContext.HasInterceptors)
             {
-                var interceptorPipeline = new InterceptorPipelineBuilder<TRequest, TResponse>(MethodContext.Interceptors, ServiceProvider);
+                var interceptorPipeline = 
+                    new InterceptorPipelineBuilder<TRequest, TResponse>(
+                        MethodContext.Interceptors, ServiceProvider);
+
                 _pipelineInvoker = interceptorPipeline.UnaryPipeline(ResolvedInterceptorInvoker);
             }
         }
 
-        private async Task<TResponse> ResolvedInterceptorInvoker(TRequest resolvedRequest, ServerCallContext resolvedContext)
+        private async Task<TResponse> ResolvedInterceptorInvoker(
+            TRequest resolvedRequest, ServerCallContext resolvedContext)
         {
-            GrpcActivatorHandle<TService> serviceHandle = default;
+            var service = (TService)ServiceActivator.Create(resolvedContext, typeof(TService));
+
             try
             {
-                serviceHandle = ServiceActivator.Create(resolvedContext.GetHttpContext().RequestServices);
-                return await _invoker(serviceHandle.Instance, resolvedRequest, resolvedContext);
+                return await _invoker(service, resolvedRequest, resolvedContext);
             }
             finally
             {
-                if (serviceHandle.Instance != null)
-                {
-                    await ServiceActivator.ReleaseAsync(serviceHandle);
-                }
+                await ServiceActivator.ReleaseAsync(service);
             }
         }
 
@@ -77,18 +79,14 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (_pipelineInvoker == null)
             {
-                GrpcActivatorHandle<TService> serviceHandle = default;
+                var service = (TService)ServiceActivator.Create(serverCallContext, typeof(TService));
                 try
                 {
-                    serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
-                    response = await _invoker(serviceHandle.Instance, request, serverCallContext);
+                    response = await _invoker(service, request, serverCallContext);
                 }
                 finally
                 {
-                    if (serviceHandle.Instance != null)
-                    {
-                        await ServiceActivator.ReleaseAsync(serviceHandle);
-                    }
+                    await ServiceActivator.ReleaseAsync(service);
                 }
             }
             else

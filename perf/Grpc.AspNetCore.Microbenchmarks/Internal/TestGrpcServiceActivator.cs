@@ -18,11 +18,12 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server;
+using Grpc.Core;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {
-    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
+    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator
         where TGrpcService : class
     {
         public readonly TGrpcService _service;
@@ -32,14 +33,8 @@ namespace Grpc.AspNetCore.Microbenchmarks.Internal
             _service = service;
         }
 
-        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
-        {
-            return new GrpcActivatorHandle<TGrpcService>(_service, created: false, state: null);
-        }
+        public object Create(ServerCallContext context, Type grpcServiceType) => _service;
 
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
-        {
-            return default;
-        }
+        public ValueTask ReleaseAsync(object grpcService) => default;
     }
 }

@@ -20,12 +20,24 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects
+namespace Grpc.AspNetCore.Server
 {
-    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator where TGrpcService : class, new()
+    /// <summary>
+    /// Provides methods to create a gRPC service.
+    /// </summary>
+    public interface IGrpcServiceActivator
     {
-        public object Create(ServerCallContext context, Type grpcServiceType) => new TGrpcService();
+        /// <summary>
+        /// Creates a gRPC service.
+        /// </summary>
+        /// <param name="context">The <see cref="ServerCallContext"/> for the executing action</param>
+        /// <param name="grpcServiceType">The gRPC service type</param>
+        object Create(ServerCallContext context, Type grpcServiceType);
 
-        public ValueTask ReleaseAsync(object service) => default;
+        /// <summary>
+        /// Releases a gRPC service.
+        /// </summary>
+        /// <param name="grpcService">The gRPC service to release.</param>
+        ValueTask ReleaseAsync(object grpcService);
     }
 }

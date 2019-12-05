@@ -21,23 +21,23 @@ using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    /// <summary>
-    /// A <typeparamref name="TGrpcService"/> activator abstraction.
-    /// </summary>
-    /// <typeparam name="TGrpcService">The service type.</typeparam>
-    internal interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
-    {
-        /// <summary>
-        /// Creates a service.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
-        /// <returns>The created service.</returns>
-        GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider);
+    ///// <summary>
+    ///// A <typeparamref name="TGrpcService"/> activator abstraction.
+    ///// </summary>
+    ///// <typeparam name="TGrpcService">The service type.</typeparam>
+    //internal interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    //{
+    //    /// <summary>
+    //    /// Creates a service.
+    //    /// </summary>
+    //    /// <param name="serviceProvider">The service provider.</param>
+    //    /// <returns>The created service.</returns>
+    //    GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider);
 
-        /// <summary>
-        /// Releases the specified service.
-        /// </summary>
-        /// <param name="service">The service to release.</param>
-        ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
-    }
+    //    /// <summary>
+    //    /// Releases the specified service.
+    //    /// </summary>
+    //    /// <param name="service">The service to release.</param>
+    //    ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
+    //}
 }

@@ -17,49 +17,56 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class DefaultGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    internal class DefaultGrpcServiceActivator : IGrpcServiceActivator
     {
-        private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(() => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
+        private readonly ConcurrentDictionary<Type, ObjectFactory> _objectFactories =
+            new ConcurrentDictionary<Type, ObjectFactory>();
 
-        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
+        public object Create(ServerCallContext context, Type grpcServiceType)
         {
-            var service = serviceProvider.GetService<TGrpcService>();
-            if (service == null)
+            if (context == null)
             {
-                service = (TGrpcService)_objectFactory.Value(serviceProvider, Array.Empty<object>());
-                return new GrpcActivatorHandle<TGrpcService>(service, created: true, state: null);
+                throw new ArgumentNullException(nameof(context));
             }
 
-            return new GrpcActivatorHandle<TGrpcService>(service, created: false, state: null);
+            if (grpcServiceType == null)
+            {
+                throw new ArgumentNullException(nameof(grpcServiceType));
+            }
+
+            ObjectFactory factory = _objectFactories.GetOrAdd(grpcServiceType, this.CreateObjectFactory);
+
+            return factory(context.GetHttpContext().RequestServices, Array.Empty<object>());
         }
 
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
+        public ValueTask ReleaseAsync(object grpcServiceInstance)
         {
-            if (service.Instance == null)
+            if (grpcServiceInstance == null)
             {
-                throw new ArgumentException("Service instance is null.", nameof(service));
+                throw new ArgumentException("Service instance is null.", nameof(grpcServiceInstance));
             }
 
-            if (service.Created)
+            if (grpcServiceInstance is IAsyncDisposable asyncDisposableService)
             {
-                if (service.Instance is IAsyncDisposable asyncDisposableService)
-                {
-                    return asyncDisposableService.DisposeAsync();
-                }
+                return asyncDisposableService.DisposeAsync();
+            }
 
-                if (service.Instance is IDisposable disposableService)
-                {
-                    disposableService.Dispose();
-                    return default;
-                }
+            if (grpcServiceInstance is IDisposable disposableService)
+            {
+                disposableService.Dispose();
             }
 
             return default;
         }
+
+        private ObjectFactory CreateObjectFactory(Type grpcServiceType) =>
+            ActivatorUtilities.CreateFactory(grpcServiceType, Type.EmptyTypes);
     }
 }

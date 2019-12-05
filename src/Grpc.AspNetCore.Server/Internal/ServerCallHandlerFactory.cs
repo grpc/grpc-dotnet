@@ -39,14 +39,14 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly ILoggerFactory _loggerFactory;
         private readonly GrpcServiceOptions _globalOptions;
         private readonly GrpcServiceOptions<TService> _serviceOptions;
-        private readonly IGrpcServiceActivator<TService> _serviceActivator;
+        private readonly IGrpcServiceActivator _serviceActivator;
         private readonly IServiceProvider _serviceProvider;
 
         public ServerCallHandlerFactory(
             ILoggerFactory loggerFactory,
             IOptions<GrpcServiceOptions> globalOptions,
             IOptions<GrpcServiceOptions<TService>> serviceOptions,
-            IGrpcServiceActivator<TService> serviceActivator,
+            IGrpcServiceActivator serviceActivator,
             IServiceProvider serviceProvider)
         {
             _loggerFactory = loggerFactory;
