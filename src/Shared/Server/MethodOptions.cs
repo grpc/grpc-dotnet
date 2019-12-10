@@ -102,7 +102,7 @@ namespace Grpc.Shared.Server
         /// <summary>
         /// Creates method options by merging together the settings the specificed <see cref="GrpcServiceOptions"/> collection.
         /// The <see cref="GrpcServiceOptions"/> should be ordered with items arranged in ascending order of precedence.
-        /// Interceptors on options will be executed in reverse order of precendence.
+        /// When interceptors from multiple options are merged together they will be executed in reverse order of precendence.
         /// </summary>
         /// <param name="serviceOptions">A collection of <see cref="GrpcServiceOptions"/> instances, arranged in ascending order of precedence.</param>
         /// <returns>A new <see cref="MethodOptions"/> instanced with settings merged from specifid <see cref="GrpcServiceOptions"/> collection.</returns>
