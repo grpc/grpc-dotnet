@@ -120,7 +120,7 @@ namespace Grpc.Shared.Server
 
             foreach (var options in serviceOptions.Reverse())
             {
-                AddCompressionProviders(resolvedCompressionProviders, options._compressionProviders);
+                AddCompressionProviders(resolvedCompressionProviders, options.CompressionProviders);
                 tempInterceptors.InsertRange(0, options.Interceptors);
                 maxSendMessageSize ??= options.MaxSendMessageSize;
                 maxReceiveMessageSize ??= options.MaxReceiveMessageSize;
