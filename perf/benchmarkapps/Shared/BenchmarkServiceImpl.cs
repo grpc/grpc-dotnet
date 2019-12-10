@@ -21,7 +21,6 @@ using Grpc.Testing;
 using Grpc.Core;
 using Google.Protobuf;
 using System;
-using System.Diagnostics;
 
 class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 {
@@ -30,7 +29,6 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 #endif
     public override Task<SimpleResponse> UnaryCall(SimpleRequest request, ServerCallContext context)
     {
-        Debugger.Launch();
         return Task.FromResult(CreateResponse(request));
     }
 
