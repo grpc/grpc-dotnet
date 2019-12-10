@@ -128,6 +128,41 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         }
 
         [Test]
+        public async Task UnaryMethodDeadlineExceeded()
+        {
+            static async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
+            {
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(50);
+                }
+
+                return new HelloReply();
+            }
+
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, nameof(WaitUntilDeadline));
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
+            httpRequest.Content = new GrpcStreamContent(requestStream);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+        }
+
+        [Test]
         public async Task WriteMessageAfterDeadline()
         {
             static async Task WriteUntilError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
