@@ -18,27 +18,26 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// An interceptor activator abstraction.
+    /// A <typeparamref name="TGrpcService"/> activator abstraction.
     /// </summary>
-    internal interface IGrpcInterceptorActivator
+    /// <typeparam name="TGrpcService">The service type.</typeparam>
+    public interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
     {
         /// <summary>
-        /// Creates an interceptor.
+        /// Creates a service.
         /// </summary>
         /// <param name="serviceProvider">The service provider.</param>
-        /// <param name="interceptorRegistration">The arguments to pass to the interceptor type instance's constructor.</param>
-        /// <returns>The created interceptor.</returns>
-        GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration);
+        /// <returns>The created service.</returns>
+        GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider);
 
         /// <summary>
-        /// Releases the specified interceptor.
+        /// Releases the specified service.
         /// </summary>
-        /// <param name="interceptor">The interceptor to release.</param>
-        ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor);
+        /// <param name="service">The service to release.</param>
+        ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
     }
 }

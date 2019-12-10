@@ -16,13 +16,13 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server
 {
     /// <summary>
     /// Handle to the activator instance.
     /// </summary>
     /// <typeparam name="T">The instance type.</typeparam>
-    internal readonly struct GrpcActivatorHandle<T>
+    public readonly struct GrpcActivatorHandle<T>
     {
         /// <summary>
         /// Creates a new instance of <see cref="GrpcActivatorHandle{T}"/>.
