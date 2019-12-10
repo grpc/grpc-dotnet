@@ -63,12 +63,11 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             {
                 foreach (var method in serviceMethodProviderContext.Methods)
                 {
-                    var pattern = method.Method.FullName;
-                    var endpointBuilder = endpointRouteBuilder.MapPost(pattern, method.RequestDelegate);
+                    var endpointBuilder = endpointRouteBuilder.Map(method.Pattern, method.RequestDelegate);
 
                     endpointBuilder.Add(ep =>
                     {
-                        ep.DisplayName = $"gRPC - {pattern}";
+                        ep.DisplayName = $"gRPC - {method.Pattern.RawText}";
 
                         ep.Metadata.Add(new GrpcMethodMetadata(typeof(TService), method.Method));
                         foreach (var item in method.Metadata)
@@ -79,7 +78,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
                     endpointConventionBuilders.Add(endpointBuilder);
 
-                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, pattern);
+                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, method.Pattern.RawText);
                 }
             }
             else

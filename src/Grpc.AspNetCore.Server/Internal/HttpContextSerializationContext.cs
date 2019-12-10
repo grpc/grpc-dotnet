@@ -80,7 +80,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (canCompress)
             {
-                if (_serverCallContext.MethodContext.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding, out var compressionProvider))
+                if (_serverCallContext.Options.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding, out var compressionProvider))
                 {
                     return compressionProvider;
                 }
@@ -109,7 +109,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 case InternalState.Initialized:
                     _state = InternalState.CompleteArray;
 
-                    GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.MethodContext.ResponseType, payload.Length);
+                    GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, payload.Length);
                     WriteMessage(payload);
                     break;
                 default:
@@ -168,7 +168,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void EnsureMessageSizeAllowed(int payloadLength)
         {
-            if (payloadLength > _serverCallContext.MethodContext.MaxSendMessageSize)
+            if (payloadLength > _serverCallContext.Options.MaxSendMessageSize)
             {
                 throw new RpcException(SendingMessageExceedsLimitStatus);
             }
@@ -196,7 +196,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                     else
                     {
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.MethodContext.ResponseType, _payloadLength.GetValueOrDefault());
+                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.GetValueOrDefault());
                     }
                     break;
                 default:
@@ -228,7 +228,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             // Compression stream must be disposed before its content is read.
             // GZipStream writes final Adler32 at the end of the stream on dispose.
-            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _serverCallContext.MethodContext.ResponseCompressionLevel))
+            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _serverCallContext.Options.ResponseCompressionLevel))
             {
                 compressionStream.Write(messageData);
             }

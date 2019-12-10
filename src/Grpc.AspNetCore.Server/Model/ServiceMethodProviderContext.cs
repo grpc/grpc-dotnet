@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing.Patterns;
 
 namespace Grpc.AspNetCore.Server.Model
 {
@@ -52,9 +54,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, invoker);
-            var methodModel = new MethodModel(method, metadata, callHandler.HandleCallAsync);
-
-            Methods.Add(methodModel);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
         /// <summary>
@@ -70,9 +70,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateServerStreaming<TRequest, TResponse>(method, invoker);
-            var methodModel = new MethodModel(method, metadata, callHandler.HandleCallAsync);
-
-            Methods.Add(methodModel);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
         /// <summary>
@@ -88,9 +86,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateClientStreaming<TRequest, TResponse>(method, invoker);
-            var methodModel = new MethodModel(method, metadata, callHandler.HandleCallAsync);
-
-            Methods.Add(methodModel);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
         /// <summary>
@@ -106,8 +102,26 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming<TRequest, TResponse>(method, invoker);
-            var methodModel = new MethodModel(method, metadata, callHandler.HandleCallAsync);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
+        }
 
+        /// <summary>
+        /// Adds a method to a service. This method is handled by the specified <see cref="RequestDelegate"/>.
+        /// This overload of <c>AddMethod</c> is intended for advanced scenarios where raw processing of HTTP requests
+        /// is desired.
+        /// Note: experimental API that can change or be removed without any prior notice.
+        /// </summary>
+        /// <typeparam name="TRequest">Request message type for this method.</typeparam>
+        /// <typeparam name="TResponse">Response message type for this method.</typeparam>
+        /// <param name="method">The method description.</param>
+        /// <param name="pattern">The method pattern. This pattern is used by routing to match the method to an HTTP request.</param>
+        /// <param name="metadata">The method metadata. This metadata can be used by routing and middleware when invoking a gRPC method.</param>
+        /// <param name="invoker">The <see cref="RequestDelegate"/> that is executed when the method is called.</param>
+        public void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, RoutePattern pattern, IList<object> metadata, RequestDelegate invoker)
+            where TRequest : class
+            where TResponse : class
+        {
+            var methodModel = new MethodModel(method, pattern, metadata, invoker);
             Methods.Add(methodModel);
         }
     }

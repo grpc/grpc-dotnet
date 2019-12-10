@@ -17,10 +17,9 @@
 #endregion
 
 using System;
-using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute;
+using Grpc.Shared.Server;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests

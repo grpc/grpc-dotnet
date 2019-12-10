@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualSerializer);
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
 
             // Act 1
             await writer.WriteAsync(new HelloReply
@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualSerializer);
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
             serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
 
             // Act 1 

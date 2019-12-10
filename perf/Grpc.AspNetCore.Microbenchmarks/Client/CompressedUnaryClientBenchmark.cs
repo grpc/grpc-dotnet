@@ -37,9 +37,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
         public CompressedUnaryClientBenchmark()
         {
             ResponseCompressionAlgorithm = TestCompressionProvider.Name;
-            CompressionProviders = new Dictionary<string, ICompressionProvider>
+            CompressionProviders = new List<ICompressionProvider>
             {
-                [TestCompressionProvider.Name] = new TestCompressionProvider()
+                new TestCompressionProvider()
             };
             _compressionMetadata = new Metadata
             {

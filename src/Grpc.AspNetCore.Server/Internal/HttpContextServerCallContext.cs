@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared;
+using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
@@ -43,16 +44,20 @@ namespace Grpc.AspNetCore.Server.Internal
         private HttpContextSerializationContext? _serializationContext;
         private DefaultDeserializationContext? _deserializationContext;
 
-        internal HttpContextServerCallContext(HttpContext httpContext, MethodContext methodContext, ILogger logger)
+        internal HttpContextServerCallContext(HttpContext httpContext, MethodOptions options, Type requestType, Type responseType, ILogger logger)
         {
             HttpContext = httpContext;
-            MethodContext = methodContext;
+            Options = options;
+            RequestType = requestType;
+            ResponseType = responseType;
             Logger = logger;
         }
 
         internal ILogger Logger { get; }
         internal HttpContext HttpContext { get; }
-        internal MethodContext MethodContext { get; }
+        internal MethodOptions Options { get; }
+        internal Type RequestType { get; }
+        internal Type ResponseType { get; }
         internal string? ResponseGrpcEncoding { get; private set; }
 
         internal HttpContextSerializationContext SerializationContext
@@ -170,7 +175,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
 
-                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, MethodContext.EnableDetailedErrors);
+                var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, Options.EnableDetailedErrors);
                 _status = new Status(StatusCode.Unknown, message);
             }
 
@@ -377,7 +382,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
             }
 
-            var serviceDefaultCompression = MethodContext.ResponseCompressionAlgorithm;
+            var serviceDefaultCompression = Options.ResponseCompressionAlgorithm;
             if (serviceDefaultCompression != null &&
                 !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
                 IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))

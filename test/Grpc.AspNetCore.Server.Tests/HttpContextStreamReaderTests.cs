@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpContext = new DefaultHttpContext();
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualDeserializer);
+            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
 
             // Act
             var nextTask = reader.MoveNext(new CancellationToken(true));
@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var httpContext = new DefaultHttpContext();
             httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.HelloReplyMarshaller.ContextualDeserializer);
+            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
 
             var cts = new CancellationTokenSource();
 

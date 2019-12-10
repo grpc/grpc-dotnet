@@ -34,10 +34,17 @@ namespace Grpc.Tests.Shared
 {
     internal static class MessageHelpers
     {
-        public static readonly Marshaller<HelloRequest> HelloRequestMarshaller = Marshallers.Create<HelloRequest>(r => r.ToByteArray(), data => HelloRequest.Parser.ParseFrom(data));
-        public static readonly Marshaller<HelloReply> HelloReplyMarshaller = Marshallers.Create<HelloReply>(r => r.ToByteArray(), data => HelloReply.Parser.ParseFrom(data));
+        public static Marshaller<TMessage> GetMarshaller<TMessage>(MessageParser<TMessage> parser) where TMessage : IMessage<TMessage> =>
+            Marshallers.Create<TMessage>(r => r.ToByteArray(), data => parser.ParseFrom(data));
 
-        public static readonly Method<HelloRequest, HelloReply> ServiceMethod = new Method<HelloRequest, HelloReply>(MethodType.Unary, "ServiceName", "MethodName", HelloRequestMarshaller, HelloReplyMarshaller);
+        public static readonly Method<HelloRequest, HelloReply> ServiceMethod = CreateServiceMethod("MethodName", HelloRequest.Parser, HelloReply.Parser);
+
+        public static Method<TRequest, TResponse> CreateServiceMethod<TRequest, TResponse>(string methodName, MessageParser<TRequest> requestParser, MessageParser<TResponse> responseParser)
+             where TRequest : IMessage<TRequest>
+             where TResponse : IMessage<TResponse>
+        {
+            return new Method<TRequest, TResponse>(MethodType.Unary, "ServiceName", methodName, GetMarshaller(requestParser), GetMarshaller(responseParser));
+        }
 
         private static readonly HttpContextServerCallContext TestServerCallContext = HttpContextServerCallContextHelper.CreateServerCallContext();
 
@@ -55,8 +62,6 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var resolvedProviders = ResolveProviders(compressionProviders);
-
             var pipeReader = PipeReader.Create(stream);
 
             var httpContext = new DefaultHttpContext();
@@ -64,7 +69,7 @@ namespace Grpc.Tests.Shared
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                compressionProviders: resolvedProviders,
+                compressionProviders: compressionProviders,
                 responseCompressionAlgorithm: compressionEncoding);
 
             var message = await pipeReader.ReadSingleMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
@@ -86,14 +91,12 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var resolvedProviders = ResolveProviders(compressionProviders);
-
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                compressionProviders: resolvedProviders,
+                compressionProviders: compressionProviders,
                 responseCompressionAlgorithm: compressionEncoding);
 
             var message = await pipeReader.ReadStreamMessageAsync<T>(serverCallContext, Deserialize<T>).AsTask().DefaultTimeout();
@@ -108,8 +111,6 @@ namespace Grpc.Tests.Shared
                 new GzipCompressionProvider(CompressionLevel.Fastest)
             };
 
-            var resolvedProviders = ResolveProviders(compressionProviders);
-
             var pipeWriter = PipeWriter.Create(stream);
 
             var httpContext = new DefaultHttpContext();
@@ -117,7 +118,7 @@ namespace Grpc.Tests.Shared
 
             var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(
                 httpContext: httpContext,
-                compressionProviders: resolvedProviders,
+                compressionProviders: compressionProviders,
                 responseCompressionAlgorithm: compressionEncoding);
             serverCallContext.Initialize();
 

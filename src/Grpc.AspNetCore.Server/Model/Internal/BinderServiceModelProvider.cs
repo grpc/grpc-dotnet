@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using Grpc.Shared.Server;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
