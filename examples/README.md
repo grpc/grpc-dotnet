@@ -84,11 +84,11 @@ The certifier shows how to configure the client and the server to use a [TLS cli
 
 ## [Worker](./Worker)
 
-The worker shows how to use gRPC with a [.NET worker service](https://docs.microsoft.com/aspnet/core/fundamentals/host/hosted-services). In this example the client and server are each running in their own worker service app.
+The worker shows how to use call a gRPC server with a [.NET worker service](https://docs.microsoft.com/aspnet/core/fundamentals/host/hosted-services). The client uses the worker service to make a gRPC call on a timed internal. The gRPC client factory is used to create a client, which is injected into the service using dependency injection.
 
-The client uses the worker service to make a gRPC call on a timed internal. The gRPC client factory is used to create a client, which is injected into the service using dependency injection.
+The server is configured as a normal .NET web app, which uses the same [generic host](https://docs.microsoft.com/aspnet/core/fundamentals/host/generic-host) as a worker service to host its web server.
 
-The server uses the worker service to host a gRPC server. The server can be run as a [Windows service](https://en.wikipedia.org/wiki/Windows_service) or [systemd service](https://www.freedesktop.org/wiki/Software/systemd/) with some minor changes to the project file and startup logic:
+The client or server can be run as a [Windows service](https://en.wikipedia.org/wiki/Windows_service) or [systemd service](https://www.freedesktop.org/wiki/Software/systemd/) with some minor changes to the project file and startup logic:
 
 * [.NET Core Workers as Windows Services](https://devblogs.microsoft.com/aspnet/net-core-workers-as-windows-services/)
 * [.NET Core and systemd](https://devblogs.microsoft.com/dotnet/net-core-and-systemd/)

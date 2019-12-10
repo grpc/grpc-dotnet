@@ -1,8 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <UserSecretsId>dotnet-Server-6F5B7B30-7731-4D23-BE00-5D7906864D7A</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
