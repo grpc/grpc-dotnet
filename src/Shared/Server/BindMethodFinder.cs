@@ -20,7 +20,7 @@ using System;
 using System.Reflection;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Model.Internal
+namespace Grpc.Shared.Server
 {
     internal static class BindMethodFinder
     {

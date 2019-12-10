@@ -22,7 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class DefaultGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    internal sealed class DefaultGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
     {
         private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(() => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
 

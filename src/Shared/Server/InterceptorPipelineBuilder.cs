@@ -17,35 +17,35 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server.Internal.CallHandlers
+namespace Grpc.Shared.Server
 {
     internal class InterceptorPipelineBuilder<TRequest, TResponse>
         where TRequest : class
         where TResponse : class
     {
-        private readonly InterceptorCollection _interceptors;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IReadOnlyList<InterceptorRegistration> _interceptors;
 
-        public InterceptorPipelineBuilder(InterceptorCollection interceptors, IServiceProvider serviceProvider)
+        public InterceptorPipelineBuilder(IReadOnlyList<InterceptorRegistration> interceptors)
         {
             _interceptors = interceptors;
-            _serviceProvider = serviceProvider;
         }
 
         public ClientStreamingServerMethod<TRequest, TResponse> ClientStreamingPipeline(ClientStreamingServerMethod<TRequest, TResponse> innerInvoker)
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, ClientStreamingServerMethod<TRequest, TResponse> next)
+            static ClientStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ClientStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, context) =>
                 {
+                    var serviceProvider = context.GetHttpContext().RequestServices;
                     var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -63,12 +63,13 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, DuplexStreamingServerMethod<TRequest, TResponse> next)
+            static DuplexStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, DuplexStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (requestStream, responseStream, context) =>
                 {
+                    var serviceProvider = context.GetHttpContext().RequestServices;
                     var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -86,12 +87,13 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, ServerStreamingServerMethod<TRequest, TResponse> next)
+            static ServerStreamingServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, ServerStreamingServerMethod<TRequest, TResponse> next)
             {
                 return async (request, responseStream, context) =>
                 {
+                    var serviceProvider = context.GetHttpContext().RequestServices;
                     var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = interceptorActivator.Create(context.GetHttpContext().RequestServices, interceptorRegistration);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                     if (interceptorHandle.Instance == null)
                     {
@@ -114,12 +116,13 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             return BuildPipeline(innerInvoker, BuildInvoker);
 
-            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, IServiceProvider serviceProvider, UnaryServerMethod<TRequest, TResponse> next)
+            static UnaryServerMethod<TRequest, TResponse> BuildInvoker(InterceptorRegistration interceptorRegistration, UnaryServerMethod<TRequest, TResponse> next)
             {
                 return async (request, context) =>
                 {
+                    var serviceProvider = context.GetHttpContext().RequestServices;
                     var interceptorActivator = interceptorRegistration.GetActivator(serviceProvider);
-                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, context.GetHttpContext().RequestServices);
+                    var interceptorHandle = CreateInterceptor(interceptorRegistration, interceptorActivator, serviceProvider);
 
                     try
                     {
@@ -133,7 +136,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
         }
 
-        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, IServiceProvider, T, T> wrapInvoker)
+        private T BuildPipeline<T>(T innerInvoker, Func<InterceptorRegistration, T, T> wrapInvoker)
         {
             // The inner invoker will create the service instance and invoke the method
             var resolvedInvoker = innerInvoker;
@@ -141,7 +144,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             // The list is reversed during construction so the first interceptor is built last and invoked first
             for (var i = _interceptors.Count - 1; i >= 0; i--)
             {
-                resolvedInvoker = wrapInvoker(_interceptors[i], _serviceProvider, resolvedInvoker);
+                resolvedInvoker = wrapInvoker(_interceptors[i], resolvedInvoker);
             }
 
             return resolvedInvoker;

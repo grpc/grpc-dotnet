@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
 {
     public class UnaryClientBenchmarkBase
     {
-        protected Dictionary<string, ICompressionProvider>? CompressionProviders { get; set; }
+        protected List<ICompressionProvider>? CompressionProviders { get; set; }
         protected string? ResponseCompressionAlgorithm { get; set; }
 
         private Greeter.GreeterClient? _client;
@@ -69,7 +69,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
             var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
                 HttpClient = httpClient,
-                CompressionProviders = CompressionProviders?.Values?.ToList()
+                CompressionProviders = CompressionProviders
             });
 
             _client = new Greeter.GreeterClient(channel);

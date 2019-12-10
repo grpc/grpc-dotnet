@@ -18,7 +18,9 @@
 
 using System;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
+using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
@@ -34,23 +36,14 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
     {
         private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
 
-        protected Method<TRequest, TResponse> Method { get; }
-        protected MethodContext MethodContext { get; }
-        protected IGrpcServiceActivator<TService> ServiceActivator { get; }
-        protected IServiceProvider ServiceProvider { get; }
+        protected ServerMethodInvokerBase<TService, TRequest, TResponse> MethodInvoker { get; }
         protected ILogger Logger { get; }
 
         protected ServerCallHandlerBase(
-            Method<TRequest, TResponse> method,
-            MethodContext methodContext,
-            ILoggerFactory loggerFactory,
-            IGrpcServiceActivator<TService> serviceActivator,
-            IServiceProvider serviceProvider)
+            ServerMethodInvokerBase<TService, TRequest, TResponse> methodInvoker,
+            ILoggerFactory loggerFactory)
         {
-            Method = method;
-            MethodContext = methodContext;
-            ServiceActivator = serviceActivator;
-            ServiceProvider = serviceProvider;
+            MethodInvoker = methodInvoker;
             Logger = loggerFactory.CreateLogger(LoggerName);
         }
 
@@ -74,7 +67,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return Task.CompletedTask;
             }
 
-            var serverCallContext = new HttpContextServerCallContext(httpContext, MethodContext, Logger);
+            var serverCallContext = new HttpContextServerCallContext(httpContext, MethodInvoker.Options, typeof(TRequest), typeof(TResponse), Logger);
             httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
             GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
@@ -91,12 +84,12 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 }
                 else
                 {
-                    return AwaitHandleCall(serverCallContext, Method, handleCallTask);
+                    return AwaitHandleCall(serverCallContext, MethodInvoker.Method, handleCallTask);
                 }
             }
             catch (Exception ex)
             {
-                return serverCallContext.ProcessHandlerErrorAsync(ex, Method.Name);
+                return serverCallContext.ProcessHandlerErrorAsync(ex, MethodInvoker.Method.Name);
             }
 
             static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)

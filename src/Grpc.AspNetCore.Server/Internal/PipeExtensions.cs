@@ -339,7 +339,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return false;
             }
 
-            if (messageLength > context.MethodContext.MaxReceiveMessageSize)
+            if (messageLength > context.Options.MaxReceiveMessageSize)
             {
                 throw new RpcException(ReceivedMessageExceedsLimitStatus);
             }
@@ -366,7 +366,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 // Performance improvement would be to decompress without converting to an intermediary byte array
-                if (!TryDecompressMessage(context.Logger, encoding, context.MethodContext.CompressionProviders, messageBuffer, out var decompressedMessage))
+                if (!TryDecompressMessage(context.Logger, encoding, context.Options.CompressionProviders, messageBuffer, out var decompressedMessage))
                 {
                     // https://github.com/grpc/grpc/blob/master/doc/compression.md#test-cases
                     // A message compressed by a client in a way not supported by its server MUST fail with status UNIMPLEMENTED,
@@ -374,7 +374,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     // grpc-accept-encoding header MUST NOT contain the compression method (encoding) used.
                     var supportedEncodings = new List<string>();
                     supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
-                    supportedEncodings.AddRange(context.MethodContext.CompressionProviders.Select(p => p.Key));
+                    supportedEncodings.AddRange(context.Options.CompressionProviders.Select(p => p.Key));
 
                     if (!context.HttpContext.Response.HasStarted)
                     {
@@ -399,7 +399,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {

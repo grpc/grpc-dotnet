@@ -18,7 +18,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {

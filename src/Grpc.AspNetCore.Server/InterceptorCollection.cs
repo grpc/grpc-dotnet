@@ -28,10 +28,6 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class InterceptorCollection : Collection<InterceptorRegistration>
     {
-        internal InterceptorCollection()
-        {
-        }
-
         /// <summary>
         /// Add an interceptor to the end of the pipeline.
         /// </summary>

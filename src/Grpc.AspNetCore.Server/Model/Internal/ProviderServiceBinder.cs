@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Grpc.Core;
+using Microsoft.AspNetCore.Routing;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
@@ -86,6 +87,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             metadata.AddRange(typeof(TService).GetCustomAttributes(inherit: true));
             // Add method metadata last so it has a higher priority
             metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
+            metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
 
             return (invoker, metadata);
         }

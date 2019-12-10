@@ -15,6 +15,14 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
+    <Compile Include="..\Shared\Server\BindMethodFinder.cs" Link="Model\Internal\BindMethodFinder.cs" />
+    <Compile Include="..\Shared\Server\ClientStreamingServerMethodInvoker.cs" Link="Model\Internal\ClientStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\DuplexStreamingServerMethodInvoker.cs" Link="Model\Internal\DuplexStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\InterceptorPipelineBuilder.cs" Link="Model\Internal\InterceptorPipelineBuilder.cs" />
+    <Compile Include="..\Shared\Server\MethodOptions.cs" Link="Model\Internal\MethodOptions.cs" />
+    <Compile Include="..\Shared\Server\ServerMethodInvokerBase.cs" Link="Model\Internal\ServerMethodInvokerBase.cs" />
+    <Compile Include="..\Shared\Server\ServerStreamingServerMethodInvoker.cs" Link="Model\Internal\ServerStreamingServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\Server\UnaryServerMethodInvoker.cs" Link="Model\Internal\UnaryServerMethodInvoker.cs" />
   </ItemGroup>
 
   <ItemGroup>
