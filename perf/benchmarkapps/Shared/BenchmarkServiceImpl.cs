@@ -21,11 +21,16 @@ using Grpc.Testing;
 using Grpc.Core;
 using Google.Protobuf;
 using System;
+using System.Diagnostics;
 
 class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 {
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+    [Microsoft.AspNetCore.Authorization.Authorize]
+#endif
     public override Task<SimpleResponse> UnaryCall(SimpleRequest request, ServerCallContext context)
     {
+        Debugger.Launch();
         return Task.FromResult(CreateResponse(request));
     }
 

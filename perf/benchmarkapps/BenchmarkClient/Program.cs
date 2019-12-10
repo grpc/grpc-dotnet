@@ -30,6 +30,7 @@ namespace BenchmarkClient
     {
         private const int Connections = 8;
         private const int DurationSeconds = 5;
+        private const bool UseTls = false;
         private const bool UseClientCertificate = false;
         // The host name is tied to some certificates
         private const string Target = "localhost:5000";
@@ -41,15 +42,15 @@ namespace BenchmarkClient
 
             var benchmarkResults = new List<BenchmarkResult>();
 
-            var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseClientCertificate);
+            var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseTls, UseClientCertificate);
             var grpcCoreChannelFactory = new GrpcCoreChannelFactory(Target);
 
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseClientCertificate)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseTls)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-UnaryWorker", id => new GrpcUnaryWorker(id, grpcNetClientChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcNetClientChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcNetClientChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseClientCertificate, "/unary")));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseClientCertificate, "/api/benchmark/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseTls, "/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseTls, "/api/benchmark/unary")));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-UnaryWorker", id => new GrpcUnaryWorker(id, grpcCoreChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcCoreChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcCoreChannelFactory)));

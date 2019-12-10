@@ -74,7 +74,12 @@ namespace GrpcAspNetCoreServer
 
                                 var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                                 var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
-                                listenOptions.UseHttps(certPath, "testPassword");
+                                listenOptions.UseHttps(certPath, "testPassword", httpsOptions =>
+                                {
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+                                    httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
+#endif
+                                });
                             }
                             else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
                             {

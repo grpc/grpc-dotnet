@@ -25,6 +25,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Authentication.Certificate;
+#endif
 
 namespace GrpcAspNetCoreServer
 {
@@ -34,6 +38,17 @@ namespace GrpcAspNetCoreServer
         {
             services.AddGrpc();
             services.AddControllers();
+
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+            services.AddAuthorization();
+            services.AddAuthentication(CertificateAuthenticationDefaults.AuthenticationScheme)
+                .AddCertificate(options =>
+                {
+                    // Not recommended in production environments. The example is using a self-signed test certificate.
+                    options.RevocationMode = X509RevocationMode.NoCheck;
+                    options.AllowedCertificateTypes = CertificateTypes.All;
+                });
+#endif
         }
 
         public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
@@ -42,6 +57,12 @@ namespace GrpcAspNetCoreServer
             applicationLifetime.ApplicationStarted.Register(() => Console.WriteLine("Application started."));
 
             app.UseRouting();
+
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+            app.UseAuthentication();
+            app.UseAuthorization();
+#endif
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<BenchmarkServiceImpl>();
