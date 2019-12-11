@@ -11,8 +11,6 @@
     <!-- Disable analysis for ConfigureAwait(false) -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA2007</NoWarn>
-
-    <DefineConstants>$(DefineConstants);GRPC_SUPPORT_WATCH;</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
