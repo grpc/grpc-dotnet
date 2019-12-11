@@ -4,7 +4,7 @@
     <CommandLineParserPackageVersion>2.3.0</CommandLineParserPackageVersion>
     <GoogleProtobufPackageVersion>3.10.0</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.25.0</GrpcDotNetPackageVersion>  <!-- Only use for example projects -->
-    <GrpcPackageVersion>2.25.0</GrpcPackageVersion>
+    <GrpcPackageVersion>2.27.0-dev201912051123</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
