@@ -9,6 +9,9 @@
 
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+
+    <!-- This is required to avoid a build server error when using a preview version of Grpc.Tools -->
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

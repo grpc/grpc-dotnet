@@ -108,6 +108,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrpcAspNetCoreServer", "per
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GrpcCoreServer", "perf\benchmarkapps\GrpcCoreServer\GrpcCoreServer.csproj", "{781111FC-8F3C-433E-BC96-D88ADAEE3064}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.HealthChecks", "src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj", "{E46446FE-2B93-4F42-84C8-A4D09B48B173}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -206,6 +208,10 @@ Global
 		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{781111FC-8F3C-433E-BC96-D88ADAEE3064}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E46446FE-2B93-4F42-84C8-A4D09B48B173}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E46446FE-2B93-4F42-84C8-A4D09B48B173}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E46446FE-2B93-4F42-84C8-A4D09B48B173}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E46446FE-2B93-4F42-84C8-A4D09B48B173}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -243,6 +249,7 @@ Global
 		{69C50655-71EE-4E69-BC2C-ABCA568F6E76} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{1D9AB69D-244C-4871-867E-DCEC52B552A4} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 		{781111FC-8F3C-433E-BC96-D88ADAEE3064} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
+		{E46446FE-2B93-4F42-84C8-A4D09B48B173} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

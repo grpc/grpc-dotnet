@@ -22,6 +22,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
@@ -67,7 +68,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
                     ListServices = "" // list all services
                 }
             };
-            var writer = new TestServerStreamWriter();
+            var writer = new TestServerStreamWriter<ServerReflectionResponse>();
             var context = HttpContextServerCallContextHelper.CreateServerCallContext();
 
             await service.ServerReflectionInfo(reader, writer, context);
@@ -82,18 +83,6 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
         private class GreeterService : Greeter.GreeterBase
         {
-        }
-
-        private class TestServerStreamWriter : IServerStreamWriter<ServerReflectionResponse>
-        {
-            public WriteOptions? WriteOptions { get; set; }
-            public List<ServerReflectionResponse> Responses { get; } = new List<ServerReflectionResponse>();
-
-            public Task WriteAsync(ServerReflectionResponse message)
-            {
-                Responses.Add(message);
-                return Task.CompletedTask;
-            }
         }
 
         private class TestAsyncStreamReader : IAsyncStreamReader<ServerReflectionRequest>
