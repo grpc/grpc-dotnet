@@ -9,6 +9,7 @@
 
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
