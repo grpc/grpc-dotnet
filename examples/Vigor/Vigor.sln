@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.Server", ".
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Common", "..\..\src\Grpc.Net.Common\Grpc.Net.Common.csproj", "{479F5D6C-E76C-4696-A75E-ACE6EAFB9B75}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore", "..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj", "{5D3C6AD6-B76F-44C3-A616-3FBE238D4EF6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{479F5D6C-E76C-4696-A75E-ACE6EAFB9B75}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{479F5D6C-E76C-4696-A75E-ACE6EAFB9B75}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{479F5D6C-E76C-4696-A75E-ACE6EAFB9B75}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D3C6AD6-B76F-44C3-A616-3FBE238D4EF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D3C6AD6-B76F-44C3-A616-3FBE238D4EF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D3C6AD6-B76F-44C3-A616-3FBE238D4EF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D3C6AD6-B76F-44C3-A616-3FBE238D4EF6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
