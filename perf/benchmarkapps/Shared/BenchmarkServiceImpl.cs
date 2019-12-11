@@ -24,6 +24,9 @@ using System;
 
 class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 {
+#if CLIENT_CERTIFICATE_AUTHENTICATION
+    [Microsoft.AspNetCore.Authorization.Authorize]
+#endif
     public override Task<SimpleResponse> UnaryCall(SimpleRequest request, ServerCallContext context)
     {
         return Task.FromResult(CreateResponse(request));
