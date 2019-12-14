@@ -62,7 +62,10 @@ namespace GrpcAspNetCoreServer
                     {
                         var endPoint = config.CreateIPEndPoint();
 
-                        options.Listen(endPoint, listenOptions =>
+                        // ListenAnyIP will work with IPv4 and IPv6.
+                        // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
+                        // creating a connection on a local Windows machine.
+                        options.ListenAnyIP(endPoint.Port, listenOptions =>
                         {
                             var protocol = config["protocol"] ?? "";
 
@@ -85,6 +88,10 @@ namespace GrpcAspNetCoreServer
                             {
                                 listenOptions.Protocols = HttpProtocols.Http2;
                             }
+                            else if (protocol.Equals("http1", StringComparison.OrdinalIgnoreCase))
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http1;
+                            }
                             else
                             {
                                 throw new InvalidOperationException($"Unexpected protocol: {protocol}");
@@ -99,7 +106,7 @@ namespace GrpcAspNetCoreServer
                     if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel))
                     {
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
-                        loggerFactory.AddConsole().SetMinimumLevel(logLevel);
+                        loggerFactory.AddConsole(o => o.TimestampFormat = "ss.ffff ").SetMinimumLevel(logLevel);
                     }
                 })
                 .UseDefaultServiceProvider((context, options) =>

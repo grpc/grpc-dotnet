@@ -17,11 +17,13 @@
 #endregion
 
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
 
 namespace BenchmarkClient.ChannelFactory
 {
@@ -30,12 +32,14 @@ namespace BenchmarkClient.ChannelFactory
         private readonly string _target;
         private readonly bool _useTls;
         private readonly bool _useClientCertificate;
+        private readonly GrpcWebMode? _useGrpcWeb;
 
-        public GrpcNetClientChannelFactory(string target, bool useTls, bool useClientCertificate)
+        public GrpcNetClientChannelFactory(string target, bool useTls, bool useClientCertificate, GrpcWebMode? useGrpcWeb)
         {
             _target = target;
             _useTls = useTls;
             _useClientCertificate = useClientCertificate;
+            _useGrpcWeb = useGrpcWeb;
         }
 
         public Task<ChannelBase> CreateAsync()
@@ -54,9 +58,15 @@ namespace BenchmarkClient.ChannelFactory
                 httpClientHandler.ClientCertificates.Add(clientCertificate);
             }
 
+            HttpMessageHandler httpMessageHandler = httpClientHandler;
+            if (_useGrpcWeb != null)
+            {
+                httpMessageHandler = new GrpcWebHandler(_useGrpcWeb.Value, HttpVersion.Version11, httpMessageHandler);
+            }
+
             var channel = GrpcChannel.ForAddress(url, new GrpcChannelOptions
             {
-                HttpClient = new HttpClient(httpClientHandler)
+                HttpClient = new HttpClient(httpMessageHandler)
             });
 
             return Task.FromResult<ChannelBase>(channel);

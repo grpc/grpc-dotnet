@@ -21,7 +21,7 @@ using Grpc.AspNetCore.Server;
 using Grpc.Core.Interceptors;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.Server.Tests
 {
     [TestFixture]
     public class InterceptorCollectionTests

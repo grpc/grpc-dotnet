@@ -19,6 +19,7 @@
 using System;
 using System.Net.Http;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -61,8 +62,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
         {
+            endpointName ??= TestServerEndpointName.Http2;
+
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+
+#if GrpcWebTests
+            // Run all functional tests with gRPC-Web
+            var grpcWebMode = GrpcWebMode.GrpcWebText;
+            if (messageHandler != null)
+            {
+                messageHandler.InnerHandler = new GrpcWebHandler(grpcWebMode);
+            }
+            else
+            {
+                messageHandler = new GrpcWebHandler(grpcWebMode);
+            }
+#endif
 
             HttpClient client;
             if (messageHandler != null)
@@ -74,8 +90,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             {
                 client = new HttpClient(httpClientHandler);
             }
-
-            endpointName ??= TestServerEndpointName.Http2;
 
             switch (endpointName)
             {

@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 #if CLIENT_CERTIFICATE_AUTHENTICATION
 using System.Security.Cryptography.X509Certificates;
@@ -49,6 +50,9 @@ namespace GrpcAspNetCoreServer
                     options.AllowedCertificateTypes = CertificateTypes.All;
                 });
 #endif
+#if GRPC_WEB
+            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
+#endif
         }
 
         public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
@@ -61,6 +65,10 @@ namespace GrpcAspNetCoreServer
 #if CLIENT_CERTIFICATE_AUTHENTICATION
             app.UseAuthentication();
             app.UseAuthorization();
+#endif
+
+#if GRPC_WEB
+            app.UseGrpcWeb();
 #endif
 
             app.UseEndpoints(endpoints =>

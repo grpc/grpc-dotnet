@@ -17,17 +17,33 @@
 #endregion
 
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    public class GrpcStreamContent : StreamContent
+    public class GrpcStreamContent : HttpContent
     {
-        public GrpcStreamContent(Stream content) : base(content)
+        private readonly Stream _content;
+
+        public GrpcStreamContent(Stream content, string contentType = GrpcProtocolConstants.GrpcContentType)
         {
-            Headers.ContentType = new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
+            Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            _content = content;
+        }
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        {
+            return _content.CopyToAsync(stream);
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = -1;
+            return false;
         }
     }
 }

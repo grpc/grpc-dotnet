@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Protobuf Include="..\Proto\echo.proto" GrpcServices="Client" Link="Protos\echo.proto" />
     <Protobuf Include="..\Proto\grpc\testing\test.proto" GrpcServices="Client" Link="Protos\test.proto" />
     <Protobuf Include="..\Proto\grpc\testing\empty.proto" GrpcServices="None" Link="Protos\empty.proto" />
     <Protobuf Include="..\Proto\grpc\testing\messages.proto" GrpcServices="None" Link="Protos\messages.proto" />
@@ -13,6 +14,8 @@
     <None Include="..\Certs\InteropTests\*.*" LinkBase="Certs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+
+    <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
 
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 

@@ -130,6 +130,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
 
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            await requestStream.FlushAsync().DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 1");
 
             ms = new MemoryStream();
@@ -140,10 +141,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             });
 
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+            await requestStream.FlushAsync().DefaultTimeout();
             Assert.IsFalse(responseTask.IsCompleted, "Server is buffering response 2");
 
             // Complete request stream
             await requestStream.WriteAsync(Array.Empty<byte>()).AsTask().DefaultTimeout();
+            await requestStream.FlushAsync().DefaultTimeout();
             streamingContent.Complete();
 
             var response = await responseTask.DefaultTimeout();

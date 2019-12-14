@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -108,7 +109,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             if (serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
-                CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "gRPC - Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
+                CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
             }
 
             // Return UNIMPLEMENTED status for missing method:
@@ -125,7 +126,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     continue;
                 }
 
-                CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"gRPC - Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
+                CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
             }
         }
 
@@ -158,7 +159,9 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     return false;
                 }
 
-                return GrpcProtocolHelpers.IsGrpcContentType(httpContext.Request.ContentType);
+                return CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, httpContext.Request.ContentType) ||
+                    CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebContentType, httpContext.Request.ContentType) ||
+                    CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebTextContentType, httpContext.Request.ContentType);
             }
 
             private GrpcUnimplementedConstraint()
