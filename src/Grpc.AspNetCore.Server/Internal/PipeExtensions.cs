@@ -324,8 +324,9 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
+                // Don't write error when user cancels read
                 GrpcServerLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
