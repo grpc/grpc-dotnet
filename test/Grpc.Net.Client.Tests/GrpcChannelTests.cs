@@ -75,7 +75,10 @@ namespace Grpc.Net.Client.Tests
             }));
 
             // Assert
-            Assert.AreEqual("Using SslCredentials with non-null arguments is not supported by GrpcChannel.", ex.Message);
+            Assert.AreEqual(
+                "SslCredentials with non-null arguments is not supported by GrpcChannel. " +
+                "HttpClient is used by GrpcChannel to make gRPC calls and it automatically loads root certificates from the operating system certificate store. " +
+                "Client certificates should be configured on HttpClient. See https://aka.ms/AA6we64 for details.", ex.Message);
         }
 
         [Test]
