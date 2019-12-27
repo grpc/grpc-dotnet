@@ -82,9 +82,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             response.AssertTrailerStatus(StatusCode.Unimplemented, "Service is unimplemented.");
         }
 
-        [TestCase("application/grpc", HttpStatusCode.OK, StatusCode.Unimplemented)]
-        [TestCase("application/json", (HttpStatusCode)418, null)]
-        public async Task UnimplementedContentType_ReturnUnimplementedForAppGrpc(string contentType, HttpStatusCode httpStatusCode, StatusCode? grpcStatusCode)
+        [TestCase("application/grpc", "POST", HttpStatusCode.OK, StatusCode.Unimplemented)]
+        [TestCase("application/grpc", "GET", (HttpStatusCode)404, null)]
+        [TestCase("application/json", "POST", (HttpStatusCode)404, null)]
+        [TestCase("application/json", "GET", (HttpStatusCode)404, null)]
+        public async Task UnimplementedContentType_ReturnUnimplementedForAppGrpc(string contentType, string httpMethod, HttpStatusCode httpStatusCode, StatusCode? grpcStatusCode)
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -96,6 +98,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = GrpcHttpHelper.Create("HasMapped/Extra");
+            httpRequest.Method = new HttpMethod(httpMethod);
             httpRequest.Content = new StreamContent(requestStream);
             httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
