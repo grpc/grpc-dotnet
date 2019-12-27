@@ -203,7 +203,7 @@ namespace Grpc.Net.Client
                 {
                     throw new InvalidOperationException(
                         $"{nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}. " +
-                        $"HttpClient is used by {nameof(GrpcChannel)} to make gRPC calls and it will automatically load root certificates from the operating system certificate store. " +
+                        $"HttpClient is used by {nameof(GrpcChannel)} to make gRPC calls and it automatically loads root certificates from the operating system certificate store. " +
                         $"Client certificates should be configured on HttpClient. See https://aka.ms/AA6we64 for details.");
                 }
 
