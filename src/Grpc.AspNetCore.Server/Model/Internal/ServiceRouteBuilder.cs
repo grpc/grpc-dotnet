@@ -131,19 +131,20 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private static void CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
         {
-            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcContentTypeConstraint.Instance });
+            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcUnimplementedConstraint.Instance });
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
 
             endpointBuilder.Add(ep =>
             {
                 ep.DisplayName = $"gRPC - {displayName}";
-                ep.Metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
+                // Don't add POST metadata here. It will return 405 status for other HTTP methods which isn't
+                // what we want. That check is made in a constraint instead.
             });
         }
 
-        private class GrpcContentTypeConstraint : IRouteConstraint
+        private class GrpcUnimplementedConstraint : IRouteConstraint
         {
-            public static readonly GrpcContentTypeConstraint Instance = new GrpcContentTypeConstraint();
+            public static readonly GrpcUnimplementedConstraint Instance = new GrpcUnimplementedConstraint();
 
             public bool Match(HttpContext httpContext, IRouter route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
             {
@@ -152,10 +153,15 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     return false;
                 }
 
+                if (!HttpMethods.IsPost(httpContext.Request.Method))
+                {
+                    return false;
+                }
+
                 return GrpcProtocolHelpers.IsGrpcContentType(httpContext.Request.ContentType);
             }
 
-            private GrpcContentTypeConstraint()
+            private GrpcUnimplementedConstraint()
             {
             }
         }

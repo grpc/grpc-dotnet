@@ -133,12 +133,6 @@ namespace FunctionalTestsWebsite
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 
-                endpoints.Map("{FirstSegment}/{SecondSegment}", context =>
-                {
-                    context.Response.StatusCode = StatusCodes.Status418ImATeapot;
-                    return Task.CompletedTask;
-                });
-
                 endpoints.MapGet("/generateJwtToken", context =>
                 {
                     return context.Response.WriteAsync(GenerateJwtToken());
