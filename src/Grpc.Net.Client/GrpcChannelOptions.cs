@@ -36,9 +36,8 @@ namespace Grpc.Net.Client
         /// </summary>
         /// <remarks>
         /// <para>
-        /// When configuring <see cref="CallCredentials"/> for a channel, the channel credentials you use must match the address TLS
-        /// setting. Use <see cref="ChannelCredentials.Insecure"/> for an "http" address and <see cref="SslCredentials"/> with
-        /// no arguments for "https".
+        /// The channel credentials you use must match the address TLS setting. Use <see cref="ChannelCredentials.Insecure"/>
+        /// for an "http" address and <see cref="SslCredentials"/> with no arguments for "https".
         /// </para>
         /// <para>
         /// The underlying <see cref="System.Net.Http.HttpClient"/> used by the channel automatically loads root certificates
