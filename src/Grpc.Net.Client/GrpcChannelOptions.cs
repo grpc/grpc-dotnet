@@ -31,8 +31,20 @@ namespace Grpc.Net.Client
     public sealed class GrpcChannelOptions
     {
         /// <summary>
-        /// Gets or sets the credentials for the channel.
+        /// Gets or sets the credentials for the channel. This setting is used to set <see cref="CallCredentials"/> for
+        /// a channel. Connection transport layer security (TLS) is determined by the address used to create the channel.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The channel credentials you use must match the address TLS setting. Use <see cref="ChannelCredentials.Insecure"/>
+        /// for an "http" address and <see cref="SslCredentials"/> with no arguments for "https".
+        /// </para>
+        /// <para>
+        /// The underlying <see cref="System.Net.Http.HttpClient"/> used by the channel automatically loads root certificates
+        /// from the operating system certificate store.
+        /// Client certificates should be configured on HttpClient. See https://aka.ms/AA6we64 for details.
+        /// </para>
+        /// </remarks>
         public ChannelCredentials? Credentials { get; set; }
 
         /// <summary>
