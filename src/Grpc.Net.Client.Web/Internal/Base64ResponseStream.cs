@@ -107,7 +107,7 @@ namespace Grpc.Net.Client.Web.Internal
             var remainingBase64Data = base64Data;
 
             int paddingIndex;
-            while (remainingBase64Data.Length > 4 && (paddingIndex = PaddingIndex(remainingBase64Data)) != -1)
+            while (remainingBase64Data.Length > 4 && (paddingIndex = GetPaddingIndex(remainingBase64Data)) != -1)
             {
                 var base64Fragment = remainingBase64Data.Slice(0, paddingIndex + 1);
                 int bytesWritten = DecodeAndShift(base64Data, dataLength, base64Fragment);
@@ -126,11 +126,7 @@ namespace Grpc.Net.Client.Web.Internal
 
         private static int DecodeAndShift(Span<byte> base64Data, int dataLength, Span<byte> base64Fragment)
         {
-            var status = Base64.DecodeFromUtf8InPlace(base64Fragment, out var bytesWritten);
-            if (status != OperationStatus.Done)
-            {
-                throw new InvalidOperationException("Error decoding base64 content: " + status);
-            }
+            EnsureSuccess(Base64.DecodeFromUtf8InPlace(base64Fragment, out var bytesWritten));
 
             if (dataLength > 0)
             {
@@ -142,8 +138,17 @@ namespace Grpc.Net.Client.Web.Internal
             return bytesWritten;
         }
 
-        private static int PaddingIndex(Span<byte> data)
+        private static void EnsureSuccess(OperationStatus status)
         {
+            if (status != OperationStatus.Done)
+            {
+                throw new InvalidOperationException("Error decoding base64 content: " + status);
+            }
+        }
+
+        private static int GetPaddingIndex(Span<byte> data)
+        {
+            // Check at the end of every 4 character base64 segement for padding
             for (var i = 3; i < data.Length; i += 4)
             {
                 if (data[i] == (byte)'=')

@@ -43,6 +43,13 @@ namespace Grpc.Net.Client.Web.Internal
                 _buffer = ArrayPool<byte>.Shared.Rent(minimumLength: 4096);
             }
 
+            // Data has to be encoded to base64 in increments of 3
+            // 1. First handle any remaining data from the last call to WriteAsync
+            //    - There may still not be enough data (e.g. 1 byte + 1 byte). Add to remaining data and exit
+            //    - Use remaining data to write to buffer
+            // 2. Write data to buffer and then write buffer until there is not enough data remaining
+            // 3. Save remainder to buffer
+
             Memory<byte> localBuffer;
             if (_remainder > 0)
             {
@@ -58,7 +65,7 @@ namespace Grpc.Net.Client.Web.Internal
 
                 // Use data to complete remainder and write to buffer
                 data.Slice(0, required).CopyTo(_buffer.AsMemory(_remainder));
-                Base64.EncodeToUtf8InPlace(_buffer, 3, out var bytesWritten);
+                EnsureSuccess(Base64.EncodeToUtf8InPlace(_buffer, 3, out var bytesWritten));
 
                 // Trim used data
                 data = data.Slice(required);
@@ -69,9 +76,11 @@ namespace Grpc.Net.Client.Web.Internal
                 localBuffer = _buffer;
             }
 
-            while (CanWriteData(data))
+            while (data.Length >= 3)
             {
-                Base64.EncodeToUtf8(data.Span, localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false);
+                EnsureSuccess(
+                    Base64.EncodeToUtf8(data.Span, localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
+                    OperationStatus.NeedMoreData);
 
                 var base64Remainder = _buffer.Length - localBuffer.Length;
                 await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten + base64Remainder), cancellationToken);
@@ -92,19 +101,23 @@ namespace Grpc.Net.Client.Web.Internal
                 data.CopyTo(_buffer);
             }
 
+            // Remainder can be 0-2 bytes
             _remainder = data.Length;
         }
 
-        private static bool CanWriteData(ReadOnlyMemory<byte> data)
+        private static void EnsureSuccess(OperationStatus status, OperationStatus expectedStatus = OperationStatus.Done)
         {
-            return data.Length >= 3;
+            if (status != expectedStatus)
+            {
+                throw new InvalidOperationException("Error encoding content to base64: " + status);
+            }
         }
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
         {
             if (_remainder > 0)
             {
-                Base64.EncodeToUtf8InPlace(_buffer, _remainder, out var bytesWritten);
+                EnsureSuccess(Base64.EncodeToUtf8InPlace(_buffer, _remainder, out var bytesWritten));
 
                 await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten), cancellationToken);
                 _remainder = 0;

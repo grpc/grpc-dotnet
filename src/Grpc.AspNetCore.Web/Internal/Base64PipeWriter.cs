@@ -73,13 +73,17 @@ namespace Grpc.AspNetCore.Web.Internal
 
         private void CoreAdvance(ReadOnlySpan<byte> source, Span<byte> destination)
         {
-            var status = Base64.EncodeToUtf8(source, destination, out _, out var bytesWritten);
-            if (status != OperationStatus.Done)
-            {
-                throw new InvalidOperationException($"Expected status of Done when converting to base64. Got {status}.");
-            }
+            EnsureSuccess(Base64.EncodeToUtf8(source, destination, out _, out var bytesWritten));
 
             _inner.Advance(bytesWritten);
+        }
+
+        private void EnsureSuccess(OperationStatus status)
+        {
+            if (status != OperationStatus.Done)
+            {
+                throw new InvalidOperationException("Error encoding content to base64: " + status);
+            }
         }
 
         private void PreserveRemainder(Span<byte> buffer)
