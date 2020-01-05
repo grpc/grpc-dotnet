@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.Web.Internal
     internal class Base64PipeWriter : PipeWriter
     {
         private readonly PipeWriter _inner;
-        // We have to write original data to buffer. GetSpan/GetMemory sometimes won't return the
+        // We have to write original data to buffer. GetSpan/GetMemory isn't guaranteed to return the
         // original data if we call it again on Advance so we can't use it as temporary buffer.
         private byte[]? _buffer;
         private int _remainder;
@@ -60,13 +60,16 @@ namespace Grpc.AspNetCore.Web.Internal
             {
                 PreserveRemainder(_buffer.AsSpan(bytesToProcess, newRemainder));
 
-                // When writing base64 content we don't want any padding until the end.
-                // Process data in intervals of 3, and save the remainder at the start of a new span
+                // When writing base64 content we don't want any padding until the end of the message,
+                // at which point FlushAsync is called.
+                // Process data in intervals of 3, and save the remainder at the start of a new span.
                 var buffer = _inner.GetSpan((bytesToProcess / 3) * 4);
                 CoreAdvance(_buffer.AsSpan(0, bytesToProcess), buffer);
             }
             else
             {
+                // Don't have at least 3 bytes to write a base64 segment.
+                // Bytes are preserved in the remainder for the next Advance.
                 PreserveRemainder(_buffer.AsSpan(0, resolvedBytes));
             }
         }
@@ -131,6 +134,7 @@ namespace Grpc.AspNetCore.Web.Internal
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
         {
+            // FlushAsync is called at the end of a message or the response. Write the remainder with padding.
             WriteRemainder();
 
             return _inner.FlushAsync(cancellationToken);
