@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Common;
 using Grpc.Core;
 using Grpc.Testing;
@@ -26,7 +27,7 @@ namespace GrpcCoreServer
 {
     class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var config = new ConfigurationBuilder()
               .AddJsonFile("hosting.json", optional: true)
@@ -36,7 +37,7 @@ namespace GrpcCoreServer
 
             try
             {
-                Run(config);
+                await RunAsync(config);
             }
             catch (Exception ex)
             {
@@ -46,7 +47,7 @@ namespace GrpcCoreServer
             }
         }
 
-        private static void Run(IConfigurationRoot config)
+        private static async Task RunAsync(IConfigurationRoot config)
         {
             var protocol = config["protocol"] ?? string.Empty;
             if (!protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
@@ -76,7 +77,7 @@ namespace GrpcCoreServer
             Console.WriteLine("Press any key to stop the server...");
             Console.ReadKey();
 
-            server.ShutdownAsync().Wait();
+            await server.ShutdownAsync();
         }
     }
 }
