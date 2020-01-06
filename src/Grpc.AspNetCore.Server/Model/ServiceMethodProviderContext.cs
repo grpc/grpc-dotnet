@@ -53,7 +53,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
-            var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, invoker);
+            var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
@@ -69,7 +69,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
-            var callHandler = _serverCallHandlerFactory.CreateServerStreaming<TRequest, TResponse>(method, invoker);
+            var callHandler = _serverCallHandlerFactory.CreateServerStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
@@ -85,7 +85,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
-            var callHandler = _serverCallHandlerFactory.CreateClientStreaming<TRequest, TResponse>(method, invoker);
+            var callHandler = _serverCallHandlerFactory.CreateClientStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
-            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming<TRequest, TResponse>(method, invoker);
+            var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
 

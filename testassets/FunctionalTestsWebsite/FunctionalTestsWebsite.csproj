@@ -16,6 +16,7 @@
     <Protobuf Include="..\Proto\compression.proto" Link="Protos\compression.proto" />
     <Protobuf Include="..\Proto\count.proto" Link="Protos\count.proto" />
     <Protobuf Include="..\Proto\greet.proto" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Proto\intercept.proto" Link="Protos\intercept.proto" />
     <Protobuf Include="..\Proto\lifetime.proto" Link="Protos\lifetime.proto" />
     <Protobuf Include="..\Proto\nested.proto" Link="Protos\nested.proto" />
     <Protobuf Include="..\Proto\race.proto" Link="Protos\race.proto" />

@@ -25,6 +25,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Tests.Shared;
+using Intercept;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -141,80 +142,47 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             await MessageHelpers.AssertReadStreamMessageAsync<Empty>(pipeReader).DefaultTimeout();
             response.AssertTrailerStatus();
         }
-    }
 
-    class OrderedInterceptor : Interceptor
-    {
-        public static readonly string OrderHeaderKey = "Order";
-        private int _expectedOrder;
-
-        public OrderedInterceptor(int expectedOrder)
+        [Test]
+        public async Task InterceptorsExecutedInRegistrationOrder_ServiceAttributeInterceptors_Unary()
         {
-            _expectedOrder = expectedOrder;
+            // Arrange
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new Empty());
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "intercept.Interceptor/GetInterceptorOrderNoMethodAttributes",
+                new GrpcStreamContent(ms)).DefaultTimeout();
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = PipeReader.Create(responseStream);
+
+            // Assert
+            var orderReply = await MessageHelpers.AssertReadStreamMessageAsync<OrderReply>(pipeReader).DefaultTimeout();
+
+            Assert.AreEqual(3, orderReply.Order);
+            response.AssertTrailerStatus();
         }
 
-        public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation)
+        [Test]
+        public async Task InterceptorsExecutedInRegistrationOrder_ServiceAndMethodAttributeInterceptors_Unary()
         {
-            EnsureIncomingOrder(context);
-            var result = await continuation(request, context).DefaultTimeout();
-            EnsureOutgoingOrder(context);
+            // Arrange
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, new Empty());
 
-            return result;
-        }
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                "intercept.Interceptor/GetInterceptorOrderHasMethodAttributes",
+                new GrpcStreamContent(ms)).DefaultTimeout();
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = PipeReader.Create(responseStream);
 
-        public override async Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, ServerCallContext context, ClientStreamingServerMethod<TRequest, TResponse> continuation)
-        {
-            EnsureIncomingOrder(context);
-            var result = await continuation(requestStream, context).DefaultTimeout();
-            EnsureOutgoingOrder(context);
+            // Assert
+            var orderReply = await MessageHelpers.AssertReadStreamMessageAsync<OrderReply>(pipeReader).DefaultTimeout();
 
-            return result;
-        }
-
-        public override async Task ServerStreamingServerHandler<TRequest, TResponse>(TRequest request, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, ServerStreamingServerMethod<TRequest, TResponse> continuation)
-        {
-            EnsureIncomingOrder(context);
-            await continuation(request, responseStream, context).DefaultTimeout();
-            EnsureOutgoingOrder(context);
-        }
-
-        public override async Task DuplexStreamingServerHandler<TRequest, TResponse>(IAsyncStreamReader<TRequest> requestStream, IServerStreamWriter<TResponse> responseStream, ServerCallContext context, DuplexStreamingServerMethod<TRequest, TResponse> continuation)
-        {
-            EnsureIncomingOrder(context);
-            await continuation(requestStream, responseStream, context).DefaultTimeout();
-            EnsureOutgoingOrder(context);
-        }
-
-        private void EnsureIncomingOrder(ServerCallContext context)
-        {
-            var items = context.GetHttpContext().Items;
-
-            if (_expectedOrder == 0)
-            {
-                Assert.IsNull(items[OrderHeaderKey]);
-            }
-            else
-            {
-                Assert.AreEqual(_expectedOrder - 1, items[OrderHeaderKey]);
-            }
-
-            items[OrderHeaderKey] = _expectedOrder;
-        }
-
-        private void EnsureOutgoingOrder(ServerCallContext context)
-        {
-            var items = context.GetHttpContext().Items;
-
-            Assert.AreEqual(_expectedOrder, items[OrderHeaderKey]);
-
-            if (_expectedOrder == 0)
-            {
-                items[OrderHeaderKey] = null;
-            }
-            else
-            {
-                items[OrderHeaderKey] = _expectedOrder - 1;
-            }
+            Assert.AreEqual(5, orderReply.Order);
+            response.AssertTrailerStatus();
         }
     }
 }
