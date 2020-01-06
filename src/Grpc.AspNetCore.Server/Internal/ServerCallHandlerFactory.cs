@@ -54,6 +54,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private MethodOptions CreateMethodOptions(IList<object> metadata)
         {
+            // Metadata added in ascending order of precedence
             var allOptions = new List<GrpcServiceOptions>();
             allOptions.Add(_globalOptions);
             allOptions.Add(_serviceOptions);

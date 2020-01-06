@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Collections.Generic;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
@@ -53,6 +54,21 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
+            if (method == null)
+            {
+                throw new ArgumentNullException(nameof(method));
+            }
+
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
+            if (invoker == null)
+            {
+                throw new ArgumentNullException(nameof(invoker));
+            }
+
             var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
@@ -69,6 +85,21 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
+            if (method == null)
+            {
+                throw new ArgumentNullException(nameof(method));
+            }
+
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
+            if (invoker == null)
+            {
+                throw new ArgumentNullException(nameof(invoker));
+            }
+
             var callHandler = _serverCallHandlerFactory.CreateServerStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
@@ -85,6 +116,21 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
+            if (method == null)
+            {
+                throw new ArgumentNullException(nameof(method));
+            }
+
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
+            if (invoker == null)
+            {
+                throw new ArgumentNullException(nameof(invoker));
+            }
+
             var callHandler = _serverCallHandlerFactory.CreateClientStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
@@ -101,6 +147,21 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
+            if (method == null)
+            {
+                throw new ArgumentNullException(nameof(method));
+            }
+
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
+            if (invoker == null)
+            {
+                throw new ArgumentNullException(nameof(invoker));
+            }
+
             var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming<TRequest, TResponse>(method, metadata, invoker);
             AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
         }
@@ -121,6 +182,26 @@ namespace Grpc.AspNetCore.Server.Model
             where TRequest : class
             where TResponse : class
         {
+            if (method == null)
+            {
+                throw new ArgumentNullException(nameof(method));
+            }
+
+            if (metadata == null)
+            {
+                throw new ArgumentNullException(nameof(metadata));
+            }
+
+            if (pattern == null)
+            {
+                throw new ArgumentNullException(nameof(pattern));
+            }
+
+            if (invoker == null)
+            {
+                throw new ArgumentNullException(nameof(invoker));
+            }
+
             var methodModel = new MethodModel(method, pattern, metadata, invoker);
             Methods.Add(methodModel);
         }
