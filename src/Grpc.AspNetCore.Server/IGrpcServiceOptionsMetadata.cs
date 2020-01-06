@@ -19,7 +19,9 @@
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// Metadata for gRPC service options.
+    /// Metadata for gRPC service options. Options provided by this metadata will be used by the gRPC
+    /// endpoints that the metadata is applied to. Options specified by metadata have a higher precedence
+    /// than options configured with <c>AddGrpc</c> and <c>AddServiceOptions</c> on application startup.
     /// </summary>
     public interface IGrpcServiceOptionsMetadata
     {
