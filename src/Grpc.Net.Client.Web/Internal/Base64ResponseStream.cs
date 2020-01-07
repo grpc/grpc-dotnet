@@ -69,18 +69,18 @@ namespace Grpc.Net.Client.Web.Internal
 
             var availableReadData = underlyingReadData;
 
-            var totalRead = 0;
+            var totalReadCount = 0;
             // Minimum valid base64 length is 4. Read until we have at least that much content
             do
             {
-                var read = await _inner.ReadAsync(availableReadData, cancellationToken);
-                if (read == 0)
+                var readCount = await _inner.ReadAsync(availableReadData, cancellationToken);
+                if (readCount == 0)
                 {
                     if (_remainder > 0)
                     {
                         return ReturnData(data, copyFromMinimumBuffer, bytesWritten: 0);
                     }
-                    else if (totalRead == 0)
+                    else if (totalReadCount == 0)
                     {
                         return 0;
                     }
@@ -88,14 +88,14 @@ namespace Grpc.Net.Client.Web.Internal
                     throw new InvalidOperationException("Invalid base64 data.");
                 }
 
-                availableReadData = availableReadData.Slice(read);
-                totalRead += read;
+                availableReadData = availableReadData.Slice(readCount);
+                totalReadCount += readCount;
 
                 // The underlying stream may not have a complete 4 byte segment yet
                 // so read again until we have the right data length.
-            } while (totalRead % 4 != 0);
+            } while (totalReadCount % 4 != 0);
 
-            var base64Data = underlyingReadData.Slice(0, totalRead);
+            var base64Data = underlyingReadData.Slice(0, totalReadCount);
             int bytesWritten = DecodeBase64DataFragments(base64Data.Span);
 
             return ReturnData(data, copyFromMinimumBuffer, bytesWritten);

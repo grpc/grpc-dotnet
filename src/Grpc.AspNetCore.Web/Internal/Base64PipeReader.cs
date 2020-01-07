@@ -79,8 +79,26 @@ namespace Grpc.AspNetCore.Web.Internal
             // ReadResult.Buffer.End to advance, the position should always be a multiple
             // of 3. The only time it won't be is at the end of a message, in which case
             // rounding up is the correct thing to do to consume padding.
-            var resolvedPosition = _currentInnerBuffer.GetPosition(Base64.GetMaxEncodedToUtf8Length((int)length));
-            return resolvedPosition;
+            var endContentPosition = _currentInnerBuffer.GetPosition((length / 3) * 4);
+
+            if (length % 3 == 0)
+            {
+                return endContentPosition;
+            }
+            else
+            {
+                var endPaddingPosition = _currentInnerBuffer.GetPosition(Base64.GetMaxEncodedToUtf8Length((int)length));
+
+                // We should be at the end of the message. Round up to a multiple of 4, but double check that
+                // skipped content is base64 padding.
+                var paddingSequence = _currentInnerBuffer.Slice(endContentPosition, endPaddingPosition);
+                if (paddingSequence.PositionOf((byte)'=') == null)
+                {
+                    throw new InvalidOperationException("AdvanceTo called with an unexpected value. Must advance in multiples of 3 unless at the end of a gRPC message.");
+                }
+
+                return endPaddingPosition;
+            }
         }
 
         public override void CancelPendingRead()
@@ -217,6 +235,51 @@ namespace Grpc.AspNetCore.Web.Internal
             }
 
             return null;
+        }
+
+        private static bool ValidatePadding(in ReadOnlySequence<byte> source)
+        {
+            if (source.IsSingleSegment)
+            {
+                return ValidatePaddingCore(source.First.Span);
+            }
+            else
+            {
+                return ValidatePaddingMultiSegment(source);
+            }
+        }
+
+        private static bool ValidatePaddingMultiSegment(in ReadOnlySequence<byte> source)
+        {
+            var position = source.Start;
+            
+            while (source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+            {
+                if (!ValidatePaddingCore(memory.Span))
+                {
+                    return false;
+                }
+                
+                if (position.GetObject() == null)
+                {
+                    break;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool ValidatePaddingCore(ReadOnlySpan<byte> span)
+        {
+            for (var i = 0; i < span.Length; i++)
+            {
+                if (span[i] != '=')
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
