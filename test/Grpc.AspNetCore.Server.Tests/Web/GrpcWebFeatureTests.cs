@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var httpContext = new DefaultHttpContext();
 
             // Act
-            var feature = new GrpcWebFeature(GrpcWebMode.GrpcWeb, httpContext);
+            var feature = new GrpcWebFeature(ServerGrpcWebMode.GrpcWeb, httpContext);
 
             // Assert
             Assert.AreEqual(feature, httpContext.Features.Get<IHttpResponseBodyFeature>());
@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             // Arrange
             var httpContext = new DefaultHttpContext();
             var responseBodyFeature = httpContext.Features.Get<IHttpResponseBodyFeature>();
-            var feature = new GrpcWebFeature(GrpcWebMode.GrpcWeb, httpContext);
+            var feature = new GrpcWebFeature(ServerGrpcWebMode.GrpcWeb, httpContext);
 
             // Act
             feature.DetachFromContext(httpContext);

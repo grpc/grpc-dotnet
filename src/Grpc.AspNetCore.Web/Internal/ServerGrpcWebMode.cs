@@ -18,7 +18,7 @@
 
 namespace Grpc.AspNetCore.Web.Internal
 {
-    internal enum GrpcWebMode
+    internal enum ServerGrpcWebMode
     {
         None,
         GrpcWeb,

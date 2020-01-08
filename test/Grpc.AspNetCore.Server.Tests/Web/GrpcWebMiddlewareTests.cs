@@ -53,13 +53,13 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             Assert.IsNull(httpContext.Features.Get<IHttpResponseTrailersFeature>());
         }
 
-        [TestCase(GrpcWebProtocolConstants.GrpcWebContentType, nameof(GrpcWebMode.GrpcWeb))]
-        [TestCase(GrpcWebProtocolConstants.GrpcWebContentType + "+proto", nameof(GrpcWebMode.GrpcWeb))]
-        [TestCase(GrpcWebProtocolConstants.GrpcWebTextContentType, nameof(GrpcWebMode.GrpcWebText))]
-        [TestCase(GrpcWebProtocolConstants.GrpcWebTextContentType + "+proto", nameof(GrpcWebMode.GrpcWebText))]
-        [TestCase(GrpcWebProtocolConstants.GrpcContentType, nameof(GrpcWebMode.None))]
-        [TestCase("application/json", nameof(GrpcWebMode.None))]
-        [TestCase("", nameof(GrpcWebMode.None))]
+        [TestCase(GrpcWebProtocolConstants.GrpcWebContentType, nameof(ServerGrpcWebMode.GrpcWeb))]
+        [TestCase(GrpcWebProtocolConstants.GrpcWebContentType + "+proto", nameof(ServerGrpcWebMode.GrpcWeb))]
+        [TestCase(GrpcWebProtocolConstants.GrpcWebTextContentType, nameof(ServerGrpcWebMode.GrpcWebText))]
+        [TestCase(GrpcWebProtocolConstants.GrpcWebTextContentType + "+proto", nameof(ServerGrpcWebMode.GrpcWebText))]
+        [TestCase(GrpcWebProtocolConstants.GrpcContentType, nameof(ServerGrpcWebMode.None))]
+        [TestCase("application/json", nameof(ServerGrpcWebMode.None))]
+        [TestCase("", nameof(ServerGrpcWebMode.None))]
         public void GetGrpcWebMode_ContentTypes_Matched(string contentType, string expectedGrpcWebMode)
         {
             // Arrange
@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var grpcWebMode = GrpcWebMiddleware.GetGrpcWebMode(httpContext);
 
             // Assert
-            Assert.AreEqual(Enum.Parse<GrpcWebMode>(expectedGrpcWebMode), grpcWebMode);
+            Assert.AreEqual(Enum.Parse<ServerGrpcWebMode>(expectedGrpcWebMode), grpcWebMode);
         }
 
         [Test]

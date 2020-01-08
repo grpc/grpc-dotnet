@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.Web.Internal
         public Task Invoke(HttpContext httpContext)
         {
             var mode = GetGrpcWebMode(httpContext);
-            if (mode != GrpcWebMode.None)
+            if (mode != ServerGrpcWebMode.None)
             {
                 Log.DetectedGrpcWebRequest(_logger, httpContext.Request.ContentType);
 
@@ -58,7 +58,7 @@ namespace Grpc.AspNetCore.Web.Internal
             return _next(httpContext);
         }
 
-        private async Task HandleGrpcWebRequest(HttpContext httpContext, GrpcWebMode mode)
+        private async Task HandleGrpcWebRequest(HttpContext httpContext, ServerGrpcWebMode mode)
         {
             var feature = new GrpcWebFeature(mode, httpContext);
 
@@ -77,7 +77,7 @@ namespace Grpc.AspNetCore.Web.Internal
 
                 if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcContentType, httpContext.Response.ContentType))
                 {
-                    var contentType = mode == GrpcWebMode.GrpcWeb
+                    var contentType = mode == ServerGrpcWebMode.GrpcWeb
                         ? GrpcWebProtocolConstants.GrpcWebContentType
                         : GrpcWebProtocolConstants.GrpcWebTextContentType;
                     var responseContentType = ResolveContentType(contentType, httpContext.Response.ContentType);
@@ -113,21 +113,21 @@ namespace Grpc.AspNetCore.Web.Internal
             return newContentType;
         }
 
-        internal static GrpcWebMode GetGrpcWebMode(HttpContext httpContext)
+        internal static ServerGrpcWebMode GetGrpcWebMode(HttpContext httpContext)
         {
             if (HttpMethods.IsPost(httpContext.Request.Method))
             {
                 if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcWebContentType, httpContext.Request.ContentType))
                 {
-                    return GrpcWebMode.GrpcWeb;
+                    return ServerGrpcWebMode.GrpcWeb;
                 }
                 else if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcWebTextContentType, httpContext.Request.ContentType))
                 {
-                    return GrpcWebMode.GrpcWebText;
+                    return ServerGrpcWebMode.GrpcWebText;
                 }
             }
             
-            return GrpcWebMode.None;
+            return ServerGrpcWebMode.None;
         }
 
         private static class Log
