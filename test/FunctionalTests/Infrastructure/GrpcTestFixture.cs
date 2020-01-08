@@ -67,19 +67,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
-#if GrpcWebTests
-            // Run all functional tests with gRPC-Web
-            var grpcWebMode = GrpcWebMode.GrpcWebText;
-            if (messageHandler != null)
-            {
-                messageHandler.InnerHandler = new GrpcWebHandler(grpcWebMode);
-            }
-            else
-            {
-                messageHandler = new GrpcWebHandler(grpcWebMode);
-            }
-#endif
-
             HttpClient client;
             if (messageHandler != null)
             {

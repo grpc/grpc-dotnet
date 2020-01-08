@@ -317,15 +317,19 @@ namespace InteropTestsClient
                     await RunServerCompressedStreamingAsync(client);
                     break;
                 case "grpcweb_unary":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
                     await GrpcWebUnaryAsync(CreateClient<EchoService.EchoServiceClient>(channel));
                     break;
                 case "grpcweb_server_streaming":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
                     await GrpcWebServerStreamingAsync(CreateClient<EchoService.EchoServiceClient>(channel));
                     break;
                 case "grpcweb_unary_abort":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
                     await GrpcWebUnaryAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
                     break;
                 case "grpcweb_server_streaming_abort":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
                     await GrpcWebServerStreamingAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
                     break;
                 default:
