@@ -41,11 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task DuplexStream_SendLargeFileBatchedAndRecieveLargeFileBatched_Success()
         {
             // Arrange
-            var data = new byte[1024 * 1024 * 1]; // 1 MB
-            for (var i = 0; i < data.Length; i++)
-            {
-                data[i] = (byte)i; // Will loop around back to zero
-            }
+            var data = CreateTestData(1024 * 1024 * 1); // 1 MB
             var client = new StreamService.StreamServiceClient(Channel);
 
             // Act
@@ -87,7 +83,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             // Arrange
             var total = 1024 * 1024 * 64; // 64 MB
-            var data = new byte[1024 * 64]; // 64 KB
+            var data = CreateTestData(1024 * 64); // 64 KB
             var client = new StreamService.StreamServiceClient(Channel);
             var dataMessage = new DataMessage
             {
@@ -204,12 +200,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 await call.RequestStream.WriteAsync(new UnimplementeDataMessage
                 {
-                    Data = ByteString.CopyFrom(new byte[1024 * 64])
+                    Data = ByteString.CopyFrom(CreateTestData(1024 * 64))
                 }).DefaultTimeout();
 
                 await call.RequestStream.WriteAsync(new UnimplementeDataMessage
                 {
-                    Data = ByteString.CopyFrom(new byte[1024 * 64])
+                    Data = ByteString.CopyFrom(CreateTestData(1024 * 64))
                 }).DefaultTimeout();
             });
 
@@ -272,7 +268,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task DuplexStreaming_SimultaniousSendAndReceive_Success(int total, int batchSize)
         {
             // Arrange
-            var data = new byte[batchSize];
+            var data = CreateTestData(batchSize);
 
             var client = new StreamService.StreamServiceClient(Channel);
 
@@ -328,7 +324,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             const int total = 1024 * 1024 * 1;
             const int batchSize = 1024 * 64;
 
-            var data = new byte[batchSize];
+            var data = CreateTestData(batchSize);
 
             var client = new StreamService.StreamServiceClient(Channel);
 
@@ -378,7 +374,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             });
 
             // Arrange
-            var data = new byte[1024 * 64]; // 64 KB
+            var data = CreateTestData(1024 * 64); // 64 KB
 
             var httpClient = Fixture.CreateClient();
             httpClient.Timeout = TimeSpan.FromSeconds(0.5);
@@ -450,6 +446,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             Assert.IsFalse(await call1.ResponseStream.MoveNext().DefaultTimeout());
             Assert.IsFalse(await call2.ResponseStream.MoveNext().DefaultTimeout());
+        }
+
+        private static byte[] CreateTestData(int size)
+        {
+            var data = new byte[size];
+            for (var i = 0; i < data.Length; i++)
+            {
+                data[i] = (byte)i; // Will loop around back to zero
+            }
+            return data;
         }
     }
 }

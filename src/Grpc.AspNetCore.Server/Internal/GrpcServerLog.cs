@@ -90,6 +90,9 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Action<ILogger, Exception?> _abortingResponse =
             LoggerMessage.Define(LogLevel.Debug, new EventId(22, "AbortingResponse"), "IHttpResetFeature is not available so unable to cleanly reset response stream. Aborting response stream.");
 
+        private static readonly Action<ILogger, Exception?> _unhandledCorsPreflightRequest =
+           LoggerMessage.Define(LogLevel.Information, new EventId(23, "UnhandledCorsPreflightRequest"), "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
+
         public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
         {
             _deadlineExceeded(logger, timeout, null);
@@ -198,6 +201,11 @@ namespace Grpc.AspNetCore.Server.Internal
         public static void AbortingResponse(ILogger logger)
         {
             _abortingResponse(logger, null);
+        }
+
+        public static void UnhandledCorsPreflightRequest(ILogger logger)
+        {
+            _unhandledCorsPreflightRequest(logger, null);
         }
     }
 }

@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Protobuf Include="Proto\greet.proto" GrpcServices="Both" />
+    <Protobuf Include="Proto\echo.proto" GrpcServices="Both" />
 
     <Compile Include="..\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
@@ -28,6 +29,7 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj" />

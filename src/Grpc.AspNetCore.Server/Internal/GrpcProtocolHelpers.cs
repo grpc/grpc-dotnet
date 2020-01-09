@@ -23,6 +23,7 @@ using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
@@ -73,39 +74,6 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
-        public static bool IsGrpcContentType(string contentType)
-        {
-            if (contentType == null)
-            {
-                return false;
-            }
-
-            if (!contentType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            if (contentType.Length == GrpcProtocolConstants.GrpcContentType.Length)
-            {
-                // Exact match
-                return true;
-            }
-
-            // Support variations on the content-type (e.g. +proto, +json)
-            char nextChar = contentType[GrpcProtocolConstants.GrpcContentType.Length];
-            if (nextChar == ';')
-            {
-                return true;
-            }
-            if (nextChar == '+')
-            {
-                // Accept any message format. Marshaller could be set to support third-party formats
-                return true;
-            }
-
-            return false;
-        }
-
         public static bool IsInvalidContentType(HttpContext httpContext, [NotNullWhen(true)]out string? error)
         {
             if (httpContext.Request.ContentType == null)
@@ -113,7 +81,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 error = "Content-Type is missing from the request.";
                 return true;
             }
-            else if (!IsGrpcContentType(httpContext.Request.ContentType))
+            else if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, httpContext.Request.ContentType))
             {
                 error = $"Content-Type '{httpContext.Request.ContentType}' is not supported.";
                 return true;

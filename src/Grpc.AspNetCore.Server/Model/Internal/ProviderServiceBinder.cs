@@ -87,7 +87,11 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             metadata.AddRange(typeof(TService).GetCustomAttributes(inherit: true));
             // Add method metadata last so it has a higher priority
             metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
-            metadata.Add(new HttpMethodMetadata(new[] { "POST" }));
+
+            // Accepting CORS preflight means gRPC will allow requests with OPTIONS + preflight headers.
+            // If CORS middleware hasn't been configured then the request will reach gRPC handler.
+            // gRPC will return 405 response and log that CORS has not been configured.
+            metadata.Add(new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true));
 
             return (invoker, metadata);
         }

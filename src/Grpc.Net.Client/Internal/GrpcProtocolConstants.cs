@@ -51,8 +51,6 @@ namespace Grpc.Net.Client.Internal
 
         internal static readonly string DefaultMessageAcceptEncodingValue;
 
-        internal static readonly Version ProtocolVersion = new Version(2, 0);
-
         internal static readonly string UserAgentHeader;
         internal static readonly string UserAgentHeaderValue;
         internal static readonly string TEHeader;

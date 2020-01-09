@@ -20,10 +20,12 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Grpc.Net.Client.Web;
 using Grpc.Testing;
 
 namespace BenchmarkClient.Worker
@@ -31,14 +33,16 @@ namespace BenchmarkClient.Worker
     public class GrpcRawUnaryWorker : IWorker
     {
         private readonly bool _useClientCertificate;
+        private readonly GrpcWebMode? _useGrpcWeb;
         private readonly DateTime? _deadline;
         private HttpClient? _client;
 
-        public GrpcRawUnaryWorker(int id, string target, bool useClientCertificate, DateTime? deadline = null)
+        public GrpcRawUnaryWorker(int id, string target, bool useClientCertificate, GrpcWebMode? useGrpcWeb, DateTime? deadline = null)
         {
             Id = id;
             Target = target;
             _useClientCertificate = useClientCertificate;
+            _useGrpcWeb = useGrpcWeb;
             _deadline = deadline;
         }
 
@@ -74,10 +78,14 @@ namespace BenchmarkClient.Worker
                 request.Headers.Add("grpc-timeout", "1S");
             }
 
-            var response = await _client!.SendAsync(request);
+            var response = await _client!.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
-            await response.Content.ReadAsByteArrayAsync();
+            var stream = await response.Content.ReadAsStreamAsync();
+            while (await stream.ReadAsync(data) > 0)
+            {
+
+            }
 
             var grpcStatus = response.TrailingHeaders.GetValues("grpc-status").SingleOrDefault();
             if (grpcStatus != "0")
@@ -91,7 +99,13 @@ namespace BenchmarkClient.Worker
             var handler = new HttpClientHandler();
             handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
-            _client = new HttpClient(handler);
+            HttpMessageHandler httpMessageHandler = handler;
+            if (_useGrpcWeb != null)
+            {
+                httpMessageHandler = new GrpcWebHandler(_useGrpcWeb.Value, HttpVersion.Version11, httpMessageHandler);
+            }
+
+            _client = new HttpClient(httpMessageHandler);
             return Task.CompletedTask;
         }
 

@@ -104,7 +104,7 @@ namespace Grpc.Tests.Shared
             return message;
         }
 
-        public static void WriteMessage<T>(Stream stream, T message, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage
+        public static void WriteMessage<T>(Stream stream, T message, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null, Func<PipeWriter, PipeWriter>? pipeWriterWrapper = null) where T : class, IMessage
         {
             compressionProviders = compressionProviders ?? new List<ICompressionProvider>
             {
@@ -112,6 +112,11 @@ namespace Grpc.Tests.Shared
             };
 
             var pipeWriter = PipeWriter.Create(stream);
+
+            if (pipeWriterWrapper != null)
+            {
+                pipeWriter = pipeWriterWrapper(pipeWriter);
+            }
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageAcceptEncodingHeader] = compressionEncoding;

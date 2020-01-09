@@ -503,7 +503,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
+            var response = await Fixture.Client.SendAsync(httpRequest, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);

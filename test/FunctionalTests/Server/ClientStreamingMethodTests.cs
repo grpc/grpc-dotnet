@@ -216,6 +216,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     for (int i = 0; i < 10; i++)
                     {
                         await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                        await s.FlushAsync().DefaultTimeout();
                     }
                 });
 

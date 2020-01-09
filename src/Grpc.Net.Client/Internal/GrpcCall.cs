@@ -25,6 +25,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal
@@ -250,7 +251,7 @@ namespace Grpc.Net.Client.Internal
 
             // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
             // Check that the response wasn't downgraded to HTTP/1.1.
-            if (httpResponse.Version < GrpcProtocolConstants.ProtocolVersion)
+            if (httpResponse.Version < HttpVersion.Version20)
             {
                 return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
             }
@@ -267,7 +268,7 @@ namespace Grpc.Net.Client.Internal
             }
 
             var grpcEncoding = httpResponse.Content.Headers.ContentType;
-            if (!GrpcProtocolHelpers.IsGrpcContentType(grpcEncoding))
+            if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, grpcEncoding?.MediaType))
             {
                 return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
             }
@@ -703,7 +704,7 @@ namespace Grpc.Net.Client.Internal
         private HttpRequestMessage CreateHttpRequestMessage()
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
-            message.Version = GrpcProtocolConstants.ProtocolVersion;
+            message.Version = HttpVersion.Version20;
 
             // Set raw headers on request using name/values. Typed headers allocate additional objects.
             var headers = message.Headers;

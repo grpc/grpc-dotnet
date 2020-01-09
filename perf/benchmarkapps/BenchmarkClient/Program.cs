@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkClient.ChannelFactory;
 using BenchmarkClient.Worker;
+using Grpc.Net.Client.Web;
 
 namespace BenchmarkClient
 {
@@ -32,9 +33,10 @@ namespace BenchmarkClient
         private const int DurationSeconds = 5;
         private const bool UseTls = false;
         private const bool UseClientCertificate = false;
+        private static readonly GrpcWebMode? UseGrpcWeb = null;
         // The host name is tied to some certificates
         private const string Target = "localhost:5000";
-        private readonly static bool StopOnError = false;
+        private static readonly bool StopOnError = false;
 
         static async Task Main(string[] args)
         {
@@ -42,10 +44,10 @@ namespace BenchmarkClient
 
             var benchmarkResults = new List<BenchmarkResult>();
 
-            var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseTls, UseClientCertificate);
+            var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseTls, UseClientCertificate, UseGrpcWeb);
             var grpcCoreChannelFactory = new GrpcCoreChannelFactory(Target);
 
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseTls)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseTls, UseGrpcWeb)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-UnaryWorker", id => new GrpcUnaryWorker(id, grpcNetClientChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcNetClientChannelFactory)));
             benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcNetClientChannelFactory)));
@@ -75,6 +77,13 @@ namespace BenchmarkClient
             Log($"Setting up benchmark '{name}'");
 
             await CreateWorkers(workers, workerFactory, workerRequests);
+            foreach (var worker in workers)
+            {
+                // Warm up
+                runTasks.Add(Task.Run(() => worker.CallAsync()));
+            }
+            await Task.WhenAll(runTasks);
+            runTasks.Clear();
 
             Log($"Starting benchmark '{name}'");
 

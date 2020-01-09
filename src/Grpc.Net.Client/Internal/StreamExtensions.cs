@@ -49,6 +49,36 @@ namespace Grpc.Net.Client
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
+        private static async Task<(uint length, bool compressed)?> ReadHeaderAsync(Stream responseStream, Memory<byte> header, CancellationToken cancellationToken)
+        {
+            int read;
+            var received = 0;
+            while ((read = await responseStream.ReadAsync(header.Slice(received, header.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                received += read;
+
+                if (received == header.Length)
+                {
+                    break;
+                }
+            }
+
+            if (received < header.Length)
+            {
+                if (received == 0)
+                {
+                    return null;
+                }
+
+                throw new InvalidDataException("Unexpected end of content while reading the message header.");
+            }
+
+            var compressed = ReadCompressedFlag(header.Span[0]);
+            var length = BinaryPrimitives.ReadUInt32BigEndian(header.Span.Slice(1));
+
+            return (length, compressed);
+        }
+
         public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
@@ -66,36 +96,21 @@ namespace Grpc.Net.Client
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Read the header first
-                // - 4 bytes for the content length
                 // - 1 byte flag for compression
+                // - 4 bytes for the content length
                 var header = new byte[HeaderSize];
 
-                int read;
-                var received = 0;
-                while ((read = await responseStream.ReadAsync(header.AsMemory(received, header.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
-                {
-                    received += read;
+                var headerDetails = await ReadHeaderAsync(responseStream, header, cancellationToken).ConfigureAwait(false);
 
-                    if (received == header.Length)
-                    {
-                        break;
-                    }
+                if (headerDetails == null)
+                {
+                    GrpcCallLog.NoMessageReturned(logger);
+                    return default;
                 }
 
-                if (received < header.Length)
-                {
-                    if (received == 0)
-                    {
-                        GrpcCallLog.NoMessageReturned(logger);
-                        return default;
-                    }
+                var length = headerDetails.Value.length;
+                var compressed = headerDetails.Value.compressed;
 
-                    throw new InvalidDataException("Unexpected end of content while reading the message header.");
-                }
-
-                var compressed = ReadCompressedFlag(header[0]);
-
-                var length = BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(1));
                 if (length > int.MaxValue)
                 {
                     throw new InvalidDataException("Message too large.");
@@ -106,26 +121,7 @@ namespace Grpc.Net.Client
                     throw new RpcException(ReceivedMessageExceedsLimitStatus);
                 }
 
-                // Read message content until content length is reached
-                byte[] messageData;
-                if (length > 0)
-                {
-                    received = 0;
-                    messageData = new byte[length];
-                    while ((read = await responseStream.ReadAsync(messageData.AsMemory(received, messageData.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
-                    {
-                        received += read;
-
-                        if (received == messageData.Length)
-                        {
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    messageData = Array.Empty<byte>();
-                }
+                var messageData = await ReadMessageContent(responseStream, length, cancellationToken).ConfigureAwait(false);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -168,7 +164,7 @@ namespace Grpc.Net.Client
                 {
                     // Check that there is no additional content in the stream for a single message
                     // There is no ReadByteAsync on stream. Reuse header array with ReadAsync, we don't need it anymore
-                    if (await responseStream.ReadAsync(header.AsMemory(0, 1)).ConfigureAwait(false) > 0)
+                    if (await responseStream.ReadAsync(header).ConfigureAwait(false) > 0)
                     {
                         throw new InvalidDataException("Unexpected data after finished reading message.");
                     }
@@ -182,6 +178,33 @@ namespace Grpc.Net.Client
                 GrpcCallLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
+        }
+
+        private static async Task<byte[]> ReadMessageContent(Stream responseStream, uint length, CancellationToken cancellationToken)
+        {
+            // Read message content until content length is reached
+            byte[] messageData;
+            if (length > 0)
+            {
+                var received = 0;
+                var read = 0;
+                messageData = new byte[length];
+                while ((read = await responseStream.ReadAsync(messageData.AsMemory(received, messageData.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    received += read;
+
+                    if (received == messageData.Length)
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                messageData = Array.Empty<byte>();
+            }
+
+            return messageData;
         }
 
         private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
