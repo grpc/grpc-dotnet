@@ -23,9 +23,9 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using Grpc.Net.Compression;
@@ -782,63 +782,6 @@ namespace Grpc.AspNetCore.Server.Tests
             public Stream CreateDecompressionStream(Stream stream)
             {
                 return _inner.CreateDecompressionStream(stream);
-            }
-        }
-
-        public class TestPipeReader : PipeReader
-        {
-            private readonly PipeReader _pipeReader;
-            private ReadOnlySequence<byte> _currentBuffer;
-
-            public long Consumed { get; set; }
-            public long Examined { get; set; }
-
-            public TestPipeReader(PipeReader pipeReader)
-            {
-                _pipeReader = pipeReader;
-            }
-
-            public override void AdvanceTo(SequencePosition consumed)
-            {
-                Consumed += _currentBuffer.Slice(0, consumed).Length;
-                Examined = Consumed;
-                _pipeReader.AdvanceTo(consumed);
-            }
-
-            public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
-            {
-                Consumed += _currentBuffer.Slice(0, consumed).Length;
-                Examined = Consumed + _currentBuffer.Slice(0, examined).Length;
-                _pipeReader.AdvanceTo(consumed, examined);
-            }
-
-            public override void CancelPendingRead()
-            {
-                _pipeReader.CancelPendingRead();
-            }
-
-            public override void Complete(Exception? exception = null)
-            {
-                _pipeReader.Complete(exception);
-            }
-
-            [Obsolete]
-            public override void OnWriterCompleted(Action<Exception, object> callback, object state)
-            {
-                _pipeReader.OnWriterCompleted(callback, state);
-            }
-
-            public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
-            {
-                var result = await _pipeReader.ReadAsync(cancellationToken);
-                _currentBuffer = result.Buffer;
-
-                return result;
-            }
-
-            public override bool TryRead(out ReadResult result)
-            {
-                return _pipeReader.TryRead(out result);
             }
         }
     }

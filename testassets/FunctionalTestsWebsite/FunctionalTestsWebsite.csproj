@@ -7,6 +7,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
     
@@ -22,6 +23,7 @@
     <Protobuf Include="..\Proto\singleton.proto" Link="Protos\singleton.proto" />
     <Protobuf Include="..\Proto\streaming.proto" Link="Protos\streaming.proto" />
     <Protobuf Include="..\Proto\unimplemented.proto" Link="Protos\unimplemented.proto" />
+    <Protobuf Include="..\Proto\echo.proto" Link="Protos\echo.proto" />
   </ItemGroup>
   
 </Project>

@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -32,15 +33,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     internal static class HttpResponseMessageExtensions
     {
-        public static void AssertIsSuccessfulGrpcRequest(this HttpResponseMessage response)
+        public static void AssertIsSuccessfulGrpcRequest(this HttpResponseMessage response, string contentType = GrpcProtocolConstants.GrpcContentType)
         {
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("application/grpc", response.Content.Headers.ContentType.MediaType);
+            Assert.AreEqual(contentType, response.Content.Headers.ContentType.MediaType);
         }
 
-        public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response) where T : class, IMessage, new()
+        public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response, string contentType = GrpcProtocolConstants.GrpcContentType) where T : class, IMessage, new()
         {
-            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertIsSuccessfulGrpcRequest(contentType);
             var data = await response.Content.ReadAsByteArrayAsync().DefaultTimeout();
             response.AssertTrailerStatus();
 
@@ -63,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 statusHeadersCollection = response.Headers;
                 if (statusString == null)
                 {
-                    Assert.Fail($"Count not get {GrpcProtocolConstants.StatusTrailer} from response.");
+                    Assert.Fail($"Could not get {GrpcProtocolConstants.StatusTrailer} from response.");
                 }
             }
 

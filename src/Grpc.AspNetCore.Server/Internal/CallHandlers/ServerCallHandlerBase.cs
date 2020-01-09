@@ -51,10 +51,22 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
-                GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+                // This might be a CORS preflight request and CORS middleware hasn't been configured
+                if (HttpMethods.IsOptions(httpContext.Request.Method))
+                {
+                    GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
 
-                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
-                return Task.CompletedTask;
+                    GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status405MethodNotAllowed, StatusCode.Internal, "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
+                    httpContext.Response.Headers[HeaderNames.Allow] = HttpMethods.Post;
+                    return Task.CompletedTask;
+                }
+                else
+                {
+                    GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+
+                    GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                    return Task.CompletedTask;
+                }
             }
             if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
                 httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)

@@ -4,6 +4,8 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
+    <!-- Uncomment line below to enable gRPC-Web on the server -->
+    <!--<DefineConstants>$(DefineConstants);GRPC_WEB</DefineConstants>-->
 
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <!-- Uncomment line below to automatically compile .proto files in the project directory -->
@@ -26,7 +28,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
 
-    <ProjectReference Include="../../../src/Grpc.AspNetCore.Server/Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />

@@ -31,35 +31,6 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class GrpcProtocolHelpers
     {
-        public static bool IsGrpcContentType(MediaTypeHeaderValue contentType)
-        {
-            if (contentType == null)
-            {
-                return false;
-            }
-
-            if (!contentType.MediaType.StartsWith(GrpcProtocolConstants.GrpcContentType, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            if (contentType.MediaType.Length == GrpcProtocolConstants.GrpcContentType.Length)
-            {
-                // Exact match
-                return true;
-            }
-
-            // Support variations on the content-type (e.g. +proto, +json)
-            var nextChar = contentType.MediaType[GrpcProtocolConstants.GrpcContentType.Length];
-            if (nextChar == '+')
-            {
-                // Accept any message format. Marshaller could be set to support third-party formats
-                return true;
-            }
-
-            return false;
-        }
-
         public static byte[] ParseBinaryHeader(string base64)
         {
             string decodable;

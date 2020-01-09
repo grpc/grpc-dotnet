@@ -375,7 +375,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         [TestCase(null, "Content-Type is missing from the request.")]
         [TestCase("application/json", "Content-Type 'application/json' is not supported.")]
         [TestCase("application/binary", "Content-Type 'application/binary' is not supported.")]
-        [TestCase("application/grpc-web", "Content-Type 'application/grpc-web' is not supported.")]
         public async Task InvalidContentType_Return415Response(string contentType, string responseMessage)
         {
             // Arrange

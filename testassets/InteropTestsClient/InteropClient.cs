@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -31,11 +32,14 @@ using Grpc.Auth;
 using Grpc.Core;
 using Grpc.Core.Logging;
 using Grpc.Core.Utils;
+using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
 using Grpc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+using Empty = Grpc.Testing.Empty;
 
 namespace InteropTestsClient
 {
@@ -84,6 +88,9 @@ namespace InteropTestsClient
 
             [Option("service_account_key_file", Required = false)]
             public string? ServiceAccountKeyFile { get; set; }
+
+            [Option("grpc_web_mode")]
+            public string? GrpcWebMode { get; set; }
         }
 
         private ServiceProvider serviceProvider;
@@ -165,7 +172,18 @@ namespace InteropTestsClient
                 httpClientHandler.ClientCertificates.Add(cert);
             }
 
-            var httpClient = new HttpClient(httpClientHandler);
+            HttpMessageHandler httpMessageHandler;
+            if (options.GrpcWebMode != null)
+            {
+                var mode = Enum.Parse<GrpcWebMode>(options.GrpcWebMode);
+                httpMessageHandler = new GrpcWebHandler(mode, new Version(1, 1), httpClientHandler);
+            }
+            else
+            {
+                httpMessageHandler = httpClientHandler;
+            }
+
+            var httpClient = new HttpClient(httpMessageHandler);
 
             var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
             {
@@ -298,9 +316,84 @@ namespace InteropTestsClient
                 case "server_compressed_streaming":
                     await RunServerCompressedStreamingAsync(client);
                     break;
+                case "grpcweb_unary":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
+                    await GrpcWebUnaryAsync(CreateClient<EchoService.EchoServiceClient>(channel));
+                    break;
+                case "grpcweb_server_streaming":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
+                    await GrpcWebServerStreamingAsync(CreateClient<EchoService.EchoServiceClient>(channel));
+                    break;
+                case "grpcweb_unary_abort":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
+                    await GrpcWebUnaryAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
+                    break;
+                case "grpcweb_server_streaming_abort":
+                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
+                    await GrpcWebServerStreamingAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
+                    break;
                 default:
                     throw new ArgumentException("Unknown test case " + options.TestCase);
             }
+        }
+
+        private async Task GrpcWebServerStreamingAbortAsync(EchoService.EchoServiceClient client)
+        {
+            var call = client.ServerStreamingEchoAbort(new ServerStreamingEchoRequest
+            {
+                Message = "test",
+                MessageCount = 5,
+                MessageInterval = Google.Protobuf.WellKnownTypes.TimeExtensions.ToDuration(TimeSpan.FromMilliseconds(100))
+            });
+
+            try
+            {
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
+                {
+                }
+                Assert.Fail();
+            }
+            catch (RpcException ex)
+            {
+                Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
+            }
+        }
+
+        private async Task GrpcWebUnaryAbortAsync(EchoService.EchoServiceClient client)
+        {
+            try
+            {
+                await client.EchoAbortAsync(new EchoRequest { Message = "test" });
+                Assert.Fail();
+            }
+            catch (RpcException ex)
+            {
+                Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
+            }
+        }
+
+        private async Task GrpcWebServerStreamingAsync(EchoService.EchoServiceClient client)
+        {
+            var call = client.ServerStreamingEcho(new ServerStreamingEchoRequest
+            {
+                Message = "test",
+                MessageCount = 5,
+                MessageInterval = Google.Protobuf.WellKnownTypes.TimeExtensions.ToDuration(TimeSpan.FromMilliseconds(100))
+            });
+
+            var messages = new List<ServerStreamingEchoResponse>();
+            await foreach (var message in call.ResponseStream.ReadAllAsync())
+            {
+                messages.Add(message);
+            }
+
+            Assert.AreEqual(5, messages.Count);
+        }
+
+        private async Task GrpcWebUnaryAsync(EchoService.EchoServiceClient client)
+        {
+            var response = await client.EchoAsync(new EchoRequest { Message = "test" });
+            Assert.AreEqual("test", response.Message);
         }
 
         public static void RunEmptyUnary(TestService.TestServiceClient client)
