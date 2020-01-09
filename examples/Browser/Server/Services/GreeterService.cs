@@ -16,10 +16,10 @@
 
 #endregion
 
-using Greet;
-using Grpc.Core;
 using System;
 using System.Threading.Tasks;
+using Greet;
+using Grpc.Core;
 
 namespace Server.Services
 {
