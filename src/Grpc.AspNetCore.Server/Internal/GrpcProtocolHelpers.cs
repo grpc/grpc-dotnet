@@ -212,17 +212,5 @@ namespace Grpc.AspNetCore.Server.Internal
                 values.Add(AuthProperty.Create(name, Encoding.UTF8.GetBytes(value)));
             }
         }
-
-        internal static bool CanWriteCompressed(WriteOptions? writeOptions)
-        {
-            if (writeOptions == null)
-            {
-                return true;
-            }
-
-            var canCompress = (writeOptions.Flags & WriteFlags.NoCompress) != WriteFlags.NoCompress;
-
-            return canCompress;
-        }
     }
 }

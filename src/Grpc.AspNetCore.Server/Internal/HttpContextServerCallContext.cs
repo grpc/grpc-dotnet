@@ -51,6 +51,7 @@ namespace Grpc.AspNetCore.Server.Internal
             RequestType = requestType;
             ResponseType = responseType;
             Logger = logger;
+            _responseMessageContext = new ResponseMessageContext(responseType, ServerCallContext);
         }
 
         internal ILogger Logger { get; }
@@ -58,15 +59,21 @@ namespace Grpc.AspNetCore.Server.Internal
         internal MethodOptions Options { get; }
         internal Type RequestType { get; }
         internal Type ResponseType { get; }
-        internal string? ResponseGrpcEncoding { get; private set; }
+        internal ResponseMessageContext _responseMessageContext { get; private set; }
 
         internal HttpContextSerializationContext SerializationContext
         {
-            get => _serializationContext ??= new HttpContextSerializationContext(this);
+            get => _serializationContext ??= new HttpContextSerializationContext(_responseMessageContext, Options,  Logger);
         }
         internal DefaultDeserializationContext DeserializationContext
         {
             get => _deserializationContext ??= new DefaultDeserializationContext();
+        }
+
+        internal ResponseMessageContext ResponseMessageContext
+        {
+            get => _responseMessageContext ??= new ResponseMessageContext(ResponseType, ServerCallContext);
+
         }
 
         internal bool HasResponseTrailers => _responseTrailers != null;
@@ -344,8 +351,8 @@ namespace Grpc.AspNetCore.Server.Internal
                         // on a per-call bassis.
                         // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
                         // individual messages will not be written with compression.
-                        ResponseGrpcEncoding = entry.Value;
-                        HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
+                        _responseMessageContext.GrpcEncoding = entry.Value;
+                        HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = _responseMessageContext.GrpcEncoding;
                     }
                     else
                     {
@@ -387,14 +394,14 @@ namespace Grpc.AspNetCore.Server.Internal
                 !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
                 IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
             {
-                ResponseGrpcEncoding = serviceDefaultCompression;
+                _responseMessageContext.GrpcEncoding = serviceDefaultCompression;
             }
             else
             {
-                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
+                _responseMessageContext.GrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
             }
 
-            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
+            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, _responseMessageContext.GrpcEncoding);
         }
 
         private Activity? GetHostActivity()
@@ -532,11 +539,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal void ValidateAcceptEncodingContainsResponseEncoding()
         {
-            Debug.Assert(ResponseGrpcEncoding != null);
+            Debug.Assert(_responseMessageContext.GrpcEncoding != null);
 
-            if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
+            if (!IsEncodingInRequestAcceptEncoding(_responseMessageContext.GrpcEncoding))
             {
-                GrpcServerLog.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
+                GrpcServerLog.EncodingNotInAcceptEncoding(Logger, _responseMessageContext.GrpcEncoding);
             }
         }
     }

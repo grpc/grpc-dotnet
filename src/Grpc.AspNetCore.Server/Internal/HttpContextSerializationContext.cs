@@ -25,6 +25,8 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared.Server;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -32,19 +34,23 @@ namespace Grpc.AspNetCore.Server.Internal
     {
         private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
 
-        private readonly HttpContextServerCallContext _serverCallContext;
+        private readonly ResponseMessageContext _responseMessageContext;
         private InternalState _state;
         private int? _payloadLength;
         private ICompressionProvider? _compressionProvider;
         private ArrayBufferWriter<byte>? _bufferWriter;
+        private readonly MethodOptions _options;
+        private readonly ILogger _logger;
 
         public PipeWriter ResponseBufferWriter { get; set; } = default!;
 
         private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
 
-        public HttpContextSerializationContext(HttpContextServerCallContext serverCallContext)
+        public HttpContextSerializationContext(ResponseMessageContext responseMessageContext, MethodOptions options, ILogger logger)
         {
-            _serverCallContext = serverCallContext;
+            _responseMessageContext = responseMessageContext;
+            _options = options;
+            _logger = logger;
         }
 
         private enum InternalState : byte
@@ -71,16 +77,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private ICompressionProvider? ResolveCompressionProvider()
         {
             Debug.Assert(
-                _serverCallContext.ResponseGrpcEncoding != null,
+                _responseMessageContext.GrpcEncoding != null,
                 "Response encoding should have been calculated at this point.");
 
-            var canCompress =
-                GrpcProtocolHelpers.CanWriteCompressed(_serverCallContext.WriteOptions) &&
-                !string.Equals(_serverCallContext.ResponseGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
-
-            if (canCompress)
+            if (_responseMessageContext.CanCompress())
             {
-                if (_serverCallContext.Options.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding, out var compressionProvider))
+                if (_options.CompressionProviders.TryGetValue(_responseMessageContext.GrpcEncoding, out var compressionProvider))
                 {
                     return compressionProvider;
                 }
@@ -109,7 +111,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 case InternalState.Initialized:
                     _state = InternalState.CompleteArray;
 
-                    GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, payload.Length);
+                    GrpcServerLog.SerializedMessage(_logger, _responseMessageContext.ResponseType, payload.Length);
                     WriteMessage(payload);
                     break;
                 default:
@@ -168,7 +170,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void EnsureMessageSizeAllowed(int payloadLength)
         {
-            if (payloadLength > _serverCallContext.Options.MaxSendMessageSize)
+            if (payloadLength > _options.MaxSendMessageSize)
             {
                 throw new RpcException(SendingMessageExceedsLimitStatus);
             }
@@ -191,12 +193,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         var data = _bufferWriter.WrittenSpan;
 
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, typeof(object), data.Length);
+                        GrpcServerLog.SerializedMessage(_logger, typeof(object), data.Length);
                         WriteMessage(data);
                     }
                     else
                     {
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.GetValueOrDefault());
+                        GrpcServerLog.SerializedMessage(_logger, _responseMessageContext.ResponseType, _payloadLength.GetValueOrDefault());
                     }
                     break;
                 default:
@@ -222,13 +224,13 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
 
-            GrpcServerLog.CompressingMessage(_serverCallContext.Logger, _compressionProvider.EncodingName);
+            GrpcServerLog.CompressingMessage(_logger, _compressionProvider.EncodingName);
 
             var output = new MemoryStream();
 
             // Compression stream must be disposed before its content is read.
             // GZipStream writes final Adler32 at the end of the stream on dispose.
-            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _serverCallContext.Options.ResponseCompressionLevel))
+            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _options.ResponseCompressionLevel))
             {
                 compressionStream.Write(messageData);
             }
