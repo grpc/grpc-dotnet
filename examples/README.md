@@ -146,3 +146,14 @@ The vigor example shows how to integrate [ASP.NET Core health checks](https://do
 * Hosting gRPC Health Checking Protocol service
 * Integrate [ASP.NET Core health checks](https://docs.microsoft.com/aspnet/core/host-and-deploy/health-checks) with gRPC health checks
 * Calling service with `Grpc.HealthCheck` client
+
+## [Browser](./Browser)
+
+The browser example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with ASP.NET Core to call a gRPC service from a browser. This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
+
+The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
+
+##### Scenarios:
+
+* Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
+* Call gRPC services with JavaScript from a browser
