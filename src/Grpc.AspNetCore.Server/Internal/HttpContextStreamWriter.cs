@@ -26,9 +26,9 @@ namespace Grpc.AspNetCore.Server.Internal
         where TResponse : class
     {
         private readonly HttpContextServerCallContext _context;
-        private readonly Action<TResponse, SerializationContext> _serializer;
+        private readonly Marshaller<TResponse> _serializer;
 
-        public HttpContextStreamWriter(HttpContextServerCallContext context, Action<TResponse, SerializationContext> serializer)
+        public HttpContextStreamWriter(HttpContextServerCallContext context, Marshaller<TResponse> serializer)
         {
             _context = context;
             _serializer = serializer;

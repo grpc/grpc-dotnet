@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
 
             var streamReader = new HttpContextStreamReader<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
-            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
+            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller);
 
             return _invoker.Invoke(httpContext, serverCallContext, streamReader, streamWriter);
         }

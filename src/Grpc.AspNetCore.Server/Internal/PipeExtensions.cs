@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static async Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, bool canFlush)
+        public static async Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Marshaller<TResponse> marshaller, bool canFlush)
             where TResponse : class
         {
             var logger = serverCallContext.Logger;
@@ -65,10 +65,17 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 GrpcServerLog.SendingMessage(logger);
 
-                var serializationContext = serverCallContext.SerializationContext;
-                serializationContext.Reset();
-                serializationContext.ResponseBufferWriter = pipeWriter;
-                serializer(response, serializationContext);
+                if (marshaller is BufferMarshaller<TResponse> bufferMarshaller)
+                {
+                    bufferMarshaller.WriteToBuffer(response, pipeWriter);
+                }
+                else
+                {
+                    var serializationContext = serverCallContext.SerializationContext;
+                    serializationContext.Reset();
+                    serializationContext.ResponseBufferWriter = pipeWriter;
+                    marshaller.ContextualSerializer(response, serializationContext);
+                }
 
                 // Flush messages unless WriteOptions.Flags has BufferHint set
                 var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
@@ -157,9 +164,9 @@ namespace Grpc.AspNetCore.Server.Internal
         /// </summary>
         /// <param name="input">The request pipe reader.</param>
         /// <param name="serverCallContext">The request context.</param>
-        /// <param name="deserializer">Message deserializer.</param>
+        /// <param name="marshaller"></param>
         /// <returns>Complete message data.</returns>
-        public static async ValueTask<T> ReadSingleMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer)
+        public static async ValueTask<T> ReadSingleMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Marshaller<T> marshaller)
             where T : class
         {
             var logger = serverCallContext.Logger;
@@ -194,9 +201,16 @@ namespace Grpc.AspNetCore.Server.Internal
                                 // Finished and the complete message has arrived
                                 GrpcServerLog.DeserializingMessage(logger, (int)data.GetValueOrDefault().Length, typeof(T));
 
-                                serverCallContext.DeserializationContext.SetPayload(data);
-                                request = deserializer(serverCallContext.DeserializationContext);
-                                serverCallContext.DeserializationContext.SetPayload(null);
+                                if (marshaller is BufferMarshaller<T> bufferMarshaller)
+                                {
+                                    request = bufferMarshaller.ReadFromBuffer(data.GetValueOrDefault());
+                                }
+                                else
+                                {
+                                    serverCallContext.DeserializationContext.SetPayload(data);
+                                    request = marshaller.ContextualDeserializer(serverCallContext.DeserializationContext);
+                                    serverCallContext.DeserializationContext.SetPayload(null);
+                                }
 
                                 GrpcServerLog.ReceivedMessage(logger);
 

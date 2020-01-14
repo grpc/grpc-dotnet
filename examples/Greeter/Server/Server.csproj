@@ -5,9 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Proto\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" />
+    <Protobuf Include="..\Proto\greet.proto" GrpcServices="Server" Link="Protos\greet.proto" Protobuf_Compile="false" />
 
-    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
+    <PackageReference Include="Google.Protobuf" Version="3.11.0-rc1" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.27.0-dev202001132133" />
   </ItemGroup>
 
 </Project>

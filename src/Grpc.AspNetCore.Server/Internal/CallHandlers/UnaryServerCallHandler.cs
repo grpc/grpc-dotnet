@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
         protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
-            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
+            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller);
 
             var response = await _invoker.Invoke(httpContext, serverCallContext, request);
 
@@ -55,7 +55,8 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
 
             var responseBodyWriter = httpContext.Response.BodyWriter;
-            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
+
+            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller, canFlush: false);
         }
     }
 }
