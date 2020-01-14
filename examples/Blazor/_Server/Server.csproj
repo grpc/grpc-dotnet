@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Proto\echo.proto" GrpcServices="Client" Link="Protos\echo.proto" />
+    <Protobuf Include="..\Proto\weather.proto" GrpcServices="Client" Link="Protos\weather.proto" />
 
     <PackageReference Include="Google.Protobuf" Version="3.11.2" />
     <PackageReference Include="Grpc.Tools" Version="2.25.0">

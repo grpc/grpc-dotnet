@@ -1,8 +1,9 @@
 ﻿@page "/fetchdata"
-@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@using Weather
+@using Google.Protobuf.WellKnownTypes
 @using Grpc.Net.Client
 @using Grpc.Net.Client.Web
-@using Grpc.Gateway.Testing
 
 <h1>Weather forecast</h1>
 
@@ -37,33 +38,42 @@ else
     </table>
 }
 
+<img src="/grpc-logo.png" alt="gRPC logo" />
+
 @code {
-    private WeatherForecast[] forecasts;
+    private WeatherForecastModel[]? forecasts;
 
     protected override async Task OnInitializedAsync()
     {
+        var client = new WeatherService.WeatherServiceClient(CreateChannel());
+
+        var response = await client.GetWeatherAsync(new Empty());
+
+        forecasts = response.Results.Select(m => new WeatherForecastModel
+        {
+            Date = m.Date.ToDateTime(),
+            TemperatureC = m.TemperatureC,
+            Summary = m.Summary
+        }).ToArray();
+    }
+
+    private GrpcChannel CreateChannel()
+    {
+        // Replace reflection with HttpClientHandler when https://github.com/dotnet/blazor/pull/1960 is published
         var wasmHttpMessageHandlerType = System.Reflection.Assembly.Load("WebAssembly.Net.Http").GetType("WebAssembly.Net.Http.HttpClient.WasmHttpMessageHandler");
         var innerHandler = (HttpMessageHandler)Activator.CreateInstance(wasmHttpMessageHandlerType);
 
-        var channel = GrpcChannel.ForAddress("http://localhost:50051", new GrpcChannelOptions
+        return GrpcChannel.ForAddress(NavigationManager.BaseUri, new GrpcChannelOptions
         {
             HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, innerHandler))
         });
-        var client = new EchoService.EchoServiceClient(channel);
-
-        var response = await client.EchoAsync(new EchoRequest { Message = "test" });
-
-        forecasts = await Http.GetJsonAsync<WeatherForecast[]>("sample-data/weather.json");
     }
 
-    public class WeatherForecast
+    public class WeatherForecastModel
     {
         public DateTime Date { get; set; }
-
         public int TemperatureC { get; set; }
-
-        public string Summary { get; set; }
-
+        public string? Summary { get; set; }
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
     }
 }
