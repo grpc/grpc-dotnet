@@ -42,7 +42,7 @@ namespace Grpc.Net.Client.Internal
         private readonly TimeSpan? _timeout;
         private readonly GrpcMethodInfo _grpcMethodInfo;
 
-        private Task<HttpResponseMessage>? _responseTask;
+        private Task<HttpResponseMessage>? _httpResponseTask;
         private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
         private Metadata? _trailers;
@@ -224,11 +224,11 @@ namespace Grpc.Net.Client.Internal
 
         private async Task<Metadata> GetResponseHeadersCoreAsync()
         {
-            Debug.Assert(_responseTask != null);
+            Debug.Assert(_httpResponseTask != null);
 
             try
             {
-                var httpResponse = await _responseTask.ConfigureAwait(false);
+                var httpResponse = await _httpResponseTask.ConfigureAwait(false);
                 return GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
             }
             catch (Exception ex)
@@ -436,8 +436,8 @@ namespace Grpc.Net.Client.Internal
                 {
                     try
                     {
-                        _responseTask = Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token);
-                        HttpResponse = await _responseTask.ConfigureAwait(false);
+                        _httpResponseTask = Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token);
+                        HttpResponse = await _httpResponseTask.ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
