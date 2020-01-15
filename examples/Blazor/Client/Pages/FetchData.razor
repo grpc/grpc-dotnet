@@ -1,9 +1,6 @@
 ﻿@page "/fetchdata"
-@inject NavigationManager NavigationManager
-@using Weather
+@inject WeatherForecasts.WeatherForecastsClient WeatherForecastsClient
 @using Google.Protobuf.WellKnownTypes
-@using Grpc.Net.Client
-@using Grpc.Net.Client.Web
 
 <h1>Weather forecast</h1>
 
@@ -28,7 +25,7 @@ else
             @foreach (var forecast in forecasts)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.DateTime.ToShortDateString()</td>
                     <td>@forecast.TemperatureC</td>
                     <td>@forecast.TemperatureF</td>
                     <td>@forecast.Summary</td>
@@ -41,39 +38,10 @@ else
 <img src="/grpc-logo.png" alt="gRPC logo" />
 
 @code {
-    private WeatherForecastModel[]? forecasts;
+    private IList<WeatherForecast>? forecasts;
 
     protected override async Task OnInitializedAsync()
     {
-        var client = new WeatherService.WeatherServiceClient(CreateChannel());
-
-        var response = await client.GetWeatherAsync(new Empty());
-
-        forecasts = response.Results.Select(m => new WeatherForecastModel
-        {
-            Date = m.Date.ToDateTime(),
-            TemperatureC = m.TemperatureC,
-            Summary = m.Summary
-        }).ToArray();
-    }
-
-    private GrpcChannel CreateChannel()
-    {
-        // Replace reflection with HttpClientHandler when https://github.com/dotnet/blazor/pull/1960 is published
-        var wasmHttpMessageHandlerType = System.Reflection.Assembly.Load("WebAssembly.Net.Http").GetType("WebAssembly.Net.Http.HttpClient.WasmHttpMessageHandler");
-        var innerHandler = (HttpMessageHandler)Activator.CreateInstance(wasmHttpMessageHandlerType);
-
-        return GrpcChannel.ForAddress(NavigationManager.BaseUri, new GrpcChannelOptions
-        {
-            HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, innerHandler))
-        });
-    }
-
-    public class WeatherForecastModel
-    {
-        public DateTime Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        forecasts = (await WeatherForecastsClient.GetWeatherForecastsAsync(new Empty())).Forecasts;
     }
 }

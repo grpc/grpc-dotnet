@@ -25,14 +25,14 @@ using Weather;
 
 namespace Server.Services
 {
-    public class WeatherService : Weather.WeatherService.WeatherServiceBase
+    public class WeatherService : WeatherForecasts.WeatherForecastsBase
     {
         private static readonly string[] Summaries = new[]
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
-        public override Task<GetWeatherResponse> GetWeather(Empty request, ServerCallContext context)
+        public override Task<GetWeatherForecastsResponse> GetWeatherForecasts(Empty request, ServerCallContext context)
         {
             var rng = new Random();
             var results = Enumerable.Range(1, 5).Select(index => new WeatherForecast
@@ -42,7 +42,7 @@ namespace Server.Services
                 Summary = Summaries[rng.Next(Summaries.Length)]
             }).ToArray();
 
-            var response = new GetWeatherResponse();
+            var response = new GetWeatherForecastsResponse();
             response.Results.AddRange(results);
 
             return Task.FromResult(response);

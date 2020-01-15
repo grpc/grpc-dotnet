@@ -1,3 +1,5 @@
+﻿#region Copyright notice and license
+
 // Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+#endregion
 
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
+using System;
+using Google.Protobuf.WellKnownTypes;
 
-package weather;
+namespace Weather
+{
+    // Properties for the underlying data are generated from the .proto file
+    // This partial class just adds some extra convenience properties
+    internal partial class WeatherForecast
+    {
+        public DateTime DateTime
+        {
+            get => Date.ToDateTime();
+            set { Date = Timestamp.FromDateTime(value.ToUniversalTime()); }
+        }
 
-service WeatherForecasts {
-  rpc GetWeatherForecasts (google.protobuf.Empty) returns (GetWeatherForecastsResponse);
-}
-
-message GetWeatherForecastsResponse {
-  repeated WeatherForecast forecasts = 1;
-}
-
-message WeatherForecast {
-  google.protobuf.Timestamp date = 1;
-  int32 temperatureC = 2;
-  string summary = 3;
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
 }
