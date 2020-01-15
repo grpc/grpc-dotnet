@@ -43,7 +43,7 @@ namespace Server.Services
             }).ToArray();
 
             var response = new GetWeatherForecastsResponse();
-            response.Results.AddRange(results);
+            response.Forecasts.AddRange(results);
 
             return Task.FromResult(response);
         }
