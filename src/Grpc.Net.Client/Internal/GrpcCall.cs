@@ -39,10 +39,11 @@ namespace Grpc.Net.Client.Internal
 
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
-        private readonly TaskCompletionSource<Metadata> _metadataTcs;
         private readonly TimeSpan? _timeout;
         private readonly GrpcMethodInfo _grpcMethodInfo;
 
+        private Task<HttpResponseMessage>? _httpResponseTask;
+        private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
         private Metadata? _trailers;
         private CancellationTokenRegistration? _ctsRegistration;
@@ -68,7 +69,6 @@ namespace Grpc.Net.Client.Internal
             _callCts = new CancellationTokenSource();
             // Run the callTcs continuation immediately to keep the same context. Required for Activity.
             _callTcs = new TaskCompletionSource<Status>();
-            _metadataTcs = new TaskCompletionSource<Metadata>(TaskCreationOptions.RunContinuationsAsynchronously);
             Method = method;
             _grpcMethodInfo = grpcMethodInfo;
             Options = options;
@@ -213,7 +213,29 @@ namespace Grpc.Net.Client.Internal
 
         public Task<Metadata> GetResponseHeadersAsync()
         {
-            return _metadataTcs.Task;
+            if (_responseHeadersTask == null)
+            {
+                // Allocate metadata and task only when requested
+                _responseHeadersTask = GetResponseHeadersCoreAsync();
+            }
+
+            return _responseHeadersTask;
+        }
+
+        private async Task<Metadata> GetResponseHeadersCoreAsync()
+        {
+            Debug.Assert(_httpResponseTask != null);
+
+            try
+            {
+                var httpResponse = await _httpResponseTask.ConfigureAwait(false);
+                return GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
+            }
+            catch (Exception ex)
+            {
+                ResolveException(ex, out _, out var resolvedException);
+                throw resolvedException;
+            }
         }
 
         public Status GetStatus()
@@ -376,15 +398,6 @@ namespace Grpc.Net.Client.Internal
                 ClientStreamWriter?.WriteStreamTcs.TrySetCanceled();
                 ClientStreamWriter?.CompleteTcs.TrySetCanceled();
                 ClientStreamReader?.HttpResponseTcs.TrySetCanceled();
-
-                if (!Channel.ThrowOperationCanceledOnCancellation)
-                {
-                    _metadataTcs.TrySetException(CreateRpcException(status));
-                }
-                else
-                {
-                    _metadataTcs.TrySetCanceled(_callCts.Token);
-                }
             }
         }
 
@@ -423,15 +436,14 @@ namespace Grpc.Net.Client.Internal
                 {
                     try
                     {
-                        HttpResponse = await Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token).ConfigureAwait(false);
+                        _httpResponseTask = Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token);
+                        HttpResponse = await _httpResponseTask.ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         GrpcCallLog.ErrorStartingCall(Logger, ex);
                         throw;
                     }
-
-                    BuildMetadata(HttpResponse);
 
                     status = ValidateHeaders(HttpResponse);
 
@@ -508,29 +520,33 @@ namespace Grpc.Net.Client.Internal
                 catch (Exception ex)
                 {
                     Exception resolvedException;
-                    if (ex is OperationCanceledException)
-                    {
-                        status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
-                        resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : CreateRpcException(status.Value);
-                    }
-                    else if (ex is RpcException rpcException)
-                    {
-                        status = rpcException.Status;
-                        resolvedException = CreateRpcException(status.Value);
-                    }
-                    else
-                    {
-                        status = new Status(StatusCode.Internal, "Error starting gRPC call: " + ex.Message);
-                        resolvedException = CreateRpcException(status.Value);
-                    }
+                    ResolveException(ex, out status, out resolvedException);
 
-                    _metadataTcs.TrySetException(resolvedException);
                     _responseTcs?.TrySetException(resolvedException);
 
                     Cleanup(status!.Value);
                 }
 
                 FinishCall(request, diagnosticSourceEnabled, activity, status);
+            }
+        }
+
+        private void ResolveException(Exception ex, out Status? status, out Exception resolvedException)
+        {
+            if (ex is OperationCanceledException)
+            {
+                status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+                resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : CreateRpcException(status.Value);
+            }
+            else if (ex is RpcException rpcException)
+            {
+                status = rpcException.Status;
+                resolvedException = CreateRpcException(status.Value);
+            }
+            else
+            {
+                status = new Status(StatusCode.Internal, "Error starting gRPC call: " + ex.Message);
+                resolvedException = CreateRpcException(status.Value);
             }
         }
 
@@ -565,18 +581,6 @@ namespace Grpc.Net.Client.Internal
             else
             {
                 return CreateRpcException(status);
-            }
-        }
-
-        private void BuildMetadata(HttpResponseMessage httpResponse)
-        {
-            try
-            {
-                _metadataTcs.TrySetResult(GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers));
-            }
-            catch (Exception ex)
-            {
-                _metadataTcs.TrySetException(ex);
             }
         }
 
