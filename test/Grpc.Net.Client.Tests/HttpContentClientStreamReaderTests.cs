@@ -196,7 +196,9 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("Can't read the next message because the previous read is still in progress.", ex.Message);
 
             Assert.AreEqual(1, testSink.Writes.Count);
-            Assert.AreEqual(ex, testSink.Writes.ElementAt(0).Exception);
+            var write = testSink.Writes.ElementAt(0);
+            Assert.AreEqual("ReadMessageError", write.EventId.Name);
+            Assert.AreEqual(ex, write.Exception);
         }
 
         private static GrpcCall<HelloRequest, HelloReply> CreateGrpcCall(GrpcChannel channel)
