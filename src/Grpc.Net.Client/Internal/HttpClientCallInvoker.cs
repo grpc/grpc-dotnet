@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 
@@ -46,10 +47,11 @@ namespace Grpc.Net.Client.Internal
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
                 responseAsync: call.GetResponseAsync(),
-                responseHeadersAsync: call.GetResponseHeadersAsync(),
-                getStatusFunc: call.GetStatus,
-                getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
+                getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
+                disposeAction: Callbacks<TRequest, TResponse>.Dispose,
+                call);
         }
 
         /// <summary>
@@ -65,10 +67,11 @@ namespace Grpc.Net.Client.Internal
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
                 responseStream: call.ClientStreamReader,
-                responseHeadersAsync: call.GetResponseHeadersAsync(),
-                getStatusFunc: call.GetStatus,
-                getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
+                getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
+                disposeAction: Callbacks<TRequest, TResponse>.Dispose,
+                call);
         }
 
         /// <summary>
@@ -82,10 +85,11 @@ namespace Grpc.Net.Client.Internal
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.ClientStreamReader,
-                responseHeadersAsync: call.GetResponseHeadersAsync(),
-                getStatusFunc: call.GetStatus,
-                getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
+                getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
+                disposeAction: Callbacks<TRequest, TResponse>.Dispose,
+                call);
         }
 
         /// <summary>
@@ -98,10 +102,11 @@ namespace Grpc.Net.Client.Internal
 
             return new AsyncUnaryCall<TResponse>(
                 responseAsync: call.GetResponseAsync(),
-                responseHeadersAsync: call.GetResponseHeadersAsync(),
-                getStatusFunc: call.GetStatus,
-                getTrailersFunc: call.GetTrailers,
-                disposeAction: call.Dispose);
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
+                getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
+                disposeAction: Callbacks<TRequest, TResponse>.Dispose,
+                call);
         }
 
         /// <summary>
@@ -128,6 +133,17 @@ namespace Grpc.Net.Client.Internal
             var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, Channel);
 
             return call;
+        }
+
+        // Store static callbacks so delegates are allocated once
+        private static class Callbacks<TRequest, TResponse>
+            where TRequest : class
+            where TResponse : class
+        {
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((GrpcCall<TRequest, TResponse>)state).GetResponseHeadersAsync();
+            internal static readonly Func<object, Status> GetStatus = state => ((GrpcCall<TRequest, TResponse>)state).GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((GrpcCall<TRequest, TResponse>)state).GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((GrpcCall<TRequest, TResponse>)state).Dispose();
         }
     }
 }
