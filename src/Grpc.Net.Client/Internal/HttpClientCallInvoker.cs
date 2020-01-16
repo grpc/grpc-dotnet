@@ -47,7 +47,7 @@ namespace Grpc.Net.Client.Internal
             return new AsyncClientStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
                 responseAsync: call.GetResponseAsync(),
-                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeaders,
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: Callbacks<TRequest, TResponse>.Dispose,
@@ -67,7 +67,7 @@ namespace Grpc.Net.Client.Internal
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
                 requestStream: call.ClientStreamWriter,
                 responseStream: call.ClientStreamReader,
-                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeaders,
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: Callbacks<TRequest, TResponse>.Dispose,
@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Internal
 
             return new AsyncServerStreamingCall<TResponse>(
                 responseStream: call.ClientStreamReader,
-                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeaders,
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: Callbacks<TRequest, TResponse>.Dispose,
@@ -102,7 +102,7 @@ namespace Grpc.Net.Client.Internal
 
             return new AsyncUnaryCall<TResponse>(
                 responseAsync: call.GetResponseAsync(),
-                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeaders,
+                responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
                 disposeAction: Callbacks<TRequest, TResponse>.Dispose,
@@ -140,7 +140,7 @@ namespace Grpc.Net.Client.Internal
             where TRequest : class
             where TResponse : class
         {
-            internal static readonly Func<object, Task<Metadata>> GetResponseHeaders = state => ((GrpcCall<TRequest, TResponse>)state).GetResponseHeadersAsync();
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((GrpcCall<TRequest, TResponse>)state).GetResponseHeadersAsync();
             internal static readonly Func<object, Status> GetStatus = state => ((GrpcCall<TRequest, TResponse>)state).GetStatus();
             internal static readonly Func<object, Metadata> GetTrailers = state => ((GrpcCall<TRequest, TResponse>)state).GetTrailers();
             internal static readonly Action<object> Dispose = state => ((GrpcCall<TRequest, TResponse>)state).Dispose();
