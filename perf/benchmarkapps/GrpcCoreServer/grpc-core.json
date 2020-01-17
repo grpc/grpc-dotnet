@@ -8,7 +8,9 @@
       "Repository": "https://github.com/grpc/grpc-dotnet.git",
       "BranchOrCommit": "master",
       "Project": "perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj"
-    }
+    },
+    
+    "ReadyStateText": "Application started."
   },
 
   "GrpcUnary-GrpcCore": {
