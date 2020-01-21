@@ -27,6 +27,12 @@ example_solutions=( $( ls examples/**/*.sln ) )
 
 for example_solution in "${example_solutions[@]}"
 do
+    # dotnet build uses msbuild, and attempts to speed consecutive builds by reusing processes.
+    # This can become a problem when multiple versions of Grpc.Tools are used between builds.
+    # The different versions will conflict. Shutdown build processes between builds to avoid conflicts.
+    # Will be fixed in msbuild 16.5 - https://github.com/microsoft/msbuild/issues/1754
+    dotnet build-server shutdown
+
     dotnet build $example_solution -c Release
 done
 
