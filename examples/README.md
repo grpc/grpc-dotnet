@@ -160,9 +160,10 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 
 ## [Blazor](./Blazor)
 
-The blazor example shows how to use [gRPC-Web](https://grpc.io/blog/state-of-grpc-web/) with Blazor WebAssembly to call a gRPC service from a browser.
+The blazor example shows how to call a gRPC service from a Blazor WebAssembly app in a browser. Because Blazor WebAssembly is hosted in the browser it has the same HTTP restrictions as JavaScript. We can get around those restrictions by using gRPC-Web.
 
 ##### Scenarios:
 
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
+* Configure .NET gRPC client in Blazor to use gRPC-Web
 * Call gRPC services with Blazor WebAssembly from a browser
