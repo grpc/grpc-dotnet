@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Grpc.AspNetCore.Server.Internal;
@@ -75,6 +76,29 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var allProperties = authContext.Properties.ToList();
             Assert.AreEqual(1, allProperties.Count);
+        }
+
+        [TestCase("1H", 36000000000, true)]
+        [TestCase("1M", 600000000, true)]
+        [TestCase("1S", 10000000, true)]
+        [TestCase("1m", 10000, true)]
+        [TestCase("1u", 10, true)]
+        [TestCase("100n", 1, true)]
+        [TestCase("0S", 0, true)]
+        [TestCase("", 0, false)]
+        [TestCase("5", 0, false)]
+        [TestCase("M", 0, false)]
+        public void TryDecodeTimeout_WithVariousUnits_ShouldMatchExpected(string timeout, long expectedTicks, bool expectedSuccesfullyDecoded)
+        {
+            // Arrange
+            var expectedTimespan = new TimeSpan(expectedTicks);
+
+            // Act
+            var successfullyDecoded = GrpcProtocolHelpers.TryDecodeTimeout(timeout, out var timeSpan);
+
+            // Assert
+            Assert.AreEqual(expectedSuccesfullyDecoded, successfullyDecoded);
+            Assert.AreEqual(expectedTimespan, timeSpan);
         }
     }
 }
