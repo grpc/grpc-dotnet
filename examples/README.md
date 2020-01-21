@@ -160,7 +160,7 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 
 ## [Blazor](./Blazor)
 
-The blazor example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with Blazor WebAssembly to call a gRPC service from a browser.
+The blazor example shows how to use [gRPC-Web](https://grpc.io/blog/state-of-grpc-web/) with Blazor WebAssembly to call a gRPC service from a browser.
 
 ##### Scenarios:
 
