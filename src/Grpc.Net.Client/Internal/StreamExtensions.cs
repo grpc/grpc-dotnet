@@ -173,8 +173,9 @@ namespace Grpc.Net.Client
                 GrpcCallLog.ReceivedMessage(logger);
                 return message;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
+                // Don't write error when user cancels read
                 GrpcCallLog.ErrorReadingMessage(logger, ex);
                 throw;
             }
