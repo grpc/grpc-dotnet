@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -24,9 +25,9 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
-using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -48,7 +49,10 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -60,6 +64,8 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            Assert.AreEqual(0, testSink.Writes.Count);
         }
 
         [Test]
@@ -76,7 +82,10 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledOnCancellation = true });
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory, throwOperationCanceledOnCancellation: true);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -86,6 +95,8 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.IsTrue(moveNextTask.IsCompleted);
             await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask).DefaultTimeout();
+
+            Assert.AreEqual(0, testSink.Writes.Count);
         }
 
         [Test]
@@ -101,7 +112,10 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -116,6 +130,8 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            Assert.AreEqual(0, testSink.Writes.Count);
         }
 
         [Test]
@@ -131,7 +147,10 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient, ThrowOperationCanceledOnCancellation = true });
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory, throwOperationCanceledOnCancellation: true);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -144,6 +163,8 @@ namespace Grpc.Net.Client.Tests
             cts.Cancel();
 
             await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => moveNextTask).DefaultTimeout();
+
+            Assert.AreEqual(0, testSink.Writes.Count);
         }
 
         [Test]
@@ -157,7 +178,10 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
             });
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions { HttpClient = httpClient });
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -170,6 +194,11 @@ namespace Grpc.Net.Client.Tests
 
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => moveNextTask2).DefaultTimeout();
             Assert.AreEqual("Can't read the next message because the previous read is still in progress.", ex.Message);
+
+            Assert.AreEqual(1, testSink.Writes.Count);
+            var write = testSink.Writes.ElementAt(0);
+            Assert.AreEqual("ReadMessageError", write.EventId.Name);
+            Assert.AreEqual(ex, write.Exception);
         }
 
         private static GrpcCall<HelloRequest, HelloReply> CreateGrpcCall(GrpcChannel channel)
@@ -181,6 +210,18 @@ namespace Grpc.Net.Client.Tests
                 new GrpcMethodInfo(new GrpcCallScope(ClientTestHelpers.ServiceMethod.Type, uri), uri),
                 new CallOptions(),
                 channel);
+        }
+
+        private static GrpcChannel CreateChannel(HttpClient httpClient, ILoggerFactory? loggerFactory = null, bool? throwOperationCanceledOnCancellation = null)
+        {
+            return GrpcChannel.ForAddress(
+                httpClient.BaseAddress,
+                new GrpcChannelOptions
+                {
+                    HttpClient = httpClient,
+                    LoggerFactory = loggerFactory,
+                    ThrowOperationCanceledOnCancellation = throwOperationCanceledOnCancellation ?? false
+                });
         }
     }
 }
