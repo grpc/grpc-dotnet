@@ -149,7 +149,7 @@ The vigor example shows how to integrate [ASP.NET Core health checks](https://do
 
 ## [Browser](./Browser)
 
-The browser example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with ASP.NET Core to call a gRPC service from a browser. This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
+The browser example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with ASP.NET Core to call a gRPC service from a browser. Browser apps have limited HTTP/2 features and need to use gRPC-Web instead. This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
 
 The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
 
@@ -160,9 +160,10 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 
 ## [Blazor](./Blazor)
 
-The blazor example shows how to use [gRPC-Web](https://grpc.io/blog/state-of-grpc-web/) with Blazor WebAssembly to call a gRPC service from a browser.
+The blazor example shows how to call a gRPC service from a Blazor WebAssembly app. Because Blazor WebAssembly is hosted in the browser it has limited HTTP/2 features and needs to use gRPC-Web instead.
 
 ##### Scenarios:
 
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
+* Configure .NET gRPC client in Blazor to use gRPC-Web
 * Call gRPC services with Blazor WebAssembly from a browser
