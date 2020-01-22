@@ -73,7 +73,7 @@ namespace GrpcCoreServer
             };
             server.Start();
 
-            Console.WriteLine("Started!");
+            Console.WriteLine("Application started.");
             Console.WriteLine("Press any key to stop the server...");
             Console.ReadKey();
 
