@@ -30,14 +30,24 @@ namespace Server.Services
         {
             var count = 0;
 
-            // Increment count with 1 second delay until canceled by the client
+            // Attempt to run until canceled by the client
+            // Blazor WA is unable to cancel a call that has started (BUG!)
             while (!context.CancellationToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1));
+
+                // Won't be received by Blazor WA until call ends (BUG!)
                 await responseStream.WriteAsync(new CounterResponse
                 {
                     Count = ++count
                 });
+
+                // Break after counting for a few seconds
+                // This will end the call, at which point Blazor WA will get all the message content (BUG!)
+                if (count > 5)
+                {
+                    break;
+                }
             }
         }
     }
