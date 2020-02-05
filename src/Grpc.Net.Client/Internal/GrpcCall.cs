@@ -374,8 +374,6 @@ namespace Grpc.Net.Client.Internal
 
         private void CancelCall(Status status)
         {
-            Console.WriteLine("Canceling call: " + status);
-
             // Set overall call status first. Status can be used in throw RpcException from cancellation.
             // If response has successfully finished then the status will come from the trailers.
             // If it didn't finish then complete with a status.

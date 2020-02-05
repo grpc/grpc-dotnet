@@ -33,10 +33,17 @@ namespace Client
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("app");
 
+            // Blazor WA currently has an issue related to server streaming.
+            // Setting WasmHttpMessageHandler.StreamingEnabled with reflection
+            // to true allows server streaming to work - https://github.com/mono/mono/issues/18718
+            var wasmHttpMessageHandlerType = System.Reflection.Assembly.Load("WebAssembly.Net.Http").GetType("WebAssembly.Net.Http.HttpClient.WasmHttpMessageHandler");
+            var streamingProperty = wasmHttpMessageHandlerType.GetProperty("StreamingEnabled", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            streamingProperty.SetValue(null, true, null);
+
             builder.Services.AddSingleton(services =>
             {
                 // Create a gRPC-Web channel pointing to the backend server
-                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWeb, new HttpClientHandler()));
+                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler()));
 
                 var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions { HttpClient = httpClient });
 
