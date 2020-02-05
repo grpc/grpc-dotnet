@@ -15,6 +15,7 @@
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
     <Protobuf Include="..\Proto\weather.proto" GrpcServices="Client" Link="Protos\weather.proto" Access="Internal" />
+    <Protobuf Include="..\Proto\count.proto" GrpcServices="Client" Link="Protos\count.proto" Access="Internal" />
 
     <ProjectReference Include="..\..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
     <!-- Changes in Grpc.Net.Client are not on NuGet yet. Reference latest source from project -->

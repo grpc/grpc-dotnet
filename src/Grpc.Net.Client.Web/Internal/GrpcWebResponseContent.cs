@@ -48,6 +48,8 @@ namespace Grpc.Net.Client.Web.Internal
 
         protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
         {
+            Console.WriteLine("SerializeToStreamAsync!");
+
             // This method will only be called by tests when response content is
             // accessed via ReadAsBytesAsync. The gRPC client will always
             // call ReadAsStreamAsync, which will call CreateContentReadStreamAsync.
@@ -66,7 +68,12 @@ namespace Grpc.Net.Client.Web.Internal
 
         protected override async Task<Stream> CreateContentReadStreamAsync()
         {
+            Console.WriteLine("CreateContentReadStreamAsync!");
+            Console.WriteLine(_inner.GetType().FullName);
+
             var stream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+
+            Console.WriteLine("Have stream!");
 
             if (_mode == GrpcWebMode.GrpcWebText)
             {
@@ -84,6 +91,8 @@ namespace Grpc.Net.Client.Web.Internal
 
         protected override void Dispose(bool disposing)
         {
+            Console.WriteLine("Dispose!");
+
             if (disposing)
             {
                 // This is important. Disposing original response content will cancel the gRPC call.

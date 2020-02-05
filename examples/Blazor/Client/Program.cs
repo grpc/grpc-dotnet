@@ -40,8 +40,7 @@ namespace Client
 
                 var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions { HttpClient = httpClient });
 
-                // Now we can instantiate gRPC clients for this channel
-                return new WeatherForecasts.WeatherForecastsClient(channel);
+                return channel;
             });
 
             await builder.Build().RunAsync();

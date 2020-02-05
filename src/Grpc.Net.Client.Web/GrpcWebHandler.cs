@@ -100,6 +100,8 @@ namespace Grpc.Net.Client.Web
         /// <returns>The task object representing the asynchronous operation.</returns>
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            Console.WriteLine("SendAsync!");
+
             if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcContentType, request.Content?.Headers.ContentType?.MediaType))
             {
                 return SendAsyncCore(request, cancellationToken);

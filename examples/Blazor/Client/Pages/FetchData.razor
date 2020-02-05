@@ -1,5 +1,5 @@
 ﻿@page "/fetchdata"
-@inject WeatherForecasts.WeatherForecastsClient WeatherForecastsClient
+@inject GrpcChannel Channel
 @using Google.Protobuf.WellKnownTypes
 
 <h1>Weather forecast</h1>
@@ -35,6 +35,9 @@ else
     </table>
 }
 
+<p>
+    Data fetched from gRPC service.
+</p>
 <img src="/grpc-logo.png" alt="gRPC logo" />
 
 @code {
@@ -42,6 +45,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = (await WeatherForecastsClient.GetWeatherForecastsAsync(new Empty())).Forecasts;
+        var client = new WeatherForecasts.WeatherForecastsClient(Channel);
+        forecasts = (await client.GetWeatherForecastsAsync(new Empty())).Forecasts;
     }
 }

@@ -61,6 +61,7 @@ namespace Server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<WeatherService>().EnableGrpcWeb();
+                endpoints.MapGrpcService<CounterService>().EnableGrpcWeb();
                 endpoints.MapFallbackToClientSideBlazor<Client.Program>("index.html");
             });
         }

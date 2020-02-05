@@ -1,4 +1,7 @@
 ﻿@page "/counter"
+@inject GrpcChannel Channel
+@using Google.Protobuf.WellKnownTypes
+@using Grpc.Core
 
 <h1>Counter</h1>
 
@@ -9,8 +12,21 @@
 @code {
     private int currentCount = 0;
 
-    private void IncrementCount()
+    private async Task IncrementCount()
     {
-        currentCount++;
+        var client = new Count.Counter.CounterClient(Channel);
+        var call = client.StartCounter(new Empty());
+
+        try
+        {
+            await foreach (var message in call.ResponseStream.ReadAllAsync())
+            {
+                currentCount = message.Count;
+            }
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+        {
+            // Ignore exception from cancellation
+        }
     }
 }
