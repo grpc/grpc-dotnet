@@ -28,7 +28,6 @@
         var client = new Count.Counter.CounterClient(Channel);
         var call = client.StartCounter(new Empty(), cancellationToken: cts.Token);
 
-
         try
         {
             await foreach (var message in call.ResponseStream.ReadAllAsync())
