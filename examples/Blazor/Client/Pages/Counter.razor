@@ -1,16 +1,50 @@
 ﻿@page "/counter"
+@inject GrpcChannel Channel
+@using Google.Protobuf.WellKnownTypes
+@using Grpc.Core
 
 <h1>Counter</h1>
 
 <p>Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="IncrementCount" disabled="@(cts != null)">Start</button>
+<button class="btn btn-primary" @onclick="StopCount" disabled="@(cts == null)">Stop</button>
+
+<div>
+    <img src="/grpc-logo.png" alt="gRPC logo" />
+    <p>
+        Incrementing count streamed from a gRPC service.
+    </p>
+</div>
 
 @code {
     private int currentCount = 0;
+    private CancellationTokenSource? cts;
 
-    private void IncrementCount()
+    private async Task IncrementCount()
     {
-        currentCount++;
+        cts = new CancellationTokenSource();
+
+        var client = new Count.Counter.CounterClient(Channel);
+        var call = client.StartCounter(new Empty(), cancellationToken: cts.Token);
+
+        try
+        {
+            await foreach (var message in call.ResponseStream.ReadAllAsync())
+            {
+                currentCount = message.Count;
+                StateHasChanged();
+            }
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+        {
+            // Ignore exception from cancellation
+        }
+    }
+
+    private void StopCount()
+    {
+        cts?.Cancel();
+        cts = null;
     }
 }

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <Protobuf Include="..\Proto\weather.proto" GrpcServices="Server" Link="Protos\weather.proto" />
+    <Protobuf Include="..\Proto\count.proto" GrpcServices="Server" Link="Protos\count.proto" />
 
     <PackageReference Include="Microsoft.AspNetCore.Blazor.Server" Version="$(MicrosoftAspNetCoreBlazorPackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />

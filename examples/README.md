@@ -162,6 +162,11 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 
 The blazor example shows how to call a gRPC service from a Blazor WebAssembly app. Because Blazor WebAssembly is hosted in the browser it has limited HTTP/2 features and needs to use gRPC-Web instead.
 
+**Known Blazor WebAssembly issues:**
+
+* Server streaming requires setting a variable via reflection on startup - https://github.com/mono/mono/issues/18718#issuecomment-582667900
+* Server streaming call cancellation isn't canceled on the server - https://github.com/mono/mono/issues/18717
+
 ##### Scenarios:
 
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
