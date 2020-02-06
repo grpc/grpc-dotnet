@@ -13,13 +13,11 @@
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.Net.Client.Web" Version="$(GrpcDotNetPackageVersion)" />
 
     <Protobuf Include="..\Proto\weather.proto" GrpcServices="Client" Link="Protos\weather.proto" Access="Internal" />
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Client" Link="Protos\count.proto" Access="Internal" />
-
-    <ProjectReference Include="..\..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
-    <!-- Changes in Grpc.Net.Client are not on NuGet yet. Reference latest source from project -->
-    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
   </ItemGroup>
 
 </Project>
