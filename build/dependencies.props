@@ -6,7 +6,7 @@
     <GrpcDotNetPackageVersion>2.25.0</GrpcDotNetPackageVersion>  <!-- Only use for example projects -->
     <GrpcPackageVersion>2.27.0-pre1</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
-    <MicrosoftAspNetCoreBlazorPackageVersion>3.1.0-preview4.19579.2</MicrosoftAspNetCoreBlazorPackageVersion>
+    <MicrosoftAspNetCoreBlazorPackageVersion>3.2.0-preview1.20073.1</MicrosoftAspNetCoreBlazorPackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
     <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>2.9.4</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
