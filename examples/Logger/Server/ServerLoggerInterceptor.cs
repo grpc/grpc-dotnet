@@ -38,7 +38,7 @@ namespace Client
             ServerCallContext context,
             UnaryServerMethod<TRequest, TResponse> continuation)
         {
-            LogCall<TRequest, TResponse>(MethodType.DuplexStreaming, context);
+            LogCall<TRequest, TResponse>(MethodType.Unary, context);
             return continuation(request, context);
         }
 
@@ -47,7 +47,7 @@ namespace Client
             ServerCallContext context,
             ClientStreamingServerMethod<TRequest, TResponse> continuation)
         {
-            LogCall<TRequest, TResponse>(MethodType.DuplexStreaming, context);
+            LogCall<TRequest, TResponse>(MethodType.ClientStreaming, context);
             return base.ClientStreamingServerHandler(requestStream, context, continuation);
         }
 
@@ -57,7 +57,7 @@ namespace Client
             ServerCallContext context,
             ServerStreamingServerMethod<TRequest, TResponse> continuation)
         {
-            LogCall<TRequest, TResponse>(MethodType.DuplexStreaming, context);
+            LogCall<TRequest, TResponse>(MethodType.ServerStreaming, context);
             return base.ServerStreamingServerHandler(request, responseStream, context, continuation);
         }
 
