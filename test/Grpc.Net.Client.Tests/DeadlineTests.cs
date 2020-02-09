@@ -85,6 +85,35 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_StartPastDeadline_RequestMessageContainsMinDeadlineHeader()
+        {
+            // Arrange
+            HttpRequestMessage? httpRequestMessage = null;
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                httpRequestMessage = request;
+
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                systemClock: testSystemClock);
+
+            // Act
+            var responseTask = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(-1)), new HelloRequest()).ResponseAsync;
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+
+            Assert.IsNotNull(httpRequestMessage);
+            Assert.AreEqual("1n", httpRequestMessage!.Headers.GetValues(GrpcProtocolConstants.TimeoutHeader).Single());
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_SetVeryLargeDeadline_MaximumDeadlineTimeoutSent()
         {
             // Arrange

@@ -756,8 +756,12 @@ namespace Grpc.Net.Client.Internal
         {
             // Timer has a maximum allowed due time.
             // The called method will rechedule the timer if the deadline time has not passed.
-            var milliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
-            return Math.Min(milliseconds, Channel.MaxTimerDueTime);
+            var dueTimeMilliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
+            dueTimeMilliseconds = Math.Min(dueTimeMilliseconds, Channel.MaxTimerDueTime);
+            // Timer can't have a negative due time
+            dueTimeMilliseconds = Math.Max(dueTimeMilliseconds, 0);
+
+            return dueTimeMilliseconds;
         }
 
         private TimeSpan? GetTimeout()
