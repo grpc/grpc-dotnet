@@ -93,6 +93,12 @@ namespace Grpc.Net.Client.Internal
         private static readonly Action<ILogger, string, Exception?> _decompressingMessage =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(23, "DecompressingMessage"), "Decompressing message with '{MessageEncoding}' encoding.");
 
+        private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimeoutTooLong =
+            LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(24, "DeadlineTimeoutTooLong"), "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.");
+
+        private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
+            LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
+
         public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
         {
             _startingCall(logger, methodType, uri, null);
@@ -206,6 +212,16 @@ namespace Grpc.Net.Client.Internal
         public static void DecompressingMessage(ILogger logger, string messageEncoding)
         {
             _decompressingMessage(logger, messageEncoding, null);
+        }
+
+        public static void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout)
+        {
+            _deadlineTimeoutTooLong(logger, timeout, null);
+        }
+
+        public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
+        {
+            _deadlineTimerRescheduled(logger, remaining, null);
         }
     }
 }

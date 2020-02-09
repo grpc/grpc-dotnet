@@ -39,7 +39,7 @@ namespace Grpc.Net.Client.Internal
 
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
-        private readonly TimeSpan? _timeout;
+        private readonly DateTime _deadline;
         private readonly GrpcMethodInfo _grpcMethodInfo;
 
         private Task<HttpResponseMessage>? _httpResponseTask;
@@ -74,12 +74,7 @@ namespace Grpc.Net.Client.Internal
             Options = options;
             Channel = channel;
             Logger = channel.LoggerFactory.CreateLogger(LoggerName);
-
-            if (options.Deadline != null && options.Deadline != DateTime.MaxValue)
-            {
-                var timeout = options.Deadline.GetValueOrDefault() - Channel.Clock.UtcNow;
-                _timeout = (timeout > TimeSpan.Zero) ? timeout : TimeSpan.Zero;
-            }
+            _deadline = options.Deadline ?? DateTime.MaxValue;
         }
 
         private void ValidateDeadline(DateTime? deadline)
@@ -101,34 +96,38 @@ namespace Grpc.Net.Client.Internal
         {
             _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var message = CreateHttpRequestMessage();
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
             SetMessageContent(request, message);
-            _ = RunCall(message);
+            _ = RunCall(message, timeout);
         }
 
         public void StartClientStreaming()
         {
             _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var message = CreateHttpRequestMessage();
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
             CreateWriter(message);
-            _ = RunCall(message);
+            _ = RunCall(message, timeout);
         }
 
         public void StartServerStreaming(TRequest request)
         {
-            var message = CreateHttpRequestMessage();
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
             SetMessageContent(request, message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
-            _ = RunCall(message);
+            _ = RunCall(message, timeout);
         }
 
         public void StartDuplexStreaming()
         {
-            var message = CreateHttpRequestMessage();
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
             CreateWriter(message);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
-            _ = RunCall(message);
+            _ = RunCall(message, timeout);
         }
 
         public void Dispose()
@@ -419,11 +418,11 @@ namespace Grpc.Net.Client.Internal
             return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
-        private async ValueTask RunCall(HttpRequestMessage request)
+        private async ValueTask RunCall(HttpRequestMessage request, TimeSpan? timeout)
         {
             using (StartScope())
             {
-                var (diagnosticSourceEnabled, activity) = InitializeCall(request);
+                var (diagnosticSourceEnabled, activity) = InitializeCall(request, timeout);
 
                 if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
                 {
@@ -584,16 +583,18 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request)
+        private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request, TimeSpan? timeout)
         {
-            if (_timeout != null && !Channel.DisableClientDeadlineTimer)
+            if (timeout != null && !Channel.DisableClientDeadlineTimer)
             {
-                GrpcCallLog.StartingDeadlineTimeout(Logger, _timeout.Value);
+                GrpcCallLog.StartingDeadlineTimeout(Logger, timeout.Value);
+
+                var dueTime = GetTimerDueTime(timeout.Value);
 
                 // Deadline timer will cancel the call CTS
                 // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
                 // the call CTS before they are created and leave them in a non-canceled state
-                _deadlineTimer = new Timer(DeadlineExceeded, null, _timeout.Value, Timeout.InfiniteTimeSpan);
+                _deadlineTimer = new Timer(DeadlineExceeded, null, dueTime, Timeout.Infinite);
             }
 
             GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri);
@@ -705,7 +706,7 @@ namespace Grpc.Net.Client.Internal
             message.Content = new PushStreamContent<TRequest, TResponse>(ClientStreamWriter, GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
 
-        private HttpRequestMessage CreateHttpRequestMessage()
+        private HttpRequestMessage CreateHttpRequestMessage(TimeSpan? timeout)
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
             message.Version = HttpVersion.Version20;
@@ -743,12 +744,43 @@ namespace Grpc.Net.Client.Internal
                 }
             }
 
-            if (_timeout != null)
+            if (timeout != null)
             {
-                headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(Convert.ToInt64(_timeout.Value.TotalMilliseconds)));
+                headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
             }
 
             return message;
+        }
+
+        private long GetTimerDueTime(TimeSpan timeout)
+        {
+            // Timer has a maximum allowed due time.
+            // The called method will rechedule the timer if the deadline time has not passed.
+            var milliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
+            return Math.Min(milliseconds, Channel.MaxTimerDueTime);
+        }
+
+        private TimeSpan? GetTimeout()
+        {
+            if (_deadline == DateTime.MaxValue)
+            {
+                return null;
+            }
+
+            var timeout = _deadline - Channel.Clock.UtcNow;
+
+            // Maxmimum deadline of 99999999s is consistent with Grpc.Core
+            // https://github.com/grpc/grpc/blob/907a1313a87723774bf59d04ed432602428245c3/src/core/lib/transport/timeout_encoding.h#L32-L34
+            const long MaxDeadlineTicks = 99999999 * TimeSpan.TicksPerSecond;
+
+            if (timeout.Ticks > MaxDeadlineTicks)
+            {
+                GrpcCallLog.DeadlineTimeoutTooLong(Logger, timeout);
+
+                timeout = TimeSpan.FromTicks(MaxDeadlineTicks);
+            }
+
+            return timeout;
         }
 
         private void DeadlineExceeded(object state)
@@ -757,10 +789,22 @@ namespace Grpc.Net.Client.Internal
             // the response has not been finished or canceled
             if (!_callCts.IsCancellationRequested && !ResponseFinished)
             {
-                GrpcCallLog.DeadlineExceeded(Logger);
-                GrpcEventSource.Log.CallDeadlineExceeded();
+                var remaining = _deadline - Channel.Clock.UtcNow;
+                if (remaining <= TimeSpan.Zero)
+                {
+                    GrpcCallLog.DeadlineExceeded(Logger);
+                    GrpcEventSource.Log.CallDeadlineExceeded();
 
-                CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
+                    CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
+                }
+                else
+                {
+                    // Deadline has not been reached because timer maximum due time was smaller than deadline.
+                    // Reschedule DeadlineExceeded again until deadline has been exceeded.
+                    GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
+
+                    _deadlineTimer!.Change(GetTimerDueTime(remaining), Timeout.Infinite);
+                }
             }
         }
 

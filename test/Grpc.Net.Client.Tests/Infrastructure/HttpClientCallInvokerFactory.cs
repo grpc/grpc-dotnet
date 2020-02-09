@@ -30,7 +30,8 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             ILoggerFactory? loggerFactory = null,
             ISystemClock? systemClock = null,
             Action<GrpcChannelOptions>? configure = null,
-            bool? disableClientDeadlineTimer = null)
+            bool? disableClientDeadlineTimer = null,
+            long? maxTimerPeriod = null)
         {
             var channelOptions = new GrpcChannelOptions
             {
@@ -44,6 +45,10 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             if (disableClientDeadlineTimer != null)
             {
                 channel.DisableClientDeadlineTimer = disableClientDeadlineTimer.Value;
+            }
+            if (maxTimerPeriod != null)
+            {
+                channel.MaxTimerDueTime = maxTimerPeriod.Value;
             }
 
             return new HttpClientCallInvoker(channel);
