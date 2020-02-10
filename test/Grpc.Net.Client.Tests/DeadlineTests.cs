@@ -88,6 +88,9 @@ namespace Grpc.Net.Client.Tests
         public async Task AsyncUnaryCall_StartPastDeadline_RequestMessageContainsMinDeadlineHeader()
         {
             // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
             HttpRequestMessage? httpRequestMessage = null;
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
@@ -100,7 +103,8 @@ namespace Grpc.Net.Client.Tests
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
             var invoker = HttpClientCallInvokerFactory.Create(
                 httpClient,
-                systemClock: testSystemClock);
+                systemClock: testSystemClock,
+                loggerFactory: testLoggerFactory);
 
             // Act
             var responseTask = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(-1)), new HelloRequest()).ResponseAsync;
@@ -109,8 +113,11 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
 
-            Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual("1n", httpRequestMessage!.Headers.GetValues(GrpcProtocolConstants.TimeoutHeader).Single());
+            // Ensure no HTTP request
+            Assert.IsNull(httpRequestMessage);
+
+            // Ensure deadline timer wasn't started
+            Assert.IsFalse(testSink.Writes.Any(w => w.EventId.Name == "StartingDeadlineTimeout"));
         }
 
         [Test]
@@ -246,7 +253,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StringContent(string.Empty), StatusCode.DeadlineExceeded));
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, disableClientDeadlineTimer: true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, disableClientDeadline: true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)));
@@ -268,7 +275,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StringContent(string.Empty), StatusCode.DeadlineExceeded));
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledOnCancellation = true, disableClientDeadlineTimer: true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledOnCancellation = true, disableClientDeadline: true);
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)));
@@ -289,7 +296,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StringContent(string.Empty), StatusCode.DeadlineExceeded));
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, disableClientDeadlineTimer: true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, disableClientDeadline: true);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)), new HelloRequest());
@@ -311,7 +318,7 @@ namespace Grpc.Net.Client.Tests
                 return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, new StringContent(string.Empty), StatusCode.DeadlineExceeded));
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledOnCancellation = true, disableClientDeadlineTimer: true);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, configure: o => o.ThrowOperationCanceledOnCancellation = true, disableClientDeadline: true);
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: testSystemClock.UtcNow.AddSeconds(0.5)), new HelloRequest());

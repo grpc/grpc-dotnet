@@ -61,7 +61,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnLargeMessage);
 
             var channel = CreateChannel();
-            channel.DisableClientDeadlineTimer = true;
+            channel.DisableClientDeadline = true;
 
             var client = TestClientFactory.Create(channel, method);
 

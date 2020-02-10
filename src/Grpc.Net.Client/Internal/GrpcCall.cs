@@ -433,6 +433,9 @@ namespace Grpc.Net.Client.Internal
 
                 try
                 {
+                    // Fail early if deadline has already been exceeded
+                    _callCts.Token.ThrowIfCancellationRequested();
+
                     try
                     {
                         _httpResponseTask = Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token);
@@ -585,20 +588,27 @@ namespace Grpc.Net.Client.Internal
 
         private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request, TimeSpan? timeout)
         {
-            if (timeout != null && !Channel.DisableClientDeadlineTimer)
-            {
-                GrpcCallLog.StartingDeadlineTimeout(Logger, timeout.Value);
-
-                var dueTime = GetTimerDueTime(timeout.Value);
-
-                // Deadline timer will cancel the call CTS
-                // Start timer after reader/writer have been created, otherwise a zero length deadline could cancel
-                // the call CTS before they are created and leave them in a non-canceled state
-                _deadlineTimer = new Timer(DeadlineExceeded, null, dueTime, Timeout.Infinite);
-            }
-
             GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri);
             GrpcEventSource.Log.CallStart(Method.FullName);
+
+            // Deadline will cancel the call CTS.
+            // Only exceed deadline/start timer after reader/writer have been created, otherwise deadline will cancel
+            // the call CTS before they are created and leave them in a non-canceled state.
+            if (timeout != null && !Channel.DisableClientDeadline)
+            {
+                if (timeout.Value <= TimeSpan.Zero)
+                {
+                    // Call was started with a deadline in the past so immediately trigger deadline exceeded.
+                    DeadlineExceeded();
+                }
+                else
+                {
+                    GrpcCallLog.StartingDeadlineTimeout(Logger, timeout.Value);
+
+                    var dueTime = GetTimerDueTime(timeout.Value);
+                    _deadlineTimer = new Timer(DeadlineExceededCallback, null, dueTime, Timeout.Infinite);
+                }
+            }
 
             var diagnosticSourceEnabled = GrpcDiagnostics.DiagnosticListener.IsEnabled() &&
                 GrpcDiagnostics.DiagnosticListener.IsEnabled(GrpcDiagnostics.ActivityName, request);
@@ -787,7 +797,7 @@ namespace Grpc.Net.Client.Internal
             return timeout;
         }
 
-        private void DeadlineExceeded(object state)
+        private void DeadlineExceededCallback(object state)
         {
             // Deadline is only exceeded if the timeout has passed and
             // the response has not been finished or canceled
@@ -796,10 +806,7 @@ namespace Grpc.Net.Client.Internal
                 var remaining = _deadline - Channel.Clock.UtcNow;
                 if (remaining <= TimeSpan.Zero)
                 {
-                    GrpcCallLog.DeadlineExceeded(Logger);
-                    GrpcEventSource.Log.CallDeadlineExceeded();
-
-                    CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
+                    DeadlineExceeded();
                 }
                 else
                 {
@@ -810,6 +817,14 @@ namespace Grpc.Net.Client.Internal
                     _deadlineTimer!.Change(GetTimerDueTime(remaining), Timeout.Infinite);
                 }
             }
+        }
+
+        private void DeadlineExceeded()
+        {
+            GrpcCallLog.DeadlineExceeded(Logger);
+            GrpcEventSource.Log.CallDeadlineExceeded();
+
+            CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
         }
 
         internal ValueTask WriteMessageAsync(

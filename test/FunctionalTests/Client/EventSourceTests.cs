@@ -201,7 +201,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 var channel = CreateChannel();
                 channel.Clock = clock;
-                channel.DisableClientDeadlineTimer = true;
+                channel.DisableClientDeadline = true;
 
                 var client = TestClientFactory.Create(channel, method);
 
