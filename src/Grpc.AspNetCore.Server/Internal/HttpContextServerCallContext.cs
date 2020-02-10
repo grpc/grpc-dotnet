@@ -379,7 +379,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (timeout != TimeSpan.Zero)
             {
-                DeadlineManager = new ServerCallDeadlineManager(clock ?? SystemClock.Instance, timeout, DeadlineExceededAsync, HttpContext.RequestAborted);
+                DeadlineManager = ServerCallDeadlineManager.Create(this, clock ?? SystemClock.Instance, timeout, HttpContext.RequestAborted);
             }
 
             var serviceDefaultCompression = Options.ResponseCompressionAlgorithm;
@@ -419,11 +419,16 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (HttpContext.Request.Headers.TryGetValue(GrpcProtocolConstants.TimeoutHeader, out var values))
             {
-                // CancellationTokenSource does not support greater than int.MaxValue milliseconds
                 if (GrpcProtocolHelpers.TryDecodeTimeout(values, out var timeout) &&
-                    timeout > TimeSpan.Zero &&
-                    timeout.TotalMilliseconds <= int.MaxValue)
+                    timeout > TimeSpan.Zero)
                 {
+                    if (timeout.Ticks > GrpcProtocolConstants.MaxDeadlineTicks)
+                    {
+                        GrpcServerLog.DeadlineTimeoutTooLong(Logger, timeout);
+
+                        timeout = TimeSpan.FromTicks(GrpcProtocolConstants.MaxDeadlineTicks);
+                    }
+
                     return timeout;
                 }
 
@@ -433,7 +438,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return TimeSpan.Zero;
         }
 
-        private async Task DeadlineExceededAsync()
+        internal async Task DeadlineExceededAsync()
         {
             try
             {

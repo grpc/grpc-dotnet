@@ -23,32 +23,58 @@ using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class ServerCallDeadlineManager : IAsyncDisposable
+    internal abstract class ServerCallDeadlineManager : IAsyncDisposable
     {
-        private CancellationTokenSource _deadlineCts;
+        private CancellationTokenSource? _deadlineCts;
         private Task? _deadlineExceededTask;
         private CancellationTokenRegistration _deadlineExceededRegistration;
         private CancellationTokenRegistration _requestAbortedRegistration;
-        private Func<Task> _deadlineExceededCallback;
+        protected HttpContextServerCallContext ServerCallContext { get; }
 
         internal DateTime Deadline { get; private set; }
         // Lock is to ensure deadline doesn't execute as call is completing
-        internal SemaphoreSlim Lock { get; private set; }
+        internal SemaphoreSlim Lock { get; }
         // Internal for testing
         internal bool _callComplete;
 
-        public CancellationToken CancellationToken => _deadlineCts.Token;
+        public CancellationToken CancellationToken => _deadlineCts!.Token;
 
-        public ServerCallDeadlineManager(ISystemClock clock, TimeSpan timeout, Func<Task> deadlineExceededCallback, CancellationToken requestAborted)
+        public static ServerCallDeadlineManager Create(
+            HttpContextServerCallContext serverCallContext,
+            ISystemClock clock,
+            TimeSpan timeout,
+            CancellationToken requestAborted)
+        {
+            ServerCallDeadlineManager serverCallDeadlineManager;
+            if ((long)timeout.TotalMilliseconds <= int.MaxValue)
+            {
+                serverCallDeadlineManager = new DefaultServerCallDeadlineManager(serverCallContext);
+            }
+            else
+            {
+                // Deadline exceeds the maximum CancellationTokenSource delay.
+                // In this situation we'll use a Timer instead.
+                serverCallDeadlineManager = new LongTimeoutServerCallDeadlineManager(serverCallContext);
+            }
+
+            serverCallDeadlineManager.Initialize(clock, timeout, requestAborted);
+            return serverCallDeadlineManager;
+        }
+
+        protected ServerCallDeadlineManager(HttpContextServerCallContext serverCallContext)
+        {
+            // Set fields that need to exist before setting up deadline CTS
+            // Ensures callback can run successfully before CTS timer starts
+            ServerCallContext = serverCallContext;
+
+            Lock = new SemaphoreSlim(1, 1);
+        }
+
+        public void Initialize(ISystemClock clock, TimeSpan timeout, CancellationToken requestAborted)
         {
             Deadline = clock.UtcNow.Add(timeout);
 
-            // Set fields that need to exist before setting up deadline CTS
-            // Ensures callback can run successfully before CTS timer starts
-            _deadlineExceededCallback = deadlineExceededCallback;
-            Lock = new SemaphoreSlim(1, 1);
-
-            _deadlineCts = new CancellationTokenSource(timeout);
+            _deadlineCts = CreateCancellationTokenSource(timeout, clock);
             _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
             _requestAbortedRegistration = requestAborted.Register(() =>
             {
@@ -58,12 +84,14 @@ namespace Grpc.AspNetCore.Server.Internal
             });
         }
 
+        protected abstract CancellationTokenSource CreateCancellationTokenSource(TimeSpan timeout, ISystemClock clock);
+
         public void SetCallComplete()
         {
             _callComplete = true;
         }
 
-        private void DeadlineExceeded()
+        protected void DeadlineExceeded()
         {
             _deadlineExceededTask = DeadlineExceededAsync();
         }
@@ -87,7 +115,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return;
                 }
 
-                await _deadlineExceededCallback();
+                await ServerCallContext.DeadlineExceededAsync();
             }
             finally
             {
