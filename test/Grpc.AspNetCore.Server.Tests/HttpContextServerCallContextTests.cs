@@ -340,6 +340,9 @@ namespace Grpc.AspNetCore.Server.Tests
         [TestCase("99999999m", 99999999 * TimeSpan.TicksPerMillisecond)]
         [TestCase("99999999u", 99999999 * TicksPerMicrosecond)]
         [TestCase("99999999n", 99999999 / NanosecondsPerTick)]
+        [TestCase("9999999H", GrpcProtocolConstants.MaxDeadlineTicks)]
+        [TestCase("99999999M", GrpcProtocolConstants.MaxDeadlineTicks)]
+        [TestCase("99999999S", GrpcProtocolConstants.MaxDeadlineTicks)]
         public void Deadline_ParseValidHeader_ReturnDeadline(string header, long ticks)
         {
             // Arrange
@@ -371,9 +374,6 @@ namespace Grpc.AspNetCore.Server.Tests
         [TestCase("1")]
         [TestCase("M")]
         [TestCase("1G")]
-        [TestCase("9999999H")] // too large for CancellationTokenSource
-        [TestCase("99999999M")] // too large for CancellationTokenSource
-        [TestCase("99999999S")] // too large for CancellationTokenSource
         public void Deadline_ParseInvalidHeader_IgnoresHeader(string header)
         {
             // Arrange
@@ -392,6 +392,27 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var write = testSink.Writes.Single(w => w.EventId.Name == "InvalidTimeoutIgnored");
             Assert.AreEqual($"Invalid grpc-timeout header value '{header}' has been ignored.", write.State.ToString());
+        }
+
+        [Test]
+        public void Deadline_TooLong_LoggedAndMaximumDeadlineUsed()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "9999999H";
+            var context = CreateServerCallContext(httpContext, testLogger);
+
+            // Act
+            context.Initialize(TestClock);
+
+            // Assert
+            Assert.AreEqual(TestClock.UtcNow.Add(TimeSpan.FromTicks(GrpcProtocolConstants.MaxDeadlineTicks)), context.Deadline);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineTimeoutTooLong");
+            Assert.AreEqual("Deadline timeout 416666.15:00:00 is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.", write.State.ToString());
         }
 
         [Test]
@@ -786,16 +807,6 @@ namespace Grpc.AspNetCore.Server.Tests
 
                 _cts.Cancel();
             }
-        }
-
-        private class TestSystemClock : ISystemClock
-        {
-            public TestSystemClock(DateTime utcNow)
-            {
-                UtcNow = utcNow;
-            }
-
-            public DateTime UtcNow { get; }
         }
     }
 }

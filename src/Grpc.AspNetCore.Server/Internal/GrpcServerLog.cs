@@ -93,6 +93,12 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Action<ILogger, Exception?> _unhandledCorsPreflightRequest =
            LoggerMessage.Define(LogLevel.Information, new EventId(23, "UnhandledCorsPreflightRequest"), "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
 
+        private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimeoutTooLong =
+            LoggerMessage.Define<TimeSpan>(LogLevel.Debug, new EventId(24, "DeadlineTimeoutTooLong"), "Deadline timeout {Timeout} is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.");
+
+        private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
+            LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
+
         public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
         {
             _deadlineExceeded(logger, timeout, null);
@@ -206,6 +212,16 @@ namespace Grpc.AspNetCore.Server.Internal
         public static void UnhandledCorsPreflightRequest(ILogger logger)
         {
             _unhandledCorsPreflightRequest(logger, null);
+        }
+
+        public static void DeadlineTimeoutTooLong(ILogger logger, TimeSpan timeout)
+        {
+            _deadlineTimeoutTooLong(logger, timeout, null);
+        }
+
+        public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
+        {
+            _deadlineTimerRescheduled(logger, remaining, null);
         }
     }
 }

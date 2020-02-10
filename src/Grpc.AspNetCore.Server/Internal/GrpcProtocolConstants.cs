@@ -57,5 +57,9 @@ namespace Grpc.AspNetCore.Server.Internal
         internal const string X509SubjectAlternativeNameId = "2.5.29.17";
         internal const string X509SubjectAlternativeNameKey = "x509_subject_alternative_name";
         internal const string X509CommonNameKey = "x509_common_name";
+
+        // Maxmimum deadline of 99999999s is consistent with Grpc.Core
+        // https://github.com/grpc/grpc/blob/907a1313a87723774bf59d04ed432602428245c3/src/core/lib/transport/timeout_encoding.h#L32-L34
+        internal const long MaxDeadlineTicks = 99999999 * TimeSpan.TicksPerSecond;
     }
 }
