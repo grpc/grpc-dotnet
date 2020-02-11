@@ -54,7 +54,8 @@ namespace Grpc.Net.Client
         internal bool Disposed { get; private set; }
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
-        internal bool DisableClientDeadlineTimer { get; set; }
+        internal bool DisableClientDeadline;
+        internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
         private bool _shouldDisposeHttpClient;
 
