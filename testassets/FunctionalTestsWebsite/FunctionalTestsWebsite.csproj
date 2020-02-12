@@ -24,6 +24,7 @@
     <Protobuf Include="..\Proto\streaming.proto" Link="Protos\streaming.proto" />
     <Protobuf Include="..\Proto\unimplemented.proto" Link="Protos\unimplemented.proto" />
     <Protobuf Include="..\Proto\echo.proto" Link="Protos\echo.proto" />
+    <Protobuf Include="..\Proto\issue.proto" Link="Protos\issue.proto" />
   </ItemGroup>
   
 </Project>
