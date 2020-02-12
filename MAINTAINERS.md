@@ -8,6 +8,7 @@ See [CONTRIBUTING.md](https://github.com/grpc/grpc-community/blob/master/CONTRIB
 for general contribution guidelines.
 
 ## Maintainers (in alphabetical order)
+- [anurse](https://github.com/anurse), Microsoft Corporation
 - [apolcyn](https://github.com/apolcyn), Google LLC
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
