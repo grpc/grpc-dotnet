@@ -47,6 +47,32 @@ namespace Grpc.Net.Client.Tests.Web
         }
 
         [Test]
+        public async Task WriteAsync_VeryLargeData_Written()
+        {
+            // Arrange
+            var ms = new MemoryStream();
+            var gprcWebStream = new Base64RequestStream(ms);
+
+            var s = string.Create<object>(16384, null!, (s, o) =>
+            {
+                for (var i = 0; i < s.Length; i++)
+                {
+                    s[i] = Convert.ToChar(i % 10);
+                }
+            });
+            var data = Encoding.UTF8.GetBytes(s);
+
+            // Act
+            await gprcWebStream.WriteAsync(data);
+            await gprcWebStream.FlushAsync();
+
+            // Assert
+            var base64 = Encoding.UTF8.GetString(ms.ToArray());
+            var result = Convert.FromBase64String(base64);
+            CollectionAssert.AreEqual(data, result);
+        }
+
+        [Test]
         public async Task WriteAsync_MultipleSingleBytes_Written()
         {
             // Arrange

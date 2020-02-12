@@ -318,7 +318,7 @@ namespace Grpc.Net.Client.Tests.Web
         [TestCase("Hello world", 10)]
         [TestCase("Hello world", 100)]
         [TestCase("The quick brown fox jumped over the lazy dog", 12)]
-        public async Task ReadAsync_sdfsdf_Success(string message, int readSize)
+        public async Task ReadAsync_VariableReadSize_Success(string message, int readSize)
         {
             // Arrange
             var data = Encoding.UTF8.GetBytes(message);

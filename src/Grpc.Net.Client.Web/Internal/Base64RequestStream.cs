@@ -78,8 +78,12 @@ namespace Grpc.Net.Client.Web.Internal
 
             while (data.Length >= 3)
             {
+                // Final encoded data length could exceed buffer length
+                // When this happens the data will be encoded and WriteAsync in a loop
+                var encodeLength = Math.Min(data.Length, localBuffer.Length / 4 * 3);
+
                 EnsureSuccess(
-                    Base64.EncodeToUtf8(data.Span, localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
+                    Base64.EncodeToUtf8(data.Span.Slice(0, encodeLength), localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
                     OperationStatus.NeedMoreData);
 
                 var base64Remainder = _buffer.Length - localBuffer.Length;
