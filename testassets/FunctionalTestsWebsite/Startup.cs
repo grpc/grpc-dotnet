@@ -131,7 +131,6 @@ namespace FunctionalTestsWebsite
 
             app.UseEndpoints(endpoints =>
             {
-                // Bind via reflection
                 endpoints.MapGrpcService<ChatterService>();
                 endpoints.MapGrpcService<CounterService>();
                 endpoints.MapGrpcService<AuthorizedGreeter>();
@@ -145,6 +144,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<StreamService>();
                 endpoints.MapGrpcService<RacerService>();
                 endpoints.MapGrpcService<EchoService>();
+                endpoints.MapGrpcService<IssueService>();
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 

@@ -56,6 +56,38 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
+        public async Task Advance_VeryLargeData_SuccessWithRemainder()
+        {
+            // Arrange
+            var s = string.Create<object>(16384, null!, (s, o) =>
+            {
+                for (var i = 0; i < s.Length; i++)
+                {
+                    s[i] = Convert.ToChar(i % 10);
+                }
+            });
+            var initialData = Encoding.UTF8.GetBytes(s);
+
+            var testPipe = new Pipe();
+            var w = new Base64PipeWriter(testPipe.Writer);
+            var innerBuffer = testPipe.Writer.GetMemory();
+
+            // Act
+            var buffer = w.GetMemory(initialData.Length);
+            initialData.CopyTo(buffer);
+            w.Advance(initialData.Length);
+            await w.CompleteAsync();
+
+            // Assert
+            var result = await testPipe.Reader.ReadAsync().AsTask().DefaultTimeout();
+            var resultData = result.Buffer.ToArray();
+            Assert.AreEqual(21848, result.Buffer.Length);
+
+            var base64Data = Encoding.UTF8.GetBytes(Convert.ToBase64String(initialData)).ToArray();
+            CollectionAssert.AreEqual(resultData, base64Data);
+        }
+
+        [Test]
         public async Task Complete_HasRemainder_WriteRemainder()
         {
             // Arrange
