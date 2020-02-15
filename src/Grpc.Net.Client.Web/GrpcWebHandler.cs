@@ -118,11 +118,16 @@ namespace Grpc.Net.Client.Web
 
             var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
+            if (_httpVersion != null)
+            {
+                // If a HTTP version has been specified then we need to reset it back to 2.0.
+                // The gRPC client validates HTTP version 2.0.
+                response.Version = HttpVersion.Version20;
+            }
+
             if (IsMatchingResponseContentType(_mode, response.Content.Headers.ContentType?.MediaType))
             {
                 response.Content = new GrpcWebResponseContent(response.Content, _mode, response.TrailingHeaders);
-                // The gRPC client validates HTTP version 2.0
-                response.Version = HttpVersion.Version20;
             }
 
             return response;
