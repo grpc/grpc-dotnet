@@ -1,0 +1,25 @@
+{
+  "name": "browser-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "parcel src/index.html --open",
+    "build:watch": "parcel watch src/index.html",
+    "build:prod": "npx rimraf dist && parcel build src/index.html",
+    "protogen": "protoc -I ./../../Proto/ ./../../Proto/greet.proto --js_out=import_style=commonjs:./src/generated/ --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated/"
+  },
+  "dependencies": {
+    "google-protobuf": "^3.11.4",
+    "grpc-web": "^1.0.7",
+    "vue": "^2.6.11",
+    "vue-hot-reload-api": "^2.3.4",
+    "vue-property-decorator": "^8.4.0"
+  },
+  "devDependencies": {
+    "@vue/component-compiler-utils": "^3.1.1",
+    "parcel-bundler": "^1.12.4",
+    "rimraf": "^3.0.2",
+    "typescript": "^3.8.2",
+    "vue-template-compiler": "^2.6.11"
+  }
+}
