@@ -34,6 +34,9 @@ namespace Grpc.Shared
         public override byte[] PayloadAsNewBuffer()
         {
             Debug.Assert(_payload != null, "Payload must be set.");
+
+            // The array returned by PayloadAsNewBuffer must be the exact message size.
+            // There is no opportunity here to return a pooled array.
             return _payload.GetValueOrDefault().ToArray();
         }
 
