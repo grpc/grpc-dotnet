@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             _wrappedDisposable?.Dispose();
 
-            var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error || w.EventId.Name == "RpcConnectionError").ToList();
+            var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error).ToList();
 
             if (results.Count > 0 && ExpectedErrorsFilter != null)
             {
