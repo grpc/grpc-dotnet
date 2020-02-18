@@ -22,7 +22,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Client
@@ -34,18 +34,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task ALPN_ProtocolDowngradedToHttp1_ThrowErrorFromServer()
         {
             // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Internal', Message: 'Request protocol 'HTTP/1.1' is not supported.'.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             var httpClient = Fixture.CreateClient(TestServerEndpointName.Http1WithTls);
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
@@ -62,6 +50,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
             Assert.AreEqual("Request protocol 'HTTP/1.1' is not supported.", ex.Status.Detail);
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Internal', Message: 'Request protocol 'HTTP/1.1' is not supported.'.");
         }
     }
 }

@@ -21,6 +21,7 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
+using Grpc.Core;
 using Grpc.Gateway.Testing;
 using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
@@ -73,18 +74,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
         [Test]
         public async Task SendValidRequest_ServerAbort_AbortResponse()
         {
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.State.ToString() == "Error status code 'Aborted' raised.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             // Arrange
             var requestMessage = new EchoRequest
             {
@@ -111,6 +100,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
 
             Assert.AreEqual("10", response.Headers.GetValues("grpc-status").Single());
             Assert.AreEqual("Aborted from server side.", response.Headers.GetValues("grpc-message").Single());
+
+            AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
         }
     }
 }

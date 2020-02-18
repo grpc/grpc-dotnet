@@ -23,6 +23,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Server
@@ -36,14 +37,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
-                {
-                    return true;
-                }
-
                 if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
@@ -70,6 +63,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+
+            AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         }
 
         [Test]
@@ -78,14 +73,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.State.ToString() == "Error status code 'ResourceExhausted' raised." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
-                {
-                    return true;
-                }
-
                 if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorSendingMessage" &&
                     writeContext.State.ToString() == "Error sending message." &&
@@ -112,6 +99,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
+
+            AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         }
     }
 }

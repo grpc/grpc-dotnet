@@ -33,6 +33,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
@@ -103,13 +104,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             SetExpectedErrorsFilter(writeContext =>
             {
                 if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.State.ToString() == "Error status code 'Internal' raised.")
-                {
-                    return true;
-                }
-
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message.")
                 {
@@ -148,6 +142,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
             response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
+
+            AssertHasLogRpcConnectionError(StatusCode.Internal, "Additional data after the message received.");
         }
 
         [Test]
@@ -199,14 +195,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
                 (requestStream, context) => Task.FromResult<HelloReply>(null!));
 
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
-            });
-
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -224,6 +212,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             response.AssertIsSuccessfulGrpcRequest();
 
             response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+
+            AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
         }
 
         [Test]
@@ -238,14 +228,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 };
 
                 return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
-            });
-
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Unknown' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "User error";
             });
 
             var requestMessage = new HelloRequest
@@ -267,6 +249,47 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             response.AssertTrailerStatus(StatusCode.Unknown, "User error");
             // Trailer is written to the header because this is a Trailers-Only response
             Assert.AreEqual("A value!", response.Headers.GetValues("test-trailer").Single());
+
+            AssertHasLogRpcConnectionError(StatusCode.Unknown, "User error");
+        }
+
+        [Test]
+        public async Task ServerMethodThrowsNonRpcException_FailureResponse()
+        {
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                       writeContext.State.ToString() == "Error when executing service method 'GrpcErrorMethod'." &&
+                       writeContext.Exception!.Message == "Non RPC exception.";
+            });
+
+            var ex = new InvalidOperationException("Non RPC exception.");
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
+            {
+                return Task.FromException<HelloReply>(ex);
+            }, "GrpcErrorMethod");
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var ms = new MemoryStream();
+            MessageHelpers.WriteMessage(ms, requestMessage);
+
+            // Act
+            var response = await Fixture.Client.PostAsync(
+                method.FullName,
+                new GrpcStreamContent(ms)).DefaultTimeout();
+
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+
+            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Non RPC exception.");
+
+            AssertHasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'GrpcErrorMethod'.", e => e == ex);
         }
 
         [Test]

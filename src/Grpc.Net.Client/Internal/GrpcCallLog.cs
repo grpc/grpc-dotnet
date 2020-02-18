@@ -31,7 +31,7 @@ namespace Grpc.Net.Client.Internal
             LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResponseHeadersReceived"), "Response headers received.");
 
         private static readonly Action<ILogger, StatusCode, string, Exception?> _grpcStatusError =
-            LoggerMessage.Define<StatusCode, string>(LogLevel.Error, new EventId(3, "GrpcStatusError"), "Call failed with gRPC error status. Status code: '{StatusCode}', Message: '{StatusMessage}'.");
+            LoggerMessage.Define<StatusCode, string>(LogLevel.Information, new EventId(3, "GrpcStatusError"), "Call failed with gRPC error status. Status code: '{StatusCode}', Message: '{StatusMessage}'.");
 
         private static readonly Action<ILogger, Exception?> _finishedCall =
             LoggerMessage.Define(LogLevel.Debug, new EventId(4, "FinishedCall"), "Finished gRPC call.");

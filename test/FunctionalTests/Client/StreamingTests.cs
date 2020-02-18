@@ -173,13 +173,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.State.ToString() == "Call failed with gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
-                {
-                    return true;
-                }
-
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.HttpContentClientStreamWriter" &&
                     writeContext.EventId.Name == "WriteMessageError" &&
                     writeContext.Message == "Error writing message.")
@@ -218,18 +211,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task DuplexStream_SendToUnimplementedMethodAfterResponseReceived_MoveNextThrowsError()
         {
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.State.ToString() == "Call failed with gRPC error status. Status code: 'Unimplemented', Message: 'Service is unimplemented.'.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             // Arrange
             var client = new UnimplementedService.UnimplementedServiceClient(Channel);
 
@@ -351,13 +332,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
 
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: ''.")
-                {
-                    return true;
-                }
-
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "WriteMessageError" &&
                     writeContext.Exception is InvalidOperationException &&
                     writeContext.Exception.Message == "Can't write the message because the call is complete.")
@@ -407,6 +381,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: ''.");
         }
 
         [Test]
