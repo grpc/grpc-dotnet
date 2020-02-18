@@ -111,7 +111,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             Assert.AreEqual(StatusCode.Aborted, call.GetStatus().StatusCode);
 
-            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Aborted', Message: 'Aborted from server side.'.");
             AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
         }
 
