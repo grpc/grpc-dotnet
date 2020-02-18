@@ -205,10 +205,10 @@ namespace Grpc.Net.Client.Internal
         }
 
         /// <summary>
-        /// Used by client stream to report it is finished.
+        /// Used by response stream reader to report it is finished.
         /// </summary>
         /// <param name="status">The completed response status code.</param>
-        public void ClientStreamEnded(Status status)
+        public void ResponseStreamEnded(Status status)
         {
             _callTcs.TrySetResult(status);
         }
