@@ -145,8 +145,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                // Kestrel cancellation error message
-                if (writeContext.Exception is IOException &&
+                    // Kestrel cancellation error message
+                    if (writeContext.Exception is IOException &&
                     writeContext.Exception.Message == "The client reset the request stream.")
                 {
                     return true;
@@ -159,8 +159,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                // Ignore all logging related errors for now
-                return false;
+                    // Ignore all logging related errors for now
+                    return false;
             });
 
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
