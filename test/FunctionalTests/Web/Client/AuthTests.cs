@@ -23,6 +23,7 @@ using Grpc.Core;
 using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Web.Client
@@ -42,17 +43,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         [Test]
         public async Task SendValidRequest_SuccessResponse()
         {
-            SetExpectedErrorsFilter(r =>
-            {
-                if (r.EventId.Name == "GrpcStatusError" &&
-                    r.Message == "Call failed with gRPC error status. Status code: 'Unauthenticated', Message: 'Bad gRPC response. HTTP status code: 401'.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             // Arrage
             var httpClient = CreateGrpcWebClient();
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
@@ -68,6 +58,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             // Assert
             Assert.AreEqual(StatusCode.Unauthenticated, ex.StatusCode);
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Unauthenticated', Message: 'Bad gRPC response. HTTP status code: 401'.");
         }
     }
 }
