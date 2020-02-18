@@ -25,6 +25,7 @@ using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Streaming;
 
@@ -84,15 +85,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                         writeContext.Exception is TaskCanceledException)
                     {
                         return true;
-                    }
-
-                    if (writeContext.EventId.Name == "GrpcStatusError")
-                    {
-                        if (writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'." ||
-                            writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Error starting gRPC call.'.")
-                        {
-                            return true;
-                        }
                     }
                 }
 
@@ -161,13 +153,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
 
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
-                {
-                    return true;
-                }
-
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
                     writeContext.EventId.Name == "ErrorStartingCall" &&
                     writeContext.Message == "Error starting gRPC call.")
                 {
@@ -199,6 +184,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
             await serverCompleteTcs.Task.DefaultTimeout();
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
         }
 
         [Test]
@@ -237,13 +224,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
-                {
-                    return true;
-                }
-
                 // Ignore all logging related errors for now
                 return false;
             });
@@ -273,6 +253,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // 4. Check that the cancellation was sent to the server. This will 
             await serverCompleteTcs.Task.DefaultTimeout();
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
         }
     }
 }

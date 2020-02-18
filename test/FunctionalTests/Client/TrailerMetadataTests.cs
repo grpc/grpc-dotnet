@@ -49,13 +49,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'InvalidArgument', Message: 'Validation failed'.")
-                {
-                    return true;
-                }
-
                 return false;
             });
 
@@ -101,20 +94,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "GrpcStatusError" &&
-                    writeContext.Message == "Call failed with gRPC error status. Status code: 'InvalidArgument', Message: 'Validation failed'.")
-                {
-                    return true;
-                }
-
-                if (writeContext.LoggerName == "SERVER Grpc.AspNetCore.Server.ServerCallHandler" &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.Message == "Error status code 'InvalidArgument' raised.")
-                {
-                    return true;
-                }
-
                 return false;
             });
 
@@ -138,6 +117,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.GreaterOrEqual(ex.Trailers.Count, 1);
             Assert.AreEqual("the value was empty", ex.Trailers.Single(m => m.Key == "name").Value);
+
+            AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
         }
     }
 }

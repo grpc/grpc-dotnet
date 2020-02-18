@@ -82,14 +82,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             SetExpectedErrorsFilter(writeContext =>
             {
                 if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "RpcConnectionError" &&
-                    writeContext.State.ToString() == "Error status code 'Internal' raised." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
-                {
-                    return true;
-                }
-
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
                     writeContext.EventId.Name == "ErrorReadingMessage" &&
                     writeContext.State.ToString() == "Error reading message." &&
                     GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
@@ -129,6 +121,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
             response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
+
+            AssertHasLogRpcConnectionError(StatusCode.Internal, "Incomplete message.");
         }
 
         [Test]
@@ -136,14 +130,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         {
             // Arrange
             var method = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
-
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "RpcConnectionError" &&
-                       writeContext.State.ToString() == "Error status code 'Cancelled' raised." &&
-                       GetRpcExceptionDetail(writeContext.Exception) == "No message returned from method.";
-            });
 
             var requestMessage = new CounterRequest
             {
@@ -161,6 +147,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
             response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+
+            AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
         }
 
         [Test]

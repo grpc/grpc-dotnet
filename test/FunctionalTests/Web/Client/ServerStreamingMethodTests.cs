@@ -26,6 +26,7 @@ using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Web.Client
@@ -83,23 +84,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         public async Task SendValidRequest_ServerAbort_ClientThrowsAbortException()
         {
             // Arrage
-            SetExpectedErrorsFilter(r =>
-            {
-                if (r.EventId.Name == "RpcConnectionError" &&
-                    r.Message == "Error status code 'Aborted' raised.")
-                {
-                    return true;
-                }
-
-                if (r.EventId.Name == "GrpcStatusError" &&
-                    r.Message == "Call failed with gRPC error status. Status code: 'Aborted', Message: 'Aborted from server side.'.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             var httpClient = CreateGrpcWebClient();
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
             {
@@ -126,23 +110,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             Assert.AreEqual("Aborted from server side.", ex.Status.Detail);
 
             Assert.AreEqual(StatusCode.Aborted, call.GetStatus().StatusCode);
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Aborted', Message: 'Aborted from server side.'.");
+            AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
         }
 
         [Test]
         public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException()
         {
             // Arrage
-            SetExpectedErrorsFilter(r =>
-            {
-                if (r.EventId.Name == "GrpcStatusError" &&
-                    r.Message == "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
             var httpClient = CreateGrpcWebClient();
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
             {
@@ -172,6 +148,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             Assert.AreEqual("Call canceled by the client.", ex.Status.Detail);
 
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+
+            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
         }
     }
 }
