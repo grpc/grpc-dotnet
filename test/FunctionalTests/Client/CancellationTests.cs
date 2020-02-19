@@ -147,7 +147,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 // Kestrel cancellation error message
                 if (writeContext.Exception is IOException &&
-                writeContext.Exception.Message == "The client reset the request stream.")
+                    writeContext.Exception.Message == "The client reset the request stream.")
                 {
                     return true;
                 }
