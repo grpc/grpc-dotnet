@@ -178,12 +178,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             readResult = await pipeReader.ReadAsync();
             Assert.AreEqual(1, readResult.Buffer.FirstSpan[0]); // Message is compressed
             var greeting1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader, "gzip").DefaultTimeout();
-            Assert.AreEqual($"Hello 1", greeting1.Message);
+            Assert.AreEqual($"Hello 1", greeting1!.Message);
 
             readResult = await pipeReader.ReadAsync();
             Assert.AreEqual(0, readResult.Buffer.FirstSpan[0]); // Message is uncompressed
             var greeting2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader, "gzip").DefaultTimeout();
-            Assert.AreEqual($"Hello 2", greeting2.Message);
+            Assert.AreEqual($"Hello 2", greeting2!.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.IsNull(await finishedTask.DefaultTimeout());

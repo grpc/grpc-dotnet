@@ -106,6 +106,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             Assert.AreEqual("test", call.ResponseStream.Current.Message);
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None));
+
+            Logger.LogInformation("Post MoveNext");
+
             Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
             Assert.AreEqual("Aborted from server side.", ex.Status.Detail);
 

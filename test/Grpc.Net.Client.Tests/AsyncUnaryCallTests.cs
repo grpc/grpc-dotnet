@@ -120,7 +120,7 @@ namespace Grpc.Net.Client.Tests
                 singleMessage: true,
                 CancellationToken.None).AsTask().DefaultTimeout();
 
-            Assert.AreEqual("World", requestMessage.Name);
+            Assert.AreEqual("World", requestMessage!.Name);
         }
 
         [Test]

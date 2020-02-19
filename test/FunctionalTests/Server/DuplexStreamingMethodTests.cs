@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
             var message1 = await message1Task.DefaultTimeout();
-            Assert.AreEqual("John", message1.Name);
+            Assert.AreEqual("John", message1!.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
 
             var message2Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
@@ -84,7 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             await requestStream.FlushAsync().DefaultTimeout();
 
             var message2 = await message2Task.DefaultTimeout();
-            Assert.AreEqual("Jill", message2.Name);
+            Assert.AreEqual("Jill", message2!.Name);
             Assert.AreEqual("Hello John", message2.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
@@ -156,11 +156,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var pipeReader = PipeReader.Create(responseStream);
 
             var message1 = await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout();
-            Assert.AreEqual("John", message1.Name);
+            Assert.AreEqual("John", message1!.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
 
             var message2 = await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout();
-            Assert.AreEqual("Jill", message2.Name);
+            Assert.AreEqual("Jill", message2!.Name);
             Assert.AreEqual("Hello John", message2.Message);
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader).DefaultTimeout());

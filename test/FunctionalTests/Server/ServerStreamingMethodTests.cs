@@ -64,12 +64,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
                 var greeting = await greetingTask.DefaultTimeout();
 
-                Assert.AreEqual($"How are you World? {i}", greeting.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
             }
 
             var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
-            Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
+            Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.IsNull(await finishedTask.DefaultTimeout());
@@ -109,12 +109,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
                 var greeting = await greetingTask.DefaultTimeout();
 
-                Assert.AreEqual($"How are you World? {i}", greeting.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
             }
 
             var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
-            Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout()).Message);
+            Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.IsNull(await finishedTask.DefaultTimeout());
@@ -160,11 +160,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             {
                 var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
 
-                Assert.AreEqual($"How are you World? {i}", greeting.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
             }
 
             var goodbye = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
-            Assert.AreEqual("Goodbye World!", goodbye.Message);
+            Assert.AreEqual("Goodbye World!", goodbye!.Message);
 
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout());
 
