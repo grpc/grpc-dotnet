@@ -140,6 +140,30 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 return new HelloReply();
             }
 
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                {
+                    // Deadline happened before write
+                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
+                    {
+                        return true;
+                    }
+
+                    // Deadline happened during write (error raised from pipeline writer)
+                    if (writeContext.Exception is InvalidOperationException &&
+                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, nameof(WaitUntilDeadline));
 
             var requestMessage = new HelloRequest
