@@ -140,6 +140,7 @@ namespace Grpc.Net.Client.Internal
         {
             // TODO(JamesNK): We can optimize header allocation when IBufferWriter is being used.
             // IBufferWriter can be used to provide a buffer, either before or after message content.
+            // https://github.com/grpc/grpc-dotnet/issues/784
             var buffer = new byte[GrpcProtocolConstants.HeaderSize];
 
             // Compression flag
