@@ -49,6 +49,9 @@ namespace Grpc.Net.Client.Internal
             // deflate is not supported. .NET's DeflateStream does not support RFC1950 - https://github.com/dotnet/corefx/issues/7570
         };
 
+        internal const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
+        internal const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
+
         internal static readonly string DefaultMessageAcceptEncodingValue;
 
         internal static readonly string UserAgentHeader;
