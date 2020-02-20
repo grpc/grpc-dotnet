@@ -144,7 +144,7 @@ namespace Grpc.Net.Client.Internal
         /// Clean up can be called by:
         /// 1. The user. AsyncUnaryCall.Dispose et al will call this on Dispose
         /// 2. <see cref="ValidateHeaders"/> will call dispose if errors fail validation
-        /// 3. <see cref="FinishResponse"/> will call dispose
+        /// 3. <see cref="FinishResponseAndCleanUp"/> will call dispose
         /// </summary>
         private void Cleanup(Status status)
         {
@@ -194,13 +194,7 @@ namespace Grpc.Net.Client.Internal
             return CreateRpcException(status);
         }
         
-        /// <summary>
-        /// Marks the response as finished, i.e. all response content has been read and trailers are available.
-        /// Can be called by <see cref="GetResponseAsync"/> for unary and client streaming calls, or
-        /// <see cref="HttpContentClientStreamReader{TRequest,TResponse}.MoveNextCore(CancellationToken)"/>
-        /// for server streaming and duplex streaming calls.
-        /// </summary>
-        public void FinishResponse(Status status)
+        private void FinishResponseAndCleanUp(Status status)
         {
             ResponseFinished = true;
 
@@ -208,6 +202,15 @@ namespace Grpc.Net.Client.Internal
             // Call may not be explicitly disposed when used with unary methods
             // e.g. var reply = await client.SayHelloAsync(new HelloRequest());
             Cleanup(status);
+        }
+
+        /// <summary>
+        /// Used by response stream reader to report it is finished.
+        /// </summary>
+        /// <param name="status">The completed response status code.</param>
+        public void ResponseStreamEnded(Status status)
+        {
+            _callTcs.TrySetResult(status);
         }
 
         public Task<Metadata> GetResponseHeadersAsync()
@@ -429,6 +432,9 @@ namespace Grpc.Net.Client.Internal
                     await ReadCredentials(request).ConfigureAwait(false);
                 }
 
+                // Unset variable to check that FinishCall is called in every code path
+                bool finished;
+
                 Status? status = null;
 
                 try
@@ -457,6 +463,7 @@ namespace Grpc.Net.Client.Internal
                             // gRPC status in the header
                             if (status.Value.StatusCode != StatusCode.OK)
                             {
+                                finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                                 SetFailedResult(status.Value);
                             }
                             else
@@ -464,11 +471,18 @@ namespace Grpc.Net.Client.Internal
                                 // The server should never return StatusCode.OK in the header for a unary call.
                                 // If it does then throw an error that no message was returned from the server.
                                 GrpcCallLog.MessageNotReturned(Logger);
+
+                                finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                                 _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
                             }
-                        }
 
-                        FinishResponse(status.Value);
+                            FinishResponseAndCleanUp(status.Value);
+                        }
+                        else
+                        {
+                            finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+                            FinishResponseAndCleanUp(status.Value);
+                        }
                     }
                     else
                     {
@@ -486,16 +500,20 @@ namespace Grpc.Net.Client.Internal
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
                             status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
-                            FinishResponse(status.Value);
+                            FinishResponseAndCleanUp(status.Value);
 
                             if (message == null)
                             {
                                 GrpcCallLog.MessageNotReturned(Logger);
+
+                                finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                                 SetFailedResult(status.Value);
                             }
                             else
                             {
                                 GrpcEventSource.Log.MessageReceived();
+
+                                finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
                                 if (status.Value.StatusCode == StatusCode.OK)
                                 {
@@ -516,6 +534,9 @@ namespace Grpc.Net.Client.Internal
                             // Wait until the response has been read and status read from trailers.
                             // TCS will also be set in Dispose.
                             status = await CallTask.ConfigureAwait(false);
+
+                            finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+                            FinishResponseAndCleanUp(status.Value);
                         }
                     }
                 }
@@ -524,16 +545,19 @@ namespace Grpc.Net.Client.Internal
                     Exception resolvedException;
                     ResolveException(ex, out status, out resolvedException);
 
+                    finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                     _responseTcs?.TrySetException(resolvedException);
 
-                    Cleanup(status!.Value);
+                    Cleanup(status.Value);
                 }
 
-                FinishCall(request, diagnosticSourceEnabled, activity, status);
+                // Verify that FinishCall is called in every code path of this method.
+                // Should create an "Unassigned variable" compiler error if not set.
+                Debug.Assert(finished);
             }
         }
 
-        private void ResolveException(Exception ex, out Status? status, out Exception resolvedException)
+        private void ResolveException(Exception ex, [NotNull] out Status? status, out Exception resolvedException)
         {
             if (ex is OperationCanceledException)
             {
@@ -647,7 +671,7 @@ namespace Grpc.Net.Client.Internal
             return (diagnosticSourceEnabled, activity);
         }
 
-        private void FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status? status)
+        private bool FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status? status)
         {
             if (status!.Value.StatusCode != StatusCode.OK)
             {
@@ -680,6 +704,8 @@ namespace Grpc.Net.Client.Internal
 
                 activity.Stop();
             }
+
+            return true;
         }
 
         private async Task ReadCredentials(HttpRequestMessage request)

@@ -170,9 +170,10 @@ namespace Grpc.Net.Client.Internal
                     cancellationToken).ConfigureAwait(false);
                 if (Current == null)
                 {
-                    // No more content in response so mark as finished
+                    // No more content in response so report status to call.
+                    // The call will handle finishing the response.
                     var status = GrpcProtocolHelpers.GetResponseStatus(_httpResponse);
-                    _call.FinishResponse(status);
+                    _call.ResponseStreamEnded(status);
                     if (status.StatusCode != StatusCode.OK)
                     {
                         throw _call.CreateFailureStatusException(status);
