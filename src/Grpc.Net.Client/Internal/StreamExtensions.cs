@@ -105,7 +105,7 @@ namespace Grpc.Net.Client
                 // Buffer is used to read header, then message content.
                 // This size was randomly chosen to hopefully be big enough for many small messages.
                 // If the message is larger then the array will be replaced when the message size is known.
-                buffer = ArrayPool<byte>.Shared.Rent(minimumLength: 4096‬);
+                buffer = ArrayPool<byte>.Shared.Rent(minimumLength: 4096);
 
                 var headerDetails = await ReadHeaderAsync(responseStream, buffer, cancellationToken).ConfigureAwait(false);
 
