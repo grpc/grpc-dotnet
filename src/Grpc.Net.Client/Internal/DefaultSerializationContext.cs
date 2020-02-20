@@ -19,6 +19,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 
@@ -112,6 +113,9 @@ namespace Grpc.Net.Client.Internal
 
         private IBufferWriter<byte> ResolveBufferWriter()
         {
+            // TODO(JamesNK): I believe length should be known by the context before the buffer writer is
+            // fetched for the first time. Should be able to initialize a custom buffer writer with pooled
+            // array of the required size.
             return _bufferWriter ??= new ArrayBufferWriter<byte>();
         }
 
@@ -130,6 +134,29 @@ namespace Grpc.Net.Client.Internal
                     ThrowInvalidState(_state);
                     break;
             }
+        }
+
+        public Memory<byte> GetHeader(bool isCompressed, int length)
+        {
+            // TODO(JamesNK): We can optimize header allocation when IBufferWriter is being used.
+            // IBufferWriter can be used to provide a buffer, either before or after message content.
+            // https://github.com/grpc/grpc-dotnet/issues/784
+            var buffer = new byte[GrpcProtocolConstants.HeaderSize];
+
+            // Compression flag
+            buffer[0] = isCompressed ? (byte)1 : (byte)0;
+
+            // Message length
+            EncodeMessageLength(length, buffer.AsSpan(1, 4));
+
+            return buffer;
+        }
+
+        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
+        {
+            Debug.Assert(destination.Length >= GrpcProtocolConstants.MessageDelimiterSize, "Buffer too small to encode message length.");
+
+            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
         }
     }
 }
