@@ -107,12 +107,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None));
 
-            Logger.LogInformation("Post MoveNext");
-
             Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
             Assert.AreEqual("Aborted from server side.", ex.Status.Detail);
 
             Assert.AreEqual(StatusCode.Aborted, call.GetStatus().StatusCode);
+
+            // It is possible get into a situation where the response stream finishes slightly before the call.
+            // Small delay to ensure call logging is complete.
+            await Task.Delay(50);
 
             AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Aborted', Message: 'Aborted from server side.'.");
             AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
