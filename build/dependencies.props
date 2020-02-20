@@ -5,7 +5,7 @@
     <GoogleProtobufPackageVersion>3.11.2</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.27.0-pre1</GrpcDotNetPackageVersion>  <!-- Only use for example projects -->
     <GrpcPackageVersion>2.27.0-pre1</GrpcPackageVersion>
-    <MicrosoftAspNetCorePackageVersion>3.0.0</MicrosoftAspNetCorePackageVersion>
+    <MicrosoftAspNetCorePackageVersion>3.1.2</MicrosoftAspNetCorePackageVersion>
     <MicrosoftAspNetCoreBlazorPackageVersion>3.2.0-preview1.20073.1</MicrosoftAspNetCoreBlazorPackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>

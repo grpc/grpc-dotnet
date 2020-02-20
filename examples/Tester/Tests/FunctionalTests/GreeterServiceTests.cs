@@ -99,7 +99,6 @@ namespace Tests.FunctionalTests
         }
 
         [Test]
-        [Ignore("Bidirectional streaming is currently not supported in TestServer: https://github.com/aspnet/AspNetCore/pull/15591")]
         public async Task SayHelloBidirectionStreamingTest()
         {
             // Arrange
@@ -123,7 +122,7 @@ namespace Tests.FunctionalTests
             }
 
             // Assert
-            Assert.AreEqual(1, messages.Count);
+            Assert.AreEqual(3, messages.Count);
             Assert.AreEqual("Hello James", messages[0]);
         }
     }
