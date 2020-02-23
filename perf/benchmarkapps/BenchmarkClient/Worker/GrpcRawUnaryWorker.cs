@@ -53,7 +53,7 @@ namespace BenchmarkClient.Worker
         {
             var message = new SimpleRequest
             {
-                ResponseSize = 10
+                ResponseSize = 1024*1024
             };
 
             var messageSize = message.CalculateSize();
