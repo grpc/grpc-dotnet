@@ -39,7 +39,7 @@ namespace BenchmarkClient.Worker
 
         public async Task CallAsync()
         {
-            var call = _client!.UnaryCallAsync(new SimpleRequest { ResponseSize = 1024 * 1024 });
+            var call = _client!.UnaryCallAsync(MessageHelpers.CreateRequestMessage());
             await call.ResponseAsync;
         }
 

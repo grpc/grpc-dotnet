@@ -39,7 +39,7 @@ namespace BenchmarkClient.Worker
             Id = id;
             _channelFactory = channelFactory;
             _deadline = deadline;
-            _request = new SimpleRequest();
+            _request = MessageHelpers.CreateRequestMessage();
         }
 
         public int Id { get; }

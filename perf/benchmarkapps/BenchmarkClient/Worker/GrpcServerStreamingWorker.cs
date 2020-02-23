@@ -65,7 +65,7 @@ namespace BenchmarkClient.Worker
             _client = new BenchmarkService.BenchmarkServiceClient(_channel);
 
             var options = new CallOptions(deadline: _deadline, cancellationToken: _cts.Token);
-            _call = _client.StreamingFromServer(new SimpleRequest { ResponseSize = 1024 * 1024 }, options);
+            _call = _client.StreamingFromServer(MessageHelpers.CreateRequestMessage(), options);
         }
 
         public async Task DisconnectAsync()

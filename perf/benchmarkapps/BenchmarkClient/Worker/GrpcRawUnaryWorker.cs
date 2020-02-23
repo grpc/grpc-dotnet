@@ -51,10 +51,7 @@ namespace BenchmarkClient.Worker
 
         public async Task CallAsync()
         {
-            var message = new SimpleRequest
-            {
-                ResponseSize = 1024*1024
-            };
+            var message = MessageHelpers.CreateRequestMessage();
 
             var messageSize = message.CalculateSize();
             var messageBytes = new byte[messageSize];
