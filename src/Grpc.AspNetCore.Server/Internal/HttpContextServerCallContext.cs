@@ -180,14 +180,14 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             // Don't update trailers if request has exceeded deadline/aborted
-            if (!CancellationToken.IsCancellationRequested)
+            if (DeadlineManager == null || !DeadlineManager.CallComplete)
             {
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            LogCallEnd();
+            DeadlineManager?.SetCallEnded();
 
-            DeadlineManager?.SetCallComplete();
+            LogCallEnd();
         }
 
         // If there is a deadline then we need to have our own cancellation token.
@@ -266,14 +266,14 @@ namespace Grpc.AspNetCore.Server.Internal
         private void EndCallCore()
         {
             // Don't set trailers if deadline exceeded or request aborted
-            if (!CancellationToken.IsCancellationRequested)
+            if (DeadlineManager == null || !DeadlineManager.CallComplete)
             {
                 HttpContext.Response.ConsolidateTrailers(this);
             }
 
-            LogCallEnd();
+            DeadlineManager?.SetCallEnded();
 
-            DeadlineManager?.SetCallComplete();
+            LogCallEnd();
         }
 
         private void LogCallEnd()
