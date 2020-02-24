@@ -5,8 +5,8 @@
     },
 
     "Source": {
-      "Repository": "https://github.com/grpc/grpc-dotnet.git",
-      "BranchOrCommit": "master",
+      "Repository": "https://github.com/JamesNK/grpc-dotnet.git",
+      "BranchOrCommit": "protobuf-buffer-benchmark",
       "Project": "perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj"
     },
     
