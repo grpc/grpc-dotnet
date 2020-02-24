@@ -608,7 +608,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
 
-            Assert.IsFalse(serverCallContext.DeadlineManager!._callComplete);
+            Assert.IsFalse(serverCallContext.DeadlineManager!.CallComplete);
 
             // Wait for dispose to finish
             syncPoint.Continue();
@@ -616,7 +616,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
 
-            Assert.IsTrue(serverCallContext.DeadlineManager!._callComplete);
+            Assert.IsTrue(serverCallContext.DeadlineManager!.CallComplete);
         }
 
         [Test]

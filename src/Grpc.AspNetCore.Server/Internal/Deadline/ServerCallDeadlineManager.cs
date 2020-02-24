@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.Server.Internal
         // Lock is to ensure deadline doesn't execute as call is completing
         internal SemaphoreSlim Lock { get; }
         // Internal for testing
-        internal bool _callComplete;
+        public bool CallComplete { get; private set; }
 
         public CancellationToken CancellationToken => _deadlineCts!.Token;
 
@@ -79,16 +79,16 @@ namespace Grpc.AspNetCore.Server.Internal
             _requestAbortedRegistration = requestAborted.Register(() =>
             {
                 // Call is complete if the request has aborted
-                _callComplete = true;
+                CallComplete = true;
                 _deadlineCts?.Cancel();
             });
         }
 
         protected abstract CancellationTokenSource CreateCancellationTokenSource(TimeSpan timeout, ISystemClock clock);
 
-        public void SetCallComplete()
+        public void SetCallEnded()
         {
-            _callComplete = true;
+            CallComplete = true;
         }
 
         protected void DeadlineExceeded()
@@ -116,6 +116,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
 
                 await ServerCallContext.DeadlineExceededAsync();
+                CallComplete = true;
             }
             finally
             {
@@ -127,7 +128,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             // Deadline callback could be raised by the CTS after call has been completed (either successfully, with error, or aborted)
             // but before deadline exceeded registration has been disposed
-            return !_callComplete;
+            return !CallComplete;
         }
 
         public ValueTask DisposeAsync()
