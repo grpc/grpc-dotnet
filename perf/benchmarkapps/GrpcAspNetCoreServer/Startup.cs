@@ -37,7 +37,11 @@ namespace GrpcAspNetCoreServer
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
+            services.AddGrpc(o =>
+            {
+                // Small performance benefits to not add catch-all routes to handle UNIMPLEMENTED for unknown services
+                o.IgnoreUnknownServices = true;
+            });
             services.AddControllers();
 
 #if CLIENT_CERTIFICATE_AUTHENTICATION

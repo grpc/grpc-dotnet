@@ -154,6 +154,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
+            // It is possible get into a situation where the response stream finishes slightly before the call.
+            // Small delay to ensure call logging is complete.
+            await Task.Delay(50);
+
             AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
         }
     }

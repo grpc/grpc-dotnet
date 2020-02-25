@@ -106,7 +106,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         {
             // Return UNIMPLEMENTED status for missing service:
             // - /{service}/{method} + content-type header = grpc/application
-            if (serviceMethodsRegistry.Methods.Count == 0)
+            if (!serverCallHandlerFactory.IgnoreUnknownServices && serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
                 CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
@@ -114,19 +114,22 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             // Return UNIMPLEMENTED status for missing method:
             // - /Package.Service/{method} + content-type header = grpc/application
-            var serviceNames = serviceMethods.Select(m => m.Method.ServiceName).Distinct();
-
-            // Typically there should be one service name for a type
-            // In case the bind method sets up multiple services in one call we'll loop over them
-            foreach (var serviceName in serviceNames)
+            if (!serverCallHandlerFactory.IgnoreUnknownMethods)
             {
-                if (serviceMethodsRegistry.Methods.Any(m => string.Equals(m.Method.ServiceName, serviceName, StringComparison.Ordinal)))
-                {
-                    // Only one unimplemented method endpoint is need for the service
-                    continue;
-                }
+                var serviceNames = serviceMethods.Select(m => m.Method.ServiceName).Distinct();
 
-                CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
+                // Typically there should be one service name for a type
+                // In case the bind method sets up multiple services in one call we'll loop over them
+                foreach (var serviceName in serviceNames)
+                {
+                    if (serviceMethodsRegistry.Methods.Any(m => string.Equals(m.Method.ServiceName, serviceName, StringComparison.Ordinal)))
+                    {
+                        // Only one unimplemented method endpoint is need for the service
+                        continue;
+                    }
+
+                    CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
+                }
             }
         }
 

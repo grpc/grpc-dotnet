@@ -60,6 +60,7 @@ namespace Grpc.AspNetCore.Server.Internal
             options.ResponseCompressionAlgorithm = _options.ResponseCompressionAlgorithm;
             options.ResponseCompressionLevel = _options.ResponseCompressionLevel;
             options.CompressionProviders = _options.CompressionProviders;
+            options.IgnoreUnknownServices = _options.IgnoreUnknownServices;
         }
     }
 }
