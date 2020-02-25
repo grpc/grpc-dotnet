@@ -112,6 +112,9 @@ namespace Grpc.AspNetCore.Server.Internal
             };
         }
 
+        public bool IgnoreUnknownServices => _globalOptions.IgnoreUnknownServices ?? false;
+        public bool IgnoreUnknownMethods => _serviceOptions.IgnoreUnknownServices ?? false;
+
         public RequestDelegate CreateUnimplementedService()
         {
             var logger = _loggerFactory.CreateLogger<ServerCallHandlerFactory<TService>>();

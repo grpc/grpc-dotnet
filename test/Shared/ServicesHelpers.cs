@@ -24,11 +24,17 @@ namespace Grpc.Tests.Shared
 {
     internal static class ServicesHelpers
     {
-        public static ServiceCollection CreateServices(Action<GrpcServiceOptions>? configureGrpc = null)
+        public static ServiceCollection CreateServices(
+            Action<GrpcServiceOptions>? configureGrpc = null,
+            Action<IGrpcServerBuilder>? configureGrpcService = null)
         {
             var services = new ServiceCollection();
+
             services.AddLogging();
-            services.AddGrpc(configureGrpc ?? (o => { }));
+
+            var serverBuilder = services.AddGrpc(configureGrpc ?? (o => { }));
+            configureGrpcService?.Invoke(serverBuilder);
+
             return services;
         }
     }
