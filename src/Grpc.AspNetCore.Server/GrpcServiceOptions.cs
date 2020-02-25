@@ -75,6 +75,12 @@ namespace Grpc.AspNetCore.Server
         }
 
         /// <summary>
+        /// Gets or sets a value indicating whether to handle unmapped gRPC calls
+        /// and return an 'UNIMPLEMENTED' status.
+        /// </summary>
+        public bool? HandleUnmappedGrpcCalls { get; set; }
+
+        /// <summary>
         /// Get a collection of interceptors to be executed with every call. Interceptors are executed in order.
         /// </summary>
         public InterceptorCollection Interceptors { get; } = new InterceptorCollection();
