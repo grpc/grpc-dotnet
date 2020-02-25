@@ -106,7 +106,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         {
             // Return UNIMPLEMENTED status for missing service:
             // - /{service}/{method} + content-type header = grpc/application
-            if (serverCallHandlerFactory.HandleUnmappedServices && serviceMethodsRegistry.Methods.Count == 0)
+            if (!serverCallHandlerFactory.IgnoreUnknownServices && serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
                 CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
@@ -114,7 +114,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
             // Return UNIMPLEMENTED status for missing method:
             // - /Package.Service/{method} + content-type header = grpc/application
-            if (serverCallHandlerFactory.HandleUnmappedMethods)
+            if (!serverCallHandlerFactory.IgnoreUnknownMethods)
             {
                 var serviceNames = serviceMethods.Select(m => m.Method.ServiceName).Distinct();
 

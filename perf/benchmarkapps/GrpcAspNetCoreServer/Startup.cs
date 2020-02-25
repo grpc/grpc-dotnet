@@ -37,7 +37,7 @@ namespace GrpcAspNetCoreServer
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddGrpc();
+            services.AddGrpc(o => o.IgnoreUnknownServices = true);
             services.AddControllers();
 
 #if CLIENT_CERTIFICATE_AUTHENTICATION

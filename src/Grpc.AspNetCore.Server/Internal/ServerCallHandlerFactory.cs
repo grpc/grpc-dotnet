@@ -112,8 +112,8 @@ namespace Grpc.AspNetCore.Server.Internal
             };
         }
 
-        public bool HandleUnmappedServices => _globalOptions.HandleUnmappedGrpcCalls ?? false;
-        public bool HandleUnmappedMethods => _globalOptions.HandleUnmappedGrpcCalls ?? false;
+        public bool IgnoreUnknownServices => _globalOptions.IgnoreUnknownServices ?? false;
+        public bool IgnoreUnknownMethods => _serviceOptions.IgnoreUnknownServices ?? false;
 
         public RequestDelegate CreateUnimplementedService()
         {

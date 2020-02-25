@@ -43,7 +43,6 @@ namespace FunctionalTestsWebsite
                 .AddGrpc(options =>
                 {
                     options.EnableDetailedErrors = true;
-                    options.HandleUnmappedGrpcCalls = true;
                 })
                 .AddServiceOptions<GreeterService>(options =>
                 {

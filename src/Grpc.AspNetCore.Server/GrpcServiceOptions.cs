@@ -75,10 +75,11 @@ namespace Grpc.AspNetCore.Server
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to handle unmapped gRPC calls
-        /// and return an 'UNIMPLEMENTED' status.
+        /// Gets or sets a value indicating whether gRPC should ignore calls to unknown services and methods.
+        /// If set to <c>true</c>, calls to unknown services and methods won't return an 'UNIMPLEMENTED' status,
+        /// and the request will pass to the next registered middleware in ASP.NET Core.
         /// </summary>
-        public bool? HandleUnmappedGrpcCalls { get; set; }
+        public bool? IgnoreUnknownServices { get; set; }
 
         /// <summary>
         /// Get a collection of interceptors to be executed with every call. Interceptors are executed in order.

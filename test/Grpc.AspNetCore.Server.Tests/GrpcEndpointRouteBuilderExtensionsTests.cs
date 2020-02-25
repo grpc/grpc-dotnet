@@ -296,6 +296,69 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("The configured response compression algorithm 'DOES_NOT_EXIST' does not have a matching compression provider.", ex.InnerException!.InnerException!.Message);
         }
 
+        [Test]
+        public void MapGrpcService_IgnoreUnknownServicesDefault_RegisterUnknownHandler()
+        {
+            // Arrange
+            var services = ServicesHelpers.CreateServices();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>();
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .ToList();
+
+            Assert.IsNotNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented service"));
+            Assert.IsNotNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented method for greet.Greeter"));
+        }
+
+        [Test]
+        public void MapGrpcService_IgnoreUnknownServicesGlobalTrue_DontRegisterUnknownHandler()
+        {
+            // Arrange
+            var services = ServicesHelpers.CreateServices(o => o.IgnoreUnknownServices = true);
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>();
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .ToList();
+
+            Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented service"));
+            Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented method for GreeterServiceWithMetadataAttributes"));
+        }
+
+        [Test]
+        public void MapGrpcService_IgnoreUnknownServicesServiceTrue_DontRegisterUnknownHandler()
+        {
+            // Arrange
+            var services = ServicesHelpers.CreateServices(configureGrpcService: o =>
+            {
+                o.AddServiceOptions<GreeterServiceWithMetadataAttributes>(o => o.IgnoreUnknownServices = true);
+            });
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+            // Act
+            routeBuilder.MapGrpcService<GreeterServiceWithMetadataAttributes>();
+
+            // Assert
+            var endpoints = routeBuilder.DataSources
+                .SelectMany(ds => ds.Endpoints)
+                .ToList();
+
+            Assert.IsNotNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented service"));
+            Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented method for GreeterServiceWithMetadataAttributes"));
+        }
+
         public IEndpointRouteBuilder CreateTestEndpointRouteBuilder(IServiceProvider serviceProvider)
         {
             return new TestEndpointRouteBuilder(serviceProvider);
