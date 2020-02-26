@@ -113,7 +113,7 @@ namespace Grpc.AspNetCore.Server.Internal
         }
 
         public bool IgnoreUnknownServices => _globalOptions.IgnoreUnknownServices ?? false;
-        public bool IgnoreUnknownMethods => _serviceOptions.IgnoreUnknownServices ?? false;
+        public bool IgnoreUnknownMethods => _serviceOptions.IgnoreUnknownServices ?? _globalOptions.IgnoreUnknownServices  ?? false;
 
         public RequestDelegate CreateUnimplementedService()
         {

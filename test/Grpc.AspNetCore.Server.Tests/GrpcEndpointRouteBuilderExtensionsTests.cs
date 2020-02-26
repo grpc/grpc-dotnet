@@ -333,7 +333,9 @@ namespace Grpc.AspNetCore.Server.Tests
                 .ToList();
 
             Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented service"));
-            Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented method for GreeterServiceWithMetadataAttributes"));
+            Assert.IsNull(endpoints.SingleOrDefault(e => e.DisplayName == "gRPC - Unimplemented method for greet.Greeter"));
+
+            Assert.AreEqual(0, endpoints.Count(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() == null));
         }
 
         [Test]
