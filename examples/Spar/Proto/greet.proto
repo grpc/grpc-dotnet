@@ -21,6 +21,11 @@ service Greeter {
   // Sends a greeting
   rpc SayHello (HelloRequest) returns (HelloReply);
   rpc SayHellos (HelloRequest) returns (stream HelloReply);
+
+  // Error handling
+  rpc SayHelloServerException (HelloRequest) returns (HelloReply);
+  rpc SayHelloPermissionDenied (HelloRequest) returns (HelloReply);
+  rpc SayHelloPermissionDeniedNullResponse (HelloRequest) returns (HelloReply);
 }
 
 // The request message containing the user's name.

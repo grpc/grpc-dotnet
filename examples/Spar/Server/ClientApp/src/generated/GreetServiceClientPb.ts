@@ -73,5 +73,71 @@ export class GreeterClient {
       this.methodInfoSayHellos);
   }
 
+  methodInfoSayHelloServerException = new grpcWeb.AbstractClientBase.MethodInfo(
+    HelloReply,
+    (request: HelloRequest) => {
+      return request.serializeBinary();
+    },
+    HelloReply.deserializeBinary
+  );
+
+  sayHelloServerException(
+    request: HelloRequest,
+    metadata: grpcWeb.Metadata | null,
+    callback: (err: grpcWeb.Error,
+               response: HelloReply) => void) {
+    return this.client_.rpcCall(
+      this.hostname_ +
+        '/greet.Greeter/SayHelloServerException',
+      request,
+      metadata || {},
+      this.methodInfoSayHelloServerException,
+      callback);
+  }
+
+  methodInfoSayHelloPermissionDenied = new grpcWeb.AbstractClientBase.MethodInfo(
+    HelloReply,
+    (request: HelloRequest) => {
+      return request.serializeBinary();
+    },
+    HelloReply.deserializeBinary
+  );
+
+  sayHelloPermissionDenied(
+    request: HelloRequest,
+    metadata: grpcWeb.Metadata | null,
+    callback: (err: grpcWeb.Error,
+               response: HelloReply) => void) {
+    return this.client_.rpcCall(
+      this.hostname_ +
+        '/greet.Greeter/SayHelloPermissionDenied',
+      request,
+      metadata || {},
+      this.methodInfoSayHelloPermissionDenied,
+      callback);
+  }
+
+  methodInfoSayHelloPermissionDeniedNullResponse = new grpcWeb.AbstractClientBase.MethodInfo(
+    HelloReply,
+    (request: HelloRequest) => {
+      return request.serializeBinary();
+    },
+    HelloReply.deserializeBinary
+  );
+
+  sayHelloPermissionDeniedNullResponse(
+    request: HelloRequest,
+    metadata: grpcWeb.Metadata | null,
+    callback: (err: grpcWeb.Error,
+               response: HelloReply) => void) {
+    return this.client_.rpcCall(
+      this.hostname_ +
+        '/greet.Greeter/SayHelloPermissionDeniedNullResponse',
+      request,
+      metadata || {},
+      this.methodInfoSayHelloPermissionDeniedNullResponse,
+      callback);
+  }
+
 }
 

@@ -9,23 +9,50 @@
       </select>
       <span>Hello:</span>
       <input type="text" v-model="name" />
-      <input type="button" value="Send unary" @click="sendUnary()" />
-      <input
-        type="button"
-        v-show="!streamingCall"
-        value="Start server stream"
-        @click="sendServerStream()"
-      />
-      <input
-        type="button"
-        v-show="streamingCall"
-        value="Stop server stream"
-        @click="stopServerStream()"
-      />
+      <p>
+        <input type="button" value="Send unary" @click="sendUnary()" />
+      </p>
+      <p>
+        <input
+          type="button"
+          v-show="!streamingCall"
+          value="Start server stream"
+          @click="sendServerStream()"
+        />
+        <input
+          type="button"
+          v-show="streamingCall"
+          value="Stop server stream"
+          @click="stopServerStream()"
+        />
+      </p>
+      <p>
+        <input
+          type="button"
+          value="Send unary on server exception"
+          @click="sendUnaryServerException()"
+        />
+      </p>
+      <p>
+        <input
+          type="button"
+          value="Send unary on permission denied"
+          @click="sendUnaryPermissionDenied()"
+        />
+      </p>
+      <p>
+        <input
+          type="button"
+          value="Send unary on permission denied and null response"
+          @click="sendUnaryPermissionDeniedNullResponse()"
+        />
+      </p>
     </div>
     <div>
       <h4>Unary response:</h4>
       <p>{{result}}</p>
+      <h4>Unary errors:</h4>
+      <p>{{error}}</p>
       <h4>Stream responses:</h4>
       <p v-for="item in streamResults" :key="item">{{item}}</p>
     </div>
@@ -34,7 +61,8 @@
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import { GreeterClient, HelloRequest } from "./generated/greet_grpc_web_pb";
+import { GreeterClient } from "./generated/GreetServiceClientPb";
+import { HelloRequest } from "./generated/greet_pb";
 
 function getDifferentOrigin() {
   const schema = window.location.protocol as "http:" | "https:";
@@ -69,6 +97,7 @@ export default class GrpcWebDemo extends Vue {
   cors: "same" | "different" = "same";
   name = "";
   result = "";
+  error = "";
   streamResults: string[] = [];
   streamingCall: any = null;
 
@@ -80,6 +109,37 @@ export default class GrpcWebDemo extends Vue {
     this.client.sayHello(request, {}, (err, response) => {
       this.result = response.getMessage();
     });
+  }
+
+  sendUnaryServerException() {
+    this.error = "";
+    const request = new HelloRequest();
+    request.setName(this.name);
+    this.client.sayHelloServerException(request, {}, (err, response) => {
+      this.error = JSON.stringify(err);
+    });
+  }
+
+  sendUnaryPermissionDenied() {
+    this.error = "";
+    const request = new HelloRequest();
+    request.setName(this.name);
+    this.client.sayHelloPermissionDenied(request, {}, (err, response) => {
+      this.error = JSON.stringify(err);
+    });
+  }
+
+  sendUnaryPermissionDeniedNullResponse() {
+    this.error = "";
+    const request = new HelloRequest();
+    request.setName(this.name);
+    this.client.sayHelloPermissionDeniedNullResponse(
+      request,
+      {},
+      (err, response) => {
+        this.error = JSON.stringify(err);
+      }
+    );
   }
 
   sendServerStream() {

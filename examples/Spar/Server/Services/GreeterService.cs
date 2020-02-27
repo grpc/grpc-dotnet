@@ -40,5 +40,26 @@ namespace Server.Services
                 i++;
             }
         }
+
+        public override Task<HelloReply> SayHelloServerException(HelloRequest request, ServerCallContext context)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override Task<HelloReply> SayHelloPermissionDenied(HelloRequest request, ServerCallContext context)
+        {
+            context.Status = new Status(StatusCode.PermissionDenied, "Permission denied");
+            return SayHello(request, context);
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        public override async Task<HelloReply> SayHelloPermissionDeniedNullResponse(HelloRequest request, ServerCallContext context)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            context.Status = new Status(StatusCode.PermissionDenied, "Permission denied");
+#pragma warning disable CS8603 // Possible null reference return.
+            return null;
+#pragma warning restore CS8603 // Possible null reference return.
+        }
     }
 }
