@@ -122,7 +122,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 await tcs.Task.DefaultTimeout();
 
-                throw new Exception("Error!");
+                throw new Exception("Error!", new Exception("Nested error!"));
             }
 
             // Arrange
@@ -153,7 +153,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync.DefaultTimeout()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
-            Assert.AreEqual("Exception was thrown by handler. Exception: Error!", ex.Status.Detail);                
+            Assert.AreEqual("Exception was thrown by handler. Exception: Error! Exception: Nested error!", ex.Status.Detail);                
 
             // Assert - Call complete
             await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>

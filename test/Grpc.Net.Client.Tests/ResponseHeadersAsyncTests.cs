@@ -155,7 +155,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
-            Assert.AreEqual("Error starting gRPC call: An error!", ex.Status.Detail);
+            Assert.AreEqual("Error starting gRPC call. Exception: An error!", ex.Status.Detail);
             Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         }
 
