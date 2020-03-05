@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Text;
 using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
