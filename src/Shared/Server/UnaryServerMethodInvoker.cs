@@ -112,7 +112,10 @@ namespace Grpc.Shared.Server
                         var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
                         if (!releaseTask.IsCompletedSuccessfully)
                         {
-                            return AwaitServiceReleaseAndThrow(releaseTask, ExceptionDispatchInfo.Capture(ex));
+                            // Capture the current exception state so we can rethrow it after awaiting
+                            // with the same stack trace.
+                            var exceptionDispatchInfo = ExceptionDispatchInfo.Capture(ex);
+                            return AwaitServiceReleaseAndThrow(releaseTask, exceptionDispatchInfo);
                         }
                     }
 
