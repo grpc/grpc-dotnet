@@ -572,38 +572,11 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                // RpcException doesn't allow for an inner exception. To ensure the user is getting enough information about the
-                // error we will concatenate any inner exception messages together.
-                var exceptionMessage = ex.InnerException == null ? $"{ex.GetType().Name}: {ex.Message}" : BuildErrorMessage(ex);
+                var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
 
-                status = new Status(StatusCode.Internal, "Error starting gRPC call. " + exceptionMessage);
+                status = new Status(StatusCode.Internal, "Error starting gRPC call. " +  exceptionMessage);
                 resolvedException = CreateRpcException(status.Value);
             }
-        }
-
-        private static string BuildErrorMessage(Exception ex)
-        {
-            // Concatenate inner exceptions messages together.
-            var sb = new StringBuilder();
-            var first = true;
-            Exception? current = ex;
-            do
-            {
-                if (!first)
-                {
-                    sb.Append(" ");
-                }
-                else
-                {
-                    first = false;
-                }
-                sb.Append(current.GetType().Name);
-                sb.Append(": ");
-                sb.Append(current.Message);
-            }
-            while ((current = current.InnerException) != null);
-
-            return sb.ToString();
         }
 
         private void SetFailedResult(Status status)

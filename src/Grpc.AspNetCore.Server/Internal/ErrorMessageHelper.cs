@@ -18,6 +18,7 @@
 
 using System;
 using System.Text;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -27,39 +28,10 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (includeExceptionDetails ?? false)
             {
-                var exceptionDetails = (exception.InnerException == null)
-                    ? $"{exception.GetType().Name}: {exception.Message}"
-                    : BuildErrorMessage(exception);
-
-                return message + " " + exceptionDetails;
+                return message + " " + CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(exception);
             }
 
             return message;
-        }
-
-        private static string BuildErrorMessage(Exception ex)
-        {
-            // Concatenate inner exceptions messages together.
-            var sb = new StringBuilder();
-            var first = true;
-            Exception? current = ex;
-            do
-            {
-                if (!first)
-                {
-                    sb.Append(" ");
-                }
-                else
-                {
-                    first = false;
-                }
-                sb.Append(current.GetType().Name);
-                sb.Append(": ");
-                sb.Append(current.Message);
-            }
-            while ((current = current.InnerException) != null);
-
-            return sb.ToString();
         }
     }
 }
