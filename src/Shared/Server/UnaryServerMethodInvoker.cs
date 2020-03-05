@@ -16,6 +16,8 @@
 
 #endregion
 
+using System;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
@@ -86,33 +88,86 @@ namespace Grpc.Shared.Server
         /// <param name="request">The <typeparamref name="TRequest"/> message.</param>
         /// <returns>A <see cref="Task{TResponse}"/> that represents the asynchronous method. The <see cref="Task{TResponse}.Result"/>
         /// property returns the <typeparamref name="TResponse"/> message.</returns>
-        public async Task<TResponse> Invoke(HttpContext httpContext, ServerCallContext serverCallContext, TRequest request)
+        public Task<TResponse> Invoke(HttpContext httpContext, ServerCallContext serverCallContext, TRequest request)
         {
             if (_pipelineInvoker == null)
             {
                 GrpcActivatorHandle<TService> serviceHandle = default;
+                Task<TResponse>? invokerTask = null;
                 try
                 {
                     serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
-                    return await _invoker(
+                    invokerTask = _invoker(
                         serviceHandle.Instance,
                         request,
                         serverCallContext);
                 }
-                finally
+                catch (Exception ex)
                 {
+                    // Invoker calls user code and instead of returning a faulted task
+                    // it may directly throw an exception. Catch and handle converting the
+                    // exception into a task.
                     if (serviceHandle.Instance != null)
                     {
-                        await ServiceActivator.ReleaseAsync(serviceHandle);
+                        var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
+                        if (!releaseTask.IsCompletedSuccessfully)
+                        {
+                            return AwaitServiceReleaseAndThrow(serviceHandle, ex);
+                        }
                     }
+
+                    return Task.FromException<TResponse>(ex);
                 }
+
+                if (invokerTask.IsCompletedSuccessfully && serviceHandle.Instance != null)
+                {
+                    var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
+                    if (!releaseTask.IsCompletedSuccessfully)
+                    {
+                        return AwaitServiceReleaseAndReturn(serviceHandle, invokerTask.Result);
+                    }
+
+                    return invokerTask;
+                }
+
+                return AwaitInvoker(serviceHandle, invokerTask);
             }
             else
             {
-                return await _pipelineInvoker(
+                return _pipelineInvoker(
                     request,
                     serverCallContext);
             }
+        }
+
+        private async Task<TResponse> AwaitInvoker(GrpcActivatorHandle<TService> serviceHandle, Task<TResponse> invokerTask)
+        {
+            try
+            {
+                return await invokerTask;
+            }
+            finally
+            {
+                if (serviceHandle.Instance != null)
+                {
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
+                }
+            }
+        }
+
+        private async Task<TResponse> AwaitServiceReleaseAndThrow(GrpcActivatorHandle<TService> serviceHandle, Exception ex)
+        {
+            await ServiceActivator.ReleaseAsync(serviceHandle);
+            ExceptionDispatchInfo.Capture(ex).Throw();
+            
+            // Should never reach here
+            return null;
+        }
+
+        private async Task<TResponse> AwaitServiceReleaseAndReturn(GrpcActivatorHandle<TService> serviceHandle, TResponse invokerResult)
+        {
+            await ServiceActivator.ReleaseAsync(serviceHandle);
+            return invokerResult;
         }
     }
 }
