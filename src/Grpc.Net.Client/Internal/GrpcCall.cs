@@ -571,7 +571,9 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                status = new Status(StatusCode.Internal, "Error starting gRPC call: " + ex.Message);
+                var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
+
+                status = new Status(StatusCode.Internal, "Error starting gRPC call. " +  exceptionMessage);
                 resolvedException = CreateRpcException(status.Value);
             }
         }

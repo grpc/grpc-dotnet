@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -26,7 +27,7 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (includeExceptionDetails ?? false)
             {
-                return $"{message} {exception.GetType().Name}: {exception.Message}";
+                return message + " " + CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(exception);
             }
 
             return message;

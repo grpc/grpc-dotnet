@@ -137,7 +137,27 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
-            Assert.AreEqual("Error starting gRPC call: An error!", ex.Status.Detail);
+            Assert.AreEqual("Error starting gRPC call. Exception: An error!", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_ErrorSendingRequest_ThrowsErrorWithInnerExceptionDetail()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromException<HttpResponseMessage>(new Exception("An error!", new Exception("Nested error!")));
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+            Assert.AreEqual("Error starting gRPC call. Exception: An error! Exception: Nested error!", ex.Status.Detail);
             Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         }
 
