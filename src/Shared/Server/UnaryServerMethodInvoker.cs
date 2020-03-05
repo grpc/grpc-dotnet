@@ -104,15 +104,15 @@ namespace Grpc.Shared.Server
                 }
                 catch (Exception ex)
                 {
-                    // Invoker calls user code and instead of returning a faulted task
-                    // it may directly throw an exception. Catch and handle converting the
-                    // exception into a task.
+                    // Invoker calls user code. User code may throw an exception instead
+                    // of a faulted task. We need to catch the exception, ensure cleanup
+                    // runs and convert exception into a faulted task.
                     if (serviceHandle.Instance != null)
                     {
                         var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
                         if (!releaseTask.IsCompletedSuccessfully)
                         {
-                            return AwaitServiceReleaseAndThrow(serviceHandle, ex);
+                            return AwaitServiceReleaseAndThrow(releaseTask, ExceptionDispatchInfo.Capture(ex));
                         }
                     }
 
@@ -124,13 +124,13 @@ namespace Grpc.Shared.Server
                     var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
                     if (!releaseTask.IsCompletedSuccessfully)
                     {
-                        return AwaitServiceReleaseAndReturn(serviceHandle, invokerTask.Result);
+                        return AwaitServiceReleaseAndReturn(invokerTask.Result, serviceHandle);
                     }
 
                     return invokerTask;
                 }
 
-                return AwaitInvoker(serviceHandle, invokerTask);
+                return AwaitInvoker(invokerTask, serviceHandle);
             }
             else
             {
@@ -140,7 +140,7 @@ namespace Grpc.Shared.Server
             }
         }
 
-        private async Task<TResponse> AwaitInvoker(GrpcActivatorHandle<TService> serviceHandle, Task<TResponse> invokerTask)
+        private async Task<TResponse> AwaitInvoker(Task<TResponse> invokerTask, GrpcActivatorHandle<TService> serviceHandle)
         {
             try
             {
@@ -155,16 +155,16 @@ namespace Grpc.Shared.Server
             }
         }
 
-        private async Task<TResponse> AwaitServiceReleaseAndThrow(GrpcActivatorHandle<TService> serviceHandle, Exception ex)
+        private async Task<TResponse> AwaitServiceReleaseAndThrow(ValueTask releaseTask, ExceptionDispatchInfo ex)
         {
-            await ServiceActivator.ReleaseAsync(serviceHandle);
-            ExceptionDispatchInfo.Capture(ex).Throw();
+            await releaseTask;
+            ex.Throw();
             
             // Should never reach here
             return null;
         }
 
-        private async Task<TResponse> AwaitServiceReleaseAndReturn(GrpcActivatorHandle<TService> serviceHandle, TResponse invokerResult)
+        private async Task<TResponse> AwaitServiceReleaseAndReturn(TResponse invokerResult, GrpcActivatorHandle<TService> serviceHandle)
         {
             await ServiceActivator.ReleaseAsync(serviceHandle);
             return invokerResult;
