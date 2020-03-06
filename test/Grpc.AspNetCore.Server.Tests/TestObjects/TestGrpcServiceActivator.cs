@@ -23,6 +23,8 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
     internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class, new()
     {
+        public bool Released { get; private set; }
+
         public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
         {
             return new GrpcActivatorHandle<TGrpcService>(new TGrpcService(), false, null);
@@ -30,6 +32,7 @@ namespace Grpc.AspNetCore.Server.Tests.TestObjects
 
         public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
         {
+            Released = true;
             return default;
         }
     }
