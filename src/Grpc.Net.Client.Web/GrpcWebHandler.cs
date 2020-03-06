@@ -113,22 +113,26 @@ namespace Grpc.Net.Client.Web
             request.Content = new GrpcWebRequestContent(request.Content, _mode);
             if (_httpVersion != null)
             {
+                // This doesn't guarantee that the specified version is used. Some handlers will ignore it.
+                // For example, version in the browser always negotiated by the browser and HttpClient
+                // uses what the browser has negotiated.
                 request.Version = _httpVersion;
             }
 
             var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-            if (_httpVersion != null)
-            {
-                // If a HTTP version has been specified then we need to reset it back to 2.0.
-                // The gRPC client validates HTTP version 2.0.
-                response.Version = HttpVersion.Version20;
-            }
-
             if (IsMatchingResponseContentType(_mode, response.Content.Headers.ContentType?.MediaType))
             {
                 response.Content = new GrpcWebResponseContent(response.Content, _mode, response.TrailingHeaders);
             }
+
+            // The gRPC client validates HTTP version 2.0 and will error if it isn't. Always set
+            // the version to 2.0, even for non-gRPC content type. The client maps HTTP status codes
+            // to gRPC statuses, e.g. HTTP 404 -> gRPC unimplemented.
+            //
+            // Note: Some handlers don't correctly set HttpResponseMessage.Version.
+            // We can't rely on it being set correctly. It is safest to always set it to 2.0.
+            response.Version = HttpVersion.Version20;
 
             return response;
         }
