@@ -42,6 +42,7 @@ namespace GrpcAspNetCoreServer
                 // Small performance benefits to not add catch-all routes to handle UNIMPLEMENTED for unknown services
                 o.IgnoreUnknownServices = true;
             });
+            services.AddSingleton<BenchmarkServiceImpl>();
             services.AddControllers();
 
 #if CLIENT_CERTIFICATE_AUTHENTICATION
@@ -74,6 +75,8 @@ namespace GrpcAspNetCoreServer
 #if GRPC_WEB
             app.UseGrpcWeb();
 #endif
+
+            app.UseMiddleware<ServiceProvidersMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {
