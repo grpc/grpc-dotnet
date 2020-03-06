@@ -71,7 +71,6 @@ namespace Grpc.AspNetCore.Server.Tests
             var task = invoker.Invoke(httpContext, HttpContextServerCallContextHelper.CreateServerCallContext(), new TestMessage());
             Assert.False(task.IsCompleted);
 
-            //await Task.Delay(1000);
             releaseTcs.SetResult(null);
 
             try
