@@ -16,6 +16,8 @@
 
 #endregion
 
+using System;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Model;
@@ -86,33 +88,89 @@ namespace Grpc.Shared.Server
         /// <param name="request">The <typeparamref name="TRequest"/> message.</param>
         /// <returns>A <see cref="Task{TResponse}"/> that represents the asynchronous method. The <see cref="Task{TResponse}.Result"/>
         /// property returns the <typeparamref name="TResponse"/> message.</returns>
-        public async Task<TResponse> Invoke(HttpContext httpContext, ServerCallContext serverCallContext, TRequest request)
+        public Task<TResponse> Invoke(HttpContext httpContext, ServerCallContext serverCallContext, TRequest request)
         {
             if (_pipelineInvoker == null)
             {
                 GrpcActivatorHandle<TService> serviceHandle = default;
+                Task<TResponse>? invokerTask = null;
                 try
                 {
                     serviceHandle = ServiceActivator.Create(httpContext.RequestServices);
-                    return await _invoker(
+                    invokerTask = _invoker(
                         serviceHandle.Instance,
                         request,
                         serverCallContext);
                 }
-                finally
+                catch (Exception ex)
                 {
+                    // Invoker calls user code. User code may throw an exception instead
+                    // of a faulted task. We need to catch the exception, ensure cleanup
+                    // runs and convert exception into a faulted task.
                     if (serviceHandle.Instance != null)
                     {
-                        await ServiceActivator.ReleaseAsync(serviceHandle);
+                        var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
+                        if (!releaseTask.IsCompletedSuccessfully)
+                        {
+                            // Capture the current exception state so we can rethrow it after awaiting
+                            // with the same stack trace.
+                            var exceptionDispatchInfo = ExceptionDispatchInfo.Capture(ex);
+                            return AwaitServiceReleaseAndThrow(releaseTask, exceptionDispatchInfo);
+                        }
                     }
+
+                    return Task.FromException<TResponse>(ex);
                 }
+
+                if (invokerTask.IsCompletedSuccessfully && serviceHandle.Instance != null)
+                {
+                    var releaseTask = ServiceActivator.ReleaseAsync(serviceHandle);
+                    if (!releaseTask.IsCompletedSuccessfully)
+                    {
+                        return AwaitServiceReleaseAndReturn(invokerTask.Result, serviceHandle);
+                    }
+
+                    return invokerTask;
+                }
+
+                return AwaitInvoker(invokerTask, serviceHandle);
             }
             else
             {
-                return await _pipelineInvoker(
+                return _pipelineInvoker(
                     request,
                     serverCallContext);
             }
+        }
+
+        private async Task<TResponse> AwaitInvoker(Task<TResponse> invokerTask, GrpcActivatorHandle<TService> serviceHandle)
+        {
+            try
+            {
+                return await invokerTask;
+            }
+            finally
+            {
+                if (serviceHandle.Instance != null)
+                {
+                    await ServiceActivator.ReleaseAsync(serviceHandle);
+                }
+            }
+        }
+
+        private async Task<TResponse> AwaitServiceReleaseAndThrow(ValueTask releaseTask, ExceptionDispatchInfo ex)
+        {
+            await releaseTask;
+            ex.Throw();
+            
+            // Should never reach here
+            return null;
+        }
+
+        private async Task<TResponse> AwaitServiceReleaseAndReturn(TResponse invokerResult, GrpcActivatorHandle<TService> serviceHandle)
+        {
+            await ServiceActivator.ReleaseAsync(serviceHandle);
+            return invokerResult;
         }
     }
 }
