@@ -42,9 +42,10 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 
     public override async Task StreamingFromServer(SimpleRequest request, IServerStreamWriter<SimpleResponse> responseStream, ServerCallContext context)
     {
+        var response = CreateResponse(request);
         while (!context.CancellationToken.IsCancellationRequested)
         {
-            await responseStream.WriteAsync(CreateResponse(request));
+            await responseStream.WriteAsync(response);
         }
     }
 
