@@ -26,7 +26,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.ClientFactory
+namespace Grpc.AspNetCore.ClientFactory
 {
     /// <summary>
     /// Interceptor that will set the current request's cancellation token and deadline onto CallOptions.

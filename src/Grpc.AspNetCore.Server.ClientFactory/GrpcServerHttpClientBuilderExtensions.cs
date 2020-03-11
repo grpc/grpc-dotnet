@@ -18,7 +18,6 @@
 
 using System;
 using Grpc.AspNetCore.ClientFactory;
-using Grpc.AspNetCore.Server.ClientFactory;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
