@@ -19,7 +19,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using Grpc.AspNetCore.ClientFactory;
+using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
