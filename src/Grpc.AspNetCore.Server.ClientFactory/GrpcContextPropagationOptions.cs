@@ -16,11 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using System.IO.Compression;
-using Grpc.Core;
-using Grpc.Net.Compression;
-
 namespace Grpc.AspNetCore.ClientFactory
 {
     /// <summary>
