@@ -67,7 +67,10 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 
     public override async Task StreamingBothWays(IAsyncStreamReader<SimpleRequest> requestStream, IServerStreamWriter<SimpleResponse> responseStream, ServerCallContext context)
     {
-        var messageData = ByteString.CopyFrom(new byte[100]);
+        var response = new SimpleResponse
+        {
+            Payload = new Payload { Body = ByteString.CopyFrom(new byte[100]) }
+        };
         var clientComplete = false;
 
         var readTask = Task.Run(async () =>
@@ -83,10 +86,7 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
         // Write outgoing messages until client is complete
         while (!clientComplete)
         {
-            await responseStream.WriteAsync(new SimpleResponse
-            {
-                Payload = new Payload { Body = messageData }
-            });
+            await responseStream.WriteAsync(response);
         }
 
         await readTask;
