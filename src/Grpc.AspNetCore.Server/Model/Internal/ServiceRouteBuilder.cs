@@ -175,13 +175,13 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         private static class Log
         {
             private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _addedServiceMethod =
-                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Debug, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Trace, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
 
             private static readonly Action<ILogger, Type, Exception?> _discoveringServiceMethods =
-                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
+                LoggerMessage.Define<Type>(LogLevel.Trace, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
 
             private static readonly Action<ILogger, Type, Exception?> _noServiceMethodsDiscovered =
-                LoggerMessage.Define<Type>(LogLevel.Warning, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
+                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
 
             public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
             {
