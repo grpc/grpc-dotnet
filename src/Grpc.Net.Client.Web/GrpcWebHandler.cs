@@ -64,6 +64,21 @@ namespace Grpc.Net.Client.Web
         /// <summary>
         /// Creates a new instance of <see cref="GrpcWebHandler"/>.
         /// </summary>
+        public GrpcWebHandler()
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="GrpcWebHandler"/>.
+        /// </summary>
+        /// <param name="innerHandler">The inner handler which is responsible for processing the HTTP response messages.</param>
+        public GrpcWebHandler(HttpMessageHandler innerHandler) : base(innerHandler)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="GrpcWebHandler"/>.
+        /// </summary>
         /// <param name="mode">The gRPC-Web mode to use when making gRPC-Web calls.</param>
         public GrpcWebHandler(GrpcWebMode mode)
         {
