@@ -176,7 +176,10 @@ namespace InteropTestsClient
             if (options.GrpcWebMode != null)
             {
                 var mode = Enum.Parse<GrpcWebMode>(options.GrpcWebMode);
-                httpMessageHandler = new GrpcWebHandler(mode, new Version(1, 1), httpClientHandler);
+                httpMessageHandler = new GrpcWebHandler(mode, httpClientHandler)
+                {
+                    HttpVersion = new Version(1, 1)
+                };
             }
             else
             {
