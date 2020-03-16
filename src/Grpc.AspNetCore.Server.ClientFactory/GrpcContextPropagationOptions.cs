@@ -24,14 +24,25 @@ namespace Grpc.AspNetCore.ClientFactory
     public class GrpcContextPropagationOptions
     {
         /// <summary>
-        /// Gets or sets a value that determintes if context not found errors are suppressed.
+        /// Gets or sets a value that determines if context not found errors are suppressed.
         /// <para>
         /// When <see langword="false"/>, the client will thrown an error if it is unable to
-        /// find a call context when attempting to propagate values to a gRPC call.
+        /// find a call context when propagating values to a gRPC call.
         /// Otherwise, the error is suppressed and the gRPC call will be made without context
         /// propagation.
         /// </para>
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Call context propagation will error by default if propagation can't happen because
+        /// the call context wasn't found. This typically happens when the client is used
+        /// outside the context of an executing gRPC service.
+        /// </para>
+        /// <para>
+        /// Suppressing context not found errors allows a client with propagation enabled to be
+        /// used outside the context of executing gRPC services.
+        /// </para>
+        /// </remarks>
         /// <value>The default value is <see langword="false"/>.</value>
         public bool SuppressContextNotFoundErrors { get; set; }
     }
