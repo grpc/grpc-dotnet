@@ -17,7 +17,7 @@
 #endregion
 
 using System;
-using Grpc.AspNetCore.Server.ClientFactory;
+using Grpc.AspNetCore.ClientFactory;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -56,6 +56,24 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             return builder;
+        }
+
+        /// <summary>
+        /// Configures the server to propagate values from a call's <see cref="ServerCallContext"/>
+        /// onto the gRPC client.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="configureOptions">An <see cref="Action{GrpcContextPropagationOptions}"/> to configure the provided <see cref="GrpcContextPropagationOptions"/>.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder, Action<GrpcContextPropagationOptions> configureOptions)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            builder.Services.Configure(configureOptions);
+            return builder.EnableCallContextPropagation();
         }
 
         private static void ValidateGrpcClient(IHttpClientBuilder builder)

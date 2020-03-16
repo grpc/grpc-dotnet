@@ -17,12 +17,16 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
+using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.ClientFactory
+namespace Grpc.AspNetCore.ClientFactory
 {
     /// <summary>
     /// Interceptor that will set the current request's cancellation token and deadline onto CallOptions.
@@ -31,11 +35,15 @@ namespace Grpc.AspNetCore.Server.ClientFactory
     /// </summary>
     internal class ContextPropagationInterceptor : Interceptor
     {
+        private readonly GrpcContextPropagationOptions _options;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger _logger;
 
-        public ContextPropagationInterceptor(IHttpContextAccessor httpContextAccessor)
+        public ContextPropagationInterceptor(IOptions<GrpcContextPropagationOptions> options, IHttpContextAccessor httpContextAccessor, ILogger<ContextPropagationInterceptor> logger)
         {
+            _options = options.Value;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncClientStreamingCallContinuation<TRequest, TResponse> continuation)
@@ -126,47 +134,73 @@ namespace Grpc.AspNetCore.Server.ClientFactory
             linkedCts = null;
 
             var options = context.Options;
-            var serverCallContext = GetServerCallContext();
-
-            // Use propagated deadline if it is smaller than the specified deadline
-            if (serverCallContext.Deadline < context.Options.Deadline.GetValueOrDefault(DateTime.MaxValue))
+            if (TryGetServerCallContext(out var serverCallContext, out var errorMessage))
             {
-                options = options.WithDeadline(serverCallContext.Deadline);
-            }
-
-            if (serverCallContext.CancellationToken.CanBeCanceled)
-            {
-                if (options.CancellationToken.CanBeCanceled)
+                // Use propagated deadline if it is smaller than the specified deadline
+                if (serverCallContext.Deadline < context.Options.Deadline.GetValueOrDefault(DateTime.MaxValue))
                 {
-                    // If both propagated and options cancellation token can be canceled
-                    // then set a new linked token of both
-                    linkedCts = CancellationTokenSource.CreateLinkedTokenSource(serverCallContext.CancellationToken, options.CancellationToken);
-                    options = options.WithCancellationToken(linkedCts.Token);
+                    options = options.WithDeadline(serverCallContext.Deadline);
                 }
-                else
+
+                if (serverCallContext.CancellationToken.CanBeCanceled)
                 {
-                    options = options.WithCancellationToken(serverCallContext.CancellationToken);
+                    if (options.CancellationToken.CanBeCanceled)
+                    {
+                        // If both propagated and options cancellation token can be canceled
+                        // then set a new linked token of both
+                        linkedCts = CancellationTokenSource.CreateLinkedTokenSource(serverCallContext.CancellationToken, options.CancellationToken);
+                        options = options.WithCancellationToken(linkedCts.Token);
+                    }
+                    else
+                    {
+                        options = options.WithCancellationToken(serverCallContext.CancellationToken);
+                    }
+                }
+            }
+            else
+            {
+                Log.PropagateServerCallContextFailure(_logger, errorMessage);
+
+                if (!_options.SuppressContextNotFoundErrors)
+                {
+                    throw new InvalidOperationException("Unable to propagate server context values to the call. " + errorMessage);
                 }
             }
 
             return new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, options);
         }
 
-        private ServerCallContext GetServerCallContext()
+        private bool TryGetServerCallContext([NotNullWhen(true)]out ServerCallContext? serverCallContext, [NotNullWhen(false)]out string? errorMessage)
         {
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)
             {
-                throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current HttpContext.");
+                errorMessage = "Can't find the current HttpContext.";
+                serverCallContext = null;
+                return false;
             }
 
-            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
+            serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()?.ServerCallContext;
             if (serverCallContext == null)
             {
-                throw new InvalidOperationException("Unable to propagate server context values to the call. Can't find the current gRPC ServerCallContext.");
+                errorMessage = "Can't find the gRPC ServerCallContext on the current HttpContext.";
+                serverCallContext = null;
+                return false;
             }
 
-            return serverCallContext;
+            errorMessage = null;
+            return true;
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, string, Exception?> _propagateServerCallContextFailure =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "PropagateServerCallContextFailure"), "Unable to propagate server context values to the call. {ErrorMessage}");
+
+            public static void PropagateServerCallContextFailure(ILogger logger, string errorMessage)
+            {
+                _propagateServerCallContextFailure(logger, errorMessage, null);
+            }
         }
     }
 }
