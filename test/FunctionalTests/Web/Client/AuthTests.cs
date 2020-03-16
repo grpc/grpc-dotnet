@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Authorize;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -41,8 +42,22 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         }
 
         [Test]
-        public async Task SendValidRequest_SuccessResponse()
+        public async Task SendUnauthenticatedRequest_UnauthenticatedErrorResponse()
         {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                // This error can happen if the server returns an unauthorized response
+                // before the client has finished sending the request content.
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "ErrorSendingMessage" &&
+                    writeContext.Exception is OperationCanceledException)
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
             // Arrage
             var httpClient = CreateGrpcWebClient();
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
