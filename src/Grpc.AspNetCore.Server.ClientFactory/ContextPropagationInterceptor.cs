@@ -161,7 +161,7 @@ namespace Grpc.AspNetCore.ClientFactory
             {
                 Log.PropagateServerCallContextFailure(_logger, errorMessage);
 
-                if (!_options.IgnoreContextNotFoundError)
+                if (!_options.SuppressContextNotFoundErrors)
                 {
                     throw new InvalidOperationException("Unable to propagate server context values to the call. " + errorMessage);
                 }

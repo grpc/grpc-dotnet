@@ -146,7 +146,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = baseAddress;
                 })
-                .EnableCallContextPropagation(o => o.IgnoreContextNotFoundError = true)
+                .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -213,7 +213,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = baseAddress;
                 })
-                .EnableCallContextPropagation(o => o.IgnoreContextNotFoundError = true)
+                .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
