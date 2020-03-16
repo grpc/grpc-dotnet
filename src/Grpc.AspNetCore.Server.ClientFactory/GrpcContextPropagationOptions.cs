@@ -35,12 +35,12 @@ namespace Grpc.AspNetCore.ClientFactory
         /// <remarks>
         /// <para>
         /// Call context propagation will error by default if propagation can't happen because
-        /// the call context wasn't found. This typically happens when the client is used
+        /// the call context wasn't found. This typically happens when a client is used
         /// outside the context of an executing gRPC service.
         /// </para>
         /// <para>
         /// Suppressing context not found errors allows a client with propagation enabled to be
-        /// used outside the context of executing gRPC services.
+        /// used outside the context of an executing gRPC service.
         /// </para>
         /// </remarks>
         /// <value>The default value is <see langword="false"/>.</value>
