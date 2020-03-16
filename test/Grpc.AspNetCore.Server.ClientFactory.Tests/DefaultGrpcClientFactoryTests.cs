@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +29,8 @@ using Grpc.Net.ClientFactory.Internal;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
@@ -126,6 +129,42 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public async Task CreateClient_NoHttpContextIgnoreError_Success()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testProvider = new TestLoggerProvider(testSink);
+
+            var baseAddress = new Uri("http://localhost");
+
+            var services = new ServiceCollection();
+            services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+            services.AddOptions();
+            services.AddSingleton(CreateHttpContextAccessor(null));
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = baseAddress;
+                })
+                .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = new DefaultGrpcClientFactory(
+                serviceProvider,
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            // Act
+            await client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            var log = testSink.Writes.Single(w => w.EventId.Name == "PropagateServerCallContextFailure");
+            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the current HttpContext.", log.Message);
+        }
+
+        [Test]
         public async Task CreateClient_NoServerCallContextOnHttpContext_ThrowError()
         {
             // Arrange
@@ -153,7 +192,43 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the current gRPC ServerCallContext.", ex.Message);
+            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the gRPC ServerCallContext on the current HttpContext.", ex.Message);
+        }
+
+        [Test]
+        public async Task CreateClient_NoServerCallContextOnHttpContextIgnoreError_Success()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testProvider = new TestLoggerProvider(testSink);
+
+            var baseAddress = new Uri("http://localhost");
+
+            var services = new ServiceCollection();
+            services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+            services.AddOptions();
+            services.AddSingleton(CreateHttpContextAccessor(new DefaultHttpContext()));
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = baseAddress;
+                })
+                .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
+                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = new DefaultGrpcClientFactory(
+                serviceProvider,
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            // Act
+            await client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            var log = testSink.Writes.Single(w => w.EventId.Name == "PropagateServerCallContextFailure");
+            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the gRPC ServerCallContext on the current HttpContext.", log.Message);
         }
 
         private IHttpContextAccessor CreateHttpContextAccessor(HttpContext? httpContext)
