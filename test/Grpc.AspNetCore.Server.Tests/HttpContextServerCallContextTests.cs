@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.Server.Tests
     public class HttpContextServerCallContextTests
     {
         [TestCase("127.0.0.1", 50051, "ipv4:127.0.0.1:50051")]
-        [TestCase("::1", 50051, "ipv6:::1:50051")]
+        [TestCase("::1", 50051, "ipv6:[::1]:50051")]
         public void Peer_FormatsRemoteAddressCorrectly(string ipAddress, int port, string expected)
         {
             // Arrange

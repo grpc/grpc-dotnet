@@ -79,12 +79,25 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             get
             {
+                // Follows the standard at https://github.com/grpc/grpc/blob/master/doc/naming.md
                 if (_peer == null)
                 {
                     var connection = HttpContext.Connection;
                     if (connection.RemoteIpAddress != null)
                     {
-                        _peer = (connection.RemoteIpAddress.AddressFamily == AddressFamily.InterNetwork ? "ipv4:" : "ipv6:") + connection.RemoteIpAddress + ":" + connection.RemotePort;
+                        switch (connection.RemoteIpAddress.AddressFamily)
+                        {
+                            case AddressFamily.InterNetwork:
+                                _peer = "ipv4:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
+                                break;
+                            case AddressFamily.InterNetworkV6:
+                                _peer = "ipv6:[" + connection.RemoteIpAddress + "]:" + connection.RemotePort;
+                                break;
+                            default:
+                                // TODO(JamesNK) - Test what should be output when used with UDS and named pipes
+                                _peer = "unknown:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
+                                break;
+                        }
                     }
                 }
 
