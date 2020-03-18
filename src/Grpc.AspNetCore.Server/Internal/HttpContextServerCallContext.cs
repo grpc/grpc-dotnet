@@ -94,7 +94,7 @@ namespace Grpc.AspNetCore.Server.Internal
                                 _peer = "ipv6:[" + connection.RemoteIpAddress + "]:" + connection.RemotePort;
                                 break;
                             default:
-                                // TODO - test when used with UDS and named pipes
+                                // TODO(JamesNK) - Test what should be output when used with UDS and named pipes
                                 _peer = "unknown:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
                                 break;
                         }
