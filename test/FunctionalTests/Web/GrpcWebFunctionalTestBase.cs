@@ -52,7 +52,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Web
             if (_grpcTestMode != GrpcTestMode.Grpc)
             {
                 var mode = _grpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
-                grpcWebHandler = new GrpcWebHandler(mode, protocol);
+                grpcWebHandler = new GrpcWebHandler(mode)
+                {
+                    HttpVersion = protocol
+                };
             }
 
             return Fixture.CreateClient(_endpointName, grpcWebHandler);

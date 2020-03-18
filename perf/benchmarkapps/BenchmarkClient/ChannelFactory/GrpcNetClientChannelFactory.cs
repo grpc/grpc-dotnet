@@ -61,7 +61,10 @@ namespace BenchmarkClient.ChannelFactory
             HttpMessageHandler httpMessageHandler = httpClientHandler;
             if (_useGrpcWeb != null)
             {
-                httpMessageHandler = new GrpcWebHandler(_useGrpcWeb.Value, HttpVersion.Version11, httpMessageHandler);
+                httpMessageHandler = new GrpcWebHandler(_useGrpcWeb.Value, httpMessageHandler)
+                {
+                    HttpVersion = HttpVersion.Version11
+                };
             }
 
             var channel = GrpcChannel.ForAddress(url, new GrpcChannelOptions
