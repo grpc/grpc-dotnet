@@ -27,15 +27,17 @@ namespace BenchmarkClient.Worker
     {
         private ChannelBase? _channel;
         private BenchmarkService.BenchmarkServiceClient? _client;
+        private readonly int _connectionId;
         private readonly IChannelFactory _channelFactory;
 
-        public GrpcUnaryWorker(int id, IChannelFactory channelFactory)
+        public GrpcUnaryWorker(int connectionId, int streamId, IChannelFactory channelFactory)
         {
-            Id = id;
+            Id = connectionId + "-" + streamId;
+            _connectionId = connectionId;
             _channelFactory = channelFactory;
         }
 
-        public int Id { get; }
+        public string Id { get; }
 
         public async Task CallAsync()
         {
@@ -45,7 +47,7 @@ namespace BenchmarkClient.Worker
 
         public async Task ConnectAsync()
         {
-            _channel = await _channelFactory.CreateAsync();
+            _channel = await _channelFactory.CreateAsync(_connectionId);
             _client = new BenchmarkService.BenchmarkServiceClient(_channel);
         }
 

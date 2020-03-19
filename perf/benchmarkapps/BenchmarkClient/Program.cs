@@ -29,8 +29,9 @@ namespace BenchmarkClient
 {
     class Program
     {
-        private const int Connections = 8;
-        private const int DurationSeconds = 5;
+        private const int Connections = 4;
+        private const int StreamsPerConnection = 1;
+        private const int DurationSeconds = 10;
         private const bool UseTls = false;
         private const bool UseClientCertificate = false;
         private static readonly GrpcWebMode? UseGrpcWeb = null;
@@ -47,15 +48,15 @@ namespace BenchmarkClient
             var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseTls, UseClientCertificate, UseGrpcWeb);
             var grpcCoreChannelFactory = new GrpcCoreChannelFactory(Target);
 
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", id => new GrpcRawUnaryWorker(id, Target, UseTls, UseGrpcWeb)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-UnaryWorker", id => new GrpcUnaryWorker(id, grpcNetClientChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcNetClientChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcNetClientChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", id => new JsonWorker(id, Target, UseTls, "/unary")));
-            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", id => new JsonWorker(id, Target, UseTls, "/api/benchmark/unary")));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-UnaryWorker", id => new GrpcUnaryWorker(id, grpcCoreChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-ServerStreamingWorker", id => new GrpcServerStreamingWorker(id, grpcCoreChannelFactory)));
-            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-PingPongStreamingWorker", id => new GrpcPingPongStreamingWorker(id, grpcCoreChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcRaw-UnaryWorker", (connectionId, streamId) => new GrpcRawUnaryWorker(connectionId, streamId, Target, UseTls, UseGrpcWeb)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-UnaryWorker", (connectionId, streamId) => new GrpcUnaryWorker(connectionId, streamId, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-PingPongStreamingWorker", (connectionId, streamId) => new GrpcPingPongStreamingWorker(connectionId, streamId, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcNetClient-ServerStreamingWorker", (connectionId, streamId) => new GrpcServerStreamingWorker(connectionId, streamId, grpcNetClientChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonRaw", (connectionId, streamId) => new JsonWorker(connectionId, Target, UseTls, "/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("JsonMvc", (connectionId, streamId) => new JsonWorker(connectionId, Target, UseTls, "/api/benchmark/unary")));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-UnaryWorker", (connectionId, streamId) => new GrpcUnaryWorker(connectionId, streamId, grpcCoreChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-ServerStreamingWorker", (connectionId, streamId) => new GrpcServerStreamingWorker(connectionId, streamId, grpcCoreChannelFactory)));
+            benchmarkResults.Add(await ExecuteBenchmark("GrpcCore-PingPongStreamingWorker", (connectionId, streamId) => new GrpcPingPongStreamingWorker(connectionId, streamId, grpcCoreChannelFactory)));
 
             Log($"Results:");
 
@@ -68,7 +69,7 @@ namespace BenchmarkClient
             Console.ReadKey();
         }
 
-        private static async Task<BenchmarkResult> ExecuteBenchmark(string name, Func<int, IWorker> workerFactory)
+        private static async Task<BenchmarkResult> ExecuteBenchmark(string name, Func<int, int, IWorker> workerFactory)
         {
             var runTasks = new List<Task>();
             var workers = new List<IWorker>();
@@ -94,13 +95,13 @@ namespace BenchmarkClient
                 Log($"Benchmark complete '{name}'");
             });
 
-            for (var i = 0; i < Connections; i++)
+            for (var i = 0; i < workers.Count; i++)
             {
                 var id = i;
                 var worker = workers[i];
                 runTasks.Add(Task.Run(async () =>
                 {
-                    Log($"{name} {id}: Starting");
+                    Log($"{name} {worker.Id}: Starting");
 
                     var requests = 0;
 
@@ -114,7 +115,7 @@ namespace BenchmarkClient
                         }
                         catch (Exception ex)
                         {
-                            Log($"{name} {id}: Error message: {ex.Message}");
+                            Log($"{name} {worker.Id}: Error message: {ex.Message}");
                             if (StopOnError)
                             {
                                 cts.Cancel();
@@ -125,7 +126,7 @@ namespace BenchmarkClient
 
                     workerRequests[id] = requests;
 
-                    Log($"{name} {id}: Finished");
+                    Log($"{name} {worker.Id}: Finished");
                 }));
             }
 
@@ -144,23 +145,26 @@ namespace BenchmarkClient
             };
         }
 
-        private static async Task CreateWorkers(List<IWorker> workers, Func<int, IWorker> workerFactory, List<int> requests)
+        private static async Task CreateWorkers(List<IWorker> workers, Func<int, int, IWorker> workerFactory, List<int> requests)
         {
             Log($"Creating workers: {Connections}");
 
             for (var i = 0; i < Connections; i++)
             {
-                var worker = workerFactory(i);
-                await worker.ConnectAsync();
+                for (var j = 0; j < StreamsPerConnection; j++)
+                {
+                    var worker = workerFactory(i, j);
+                    await worker.ConnectAsync();
 
-                workers.Add(worker);
-                requests.Add(0);
+                    workers.Add(worker);
+                    requests.Add(0);
+                }
             }
         }
 
         private static async Task StopWorkers(List<IWorker> workers)
         {
-            for (var i = 0; i < Connections; i++)
+            for (var i = 0; i < workers.Count; i++)
             {
                 await workers[i].DisconnectAsync();
             }

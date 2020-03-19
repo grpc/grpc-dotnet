@@ -27,6 +27,7 @@ namespace BenchmarkClient.Worker
 {
     public class GrpcPingPongStreamingWorker : IWorker
     {
+        private readonly int _connectionId;
         private readonly IChannelFactory _channelFactory;
         private readonly DateTime? _deadline;
         private readonly SimpleRequest _request;
@@ -34,15 +35,16 @@ namespace BenchmarkClient.Worker
         private BenchmarkService.BenchmarkServiceClient? _client;
         private AsyncDuplexStreamingCall<SimpleRequest, SimpleResponse>? _call;
 
-        public GrpcPingPongStreamingWorker(int id, IChannelFactory channelFactory, DateTime? deadline = null)
+        public GrpcPingPongStreamingWorker(int connectionId, int streamId, IChannelFactory channelFactory, DateTime? deadline = null)
         {
-            Id = id;
+            Id = connectionId + "-" + streamId;
+            _connectionId = connectionId;
             _channelFactory = channelFactory;
             _deadline = deadline;
             _request = new SimpleRequest();
         }
 
-        public int Id { get; }
+        public string Id { get; }
 
         public async Task CallAsync()
         {
@@ -58,7 +60,7 @@ namespace BenchmarkClient.Worker
 
         public async Task ConnectAsync()
         {
-            _channel = await _channelFactory.CreateAsync();
+            _channel = await _channelFactory.CreateAsync(_connectionId);
             _client = new BenchmarkService.BenchmarkServiceClient(_channel);
 
             var options = new CallOptions(deadline: _deadline);

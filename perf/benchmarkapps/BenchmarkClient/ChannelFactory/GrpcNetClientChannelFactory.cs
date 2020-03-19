@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -33,6 +34,7 @@ namespace BenchmarkClient.ChannelFactory
         private readonly bool _useTls;
         private readonly bool _useClientCertificate;
         private readonly GrpcWebMode? _useGrpcWeb;
+        private readonly Dictionary<int, GrpcChannel> _channels;
 
         public GrpcNetClientChannelFactory(string target, bool useTls, bool useClientCertificate, GrpcWebMode? useGrpcWeb)
         {
@@ -40,10 +42,16 @@ namespace BenchmarkClient.ChannelFactory
             _useTls = useTls;
             _useClientCertificate = useClientCertificate;
             _useGrpcWeb = useGrpcWeb;
+            _channels = new Dictionary<int, GrpcChannel>();
         }
 
-        public Task<ChannelBase> CreateAsync()
+        public Task<ChannelBase> CreateAsync(int id)
         {
+            if (_channels.TryGetValue(id, out var channel))
+            {
+                return Task.FromResult<ChannelBase>(channel);
+            }
+
             var url = _useTls ? "https://" : "http://";
             url += _target;
 
@@ -67,10 +75,12 @@ namespace BenchmarkClient.ChannelFactory
                 };
             }
 
-            var channel = GrpcChannel.ForAddress(url, new GrpcChannelOptions
+            channel = GrpcChannel.ForAddress(url, new GrpcChannelOptions
             {
                 HttpClient = new HttpClient(httpMessageHandler)
             });
+
+            _channels[id] = channel;
 
             return Task.FromResult<ChannelBase>(channel);
         }

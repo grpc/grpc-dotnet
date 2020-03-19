@@ -35,13 +35,13 @@ namespace BenchmarkClient.Worker
 
         public JsonWorker(int id, string target, bool useClientCertificate, string path)
         {
-            Id = id;
+            Id = id.ToString();
             Target = target;
             _useClientCertificate = useClientCertificate;
             _path = path;
         }
 
-        public int Id { get; }
+        public string Id { get; }
         public string Target { get; }
 
         public async Task CallAsync()
