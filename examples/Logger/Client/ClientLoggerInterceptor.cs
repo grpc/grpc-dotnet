@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 
@@ -32,7 +33,31 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            return continuation(request, context);
+            var call = continuation(request, context);
+
+            return new AsyncUnaryCall<TResponse>(HandleResponse(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+        }
+
+        private async Task<TResponse> HandleResponse<TResponse>(Task<TResponse> t)
+        {
+            try
+            {
+                var response = await t;
+                Console.WriteLine($"Response received: {response}");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                // Log error to the console.
+                // Note: Client logging is the recommended way to log errors
+                // https://docs.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
+                var initialColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Call error: {ex.Message}");
+                Console.ForegroundColor = initialColor;
+
+                throw;
+            }
         }
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(
