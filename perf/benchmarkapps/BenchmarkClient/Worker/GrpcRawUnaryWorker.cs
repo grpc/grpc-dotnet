@@ -37,16 +37,16 @@ namespace BenchmarkClient.Worker
         private readonly DateTime? _deadline;
         private HttpClient? _client;
 
-        public GrpcRawUnaryWorker(int id, string target, bool useClientCertificate, GrpcWebMode? useGrpcWeb, DateTime? deadline = null)
+        public GrpcRawUnaryWorker(int connectionId, int streamId, string target, bool useClientCertificate, GrpcWebMode? useGrpcWeb, DateTime? deadline = null)
         {
-            Id = id;
+            Id = connectionId + "-" + streamId;
             Target = target;
             _useClientCertificate = useClientCertificate;
             _useGrpcWeb = useGrpcWeb;
             _deadline = deadline;
         }
 
-        public int Id { get; }
+        public string Id { get; }
         public string Target { get; }
 
         public async Task CallAsync()

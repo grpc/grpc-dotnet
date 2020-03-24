@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Core;
 
@@ -24,16 +25,25 @@ namespace BenchmarkClient.ChannelFactory
     public class GrpcCoreChannelFactory : IChannelFactory
     {
         private readonly string _target;
+        private readonly Dictionary<int, Channel> _channels;
 
         public GrpcCoreChannelFactory(string target)
         {
             _target = target;
+            _channels = new Dictionary<int, Channel>();
         }
 
-        public async Task<ChannelBase> CreateAsync()
+        public async Task<ChannelBase> CreateAsync(int id)
         {
-            var channel = new Channel(_target, ChannelCredentials.Insecure);
+            if (_channels.TryGetValue(id, out var channel))
+            {
+                return channel;
+            }
+
+            channel = new Channel(_target, ChannelCredentials.Insecure);
             await channel.ConnectAsync();
+
+            _channels[id] = channel;
 
             return channel;
         }

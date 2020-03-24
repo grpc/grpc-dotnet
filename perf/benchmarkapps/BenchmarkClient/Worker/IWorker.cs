@@ -22,7 +22,7 @@ namespace BenchmarkClient.Worker
 {
     public interface IWorker
     {
-        int Id { get; }
+        string Id { get; }
         Task ConnectAsync();
         Task DisconnectAsync();
         Task CallAsync();
