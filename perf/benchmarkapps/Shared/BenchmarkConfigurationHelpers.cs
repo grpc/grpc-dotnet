@@ -41,7 +41,7 @@ namespace Common
         {
             var address = config.CreateBindingAddress();
 
-            IPAddress ip;
+            IPAddress? ip;
 
             if (string.Equals(address.Host, "localhost", StringComparison.OrdinalIgnoreCase))
             {

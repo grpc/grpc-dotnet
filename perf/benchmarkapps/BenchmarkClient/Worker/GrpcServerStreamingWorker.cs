@@ -27,6 +27,7 @@ namespace BenchmarkClient.Worker
 {
     public class GrpcServerStreamingWorker : IWorker
     {
+        private readonly int _connectionId;
         private readonly IChannelFactory _channelFactory;
         private readonly DateTime? _deadline;
         private readonly CancellationTokenSource _cts;
@@ -34,15 +35,16 @@ namespace BenchmarkClient.Worker
         private BenchmarkService.BenchmarkServiceClient? _client;
         private AsyncServerStreamingCall<SimpleResponse>? _call;
 
-        public GrpcServerStreamingWorker(int id, IChannelFactory channelFactory, DateTime? deadline = null)
+        public GrpcServerStreamingWorker(int connectionId, int streamId, IChannelFactory channelFactory, DateTime? deadline = null)
         {
-            Id = id;
+            Id = connectionId + "-" + streamId;
+            _connectionId = connectionId;
             _channelFactory = channelFactory;
             _deadline = deadline;
             _cts = new CancellationTokenSource();
         }
 
-        public int Id { get; }
+        public string Id { get; }
 
         public async Task CallAsync()
         {
@@ -61,7 +63,7 @@ namespace BenchmarkClient.Worker
 
         public async Task ConnectAsync()
         {
-            _channel = await _channelFactory.CreateAsync();
+            _channel = await _channelFactory.CreateAsync(_connectionId);
             _client = new BenchmarkService.BenchmarkServiceClient(_channel);
 
             var options = new CallOptions(deadline: _deadline, cancellationToken: _cts.Token);

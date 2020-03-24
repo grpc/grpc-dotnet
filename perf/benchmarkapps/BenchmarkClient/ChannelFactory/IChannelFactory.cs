@@ -23,7 +23,7 @@ namespace BenchmarkClient.ChannelFactory
 {
     public interface IChannelFactory
     {
-        Task<ChannelBase> CreateAsync();
+        Task<ChannelBase> CreateAsync(int id);
         Task DisposeAsync(ChannelBase channel);
     }
 }
