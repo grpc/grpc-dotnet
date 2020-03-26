@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-using DnsClient;
+﻿using DnsClient;
 using DnsClient.Protocol;
 using Grpc.Net.Client.LoadBalancing.ResolverPlugins.GrpcServiceConfig;
 using Microsoft.Extensions.Logging;
@@ -12,25 +11,45 @@ using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
 {
+    /// <summary>
+    /// Resolver plugin is responsible for name resolution by reaching the authority and return 
+    /// a list of resolved addresses (both IP address and port) and a service config.
+    /// More: https://github.com/grpc/grpc/blob/master/doc/naming.md
+    /// </summary>
     public sealed class DnsClientResolverPlugin : IGrpcResolverPlugin
     {
         private DnsClientResolverPluginOptions _options;
         private ILogger _logger = NullLogger.Instance;
 
+        /// <summary>
+        /// LoggerFactory is configured (injected) when class is being instantiated.
+        /// </summary>
         public ILoggerFactory LoggerFactory
         {
             set => _logger = value.CreateLogger<DnsClientResolverPlugin>();
         }
 
+        /// <summary>
+        /// Creates a <seealso cref="DnsClientResolverPlugin"/> that is capable of searching SRV and TXT records.
+        /// </summary>
         public DnsClientResolverPlugin() : this(new DnsClientResolverPluginOptions())
         {
         }
 
+        /// <summary>
+        /// Creates a <seealso cref="DnsClientResolverPlugin"/> that is capable of searching SRV and TXT records.
+        /// </summary>
+        /// <param name="options">Options allows override default behaviour.</param>
         public DnsClientResolverPlugin(DnsClientResolverPluginOptions options)
         {
             _options = options;
         }
 
+        /// <summary>
+        /// Name resolution for secified target.
+        /// </summary>
+        /// <param name="target">Server address with scheme.</param>
+        /// <returns>List of resolved servers and/or lookaside load balancers.</returns>
         public async Task<List<GrpcNameResolutionResult>> StartNameResolutionAsync(Uri target)
         {
             if (target == null)

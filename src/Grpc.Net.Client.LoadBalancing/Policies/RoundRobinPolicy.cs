@@ -1,5 +1,4 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
@@ -10,17 +9,32 @@ using System.Threading.Tasks;
 namespace Grpc.Net.Client.LoadBalancing.Policies
 {
     /// <summary>
-    /// round_robin policy
+    /// The load balancing policy creates a subchannel to each server address.
+    /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
+    /// 
+    /// Official name of this policy is "round_robin". It is a implementation of an balancing-aware client.
+    /// More: https://github.com/grpc/grpc/blob/master/doc/load-balancing.md#balancing-aware-client
     /// </summary>
     public sealed class RoundRobinPolicy : IGrpcLoadBalancingPolicy
     {
         private ILogger _logger = NullLogger.Instance;
+        private int _i = 0;
+
+        /// <summary>
+        /// LoggerFactory is configured (injected) when class is being instantiated.
+        /// </summary>
         public ILoggerFactory LoggerFactory
         {
             set => _logger = value.CreateLogger<RoundRobinPolicy>();
         }
-        private int _i = 0;
 
+        /// <summary>
+        /// Creates a subchannel to each server address. Depending on policy this may require additional 
+        /// steps eg. reaching out to lookaside loadbalancer.
+        /// </summary>
+        /// <param name="resolutionResult">Resolved list of servers and/or lookaside load balancers.</param>
+        /// <param name="isSecureConnection">Flag if connection between client and destination server should be secured.</param>
+        /// <returns>List of subchannels.</returns>
         public Task<List<GrpcSubChannel>> CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
         {
             if (resolutionResult == null)
@@ -45,6 +59,11 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             return Task.FromResult(result);
         }
 
+        /// <summary>
+        /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
+        /// </summary>
+        /// <param name="subChannels">List of subchannels.</param>
+        /// <returns>Selected subchannel.</returns>
         public GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels)
         {
             return subChannels[Interlocked.Increment(ref _i) % subChannels.Count];
