@@ -38,8 +38,8 @@ namespace Grpc.Net.Client
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 
-        private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
-        private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
+        private readonly ConcurrentDictionary<IMethod, GrpcCallScope> _callScopeCache;
+        private readonly Func<IMethod, GrpcCallScope> _createCallScopeFunc;
 
         internal Uri Address { get; }
         internal HttpClient HttpClient { get; }
@@ -51,6 +51,9 @@ namespace Grpc.Net.Client
         internal List<CallCredentials>? CallCredentials { get; }
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
+        internal IGrpcResolverPlugin ResolverPlugin { get; }
+        internal IGrpcLoadBalancingPolicy LoadBalancingPolicy { get; }
+        internal List<GrpcSubChannel> SubChannels { get; } 
         internal bool Disposed { get; private set; }
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
@@ -61,7 +64,7 @@ namespace Grpc.Net.Client
 
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
-            _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
+            _callScopeCache = new ConcurrentDictionary<IMethod, GrpcCallScope>();
 
             // Dispose the HttpClient if...
             //   1. No client was specified and so the channel created the HttpClient itself
@@ -76,7 +79,7 @@ namespace Grpc.Net.Client
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
-            _createMethodInfoFunc = CreateMethodInfo;
+            _createCallScopeFunc = CreateCallScope;
 
             if (channelOptions.Credentials != null)
             {
@@ -88,6 +91,15 @@ namespace Grpc.Net.Client
 
                 ValidateChannelCredentials();
             }
+
+            ResolverPlugin = channelOptions.ResolverPlugin;
+            ResolverPlugin.LoggerFactory = LoggerFactory;
+            LoadBalancingPolicy = channelOptions.LoadBalancingPolicy;
+            LoadBalancingPolicy.LoggerFactory = LoggerFactory;
+
+            var resolutionResult = ResolverPlugin.StartNameResolutionAsync(Address).GetAwaiter().GetResult();
+            var isSecureConnection = Address.Scheme == Uri.UriSchemeHttps || (Address.Scheme.Equals("dns", StringComparison.OrdinalIgnoreCase) && Address.Port == 443);
+            SubChannels = LoadBalancingPolicy.CreateSubChannelsAsync(resolutionResult, Address.Scheme == Uri.UriSchemeHttps).GetAwaiter().GetResult();
         }
 
         private static HttpClient CreateInternalHttpClient()
@@ -107,17 +119,15 @@ namespace Grpc.Net.Client
             return httpClient;
         }
 
-        internal GrpcMethodInfo GetCachedGrpcMethodInfo(IMethod method)
+        internal GrpcCallScope GetCachedGrpcCallScope(IMethod method)
         {
-            return _methodInfoCache.GetOrAdd(method, _createMethodInfoFunc);
+            return _callScopeCache.GetOrAdd(method, _createCallScopeFunc);
         }
 
-        private GrpcMethodInfo CreateMethodInfo(IMethod method)
+        private GrpcCallScope CreateCallScope(IMethod method)
         {
             var uri = new Uri(method.FullName, UriKind.Relative);
-            var scope = new GrpcCallScope(method.Type, uri);
-
-            return new GrpcMethodInfo(scope, new Uri(Address, uri));
+            return new GrpcCallScope(method.Type, uri);
         }
 
         private static Dictionary<string, ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)
@@ -165,7 +175,7 @@ namespace Grpc.Net.Client
             {
                 throw new ObjectDisposedException(nameof(GrpcChannel));
             }
-
+            
             var invoker = new HttpClientCallInvoker(this);
 
             return invoker;

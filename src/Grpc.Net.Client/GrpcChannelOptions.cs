@@ -97,11 +97,23 @@ namespace Grpc.Net.Client
         public bool ThrowOperationCanceledOnCancellation { get; set; }
 
         /// <summary>
+        /// Gets or sets name resolver.
+        /// </summary>
+        public IGrpcResolverPlugin ResolverPlugin { get; set; }
+
+        /// <summary>
+        /// Gets or sets load balancing policy.
+        /// </summary>
+        public IGrpcLoadBalancingPolicy LoadBalancingPolicy { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
         /// </summary>
         public GrpcChannelOptions()
         {
             MaxReceiveMessageSize = GrpcChannel.DefaultMaxReceiveMessageSize;
+            LoadBalancingPolicy = new PickFirstPolicy();
+            ResolverPlugin = new NoneResolverPlugin();
         }
     }
 }

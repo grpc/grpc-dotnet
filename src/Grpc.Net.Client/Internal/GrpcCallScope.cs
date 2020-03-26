@@ -38,6 +38,8 @@ namespace Grpc.Net.Client.Internal
             _uri = uri;
         }
 
+        public Uri Uri => _uri;
+
         public KeyValuePair<string, object> this[int index]
         {
             get

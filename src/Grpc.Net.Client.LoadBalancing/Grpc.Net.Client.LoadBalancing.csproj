@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>.NET client for gRPC</Description>
+    <PackageTags>gRPC RPC HTTP/2 Load Balancing</PackageTags>
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.11.4" />
+    <PackageReference Include="DnsClient" Version="1.2.0" />
+    <PackageReference Include="System.Text.Json" Version="4.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" />
+  </ItemGroup>
+
+</Project>
