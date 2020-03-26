@@ -10,7 +10,7 @@ var resultText = document.getElementById('result');
 var streamingCall = null;
 
 // Unary call
-sendInput.onclick =function () {
+sendInput.onclick = function () {
     var request = new HelloRequest();
     request.setName(nameInput.value);
 
