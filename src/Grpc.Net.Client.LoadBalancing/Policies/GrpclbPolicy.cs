@@ -34,7 +34,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             }
         }
 
-        private int _i = 0;
+        private int _i = -1;
 
         /// <summary>
         /// Creates a subchannel to each server address. Depending on policy this may require additional 
@@ -78,7 +78,9 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
                     foreach (var server in loadBalanceResponse.ServerList.Servers)
                     {
                         var ipAddress = new IPAddress(server.IpAddress.ToByteArray()).ToString();
-                        var uriBuilder = new UriBuilder($"{ipAddress}:{server.Port}");
+                        var uriBuilder = new UriBuilder();
+                        uriBuilder.Host = ipAddress;
+                        uriBuilder.Port = server.Port;
                         uriBuilder.Scheme = isSecureConnection ? "https" : "http";
                         var uri = uriBuilder.Uri;
                         result.Add(new GrpcSubChannel(uri));

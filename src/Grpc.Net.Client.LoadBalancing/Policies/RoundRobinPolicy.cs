@@ -18,7 +18,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     public sealed class RoundRobinPolicy : IGrpcLoadBalancingPolicy
     {
         private ILogger _logger = NullLogger.Instance;
-        private int _i = 0;
+        private int _i = -1;
 
         /// <summary>
         /// LoggerFactory is configured (injected) when class is being instantiated.
@@ -49,7 +49,9 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             _logger.LogDebug($"Start round_robin policy");
             var result = resolutionResult.Select(x =>
             {
-                var uriBuilder = new UriBuilder($"{x.Host}:{x.Port}");
+                var uriBuilder = new UriBuilder();
+                uriBuilder.Host = x.Host;
+                uriBuilder.Port = x.Port ?? (isSecureConnection ? 443 : 80);
                 uriBuilder.Scheme = isSecureConnection ? "https" : "http";
                 var uri = uriBuilder.Uri;
                 _logger.LogDebug($"Found a server {uri}");
