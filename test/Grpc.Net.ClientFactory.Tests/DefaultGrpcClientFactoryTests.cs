@@ -52,15 +52,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            Assert.NotNull(client, "no client returned");
 
             // Assert
-            Assert.AreEqual(Timeout.InfiniteTimeSpan, client.CallInvoker.Channel.HttpClient.Timeout);
+            Assert.AreEqual(Timeout.InfiniteTimeSpan, client!.CallInvoker.Channel.HttpClient.Timeout);
         }
 
         [Test]
@@ -77,16 +76,15 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            Assert.NotNull(client, "no client returned");
 
             // Assert
             Assert.IsNotNull(client);
-            Assert.AreEqual(address, client.CallInvoker.Channel.Address);
+            Assert.AreEqual(address, client!.CallInvoker.Channel.Address);
         }
 
         [Test]
@@ -103,16 +101,15 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>("Custom");
+            Assert.NotNull(client, "no client returned");
 
             // Assert
             Assert.IsNotNull(client);
-            Assert.AreEqual(address, client.CallInvoker.Channel.Address);
+            Assert.AreEqual(address, client!.CallInvoker.Channel.Address);
         }
 
         [Test]
@@ -127,9 +124,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"));
@@ -148,9 +143,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
@@ -170,15 +163,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
 
             // Act
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            Assert.NotNull(client, "no client returned");
 
             // Assert
-            Assert.AreEqual("http://contoso", client.CallInvoker.Channel.Address.OriginalString);
+            Assert.AreEqual("http://contoso", client!.CallInvoker.Channel.Address.OriginalString);
         }
 
         [Test]
@@ -203,8 +195,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
+            Assert.NotNull(contosoClient, "no client returned");
 
-            var response = await contosoClient.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            var response = await contosoClient!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
@@ -237,10 +230,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
             var adventureworksClient = clientFactory.CreateClient<TestGreeterClient>("adventureworks");
+            Assert.NotNull(contosoClient, "no contosoClient returned");
+            Assert.NotNull(adventureworksClient, "no adventureworksClient returned");
 
             // Assert
-            Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
-            Assert.AreEqual("http://adventureworks", adventureworksClient.CallInvoker.Channel.Address.OriginalString);
+            Assert.AreEqual("http://contoso", contosoClient!.CallInvoker.Channel.Address.OriginalString);
+            Assert.AreEqual("http://adventureworks", adventureworksClient!.CallInvoker.Channel.Address.OriginalString);
         }
 
         internal class TestGreeterClient : Greeter.GreeterClient

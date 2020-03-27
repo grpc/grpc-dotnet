@@ -16,21 +16,20 @@
 
 #endregion
 
-using System;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Grpc.Core.Utils;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
-    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
+    internal class GrpcHttpClientFactory<TClient> : INamedTypedHttpClientFactory<TClient> where TClient : class
     {
         private readonly Cache _cache;
         private readonly IServiceProvider _services;
@@ -67,9 +66,12 @@ namespace Grpc.Net.ClientFactory.Internal
             _services = services;
             _loggerFactory = loggerFactory;
             _clientFactoryOptionsMonitor = clientFactoryOptionsMonitor;
+
+            // to be creatable, it needs to be a concrete class with a CallInvoker ctor parameter; this pairs with Cache._createActivator
+            CanCreateDefaultClient = typeof(TClient).IsClass && !typeof(TClient).IsAbstract && typeof(TClient).GetConstructor(new[] { typeof(CallInvoker) }) != null;
         }
 
-        public TClient CreateClient(HttpClient httpClient, string name)
+        public CallInvoker GetCallInvoker(HttpClient httpClient, string name)
         {
             if (httpClient == null)
             {
@@ -104,8 +106,15 @@ namespace Grpc.Net.ClientFactory.Internal
                 ? httpClientCallInvoker
                 : httpClientCallInvoker.Intercept(clientFactoryOptions.Interceptors.ToArray());
 
-            return (TClient)_cache.Activator(_services, new object[] { resolvedCallInvoker });
+            return resolvedCallInvoker;
         }
+
+        public TClient CreateClient(CallInvoker callInvoker)
+        {
+            return (TClient)_cache.Activator(_services, new object[] { callInvoker });
+        }
+
+        public bool CanCreateDefaultClient { get; }
 
         // The Cache should be registered as a singleton, so it that it can
         // act as a cache for the Activator. This allows the outer class to be registered
