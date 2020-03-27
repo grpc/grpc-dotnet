@@ -16,35 +16,34 @@
 
 #endregion
 
-using System;
-using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using System;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
     internal class DefaultGrpcClientFactory : GrpcClientFactory
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly IHttpClientFactory _httpClientFactory;
 
-        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory)
+        public DefaultGrpcClientFactory(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-            _httpClientFactory = httpClientFactory;
         }
 
-        public override TClient CreateClient<TClient>(string name)
+        public override TClient? CreateClient<TClient>(string name) where TClient : class
         {
             var typedHttpClientFactory = _serviceProvider.GetService<INamedTypedHttpClientFactory<TClient>>();
-            if (typedHttpClientFactory == null)
+            if (typedHttpClientFactory is null)
             {
-                throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
+                ThrowServiceNotConfigured(name);
             }
 
-            var httpClient = _httpClientFactory.CreateClient(name);
-
-            return typedHttpClientFactory.CreateClient(httpClient, name);
+            if (typedHttpClientFactory!.CanCreateDefaultClient)
+            {
+                var callInvoker = GetCallInvoker<TClient>(_serviceProvider, name);
+                return typedHttpClientFactory.CreateClient(callInvoker);
+            }
+            return null;
         }
     }
 }

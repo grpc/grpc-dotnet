@@ -57,7 +57,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services)
-            where TClient : ClientBase
+            where TClient : class
         {
             if (services == null)
             {
@@ -93,7 +93,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
 
@@ -128,7 +128,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
 
@@ -158,7 +158,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name)
-            where TClient : ClientBase
+            where TClient : class
         {
             if (services == null)
             {
@@ -197,7 +197,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             if (services == null)
             {
@@ -247,7 +247,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </para>
         /// </remarks>
         public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             if (services == null)
             {
@@ -284,14 +284,14 @@ namespace Microsoft.Extensions.DependencyInjection
             return services.AddGrpcClientCore<TClient>(name);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : ClientBase
+        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : class
         {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
             }
 
-            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<GrpcClientFactory, DefaultGrpcClientFactory>());
 
             services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
             services.TryAdd(ServiceDescriptor.Singleton(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
@@ -327,7 +327,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// This is a custom method to register the HttpClient and typed factory. Needed because we need to access the config name when creating the typed client
         /// </summary>
         private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient> configureTypedClient)
-            where TClient : ClientBase
+            where TClient : class
         {
             if (services == null)
             {
@@ -340,8 +340,13 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.AddTransient<TClient>(s =>
             {
-                var clientFactory = s.GetRequiredService<GrpcClientFactory>();
-                return clientFactory.CreateClient<TClient>(builder.Name);
+                foreach(var clientFactory in s.GetServices<GrpcClientFactory>())
+                {
+                    var client = clientFactory.CreateClient<TClient>(builder.Name);
+                    if (client != null) return client;
+                }
+                var typeName = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
+                throw new InvalidOperationException($"No gRPC client configured with name '{name}' for type '{typeName}'.");
             });
 
             ReserveClient(builder, typeof(TClient), name);

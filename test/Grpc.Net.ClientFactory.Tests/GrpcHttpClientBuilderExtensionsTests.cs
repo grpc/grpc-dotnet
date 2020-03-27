@@ -67,9 +67,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            Assert.NotNull(client, "no client returned");
 
             // Handle bad response
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloAsync(request).ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client!.SayHelloAsync(request).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
@@ -111,8 +112,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            Assert.NotNull(client, "no client returned");
 
-            var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            var response = await client!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(response);
@@ -200,8 +202,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            Assert.NotNull(client, "no client returned");
 
-            var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            var response = await client!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(response);
