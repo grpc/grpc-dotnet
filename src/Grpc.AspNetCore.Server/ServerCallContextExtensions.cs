@@ -34,7 +34,7 @@ namespace Grpc.Core
         /// with the ServerCallContext. 
         /// </summary>
         /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
-        /// <returns>The call <see cref="HttpContext"/>. An error will be thrown if the gRPC services are not hosted by ASP.NET Core.</returns>
+        /// <returns>The call <see cref="HttpContext"/>. An error will be thrown if called outside of ASP.NET Core.</returns>
         public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
         {
             if (serverCallContext == null)
