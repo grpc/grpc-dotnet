@@ -116,6 +116,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.AspNetCore.HealthCheck
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Client.LoadBalancing", "src\Grpc.Net.Client.LoadBalancing\Grpc.Net.Client.LoadBalancing.csproj", "{0F42C32D-BAE2-451B-8BE9-17BF995AE101}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Net.Client.LoadBalancing.Tests", "test\Grpc.Net.Client.LoadBalancing.Tests\Grpc.Net.Client.LoadBalancing.Tests.csproj", "{78564304-153B-41CF-94F3-B34C5700D9F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -230,6 +232,10 @@ Global
 		{0F42C32D-BAE2-451B-8BE9-17BF995AE101}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0F42C32D-BAE2-451B-8BE9-17BF995AE101}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0F42C32D-BAE2-451B-8BE9-17BF995AE101}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78564304-153B-41CF-94F3-B34C5700D9F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78564304-153B-41CF-94F3-B34C5700D9F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78564304-153B-41CF-94F3-B34C5700D9F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78564304-153B-41CF-94F3-B34C5700D9F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -271,6 +277,7 @@ Global
 		{778DB6EE-E5B2-4875-A209-40010B5A3E21} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{39A9F2B5-2541-423E-83C9-46C7BFF53F41} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{0F42C32D-BAE2-451B-8BE9-17BF995AE101} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
+		{78564304-153B-41CF-94F3-B34C5700D9F4} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

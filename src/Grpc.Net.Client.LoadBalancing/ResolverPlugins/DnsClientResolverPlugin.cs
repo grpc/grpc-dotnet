@@ -30,6 +30,11 @@ namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
         }
 
         /// <summary>
+        /// Property created for testing purposes, allows setter injection
+        /// </summary>
+        internal IDnsQuery? OverrideDnsClient { private get; set; }
+
+        /// <summary>
         /// Creates a <seealso cref="DnsClientResolverPlugin"/> that is capable of searching SRV and TXT records.
         /// </summary>
         public DnsClientResolverPlugin() : this(new DnsClientResolverPluginOptions())
@@ -98,8 +103,12 @@ namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
             return results;
         }
 
-        private LookupClient GetDnsClient()
+        private IDnsQuery GetDnsClient()
         {
+            if (OverrideDnsClient != null)
+            {
+                return OverrideDnsClient;
+            }
             if (_options.NameServers.Length == 0)
             {
                 return new LookupClient();

@@ -7,6 +7,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
+using Grpc.Net.Client.LoadBalancing.Policies.Abstraction;
 
 namespace Grpc.Net.Client.LoadBalancing.Policies
 {
@@ -19,6 +20,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     /// </summary>
     public sealed class GrpclbPolicy : IGrpcLoadBalancingPolicy
     {
+        private int _i = -1;
         private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
@@ -34,7 +36,10 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             }
         }
 
-        private int _i = -1;
+        /// <summary>
+        /// Property created for testing purposes, allows setter injection
+        /// </summary>
+        internal ILoadBalancerClient? OverrideLoadBalancerClient { private get; set; }
 
         /// <summary>
         /// Creates a subchannel to each server address. Depending on policy this may require additional 
@@ -61,8 +66,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             {
                 LoggerFactory = _loggerFactory
             };
-            using var channelForLB = GrpcChannel.ForAddress($"http://{resolutionResult[0].Host}:{resolutionResult[0].Port}", channelOptionsForLB);
-            var loadBalancerClient = new LoadBalancer.LoadBalancerClient(channelForLB);
+            using var loadBalancerClient = GetLoadBalancerClient(resolutionResult, channelOptionsForLB);
             var balancingStreaming = loadBalancerClient.BalanceLoad();
             var initialRequest = new InitialLoadBalanceRequest() { Name = "service-name" }; //TODO remove hardcoded value
             await balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
@@ -100,6 +104,15 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         public GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels)
         {
             return subChannels[Interlocked.Increment(ref _i) % subChannels.Count];
+        }
+
+        private ILoadBalancerClient GetLoadBalancerClient(List<GrpcNameResolutionResult> resolutionResult, GrpcChannelOptions channelOptionsForLB)
+        {
+            if(OverrideLoadBalancerClient != null)
+            {
+                return OverrideLoadBalancerClient;
+            }
+            return new WrappedLoadBalancerClient(resolutionResult, channelOptionsForLB);
         }
     }
 }

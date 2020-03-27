@@ -17,8 +17,8 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     /// </summary>
     public sealed class RoundRobinPolicy : IGrpcLoadBalancingPolicy
     {
-        private ILogger _logger = NullLogger.Instance;
         private int _i = -1;
+        private ILogger _logger = NullLogger.Instance;
 
         /// <summary>
         /// LoggerFactory is configured (injected) when class is being instantiated.
