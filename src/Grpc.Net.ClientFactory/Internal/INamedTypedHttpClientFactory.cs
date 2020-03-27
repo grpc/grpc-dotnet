@@ -21,8 +21,11 @@ using Grpc.Core;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
-    interface INamedTypedHttpClientFactory<TClient> where TClient : ClientBase
+    interface INamedTypedHttpClientFactory<TClient> where TClient : class
     {
-        TClient CreateClient(HttpClient httpClient, string name);
+        CallInvoker GetCallInvoker(HttpClient httpClient, string name);
+        TClient CreateClient(CallInvoker callInvoker);
+        public bool CanCreateDefaultClient { get; }
+
     }
 }
