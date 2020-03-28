@@ -305,7 +305,11 @@ namespace Microsoft.Extensions.DependencyInjection
                 var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
                 var clientOptions = os.Get(name);
 
-                httpClient.BaseAddress = clientOptions.Address;
+                // do not set shared baseaddress for subchannels 
+                if (clientOptions.Address?.Scheme != "dns")
+                {
+                    httpClient.BaseAddress = clientOptions.Address; 
+                }
 
                 // Long running server and duplex streaming gRPC requests may not
                 // return any messages for over 100 seconds, triggering a cancellation
