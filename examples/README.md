@@ -170,3 +170,15 @@ The blazor example shows how to call a gRPC service from a Blazor WebAssembly ap
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
 * Configure .NET gRPC client in Blazor to use gRPC-Web
 * Call gRPC services with Blazor WebAssembly from a browser
+
+## [Spar](./Spar)
+
+The spar example shows how to call a gRPC service from a single page application (SPA) and make cross-origin gRPC-Web requests. The SPA uses [Vue.js](https://vuejs.org/) and [gRPC-Web](https://github.com/grpc/grpc-web). The server is configured to support [Cross Origin Resource Sharing (CORS)](https://docs.microsoft.com/aspnet/core/security/cors). This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
+
+The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`](https://github.com/protocolbuffers/protobuf/releases) with the [`protoc-gen-grpc-web`](https://github.com/grpc/grpc-web/releases) plugin.
+
+##### Scenarios:
+
+* Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
+* Configure ASP.NET Core server to enable gRPC-Web cross-origin requests (CORS)
+* Call gRPC services with JavaScript from a SPA

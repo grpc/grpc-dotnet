@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "sourceMap": true,
+        "strict": true,
+        "noImplicitReturns": false,
+        "noImplicitAny": false,
+        "module": "esnext",
+        "moduleResolution": "node",
+        "target": "es5",
+        "allowJs": true,
+        "resolveJsonModule": true,
+    },
+    "lib": ["dom", "esnext"],
+    "include": ["./src/**/*"]
+}
