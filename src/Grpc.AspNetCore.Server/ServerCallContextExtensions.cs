@@ -29,12 +29,13 @@ namespace Grpc.Core
     {
         /// <summary>
         /// Retrieve the <see cref="HttpContext"/> from the a call's <see cref="ServerCallContext"/>.
-        /// The HttpContext is only available when gRPC services are hosted by ASP.NET Core.
-        /// Note that read-only access is recommended as changes to the HttpContext are not synchronized
-        /// with the ServerCallContext. 
+        /// The HttpContext is only available when gRPC services are hosted by ASP.NET Core. An error will be
+        /// thrown if this method is used outside of ASP.NET Core.
+        /// Note that read-only usage of HttpContext is recommended as changes to the HttpContext are not synchronized
+        /// with the ServerCallContext.
         /// </summary>
         /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
-        /// <returns>The call <see cref="HttpContext"/>. An error will be thrown if called outside of ASP.NET Core.</returns>
+        /// <returns>The call's <see cref="HttpContext"/>.</returns>
         public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
         {
             if (serverCallContext == null)
