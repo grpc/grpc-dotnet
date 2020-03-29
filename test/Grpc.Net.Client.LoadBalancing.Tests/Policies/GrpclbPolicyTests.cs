@@ -19,7 +19,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForEmptyResolutionPassed_UseGrpclbPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new GrpclbPolicy();
+            using var policy = new GrpclbPolicy();
 
             // Act
             // Assert
@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForServersResolutionOnly_UseGrpclbPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new GrpclbPolicy();
+            using var policy = new GrpclbPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.5.211", 80)
@@ -74,7 +74,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             responseStreamMock.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).Returns(() => Task.FromResult(responseCounter++ == 0));
             responseStreamMock.Setup(x => x.Current).Returns(GetSampleLoadBalanceResponse());
 
-            var policy = new GrpclbPolicy();
+            using var policy = new GrpclbPolicy();
             policy.OverrideLoadBalancerClient = balancerClientMock.Object;
 
             var resolutionResults = new List<GrpcNameResolutionResult>()
@@ -91,14 +91,13 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             Assert.All(subChannels, subChannel => Assert.Equal("http", subChannel.Address.Scheme));
             Assert.All(subChannels, subChannel => Assert.Equal(80, subChannel.Address.Port));
             Assert.All(subChannels, subChannel => Assert.StartsWith("10.1.5.", subChannel.Address.Host));
-            balancerClientMock.Verify(x => x.Dispose(), Times.Once);
         }
 
         [Fact]
         public void ForGrpcSubChannels_UseGrpclbPolicySelectChannels_SelectChannelsInRoundRobin()
         {
             // Arrange
-            var policy = new GrpclbPolicy();
+            using var policy = new GrpclbPolicy();
             var subChannels = new List<GrpcSubChannel>()
             {
                 new GrpcSubChannel(new UriBuilder("http://10.1.5.210:80").Uri),

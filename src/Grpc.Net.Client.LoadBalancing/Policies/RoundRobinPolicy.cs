@@ -72,5 +72,12 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         {
             return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
         }
+
+        /// <summary>
+        /// Releases the resources used by the <see cref="RoundRobinPolicy"/> class.
+        /// </summary>
+        public void Dispose()
+        {
+        }
     }
 }

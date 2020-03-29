@@ -23,6 +23,8 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         private int _i = -1;
         private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
+        private ILoadBalancerClient? _loadBalancerClient;
+        private IAsyncDuplexStreamingCall<LoadBalanceRequest, LoadBalanceResponse>? _balancingStreaming;
 
         /// <summary>
         /// LoggerFactory is configured (injected) when class is being instantiated.
@@ -36,8 +38,10 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             }
         }
 
-        internal IReadOnlyList<GrpcSubChannel> SubChannels { get; set; } = Array.Empty<GrpcSubChannel>();
+        internal bool Disposed { get; private set; }
 
+        internal IReadOnlyList<GrpcSubChannel> SubChannels { get; set; } = Array.Empty<GrpcSubChannel>();
+        
         /// <summary>
         /// Property created for testing purposes, allows setter injection
         /// </summary>
@@ -68,17 +72,17 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             {
                 LoggerFactory = _loggerFactory
             };
-            using var loadBalancerClient = GetLoadBalancerClient(resolutionResult, channelOptionsForLB);
-            var balancingStreaming = loadBalancerClient.BalanceLoad();
+            _loadBalancerClient = GetLoadBalancerClient(resolutionResult, channelOptionsForLB);
+            _balancingStreaming = _loadBalancerClient.BalanceLoad();
             var initialRequest = new InitialLoadBalanceRequest() { Name = "service-name" }; //TODO remove hardcoded value
-            await balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
+            await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
             var clientStats = new ClientStats();
-            await balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
-            await balancingStreaming.RequestStream.CompleteAsync().ConfigureAwait(false);
+            await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
             var result = new List<GrpcSubChannel>();
-            while (await balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false))
+            // this while loop will seek first ServerList response
+            while (await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false))
             {
-                var loadBalanceResponse = balancingStreaming.ResponseStream.Current;
+                var loadBalanceResponse = _balancingStreaming.ResponseStream.Current;
                 if (loadBalanceResponse.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
                 {
                     foreach (var server in loadBalanceResponse.ServerList.Servers)
@@ -92,6 +96,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
                         result.Add(new GrpcSubChannel(uri));
                         _logger.LogDebug($"Found a server {uri}");
                     }
+                    break;
                 }
             }
             _logger.LogDebug($"SubChannels list created");
@@ -114,6 +119,26 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
                 return OverrideLoadBalancerClient;
             }
             return new WrappedLoadBalancerClient(resolutionResult, channelOptionsForLB);
+        }
+
+        /// <summary>
+        /// Releases the resources used by the <see cref="GrpclbPolicy"/> class.
+        /// </summary>
+        public void Dispose()
+        {
+            if (Disposed)
+            {
+                return;
+            }
+            try
+            {
+                _balancingStreaming?.RequestStream.CompleteAsync().Wait(); // close request stream to complete gracefully
+            }
+            finally
+            {
+                _loadBalancerClient?.Dispose();
+            }
+            Disposed = true;
         }
     }
 }

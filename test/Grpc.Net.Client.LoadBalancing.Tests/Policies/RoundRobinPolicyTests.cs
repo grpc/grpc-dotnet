@@ -12,7 +12,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForEmptyResolutionPassed_UseRoundRobinPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new RoundRobinPolicy();
+            using var policy = new RoundRobinPolicy();
 
             // Act
             // Assert
@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForBalancersResolutionOnly_UseRoundRobinPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new RoundRobinPolicy();
+            using var policy = new RoundRobinPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.6.120", 80)
@@ -51,7 +51,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForResolutionResults_UseRoundRobinPolicy_CreateAmmountSubChannels()
         {
             // Arrange
-            var policy = new RoundRobinPolicy();
+            using var policy = new RoundRobinPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.5.211", 80)
@@ -87,7 +87,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForResolutionResultWithBalancers_UseRoundRobinPolicy_IgnoreBalancersCreateSubchannels()
         {
             // Arrange
-            var policy = new RoundRobinPolicy();
+            using var policy = new RoundRobinPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.5.211", 8443)
@@ -127,7 +127,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public void ForGrpcSubChannels_UseRoundRobinPolicySelectChannels_SelectChannelsInRoundRobin()
         {
             // Arrange
-            var policy = new RoundRobinPolicy();
+            using var policy = new RoundRobinPolicy();
             var subChannels = new List<GrpcSubChannel>()
             {
                 new GrpcSubChannel(new UriBuilder("http://10.1.5.210:80").Uri),

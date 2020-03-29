@@ -31,7 +31,7 @@ namespace Grpc.Net.Client
     /// The load balancing policy creates a subchannel to each server address.
     /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
     /// </summary>
-    public interface IGrpcLoadBalancingPolicy
+    public interface IGrpcLoadBalancingPolicy : IDisposable
     {
         /// <summary>
         /// LoggerFactory is configured (injected) when class is being instantiated.
@@ -184,6 +184,10 @@ namespace Grpc.Net.Client
         public GrpcSubChannel GetNextSubChannel()
         {
             return SubChannels[0];
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

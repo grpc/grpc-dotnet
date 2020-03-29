@@ -11,7 +11,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForEmptyResolutionPassed_UsePickFirstPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new PickFirstPolicy();
+            using var policy = new PickFirstPolicy();
 
             // Act
             // Assert
@@ -25,7 +25,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForBalancersResolutionOnly_UsePickFirstPolicy_ThrowArgumentException()
         {
             // Arrange
-            var policy = new PickFirstPolicy();
+            using var policy = new PickFirstPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.6.120", 80)
@@ -50,7 +50,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForResolutionResults_UsePickFirstPolicy_CreateAmmountSubChannels()
         {
             // Arrange
-            var policy = new PickFirstPolicy();
+            using var policy = new PickFirstPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.5.211", 80)
@@ -86,7 +86,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public async Task ForResolutionResultWithBalancers_UsePickFirstPolicy_IgnoreBalancersCreateSubchannels()
         {
             // Arrange
-            var policy = new PickFirstPolicy();
+            using var policy = new PickFirstPolicy();
             var resolutionResults = new List<GrpcNameResolutionResult>()
             {
                 new GrpcNameResolutionResult("10.1.6.120", 80)
@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
         public void ForGrpcSubChannels_UsePickFirstPolicySelectChannels_SelectFirstChannel()
         {
             // Arrange
-            var policy = new PickFirstPolicy();
+            using var policy = new PickFirstPolicy();
             var subChannels = new List<GrpcSubChannel>()
             {
                 new GrpcSubChannel(new UriBuilder("http://10.1.5.210:80").Uri),
