@@ -25,7 +25,7 @@ namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
         public DnsClientResolverPluginOptions()
         {
             NameServers = Array.Empty<IPEndPoint>();
-            DisableTxtServiceConfig = false;
+            DisableTxtServiceConfig = true;
         }
     }
 }
