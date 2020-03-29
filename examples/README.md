@@ -145,6 +145,17 @@ The vigor example shows how to integrate [ASP.NET Core health checks](https://do
 * Integrate [ASP.NET Core health checks](https://docs.microsoft.com/aspnet/core/host-and-deploy/health-checks) with gRPC health checks
 * Calling service with `Grpc.HealthCheck` client
 
+## [Compressor](./Compressor)
+
+The compressor example shows how to enable compression of gRPC request and response messages using gzip.
+
+> **IMPORTANT:** Using compression with dynamically generated content can lead to security problems such as the [CRIME](https://wikipedia.org/wiki/CRIME_(security_exploit)) and [BREACH](https://wikipedia.org/wiki/BREACH_(security_exploit)) attacks.
+
+##### Scenarios:
+
+* Compression of request messages. gRPC clients should use the `grpc-internal-encoding-request` metadata value.
+* Compression of response messages. gRPC services should configure the `ResponseCompressionAlgorithm` setting.
+
 ## [Browser](./Browser)
 
 The browser example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with ASP.NET Core to call a gRPC service from a browser. Browser apps have limited HTTP/2 features and need to use gRPC-Web instead. This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
