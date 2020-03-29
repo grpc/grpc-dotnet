@@ -25,7 +25,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             // Assert
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
-                var _ = await policy.CreateSubChannelsAsync(new List<GrpcNameResolutionResult>(), false);
+                await policy.CreateSubChannelsAsync(new List<GrpcNameResolutionResult>(), false);
             });
         }
 
@@ -50,7 +50,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             // Assert
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
-                var _ = await policy.CreateSubChannelsAsync(resolutionResults, false); // non-balancers are ignored
+                await policy.CreateSubChannelsAsync(resolutionResults, false); // non-balancers are ignored
             });
         }
 
@@ -83,7 +83,8 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             };
 
             // Act
-            var subChannels = await policy.CreateSubChannelsAsync(resolutionResults, false);
+            await policy.CreateSubChannelsAsync(resolutionResults, false);
+            var subChannels = policy.SubChannels;
 
             // Assert
             Assert.Equal(3, subChannels.Count); // subChannels are created per results from GetSampleLoadBalanceResponse
@@ -105,11 +106,13 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
                 new GrpcSubChannel(new UriBuilder("http://10.1.5.211:80").Uri),
                 new GrpcSubChannel(new UriBuilder("http://10.1.5.213:80").Uri)
             };
+            policy.SubChannels = subChannels;
+
             // Act
             // Assert
             for (int i = 0; i < 30; i++)
             {
-                var subChannel = policy.GetNextSubChannel(subChannels);
+                var subChannel = policy.GetNextSubChannel();
                 Assert.Equal(subChannels[i % subChannels.Count].Address.Host, subChannel.Address.Host);
                 Assert.Equal(subChannels[i % subChannels.Count].Address.Port, subChannel.Address.Port);
                 Assert.Equal(subChannels[i % subChannels.Count].Address.Scheme, subChannel.Address.Scheme);

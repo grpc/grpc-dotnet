@@ -28,6 +28,8 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             set => _logger = value.CreateLogger<RoundRobinPolicy>();
         }
 
+        internal IReadOnlyList<GrpcSubChannel> SubChannels { get; set; } = Array.Empty<GrpcSubChannel>();
+
         /// <summary>
         /// Creates a subchannel to each server address. Depending on policy this may require additional 
         /// steps eg. reaching out to lookaside loadbalancer.
@@ -35,7 +37,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         /// <param name="resolutionResult">Resolved list of servers and/or lookaside load balancers.</param>
         /// <param name="isSecureConnection">Flag if connection between client and destination server should be secured.</param>
         /// <returns>List of subchannels.</returns>
-        public Task<List<GrpcSubChannel>> CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
+        public Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
         {
             if (resolutionResult == null)
             {
@@ -58,17 +60,17 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
                 return new GrpcSubChannel(uri);
             }).ToList();
             _logger.LogDebug($"SubChannels list created");
-            return Task.FromResult(result);
+            SubChannels = result;
+            return Task.CompletedTask;
         }
 
         /// <summary>
         /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
         /// </summary>
-        /// <param name="subChannels">List of subchannels.</param>
         /// <returns>Selected subchannel.</returns>
-        public GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels)
+        public GrpcSubChannel GetNextSubChannel()
         {
-            return subChannels[Interlocked.Increment(ref _i) % subChannels.Count];
+            return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
         }
     }
 }

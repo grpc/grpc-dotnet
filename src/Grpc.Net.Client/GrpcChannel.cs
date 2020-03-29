@@ -53,7 +53,6 @@ namespace Grpc.Net.Client
         internal string MessageAcceptEncoding { get; }
         internal IGrpcResolverPlugin ResolverPlugin { get; }
         internal IGrpcLoadBalancingPolicy LoadBalancingPolicy { get; }
-        internal List<GrpcSubChannel> SubChannels { get; } 
         internal bool Disposed { get; private set; }
         // Timing related options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
@@ -99,7 +98,7 @@ namespace Grpc.Net.Client
 
             var resolutionResult = ResolverPlugin.StartNameResolutionAsync(Address).GetAwaiter().GetResult();
             var isSecureConnection = Address.Scheme == Uri.UriSchemeHttps || (Address.Scheme.Equals("dns", StringComparison.OrdinalIgnoreCase) && Address.Port == 443);
-            SubChannels = LoadBalancingPolicy.CreateSubChannelsAsync(resolutionResult, Address.Scheme == Uri.UriSchemeHttps).GetAwaiter().GetResult();
+            LoadBalancingPolicy.CreateSubChannelsAsync(resolutionResult, Address.Scheme == Uri.UriSchemeHttps).Wait();
         }
 
         private static HttpClient CreateInternalHttpClient()

@@ -36,6 +36,8 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             }
         }
 
+        internal IReadOnlyList<GrpcSubChannel> SubChannels { get; set; } = Array.Empty<GrpcSubChannel>();
+
         /// <summary>
         /// Property created for testing purposes, allows setter injection
         /// </summary>
@@ -48,7 +50,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         /// <param name="resolutionResult">Resolved list of servers and/or lookaside load balancers.</param>
         /// <param name="isSecureConnection">Flag if connection between client and destination server should be secured.</param>
         /// <returns>List of subchannels.</returns>
-        public async Task<List<GrpcSubChannel>> CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
+        public async Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
         {
             if (resolutionResult == null)
             {
@@ -93,17 +95,16 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
                 }
             }
             _logger.LogDebug($"SubChannels list created");
-            return result;
+            SubChannels = result;
         }
 
         /// <summary>
         /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
         /// </summary>
-        /// <param name="subChannels">List of subchannels.</param>
         /// <returns>Selected subchannel.</returns>
-        public GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels)
+        public GrpcSubChannel GetNextSubChannel()
         {
-            return subChannels[Interlocked.Increment(ref _i) % subChannels.Count];
+            return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
         }
 
         private ILoadBalancerClient GetLoadBalancerClient(List<GrpcNameResolutionResult> resolutionResult, GrpcChannelOptions channelOptionsForLB)

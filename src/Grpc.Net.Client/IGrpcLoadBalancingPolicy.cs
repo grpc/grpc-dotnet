@@ -45,14 +45,13 @@ namespace Grpc.Net.Client
         /// <param name="resolutionResult">Resolved list of servers and/or lookaside load balancers.</param>
         /// <param name="isSecureConnection">Flag if connection between client and destination server should be secured.</param>
         /// <returns>List of subchannels.</returns>
-        Task<List<GrpcSubChannel>> CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection);
+        Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection);
 
         /// <summary>
         /// For each RPC sent, the load balancing policy decides which subchannel (i.e., which server) the RPC should be sent to.
         /// </summary>
-        /// <param name="subChannels">List of subchannels.</param>
         /// <returns>Selected subchannel.</returns>
-        GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels);
+        GrpcSubChannel GetNextSubChannel();
     }
 
     /// <summary>
@@ -154,7 +153,9 @@ namespace Grpc.Net.Client
             set => _logger = value.CreateLogger<PickFirstPolicy>();
         }
 
-        public Task<List<GrpcSubChannel>> CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
+        internal IReadOnlyList<GrpcSubChannel> SubChannels { get; set; } = Array.Empty<GrpcSubChannel>();
+
+        public Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
         {
             if (resolutionResult == null)
             {
@@ -176,12 +177,13 @@ namespace Grpc.Net.Client
             };
             _logger.LogDebug($"Found a server {uri}");
             _logger.LogDebug($"SubChannels list created");
-            return Task.FromResult(result);
+            SubChannels = result;
+            return Task.CompletedTask;
         }
 
-        public GrpcSubChannel GetNextSubChannel(List<GrpcSubChannel> subChannels)
+        public GrpcSubChannel GetNextSubChannel()
         {
-            return subChannels[0];
+            return SubChannels[0];
         }
     }
 }

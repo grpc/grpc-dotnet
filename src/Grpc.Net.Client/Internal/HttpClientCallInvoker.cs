@@ -129,7 +129,7 @@ namespace Grpc.Net.Client.Internal
                 throw new ObjectDisposedException(nameof(GrpcChannel));
             }
 
-            var subchannel = Channel.LoadBalancingPolicy.GetNextSubChannel(Channel.SubChannels);
+            var subchannel = Channel.LoadBalancingPolicy.GetNextSubChannel();
             var scope = Channel.GetCachedGrpcCallScope(method);
             var methodInfo = new GrpcMethodInfo(scope, new Uri(subchannel.Address, scope.Uri));
             var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, Channel);
