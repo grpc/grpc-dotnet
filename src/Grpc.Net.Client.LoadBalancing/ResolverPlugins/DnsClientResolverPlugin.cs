@@ -88,16 +88,17 @@ namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
                 }
             }
             var balancingDnsQuery = $"_grpclb._tcp.{host}";
-            var serversDnsQuery = $"_grpc._tcp.{host}";
-            _logger.LogDebug($"Start SRV lookup for {balancingDnsQuery} and {serversDnsQuery}");
+            var serversDnsQuery = host;
+            _logger.LogDebug($"Start SRV lookup for {balancingDnsQuery}");
+            _logger.LogDebug($"Start A lookup for {serversDnsQuery}");
             var balancingDnsQueryTask = dnsClient.QueryAsync(balancingDnsQuery, QueryType.SRV);
-            var serversDnsQueryTask = dnsClient.QueryAsync(serversDnsQuery, QueryType.SRV);
+            var serversDnsQueryTask = dnsClient.QueryAsync(serversDnsQuery, QueryType.A);
             await Task.WhenAll(balancingDnsQueryTask, serversDnsQueryTask).ConfigureAwait(false);
             var results = balancingDnsQueryTask.Result.Answers.OfType<SrvRecord>().Select(x => ParseSrvRecord(x, true))
-                .Union(serversDnsQueryTask.Result.Answers.OfType<SrvRecord>().Select(x => ParseSrvRecord(x, false))).ToList();
+                .Union(serversDnsQueryTask.Result.Answers.OfType<ARecord>().Select(x => ParseARecord(x, target.Port, false))).ToList();
             if (results.Count == 0)
             {
-                _logger.LogDebug($"Not found any SRV records");
+                _logger.LogDebug($"Not found any DNS records");
                 return new List<GrpcNameResolutionResult>();
             }
             return results;
@@ -151,6 +152,18 @@ namespace Grpc.Net.Client.LoadBalancing.ResolverPlugins
                 IsLoadBalancer = isLoadBalancer,
                 Priority = srvRecord.Priority,
                 Weight = srvRecord.Weight
+            };
+        }
+
+        private GrpcNameResolutionResult ParseARecord(ARecord aRecord, int port, bool isLoadBalancer)
+        {
+            _logger.LogDebug($"Found a A record {aRecord.ToString()}");
+            return new GrpcNameResolutionResult(aRecord.Address.ToString())
+            {
+                Port = port,
+                IsLoadBalancer = isLoadBalancer,
+                Priority = 0,
+                Weight = 0
             };
         }
     }
