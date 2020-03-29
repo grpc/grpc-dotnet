@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq;
 using Grpc.Net.Client.LoadBalancing.Policies.Abstraction;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Grpc.Net.Client.LoadBalancing.Policies
 {
@@ -20,11 +21,14 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     /// </summary>
     public sealed class GrpclbPolicy : IGrpcLoadBalancingPolicy
     {
+        private bool _isSecureConnection = false;
+        private int _requestsCounter = 0;
         private int _i = -1;
         private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
         private ILoadBalancerClient? _loadBalancerClient;
         private IAsyncDuplexStreamingCall<LoadBalanceRequest, LoadBalanceResponse>? _balancingStreaming;
+        private Timer? _timer;
 
         /// <summary>
         /// LoggerFactory is configured (injected) when class is being instantiated.
@@ -65,6 +69,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             {
                 throw new ArgumentException($"{nameof(resolutionResult)} must contain at least one blancer address");
             }
+            _isSecureConnection = isSecureConnection;
             _logger.LogDebug($"Start grpclb policy");
             _logger.LogDebug($"Start connection to external load balancer");
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -78,29 +83,18 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
             var clientStats = new ClientStats();
             await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
-            var result = new List<GrpcSubChannel>();
             // this while loop will seek first ServerList response
             while (await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false))
             {
                 var loadBalanceResponse = _balancingStreaming.ResponseStream.Current;
                 if (loadBalanceResponse.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
                 {
-                    foreach (var server in loadBalanceResponse.ServerList.Servers)
-                    {
-                        var ipAddress = new IPAddress(server.IpAddress.ToByteArray()).ToString();
-                        var uriBuilder = new UriBuilder();
-                        uriBuilder.Host = ipAddress;
-                        uriBuilder.Port = server.Port;
-                        uriBuilder.Scheme = isSecureConnection ? "https" : "http";
-                        var uri = uriBuilder.Uri;
-                        result.Add(new GrpcSubChannel(uri));
-                        _logger.LogDebug($"Found a server {uri}");
-                    }
+                    UpdateSubChannels(loadBalanceResponse.ServerList);
                     break;
                 }
             }
             _logger.LogDebug($"SubChannels list created");
-            SubChannels = result;
+            _timer = new Timer(ReportClientStats, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
         /// <summary>
@@ -109,7 +103,46 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         /// <returns>Selected subchannel.</returns>
         public GrpcSubChannel GetNextSubChannel()
         {
+            Interlocked.Increment(ref _requestsCounter);
             return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
+        }
+
+        // async void recommended by Stephen Cleary https://stackoverflow.com/questions/38917818/pass-async-callback-to-timer-constructor
+        private async void ReportClientStats(object state)
+        {
+            var requestsCounter = Interlocked.Exchange(ref _requestsCounter, 0);
+            var clientStats = new ClientStats()
+            {
+                NumCallsStarted = requestsCounter,
+                NumCallsFinished = requestsCounter,
+                NumCallsFinishedKnownReceived = requestsCounter,
+                NumCallsFinishedWithClientFailedToSend = 0,
+                Timestamp = Timestamp.FromDateTime(DateTime.UtcNow)
+            };
+            await _balancingStreaming!.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
+            await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false);
+            var loadBalanceResponse = _balancingStreaming.ResponseStream.Current;
+            if (loadBalanceResponse.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
+            {
+                UpdateSubChannels(_balancingStreaming.ResponseStream.Current.ServerList);
+            }
+        }
+
+        private void UpdateSubChannels(ServerList serverList)
+        {
+            var result = new List<GrpcSubChannel>();
+            foreach (var server in serverList.Servers)
+            {
+                var ipAddress = new IPAddress(server.IpAddress.ToByteArray()).ToString();
+                var uriBuilder = new UriBuilder();
+                uriBuilder.Host = ipAddress;
+                uriBuilder.Port = server.Port;
+                uriBuilder.Scheme = _isSecureConnection ? "https" : "http";
+                var uri = uriBuilder.Uri;
+                result.Add(new GrpcSubChannel(uri));
+                _logger.LogDebug($"Found a server {uri}");
+            }
+            SubChannels = result;
         }
 
         private ILoadBalancerClient GetLoadBalancerClient(List<GrpcNameResolutionResult> resolutionResult, GrpcChannelOptions channelOptionsForLB)
@@ -132,6 +165,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             }
             try
             {
+                _timer?.Dispose();
                 _balancingStreaming?.RequestStream.CompleteAsync().Wait(); // close request stream to complete gracefully
             }
             finally
