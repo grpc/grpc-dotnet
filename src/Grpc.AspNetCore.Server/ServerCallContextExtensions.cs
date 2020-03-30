@@ -46,8 +46,7 @@ namespace Grpc.Core
             }
 
             // Attempt to quickly get HttpContext from known call context type.
-            var httpContextServerCallContext = serverCallContext as HttpContextServerCallContext;
-            if (httpContextServerCallContext != null)
+            if (serverCallContext is HttpContextServerCallContext httpContextServerCallContext)
             {
                 return httpContextServerCallContext.HttpContext;
             }
