@@ -21,6 +21,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     /// </summary>
     public sealed class GrpclbPolicy : IGrpcLoadBalancingPolicy
     {
+        private TimeSpan _clientStatsReportInterval = TimeSpan.FromSeconds(10);
         private bool _isSecureConnection = false;
         private int _requestsCounter = 0;
         private int _subChannelsSelectionCounter = -1;
@@ -86,10 +87,21 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             _balancingStreaming = _loadBalancerClient.BalanceLoad();
             var initialRequest = new InitialLoadBalanceRequest() { Name = $"{serviceName}:{resolutionResult[0].Port}" };
             await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
-            await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false); //TODO use initial response
-            await ReportClientStatsAsync().ConfigureAwait(false); // first ClientStats are send immediately after InitialLoadBalanceRequest
+            await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false);
+            if (_balancingStreaming.ResponseStream.Current.LoadBalanceResponseTypeCase != LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.InitialResponse)
+            {
+                throw new InvalidOperationException("InitialLoadBalanceRequest was not followed by InitialLoadBalanceResponse");
+            }
+            var initialResponse = _balancingStreaming.ResponseStream.Current.InitialResponse;
+            _clientStatsReportInterval = initialResponse.ClientStatsReportInterval.ToTimeSpan();
+            await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false);
+            if (_balancingStreaming.ResponseStream.Current.LoadBalanceResponseTypeCase != LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
+            {
+                throw new InvalidOperationException("InitialLoadBalanceResponse was not followed by ServerList");
+            }
+            UpdateSubChannels(_balancingStreaming.ResponseStream.Current.ServerList);
             _logger.LogDebug($"SubChannels list created");
-            _timer = new Timer(ReportClientStatsTimerAsync, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            _timer = new Timer(ReportClientStatsTimerAsync, null, _clientStatsReportInterval, _clientStatsReportInterval);
             _logger.LogDebug($"Periodic ClientStats reporting enabled");
         }
 
@@ -122,8 +134,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             };
             await _balancingStreaming!.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
             await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false);
-            if (_balancingStreaming.ResponseStream.Current.LoadBalanceResponseTypeCase == 
-                LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
+            if (_balancingStreaming.ResponseStream.Current.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
             {
                 UpdateSubChannels(_balancingStreaming.ResponseStream.Current.ServerList);
             }

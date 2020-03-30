@@ -1,4 +1,5 @@
 using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Lb.V1;
 using Grpc.Net.Client.LoadBalancing.Policies;
@@ -94,18 +95,23 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             var balancerClientMock = new Mock<ILoadBalancerClient>(MockBehavior.Strict);
             var balancerStreamMock = new Mock<IAsyncDuplexStreamingCall<LoadBalanceRequest, LoadBalanceResponse>>(MockBehavior.Strict);
             var requestStreamMock = new Mock<IClientStreamWriter<LoadBalanceRequest>>(MockBehavior.Loose);
-            var responseStreamMock = new Mock<IAsyncStreamReader<LoadBalanceResponse>>(MockBehavior.Loose);
 
             balancerClientMock.Setup(x => x.Dispose());
             balancerClientMock.Setup(x => x.BalanceLoad(null, null, It.IsAny<CancellationToken>()))
                 .Returns(balancerStreamMock.Object);
 
             balancerStreamMock.Setup(x => x.RequestStream).Returns(requestStreamMock.Object);
-            balancerStreamMock.Setup(x => x.ResponseStream).Returns(responseStreamMock.Object);
-
-            var responseCounter = 0;
-            responseStreamMock.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).Returns(() => Task.FromResult(responseCounter++ == 0));
-            responseStreamMock.Setup(x => x.Current).Returns(GetSampleLoadBalanceResponse());
+            balancerStreamMock.Setup(x => x.ResponseStream).Returns(new TestLoadBalancerResponse(new List<LoadBalanceResponse>
+            {
+                new LoadBalanceResponse()
+                {
+                    InitialResponse = GetSampleInitialLoadBalanceResponse()
+                },
+                new LoadBalanceResponse()
+                {
+                    ServerList = GetSampleServerList()
+                }
+            }));
 
             using var policy = new GrpclbPolicy();
             policy.OverrideLoadBalancerClient = balancerClientMock.Object;
@@ -133,18 +139,23 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             var balancerClientMock = new Mock<ILoadBalancerClient>(MockBehavior.Strict);
             var balancerStreamMock = new Mock<IAsyncDuplexStreamingCall<LoadBalanceRequest, LoadBalanceResponse>>(MockBehavior.Strict);
             var requestStreamMock = new Mock<IClientStreamWriter<LoadBalanceRequest>>(MockBehavior.Loose);
-            var responseStreamMock = new Mock<IAsyncStreamReader<LoadBalanceResponse>>(MockBehavior.Loose);
 
             balancerClientMock.Setup(x => x.Dispose()).Verifiable();
             balancerClientMock.Setup(x => x.BalanceLoad(null, null, It.IsAny<CancellationToken>()))
                 .Returns(balancerStreamMock.Object);
 
             balancerStreamMock.Setup(x => x.RequestStream).Returns(requestStreamMock.Object);
-            balancerStreamMock.Setup(x => x.ResponseStream).Returns(responseStreamMock.Object);
-
-            var responseCounter = 0;
-            responseStreamMock.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).Returns(() => Task.FromResult(responseCounter++ == 0));
-            responseStreamMock.Setup(x => x.Current).Returns(GetSampleLoadBalanceResponse());
+            balancerStreamMock.Setup(x => x.ResponseStream).Returns(new TestLoadBalancerResponse(new List<LoadBalanceResponse>
+            {
+                new LoadBalanceResponse()
+                {
+                    InitialResponse = GetSampleInitialLoadBalanceResponse()
+                },
+                new LoadBalanceResponse()
+                {
+                    ServerList = GetSampleServerList()
+                }
+            }));
 
             using var policy = new GrpclbPolicy();
             policy.OverrideLoadBalancerClient = balancerClientMock.Object;
@@ -188,25 +199,52 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             }
         }
 
-        private static LoadBalanceResponse GetSampleLoadBalanceResponse()
+        private static InitialLoadBalanceResponse GetSampleInitialLoadBalanceResponse()
         {
-            var responseServerList = new ServerList();
-            responseServerList.Servers.Add(new Server()
+            var initialResponse = new InitialLoadBalanceResponse();
+            initialResponse.ClientStatsReportInterval = Duration.FromTimeSpan(TimeSpan.FromSeconds(10));
+            initialResponse.LoadBalancerDelegate = string.Empty;
+            return initialResponse;
+        }
+
+        private static ServerList GetSampleServerList()
+        {
+            var serverList = new ServerList();
+            serverList.Servers.Add(new Server()
             {
                 IpAddress = ByteString.CopyFrom(IPAddress.Parse("10.1.5.211").GetAddressBytes()),
                 Port = 80
             });
-            responseServerList.Servers.Add(new Server()
+            serverList.Servers.Add(new Server()
             {
                 IpAddress = ByteString.CopyFrom(IPAddress.Parse("10.1.5.212").GetAddressBytes()),
                 Port = 80
             });
-            responseServerList.Servers.Add(new Server()
+            serverList.Servers.Add(new Server()
             {
                 IpAddress = ByteString.CopyFrom(IPAddress.Parse("10.1.5.213").GetAddressBytes()),
                 Port = 80
             });
-            return new LoadBalanceResponse() { ServerList = responseServerList };
+            return serverList;
+        }
+    }
+
+    internal sealed class TestLoadBalancerResponse : IAsyncStreamReader<LoadBalanceResponse>
+    {
+        private readonly IReadOnlyList<LoadBalanceResponse> _loadBalanceResponses;
+        private int _streamIndex;
+
+        public TestLoadBalancerResponse(IReadOnlyList<LoadBalanceResponse> loadBalanceResponses)
+        {
+            _loadBalanceResponses = loadBalanceResponses;
+            _streamIndex = -1;
+        }
+
+        public LoadBalanceResponse Current => _loadBalanceResponses[_streamIndex];
+
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(++_streamIndex < _loadBalanceResponses.Count);
         }
     }
 }
