@@ -63,7 +63,7 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             var requestStreamMock = new Mock<IClientStreamWriter<LoadBalanceRequest>>(MockBehavior.Loose);
             var responseStreamMock = new Mock<IAsyncStreamReader<LoadBalanceResponse>>(MockBehavior.Loose);
 
-            balancerClientMock.Setup(x => x.Dispose()).Verifiable();
+            balancerClientMock.Setup(x => x.Dispose());
             balancerClientMock.Setup(x => x.BalanceLoad(null, null, It.IsAny<CancellationToken>()))
                 .Returns(balancerStreamMock.Object);
 
@@ -91,6 +91,43 @@ namespace Grpc.Net.Client.LoadBalancing.Tests.Policies
             Assert.All(subChannels, subChannel => Assert.Equal("http", subChannel.Address.Scheme));
             Assert.All(subChannels, subChannel => Assert.Equal(80, subChannel.Address.Port));
             Assert.All(subChannels, subChannel => Assert.StartsWith("10.1.5.", subChannel.Address.Host));
+        }
+
+        [Fact]
+        public async Task ForLoadBalancerClient_UseGrpclbPolicy_EnsureDisposedResources()
+        {
+            // Arrange
+            var balancerClientMock = new Mock<ILoadBalancerClient>(MockBehavior.Strict);
+            var balancerStreamMock = new Mock<IAsyncDuplexStreamingCall<LoadBalanceRequest, LoadBalanceResponse>>(MockBehavior.Strict);
+            var requestStreamMock = new Mock<IClientStreamWriter<LoadBalanceRequest>>(MockBehavior.Loose);
+            var responseStreamMock = new Mock<IAsyncStreamReader<LoadBalanceResponse>>(MockBehavior.Loose);
+
+            balancerClientMock.Setup(x => x.Dispose()).Verifiable();
+            balancerClientMock.Setup(x => x.BalanceLoad(null, null, It.IsAny<CancellationToken>()))
+                .Returns(balancerStreamMock.Object);
+
+            balancerStreamMock.Setup(x => x.RequestStream).Returns(requestStreamMock.Object);
+            balancerStreamMock.Setup(x => x.ResponseStream).Returns(responseStreamMock.Object);
+
+            var responseCounter = 0;
+            responseStreamMock.Setup(x => x.MoveNext(It.IsAny<CancellationToken>())).Returns(() => Task.FromResult(responseCounter++ == 0));
+            responseStreamMock.Setup(x => x.Current).Returns(GetSampleLoadBalanceResponse());
+
+            using var policy = new GrpclbPolicy();
+            policy.OverrideLoadBalancerClient = balancerClientMock.Object;
+
+            var resolutionResults = new List<GrpcNameResolutionResult>()
+            {
+                new GrpcNameResolutionResult("10.1.6.120", 80) { IsLoadBalancer = true }
+            };
+
+            // Act
+            await policy.CreateSubChannelsAsync(resolutionResults, false);
+            var subChannels = policy.SubChannels;
+
+            // Assert
+            policy.Dispose();
+            balancerClientMock.Verify(x => x.Dispose(), Times.Once());
         }
 
         [Fact]
