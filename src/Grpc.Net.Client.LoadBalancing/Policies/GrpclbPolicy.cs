@@ -23,7 +23,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     {
         private bool _isSecureConnection = false;
         private int _requestsCounter = 0;
-        private int _i = -1;
+        private int _subChannelsSelectionCounter = -1;
         private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
         private ILoadBalancerClient? _loadBalancerClient;
@@ -81,20 +81,11 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             _balancingStreaming = _loadBalancerClient.BalanceLoad();
             var initialRequest = new InitialLoadBalanceRequest() { Name = "service-name" }; //TODO remove hardcoded value
             await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
-            var clientStats = new ClientStats();
-            await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
-            // this while loop will seek first ServerList response
-            while (await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false))
-            {
-                var loadBalanceResponse = _balancingStreaming.ResponseStream.Current;
-                if (loadBalanceResponse.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
-                {
-                    UpdateSubChannels(loadBalanceResponse.ServerList);
-                    break;
-                }
-            }
+            await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false); //TODO use initial response
+            await ReportClientStatsAsync().ConfigureAwait(false); // first ClientStats are send immediately after InitialLoadBalanceRequest
             _logger.LogDebug($"SubChannels list created");
-            _timer = new Timer(ReportClientStats, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+            _timer = new Timer(ReportClientStatsTimerAsync, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+            _logger.LogDebug($"Periodic ClientStats reporting enabled");
         }
 
         /// <summary>
@@ -104,11 +95,16 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         public GrpcSubChannel GetNextSubChannel()
         {
             Interlocked.Increment(ref _requestsCounter);
-            return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
+            return SubChannels[Interlocked.Increment(ref _subChannelsSelectionCounter) % SubChannels.Count];
         }
 
         // async void recommended by Stephen Cleary https://stackoverflow.com/questions/38917818/pass-async-callback-to-timer-constructor
-        private async void ReportClientStats(object state)
+        private async void ReportClientStatsTimerAsync(object state)
+        {
+            await ReportClientStatsAsync().ConfigureAwait(false);
+        }
+
+        private async Task ReportClientStatsAsync()
         {
             var requestsCounter = Interlocked.Exchange(ref _requestsCounter, 0);
             var clientStats = new ClientStats()
@@ -121,8 +117,8 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             };
             await _balancingStreaming!.RequestStream.WriteAsync(new LoadBalanceRequest() { ClientStats = clientStats }).ConfigureAwait(false);
             await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false);
-            var loadBalanceResponse = _balancingStreaming.ResponseStream.Current;
-            if (loadBalanceResponse.LoadBalanceResponseTypeCase == LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
+            if (_balancingStreaming.ResponseStream.Current.LoadBalanceResponseTypeCase == 
+                LoadBalanceResponse.LoadBalanceResponseTypeOneofCase.ServerList)
             {
                 UpdateSubChannels(_balancingStreaming.ResponseStream.Current.ServerList);
             }

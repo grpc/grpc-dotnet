@@ -17,7 +17,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
     /// </summary>
     public sealed class RoundRobinPolicy : IGrpcLoadBalancingPolicy
     {
-        private int _i = -1;
+        private int _subChannelsSelectionCounter = -1;
         private ILogger _logger = NullLogger.Instance;
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         /// <returns>Selected subchannel.</returns>
         public GrpcSubChannel GetNextSubChannel()
         {
-            return SubChannels[Interlocked.Increment(ref _i) % SubChannels.Count];
+            return SubChannels[Interlocked.Increment(ref _subChannelsSelectionCounter) % SubChannels.Count];
         }
 
         /// <summary>
