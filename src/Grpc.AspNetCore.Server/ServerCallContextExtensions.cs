@@ -53,7 +53,8 @@ namespace Grpc.Core
             }
 
             // Fallback to getting HttpContext from user state.
-            // This situation could happen if some part of the app replaces the call context.
+            // This is to support custom gRPC invokers that replace the default server call context.
+            // They must place the HttpContext in UserState with the `__HttpContext` key.
             if (serverCallContext.UserState != null &&
                 serverCallContext.UserState.TryGetValue(HttpContextKey, out var c) &&
                 c is HttpContext httpContext)
