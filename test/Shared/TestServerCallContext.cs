@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -25,6 +26,8 @@ namespace Grpc.Tests.Shared
 {
     public class TestServerCallContext : ServerCallContext
     {
+        private IDictionary<object, object> _userState = new Dictionary<object, object>();
+        
         public TestServerCallContext(DateTime deadline, CancellationToken cancellationToken)
         {
             DeadlineCore = deadline;
@@ -41,6 +44,7 @@ namespace Grpc.Tests.Shared
         protected override Status StatusCore { get; set; }
         protected override WriteOptions? WriteOptionsCore { get; set; }
         protected override AuthContext? AuthContextCore { get; }
+        protected override IDictionary<object, object> UserStateCore => _userState;
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
         {
