@@ -27,6 +27,8 @@ namespace Grpc.Core
     /// </summary>
     public static class ServerCallContextExtensions
     {
+        internal const string HttpContextKey = "__HttpContext";
+
         /// <summary>
         /// Retrieve the <see cref="HttpContext"/> from the a call's <see cref="ServerCallContext"/>.
         /// The HttpContext is only available when gRPC services are hosted by ASP.NET Core. An error will be
@@ -43,13 +45,23 @@ namespace Grpc.Core
                 throw new ArgumentNullException(nameof(serverCallContext));
             }
 
-            var httpContextServerCallContext = serverCallContext as HttpContextServerCallContext;
-            if (httpContextServerCallContext == null)
+            // Attempt to quickly get HttpContext from known call context type.
+            if (serverCallContext is HttpContextServerCallContext httpContextServerCallContext)
             {
-                throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by ASP.NET Core.");
+                return httpContextServerCallContext.HttpContext;
             }
 
-            return httpContextServerCallContext.HttpContext;
+            // Fallback to getting HttpContext from user state.
+            // This is to support custom gRPC invokers that replace the default server call context.
+            // They must place the HttpContext in UserState with the `__HttpContext` key.
+            if (serverCallContext.UserState != null &&
+                serverCallContext.UserState.TryGetValue(HttpContextKey, out var c) &&
+                c is HttpContext httpContext)
+            {
+                return httpContext;
+            }
+
+            throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by ASP.NET Core.");
         }
     }
 }
