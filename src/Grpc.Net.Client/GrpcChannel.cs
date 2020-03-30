@@ -98,7 +98,7 @@ namespace Grpc.Net.Client
             
             var resolutionResult = ResolverPlugin.StartNameResolutionAsync(Address).GetAwaiter().GetResult();
             var isSecureConnection = Address.Scheme == Uri.UriSchemeHttps || (Address.Scheme.Equals("dns", StringComparison.OrdinalIgnoreCase) && Address.Port == 443);
-            LoadBalancingPolicy.CreateSubChannelsAsync(resolutionResult, Address.Scheme == Uri.UriSchemeHttps).Wait();
+            LoadBalancingPolicy.CreateSubChannelsAsync(resolutionResult, Address.Host,  Address.Scheme == Uri.UriSchemeHttps).Wait();
         }
 
         private static HttpClient CreateInternalHttpClient()

@@ -56,13 +56,18 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
         /// steps eg. reaching out to lookaside loadbalancer.
         /// </summary>
         /// <param name="resolutionResult">Resolved list of servers and/or lookaside load balancers.</param>
+        /// <param name="serviceName">The name of the load balanced service (e.g., service.googleapis.com).</param>
         /// <param name="isSecureConnection">Flag if connection between client and destination server should be secured.</param>
         /// <returns>List of subchannels.</returns>
-        public async Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, bool isSecureConnection)
+        public async Task CreateSubChannelsAsync(List<GrpcNameResolutionResult> resolutionResult, string serviceName, bool isSecureConnection)
         {
             if (resolutionResult == null)
             {
                 throw new ArgumentNullException(nameof(resolutionResult));
+            }
+            if (string.IsNullOrWhiteSpace(serviceName))
+            {
+                throw new ArgumentException($"{nameof(serviceName)} not defined");
             }
             resolutionResult = resolutionResult.Where(x => x.IsLoadBalancer).ToList();
             if (resolutionResult.Count == 0)
@@ -79,7 +84,7 @@ namespace Grpc.Net.Client.LoadBalancing.Policies
             };
             _loadBalancerClient = GetLoadBalancerClient(resolutionResult, channelOptionsForLB);
             _balancingStreaming = _loadBalancerClient.BalanceLoad();
-            var initialRequest = new InitialLoadBalanceRequest() { Name = "service-name" }; //TODO remove hardcoded value
+            var initialRequest = new InitialLoadBalanceRequest() { Name = $"{serviceName}:{resolutionResult[0].Port}" };
             await _balancingStreaming.RequestStream.WriteAsync(new LoadBalanceRequest() { InitialRequest = initialRequest }).ConfigureAwait(false);
             await _balancingStreaming.ResponseStream.MoveNext(CancellationToken.None).ConfigureAwait(false); //TODO use initial response
             await ReportClientStatsAsync().ConfigureAwait(false); // first ClientStats are send immediately after InitialLoadBalanceRequest
