@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -33,13 +34,24 @@ namespace Client
             _logger = logger;
         }
 
-        public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(
+        public override async Task<TResponse> UnaryServerHandler<TRequest, TResponse>(
             TRequest request,
             ServerCallContext context,
             UnaryServerMethod<TRequest, TResponse> continuation)
         {
             LogCall<TRequest, TResponse>(MethodType.Unary, context);
-            return continuation(request, context);
+
+            try
+            {
+                return await continuation(request, context);
+            }
+            catch (Exception ex)
+            {
+                // Note: The gRPC framework also logs exceptions thrown by handlers to .NET Core logging.
+                _logger.LogError(ex, $"Error thrown by {context.Method}.");
+
+                throw;
+            }
         }
 
         public override Task<TResponse> ClientStreamingServerHandler<TRequest, TResponse>(
