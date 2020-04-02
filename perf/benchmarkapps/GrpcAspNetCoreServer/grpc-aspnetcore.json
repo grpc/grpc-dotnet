@@ -9,7 +9,7 @@
       "BranchOrCommit": "master",
       "Project": "perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj"
     },
-    
+
     "ReadyStateText": "Application started."
   },
 
@@ -92,6 +92,19 @@
   },
 
   "GrpcUnary-h2load": {
+    "Client": "h2load",
+    "Path": "/grpc.testing.BenchmarkService/UnaryCall",
+    "Headers": {
+      "content-type": "application/grpc",
+      "TE": "trailers"
+    },
+    "ClientProperties": {
+      "protocol": "h2c",
+      "RequestBody": "AAAAAAcKBVdvcmxk"
+    }
+  },
+
+  "GrpcUnary-Streams-h2load": {
     "Client": "h2load",
     "Path": "/grpc.testing.BenchmarkService/UnaryCall",
     "Headers": {
