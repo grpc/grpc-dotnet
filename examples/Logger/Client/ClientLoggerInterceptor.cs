@@ -49,7 +49,7 @@ namespace Client
             catch (Exception ex)
             {
                 // Log error to the console.
-                // Note: Client logging is the recommended way to log errors
+                // Note: Configuring .NET Core logging is the recommended way to log errors
                 // https://docs.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
                 var initialColor = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.Red;
