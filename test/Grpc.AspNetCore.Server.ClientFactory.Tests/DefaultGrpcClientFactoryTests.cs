@@ -84,12 +84,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Act
-            await client!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual(deadline, options.Deadline);
@@ -115,12 +114,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client!.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Unable to propagate server context values to the call. Can't find the current HttpContext.", ex.Message);
@@ -149,12 +147,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Act
-            await client!.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
+            await client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
 
             // Assert
             var log = testSink.Writes.Single(w => w.EventId.Name == "PropagateServerCallContextFailure");
@@ -180,12 +177,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client!.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Unable to propagate server context values to the call. Can't find the gRPC ServerCallContext on the current HttpContext.", ex.Message);
@@ -214,12 +210,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(serviceProvider);
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Act
-            await client!.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
+            await client.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
 
             // Assert
             var log = testSink.Writes.Single(w => w.EventId.Name == "PropagateServerCallContextFailure");
@@ -249,6 +244,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             }
 
             public HttpContext? HttpContext { get; set; }
+        }
+
+        private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
+        {
+            return new DefaultGrpcClientFactory(serviceProvider,
+                serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
         }
     }
 }

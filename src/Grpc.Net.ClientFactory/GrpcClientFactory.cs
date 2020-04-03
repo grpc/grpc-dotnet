@@ -16,12 +16,6 @@
 
 #endregion
 
-using Grpc.Core;
-using System;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Grpc.Net.ClientFactory.Internal;
-
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
@@ -36,29 +30,6 @@ namespace Grpc.Net.ClientFactory
         /// <typeparam name="TClient">The gRPC client type.</typeparam>
         /// <param name="name">The configuration name.</param>
         /// <returns>A gRPC client instance.</returns>
-        public abstract TClient? CreateClient<TClient>(string name) where TClient : class;
-
-        /// <summary>
-        /// Gets a default CallInvoker instance for the specified <typeparamref name="TClient"/> and configuration name.
-        /// </summary>
-        /// <typeparam name="TClient">The gRPC client type.</typeparam>
-        /// <param name="serviceProvider">The service provider.</param>
-        /// <param name="name">The configuration name.</param>
-        /// <returns>A gRPC client instance.</returns>
-        protected static CallInvoker GetCallInvoker<TClient>(IServiceProvider serviceProvider, string name) where TClient : class
-        {
-            var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
-            var typedHttpClientFactory = serviceProvider.GetService<INamedTypedHttpClientFactory<TClient>>();
-            if (typedHttpClientFactory is null)
-            {
-                ThrowServiceNotConfigured(name);
-            }
-
-            var httpClient = httpClientFactory.CreateClient(name);
-
-            return typedHttpClientFactory!.GetCallInvoker(httpClient, name);
-        }
-
-        internal static void ThrowServiceNotConfigured(string name) => throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
+        public abstract TClient CreateClient<TClient>(string name) where TClient : class;
     }
 }

@@ -22,15 +22,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.ClientFactory.Tests
@@ -57,20 +53,16 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     options.MaxSendMessageSize = 100;
                 })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return new TestHttpMessageHandler();
-                });
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
             // Handle bad response
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client!.SayHelloAsync(request).ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloAsync(request).ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
@@ -102,19 +94,15 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(1)))
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(2)))
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(3)))
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return new TestHttpMessageHandler();
-                });
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
-            var response = await client!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(response);
@@ -192,19 +180,15 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddInterceptor<CallbackInterceptor>()
                 .AddInterceptor<CallbackInterceptor>()
                 .AddInterceptor<CallbackInterceptor>()
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return new TestHttpMessageHandler();
-                });
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
-            Assert.NotNull(client, "no client returned");
 
-            var response = await client!.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(response);
@@ -223,6 +207,133 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor<CallbackInterceptor>());
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
+        }
+
+        [Test]
+        public void ConfigureGrpcClientCreator_CreatorSuccess_ClientReturned()
+        {
+            // Arrange
+            Greeter.GreeterClient? createdClient = null;
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .ConfigureGrpcClientCreator(callInvoker =>
+                {
+                    createdClient = new Greeter.GreeterClient(callInvoker);
+                    return createdClient;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            // Assert
+            Assert.IsNotNull(client);
+            Assert.AreEqual(createdClient, client);
+        }
+
+        [Test]
+        public void ConfigureGrpcClientCreator_ServiceProviderCreatorSuccess_ClientReturned()
+        {
+            // Arrange
+            DerivedGreeterClient? createdGreaterClient = null;
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .ConfigureGrpcClientCreator((serviceProvider, callInvoker) =>
+                {
+                    createdGreaterClient = new DerivedGreeterClient(callInvoker);
+                    return createdGreaterClient;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+            services
+                .AddGrpcClient<SecondGreeter.SecondGreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var greeterClient = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            var secondGreeterClient = clientFactory.CreateClient<SecondGreeter.SecondGreeterClient>(nameof(SecondGreeter.SecondGreeterClient));
+
+            // Assert
+            Assert.IsNotNull(greeterClient);
+            Assert.AreEqual(createdGreaterClient, greeterClient);
+            Assert.IsNotNull(secondGreeterClient);
+        }
+
+        [Test]
+        public void ConfigureGrpcClientCreator_CreatorReturnsNull_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .ConfigureGrpcClientCreator(callInvoker =>
+                {
+                    return null!;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+
+            // Assert
+            Assert.AreEqual("A null instance was returned by the configured client creator.", ex.Message);
+        }
+
+        [Test]
+        public void ConfigureGrpcClientCreator_CreatorReturnsIncorrectType_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .ConfigureGrpcClientCreator(callInvoker =>
+                {
+                    return new object();
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+
+            // Assert
+            Assert.AreEqual("The System.Object instance returned by the configured client creator is not compatible with Greet.Greeter+GreeterClient.", ex.Message);
+        }
+
+        private class DerivedGreeterClient : Greeter.GreeterClient
+        {
+            public DerivedGreeterClient(CallInvoker callInvoker) : base(callInvoker)
+            {
+            }
         }
 
         private class TestHttpMessageHandler : HttpMessageHandler
