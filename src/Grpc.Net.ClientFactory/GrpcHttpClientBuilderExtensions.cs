@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Grpc.Net.ClientFactory;
@@ -166,6 +167,67 @@ namespace Microsoft.Extensions.DependencyInjection
             builder.AddInterceptor(serviceProvider =>
             {
                 return serviceProvider.GetRequiredService<TInterceptor>();
+            });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Adds a delegate that will be used to create the gRPC client. Clients returned by the delegate must
+        /// be compatible with the client type from <c>AddGrpcClient</c>.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="configureCreator">A delegate that is used to create the gRPC client.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder ConfigureGrpcClientCreator(this IHttpClientBuilder builder, Func<IServiceProvider, CallInvoker, object> configureCreator)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (configureCreator == null)
+            {
+                throw new ArgumentNullException(nameof(configureCreator));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            {
+                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
+                {
+                    options.Creator = (callInvoker) => configureCreator(services, callInvoker);
+                });
+            });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Adds a delegate that will be used to create the gRPC client. Clients returned by the delegate must
+        /// be compatible with the client type from <c>AddGrpcClient</c>.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="configureCreator">A delegate that is used to create the gRPC client.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder ConfigureGrpcClientCreator(this IHttpClientBuilder builder, Func<CallInvoker, object> configureCreator)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (configureCreator == null)
+            {
+                throw new ArgumentNullException(nameof(configureCreator));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            {
+                options.Creator = (callInvoker) => configureCreator(callInvoker);
             });
 
             return builder;

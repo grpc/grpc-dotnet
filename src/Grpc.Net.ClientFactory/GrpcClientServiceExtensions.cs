@@ -291,10 +291,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(name));
             }
 
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<GrpcClientFactory, DefaultGrpcClientFactory>());
+            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
 
-            services.TryAdd(ServiceDescriptor.Transient(typeof(INamedTypedHttpClientFactory<TClient>), typeof(GrpcHttpClientFactory<TClient>)));
-            services.TryAdd(ServiceDescriptor.Singleton(typeof(GrpcHttpClientFactory<TClient>.Cache), typeof(GrpcHttpClientFactory<TClient>.Cache)));
+            services.TryAddSingleton<GrpcCallInvokerFactory>();
+            services.TryAddSingleton<DefaultClientActivator<TClient>>();
 
             // Registry is used to track state and report errors **DURING** service registration. This has to be an instance
             // because we access it by reaching into the service collection.
@@ -340,13 +340,8 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.AddTransient<TClient>(s =>
             {
-                foreach(var clientFactory in s.GetServices<GrpcClientFactory>())
-                {
-                    var client = clientFactory.CreateClient<TClient>(builder.Name);
-                    if (client != null) return client;
-                }
-                var typeName = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
-                throw new InvalidOperationException($"No gRPC client configured with name '{name}' for type '{typeName}'.");
+                var clientFactory = s.GetRequiredService<GrpcClientFactory>();
+                return clientFactory.CreateClient<TClient>(builder.Name);
             });
 
             ReserveClient(builder, typeof(TClient), name);
