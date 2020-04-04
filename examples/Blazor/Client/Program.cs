@@ -20,7 +20,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
-using Microsoft.AspNetCore.Blazor.Hosting;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Weather;
 
@@ -41,13 +42,17 @@ namespace Client
 
             builder.Services.AddSingleton(services =>
             {
+                // Get the service address from appsettings.json
+                var config = services.GetRequiredService<IConfiguration>();
+                var backendUrl = config["BackendUrl"];
+
                 // Create a gRPC-Web channel pointing to the backend server.
                 //
                 // GrpcWebText is used because server streaming requires it. If server streaming is not used in your app
                 // then GrpcWeb is recommended because it produces smaller messages.
                 var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler()));
 
-                var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions { HttpClient = httpClient });
+                var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpClient = httpClient });
 
                 return channel;
             });
