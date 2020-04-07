@@ -180,6 +180,7 @@ The blazor example shows how to call a gRPC service from a Blazor WebAssembly ap
 
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
 * Configure .NET gRPC client in Blazor to use gRPC-Web
+* Get service address using `IConfiguration` and `appsettings.json`
 * Call gRPC services with Blazor WebAssembly from a browser
 
 ## [Spar](./Spar)
