@@ -56,4 +56,6 @@ do
     }
 done
 
+source grpcweb_interoptests.sh
+
 echo "Finished"

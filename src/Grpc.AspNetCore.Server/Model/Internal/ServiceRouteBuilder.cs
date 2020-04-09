@@ -91,7 +91,8 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 endpointRouteBuilder,
                 _serviceMethodsRegistry,
                 _serverCallHandlerFactory,
-                serviceMethodProviderContext.Methods);
+                serviceMethodProviderContext.Methods,
+                endpointConventionBuilders);
 
             _serviceMethodsRegistry.Methods.AddRange(serviceMethodProviderContext.Methods);
 
@@ -102,14 +103,15 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             IEndpointRouteBuilder endpointRouteBuilder,
             ServiceMethodsRegistry serviceMethodsRegistry,
             ServerCallHandlerFactory<TService> serverCallHandlerFactory,
-            List<MethodModel> serviceMethods)
+            List<MethodModel> serviceMethods,
+            List<IEndpointConventionBuilder> endpointConventionBuilders)
         {
             // Return UNIMPLEMENTED status for missing service:
             // - /{service}/{method} + content-type header = grpc/application
             if (!serverCallHandlerFactory.IgnoreUnknownServices && serviceMethodsRegistry.Methods.Count == 0)
             {
                 // Only one unimplemented service endpoint is needed for the application
-                CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService());
+                endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService()));
             }
 
             // Return UNIMPLEMENTED status for missing method:
@@ -128,12 +130,12 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                         continue;
                     }
 
-                    CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod());
+                    endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod()));
                 }
             }
         }
 
-        private static void CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
+        private static IEndpointConventionBuilder CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
         {
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcUnimplementedConstraint.Instance });
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
@@ -144,6 +146,8 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 // Don't add POST metadata here. It will return 405 status for other HTTP methods which isn't
                 // what we want. That check is made in a constraint instead.
             });
+
+            return endpointBuilder;
         }
 
         private class GrpcUnimplementedConstraint : IRouteConstraint
@@ -155,6 +159,12 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 if (httpContext == null)
                 {
                     return false;
+                }
+
+                // Constraint needs to be valid when a CORS preflight request is received so that CORS middleware will run
+                if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+                {
+                    return true;
                 }
 
                 if (!HttpMethods.IsPost(httpContext.Request.Method))

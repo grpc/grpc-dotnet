@@ -20,7 +20,7 @@ using System;
 using System.Collections;
 using System.Threading.Tasks;
 
-namespace InteropTestsClient
+namespace Grpc.Shared.TestAssets
 {
     internal static class Assert
     {

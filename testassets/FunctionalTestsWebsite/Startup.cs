@@ -130,10 +130,10 @@ namespace FunctionalTestsWebsite
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapGrpcService<SecondGreeterService>().RequireCors("FunctionalTests");
                 endpoints.MapGrpcService<ChatterService>();
                 endpoints.MapGrpcService<CounterService>();
                 endpoints.MapGrpcService<AuthorizedGreeter>();
-                endpoints.MapGrpcService<SecondGreeterService>().RequireCors("FunctionalTests");
                 endpoints.MapGrpcService<LifetimeService>();
                 endpoints.MapGrpcService<SingletonCounterService>();
                 endpoints.MapGrpcService<NestedService>();

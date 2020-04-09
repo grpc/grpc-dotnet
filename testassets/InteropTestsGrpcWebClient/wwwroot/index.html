@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>gRPC-Web in Blazor</title>
+    <base href="/" />
+
+    <style type="text/css">
+        .error, .critical {
+            color: red;
+            font-weight: bold;
+        }
+
+        .information {
+            font-weight: bold;
+        }
+
+        #blazor-error-ui {
+            background: lightyellow;
+            bottom: 0;
+            box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+            display: none;
+            left: 0;
+            padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+            #blazor-error-ui .dismiss {
+                cursor: pointer;
+                position: absolute;
+                right: 0.75rem;
+                top: 0.5rem;
+            }
+    </style>
+</head>
+
+<body>
+    <app>Loading...</app>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script type="text/javascript">
+        var host = 'localhost';
+        var port = 8080;
+
+        // This will be called by Blazor once it is loaded and ready to run tests
+        window.initialTestHelper = (testHelper) => {
+            window.testHelper = testHelper;
+        };
+
+        // Get test names for the specified mode
+        function getTestNames(grpcWebMode) {
+            var testHelper = window.testHelper;
+
+            return testHelper.invokeMethodAsync('GetTestNames', grpcWebMode);
+        }
+
+        // Call into Blazor to run the specified test
+        function runTest(name, mode) {
+            var testHelper = window.testHelper;
+
+            return testHelper.invokeMethodAsync('RunTestAsync', host, port, mode, name);
+        }
+    </script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

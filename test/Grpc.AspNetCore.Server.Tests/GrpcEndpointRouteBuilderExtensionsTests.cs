@@ -202,9 +202,8 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var endpoints = routeBuilder.DataSources
                 .SelectMany(ds => ds.Endpoints)
-                .Where(e => e.Metadata.GetMetadata<GrpcMethodMetadata>() != null)
                 .ToList();
-            Assert.AreEqual(2, endpoints.Count);
+            Assert.AreEqual(4, endpoints.Count);
 
             var routeEndpoint1 = (RouteEndpoint)endpoints[0];
             Assert.AreEqual("/greet.Greeter/SayHello", routeEndpoint1.RoutePattern.RawText);
@@ -213,6 +212,14 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeEndpoint2 = (RouteEndpoint)endpoints[1];
             Assert.AreEqual("/greet.Greeter/SayHellos", routeEndpoint2.RoutePattern.RawText);
             Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
+
+            var routeEndpoint3 = (RouteEndpoint)endpoints[2];
+            Assert.AreEqual("{unimplementedService}/{unimplementedMethod}", routeEndpoint3.RoutePattern.RawText);
+            Assert.NotNull(routeEndpoint3.Metadata.GetMetadata<CustomMetadata>());
+
+            var routeEndpoint4 = (RouteEndpoint)endpoints[3];
+            Assert.AreEqual("greet.Greeter/{unimplementedMethod}", routeEndpoint4.RoutePattern.RawText);
+            Assert.NotNull(routeEndpoint4.Metadata.GetMetadata<CustomMetadata>());
         }
 
         [Test]

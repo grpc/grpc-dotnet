@@ -6,6 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\Assert.cs" Link="Assert.cs" />
+    <Compile Include="..\Shared\AsyncStreamExtensions.cs" Link="AsyncStreamExtensions.cs" />
+    <Compile Include="..\Shared\ExceptionAssert.cs" Link="ExceptionAssert.cs" />
+    <Compile Include="..\Shared\IChannelWrapper.cs" Link="IChannelWrapper.cs" />
+    <Compile Include="..\Shared\InteropClient.cs" Link="InteropClient.cs" />
+    <Compile Include="..\Shared\TestCredentials.cs" Link="TestCredentials.cs" />
+
     <Protobuf Include="..\Proto\echo.proto" GrpcServices="Client" Link="Protos\echo.proto" />
     <Protobuf Include="..\Proto\grpc\testing\test.proto" GrpcServices="Client" Link="Protos\test.proto" />
     <Protobuf Include="..\Proto\grpc\testing\empty.proto" GrpcServices="None" Link="Protos\empty.proto" />
