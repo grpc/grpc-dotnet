@@ -36,18 +36,28 @@ namespace Microsoft.AspNetCore.Builder
         /// <returns>A reference to this instance after the operation has completed.</returns>
         public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder)
         {
+            return builder.UseGrpcWeb(new GrpcWebOptions());
+        }
+
+        /// <summary>
+        /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
+        /// </summary>
+        /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
+        /// <param name="options">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
+        /// <returns>A reference to this instance after the operation has completed.</returns>
+        public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder, GrpcWebOptions options)
+        {
             if (builder == null)
             {
                 throw new ArgumentNullException(nameof(builder));
             }
 
-            var options = builder.ApplicationServices.GetService<IOptions<GrpcWebOptions>>();
             if (options == null)
             {
-                options = Options.Create(new GrpcWebOptions());
+                throw new ArgumentNullException(nameof(options));
             }
 
-            return builder.UseMiddleware<GrpcWebMiddleware>(options);
+            return builder.UseMiddleware<GrpcWebMiddleware>(Options.Create(options));
         }
     }
 }

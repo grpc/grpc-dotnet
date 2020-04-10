@@ -16,7 +16,7 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Web
+namespace Microsoft.AspNetCore.Builder
 {
     /// <summary>
     /// Provides programmatic configuration for gRPC-Web.
@@ -26,6 +26,6 @@ namespace Grpc.AspNetCore.Web
         /// <summary>
         /// Gets or sets a flag indicating whether gRPC-Web is enabled by default for endpoints that have not specifically opted in or out.
         /// </summary>
-        public bool GrpcWebEnabled { get; set; }
+        public bool DefaultEnabled { get; set; }
     }
 }

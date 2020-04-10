@@ -53,7 +53,6 @@ namespace FunctionalTestsWebsite
                 {
                     options.ResponseCompressionAlgorithm = "gzip";
                 });
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
             services.AddHttpContextAccessor();
 
             services
@@ -126,7 +125,7 @@ namespace FunctionalTestsWebsite
             app.UseRouting();
 
             app.UseAuthorization();
-            app.UseGrpcWeb();
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
             app.UseCors();
 
             app.UseEndpoints(endpoints =>

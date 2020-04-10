@@ -19,8 +19,8 @@
 using System;
 using System.Threading.Tasks;
 using Grpc.Shared;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.Web.Internal
                 Log.DetectedGrpcWebRequest(_logger, httpContext.Request.ContentType);
 
                 var metadata = httpContext.GetEndpoint()?.Metadata.GetMetadata<IGrpcWebEnabledMetadata>();
-                if (metadata?.GrpcWebEnabled ?? _options.GrpcWebEnabled)
+                if (metadata?.GrpcWebEnabled ?? _options.DefaultEnabled)
                 {
                     return HandleGrpcWebRequest(httpContext, mode);
                 }
