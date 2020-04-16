@@ -33,11 +33,10 @@ namespace Grpc.AspNetCore.Server.Tests.Web
     public class GrpcWebApplicationBuilderExtensionsTests
     {
         [Test]
-        public void UseGrpcWeb_WithServices_Success()
+        public void UseGrpcWeb_NoServices_Success()
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
             var app = new ApplicationBuilder(services.BuildServiceProvider());
 
             // Act & Assert
@@ -50,10 +49,9 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             // Arrange
             var services = new ServiceCollection();
             services.AddLogging();
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
             var app = new ApplicationBuilder(services.BuildServiceProvider());
 
-            app.UseGrpcWeb();
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
             var appFunc = app.Build();
 
@@ -74,11 +72,10 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             // Arrange
             var services = new ServiceCollection();
             services.AddLogging();
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
             var app = new ApplicationBuilder(services.BuildServiceProvider());
 
-            app.UseGrpcWeb();
-            app.UseGrpcWeb();
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
             var appFunc = app.Build();
 

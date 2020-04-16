@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Web;
 using Grpc.AspNetCore.Web.Internal;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
@@ -106,7 +107,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var testLoggerFactory = new TestLoggerFactory(testSink, true);
 
             var middleware = CreateMiddleware(
-                options: new GrpcWebOptions { GrpcWebEnabled = true },
+                options: new GrpcWebOptions { DefaultEnabled = true },
                 logger: testLoggerFactory.CreateLogger<GrpcWebMiddleware>());
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Method = HttpMethods.Post;
@@ -125,7 +126,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         public async Task Invoke_GrpcWebContentTypeAndMetadata_Processed()
         {
             // Arrange
-            var middleware = CreateMiddleware(options: new GrpcWebOptions { GrpcWebEnabled = false });
+            var middleware = CreateMiddleware(options: new GrpcWebOptions());
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Protocol = "HTTP/1.1";
             httpContext.Request.Method = HttpMethods.Post;
