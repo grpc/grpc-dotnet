@@ -41,7 +41,7 @@ namespace Server
                 builder.AllowAnyOrigin()
                        .AllowAnyMethod()
                        .AllowAnyHeader()
-                       .WithExposedHeaders("Grpc-Status", "Grpc-Message");
+                       .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
             }));
         }
 
