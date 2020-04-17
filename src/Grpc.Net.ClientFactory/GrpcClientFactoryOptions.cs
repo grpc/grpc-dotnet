@@ -43,5 +43,10 @@ namespace Grpc.Net.ClientFactory
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
         public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
+
+        /// <summary>
+        /// Gets or sets a delegate that will override how a client is created.
+        /// </summary>
+        public Func<CallInvoker, object>? Creator { get; set; }
     }
 }

@@ -84,9 +84,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Act
@@ -116,9 +114,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Act
@@ -151,9 +147,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Act
@@ -183,9 +177,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Act
@@ -218,9 +210,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
             var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
 
             // Act
@@ -254,6 +244,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             }
 
             public HttpContext? HttpContext { get; set; }
+        }
+
+        private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
+        {
+            return new DefaultGrpcClientFactory(serviceProvider,
+                serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
+                serviceProvider.GetRequiredService<IHttpClientFactory>());
         }
     }
 }

@@ -26,25 +26,51 @@ namespace Grpc.Net.ClientFactory.Internal
     internal class DefaultGrpcClientFactory : GrpcClientFactory
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly GrpcCallInvokerFactory _callInvokerFactory;
+        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientFactoryOptionsMonitor;
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public DefaultGrpcClientFactory(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory)
+        public DefaultGrpcClientFactory(IServiceProvider serviceProvider,
+            GrpcCallInvokerFactory callInvokerFactory,
+            IOptionsMonitor<GrpcClientFactoryOptions> clientFactoryOptionsMonitor,
+            IHttpClientFactory httpClientFactory)
         {
             _serviceProvider = serviceProvider;
+            _callInvokerFactory = callInvokerFactory;
+            _clientFactoryOptionsMonitor = clientFactoryOptionsMonitor;
             _httpClientFactory = httpClientFactory;
         }
 
-        public override TClient CreateClient<TClient>(string name)
+        public override TClient CreateClient<TClient>(string name) where TClient : class
         {
-            var typedHttpClientFactory = _serviceProvider.GetService<INamedTypedHttpClientFactory<TClient>>();
-            if (typedHttpClientFactory == null)
+            var defaultClientActivator = _serviceProvider.GetService<DefaultClientActivator<TClient>>();
+            if (defaultClientActivator == null)
             {
                 throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
             }
 
+            var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
             var httpClient = _httpClientFactory.CreateClient(name);
+            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpClient, name, clientFactoryOptions);
 
-            return typedHttpClientFactory.CreateClient(httpClient, name);
+            if (clientFactoryOptions.Creator != null)
+            {
+                var c = clientFactoryOptions.Creator(callInvoker);
+                if (c is TClient client)
+                {
+                    return client;
+                }
+                else if (c == null)
+                {
+                    throw new InvalidOperationException("A null instance was returned by the configured client creator.");
+                }
+
+                throw new InvalidOperationException($"The {c.GetType().FullName} instance returned by the configured client creator is not compatible with {typeof(TClient).FullName}.");
+            }
+            else
+            {
+                return defaultClientActivator.CreateClient(callInvoker);
+            }
         }
     }
 }

@@ -16,8 +16,6 @@
 
 #endregion
 
-using Grpc.Core;
-
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
@@ -32,6 +30,6 @@ namespace Grpc.Net.ClientFactory
         /// <typeparam name="TClient">The gRPC client type.</typeparam>
         /// <param name="name">The configuration name.</param>
         /// <returns>A gRPC client instance.</returns>
-        public abstract TClient CreateClient<TClient>(string name) where TClient : ClientBase;
+        public abstract TClient CreateClient<TClient>(string name) where TClient : class;
     }
 }
