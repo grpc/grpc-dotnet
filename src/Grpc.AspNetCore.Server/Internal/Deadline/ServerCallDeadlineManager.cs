@@ -142,7 +142,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (disposeTask.IsCompletedSuccessfully &&
                 (_deadlineExceededTask == null || _deadlineExceededTask.IsCompletedSuccessfully))
             {
-                DisposeCore();
+                Dispose(true);
                 return default;
             }
 
@@ -157,12 +157,12 @@ namespace Grpc.AspNetCore.Server.Internal
                 await _deadlineExceededTask;
             }
 
-            DisposeCore();
+            Dispose(true);
         }
 
-        private void DisposeCore()
+        protected virtual void Dispose(bool disposing)
         {
-            Lock!.Dispose();
+            Lock.Dispose();
             _deadlineCts!.Dispose();
             _requestAbortedRegistration.Dispose();
         }
