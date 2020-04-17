@@ -174,7 +174,6 @@ The blazor example shows how to call a gRPC service from a Blazor WebAssembly ap
 **Known Blazor WebAssembly issues:**
 
 * Server streaming requires setting a variable via reflection on startup - https://github.com/mono/mono/issues/18718#issuecomment-582667900
-* Server streaming call cancellation isn't canceled on the server - https://github.com/mono/mono/issues/18717
 
 ##### Scenarios:
 
