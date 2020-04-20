@@ -37,6 +37,8 @@ namespace Grpc.Net.Client.Web
     /// </remarks>
     public sealed class GrpcWebHandler : DelegatingHandler
     {
+        internal const string WebAssemblyEnableStreamingResponseKey = "WebAssemblyEnableStreamingResponse";
+
         /// <summary>
         /// Gets or sets the HTTP version to use when making gRPC-Web calls.
         /// <para>
@@ -114,6 +116,16 @@ namespace Grpc.Net.Client.Web
         private async Task<HttpResponseMessage> SendAsyncCore(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             request.Content = new GrpcWebRequestContent(request.Content, GrpcWebMode);
+
+            // Set WebAssemblyEnableStreamingResponse to true on gRPC-Web request.
+            // https://github.com/mono/mono/blob/a0d69a4e876834412ba676f544d447ec331e7c01/sdks/wasm/framework/src/System.Net.Http.WebAssemblyHttpHandler/WebAssemblyHttpHandler.cs#L149
+            //
+            // This must be set so WASM will stream the response. Without this setting the WASM HTTP handler will only
+            // return content once the entire response has been downloaded. This breaks server streaming.
+            //
+            // https://github.com/mono/mono/issues/18718
+            request.Properties[WebAssemblyEnableStreamingResponseKey] = true;
+
             if (HttpVersion != null)
             {
                 // This doesn't guarantee that the specified version is used. Some handlers will ignore it.

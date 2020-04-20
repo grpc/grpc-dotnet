@@ -87,13 +87,64 @@ namespace Grpc.Net.Client.Tests.Web
             Assert.AreEqual(HttpVersion.Version20, response.Version);
         }
 
+        [Test]
+        public async Task SendAsync_GrpcCall_ResponseStreamingPropertySet()
+        {
+            // Arrange
+            var request = new HttpRequestMessage
+            {
+                Version = HttpVersion.Version20,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+                }
+            };
+            var testHttpHandler = new TestHttpHandler();
+            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+            // Act
+            await messageInvoker.SendAsync(request, CancellationToken.None);
+
+            // Assert
+            Assert.AreEqual(true, testHttpHandler.WebAssemblyEnableStreamingResponse);
+        }
+
+        [Test]
+        public async Task SendAsync_NonGrpcCall_ResponseStreamingPropertyNotSet()
+        {
+            // Arrange
+            var request = new HttpRequestMessage
+            {
+                Version = HttpVersion.Version20,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("application/text") }
+                }
+            };
+            var testHttpHandler = new TestHttpHandler();
+            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+            // Act
+            await messageInvoker.SendAsync(request, CancellationToken.None);
+
+            // Assert
+            Assert.AreEqual(null, testHttpHandler.WebAssemblyEnableStreamingResponse);
+        }
+
         private class TestHttpHandler : HttpMessageHandler
         {
             public Version? RequestVersion { get; private set; }
+            public bool? WebAssemblyEnableStreamingResponse { get; private set; }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestVersion = request.Version;
+                if (request.Properties.TryGetValue(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
+                {
+                    WebAssemblyEnableStreamingResponse = (bool)enableStreaming;
+                }
 
                 return Task.FromResult(new HttpResponseMessage()
                 {
