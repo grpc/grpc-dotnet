@@ -68,5 +68,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return dueTimeMilliseconds;
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            _longDeadlineTimer?.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }
