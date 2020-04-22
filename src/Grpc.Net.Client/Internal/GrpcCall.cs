@@ -210,6 +210,11 @@ namespace Grpc.Net.Client.Internal
         /// <param name="status">The completed response status code.</param>
         public void ResponseStreamEnded(Status status)
         {
+            // Set response finished immediately rather than set it in logic resumed
+            // from the callTcs to avoid race condition.
+            // e.g. response stream finished and then immediately call GetTrailers().
+            ResponseFinished = true;
+
             _callTcs.TrySetResult(status);
         }
 
@@ -546,7 +551,7 @@ namespace Grpc.Net.Client.Internal
                             status = await CallTask.ConfigureAwait(false);
 
                             finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                            FinishResponseAndCleanUp(status.Value);
+                            Cleanup(status.Value);
                         }
                     }
                 }
