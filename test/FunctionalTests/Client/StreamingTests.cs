@@ -19,6 +19,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -422,6 +423,39 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             Assert.IsFalse(await call1.ResponseStream.MoveNext().DefaultTimeout());
             Assert.IsFalse(await call2.ResponseStream.MoveNext().DefaultTimeout());
+        }
+
+        [Test]
+        public async Task ServerStreaming_GetTrailersAndStatus_Success()
+        {
+            async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                await responseStream.WriteAsync(new DataMessage());
+                context.ResponseTrailers.Add("my-trailer", "value");
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage());
+
+            // Assert
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+
+            Assert.AreEqual(0, call.ResponseStream.Current.Data.Length);
+
+            Assert.IsFalse(await call.ResponseStream.MoveNext().DefaultTimeout());
+
+            var trailers = call.GetTrailers();
+            Assert.AreEqual(1, trailers.Count);
+            Assert.AreEqual("value", trailers.First(e => e.Key == "my-trailer").Value);
+
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
 
         private static byte[] CreateTestData(int size)
