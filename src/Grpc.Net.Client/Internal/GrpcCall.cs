@@ -210,6 +210,9 @@ namespace Grpc.Net.Client.Internal
         /// <param name="status">The completed response status code.</param>
         public void ResponseStreamEnded(Status status)
         {
+            // Set response finished immediately. Logic awaiting callTcs 
+            ResponseFinished = true;
+
             _callTcs.TrySetResult(status);
         }
 
@@ -546,7 +549,7 @@ namespace Grpc.Net.Client.Internal
                             status = await CallTask.ConfigureAwait(false);
 
                             finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                            FinishResponseAndCleanUp(status.Value);
+                            Cleanup(status.Value);
                         }
                     }
                 }
