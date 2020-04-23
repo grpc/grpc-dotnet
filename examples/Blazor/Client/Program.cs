@@ -17,13 +17,14 @@
 #endregion
 
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Weather;
 
 namespace Client
 {
@@ -33,12 +34,6 @@ namespace Client
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("app");
-
-            // Blazor WA currently has an issue related to server streaming. No messages are returned from the server until the call is complete.
-            // Setting WasmHttpMessageHandler.StreamingEnabled to true (reflection required) allows server streaming to work - https://github.com/mono/mono/issues/18718
-            var wasmHttpMessageHandlerType = System.Reflection.Assembly.Load("WebAssembly.Net.Http").GetType("WebAssembly.Net.Http.HttpClient.WasmHttpMessageHandler");
-            var streamingProperty = wasmHttpMessageHandlerType.GetProperty("StreamingEnabled", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            streamingProperty.SetValue(null, true, null);
 
             builder.Services.AddSingleton(services =>
             {
@@ -50,7 +45,7 @@ namespace Client
                 //
                 // GrpcWebText is used because server streaming requires it. If server streaming is not used in your app
                 // then GrpcWeb is recommended because it produces smaller messages.
-                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler()));
+                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new StreamingHttpHandler(new HttpClientHandler())));
 
                 var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpClient = httpClient });
 
@@ -58,6 +53,20 @@ namespace Client
             });
 
             await builder.Build().RunAsync();
+        }
+
+        // Temporarily required for server streaming until the next Grpc.Net.Client.Web package is released
+        private class StreamingHttpHandler : DelegatingHandler
+        {
+            public StreamingHttpHandler(HttpMessageHandler innerHandler) : base(innerHandler)
+            {
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                request.SetBrowserResponseStreamingEnabled(true);
+                return base.SendAsync(request, cancellationToken);
+            }
         }
     }
 }
