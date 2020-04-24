@@ -68,6 +68,9 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(new Uri("https://localhost/TestSubdirectory/ServiceName/MethodName"), httpRequestMessage.RequestUri);
         }
 
+        /// <summary>
+        /// A delegating handler that will add a subdirectory to the URI of gRPC requests.
+        /// </summary>
         public class SubdirectoryHandler : DelegatingHandler
         {
             private readonly string _subdirectory;
