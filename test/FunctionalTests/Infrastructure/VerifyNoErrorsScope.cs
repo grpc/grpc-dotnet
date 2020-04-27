@@ -47,6 +47,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public IList<LogRecord> Logs => _sink.GetLogs();
 
+        public void ClearLogs() => _sink.ClearLogs();
+
         public void Dispose()
         {
             _wrappedDisposable?.Dispose();
