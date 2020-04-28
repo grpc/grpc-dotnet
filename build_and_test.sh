@@ -21,8 +21,6 @@ echo "Building solution"
 
 dotnet build -c Release
 
-source grpcweb_interoptests.sh
-
 echo "Building examples"
 
 example_solutions=( $( ls examples/**/*.sln ) )
@@ -58,4 +56,6 @@ do
     }
 done
 
-echo "Finished"
+echo "Tests finished"
+
+source grpcweb_interoptests.sh
