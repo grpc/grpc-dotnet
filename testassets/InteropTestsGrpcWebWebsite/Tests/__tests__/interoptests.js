@@ -8,8 +8,4 @@ describe('gRPC-Web interop tests', () => {
         var result = await page.evaluate((n) => runTest(n, "GrpcWebText"), testName);
         expect(result).toBe("Success");
     });
-
-    test('test fail', () => {
-        expect(true).toBe(false);
-    });
 });
