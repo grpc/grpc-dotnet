@@ -52,7 +52,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
                 // This might be a CORS preflight request and CORS middleware hasn't been configured
-                if (HttpMethods.IsOptions(httpContext.Request.Method))
+                if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
                 {
                     GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
 

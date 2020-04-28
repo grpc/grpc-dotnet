@@ -18,130 +18,138 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using CommandLine;
-using Google.Apis.Auth.OAuth2;
 using Google.Protobuf;
-using Grpc.Auth;
 using Grpc.Core;
-using Grpc.Core.Logging;
-using Grpc.Core.Utils;
-using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Grpc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using Empty = Grpc.Testing.Empty;
+using Grpc.Shared.TestAssets;
 
-namespace InteropTestsClient
+#if !NETSTANDARD2_1
+using CommandLine;
+using Google.Apis.Auth.OAuth2;
+using Grpc.Auth;
+using Grpc.Core.Logging;
+using Grpc.Gateway.Testing;
+using Newtonsoft.Json.Linq;
+#endif
+
+namespace Grpc.Shared.TestAssets
 {
-    public class InteropClient : IDisposable
+    public class ClientOptions
     {
-        internal const string CompressionRequestAlgorithmMetadataKey = "grpc-internal-encoding-request";
+#if !NETSTANDARD2_1
+        [Option("client_type", Default = "httpclient")]
+#endif
+        public string? ClientType { get; set; }
 
-        private class ClientOptions
-        {
-            [Option("client_type", Default = "httpclient")]
-            public string? ClientType { get; set; }
+#if !NETSTANDARD2_1
+        [Option("server_host", Default = "localhost")]
+#endif
+        public string? ServerHost { get; set; }
 
-            [Option("server_host", Default = "localhost")]
-            public string? ServerHost { get; set; }
+#if !NETSTANDARD2_1
+        [Option("server_host_override")]
+#endif
+        public string? ServerHostOverride { get; set; }
 
-            [Option("server_host_override")]
-            public string? ServerHostOverride { get; set; }
-
-            [Option("server_port"
+#if !NETSTANDARD2_1
+        [Option("server_port"
 #if DEBUG
                 , Default = 50052
 #endif
                 )]
-            public int ServerPort { get; set; }
+#endif
+        public int ServerPort { get; set; }
 
-            [Option("test_case"
+#if !NETSTANDARD2_1
+        [Option("test_case"
 #if DEBUG
                 , Default = "large_unary"
 #endif
                 )]
-            public string? TestCase { get; set; }
+#endif
+        public string? TestCase { get; set; }
 
-            // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
-            [Option("use_tls", Default = false)]
-            public bool? UseTls { get; set; }
+        // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
+#if !NETSTANDARD2_1
+        [Option("use_tls", Default = false)]
+#endif
+        public bool? UseTls { get; set; }
 
-            // Deliberately using nullable bool type to allow --use_test_ca=true syntax (as opposed to --use_test_ca)
-            [Option("use_test_ca", Default = false)]
-            public bool? UseTestCa { get; set; }
+        // Deliberately using nullable bool type to allow --use_test_ca=true syntax (as opposed to --use_test_ca)
+#if !NETSTANDARD2_1
+        [Option("use_test_ca", Default = false)]
+#endif
+        public bool? UseTestCa { get; set; }
 
-            [Option("default_service_account", Required = false)]
-            public string? DefaultServiceAccount { get; set; }
+#if !NETSTANDARD2_1
+        [Option("default_service_account", Required = false)]
+#endif
+        public string? DefaultServiceAccount { get; set; }
 
-            [Option("oauth_scope", Required = false)]
-            public string? OAuthScope { get; set; }
+#if !NETSTANDARD2_1
+        [Option("oauth_scope", Required = false)]
+#endif
+        public string? OAuthScope { get; set; }
 
-            [Option("service_account_key_file", Required = false)]
-            public string? ServiceAccountKeyFile { get; set; }
+#if !NETSTANDARD2_1
+        [Option("service_account_key_file", Required = false)]
+#endif
+        public string? ServiceAccountKeyFile { get; set; }
 
-            [Option("grpc_web_mode")]
-            public string? GrpcWebMode { get; set; }
-        }
+#if !NETSTANDARD2_1
+        [Option("grpc_web_mode")]
+#endif
+        public string? GrpcWebMode { get; set; }
+    }
 
-        private ServiceProvider serviceProvider;
-        private ILoggerFactory loggerFactory;
-        private ClientOptions options;
+    public class InteropClient
+    {
+        internal const string CompressionRequestAlgorithmMetadataKey = "grpc-internal-encoding-request";
 
-        private InteropClient(ClientOptions options)
+        private readonly ClientOptions options;
+        private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger<InteropClient> logger;
+
+        public InteropClient(ClientOptions options, ILoggerFactory loggerFactory)
         {
             this.options = options;
-
-            var services = new ServiceCollection();
-            services.AddLogging(configure =>
-            {
-                configure.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
-                configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
-            });
-
-            serviceProvider = services.BuildServiceProvider();
-
-            loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            this.loggerFactory = loggerFactory;
+            this.logger = loggerFactory.CreateLogger<InteropClient>();
         }
 
-        public void Dispose()
+        public async Task Run()
         {
-            serviceProvider.Dispose();
-        }
-
-        public static void Run(string[] args)
-        {
-            GrpcEnvironment.SetLogger(new ConsoleLogger());
-            var parserResult = Parser.Default.ParseArguments<ClientOptions>(args)
-                .WithNotParsed(errors => Environment.Exit(1))
-                .WithParsed(options =>
-                {
-                    Console.WriteLine("Use TLS: " + options.UseTls);
-                    Console.WriteLine("Use Test CA: " + options.UseTestCa);
-                    Console.WriteLine("Client type: " + options.ClientType);
-                    Console.WriteLine("Server host: " + options.ServerHost);
-                    Console.WriteLine("Server port: " + options.ServerPort);
-
-                    using (var interopClient = new InteropClient(options))
-                    {
-                        interopClient.Run().Wait();
-                    }
-                });
-        }
-
-        private async Task Run()
-        {
+#if !NETSTANDARD2_1
             var channel = IsHttpClient() ? await HttpClientCreateChannel() : await CoreCreateChannel();
-            await RunTestCaseAsync(channel, options);
+#else
+            var channel = await HttpClientCreateChannel();
+#endif
+            try
+            {
+                var message = "Running " + options.TestCase;
+                if (options.GrpcWebMode != null)
+                {
+                    message += $" ({options.GrpcWebMode})";
+                }
+                logger.LogInformation(message);
+                await RunTestCaseAsync(channel, options);
+                logger.LogInformation("Passed!");
+            }
+            catch (Exception ex)
+            {
+                logger.LogInformation(ex, "Failed!");
+                throw;
+            }
             await channel.ShutdownAsync();
         }
 
@@ -161,7 +169,9 @@ namespace InteropTestsClient
             }
 
             var httpClientHandler = new HttpClientHandler();
+#if !NETSTANDARD2_1
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+#endif
 
             if (options.UseTestCa ?? false)
             {
@@ -198,6 +208,7 @@ namespace InteropTestsClient
             return new GrpcChannelWrapper(channel);
         }
 
+#if !NETSTANDARD2_1
         private async Task<IChannelWrapper> CoreCreateChannel()
         {
             var credentials = await CreateCredentialsAsync();
@@ -214,19 +225,26 @@ namespace InteropTestsClient
             await channel.ConnectAsync();
             return new CoreChannelWrapper(channel);
         }
-
-        private bool IsHttpClient() => string.Equals(options.ClientType, "httpclient", StringComparison.OrdinalIgnoreCase);
+#endif
 
         private async Task<ChannelCredentials> CreateCredentialsAsync(bool? useTestCaOverride = null)
         {
             var credentials = ChannelCredentials.Insecure;
             if (options.UseTls.GetValueOrDefault())
             {
-                credentials = useTestCaOverride ?? options.UseTestCa.GetValueOrDefault()
-                    ? TestCredentials.CreateSslCredentials()
-                    : new SslCredentials();
+#if !NETSTANDARD2_1
+                if (useTestCaOverride ?? options.UseTestCa.GetValueOrDefault())
+                {
+                    credentials = TestCredentials.CreateSslCredentials();
+                }
+                else
+#endif
+                {
+                    credentials = new SslCredentials();
+                }
             }
 
+#if !NETSTANDARD2_1
             if (options.TestCase == "jwt_token_creds")
             {
                 var googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
@@ -240,190 +258,84 @@ namespace InteropTestsClient
                 Assert.IsFalse(googleCredential.IsCreateScopedRequired);
                 credentials = ChannelCredentials.Create(credentials, googleCredential.ToCallCredentials());
             }
+#else
+            await Task.Yield();
+#endif
             return credentials;
         }
 
-        private TClient CreateClient<TClient>(IChannelWrapper channel) where TClient : ClientBase
+        private bool IsHttpClient() => string.Equals(options.ClientType, "httpclient", StringComparison.OrdinalIgnoreCase);
+
+        private static TClient CreateClient<TClient>(IChannelWrapper channel) where TClient : ClientBase
         {
             return (TClient)Activator.CreateInstance(typeof(TClient), channel.Channel)!;
         }
 
+        public static IEnumerable<string> TestNames => Tests.Keys;
+
+        private static readonly Dictionary<string, Func<IChannelWrapper, ClientOptions, Task>> Tests = new Dictionary<string, Func<IChannelWrapper, ClientOptions, Task>>
+        {
+            ["empty_unary"] = RunEmptyUnary,
+            ["large_unary"] = RunLargeUnary,
+            ["client_streaming"] = RunClientStreamingAsync,
+            ["server_streaming"] = RunServerStreamingAsync,
+            ["ping_pong"] = RunPingPongAsync,
+            ["empty_stream"] = RunEmptyStreamAsync,
+            ["compute_engine_creds"] = RunComputeEngineCreds,
+#if !NETSTANDARD2_1
+            ["jwt_token_creds"] = RunJwtTokenCreds,
+            ["oauth2_auth_token"] = RunOAuth2AuthTokenAsync,
+            ["per_rpc_creds"] = RunPerRpcCredsAsync,
+#endif
+            ["cancel_after_begin"] = RunCancelAfterBeginAsync,
+            ["cancel_after_first_response"] = RunCancelAfterFirstResponseAsync,
+            ["timeout_on_sleeping_server"] = RunTimeoutOnSleepingServerAsync,
+            ["custom_metadata"] = RunCustomMetadataAsync,
+            ["status_code_and_message"] = RunStatusCodeAndMessageAsync,
+            ["special_status_message"] = RunSpecialStatusMessageAsync,
+            ["unimplemented_service"] = RunUnimplementedService,
+            ["unimplemented_method"] = RunUnimplementedMethod,
+            ["client_compressed_unary"] = RunClientCompressedUnary,
+            ["client_compressed_streaming"] = RunClientCompressedStreamingAsync,
+            ["server_compressed_unary"] = RunServerCompressedUnary,
+            ["server_compressed_streaming"] = RunServerCompressedStreamingAsync
+        };
+
         private async Task RunTestCaseAsync(IChannelWrapper channel, ClientOptions options)
         {
+            if (!Tests.TryGetValue(options.TestCase!, out var test))
+            {
+                throw new ArgumentException("Unknown test case " + options.TestCase);
+            }
+
+            await test(channel, options);
+        }
+
+        public static async Task RunEmptyUnary(IChannelWrapper channel, ClientOptions options)
+        {
             var client = CreateClient<TestService.TestServiceClient>(channel);
-            switch (options.TestCase)
-            {
-                case "empty_unary":
-                    RunEmptyUnary(client);
-                    break;
-                case "large_unary":
-                    RunLargeUnary(client);
-                    break;
-                case "client_streaming":
-                    await RunClientStreamingAsync(client);
-                    break;
-                case "server_streaming":
-                    await RunServerStreamingAsync(client);
-                    break;
-                case "ping_pong":
-                    await RunPingPongAsync(client);
-                    break;
-                case "empty_stream":
-                    await RunEmptyStreamAsync(client);
-                    break;
-                case "compute_engine_creds":
-                    RunComputeEngineCreds(client, options.DefaultServiceAccount!, options.OAuthScope!);
-                    break;
-                case "jwt_token_creds":
-                    RunJwtTokenCreds(client);
-                    break;
-                case "oauth2_auth_token":
-                    await RunOAuth2AuthTokenAsync(client, options.OAuthScope!);
-                    break;
-                case "per_rpc_creds":
-                    await RunPerRpcCredsAsync(client, options.OAuthScope!);
-                    break;
-                case "cancel_after_begin":
-                    await RunCancelAfterBeginAsync(client);
-                    break;
-                case "cancel_after_first_response":
-                    await RunCancelAfterFirstResponseAsync(client);
-                    break;
-                case "timeout_on_sleeping_server":
-                    await RunTimeoutOnSleepingServerAsync(client);
-                    break;
-                case "custom_metadata":
-                    await RunCustomMetadataAsync(client);
-                    break;
-                case "status_code_and_message":
-                    await RunStatusCodeAndMessageAsync(client);
-                    break;
-                case "unimplemented_service":
-                    RunUnimplementedService(CreateClient<UnimplementedService.UnimplementedServiceClient>(channel));
-                    break;
-                case "special_status_message":
-                    await RunSpecialStatusMessageAsync(client);
-                    break;
-                case "unimplemented_method":
-                    RunUnimplementedMethod(client);
-                    break;
-                case "client_compressed_unary":
-                    RunClientCompressedUnary(client);
-                    break;
-                case "client_compressed_streaming":
-                    await RunClientCompressedStreamingAsync(client);
-                    break;
-                case "server_compressed_unary":
-                    await RunServerCompressedUnary(client);
-                    break;
-                case "server_compressed_streaming":
-                    await RunServerCompressedStreamingAsync(client);
-                    break;
-                case "grpcweb_unary":
-                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
-                    await GrpcWebUnaryAsync(CreateClient<EchoService.EchoServiceClient>(channel));
-                    break;
-                case "grpcweb_server_streaming":
-                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
-                    await GrpcWebServerStreamingAsync(CreateClient<EchoService.EchoServiceClient>(channel));
-                    break;
-                case "grpcweb_unary_abort":
-                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
-                    await GrpcWebUnaryAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
-                    break;
-                case "grpcweb_server_streaming_abort":
-                    // This is a gRPC-Web compat test - https://github.com/johanbrandhorst/grpc-web-compatibility-test
-                    await GrpcWebServerStreamingAbortAsync(CreateClient<EchoService.EchoServiceClient>(channel));
-                    break;
-                default:
-                    throw new ArgumentException("Unknown test case " + options.TestCase);
-            }
-        }
 
-        private async Task GrpcWebServerStreamingAbortAsync(EchoService.EchoServiceClient client)
-        {
-            var call = client.ServerStreamingEchoAbort(new ServerStreamingEchoRequest
-            {
-                Message = "test",
-                MessageCount = 5,
-                MessageInterval = Google.Protobuf.WellKnownTypes.TimeExtensions.ToDuration(TimeSpan.FromMilliseconds(100))
-            });
-
-            try
-            {
-                await foreach (var message in call.ResponseStream.ReadAllAsync())
-                {
-                }
-                Assert.Fail();
-            }
-            catch (RpcException ex)
-            {
-                Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
-            }
-        }
-
-        private async Task GrpcWebUnaryAbortAsync(EchoService.EchoServiceClient client)
-        {
-            try
-            {
-                await client.EchoAbortAsync(new EchoRequest { Message = "test" });
-                Assert.Fail();
-            }
-            catch (RpcException ex)
-            {
-                Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
-            }
-        }
-
-        private async Task GrpcWebServerStreamingAsync(EchoService.EchoServiceClient client)
-        {
-            var call = client.ServerStreamingEcho(new ServerStreamingEchoRequest
-            {
-                Message = "test",
-                MessageCount = 5,
-                MessageInterval = Google.Protobuf.WellKnownTypes.TimeExtensions.ToDuration(TimeSpan.FromMilliseconds(100))
-            });
-
-            var messages = new List<ServerStreamingEchoResponse>();
-            await foreach (var message in call.ResponseStream.ReadAllAsync())
-            {
-                messages.Add(message);
-            }
-
-            Assert.AreEqual(5, messages.Count);
-        }
-
-        private async Task GrpcWebUnaryAsync(EchoService.EchoServiceClient client)
-        {
-            var response = await client.EchoAsync(new EchoRequest { Message = "test" });
-            Assert.AreEqual("test", response.Message);
-        }
-
-        public static void RunEmptyUnary(TestService.TestServiceClient client)
-        {
-            Console.WriteLine("running empty_unary");
-            var response = client.EmptyCall(new Empty());
+            var response = await client.EmptyCallAsync(new Empty());
             Assert.IsNotNull(response);
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunLargeUnary(TestService.TestServiceClient client)
+        public static async Task RunLargeUnary(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running large_unary");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             var request = new SimpleRequest
             {
                 ResponseSize = 314159,
                 Payload = CreateZerosPayload(271828)
             };
-            var response = client.UnaryCall(request);
+            var response = await client.UnaryCallAsync(request);
 
             Assert.AreEqual(314159, response.Payload.Body.Length);
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunClientStreamingAsync(TestService.TestServiceClient client)
+        public static async Task RunClientStreamingAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running client_streaming");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var bodySizes = new List<int> { 27182, 8, 1828, 45904 }.Select((size) => new StreamingInputCallRequest { Payload = CreateZerosPayload(size) });
 
@@ -434,12 +346,11 @@ namespace InteropTestsClient
                 var response = await call.ResponseAsync;
                 Assert.AreEqual(74922, response.AggregatedPayloadSize);
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunServerStreamingAsync(TestService.TestServiceClient client)
+        public static async Task RunServerStreamingAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running server_streaming");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var bodySizes = new List<int> { 31415, 9, 2653, 58979 };
 
@@ -453,12 +364,11 @@ namespace InteropTestsClient
                 var responseList = await call.ResponseStream.ToListAsync();
                 CollectionAssert.AreEqual(bodySizes, responseList.Select((item) => item.Payload.Body.Length).ToList());
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunPingPongAsync(TestService.TestServiceClient client)
+        public static async Task RunPingPongAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running ping_pong");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             using (var call = client.FullDuplexCall())
             {
@@ -502,12 +412,12 @@ namespace InteropTestsClient
 
                 Assert.IsFalse(await call.ResponseStream.MoveNext());
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunEmptyStreamAsync(TestService.TestServiceClient client)
+        public static async Task RunEmptyStreamAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running empty_stream");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             using (var call = client.FullDuplexCall())
             {
                 await call.RequestStream.CompleteAsync();
@@ -515,12 +425,13 @@ namespace InteropTestsClient
                 var responseList = await call.ResponseStream.ToListAsync();
                 Assert.AreEqual(0, responseList.Count);
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunComputeEngineCreds(TestService.TestServiceClient client, string defaultServiceAccount, string oauthScope)
+        public static async Task RunComputeEngineCreds(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running compute_engine_creds");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+            var defaultServiceAccount = options.DefaultServiceAccount!;
+            var oauthScope = options.OAuthScope!;
 
             var request = new SimpleRequest
             {
@@ -531,18 +442,18 @@ namespace InteropTestsClient
             };
 
             // not setting credentials here because they were set on channel already
-            var response = client.UnaryCall(request);
+            var response = await client.UnaryCallAsync(request);
 
             Assert.AreEqual(314159, response.Payload.Body.Length);
             Assert.IsFalse(string.IsNullOrEmpty(response.OauthScope));
             Assert.IsTrue(oauthScope.Contains(response.OauthScope));
             Assert.AreEqual(defaultServiceAccount, response.Username);
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunJwtTokenCreds(TestService.TestServiceClient client)
+#if !NETSTANDARD2_1
+        public static async Task RunJwtTokenCreds(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running jwt_token_creds");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var request = new SimpleRequest
             {
@@ -552,18 +463,19 @@ namespace InteropTestsClient
             };
 
             // not setting credentials here because they were set on channel already
-            var response = client.UnaryCall(request);
+            var response = await client.UnaryCallAsync(request);
 
             Assert.AreEqual(314159, response.Payload.Body.Length);
             Assert.AreEqual(GetEmailFromServiceAccountFile(), response.Username);
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunOAuth2AuthTokenAsync(TestService.TestServiceClient client, string oauthScope)
+        public static async Task RunOAuth2AuthTokenAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running oauth2_auth_token");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+            var oauthScope = options.OAuthScope!;
+
             ITokenAccess credential = (await GoogleCredential.GetApplicationDefaultAsync()).CreateScoped(new[] { oauthScope });
-            string oauth2Token = await credential.GetAccessTokenForRequestAsync();
+            var oauth2Token = await credential.GetAccessTokenForRequestAsync();
 
             var credentials = GoogleGrpcCredentials.FromAccessToken(oauth2Token);
             var request = new SimpleRequest
@@ -572,18 +484,19 @@ namespace InteropTestsClient
                 FillOauthScope = true
             };
 
-            var response = client.UnaryCall(request, new CallOptions(credentials: credentials));
+            var response = await client.UnaryCallAsync(request, new CallOptions(credentials: credentials));
 
             Assert.IsFalse(string.IsNullOrEmpty(response.OauthScope));
             Assert.IsTrue(oauthScope.Contains(response.OauthScope));
             Assert.AreEqual(GetEmailFromServiceAccountFile(), response.Username);
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunPerRpcCredsAsync(TestService.TestServiceClient client, string oauthScope)
+        public static async Task RunPerRpcCredsAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running per_rpc_creds");
-            ITokenAccess googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+            var oauthScope = options.OAuthScope!;
+
+            var googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
 
             var credentials = googleCredential.ToCallCredentials();
             var request = new SimpleRequest
@@ -591,15 +504,15 @@ namespace InteropTestsClient
                 FillUsername = true,
             };
 
-            var response = client.UnaryCall(request, new CallOptions(credentials: credentials));
+            var response = await client.UnaryCallAsync(request, new CallOptions(credentials: credentials));
 
             Assert.AreEqual(GetEmailFromServiceAccountFile(), response.Username);
-            Console.WriteLine("Passed!");
         }
+#endif
 
-        public static async Task RunCancelAfterBeginAsync(TestService.TestServiceClient client)
+        public static async Task RunCancelAfterBeginAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running cancel_after_begin");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var cts = new CancellationTokenSource();
             using (var call = client.StreamingInputCall(cancellationToken: cts.Token))
@@ -611,12 +524,11 @@ namespace InteropTestsClient
                 var ex = await Assert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
                 Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunCancelAfterFirstResponseAsync(TestService.TestServiceClient client)
+        public static async Task RunCancelAfterFirstResponseAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running cancel_after_first_response");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var cts = new CancellationTokenSource();
             using (var call = client.FullDuplexCall(cancellationToken: cts.Token))
@@ -643,12 +555,11 @@ namespace InteropTestsClient
                     Assert.AreEqual(StatusCode.Cancelled, ex.Status.StatusCode);
                 }
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunTimeoutOnSleepingServerAsync(TestService.TestServiceClient client)
+        public static async Task RunTimeoutOnSleepingServerAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running timeout_on_sleeping_server");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var deadline = DateTime.UtcNow.AddMilliseconds(1);
             using (var call = client.FullDuplexCall(deadline: deadline))
@@ -676,12 +587,12 @@ namespace InteropTestsClient
                     Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
                 }
             }
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunCustomMetadataAsync(TestService.TestServiceClient client)
+        public static async Task RunCustomMetadataAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running custom_metadata");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             {
                 // step 1: test unary call
                 var request = new SimpleRequest
@@ -720,13 +631,12 @@ namespace InteropTestsClient
                 Assert.AreEqual("test_initial_metadata_value", responseHeaders.First((entry) => entry.Key == "x-grpc-test-echo-initial").Value);
                 CollectionAssert.AreEqual(new byte[] { 0xab, 0xab, 0xab }, responseTrailers.First((entry) => entry.Key == "x-grpc-test-echo-trailing-bin").ValueBytes);
             }
-
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunStatusCodeAndMessageAsync(TestService.TestServiceClient client)
+        public static async Task RunStatusCodeAndMessageAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running status_code_and_message");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             var echoStatus = new EchoStatus
             {
                 Code = 2,
@@ -737,11 +647,13 @@ namespace InteropTestsClient
                 // step 1: test unary call
                 var request = new SimpleRequest { ResponseStatus = echoStatus };
 
-                var e = Assert.Throws<RpcException>(() => client.UnaryCall(request));
+                var e = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.UnaryCallAsync(request));
                 Assert.AreEqual(StatusCode.Unknown, e.Status.StatusCode);
                 Assert.AreEqual(echoStatus.Message, e.Status.Detail);
             }
 
+            // We want to test a unary call in gRPC-Web but skip the unsupported full duplex call.
+#if !NETSTANDARD2_1
             {
                 // step 2: test full duplex call
                 var request = new StreamingOutputCallRequest { ResponseStatus = echoStatus };
@@ -762,13 +674,12 @@ namespace InteropTestsClient
                     Assert.AreEqual(echoStatus.Message, e.Status.Detail);
                 }
             }
-
-            Console.WriteLine("Passed!");
+#endif
         }
 
-        private static async Task RunSpecialStatusMessageAsync(TestService.TestServiceClient client)
+        public static async Task RunSpecialStatusMessageAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running special_status_message");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var echoStatus = new EchoStatus
             {
@@ -789,31 +700,30 @@ namespace InteropTestsClient
                 Assert.AreEqual(StatusCode.Unknown, e.Status.StatusCode);
                 Assert.AreEqual(echoStatus.Message, e.Status.Detail);
             }
-
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunUnimplementedService(UnimplementedService.UnimplementedServiceClient client)
+        public static async Task RunUnimplementedService(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running unimplemented_service");
-            var e = Assert.Throws<RpcException>(() => client.UnimplementedCall(new Empty()));
+            var client = CreateClient<UnimplementedService.UnimplementedServiceClient>(channel);
+
+            var e = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.UnimplementedCallAsync(new Empty()));
 
             Assert.AreEqual(StatusCode.Unimplemented, e.Status.StatusCode);
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunUnimplementedMethod(TestService.TestServiceClient client)
+        public static async Task RunUnimplementedMethod(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running unimplemented_method");
-            var e = Assert.Throws<RpcException>(() => client.UnimplementedCall(new Empty()));
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
+            var e = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.UnimplementedCallAsync(new Empty()));
 
             Assert.AreEqual(StatusCode.Unimplemented, e.Status.StatusCode);
-            Console.WriteLine("Passed!");
         }
 
-        public static void RunClientCompressedUnary(TestService.TestServiceClient client)
+        public static async Task RunClientCompressedUnary(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running client_compressed_unary");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             var probeRequest = new SimpleRequest
             {
                 ExpectCompressed = new BoolValue
@@ -823,7 +733,7 @@ namespace InteropTestsClient
                 ResponseSize = 314159,
                 Payload = CreateZerosPayload(271828)
             };
-            var e = Assert.Throws<RpcException>(() => client.UnaryCall(probeRequest, CreateClientCompressionMetadata(false)));
+            var e = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.UnaryCallAsync(probeRequest, CreateClientCompressionMetadata(false)));
             Assert.AreEqual(StatusCode.InvalidArgument, e.Status.StatusCode);
 
             var compressedRequest = new SimpleRequest
@@ -835,7 +745,7 @@ namespace InteropTestsClient
                 ResponseSize = 314159,
                 Payload = CreateZerosPayload(271828)
             };
-            var response1 = client.UnaryCall(compressedRequest, CreateClientCompressionMetadata(true));
+            var response1 = await client.UnaryCallAsync(compressedRequest, CreateClientCompressionMetadata(true));
             Assert.AreEqual(314159, response1.Payload.Body.Length);
 
             var uncompressedRequest = new SimpleRequest
@@ -847,15 +757,14 @@ namespace InteropTestsClient
                 ResponseSize = 314159,
                 Payload = CreateZerosPayload(271828)
             };
-            var response2 = client.UnaryCall(uncompressedRequest, CreateClientCompressionMetadata(false));
+            var response2 = await client.UnaryCallAsync(uncompressedRequest, CreateClientCompressionMetadata(false));
             Assert.AreEqual(314159, response2.Payload.Body.Length);
-
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunClientCompressedStreamingAsync(TestService.TestServiceClient client)
+        public static async Task RunClientCompressedStreamingAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running client_compressed_streaming");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
+
             try
             {
                 var probeCall = client.StreamingInputCall(CreateClientCompressionMetadata(false));
@@ -900,13 +809,11 @@ namespace InteropTestsClient
 
             var response = await call.ResponseAsync;
             Assert.AreEqual(73086, response.AggregatedPayloadSize);
-
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunServerCompressedUnary(TestService.TestServiceClient client)
+        public static async Task RunServerCompressedUnary(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running server_compressed_unary");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var request = new SimpleRequest
             {
@@ -929,13 +836,11 @@ namespace InteropTestsClient
 
             // Compression of response message is not verified because there is no API available
             Assert.AreEqual(314159, response.Payload.Body.Length);
-
-            Console.WriteLine("Passed!");
         }
 
-        public static async Task RunServerCompressedStreamingAsync(TestService.TestServiceClient client)
+        public static async Task RunServerCompressedStreamingAsync(IChannelWrapper channel, ClientOptions options)
         {
-            Console.WriteLine("running server_compressed_streaming");
+            var client = CreateClient<TestService.TestServiceClient>(channel);
 
             var bodySizes = new List<int> { 31415, 92653 };
 
@@ -950,8 +855,6 @@ namespace InteropTestsClient
                 var responseList = await call.ResponseStream.ToListAsync();
                 CollectionAssert.AreEqual(bodySizes, responseList.Select((item) => item.Payload.Body.Length).ToList());
             }
-
-            Console.WriteLine("Passed!");
         }
 
         private static Payload CreateZerosPayload(int size)
@@ -969,6 +872,7 @@ namespace InteropTestsClient
         }
 
         // extracts the client_email field from service account file used for auth test cases
+#if !NETSTANDARD2_1
         private static string GetEmailFromServiceAccountFile()
         {
             string keyFile = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")!;
@@ -978,6 +882,7 @@ namespace InteropTestsClient
             Assert.IsTrue(email.Length > 0);  // spec requires nonempty client email.
             return email;
         }
+#endif
 
         private static Metadata CreateTestMetadata()
         {

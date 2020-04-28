@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace InteropTestsClient
+namespace Grpc.Shared.TestAssets
 {
     public interface IChannelWrapper
     {
@@ -44,6 +44,7 @@ namespace InteropTestsClient
         }
     }
 
+#if !NETSTANDARD2_1
     public class CoreChannelWrapper : IChannelWrapper
     {
         private Channel _channel;
@@ -59,4 +60,5 @@ namespace InteropTestsClient
             return _channel.ShutdownAsync();
         }
     }
+#endif
 }

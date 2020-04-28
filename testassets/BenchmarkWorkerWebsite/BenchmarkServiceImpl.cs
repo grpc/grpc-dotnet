@@ -17,9 +17,9 @@
 #endregion
 
 using System.Threading.Tasks;
-using BenchmarkWorkerWebsite;
 using Google.Protobuf;
 using Grpc.Core;
+using Grpc.Shared.TestAssets;
 
 namespace Grpc.Testing
 {

@@ -16,13 +16,43 @@
 
 #endregion
 
+using System;
+using CommandLine;
+using Grpc.Core;
+using Grpc.Core.Logging;
+using Grpc.Shared.TestAssets;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 namespace InteropTestsClient
 {
     public class Program
     {
         public static void Main(string[] args)
         {
-            InteropClient.Run(args);
+            GrpcEnvironment.SetLogger(new ConsoleLogger());
+            var parserResult = Parser.Default.ParseArguments<ClientOptions>(args)
+                .WithNotParsed(errors => Environment.Exit(1))
+                .WithParsed(options =>
+                {
+                    Console.WriteLine("Use TLS: " + options.UseTls);
+                    Console.WriteLine("Use Test CA: " + options.UseTestCa);
+                    Console.WriteLine("Client type: " + options.ClientType);
+                    Console.WriteLine("Server host: " + options.ServerHost);
+                    Console.WriteLine("Server port: " + options.ServerPort);
+
+                    var services = new ServiceCollection();
+                    services.AddLogging(configure =>
+                    {
+                        configure.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                        configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
+                    });
+
+                    using var serviceProvider = services.BuildServiceProvider();
+
+                    var interopClient = new InteropClient(options, serviceProvider.GetRequiredService<ILoggerFactory>());
+                    interopClient.Run().Wait();
+                });
         }
     }
 }
