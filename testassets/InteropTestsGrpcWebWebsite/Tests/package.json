@@ -1,0 +1,13 @@
+{
+  "name": "grpc-web_interop_tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "jest test"
+  },
+  "dependencies": {
+    "puppeteer": "^1.10.0",
+    "jest": "^23.6.0",
+    "jest-puppeteer": "^3.5.1"
+  }
+}

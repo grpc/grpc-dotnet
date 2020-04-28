@@ -1,0 +1,25 @@
+﻿@page "/"
+@inject IJSRuntime JSRuntime;
+
+<h1>gRPC-Web interop tests</h1>
+
+<div>
+    <select @bind="SelectedTest">
+        <option value="">Select a test</option>
+        @foreach (var testName in TestNames)
+        {
+            <option value="@testName">@testName</option>
+        }
+    </select>
+    <button @onclick="RunTest" disabled="@IsTestRunning">Run</button>
+    <button @onclick="RunAll" disabled="@IsTestRunning">Run all</button>
+</div>
+
+<ul>
+    @foreach (var message in Messages)
+    {
+        <li class="@message.LogLevel.ToString().ToLower()">
+            @message.Content
+        </li>
+    }
+</ul>

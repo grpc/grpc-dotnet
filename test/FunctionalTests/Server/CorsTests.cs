@@ -62,5 +62,39 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
             Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
         }
+
+        [Test]
+        public async Task PreflightRequest_UnimplementedSupportedMethod_Return405()
+        {
+            // Arrange
+            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "Greet.SecondGreeter/ThisIsNotImplemented");
+            httpRequestMessage.Headers.Add("Origin", "http://localhost");
+            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
+            httpRequestMessage.Version = new Version(2, 0);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+            Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+        }
+
+        [Test]
+        public async Task PreflightRequest_UnimplementedSupportedService_Return405()
+        {
+            // Arrange
+            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "ThisIsNotImplemented/SayHello");
+            httpRequestMessage.Headers.Add("Origin", "http://localhost");
+            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
+            httpRequestMessage.Version = new Version(2, 0);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+            Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+        }
     }
 }
