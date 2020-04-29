@@ -43,6 +43,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public IList<LogRecord> GetLogs() => _logs.ToList();
 
+        public void ClearLogs() => _logs.Clear();
+
         public void Log<TState>(string categoryName, LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var record = new LogRecord(DateTime.Now, logLevel, eventId, state!, exception, (o, e) => formatter((TState)o, e), categoryName);
