@@ -185,7 +185,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             await serverCompleteTcs.Task.DefaultTimeout();
 
-            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
+                "Missing client cancellation log.").DefaultTimeout();
         }
 
         [Test]
@@ -251,10 +253,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
-            // 4. Check that the cancellation was sent to the server. This will 
+            // 4. Check that the cancellation was sent to the server.
             await serverCompleteTcs.Task.DefaultTimeout();
 
-            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
+                "Missing client cancellation log.").DefaultTimeout();
         }
     }
 }
