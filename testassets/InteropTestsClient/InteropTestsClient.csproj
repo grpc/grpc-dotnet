@@ -26,7 +26,6 @@
 
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
-    <PackageReference Include="CommandLineParser" Version="$(CommandLineParserPackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Auth" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
@@ -35,6 +34,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
+    <PackageReference Include="System.CommandLine" Version="$(SystemCommandLinePackageVersion)" />
   </ItemGroup>
 
 </Project>

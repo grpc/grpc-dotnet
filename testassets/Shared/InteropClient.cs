@@ -34,7 +34,6 @@ using Empty = Grpc.Testing.Empty;
 using Grpc.Shared.TestAssets;
 
 #if !NETSTANDARD2_1
-using CommandLine;
 using Google.Apis.Auth.OAuth2;
 using Grpc.Auth;
 using Grpc.Core.Logging;
@@ -46,69 +45,16 @@ namespace Grpc.Shared.TestAssets
 {
     public class ClientOptions
     {
-#if !NETSTANDARD2_1
-        [Option("client_type", Default = "httpclient")]
-#endif
         public string? ClientType { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("server_host", Default = "localhost")]
-#endif
         public string? ServerHost { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("server_host_override")]
-#endif
         public string? ServerHostOverride { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("server_port"
-#if DEBUG
-                , Default = 50052
-#endif
-                )]
-#endif
         public int ServerPort { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("test_case"
-#if DEBUG
-                , Default = "large_unary"
-#endif
-                )]
-#endif
         public string? TestCase { get; set; }
-
-        // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
-#if !NETSTANDARD2_1
-        [Option("use_tls", Default = false)]
-#endif
-        public bool? UseTls { get; set; }
-
-        // Deliberately using nullable bool type to allow --use_test_ca=true syntax (as opposed to --use_test_ca)
-#if !NETSTANDARD2_1
-        [Option("use_test_ca", Default = false)]
-#endif
-        public bool? UseTestCa { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("default_service_account", Required = false)]
-#endif
+        public bool UseTls { get; set; }
+        public bool UseTestCa { get; set; }
         public string? DefaultServiceAccount { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("oauth_scope", Required = false)]
-#endif
         public string? OAuthScope { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("service_account_key_file", Required = false)]
-#endif
         public string? ServiceAccountKeyFile { get; set; }
-
-#if !NETSTANDARD2_1
-        [Option("grpc_web_mode")]
-#endif
         public string? GrpcWebMode { get; set; }
     }
 
@@ -158,7 +104,7 @@ namespace Grpc.Shared.TestAssets
             var credentials = await CreateCredentialsAsync(useTestCaOverride: false);
 
             string scheme;
-            if (!(options.UseTls ?? false))
+            if (!options.UseTls)
             {
                 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
                 scheme = "http";
@@ -173,7 +119,7 @@ namespace Grpc.Shared.TestAssets
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 #endif
 
-            if (options.UseTestCa ?? false)
+            if (options.UseTestCa)
             {
                 var pem = File.ReadAllText("Certs/ca.pem");
                 var certData = GetBytesFromPem(pem, "CERTIFICATE");
@@ -230,10 +176,10 @@ namespace Grpc.Shared.TestAssets
         private async Task<ChannelCredentials> CreateCredentialsAsync(bool? useTestCaOverride = null)
         {
             var credentials = ChannelCredentials.Insecure;
-            if (options.UseTls.GetValueOrDefault())
+            if (options.UseTls)
             {
 #if !NETSTANDARD2_1
-                if (useTestCaOverride ?? options.UseTestCa.GetValueOrDefault())
+                if (useTestCaOverride ?? options.UseTestCa)
                 {
                     credentials = TestCredentials.CreateSslCredentials();
                 }
