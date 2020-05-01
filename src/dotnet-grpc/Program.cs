@@ -17,7 +17,8 @@
 #endregion
 
 using System.CommandLine.Builder;
-using System.CommandLine.Invocation;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
@@ -39,7 +40,9 @@ namespace Grpc.Dotnet.Cli
                 .UseDefaults()
                 .Build();
 
-            return parser.InvokeAsync(args);
+            var result = parser.Parse(args);
+
+            return result.InvokeAsync(new SystemConsole());
         }
     }
 }
