@@ -41,7 +41,7 @@ namespace GrpcAspNetCoreServer
             Console.WriteLine();
             Console.WriteLine("ASP.NET Core gRPC Benchmarks");
             Console.WriteLine("----------------------------");
-
+            Console.WriteLine($"Args: {string.Join(' ', args)}");
             Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
             Console.WriteLine($"WebHostBuilder loading from: {typeof(WebHostBuilder).GetTypeInfo().Assembly.Location}");
 
@@ -69,7 +69,7 @@ namespace GrpcAspNetCoreServer
                         {
                             var protocol = config["protocol"] ?? "";
 
-                            Console.WriteLine($"Protocol: {protocol}");
+                            Console.WriteLine($"Address: {endPoint.Address}:{endPoint.Port}, Protocol: {protocol}");
 
                             if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
                             {
