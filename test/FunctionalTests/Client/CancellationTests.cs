@@ -264,8 +264,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ServerStreaming_CancellationOnClientWhileMoveNext_CancellationSentToServer()
         {
-            var serverCompleteTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var syncPoint = new SyncPoint();
+            var pauseServerTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var callEndSyncPoint = new SyncPoint();
             var serverCancellationRequested = false;
 
             async Task ServerStreamingCall(DataMessage request, IServerStreamWriter<DataMessage> streamWriter, ServerCallContext context)
@@ -273,11 +273,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 await streamWriter.WriteAsync(new DataMessage());
                 await streamWriter.WriteAsync(new DataMessage());
 
-                await syncPoint.WaitToContinue();
+                await pauseServerTcs.Task.DefaultTimeout();
+
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(10);
+                }
 
                 serverCancellationRequested = context.CancellationToken.IsCancellationRequested;
 
-                serverCompleteTcs.TrySetResult(null);
+                await callEndSyncPoint.WaitToContinue();
             }
 
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
@@ -303,11 +308,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
-            await syncPoint.WaitForSyncPoint();
-            syncPoint.Continue();
-
             // 4. Check that the cancellation was sent to the server.
-            await serverCompleteTcs.Task.DefaultTimeout();
+            pauseServerTcs.TrySetResult(null);
+
+            await callEndSyncPoint.WaitForSyncPoint();
+            callEndSyncPoint.Continue();
 
             Assert.AreEqual(true, serverCancellationRequested);
 
