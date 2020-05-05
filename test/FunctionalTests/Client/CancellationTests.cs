@@ -260,5 +260,65 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
                 "Missing client cancellation log.").DefaultTimeout();
         }
+
+        [Test]
+        public async Task ServerStreaming_CancellationOnClientWhileMoveNext_CancellationSentToServer()
+        {
+            var pauseServerTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var callEndSyncPoint = new SyncPoint();
+            var serverCancellationRequested = false;
+
+            async Task ServerStreamingCall(DataMessage request, IServerStreamWriter<DataMessage> streamWriter, ServerCallContext context)
+            {
+                await streamWriter.WriteAsync(new DataMessage());
+                await streamWriter.WriteAsync(new DataMessage());
+
+                await pauseServerTcs.Task.DefaultTimeout();
+
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(10);
+                }
+
+                serverCancellationRequested = context.CancellationToken.IsCancellationRequested;
+
+                await callEndSyncPoint.WaitToContinue();
+            }
+
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
+
+            var channel = CreateChannel();
+            var cts = new CancellationTokenSource();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+            // Assert
+
+            // 1. Lets read some messages
+            Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+            Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+
+            // 2. Cancel the token that was passed to the gRPC call. This should dispose HttpResponseMessage
+            cts.CancelAfter(TimeSpan.FromSeconds(0.2));
+
+            // 3. Read from the response stream. This will throw a cancellation exception locally
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            // 4. Check that the cancellation was sent to the server.
+            pauseServerTcs.TrySetResult(null);
+
+            await callEndSyncPoint.WaitForSyncPoint().DefaultTimeout();
+            callEndSyncPoint.Continue();
+
+            Assert.AreEqual(true, serverCancellationRequested);
+
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
+                "Missing client cancellation log.").DefaultTimeout();
+        }
     }
 }
