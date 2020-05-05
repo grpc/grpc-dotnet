@@ -311,7 +311,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // 4. Check that the cancellation was sent to the server.
             pauseServerTcs.TrySetResult(null);
 
-            await callEndSyncPoint.WaitForSyncPoint();
+            await callEndSyncPoint.WaitForSyncPoint().DefaultTimeout();
             callEndSyncPoint.Continue();
 
             Assert.AreEqual(true, serverCancellationRequested);
