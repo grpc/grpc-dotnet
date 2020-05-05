@@ -211,7 +211,7 @@
     <value>No file found matching file argument `{0}`. File reference not added.</value>
   </data>
   <data name="ListCommandDescription" xml:space="preserve">
-    <value>List the protobuf reference(s) of the gRPC project.</value>
+    <value>List the protobuf references of the gRPC project.</value>
   </data>
   <data name="TableColumnAccess" xml:space="preserve">
     <value>Access</value>
@@ -227,5 +227,8 @@
   </data>
   <data name="TableColumnSourceUrl" xml:space="preserve">
     <value>Source URL</value>
+  </data>
+  <data name="LogNoReferences" xml:space="preserve">
+    <value>No protobuf references in the gRPC project.</value>
   </data>
 </root>

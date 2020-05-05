@@ -17,7 +17,7 @@
 #endregion
 
 using System;
-using System.CommandLine;
+using System.CommandLine.IO;
 using System.IO;
 using Grpc.Dotnet.Cli.Commands;
 using NUnit.Framework;
