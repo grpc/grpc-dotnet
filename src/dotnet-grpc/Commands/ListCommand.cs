@@ -67,6 +67,12 @@ namespace Grpc.Dotnet.Cli.Commands
         {
             var consoleRenderer = new ConsoleRenderer(Console);
             var protobufElements = Project.GetItems(ProtobufElement).ToList();
+            if (protobufElements.Count == 0)
+            {
+                Console.Log(CoreStrings.LogNoReferences);
+                return;
+            }
+
             var table = new TableView<ProjectItem> { Items = protobufElements};
 
             // Required columns (always displayed)
