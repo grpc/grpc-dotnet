@@ -46,44 +46,6 @@ namespace Grpc.Net.Client
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        private static async Task<(int length, bool compressed)?> ReadHeaderAsync(Stream responseStream, Memory<byte> header, CancellationToken cancellationToken)
-        {
-            int read;
-            var received = 0;
-            while ((read = await responseStream.ReadAsync(header.Slice(received, GrpcProtocolConstants.HeaderSize - received), cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                received += read;
-
-                if (received == GrpcProtocolConstants.HeaderSize)
-                {
-                    break;
-                }
-            }
-
-            if (received < GrpcProtocolConstants.HeaderSize)
-            {
-                if (received == 0)
-                {
-                    return null;
-                }
-
-                throw new InvalidDataException("Unexpected end of content while reading the message header.");
-            }
-
-            // Read the header first
-            // - 1 byte flag for compression
-            // - 4 bytes for the content length
-            var compressed = ReadCompressedFlag(header.Span[0]);
-            var length = BinaryPrimitives.ReadUInt32BigEndian(header.Span.Slice(1, 4));
-
-            if (length > int.MaxValue)
-            {
-                throw new InvalidDataException("Message too large.");
-            }
-
-            return ((int)length, compressed);
-        }
-
         public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
             this Stream responseStream,
             ILogger logger,
@@ -287,7 +249,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        // TODO(JamesNK): Reuse serialization content between message writes. Improve client/duplex streaming allocations.
+        // TODO(JamesNK): Reuse serialization context between message writes. Improve client/duplex streaming allocations.
         public static async ValueTask WriteMessageAsync<TMessage>(
             this Stream stream,
             ILogger logger,
