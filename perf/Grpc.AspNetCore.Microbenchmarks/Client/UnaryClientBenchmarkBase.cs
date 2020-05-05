@@ -23,6 +23,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Greet;
@@ -64,11 +65,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcEncoding: ResponseCompressionAlgorithm);
             });
 
-            var httpClient = new HttpClient(handler);
-
             var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
-                HttpClient = httpClient,
+                HttpHandler = handler,
                 CompressionProviders = CompressionProviders
             });
 

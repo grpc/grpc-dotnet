@@ -107,16 +107,34 @@ namespace Grpc.Net.Client
                 // If the message is larger then the array will be replaced when the message size is known.
                 buffer = ArrayPool<byte>.Shared.Rent(minimumLength: 4096);
 
-                var headerDetails = await ReadHeaderAsync(responseStream, buffer, cancellationToken).ConfigureAwait(false);
-
-                if (headerDetails == null)
+                int read;
+                var received = 0;
+                while ((read = await responseStream.ReadAsync(buffer.AsMemory(received, GrpcProtocolConstants.HeaderSize - received), cancellationToken).ConfigureAwait(false)) > 0)
                 {
-                    GrpcCallLog.NoMessageReturned(logger);
-                    return default;
+                    received += read;
+
+                    if (received == GrpcProtocolConstants.HeaderSize)
+                    {
+                        break;
+                    }
                 }
 
-                var length = headerDetails.Value.length;
-                var compressed = headerDetails.Value.compressed;
+                if (received < GrpcProtocolConstants.HeaderSize)
+                {
+                    if (received == 0)
+                    {
+                        GrpcCallLog.NoMessageReturned(logger);
+                        return default;
+                    }
+
+                    throw new InvalidDataException("Unexpected end of content while reading the message header.");
+                }
+
+                // Read the header first
+                // - 1 byte flag for compression
+                // - 4 bytes for the content length
+                var compressed = ReadCompressedFlag(buffer[0]);
+                var length = ReadMessageLength(buffer.AsSpan(1, 4));
 
                 if (length > 0)
                 {
@@ -198,6 +216,18 @@ namespace Grpc.Net.Client
                     ArrayPool<byte>.Shared.Return(buffer);
                 }
             }
+        }
+
+        private static int ReadMessageLength(Span<byte> header)
+        {
+            var length = BinaryPrimitives.ReadUInt32BigEndian(header);
+
+            if (length > int.MaxValue)
+            {
+                throw new InvalidDataException("Message too large.");
+            }
+
+            return (int)length;
         }
 
         private static async Task ReadMessageContent(Stream responseStream, Memory<byte> messageData, int length, CancellationToken cancellationToken)
