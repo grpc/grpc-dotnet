@@ -26,17 +26,17 @@ namespace Grpc.Dotnet.Cli.Internal
     {
         public static void Log(this IConsole console, string formatString, params string[] args)
         {
-            console.Out.WriteLine(string.Format(CultureInfo.CurrentCulture, formatString, args));
+            console.Out.Write(string.Format(CultureInfo.CurrentCulture, formatString, args) + Environment.NewLine);
         }
 
         public static void LogWarning(this IConsole console, string formatString, params string[] args)
         {
-            console.Out.WriteLine(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args));
+            console.Out.Write(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args) + Environment.NewLine);
         }
 
         public static void LogError(this IConsole console, Exception e)
         {
-            console.Error.WriteLine($"Error: {e.Message}");
+            console.Error.Write($"Error: {e.Message}" + Environment.NewLine);
         }
     }
 }

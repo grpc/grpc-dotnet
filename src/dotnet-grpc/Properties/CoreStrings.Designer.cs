@@ -187,7 +187,7 @@ namespace Grpc.Dotnet.Cli.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to List the protobuf reference(s) of the gRPC project..
+        ///   Looks up a localized string similar to List the protobuf references of the gRPC project..
         /// </summary>
         internal static string ListCommandDescription {
             get {
@@ -228,6 +228,15 @@ namespace Grpc.Dotnet.Cli.Properties {
         internal static string LogDownload {
             get {
                 return ResourceManager.GetString("LogDownload", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No protobuf references in the gRPC project..
+        /// </summary>
+        internal static string LogNoReferences {
+            get {
+                return ResourceManager.GetString("LogNoReferences", resourceCulture);
             }
         }
         
