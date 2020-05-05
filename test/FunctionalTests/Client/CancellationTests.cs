@@ -303,6 +303,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
+            await syncPoint.WaitForSyncPoint();
             syncPoint.Continue();
 
             // 4. Check that the cancellation was sent to the server.
