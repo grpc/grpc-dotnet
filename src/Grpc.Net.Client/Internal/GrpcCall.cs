@@ -170,6 +170,8 @@ namespace Grpc.Net.Client.Internal
                 ClientStreamReader?.HttpResponseTcs.TrySetCanceled();
             }
 
+            Channel.FinishActiveCall(this);
+
             _ctsRegistration?.Dispose();
             _deadlineTimer?.Dispose();
             HttpResponse?.Dispose();

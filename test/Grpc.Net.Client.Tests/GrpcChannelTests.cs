@@ -252,6 +252,7 @@ namespace Grpc.Net.Client.Tests
 
             var exTask = ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
             Assert.IsFalse(exTask.IsCompleted);
+            Assert.AreEqual(1, channel.ActiveCalls.Count);
 
             // Act
             channel.Dispose();
@@ -262,6 +263,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
 
             Assert.IsTrue(channel.Disposed);
+            Assert.AreEqual(0, channel.ActiveCalls.Count);
         }
 
         public class TestHttpMessageHandler : HttpMessageHandler

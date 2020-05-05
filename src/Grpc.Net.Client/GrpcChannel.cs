@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using Grpc.Core;
@@ -65,7 +66,7 @@ namespace Grpc.Net.Client
         {
             _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
 
-            // Dispose the HttpClient if...
+            // Dispose the HTTP client/handler if...
             //   1. No client/handler was specified and so the channel created the client itself
             //   2. User has specified a client/handler and set DisposeHttpClient to true
             _shouldDisposeHttpClient = (channelOptions.HttpClient == null && channelOptions.HttpHandler == null)
@@ -295,10 +296,16 @@ namespace Grpc.Net.Client
 
             lock (ActiveCalls)
             {
-                // Disposing calls will remove them from ActiveCalls
-                foreach (var activeCall in ActiveCalls)
+                if (ActiveCalls.Count > 0)
                 {
-                    activeCall.Dispose();
+                    // Disposing a call will remove it from ActiveCalls. Need to take a copy
+                    // to avoid enumeration from being modified
+                    var activeCallsCopy = ActiveCalls.ToArray();
+
+                    foreach (var activeCall in activeCallsCopy)
+                    {
+                        activeCall.Dispose();
+                    }
                 }
             }
 

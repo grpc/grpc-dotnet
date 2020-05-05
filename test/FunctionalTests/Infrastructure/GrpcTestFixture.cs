@@ -52,15 +52,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-            Client = CreateClient();
+            (Client, Handler) = CreateHttpCore();
         }
 
         public ILoggerFactory LoggerFactory { get; }
         public DynamicGrpcServiceRegistry DynamicGrpc { get; }
 
+        public HttpMessageHandler Handler { get; }
         public HttpClient Client { get; }
 
         public HttpClient CreateClient(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
+        {
+            return CreateHttpCore(endpointName, messageHandler).client;
+        }
+
+        private (HttpClient client, HttpMessageHandler handler) CreateHttpCore(TestServerEndpointName? endpointName = null, DelegatingHandler? messageHandler = null)
         {
             endpointName ??= TestServerEndpointName.Http2;
 
@@ -68,13 +74,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
             HttpClient client;
+            HttpMessageHandler handler;
             if (messageHandler != null)
             {
                 messageHandler.InnerHandler = httpClientHandler;
+                handler = messageHandler;
                 client = new HttpClient(messageHandler);
             }
             else
             {
+                handler = httpClientHandler;
                 client = new HttpClient(httpClientHandler);
             }
 
@@ -94,7 +103,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
             }
 
-            return client;
+            return (client, handler);
         }
 
         internal event Action<LogRecord> ServerLogged
