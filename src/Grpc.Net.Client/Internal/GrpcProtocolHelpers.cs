@@ -269,7 +269,7 @@ namespace Grpc.Net.Client.Internal
         public static void AddHeader(HttpRequestHeaders headers, Metadata.Entry entry)
         {
             var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-            headers.Add(entry.Key, value);
+            headers.TryAddWithoutValidation(entry.Key, value);
         }
 
         public static string? GetHeaderValue(HttpHeaders? headers, string name)

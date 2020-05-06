@@ -41,13 +41,21 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected GrpcChannel Channel => _channel ??= CreateChannel();
 
-        protected GrpcChannel CreateChannel()
+        protected GrpcChannel CreateChannel(bool useHandler = false)
         {
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+            var options = new GrpcChannelOptions
             {
-                LoggerFactory = LoggerFactory,
-                HttpClient = Fixture.Client
-            });
+                LoggerFactory = LoggerFactory
+            };
+            if (useHandler)
+            {
+                options.HttpHandler = Fixture.Handler;
+            }
+            else
+            {
+                options.HttpClient = Fixture.Client;
+            }
+            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, options);
         }
 
         protected virtual void ConfigureServices(IServiceCollection services) { }

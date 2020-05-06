@@ -17,10 +17,12 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
+    [DebuggerDisplay("{Message,nq}")]
     public class LogRecord
     {
         public LogRecord(DateTime timestamp, LogLevel logLevel, EventId eventId, object state, Exception? exception, Func<object, Exception?, string> formatter, string loggerName)
