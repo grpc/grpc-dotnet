@@ -64,11 +64,9 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcEncoding: ResponseCompressionAlgorithm);
             });
 
-            var httpClient = new HttpClient(handler);
-
             var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
-                HttpClient = httpClient,
+                HttpHandler = handler,
                 CompressionProviders = CompressionProviders
             });
 

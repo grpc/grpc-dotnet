@@ -68,23 +68,46 @@ namespace Grpc.Net.Client
         public ILoggerFactory? LoggerFactory { get; set; }
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpClient"/> used by the channel.
+        /// Gets or sets the <see cref="System.Net.Http.HttpClient"/> used by the channel to make HTTP calls.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// By default a <see cref="System.Net.Http.HttpClient"/> specified here will not be disposed with the channel.
         /// To dispose the <see cref="System.Net.Http.HttpClient"/> with the channel you must set <see cref="DisposeHttpClient"/>
         /// to <c>true</c>.
+        /// </para>
+        /// <para>
+        /// Only one HTTP caller can be specified for a channel. An error will be thrown if this is configured
+        /// together with <see cref="HttpHandler"/>.
+        /// </para>
         /// </remarks>
         public HttpClient? HttpClient { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the underlying <see cref="System.Net.Http.HttpClient"/> should be disposed
-        /// when the <see cref="GrpcChannel"/> instance is disposed. The default value is <c>false</c>.
+        /// Gets or sets the <see cref="HttpMessageHandler"/> used by the channel to make HTTP calls.
         /// </summary>
         /// <remarks>
-        /// This setting is used when a <see cref="HttpClient"/> value is specified. If no <see cref="HttpClient"/> value is provided
-        /// then the channel will create an <see cref="System.Net.Http.HttpClient"/> instance that is always disposed when
-        /// the channel is disposed.
+        /// <para>
+        /// By default a <see cref="HttpMessageHandler"/> specified here will not be disposed with the channel.
+        /// To dispose the <see cref="HttpMessageHandler"/> with the channel you must set <see cref="DisposeHttpClient"/>
+        /// to <c>true</c>.
+        /// </para>
+        /// <para>
+        /// Only one HTTP caller can be specified for a channel. An error will be thrown if this is configured
+        /// together with <see cref="HttpClient"/>.
+        /// </para>
+        /// </remarks>
+        public HttpMessageHandler? HttpHandler { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the underlying <see cref="System.Net.Http.HttpClient"/> or 
+        /// <see cref="HttpMessageHandler"/> should be disposed when the <see cref="GrpcChannel"/> instance is disposed.
+        /// The default value is <c>false</c>.
+        /// </summary>
+        /// <remarks>
+        /// This setting is used when a <see cref="HttpClient"/> or <see cref="HttpHandler"/> value is specified.
+        /// If they are not specified then the channel will create an internal HTTP caller that is always disposed
+        /// when the channel is disposed.
         /// </remarks>
         public bool DisposeHttpClient { get; set; }
 

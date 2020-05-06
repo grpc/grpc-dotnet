@@ -142,12 +142,10 @@ namespace Grpc.Shared.TestAssets
                 httpMessageHandler = httpClientHandler;
             }
 
-            var httpClient = new HttpClient(httpMessageHandler);
-
             var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
             {
                 Credentials = credentials,
-                HttpClient = httpClient,
+                HttpHandler = httpMessageHandler,
                 LoggerFactory = loggerFactory
             });
 

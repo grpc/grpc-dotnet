@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
             // Assert
-            Assert.AreEqual(Timeout.InfiniteTimeSpan, client.CallInvoker.Channel.HttpClient.Timeout);
+            Assert.AreEqual(Timeout.InfiniteTimeSpan, ((HttpClient)client.CallInvoker.Channel.HttpInvoker).Timeout);
         }
 
         [Test]
