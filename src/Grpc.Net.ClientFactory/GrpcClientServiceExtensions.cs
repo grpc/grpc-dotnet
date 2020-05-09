@@ -379,5 +379,43 @@ namespace Microsoft.Extensions.DependencyInjection
 
             registry.NamedClientRegistrations[name] = type;
         }
+
+        /// <summary>
+        /// Registers an action used to configure all gRPC clients registered with <see cref="AddGrpcClient{TClient}(Microsoft.Extensions.DependencyInjection.IServiceCollection)"/>.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configureClient">A delegate that is used to configure the gRPC clients.</param>
+        /// <returns>The service collection.</returns>
+        public static IServiceCollection ConfigureAllGrpcClients(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            return services.ConfigureAll(configureClient);
+        }
+
+        /// <summary>
+        /// Registers an action used to configure all gRPC clients registered with <see cref="AddGrpcClient{TClient}(Microsoft.Extensions.DependencyInjection.IServiceCollection)"/>.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+        /// <param name="configureClient">A delegate that is used to configure the gRPC clients.</param>
+        /// <returns>The service collection.</returns>
+        public static IServiceCollection ConfigureAllGrpcClients(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            return services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            {
+                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(null, options =>
+                {
+                    configureClient(services, options);
+                });
+            });
+        }
     }
 }
