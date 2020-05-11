@@ -136,20 +136,13 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        public Memory<byte> GetHeader(bool isCompressed, int length)
+        public void WriteHeader(Span<byte> headerData, bool isCompressed, int length)
         {
-            // TODO(JamesNK): We can optimize header allocation when IBufferWriter is being used.
-            // IBufferWriter can be used to provide a buffer, either before or after message content.
-            // https://github.com/grpc/grpc-dotnet/issues/784
-            var buffer = new byte[GrpcProtocolConstants.HeaderSize];
-
             // Compression flag
-            buffer[0] = isCompressed ? (byte)1 : (byte)0;
+            headerData[0] = isCompressed ? (byte)1 : (byte)0;
 
             // Message length
-            EncodeMessageLength(length, buffer.AsSpan(1, 4));
-
-            return buffer;
+            EncodeMessageLength(length, headerData.Slice(1, 4));
         }
 
         private static void EncodeMessageLength(int messageLength, Span<byte> destination)

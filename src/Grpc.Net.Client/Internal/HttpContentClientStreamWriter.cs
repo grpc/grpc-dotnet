@@ -163,7 +163,10 @@ namespace Grpc.Net.Client.Internal
                     callOptions = callOptions.WithWriteOptions(WriteOptions);
                 }
 
-                await _call.WriteMessageAsync(writeStream, message, _grpcEncoding, callOptions);
+                await _call.WriteMessageAsync(writeStream, message, _grpcEncoding, callOptions).ConfigureAwait(false);
+
+                // Flush stream to ensure messages are sent immediately
+                await writeStream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();
             }

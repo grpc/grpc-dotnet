@@ -56,6 +56,12 @@ namespace Grpc.Net.Client.Web.Internal
                 }
 
                 await _inner.CopyToAsync(stream).ConfigureAwait(false);
+
+                if (base64RequestStream != null)
+                {
+                    // Flush any remaining base64 content
+                    await base64RequestStream.FlushAsync().ConfigureAwait(false);
+                }
             }
             finally
             {
