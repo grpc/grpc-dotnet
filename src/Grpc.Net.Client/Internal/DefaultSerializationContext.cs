@@ -135,21 +135,5 @@ namespace Grpc.Net.Client.Internal
                     break;
             }
         }
-
-        public void WriteHeader(Span<byte> headerData, bool isCompressed, int length)
-        {
-            // Compression flag
-            headerData[0] = isCompressed ? (byte)1 : (byte)0;
-
-            // Message length
-            EncodeMessageLength(length, headerData.Slice(1, 4));
-        }
-
-        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
-        {
-            Debug.Assert(destination.Length >= GrpcProtocolConstants.MessageDelimiterSize, "Buffer too small to encode message length.");
-
-            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
-        }
     }
 }

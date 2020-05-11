@@ -300,7 +300,7 @@ namespace Grpc.Net.Client
                 {
                     var buffer = completeData.AsMemory(0, totalSize);
 
-                    serializationContext.WriteHeader(buffer.Span.Slice(0, GrpcProtocolConstants.HeaderSize), isCompressed, data.Length);
+                    WriteHeader(buffer.Span.Slice(0, GrpcProtocolConstants.HeaderSize), isCompressed, data.Length);
                     data.CopyTo(buffer.Slice(GrpcProtocolConstants.HeaderSize));
 
                     // Sending the header+content in a single WriteAsync call has significant performance benefits
@@ -341,6 +341,22 @@ namespace Grpc.Net.Client
 
             // Should never reach here
             throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
+        }
+
+        private static void WriteHeader(Span<byte> headerData, bool isCompressed, int length)
+        {
+            // Compression flag
+            headerData[0] = isCompressed ? (byte)1 : (byte)0;
+
+            // Message length
+            EncodeMessageLength(length, headerData.Slice(1, 4));
+        }
+
+        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
+        {
+            Debug.Assert(destination.Length >= GrpcProtocolConstants.MessageDelimiterSize, "Buffer too small to encode message length.");
+
+            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
         }
     }
 }
