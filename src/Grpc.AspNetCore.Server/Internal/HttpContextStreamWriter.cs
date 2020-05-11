@@ -62,9 +62,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     return Task.FromException(new InvalidOperationException("Can't write the message because the previous write is in progress."));
                 }
+
+                // Save write task to track whether it is complete. Must be set inside lock.
+                _writeTask = _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
             }
 
-            _writeTask = _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
             return _writeTask;
         }
 
