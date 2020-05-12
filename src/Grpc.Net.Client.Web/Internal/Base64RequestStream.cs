@@ -119,15 +119,19 @@ namespace Grpc.Net.Client.Web.Internal
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
         {
+            await WriteRemainderAsync(cancellationToken).ConfigureAwait(false);
+            await _inner.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        internal async Task WriteRemainderAsync(CancellationToken cancellationToken)
+        {
             if (_remainder > 0)
             {
                 EnsureSuccess(Base64.EncodeToUtf8InPlace(_buffer, _remainder, out var bytesWritten));
 
-                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten), cancellationToken);
+                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten), cancellationToken).ConfigureAwait(false);
                 _remainder = 0;
             }
-
-            await _inner.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
         protected override void Dispose(bool disposing)
