@@ -18,6 +18,8 @@
     <Protobuf Include="grpc\testing\payloads.proto" GrpcServices="None" />
 
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
+
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
   </ItemGroup>
 
 </Project>

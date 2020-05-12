@@ -7,6 +7,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCorePackageVersion)" />
