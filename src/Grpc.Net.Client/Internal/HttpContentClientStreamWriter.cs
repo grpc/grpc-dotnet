@@ -129,7 +129,7 @@ namespace Grpc.Net.Client.Internal
                         return CreateErrorTask("Can't write the message because the previous write is in progress.");
                     }
 
-                    // Save write task to track whether it is complete
+                    // Save write task to track whether it is complete. Must be set inside lock.
                     _writeTask = WriteAsyncCore(message);
                 }
             }
