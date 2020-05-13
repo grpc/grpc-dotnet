@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
@@ -110,5 +111,35 @@ namespace Grpc.AspNetCore.Server.Tests
             var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
         }
+
+        [Test]
+        public async Task WriteAsync_WriteInProgress_Error()
+        {
+            // Arrange
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(new MemoryStream()), startAsyncTask: tcs.Task));
+            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
+
+            // Act
+            _ = writer.WriteAsync(new HelloReply
+            {
+                Message = "Hello world 1"
+            });
+
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() =>
+            {
+                return writer.WriteAsync(new HelloReply
+                {
+                    Message = "Hello world 2"
+                });
+            });
+
+            // Assert
+            Assert.AreEqual("Can't write the message because the previous write is in progress.", ex.Message);
+        }
+
     }
 }

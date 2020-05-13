@@ -27,9 +27,12 @@ namespace Grpc.Tests.Shared
 {
     public class TestResponseBodyFeature : IHttpResponseBodyFeature
     {
-        public TestResponseBodyFeature(PipeWriter writer)
+        private readonly Task _startAsyncTask;
+
+        public TestResponseBodyFeature(PipeWriter writer, Task? startAsyncTask = null)
         {
             Writer = writer;
+            _startAsyncTask = startAsyncTask ?? Task.CompletedTask;
         }
 
         public PipeWriter Writer { get; }
@@ -52,7 +55,7 @@ namespace Grpc.Tests.Shared
 
         public Task StartAsync(CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return _startAsyncTask;
         }
     }
 }
