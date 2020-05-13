@@ -440,7 +440,7 @@ namespace Grpc.Net.Client.Internal
             return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
-        private async ValueTask RunCall(HttpRequestMessage request, TimeSpan? timeout)
+        private async Task RunCall(HttpRequestMessage request, TimeSpan? timeout)
         {
             using (StartScope())
             {

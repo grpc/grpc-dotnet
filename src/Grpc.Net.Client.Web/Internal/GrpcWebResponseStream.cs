@@ -95,7 +95,7 @@ namespace Grpc.Net.Client.Web.Internal
                         data = data.Slice(0, _contentRemaining);
                     }
 
-                    var read = await _inner.ReadAsync(data, cancellationToken);
+                    var read = await _inner.ReadAsync(data, cancellationToken).ConfigureAwait(false);
                     _contentRemaining -= read;
                     if (_contentRemaining == 0)
                     {
@@ -137,7 +137,7 @@ namespace Grpc.Net.Client.Web.Internal
             // 2. The response stream is read to completion. HttpClient may not recognize the
             //    request as completing successfully if the request and response aren't completely
             //    consumed.
-            var count = await _inner.ReadAsync(data, cancellationToken);
+            var count = await _inner.ReadAsync(data, cancellationToken).ConfigureAwait(false);
             if (count > 0)
             {
                 throw new InvalidOperationException("Unexpected data after trailers.");

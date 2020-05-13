@@ -25,7 +25,6 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Toolchains.CsProj;
 using BenchmarkDotNet.Toolchains.DotNetCli;
-using BenchmarkDotNet.Toolchains.InProcess;
 using BenchmarkDotNet.Validators;
 
 namespace Grpc.AspNetCore.Microbenchmarks
@@ -34,19 +33,19 @@ namespace Grpc.AspNetCore.Microbenchmarks
     {
         public DefaultCoreConfig()
         {
-            Add(ConsoleLogger.Default);
-            Add(MarkdownExporter.GitHub);
+            AddLogger(ConsoleLogger.Default);
+            AddExporter(MarkdownExporter.GitHub);
 
-            Add(MemoryDiagnoser.Default);
-            Add(StatisticColumn.OperationsPerSecond);
-            Add(DefaultColumnProviders.Instance);
+            AddDiagnoser(MemoryDiagnoser.Default);
+            AddColumn(StatisticColumn.OperationsPerSecond);
+            AddColumnProvider(DefaultColumnProviders.Instance);
 
-            Add(JitOptimizationsValidator.FailOnError);
+            AddValidator(JitOptimizationsValidator.FailOnError);
 
-            Add(Job.Core
-                .With(CsProjCoreToolchain.From(new NetCoreAppSettings("netcoreapp3.1", null, ".NET Core 3.1")))
-                .With(new GcMode { Server = true })
-                .With(RunStrategy.Throughput));
+            AddJob(Job.Default
+                .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("netcoreapp3.1", null, ".NET Core 3.1")))
+                .WithGcMode(new GcMode { Server = true })
+                .WithStrategy(RunStrategy.Throughput));
         }
     }
 }
