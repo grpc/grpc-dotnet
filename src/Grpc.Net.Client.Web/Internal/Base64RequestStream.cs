@@ -87,7 +87,7 @@ namespace Grpc.Net.Client.Web.Internal
                     OperationStatus.NeedMoreData);
 
                 var base64Remainder = _buffer.Length - localBuffer.Length;
-                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten + base64Remainder), cancellationToken);
+                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten + base64Remainder), cancellationToken).ConfigureAwait(false);
 
                 data = data.Slice(bytesConsumed);
                 localBuffer = _buffer;
@@ -97,7 +97,7 @@ namespace Grpc.Net.Client.Web.Internal
             // If there was not enough data to write along with remainder then write it here
             if (localBuffer.Length < _buffer.Length)
             {
-                await _inner.WriteAsync(_buffer.AsMemory(0, 4), cancellationToken);
+                await _inner.WriteAsync(_buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
             }
 
             if (data.Length > 0)
@@ -180,7 +180,7 @@ namespace Grpc.Net.Client.Web.Internal
         public override void Write(byte[] buffer, int offset, int count)
         {
             // Used by unit tests
-            WriteAsync(buffer.AsMemory(0, count)).GetAwaiter().GetResult();
+            WriteAsync(buffer.AsMemory(0, count)).AsTask().GetAwaiter().GetResult();
             FlushAsync().GetAwaiter().GetResult();
         }
         #endregion
