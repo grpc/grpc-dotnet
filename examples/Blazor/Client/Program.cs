@@ -45,28 +45,14 @@ namespace Client
                 //
                 // GrpcWebText is used because server streaming requires it. If server streaming is not used in your app
                 // then GrpcWeb is recommended because it produces smaller messages.
-                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new StreamingHttpHandler(new HttpClientHandler())));
+                var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
 
-                var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpClient = httpClient });
+                var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpHandler = httpHandler });
 
                 return channel;
             });
 
             await builder.Build().RunAsync();
-        }
-
-        // Temporarily required for server streaming until the next Grpc.Net.Client.Web package is released
-        private class StreamingHttpHandler : DelegatingHandler
-        {
-            public StreamingHttpHandler(HttpMessageHandler innerHandler) : base(innerHandler)
-            {
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                request.SetBrowserResponseStreamingEnabled(true);
-                return base.SendAsync(request, cancellationToken);
-            }
         }
     }
 }

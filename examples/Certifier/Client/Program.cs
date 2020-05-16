@@ -49,7 +49,7 @@ namespace Client
                 Console.WriteLine($"Setting up HttpClient. Client has certificate: {includeClientCertificate}");
                 var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
                 {
-                    HttpClient = CreateHttpClient(includeClientCertificate)
+                    HttpHandler = CreateHttpHandler(includeClientCertificate)
                 });
                 var client = new Certifier.CertifierClient(channel);
 
@@ -73,7 +73,7 @@ namespace Client
             }
         }
 
-        private static HttpClient CreateHttpClient(bool includeClientCertificate)
+        private static HttpClientHandler CreateHttpHandler(bool includeClientCertificate)
         {
             var handler = new HttpClientHandler();
 
@@ -86,9 +86,7 @@ namespace Client
                 handler.ClientCertificates.Add(clientCertificate);
             }
 
-            // Create client
-            return new HttpClient(handler);
+            return handler;
         }
-
     }
 }
