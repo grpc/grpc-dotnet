@@ -68,7 +68,17 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task ReadAllAsync_CancelCall_MessagesReceived()
+        public void ReadAllAsync_StreamReaderNull_ThrowArgumentNullException()
+        {
+            // Arrange
+            IAsyncStreamReader<int> reader = null!;
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => reader.ReadAllAsync());
+        }
+
+        [Test]
+        public async Task ReadAllAsync_CancelCallViaWithCancellation_ForEachExitedOnCancellation()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
@@ -101,6 +111,47 @@ namespace Grpc.Net.Client.Tests
                         cts.Cancel();
                     }
                 }).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(1, messages.Count);
+            Assert.AreEqual("Hello world 1", messages[0]);
+        }
+
+        [Test]
+        public async Task ReadAllAsync_CancelCallViaArgument_ForEachExitedOnCancellation()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                    new HelloReply
+                    {
+                        Message = "Hello world 1"
+                    },
+                    new HelloReply
+                    {
+                        Message = "Hello world 2"
+                    }).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var cts = new CancellationTokenSource();
+
+            // Act
+            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+            var messages = new List<string>();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            {
+                await foreach (var item in call.ResponseStream.ReadAllAsync(cts.Token).DefaultTimeout())
+                {
+                    messages.Add(item.Message);
+
+                    cts.Cancel();
+                }
+            }).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
