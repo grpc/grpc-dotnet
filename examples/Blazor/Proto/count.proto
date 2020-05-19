@@ -14,12 +14,14 @@
 
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
 package count;
 
 service Counter {
-  rpc StartCounter (google.protobuf.Empty) returns (stream CounterResponse);
+  rpc StartCounter (CounterRequest) returns (stream CounterResponse);
+}
+
+message CounterRequest {
+  int32 start = 1;
 }
 
 message CounterResponse {

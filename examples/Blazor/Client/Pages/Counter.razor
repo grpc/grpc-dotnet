@@ -1,6 +1,5 @@
 ﻿@page "/counter"
 @inject GrpcChannel Channel
-@using Google.Protobuf.WellKnownTypes
 @using Grpc.Core
 
 <h1>Counter</h1>
@@ -26,7 +25,7 @@
         cts = new CancellationTokenSource();
 
         var client = new Count.Counter.CounterClient(Channel);
-        var call = client.StartCounter(new Empty(), cancellationToken: cts.Token);
+        var call = client.StartCounter(new CounterRequest() { Start = currentCount }, cancellationToken: cts.Token);
 
         try
         {
