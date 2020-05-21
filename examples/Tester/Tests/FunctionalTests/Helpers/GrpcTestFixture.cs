@@ -67,19 +67,16 @@ namespace Tests.FunctionalTests.Helpers
             var responseVersionHandler = new ResponseVersionHandler();
             responseVersionHandler.InnerHandler = _server.CreateHandler();
 
-            var client = new HttpClient(responseVersionHandler);
-            client.BaseAddress = new Uri("http://localhost");
-
-            Client = client;
+            Handler = responseVersionHandler;
         }
 
         public LoggerFactory LoggerFactory { get; }
 
-        public HttpClient Client { get; }
+        public HttpMessageHandler Handler { get; }
 
         public void Dispose()
         {
-            Client.Dispose();
+            Handler.Dispose();
             _host.Dispose();
             _server.Dispose();
         }
