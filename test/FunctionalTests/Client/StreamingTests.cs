@@ -458,6 +458,63 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
 
+        [Test]
+        public async Task ServerStreaming_ThrowErrorWithTrailers_TrailersReturnedToClient()
+        {
+            async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                await context.WriteResponseHeadersAsync(new Metadata
+                {
+                    { "Key", "Value1" },
+                    { "Key", "Value2" },
+                });
+                await responseStream.WriteAsync(new DataMessage());
+                await responseStream.WriteAsync(new DataMessage());
+                await responseStream.WriteAsync(new DataMessage());
+                await responseStream.WriteAsync(new DataMessage());
+                context.ResponseTrailers.Add("Key", "ResponseTrailers");
+                throw new RpcException(new Status(StatusCode.Aborted, "Message"), new Metadata
+                {
+                    { "Key", "RpcException" }
+                });
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage());
+
+            // Assert
+            var headers = await call.ResponseHeadersAsync;
+            var keyHeaders = headers.Where(k => k.Key == "key").ToList();
+            Assert.AreEqual("key", keyHeaders[0].Key);
+            Assert.AreEqual("Value1", keyHeaders[0].Value);
+            Assert.AreEqual("key", keyHeaders[1].Key);
+            Assert.AreEqual("Value2", keyHeaders[1].Value);
+
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+
+            var trailers = call.GetTrailers();
+            Assert.AreEqual(2, trailers.Count);
+            Assert.AreEqual("key", trailers[0].Key);
+            Assert.AreEqual("ResponseTrailers", trailers[0].Value);
+            Assert.AreEqual("key", trailers[1].Key);
+            Assert.AreEqual("RpcException", trailers[1].Value);
+
+            Assert.AreEqual(StatusCode.Aborted, call.GetStatus().StatusCode);
+            Assert.AreEqual("Message", call.GetStatus().Detail);
+        }
+
         private static byte[] CreateTestData(int size)
         {
             var data = new byte[size];
