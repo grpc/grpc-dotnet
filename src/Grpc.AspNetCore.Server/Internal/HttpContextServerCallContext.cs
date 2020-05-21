@@ -364,11 +364,11 @@ namespace Grpc.AspNetCore.Server.Internal
                     {
                         if (entry.IsBinary)
                         {
-                            HttpContext.Response.Headers[entry.Key] = Convert.ToBase64String(entry.ValueBytes);
+                            HttpContext.Response.Headers.Append(entry.Key, Convert.ToBase64String(entry.ValueBytes));
                         }
                         else
                         {
-                            HttpContext.Response.Headers[entry.Key] = entry.Value;
+                            HttpContext.Response.Headers.Append(entry.Key, entry.Value);
                         }
                     }
                 }
