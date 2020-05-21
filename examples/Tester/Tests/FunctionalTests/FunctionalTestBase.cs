@@ -38,10 +38,10 @@ namespace Tests.FunctionalTests
 
         protected GrpcChannel CreateChannel()
         {
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+            return GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
                 LoggerFactory = LoggerFactory,
-                HttpClient = Fixture.Client
+                HttpHandler = Fixture.Handler
             });
         }
 

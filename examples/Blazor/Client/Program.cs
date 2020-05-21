@@ -17,12 +17,10 @@
 #endregion
 
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,32 +39,16 @@ namespace Client
                 var config = services.GetRequiredService<IConfiguration>();
                 var backendUrl = config["BackendUrl"];
 
-                // Create a gRPC-Web channel pointing to the backend server.
+                // Create a channel with a GrpcWebHandler that is addressed to the backend server.
                 //
                 // GrpcWebText is used because server streaming requires it. If server streaming is not used in your app
                 // then GrpcWeb is recommended because it produces smaller messages.
-                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new StreamingHttpHandler(new HttpClientHandler())));
+                var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
 
-                var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpClient = httpClient });
-
-                return channel;
+                return GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpHandler = httpHandler });
             });
 
             await builder.Build().RunAsync();
-        }
-
-        // Temporarily required for server streaming until the next Grpc.Net.Client.Web package is released
-        private class StreamingHttpHandler : DelegatingHandler
-        {
-            public StreamingHttpHandler(HttpMessageHandler innerHandler) : base(innerHandler)
-            {
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                request.SetBrowserResponseStreamingEnabled(true);
-                return base.SendAsync(request, cancellationToken);
-            }
         }
     }
 }
