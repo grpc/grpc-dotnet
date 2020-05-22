@@ -496,8 +496,12 @@ namespace Grpc.Net.Client.Internal
                                 // If it does then throw an error that no message was returned from the server.
                                 GrpcCallLog.MessageNotReturned(Logger);
 
+                                // Change the status code to a more accurate status.
+                                // This is consistent with Grpc.Core client behavior.
+                                status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                                _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
+                                SetFailedResult(status.Value);
                             }
 
                             FinishResponseAndCleanUp(status.Value);
