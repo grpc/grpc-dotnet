@@ -6,4 +6,7 @@ jobs:
       project: perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj
     readyStateText: Application started
     waitForExit: false
-    # arguments: "--LogLevel Trace"
+    variables:
+      enableCertAuth: false
+      logLevel: None
+    arguments: "--LogLevel {{logLevel}} --enableCertAuth {{enableCertAuth}}"

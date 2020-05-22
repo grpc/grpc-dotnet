@@ -27,6 +27,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,17 +62,18 @@ namespace GrpcClient
         {
             var rootCommand = new RootCommand();
             rootCommand.AddOption(new Option<string>(new string[] { "-u", "--url" }, "The server url to request") { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "-c", "--connections" }, "Total number of connections to keep open") { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "-w", "--warmup" }, "Duration of the warmup in seconds") { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "-d", "--duration" }, "Duration of the test in seconds") { Required = true });
+            rootCommand.AddOption(new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open"));
+            rootCommand.AddOption(new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds"));
+            rootCommand.AddOption(new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds"));
             rootCommand.AddOption(new Option<string>(new string[] { "-s", "--scenario" }, "Scenario to run") { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "-l", "--latency" }, "Whether to collect detailed latency"));
+            rootCommand.AddOption(new Option<bool>(new string[] { "-l", "--latency" }, () => false, "Whether to collect detailed latency"));
             rootCommand.AddOption(new Option<string>(new string[] { "-p", "--protocol" }, "HTTP protocol") { Required = true });
             rootCommand.AddOption(new Option<LogLevel>(new string[] { "-log", "--loglevel" }, "The log level to use for Console logging"));
             rootCommand.AddOption(new Option<int>(new string[] { "--requestSize" }, "Request payload size"));
             rootCommand.AddOption(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
-            rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, "Whether to use Grpc.NetClient or Grpc.Core client") { Required = true });
+            rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
             rootCommand.AddOption(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--clientCertificate" }, () => false, "Flag indicating whether client sends a client certificate"));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
@@ -362,6 +364,11 @@ namespace GrpcClient
             {
                 default:
                 case GrpcClientType.GrpcCore:
+                    if (_options.ClientCertificate)
+                    {
+                        throw new Exception("Client certificate not implemented for Grpc.Core");
+                    }
+
                     var channelCredentials = useTls ? GetSslCredentials() : ChannelCredentials.Insecure;
 
                     var channel = new Channel(target, channelCredentials);
@@ -377,6 +384,13 @@ namespace GrpcClient
                     var httpClientHandler = new HttpClientHandler();
                     httpClientHandler.UseProxy = false;
                     httpClientHandler.AllowAutoRedirect = false;
+                    if (_options.ClientCertificate)
+                    {
+                        var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                        var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
+                        var clientCertificate = new X509Certificate2(certPath, "1111");
+                        httpClientHandler.ClientCertificates.Add(clientCertificate);
+                    }
 
                     // TODO(JamesNK): Check whether the disable can be removed once .NET 5 is finalized
 #pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
