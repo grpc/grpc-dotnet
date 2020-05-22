@@ -523,30 +523,29 @@ namespace Grpc.Net.Client.Internal
                                 Channel.CompressionProviders,
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
 
                             if (message == null)
                             {
                                 GrpcCallLog.MessageNotReturned(Logger);
 
-                                status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
                                 if (status.Value.StatusCode == StatusCode.OK)
                                 {
                                     // Change the status code if OK is returned to a more accurate status.
                                     // This is consistent with Grpc.Core client behavior.
                                     status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
                                 }
-                                FinishResponseAndCleanUp(status.Value);
 
+                                FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+
                                 SetFailedResult(status.Value);
                             }
                             else
                             {
                                 GrpcEventSource.Log.MessageReceived();
 
-                                status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
                                 FinishResponseAndCleanUp(status.Value);
-
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
                                 if (status.Value.StatusCode == StatusCode.OK)
