@@ -531,6 +531,8 @@ namespace Grpc.Net.Client.Internal
                                 status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
                                 if (status.Value.StatusCode == StatusCode.OK)
                                 {
+                                    // Change the status code if OK is returned to a more accurate status.
+                                    // This is consistent with Grpc.Core client behavior.
                                     status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
                                 }
                                 FinishResponseAndCleanUp(status.Value);
