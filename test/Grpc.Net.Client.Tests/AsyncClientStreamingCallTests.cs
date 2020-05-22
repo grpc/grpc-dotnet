@@ -241,7 +241,8 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual("Can't write the message because the call is complete.", ex.Message);
-            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+            Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
+            Assert.AreEqual("Failed to deserialize response message.", call.GetStatus().Detail);
         }
 
         [Test]
