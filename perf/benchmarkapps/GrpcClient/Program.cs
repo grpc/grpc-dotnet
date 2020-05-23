@@ -341,6 +341,7 @@ namespace GrpcClient
 
             Log($"gRPC client type: {_options.GrpcClientType}");
             Log($"Log level: {_options.LogLevel}");
+            Log($"Protocol: '{_options.Protocol}'");
             Log($"Creating channels to '{resolvedUri}'");
 
             for (var i = 0; i < _options.Connections; i++)
