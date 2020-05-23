@@ -7,6 +7,7 @@ jobs:
     readyStateText: Application started
     waitForExit: false
     variables:
+      protocol: h2c
       enableCertAuth: false
       logLevel: None
-    arguments: "--LogLevel {{logLevel}} --enableCertAuth {{enableCertAuth}}"
+    arguments: "--LogLevel {{logLevel}} --enableCertAuth {{enableCertAuth}} --protocol {{protocol}}"
