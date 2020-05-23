@@ -113,10 +113,7 @@ namespace Grpc.Net.Client.Internal
 
         private IBufferWriter<byte> ResolveBufferWriter()
         {
-            // TODO(JamesNK): I believe length should be known by the context before the buffer writer is
-            // fetched for the first time. Should be able to initialize a custom buffer writer with pooled
-            // array of the required size.
-            return _bufferWriter ??= new ArrayBufferWriter<byte>();
+            return _bufferWriter ??= PayloadLength.HasValue ? new ArrayBufferWriter<byte>(PayloadLength.Value) : new ArrayBufferWriter<byte>();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
