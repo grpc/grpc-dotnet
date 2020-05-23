@@ -68,7 +68,7 @@ namespace GrpcClient
             rootCommand.AddOption(new Option<string>(new string[] { "-s", "--scenario" }, "Scenario to run") { Required = true });
             rootCommand.AddOption(new Option<bool>(new string[] { "-l", "--latency" }, () => false, "Whether to collect detailed latency"));
             rootCommand.AddOption(new Option<string>(new string[] { "-p", "--protocol" }, "HTTP protocol") { Required = true });
-            rootCommand.AddOption(new Option<LogLevel>(new string[] { "-log", "--loglevel" }, "The log level to use for Console logging"));
+            rootCommand.AddOption(new Option<LogLevel>(new string[] { "-log", "--logLevel" }, () => LogLevel.None, "The log level to use for Console logging"));
             rootCommand.AddOption(new Option<int>(new string[] { "--requestSize" }, "Request payload size"));
             rootCommand.AddOption(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
             rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
@@ -326,12 +326,12 @@ namespace GrpcClient
             _latencyPerConnection = new List<List<double>>(_options.Connections);
             _latencyAverage = new List<(double sum, int count)>(_options.Connections);
 
-            if (_options.LogLevel != null)
+            if (_options.LogLevel != LogLevel.None)
             {
                 _loggerFactory = LoggerFactory.Create(c =>
                 {
                     c.AddConsole();
-                    c.SetMinimumLevel(_options.LogLevel.Value);
+                    c.SetMinimumLevel(_options.LogLevel);
                 });
             }
 
@@ -340,6 +340,7 @@ namespace GrpcClient
             var resolvedUri = initialUri.Authority;
 
             Log($"gRPC client type: {_options.GrpcClientType}");
+            Log($"Log level: {_options.LogLevel}");
             Log($"Creating channels to '{resolvedUri}'");
 
             for (var i = 0; i < _options.Connections; i++)
