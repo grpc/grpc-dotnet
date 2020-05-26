@@ -158,14 +158,17 @@ namespace Grpc.Net.Client.Tests
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
             var headers = await call.ResponseHeadersAsync.DefaultTimeout();
-            var response = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.ResponseAsync).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
             // Assert
             Assert.NotNull(responseMessage);
             Assert.IsFalse(responseMessage!.TrailingHeaders.Any()); // sanity check that there are no trailers
 
-            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
-            Assert.AreEqual("Detail!", call.GetStatus().Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);
+            Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);
+
+            Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
+            Assert.AreEqual("Failed to deserialize response message.", call.GetStatus().Detail);
 
             Assert.AreEqual(0, headers.Count);
             Assert.AreEqual(0, call.GetTrailers().Count);

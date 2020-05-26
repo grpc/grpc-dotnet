@@ -496,8 +496,12 @@ namespace Grpc.Net.Client.Internal
                                 // If it does then throw an error that no message was returned from the server.
                                 GrpcCallLog.MessageNotReturned(Logger);
 
+                                // Change the status code to a more accurate status.
+                                // This is consistent with Grpc.Core client behavior.
+                                status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                                _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
+                                SetFailedResult(status.Value);
                             }
 
                             FinishResponseAndCleanUp(status.Value);
@@ -524,19 +528,28 @@ namespace Grpc.Net.Client.Internal
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
                             status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
-                            FinishResponseAndCleanUp(status.Value);
 
                             if (message == null)
                             {
                                 GrpcCallLog.MessageNotReturned(Logger);
 
+                                if (status.Value.StatusCode == StatusCode.OK)
+                                {
+                                    // Change the status code if OK is returned to a more accurate status.
+                                    // This is consistent with Grpc.Core client behavior.
+                                    status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+                                }
+
+                                FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+
                                 SetFailedResult(status.Value);
                             }
                             else
                             {
                                 GrpcEventSource.Log.MessageReceived();
 
+                                FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
                                 if (status.Value.StatusCode == StatusCode.OK)
