@@ -84,6 +84,7 @@ namespace GrpcAspNetCoreServer
                                     if (enableCertAuth)
                                     {
                                         httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
+                                        httpsOptions.AllowAnyClientCertificate();
                                     }
                                 });
                             }
