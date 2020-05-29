@@ -22,6 +22,7 @@
     <SystemCommandLinePackageVersion>2.0.0-beta1.20214.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.3.0-alpha.20214.1</SystemCommandLineRenderingPackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
+    <SystemIOPipelinesPackageVersion>4.7.2</SystemIOPipelinesPackageVersion>
     <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
   </PropertyGroup>
 </Project>
