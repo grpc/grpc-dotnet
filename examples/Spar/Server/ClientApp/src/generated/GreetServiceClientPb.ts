@@ -7,6 +7,10 @@
 // GENERATED CODE -- DO NOT EDIT!
 
 
+/* eslint-disable */
+// @ts-nocheck
+
+
 import * as grpcWeb from 'grpc-web';
 
 import {
@@ -42,16 +46,34 @@ export class GreeterClient {
 
   sayHello(
     request: HelloRequest,
+    metadata: grpcWeb.Metadata | null): Promise<HelloReply>;
+
+  sayHello(
+    request: HelloRequest,
     metadata: grpcWeb.Metadata | null,
     callback: (err: grpcWeb.Error,
+               response: HelloReply) => void): grpcWeb.ClientReadableStream<HelloReply>;
+
+  sayHello(
+    request: HelloRequest,
+    metadata: grpcWeb.Metadata | null,
+    callback?: (err: grpcWeb.Error,
                response: HelloReply) => void) {
-    return this.client_.rpcCall(
-      this.hostname_ +
-        '/greet.Greeter/SayHello',
-      request,
-      metadata || {},
-      this.methodInfoSayHello,
-      callback);
+    if (callback !== undefined) {
+      return this.client_.rpcCall(
+        this.hostname_ +
+          '/greet.Greeter/SayHello',
+        request,
+        metadata || {},
+        this.methodInfoSayHello,
+        callback);
+    }
+    return this.client_.unaryCall(
+    this.hostname_ +
+      '/greet.Greeter/SayHello',
+    request,
+    metadata || {},
+    this.methodInfoSayHello);
   }
 
   methodInfoSayHellos = new grpcWeb.AbstractClientBase.MethodInfo(
