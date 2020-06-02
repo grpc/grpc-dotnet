@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <!-- Enable server GC to more closely simulate a microservice app making calls -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <!-- Allow benchmarks to specify the latest framework -->
+  <ItemGroup Condition="'$(BenchmarksTargetFramework)' != ''">
+    <FrameworkReference Update="Microsoft.AspNetCore.App" RuntimeFrameworkVersion="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="$(MicrosoftNETCoreAppPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Client" Link="Protos\benchmark_service.proto" />
+    <Protobuf Include="..\Shared\messages.proto" GrpcServices="Client" Link="Protos\messages.proto" />
+    
+    <None Include="..\Shared\Certs\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
+
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensions30PackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensions30PackageVersion)" />
+    <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
+    <PackageReference Include="System.CommandLine" Version="$(SystemCommandLinePackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Certs\ca.crt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Certs\client.crt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Certs\client.key">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

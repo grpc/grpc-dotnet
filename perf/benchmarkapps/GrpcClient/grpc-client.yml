@@ -1,0 +1,23 @@
+﻿jobs:
+  grpcDotNetClient:
+    source:
+      repository: https://github.com/jamesnk/grpc-dotnet.git
+      branchOrCommit: jamesnk/benchmarch-grpcclient
+      project: perf/benchmarkapps/GrpcClient/GrpcClient.csproj
+    readyStateText: gRPC Client
+    sdkVersion: 3.1.102
+    aspNetCoreVersion: '3.1'
+    runtimeVersion: '3.1'
+    waitForExit: true
+    variables:
+      connections: 100
+      warmup: 5
+      duration: 5
+      scenario: unary
+      protocol: h2c
+      logLevel: none
+      grpcClientType: GrpcNetClient
+      requestSize: 0
+      responseSize: 0
+      clientCertificate: false
+    arguments: "-c {{connections}} --streams {{streams}} -d {{duration}} -p {{protocol}} -s {{scenario}} -u {{serverUri}}:{{serverPort}}{{path}} -w {{warmup}} --grpcClientType {{grpcClientType}} --requestSize {{requestSize}} --responseSize {{responseSize}} --clientCertificate {{clientCertificate}} {% if logLevel != 'none' %} --logLevel {{ logLevel }} {% endif %}"

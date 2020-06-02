@@ -29,6 +29,8 @@ namespace GrpcCoreServer
     {
         public static async Task Main(string[] args)
         {
+            Console.WriteLine($"Args: {string.Join(' ', args)}");
+
             var config = new ConfigurationBuilder()
               .AddJsonFile("hosting.json", optional: true)
               .AddEnvironmentVariables(prefix: "ASPNETCORE_")
