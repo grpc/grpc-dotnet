@@ -74,13 +74,17 @@ namespace Grpc.Net.Client.Internal
                 {
                     continue;
                 }
-                else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
+
+                foreach (var value in header.Value)
                 {
-                    headers.Add(header.Key, GrpcProtocolHelpers.ParseBinaryHeader(string.Join(",", header.Value)));
-                }
-                else
-                {
-                    headers.Add(header.Key, string.Join(",", header.Value));
+                    if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        headers.Add(header.Key, ParseBinaryHeader(value));
+                    }
+                    else
+                    {
+                        headers.Add(header.Key, value);
+                    }
                 }
             }
 
@@ -269,7 +273,7 @@ namespace Grpc.Net.Client.Internal
         public static void AddHeader(HttpRequestHeaders headers, Metadata.Entry entry)
         {
             var value = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-            headers.Add(entry.Key, value);
+            headers.TryAddWithoutValidation(entry.Key, value);
         }
 
         public static string? GetHeaderValue(HttpHeaders? headers, string name)

@@ -17,7 +17,7 @@
 #endregion
 
 using System.Collections.Generic;
-using System.CommandLine;
+using System.CommandLine.IO;
 using System.IO;
 using System.Linq;
 using System.Reflection;

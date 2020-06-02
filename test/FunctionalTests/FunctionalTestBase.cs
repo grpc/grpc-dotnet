@@ -41,13 +41,21 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected GrpcChannel Channel => _channel ??= CreateChannel();
 
-        protected GrpcChannel CreateChannel()
+        protected GrpcChannel CreateChannel(bool useHandler = false)
         {
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+            var options = new GrpcChannelOptions
             {
-                LoggerFactory = LoggerFactory,
-                HttpClient = Fixture.Client
-            });
+                LoggerFactory = LoggerFactory
+            };
+            if (useHandler)
+            {
+                options.HttpHandler = Fixture.Handler;
+            }
+            else
+            {
+                options.HttpClient = Fixture.Client;
+            }
+            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, options);
         }
 
         protected virtual void ConfigureServices(IServiceCollection services) { }
@@ -85,6 +93,8 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         public IList<LogRecord> Logs => _testContext!.Scope.Logs;
 
+        public void ClearLogs() => _testContext!.Scope.ClearLogs();
+
         protected void AssertHasLogRpcConnectionError(StatusCode statusCode, string detail)
         {
             AssertHasLog(LogLevel.Information, "RpcConnectionError", $"Error status code '{statusCode}' raised.", e => GetRpcExceptionDetail(e) == detail);
@@ -92,7 +102,17 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected void AssertHasLog(LogLevel logLevel, string name, string message, Func<Exception, bool>? exceptionMatch = null)
         {
-            if (Logs.Any(r =>
+            if (HasLog(logLevel, name, message, exceptionMatch))
+            {
+                return;
+            }
+
+            Assert.Fail($"No match. Log level = {logLevel}, name = {name}, message = '{message}'.");
+        }
+
+        protected bool HasLog(LogLevel logLevel, string name, string message, Func<Exception, bool>? exceptionMatch = null)
+        {
+            return Logs.Any(r =>
             {
                 var match = r.LogLevel == logLevel && r.EventId.Name == name && r.Message == message;
                 if (exceptionMatch != null)
@@ -100,12 +120,7 @@ namespace Grpc.AspNetCore.FunctionalTests
                     match = match && r.Exception != null && exceptionMatch(r.Exception);
                 }
                 return match;
-            }))
-            {
-                return;
-            }
-
-            Assert.Fail($"No match. Log level = {logLevel}, name = {name}, message = '{message}'.");
+            });
         }
 
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)

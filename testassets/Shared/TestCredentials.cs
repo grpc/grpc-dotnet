@@ -20,7 +20,7 @@ using System.IO;
 using System.Reflection;
 using Grpc.Core;
 
-namespace InteropTestsClient
+namespace Grpc.Shared.TestAssets
 {
     /// <summary>
     /// SSL Credentials for testing.

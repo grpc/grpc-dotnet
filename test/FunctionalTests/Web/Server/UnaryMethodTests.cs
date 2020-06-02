@@ -84,7 +84,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
             MessageHelpers.WriteMessage(ms, requestMessage);
 
             // Act
-            var response = await Fixture.Client.PostAsync(
+            var grpcWebClient = CreateGrpcWebClient();
+            var response = await grpcWebClient.PostAsync(
                 "grpc.gateway.testing.EchoService/EchoAbort",
                 new GrpcStreamContent(ms)).DefaultTimeout();
 

@@ -29,21 +29,16 @@ mkdir -p artifacts
 
 build/expand_dev_version.sh
 
-# "-" in the version number means prerelease
-grep -o '<GrpcDotnetVersion>.*-.*</GrpcDotnetVersion>' build/version.props && BUILDING_PREVIEW_VERSION=true
+# Set ContiniousIntegrationBuild to true for offical builds
+# https://github.com/dotnet/sourcelink/blob/master/docs/README.md#continuousintegrationbuild
 
-(cd src/Grpc.Net.Common && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.Net.Client && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.Net.ClientFactory && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.AspNetCore.Server.ClientFactory && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.AspNetCore.Server.Reflection && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/Grpc.AspNetCore && dotnet pack --configuration Release --output ../../artifacts)
-(cd src/dotnet-grpc && dotnet pack --configuration Release --output ../../artifacts)
-
-if [ "${BUILDING_PREVIEW_VERSION}" == "true" ]
-then
-  # these packages are only built as pre-release
-  (cd src/Grpc.Net.Client.Web && dotnet pack --configuration Release --output ../../artifacts)
-  (cd src/Grpc.AspNetCore.Web && dotnet pack --configuration Release --output ../../artifacts)
-fi
+(cd src/Grpc.Net.Common && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.Net.Client && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.Net.ClientFactory && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.Net.Client.Web && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore.Server && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore.Server.ClientFactory && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore.Server.Reflection && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore.Web && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/dotnet-grpc && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)

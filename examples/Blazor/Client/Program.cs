@@ -23,7 +23,6 @@ using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Weather;
 
 namespace Client
 {
@@ -34,27 +33,19 @@ namespace Client
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("app");
 
-            // Blazor WA currently has an issue related to server streaming. No messages are returned from the server until the call is complete.
-            // Setting WasmHttpMessageHandler.StreamingEnabled to true (reflection required) allows server streaming to work - https://github.com/mono/mono/issues/18718
-            var wasmHttpMessageHandlerType = System.Reflection.Assembly.Load("WebAssembly.Net.Http").GetType("WebAssembly.Net.Http.HttpClient.WasmHttpMessageHandler");
-            var streamingProperty = wasmHttpMessageHandlerType.GetProperty("StreamingEnabled", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-            streamingProperty.SetValue(null, true, null);
-
             builder.Services.AddSingleton(services =>
             {
                 // Get the service address from appsettings.json
                 var config = services.GetRequiredService<IConfiguration>();
                 var backendUrl = config["BackendUrl"];
 
-                // Create a gRPC-Web channel pointing to the backend server.
+                // Create a channel with a GrpcWebHandler that is addressed to the backend server.
                 //
                 // GrpcWebText is used because server streaming requires it. If server streaming is not used in your app
                 // then GrpcWeb is recommended because it produces smaller messages.
-                var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler()));
+                var httpHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
 
-                var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpClient = httpClient });
-
-                return channel;
+                return GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions { HttpHandler = httpHandler });
             });
 
             await builder.Build().RunAsync();

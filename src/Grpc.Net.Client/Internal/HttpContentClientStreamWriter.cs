@@ -129,7 +129,7 @@ namespace Grpc.Net.Client.Internal
                         return CreateErrorTask("Can't write the message because the previous write is in progress.");
                     }
 
-                    // Save write task to track whether it is complete
+                    // Save write task to track whether it is complete. Must be set inside lock.
                     _writeTask = WriteAsyncCore(message);
                 }
             }
@@ -163,7 +163,10 @@ namespace Grpc.Net.Client.Internal
                     callOptions = callOptions.WithWriteOptions(WriteOptions);
                 }
 
-                await _call.WriteMessageAsync(writeStream, message, _grpcEncoding, callOptions);
+                await _call.WriteMessageAsync(writeStream, message, _grpcEncoding, callOptions).ConfigureAwait(false);
+
+                // Flush stream to ensure messages are sent immediately
+                await writeStream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();
             }

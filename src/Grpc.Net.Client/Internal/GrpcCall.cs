@@ -75,6 +75,8 @@ namespace Grpc.Net.Client.Internal
             Channel = channel;
             Logger = channel.LoggerFactory.CreateLogger(LoggerName);
             _deadline = options.Deadline ?? DateTime.MaxValue;
+
+            Channel.RegisterActiveCall(this);
         }
 
         private void ValidateDeadline(DateTime? deadline)
@@ -167,6 +169,8 @@ namespace Grpc.Net.Client.Internal
                 ClientStreamWriter?.CompleteTcs.TrySetCanceled();
                 ClientStreamReader?.HttpResponseTcs.TrySetCanceled();
             }
+
+            Channel.FinishActiveCall(this);
 
             _ctsRegistration?.Dispose();
             _deadlineTimer?.Dispose();
@@ -436,7 +440,7 @@ namespace Grpc.Net.Client.Internal
             return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
-        private async ValueTask RunCall(HttpRequestMessage request, TimeSpan? timeout)
+        private async Task RunCall(HttpRequestMessage request, TimeSpan? timeout)
         {
             using (StartScope())
             {
@@ -459,7 +463,12 @@ namespace Grpc.Net.Client.Internal
 
                     try
                     {
-                        _httpResponseTask = Channel.HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token);
+                        // If a HttpClient has been specified then we need to call it with ResponseHeadersRead
+                        // so that the response message is available for streaming
+                        _httpResponseTask = (Channel.HttpInvoker is HttpClient httpClient)
+                            ? httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token)
+                            : Channel.HttpInvoker.SendAsync(request, _callCts.Token);
+
                         HttpResponse = await _httpResponseTask.ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -487,8 +496,12 @@ namespace Grpc.Net.Client.Internal
                                 // If it does then throw an error that no message was returned from the server.
                                 GrpcCallLog.MessageNotReturned(Logger);
 
+                                // Change the status code to a more accurate status.
+                                // This is consistent with Grpc.Core client behavior.
+                                status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                                _responseTcs.TrySetException(new InvalidOperationException("Call did not return a response message."));
+                                SetFailedResult(status.Value);
                             }
 
                             FinishResponseAndCleanUp(status.Value);
@@ -515,19 +528,28 @@ namespace Grpc.Net.Client.Internal
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
                             status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
-                            FinishResponseAndCleanUp(status.Value);
 
                             if (message == null)
                             {
                                 GrpcCallLog.MessageNotReturned(Logger);
 
+                                if (status.Value.StatusCode == StatusCode.OK)
+                                {
+                                    // Change the status code if OK is returned to a more accurate status.
+                                    // This is consistent with Grpc.Core client behavior.
+                                    status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+                                }
+
+                                FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+
                                 SetFailedResult(status.Value);
                             }
                             else
                             {
                                 GrpcEventSource.Log.MessageReceived();
 
+                                FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
                                 if (status.Value.StatusCode == StatusCode.OK)
@@ -768,11 +790,11 @@ namespace Grpc.Net.Client.Internal
             var headers = message.Headers;
 
             // User agent is optional but recommended.
-            headers.Add(GrpcProtocolConstants.UserAgentHeader, GrpcProtocolConstants.UserAgentHeaderValue);
+            headers.TryAddWithoutValidation(GrpcProtocolConstants.UserAgentHeader, GrpcProtocolConstants.UserAgentHeaderValue);
             // TE is required by some servers, e.g. C Core.
             // A missing TE header results in servers aborting the gRPC call.
-            headers.Add(GrpcProtocolConstants.TEHeader, GrpcProtocolConstants.TEHeaderValue);
-            headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
+            headers.TryAddWithoutValidation(GrpcProtocolConstants.TEHeader, GrpcProtocolConstants.TEHeaderValue);
+            headers.TryAddWithoutValidation(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {
@@ -788,7 +810,7 @@ namespace Grpc.Net.Client.Internal
                         // grpc-internal-encoding-request is used in the client to set message compression.
                         // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
                         // individual messages will not be written with compression.
-                        headers.Add(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
+                        headers.TryAddWithoutValidation(GrpcProtocolConstants.MessageEncodingHeader, entry.Value);
                     }
                     else
                     {
@@ -799,7 +821,7 @@ namespace Grpc.Net.Client.Internal
 
             if (timeout != null)
             {
-                headers.Add(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
+                headers.TryAddWithoutValidation(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
             }
 
             return message;

@@ -27,6 +27,7 @@ using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -91,6 +92,12 @@ namespace Grpc.AspNetCore.Server.Internal
             return false;
         }
 
+        public static bool IsCorsPreflightRequest(HttpContext httpContext)
+        {
+            return HttpMethods.IsOptions(httpContext.Request.Method) &&
+                httpContext.Request.Headers.ContainsKey(HeaderNames.AccessControlRequestMethod);
+        }
+        
         public static void BuildHttpErrorResponse(HttpResponse response, int httpStatusCode, StatusCode grpcStatusCode, string message)
         {
             response.StatusCode = httpStatusCode;

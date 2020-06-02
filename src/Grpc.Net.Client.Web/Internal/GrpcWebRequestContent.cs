@@ -35,7 +35,7 @@ namespace Grpc.Net.Client.Web.Internal
             _mode = mode;
             foreach (var header in inner.Headers)
             {
-                Headers.Add(header.Key, header.Value);
+                Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
             Headers.ContentType = (mode == GrpcWebMode.GrpcWebText)
@@ -43,24 +43,20 @@ namespace Grpc.Net.Client.Web.Internal
                 : GrpcWebProtocolConstants.GrpcWebHeader;
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context) =>
+            _mode == GrpcWebMode.GrpcWebText
+                ? SerializeTextToStreamAsync(stream)
+                : _inner.CopyToAsync(stream);
+
+        private async Task SerializeTextToStreamAsync(Stream stream)
         {
-            Base64RequestStream? base64RequestStream = null;
+            using var base64RequestStream = new Base64RequestStream(stream);
+            await _inner.CopyToAsync(base64RequestStream).ConfigureAwait(false);
 
-            try
-            {
-                if (_mode == GrpcWebMode.GrpcWebText)
-                {
-                    base64RequestStream = new Base64RequestStream(stream);
-                    stream = base64RequestStream;
-                }
-
-                await _inner.CopyToAsync(stream).ConfigureAwait(false);
-            }
-            finally
-            {
-                base64RequestStream?.Dispose();
-            }
+            // Any remaining content needs to be written when SerializeToStreamAsync finishes.
+            // We want to avoid unnecessary flush calls so a custom method is used to write
+            // ramining content rather than calling FlushAsync.
+            await base64RequestStream.WriteRemainderAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
         protected override bool TryComputeLength(out long length)

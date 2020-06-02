@@ -1,0 +1,16 @@
+version: '3'
+services:
+  grpcweb-server:
+    build:
+      context: ./
+      dockerfile: ./testassets/InteropTestsWebsite/Dockerfile
+    image: grpc-dotnet/grpcweb-server
+    ports:
+      - "8080:80"
+  grpcweb-client:
+    build:
+      context: ./
+      dockerfile: ./testassets/InteropTestsGrpcWebWebsite/Dockerfile
+    image: grpc-dotnet/grpcweb-client
+    ports:
+      - "8081:80"

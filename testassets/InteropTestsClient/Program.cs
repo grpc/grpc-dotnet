@@ -16,13 +16,55 @@
 
 #endregion
 
+using System;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.Threading.Tasks;
+using Grpc.Shared.TestAssets;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 namespace InteropTestsClient
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
-            InteropClient.Run(args);
+            var rootCommand = new RootCommand();
+            rootCommand.AddOption(new Option<string>(new string[] { "--client_type", nameof(ClientOptions.ClientType) }, () => "httpclient"));
+            rootCommand.AddOption(new Option<string>(new string[] { "--server_host", nameof(ClientOptions.ServerHost) }) { Required = true });
+            rootCommand.AddOption(new Option<string>(new string[] { "--server_host_override", nameof(ClientOptions.ServerHostOverride) }));
+            rootCommand.AddOption(new Option<int>(new string[] { "--server_port", nameof(ClientOptions.ServerPort) }) { Required = true });
+            rootCommand.AddOption(new Option<string>(new string[] { "--test_case", nameof(ClientOptions.TestCase) }) { Required = true });
+            rootCommand.AddOption(new Option<bool>(new string[] { "--use_tls", nameof(ClientOptions.UseTls) }));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--use_test_ca", nameof(ClientOptions.UseTestCa) }));
+            rootCommand.AddOption(new Option<string>(new string[] { "--default_service_account", nameof(ClientOptions.DefaultServiceAccount) }));
+            rootCommand.AddOption(new Option<string>(new string[] { "--oauth_scope", nameof(ClientOptions.OAuthScope) }));
+            rootCommand.AddOption(new Option<string>(new string[] { "--service_account_key_file", nameof(ClientOptions.ServiceAccountKeyFile) }));
+            rootCommand.AddOption(new Option<string>(new string[] { "--grpc_web_mode", nameof(ClientOptions.GrpcWebMode) }));
+
+            rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
+            {
+                Console.WriteLine("Use TLS: " + options.UseTls);
+                Console.WriteLine("Use Test CA: " + options.UseTestCa);
+                Console.WriteLine("Client type: " + options.ClientType);
+                Console.WriteLine("Server host: " + options.ServerHost);
+                Console.WriteLine("Server port: " + options.ServerPort);
+
+                var services = new ServiceCollection();
+                services.AddLogging(configure =>
+                {
+                    configure.SetMinimumLevel(LogLevel.Trace);
+                    configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
+                });
+
+                using var serviceProvider = services.BuildServiceProvider();
+
+                var interopClient = new InteropClient(options, serviceProvider.GetRequiredService<ILoggerFactory>());
+                await interopClient.Run();
+            });
+
+            return await rootCommand.InvokeAsync(args);
         }
     }
 }

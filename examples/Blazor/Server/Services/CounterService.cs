@@ -19,19 +19,16 @@
 using System;
 using System.Threading.Tasks;
 using Count;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace Server.Services
 {
     public class CounterService : Counter.CounterBase
     {
-        public override async Task StartCounter(Empty request, IServerStreamWriter<CounterResponse> responseStream, ServerCallContext context)
+        public override async Task StartCounter(CounterRequest request, IServerStreamWriter<CounterResponse> responseStream, ServerCallContext context)
         {
-            var count = 0;
+            var count = request.Start;
 
-            // Attempt to run until canceled by the client
-            // Blazor WA is unable to cancel a call that has started - https://github.com/mono/mono/issues/18717
             while (!context.CancellationToken.IsCancellationRequested)
             {
                 await responseStream.WriteAsync(new CounterResponse

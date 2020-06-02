@@ -36,7 +36,7 @@ namespace InteropTestsWebsite
                     builder.AllowAnyOrigin();
                     builder.AllowAnyMethod();
                     builder.AllowAnyHeader();
-                    builder.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+                    builder.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding", "x-grpc-test-echo-initial", "x-grpc-test-echo-trailing-bin");
                 });
             });
         }
@@ -49,8 +49,7 @@ namespace InteropTestsWebsite
             app.UseGrpcWeb();
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<TestServiceImpl>();
-                endpoints.MapGrpcService<EchoService>().RequireCors("InteropTests").EnableGrpcWeb();
+                endpoints.MapGrpcService<TestServiceImpl>().RequireCors("InteropTests").EnableGrpcWeb();
             });
         }
     }

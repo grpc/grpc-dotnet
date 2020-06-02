@@ -17,10 +17,9 @@
 #endregion
 
 using System;
-using System.CommandLine;
+using System.CommandLine.IO;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;

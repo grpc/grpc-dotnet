@@ -362,14 +362,8 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                     else
                     {
-                        if (entry.IsBinary)
-                        {
-                            HttpContext.Response.Headers[entry.Key] = Convert.ToBase64String(entry.ValueBytes);
-                        }
-                        else
-                        {
-                            HttpContext.Response.Headers[entry.Key] = entry.Value;
-                        }
+                        var encodedValue = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
+                        HttpContext.Response.Headers.Append(entry.Key, encodedValue);
                     }
                 }
             }

@@ -101,6 +101,14 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
+                // CORS preflight request should be handled by CORS middleware.
+                // If it isn't then return 404 from endpoint request delegate.
+                if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+                {
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return Task.CompletedTask;
+                }
+
                 GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
@@ -121,6 +129,14 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return httpContext =>
             {
+                // CORS preflight request should be handled by CORS middleware.
+                // If it isn't then return 404 from endpoint request delegate.
+                if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+                {
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return Task.CompletedTask;
+                }
+
                 GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";

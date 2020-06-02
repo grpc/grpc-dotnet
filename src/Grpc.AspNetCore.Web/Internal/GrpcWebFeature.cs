@@ -128,7 +128,7 @@ namespace Grpc.AspNetCore.Web.Internal
 
         public Task WriteTrailersAsync()
         {
-            if (!_isComplete)
+            if (!_isComplete && Trailers.Count > 0)
             {
                 return GrpcWebProtocolHelpers.WriteTrailersAsync(Trailers, Writer);
             }

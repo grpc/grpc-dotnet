@@ -73,7 +73,7 @@ namespace Grpc.Net.Client.Web.Internal
             // Minimum valid base64 length is 4. Read until we have at least that much content
             do
             {
-                var read = await _inner.ReadAsync(availableReadData, cancellationToken);
+                var read = await _inner.ReadAsync(availableReadData, cancellationToken).ConfigureAwait(false);
                 if (read == 0)
                 {
                     if (_remainder > 0)
