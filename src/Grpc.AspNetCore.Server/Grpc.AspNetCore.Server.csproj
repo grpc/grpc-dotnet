@@ -30,8 +30,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.Net.Common\Grpc.Net.Common.csproj" />
-
-    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
   </ItemGroup>
 
 </Project>
