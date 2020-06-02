@@ -1,3 +1,4 @@
+// source: greet.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -176,9 +177,12 @@ proto.greet.HelloRequest.prototype.getName = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.greet.HelloRequest} returns this
+ */
 proto.greet.HelloRequest.prototype.setName = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
@@ -303,9 +307,12 @@ proto.greet.HelloReply.prototype.getMessage = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.greet.HelloReply} returns this
+ */
 proto.greet.HelloReply.prototype.setMessage = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 

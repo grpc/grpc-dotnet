@@ -2,7 +2,7 @@ import * as jspb from "google-protobuf"
 
 export class HelloRequest extends jspb.Message {
   getName(): string;
-  setName(value: string): void;
+  setName(value: string): HelloRequest;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): HelloRequest.AsObject;
@@ -20,7 +20,7 @@ export namespace HelloRequest {
 
 export class HelloReply extends jspb.Message {
   getMessage(): string;
-  setMessage(value: string): void;
+  setMessage(value: string): HelloReply;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): HelloReply.AsObject;
