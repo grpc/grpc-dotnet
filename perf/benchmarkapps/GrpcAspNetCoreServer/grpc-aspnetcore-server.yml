@@ -1,0 +1,13 @@
+jobs:
+  grpcAspNetCoreServer:
+    source:
+      repository: https://github.com/JamesNK/grpc-dotnet
+      branchOrCommit: jamesnk/benchmarch-grpcclient
+      project: perf/benchmarkapps/GrpcAspNetCoreServer/GrpcAspNetCoreServer.csproj
+    readyStateText: Application started
+    waitForExit: false
+    variables:
+      protocol: h2c
+      enableCertAuth: false
+      logLevel: None
+    arguments: "--LogLevel {{logLevel}} --enableCertAuth {{enableCertAuth}} --protocol {{protocol}}"

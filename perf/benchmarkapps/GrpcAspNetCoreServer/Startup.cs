@@ -18,23 +18,28 @@
 
 using System;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Testing;
+using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-#if CLIENT_CERTIFICATE_AUTHENTICATION
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.Authentication.Certificate;
-#endif
 
 namespace GrpcAspNetCoreServer
 {
     public class Startup
     {
+        private readonly IConfiguration _config;
+
+        public Startup(IConfiguration config)
+        {
+            _config = config;
+        }
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc(o =>
@@ -45,19 +50,18 @@ namespace GrpcAspNetCoreServer
             services.AddSingleton<BenchmarkServiceImpl>();
             services.AddControllers();
 
-#if CLIENT_CERTIFICATE_AUTHENTICATION
-            services.AddAuthorization();
-            services.AddAuthentication(CertificateAuthenticationDefaults.AuthenticationScheme)
-                .AddCertificate(options =>
-                {
-                    // Not recommended in production environments. The example is using a self-signed test certificate.
-                    options.RevocationMode = X509RevocationMode.NoCheck;
-                    options.AllowedCertificateTypes = CertificateTypes.All;
-                });
-#endif
-#if GRPC_WEB
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
-#endif
+            bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
+            if (enableCertAuth)
+            {
+                services.AddAuthorization();
+                services.AddAuthentication(CertificateAuthenticationDefaults.AuthenticationScheme)
+                    .AddCertificate(options =>
+                    {
+                        // Not recommended in production environments. The example is using a self-signed test certificate.
+                        options.RevocationMode = X509RevocationMode.NoCheck;
+                        options.AllowedCertificateTypes = CertificateTypes.All;
+                    });
+            }
         }
 
         public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
@@ -67,29 +71,34 @@ namespace GrpcAspNetCoreServer
 
             app.UseRouting();
 
-#if CLIENT_CERTIFICATE_AUTHENTICATION
-            app.UseAuthentication();
-            app.UseAuthorization();
-#endif
+            bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
+            if (enableCertAuth)
+            {
+                app.UseAuthentication();
+                app.UseAuthorization();
+            }
 
-#if GRPC_WEB
-            app.UseGrpcWeb();
-#endif
+            bool.TryParse(_config["enableGrpcWeb"], out var enableGrpcWeb);
+
+            if (enableGrpcWeb)
+            {
+                app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+            }
 
             app.UseMiddleware<ServiceProvidersMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<BenchmarkServiceImpl>();
+                ConfigureAuthorization(endpoints.MapGrpcService<BenchmarkServiceImpl>());
 
-                endpoints.MapControllers();
+                ConfigureAuthorization(endpoints.MapControllers());
                 
-                endpoints.MapGet("/", context =>
+                ConfigureAuthorization(endpoints.MapGet("/", context =>
                 {
                     return context.Response.WriteAsync("Benchmark Server");
-                });
+                }));
 
-                endpoints.MapPost("/unary", async context =>
+                ConfigureAuthorization(endpoints.MapPost("/unary", async context =>
                 {
                     MemoryStream ms = new MemoryStream();
                     await context.Request.Body.CopyToAsync(ms);
@@ -108,8 +117,17 @@ namespace GrpcAspNetCoreServer
 
                     ms.Seek(0, SeekOrigin.Begin);
                     await ms.CopyToAsync(context.Response.Body);
-                });
+                }));
             });
+        }
+
+        private void ConfigureAuthorization(IEndpointConventionBuilder builder)
+        {
+            bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
+            if (enableCertAuth)
+            {
+                builder.RequireAuthorization();
+            }
         }
     }
 }

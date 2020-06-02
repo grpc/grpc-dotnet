@@ -1,0 +1,9 @@
+jobs:
+  grpcCoreServer:
+    source:
+      repository: https://github.com/jamesnk/grpc-dotnet.git
+      branchOrCommit: jamesnk/benchmarch-grpcclient
+      project: perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj
+    readyStateText: Application started
+    waitForExit: false
+    arguments: "--server.urls {{serverUri}}:{{serverPort}}"

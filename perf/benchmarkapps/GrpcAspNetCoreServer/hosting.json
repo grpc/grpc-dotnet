@@ -1,5 +1,6 @@
 {
   "urls": "",
   "server.urls": "",
-  "protocol": "h2c" // This will be overriden when benchmarks are run
+  "protocol": "h2c", // This will be overriden when benchmarks are run
+  "certificateAuth": false
 }

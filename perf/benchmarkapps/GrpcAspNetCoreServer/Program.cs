@@ -41,7 +41,7 @@ namespace GrpcAspNetCoreServer
             Console.WriteLine();
             Console.WriteLine("ASP.NET Core gRPC Benchmarks");
             Console.WriteLine("----------------------------");
-
+            Console.WriteLine($"Args: {string.Join(' ', args)}");
             Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
             Console.WriteLine($"WebHostBuilder loading from: {typeof(WebHostBuilder).GetTypeInfo().Assembly.Location}");
 
@@ -68,8 +68,10 @@ namespace GrpcAspNetCoreServer
                         options.ListenAnyIP(endPoint.Port, listenOptions =>
                         {
                             var protocol = config["protocol"] ?? "";
+                            bool.TryParse(config["enableCertAuth"], out var enableCertAuth);
 
-                            Console.WriteLine($"Protocol: {protocol}");
+                            Console.WriteLine($"Address: {endPoint.Address}:{endPoint.Port}, Protocol: {protocol}");
+                            Console.WriteLine($"Certificate authentication: {enableCertAuth}");
 
                             if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
                             {
@@ -79,9 +81,11 @@ namespace GrpcAspNetCoreServer
                                 var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
                                 listenOptions.UseHttps(certPath, "testPassword", httpsOptions =>
                                 {
-#if CLIENT_CERTIFICATE_AUTHENTICATION
-                                    httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
-#endif
+                                    if (enableCertAuth)
+                                    {
+                                        httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
+                                        httpsOptions.AllowAnyClientCertificate();
+                                    }
                                 });
                             }
                             else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
@@ -103,7 +107,7 @@ namespace GrpcAspNetCoreServer
                 {
                     loggerFactory.ClearProviders();
 
-                    if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel))
+                    if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel) && logLevel != LogLevel.None)
                     {
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
                         loggerFactory.AddConsole(o => o.TimestampFormat = "ss.ffff ").SetMinimumLevel(logLevel);
