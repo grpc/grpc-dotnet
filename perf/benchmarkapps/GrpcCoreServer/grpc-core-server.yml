@@ -1,8 +1,8 @@
 jobs:
   grpcCoreServer:
     source:
-      repository: https://github.com/jamesnk/grpc-dotnet.git
-      branchOrCommit: jamesnk/benchmarch-grpcclient
+      repository: https://github.com/grpc/grpc-dotnet.git
+      branchOrCommit: master
       project: perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj
     readyStateText: Application started
     waitForExit: false
