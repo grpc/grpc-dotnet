@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Issue with Grpc.Core
+    url:  https://github.com/grpc/grpc/issues/new/choose
+    about: Please open issues relating to Grpc.Core in grpc/grpc.
