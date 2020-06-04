@@ -5,9 +5,6 @@
       branchOrCommit: master
       project: perf/benchmarkapps/GrpcClient/GrpcClient.csproj
     readyStateText: gRPC Client
-    sdkVersion: 3.1.102
-    aspNetCoreVersion: '3.1'
-    runtimeVersion: '3.1'
     waitForExit: true
     variables:
       connections: 100
