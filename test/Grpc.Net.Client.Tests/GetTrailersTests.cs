@@ -57,7 +57,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreSame(trailers1, trailers2);
-            Assert.AreEqual("value", trailers1.Single(t => t.Key == "custom-header").Value);
+            Assert.AreEqual("value", trailers1.GetValue("custom-header"));
         }
 
         [Test]
@@ -80,7 +80,7 @@ namespace Grpc.Net.Client.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
+            Assert.AreEqual("value", trailers.GetValue("custom-header"));
         }
 
         [Test]
@@ -229,7 +229,7 @@ namespace Grpc.Net.Client.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
+            Assert.AreEqual("value", trailers.GetValue("custom-header"));
         }
 
         [Test]
@@ -269,7 +269,7 @@ namespace Grpc.Net.Client.Tests
             var trailers = call.GetTrailers();
 
             // Assert
-            Assert.AreEqual("value", trailers.Single(t => t.Key == "custom-header").Value);
+            Assert.AreEqual("value", trailers.GetValue("custom-header"));
         }
 
         [Test]
