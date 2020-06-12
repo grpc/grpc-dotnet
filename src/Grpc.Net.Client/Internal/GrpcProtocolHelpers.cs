@@ -315,7 +315,7 @@ namespace Grpc.Net.Client.Internal
             catch (Exception ex)
             {
                 // Handle error from parsing badly formed status
-                status = new Status(StatusCode.Cancelled, ex.Message);
+                status = new Status(StatusCode.Cancelled, ex.Message, ex);
             }
 
             return status.Value;

@@ -610,7 +610,7 @@ namespace Grpc.Net.Client.Internal
             {
                 var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
 
-                status = new Status(StatusCode.Internal, "Error starting gRPC call. " +  exceptionMessage);
+                status = new Status(StatusCode.Internal, "Error starting gRPC call. " +  exceptionMessage, ex);
                 resolvedException = CreateRpcException(status.Value);
             }
         }

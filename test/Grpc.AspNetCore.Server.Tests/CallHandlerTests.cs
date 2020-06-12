@@ -29,7 +29,6 @@ using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
-using Grpc.Net.Compression;
 using Grpc.Shared.Server;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
@@ -176,7 +175,26 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsNull(log);
         }
 
-        private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(MethodType methodType, ILoggerFactory? loggerFactory = null)
+        [Test]
+        public async Task StatusDebugException_ErrorInHandler_SetInDebugException()
+        {
+            // Arrange
+            var ex = new Exception("Test exception");
+            var httpContext = HttpContextHelpers.CreateContext();
+            var call = CreateHandler(MethodType.ClientStreaming, handlerAction: () => throw ex);
+
+            // Act
+            await call.HandleCallAsync(httpContext).DefaultTimeout();
+
+            // Assert
+            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>();
+            Assert.AreEqual(ex, serverCallContext.ServerCallContext.Status.DebugException);
+        }
+
+        private static ServerCallHandlerBase<TestService, TestMessage, TestMessage> CreateHandler(
+            MethodType methodType,
+            ILoggerFactory? loggerFactory = null,
+            Action? handlerAction = null)
         {
             var method = new Method<TestMessage, TestMessage>(methodType, "test", "test", _marshaller, _marshaller);
 
@@ -185,7 +203,11 @@ namespace Grpc.AspNetCore.Server.Tests
                 case MethodType.Unary:
                     return new UnaryServerCallHandler<TestService, TestMessage, TestMessage>(
                         new UnaryServerMethodInvoker<TestService, TestMessage, TestMessage>(
-                            (service, reader, context) => Task.FromResult(new TestMessage()),
+                            (service, reader, context) =>
+                            {
+                                handlerAction?.Invoke();
+                                return Task.FromResult(new TestMessage());
+                            },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
                             new TestGrpcServiceActivator<TestService>()),
@@ -193,7 +215,11 @@ namespace Grpc.AspNetCore.Server.Tests
                 case MethodType.ClientStreaming:
                     return new ClientStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         new ClientStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
-                            (service, reader, context) => Task.FromResult(new TestMessage()),
+                            (service, reader, context) =>
+                            {
+                                handlerAction?.Invoke();
+                                return Task.FromResult(new TestMessage());
+                            },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
                             new TestGrpcServiceActivator<TestService>()),
@@ -201,7 +227,11 @@ namespace Grpc.AspNetCore.Server.Tests
                 case MethodType.ServerStreaming:
                     return new ServerStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         new ServerStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
-                            (service, request, writer, context) => Task.FromResult(new TestMessage()),
+                            (service, request, writer, context) =>
+                            {
+                                handlerAction?.Invoke();
+                                return Task.FromResult(new TestMessage());
+                            },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
                             new TestGrpcServiceActivator<TestService>()),
@@ -209,7 +239,11 @@ namespace Grpc.AspNetCore.Server.Tests
                 case MethodType.DuplexStreaming:
                     return new DuplexStreamingServerCallHandler<TestService, TestMessage, TestMessage>(
                         new DuplexStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
-                            (service, reader, writer, context) => Task.CompletedTask,
+                            (service, reader, writer, context) =>
+                            {
+                                handlerAction?.Invoke();
+                                return Task.CompletedTask;
+                            },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
                             new TestGrpcServiceActivator<TestService>()),
