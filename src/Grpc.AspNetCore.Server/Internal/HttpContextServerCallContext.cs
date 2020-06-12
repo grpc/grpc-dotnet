@@ -189,7 +189,10 @@ namespace Grpc.AspNetCore.Server.Internal
                 GrpcServerLog.ErrorExecutingServiceMethod(Logger, method, ex);
 
                 var message = ErrorMessageHelper.BuildErrorMessage("Exception was thrown by handler.", ex, Options.EnableDetailedErrors);
-                _status = new Status(StatusCode.Unknown, message);
+
+                // Note that the exception given to status won't be returned to the client.
+                // It is still useful to set in case an interceptor accesses the status on the server.
+                _status = new Status(StatusCode.Unknown, message, ex);
             }
 
             // Don't update trailers if request has exceeded deadline/aborted
