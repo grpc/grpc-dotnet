@@ -453,7 +453,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var trailers = call.GetTrailers();
             Assert.AreEqual(1, trailers.Count);
-            Assert.AreEqual("value", trailers.First(e => e.Key == "my-trailer").Value);
+            Assert.AreEqual("value", trailers.GetValue("my-trailer"));
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
@@ -491,7 +491,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             var headers = await call.ResponseHeadersAsync;
-            var keyHeaders = headers.Where(k => k.Key == "key").ToList();
+            var keyHeaders = headers.GetAll("key").ToList();
             Assert.AreEqual("key", keyHeaders[0].Key);
             Assert.AreEqual("Value1", keyHeaders[0].Value);
             Assert.AreEqual("key", keyHeaders[1].Key);

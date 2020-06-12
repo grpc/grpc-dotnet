@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.12.1</BenchmarkDotNetPackageVersion>
-    <GoogleProtobufPackageVersion>3.11.4</GoogleProtobufPackageVersion>
+    <GoogleProtobufPackageVersion>3.12.2</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.29.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
-    <GrpcPackageVersion>2.29.0</GrpcPackageVersion>
+    <GrpcPackageVersion>2.30.0-pre1</GrpcPackageVersion>
     <MicrosoftAspNetCorePackageVersion>3.1.3</MicrosoftAspNetCorePackageVersion>
     <MicrosoftAspNetCoreBlazorPackageVersion>3.2.0</MicrosoftAspNetCoreBlazorPackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>

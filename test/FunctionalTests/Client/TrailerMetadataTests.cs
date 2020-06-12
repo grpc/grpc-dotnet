@@ -66,12 +66,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             var trailers = call.GetTrailers();
             Assert.AreEqual(1, trailers.Count);
-            Assert.AreEqual("the value was empty", trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.AreEqual(1, ex.Trailers.Count);
-            Assert.AreEqual("the value was empty", ex.Trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
         }
 
         [Test]
@@ -111,12 +111,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             var trailers = call.GetTrailers();
             Assert.GreaterOrEqual(trailers.Count, 1);
-            Assert.AreEqual("the value was empty", trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.GreaterOrEqual(ex.Trailers.Count, 1);
-            Assert.AreEqual("the value was empty", ex.Trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
 
             AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
         }
@@ -161,12 +161,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             var trailers = call.GetTrailers();
             Assert.AreEqual(1, trailers.Count);
-            Assert.AreEqual("the value was empty", trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.AreEqual(1, ex.Trailers.Count);
-            Assert.AreEqual("the value was empty", ex.Trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
         }
 
         [Test]
@@ -210,12 +210,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             var trailers = call.GetTrailers();
             Assert.GreaterOrEqual(trailers.Count, 1);
-            Assert.AreEqual("the value was empty", trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.GreaterOrEqual(ex.Trailers.Count, 1);
-            Assert.AreEqual("the value was empty", ex.Trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
 
             AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
         }
