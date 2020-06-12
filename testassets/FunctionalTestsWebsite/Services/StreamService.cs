@@ -74,7 +74,7 @@ namespace FunctionalTestsWebsite.Services
             IServerStreamWriter<DataMessage> responseStream,
             ServerCallContext context)
         {
-            var flushHeaders = context.RequestHeaders.Any(x => x.Key == "flush-headers");
+            var flushHeaders = context.RequestHeaders.Get("flush-headers") != null;
             if (flushHeaders)
             {
                 await context.WriteResponseHeadersAsync(new Metadata());

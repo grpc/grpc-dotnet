@@ -90,8 +90,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("value!", header.Value);
+            Assert.AreEqual("value!", responseHeaders.GetValue("custom"));
         }
 
         [Test]
@@ -117,8 +116,7 @@ namespace Grpc.Net.Client.Tests
             await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("value!", header.Value);
+            Assert.AreEqual("value!", responseHeaders.GetValue("custom"));
         }
 
         [Test]

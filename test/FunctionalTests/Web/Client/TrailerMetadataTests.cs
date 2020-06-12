@@ -63,7 +63,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             // Assert
             var trailers = call.GetTrailers();
             Assert.AreEqual(1, trailers.Count);
-            Assert.AreEqual(trailerValue, trailers.Single(m => m.Key == "name").Value);
+            Assert.AreEqual(trailerValue, trailers.GetValue("name"));
         }
 
         [Test]

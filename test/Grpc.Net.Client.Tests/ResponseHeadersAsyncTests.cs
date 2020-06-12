@@ -62,13 +62,11 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreSame(responseHeaders1, responseHeaders2);
 
-            var header = responseHeaders1.Single(h => h.Key == "server");
-            Assert.AreEqual("TestName/1.0", header.Value);
+            Assert.AreEqual("TestName/1.0", responseHeaders1.GetValue("server"));
 
-            header = responseHeaders1.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders1.GetValue("custom"));
 
-            header = responseHeaders1.Single(h => h.Key == "binary-bin");
+            var header = responseHeaders1.Get("binary-bin");
             Assert.AreEqual(true, header.IsBinary);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("Hello world"), header.ValueBytes);
         }
@@ -91,8 +89,7 @@ namespace Grpc.Net.Client.Tests
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
             // Assert
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
         }
 
         [Test]
@@ -113,8 +110,7 @@ namespace Grpc.Net.Client.Tests
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
             // Assert
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
         }
 
         [Test]
@@ -135,8 +131,7 @@ namespace Grpc.Net.Client.Tests
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
             // Assert
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
         }
 
         [Test]
@@ -231,8 +226,7 @@ namespace Grpc.Net.Client.Tests
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
             // Assert
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
         }
 
         [Test]
@@ -253,8 +247,7 @@ namespace Grpc.Net.Client.Tests
             var responseHeaders = await call.ResponseHeadersAsync.DefaultTimeout();
 
             // Assert
-            var header = responseHeaders.Single(h => h.Key == "custom");
-            Assert.AreEqual("ABC", header.Value);
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
         }
     }
 }

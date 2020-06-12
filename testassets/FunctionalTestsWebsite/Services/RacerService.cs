@@ -29,7 +29,7 @@ namespace FunctionalTestsWebsite.Services
     {
         public override async Task ReadySetGo(IAsyncStreamReader<RaceMessage> requestStream, IServerStreamWriter<RaceMessage> responseStream, ServerCallContext context)
         {
-            var raceDuration = TimeSpan.Parse(context.RequestHeaders.Single(h => h.Key == "race-duration").Value);
+            var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration"));
 
             // Read incoming messages in a background task
             RaceMessage? lastMessageReceived = null;
