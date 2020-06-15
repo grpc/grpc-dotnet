@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
@@ -41,24 +42,21 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         public void AddGrpcClient_ConfigureOptions_OptionsSet()
         {
             // Arrange
-            var baseAddress = new Uri("http://localhost");
+            Action<GrpcClientFactoryOptions> a = o => { };
 
             var services = new ServiceCollection();
             services
-                .AddGrpcClient<Greeter.GreeterClient>(o =>
-                {
-                    o.Address = baseAddress;
-                })
+                .AddGrpcClient<Greeter.GreeterClient>(a)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
-            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
+            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryRegistration>>();
             var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
 
             // Assert
-            Assert.AreEqual(baseAddress, options.Address);
+            Assert.AreEqual(a, options.GrpcClientFactoryOptionsActions.Single());
         }
 
         [Test]
@@ -68,30 +66,27 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var baseAddress1 = new Uri("http://localhost");
             var baseAddress2 = new Uri("http://contoso");
 
+            Action<GrpcClientFactoryOptions> firstAction = o => { };
+            Action<GrpcClientFactoryOptions> secondAction = o => { };
+
             var services = new ServiceCollection();
             services
-                .AddGrpcClient<Greeter.GreeterClient>("First", o =>
-                {
-                    o.Address = baseAddress1;
-                })
+                .AddGrpcClient<Greeter.GreeterClient>("First", firstAction)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services
-                .AddGrpcClient<Greeter.GreeterClient>("Second", o =>
-                {
-                    o.Address = baseAddress2;
-                })
+                .AddGrpcClient<Greeter.GreeterClient>("Second", secondAction)
                 .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             // Act
-            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
+            var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryRegistration>>();
             var options1 = optionsMonitor.Get("First");
             var options2 = optionsMonitor.Get("Second");
 
             // Assert
-            Assert.AreEqual(baseAddress1, options1.Address);
-            Assert.AreEqual(baseAddress2, options2.Address);
+            Assert.AreEqual(firstAction, options1.GrpcClientFactoryOptionsActions.Single());
+            Assert.AreEqual(secondAction, options2.GrpcClientFactoryOptionsActions.Single());
         }
 
         [Test]
@@ -136,12 +131,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
             using (var scope = serviceProvider.CreateScope())
             {
-                var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
+                var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryRegistration>>();
                 var options = optionsMonitor.Get(nameof(Greeter.GreeterClient));
 
                 // Assert
-                Assert.AreEqual("http://contoso", options.Address!.OriginalString);
-                Assert.AreEqual(1, options.Interceptors.Count);
+                Assert.AreEqual(2, options.GrpcClientFactoryOptionsActions.Count);
             }
         }
 

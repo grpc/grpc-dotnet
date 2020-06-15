@@ -29,14 +29,51 @@ namespace Grpc.Net.ClientFactory
     /// </summary>
     public class GrpcClientFactoryOptions
     {
+        private GrpcChannelOptions _channelOptions = new GrpcChannelOptions();
+
+        internal GrpcClientFactoryOptions(IServiceProvider services, string name)
+        {
+            Services = services;
+            Name = name;
+        }
+
+        /// <summary>
+        /// Gets the name of the gRPC client being created.
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
+        /// Gets an <see cref="IServiceProvider"/> which can be used to resolve services
+        /// from the dependency injection container.
+        /// </summary>
+        public IServiceProvider Services { get; }
+
         /// <summary>
         /// The address to use when making gRPC calls.
         /// </summary>
         public Uri? Address { get; set; }
 
         /// <summary>
+        /// Channel options to use when making gRPC calls.
+        /// </summary>
+        public GrpcChannelOptions ChannelOptions
+        {
+            get => _channelOptions;
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                _channelOptions = value;
+            }
+        }
+
+        /// <summary>
         /// Gets a list of operations used to configure a <see cref="GrpcChannelOptions"/>.
         /// </summary>
+        [Obsolete("ChannelOptionsActions is obsolete. Use ChannelOptions instead.")]
         public IList<Action<GrpcChannelOptions>> ChannelOptionsActions { get; } = new List<Action<GrpcChannelOptions>>();
 
         /// <summary>
@@ -51,10 +88,5 @@ namespace Grpc.Net.ClientFactory
         /// Gets or sets a delegate that will override how a client is created.
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
-
-        /// <summary>
-        /// Gets a list of operations used to configure an <see cref="GrpcClientBuilder"/>.
-        /// </summary>
-        public IList<Action<GrpcClientBuilder>> ClientBuilderActions { get; } = new List<Action<GrpcClientBuilder>>();
     }
 }

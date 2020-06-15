@@ -76,10 +76,10 @@ namespace Microsoft.Extensions.DependencyInjection
             // Validate the builder is for a gRPC client
             foreach (var service in builder.Services)
             {
-                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryRegistration>))
                 {
                     // Builder is from AddGrpcClient if options have been configured with the same name
-                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryOptions>;
+                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryRegistration>;
                     if (namedOptions != null && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
                     {
                         return;

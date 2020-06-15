@@ -282,7 +282,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
         {
             return new DefaultGrpcClientFactory(serviceProvider,
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryRegistration>>(),
                 serviceProvider.GetRequiredService<IHttpClientFactory>(),
                 serviceProvider.GetRequiredService<ILoggerFactory>());
         }

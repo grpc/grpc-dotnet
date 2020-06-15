@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
@@ -31,12 +32,12 @@ namespace Grpc.Net.ClientFactory.Internal
     internal class DefaultGrpcClientFactory : GrpcClientFactory
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientFactoryOptionsMonitor;
+        private readonly IOptionsMonitor<GrpcClientFactoryRegistration> _clientFactoryOptionsMonitor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILoggerFactory _loggerFactory;
 
         public DefaultGrpcClientFactory(IServiceProvider serviceProvider,
-            IOptionsMonitor<GrpcClientFactoryOptions> clientFactoryOptionsMonitor,
+            IOptionsMonitor<GrpcClientFactoryRegistration> clientFactoryOptionsMonitor,
             IHttpClientFactory httpClientFactory,
             ILoggerFactory loggerFactory)
         {
@@ -50,23 +51,31 @@ namespace Grpc.Net.ClientFactory.Internal
         {
             var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
 
-            var builder = new GrpcClientBuilder(_serviceProvider, name);
+            var builder = new GrpcClientFactoryOptions(_serviceProvider, name);
 
             // Set options defaults first in case actions want to modify them
             builder.ChannelOptions.HttpClient = _httpClientFactory.CreateClient(name);
             builder.ChannelOptions.LoggerFactory = _loggerFactory;
 
-            for (int i = 0; i < clientFactoryOptions.ClientBuilderActions.Count; i++)
-            {
-                clientFactoryOptions.ClientBuilderActions[i](builder);
-            }
+            // Long running server and duplex streaming gRPC requests may not
+            // return any messages for over 100 seconds, triggering a cancellation
+            // of HttpClient.SendAsync. Disable timeout in internally created
+            // HttpClient for channel.
+            //
+            // gRPC deadline should be the recommended way to timeout gRPC calls.
+            //
+            // https://github.com/dotnet/corefx/issues/41650
+            builder.ChannelOptions.HttpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-            ApplyClientFactoryOptionsSettings(clientFactoryOptions, builder);
+            for (int i = 0; i < clientFactoryOptions.GrpcClientFactoryOptionsActions.Count; i++)
+            {
+                clientFactoryOptions.GrpcClientFactoryOptionsActions[i](builder);
+            }
 
             return Build<TClient>(builder);
         }
 
-        private TClient Build<TClient>(GrpcClientBuilder builder) where TClient : class
+        private TClient Build<TClient>(GrpcClientFactoryOptions builder) where TClient : class
         {
             var defaultClientActivator = builder.Services.GetService<DefaultClientActivator<TClient>>();
             if (defaultClientActivator == null)
@@ -74,7 +83,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 throw new InvalidOperationException($"No gRPC client configured with name '{builder.Name}'.");
             }
 
-            var callInvoker = CreateCallInvoker(builder, null!);
+            var callInvoker = CreateCallInvoker(builder);
 
             if (builder.Creator != null)
             {
@@ -96,13 +105,20 @@ namespace Grpc.Net.ClientFactory.Internal
             }
         }
 
-        public CallInvoker CreateCallInvoker(GrpcClientBuilder builder, Uri address)
+        public CallInvoker CreateCallInvoker(GrpcClientFactoryOptions builder)
         {
-            var resolvedAddress = address ?? builder.ChannelOptions.HttpClient?.BaseAddress;
+            var resolvedAddress = builder.Address ?? builder.ChannelOptions.HttpClient?.BaseAddress;
             if (resolvedAddress == null)
             {
                 throw new InvalidOperationException($"Could not resolve the address for gRPC client '{builder.Name}'.");
             }
+
+#pragma warning disable CS0612, CS0618 // Type or member is obsolete
+            for (int i = 0; i < builder.ChannelOptionsActions.Count; i++)
+            {
+                builder.ChannelOptionsActions[i](builder.ChannelOptions);
+            }
+#pragma warning restore CS0612, CS0618 // Type or member is obsolete
 
             var channel = GrpcChannel.ForAddress(resolvedAddress, builder.ChannelOptions);
 
@@ -113,32 +129,6 @@ namespace Grpc.Net.ClientFactory.Internal
                 : httpClientCallInvoker;
 
             return resolvedCallInvoker;
-        }
-
-        private static void ApplyClientFactoryOptionsSettings(GrpcClientFactoryOptions clientFactoryOptions, GrpcClientBuilder builder)
-        {
-            if (clientFactoryOptions.ChannelOptionsActions.Count > 0)
-            {
-                foreach (var applyOptions in clientFactoryOptions.ChannelOptionsActions)
-                {
-                    applyOptions(builder.ChannelOptions);
-                }
-            }
-
-            for (var i = 0; i < clientFactoryOptions.Interceptors.Count; i++)
-            {
-                builder.Interceptors.Add(clientFactoryOptions.Interceptors[i]);
-            }
-
-            if (clientFactoryOptions.Creator != null)
-            {
-                if (builder.Creator != null)
-                {
-                    throw new InvalidOperationException($"Client creators have been set on both {nameof(GrpcClientFactoryOptions)} and {nameof(GrpcClientBuilder)}.");
-                }
-
-                builder.Creator = clientFactoryOptions.Creator;
-            }
         }
     }
 }

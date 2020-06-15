@@ -214,7 +214,10 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureClient));
             }
 
-            services.Configure(name, configureClient);
+            services.Configure<GrpcClientFactoryRegistration>(name, options =>
+            {
+                options.GrpcClientFactoryOptionsActions.Add(configureClient);
+            });
 
             return services.AddGrpcClientCore<TClient>(name);
         }
@@ -264,12 +267,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configureClient));
             }
 
-            services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            services.Configure<GrpcClientFactoryRegistration>(name, options =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options =>
-                {
-                    configureClient(services, options);
-                });
+                options.GrpcClientFactoryOptionsActions.Add(b => configureClient(b.Services, b));
             });
 
             // `IConfigureOptions<GrpcClientFactoryOptions>` presence in builder's ServicesCollection is tested
@@ -278,8 +278,8 @@ namespace Microsoft.Extensions.DependencyInjection
             // AddGrpcClient. ConfigureNamedOptions<GrpcClientFactoryOptions> needs to be the value.
             // We need to cast the service value to the concrete type to get the name.
             // Needed here because config options registered here are transient.
-            services.AddSingleton<IConfigureOptions<GrpcClientFactoryOptions>>(
-                new ConfigureNamedOptions<GrpcClientFactoryOptions>(name, options => { }));
+            services.AddSingleton<IConfigureOptions<GrpcClientFactoryRegistration>>(
+                new ConfigureNamedOptions<GrpcClientFactoryRegistration>(name, options => { }));
 
             return services.AddGrpcClientCore<TClient>(name);
         }
@@ -293,40 +293,19 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.TryAddTransient<GrpcClientFactory, DefaultGrpcClientFactory>();
 
-            //services.TryAddSingleton<GrpcCallInvokerFactory>();
             services.TryAddSingleton<DefaultClientActivator<TClient>>();
 
             // Registry is used to track state and report errors **DURING** service registration. This has to be an instance
             // because we access it by reaching into the service collection.
             services.TryAddSingleton(new GrpcClientMappingRegistry());
 
-            Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
-            {
-                var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
-                var clientOptions = os.Get(name);
-
-                httpClient.BaseAddress = clientOptions.Address;
-
-                // Long running server and duplex streaming gRPC requests may not
-                // return any messages for over 100 seconds, triggering a cancellation
-                // of HttpClient.SendAsync. Disable timeout in internally created
-                // HttpClient for channel.
-                //
-                // gRPC deadline should be the recommended way to timeout gRPC calls.
-                //
-                // https://github.com/dotnet/corefx/issues/41650
-                httpClient.Timeout = Timeout.InfiniteTimeSpan;
-            };
-
-            IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
-
-            return clientBuilder;
+            return services.AddGrpcHttpClient<TClient>(name);
         }
 
         /// <summary>
         /// This is a custom method to register the HttpClient and typed factory. Needed because we need to access the config name when creating the typed client
         /// </summary>
-        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient> configureTypedClient)
+        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name)
             where TClient : class
         {
             if (services == null)
@@ -334,7 +313,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
-            services.AddHttpClient(name, configureTypedClient);
+            services.AddHttpClient(name);
 
             var builder = new DefaultHttpClientBuilder(services, name);
 

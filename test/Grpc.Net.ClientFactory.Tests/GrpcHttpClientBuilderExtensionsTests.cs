@@ -69,6 +69,40 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
         }
 
+        [Test]
+        public async Task ChannelOptionsActions_ObsoleteActionSetsMaxSize_ThrowMaxSizeError()
+        {
+            // Arrange
+            var request = new HelloRequest
+            {
+                Name = new string('!', 1024)
+            };
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+#pragma warning disable CS0612, CS0618 // Type or member is obsolete
+                    o.ChannelOptionsActions.Add(o => o.MaxSendMessageSize = 100);
+#pragma warning restore CS0612, CS0618 // Type or member is obsolete
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            // Handle bad response
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloAsync(request).ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
+            Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
+        }
+
         private class TestService
         {
             public TestService(int value)

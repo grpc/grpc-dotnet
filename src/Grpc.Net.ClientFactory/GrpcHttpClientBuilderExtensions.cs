@@ -50,9 +50,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => configureChannel(b.Services, b.ChannelOptions));
+                options.GrpcClientFactoryOptionsActions.Add(b => configureChannel(b.Services, b.ChannelOptions));
             });
 
             return builder;
@@ -78,9 +78,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => configureChannel(b.ChannelOptions));
+                options.GrpcClientFactoryOptionsActions.Add(b => configureChannel(b.ChannelOptions));
             });
 
             return builder;
@@ -106,9 +106,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => b.Interceptors.Add(configureInvoker(b.Services)));
+                options.GrpcClientFactoryOptionsActions.Add(b => b.Interceptors.Add(configureInvoker(b.Services)));
             });
 
             return builder;
@@ -134,9 +134,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => b.Interceptors.Add(configureInvoker()));
+                options.GrpcClientFactoryOptionsActions.Add(b => b.Interceptors.Add(configureInvoker()));
             });
 
             return builder;
@@ -187,9 +187,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => b.Creator = (callInvoker) => configureCreator(b.Services, callInvoker));
+                options.GrpcClientFactoryOptionsActions.Add(b => b.Creator = (callInvoker) => configureCreator(b.Services, callInvoker));
             });
 
             return builder;
@@ -216,9 +216,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            builder.Services.Configure<GrpcClientFactoryRegistration>(builder.Name, options =>
             {
-                options.ClientBuilderActions.Add(b => b.Creator = configureCreator);
+                options.GrpcClientFactoryOptionsActions.Add(b => b.Creator = configureCreator);
             });
 
             return builder;
@@ -229,10 +229,10 @@ namespace Microsoft.Extensions.DependencyInjection
             // Validate the builder is for a gRPC client
             foreach (var service in builder.Services)
             {
-                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryRegistration>))
                 {
                     // Builder is from AddGrpcClient if options have been configured with the same name
-                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryOptions>;
+                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryRegistration>;
                     if (namedOptions != null && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
                     {
                         return;
