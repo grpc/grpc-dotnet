@@ -78,9 +78,6 @@ namespace Grpc.Net.ClientFactory
 
         /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
-        /// <para>
-        /// Interceptors set here are used when 
-        /// </para>
         /// </summary>
         public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
 
