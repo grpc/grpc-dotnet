@@ -45,15 +45,10 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
+            // Interceptor can be registered as a singleton. HttpContext is accessed using AsyncLocal.
             builder.Services.TryAddSingleton<ContextPropagationInterceptor>();
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
-            {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
-                {
-                    options.Interceptors.Add(services.GetRequiredService<ContextPropagationInterceptor>());
-                });
-            });
+            builder.AddInterceptor<ContextPropagationInterceptor>();
 
             return builder;
         }

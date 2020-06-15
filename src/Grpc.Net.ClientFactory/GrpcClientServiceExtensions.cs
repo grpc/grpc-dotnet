@@ -291,9 +291,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(name));
             }
 
-            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
+            services.TryAddTransient<GrpcClientFactory, DefaultGrpcClientFactory>();
 
-            services.TryAddSingleton<GrpcCallInvokerFactory>();
+            //services.TryAddSingleton<GrpcCallInvokerFactory>();
             services.TryAddSingleton<DefaultClientActivator<TClient>>();
 
             // Registry is used to track state and report errors **DURING** service registration. This has to be an instance

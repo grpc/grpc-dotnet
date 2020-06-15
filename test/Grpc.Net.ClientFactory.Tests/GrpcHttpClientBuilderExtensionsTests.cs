@@ -199,6 +199,70 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public async Task AddInterceptorGeneric_ScopedLifetime_CreatedOncePerScope()
+        {
+            // Arrange
+            var i = 0;
+
+            var services = new ServiceCollection();
+            services.AddScoped<List<int>>();
+            services.AddScoped<CallbackInterceptor>(s =>
+            {
+                var increment = ++i;
+                return new CallbackInterceptor(o =>
+                {
+                    var list = s.GetRequiredService<List<int>>();
+                    list.Add(increment * list.Count);
+                });
+            });
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddInterceptor<CallbackInterceptor>()
+                .AddInterceptor<CallbackInterceptor>()
+                .AddInterceptor<CallbackInterceptor>()
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var list = scope.ServiceProvider.GetRequiredService<List<int>>();
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response);
+                Assert.AreEqual(3, list.Count);
+                Assert.AreEqual(0, list[0]);
+                Assert.AreEqual(1, list[1]);
+                Assert.AreEqual(2, list[2]);
+            }
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var list = scope.ServiceProvider.GetRequiredService<List<int>>();
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response);
+                Assert.AreEqual(3, list.Count);
+                Assert.AreEqual(0, list[0]);
+                Assert.AreEqual(2, list[1]);
+                Assert.AreEqual(4, list[2]);
+            }
+        }
+
+        [Test]
         public void AddInterceptorGeneric_NotFromGrpcClientFactory_ThrowError()
         {
             // Arrange

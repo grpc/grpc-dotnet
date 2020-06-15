@@ -25,36 +25,41 @@ using Grpc.Net.Client;
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
-    /// Options used to configure a gRPC client.
+    /// 
     /// </summary>
-    public class GrpcClientFactoryOptions
+    public class GrpcClientBuilder
     {
-        /// <summary>
-        /// The address to use when making gRPC calls.
-        /// </summary>
-        public Uri? Address { get; set; }
+        internal GrpcClientBuilder(IServiceProvider serviceProvider, string name)
+        {
+            Services = serviceProvider;
+            Name = name;
+            ChannelOptions = new GrpcChannelOptions();
+            Interceptors = new List<Interceptor>();
+        }
 
         /// <summary>
-        /// Gets a list of operations used to configure a <see cref="GrpcChannelOptions"/>.
+        /// 
         /// </summary>
-        public IList<Action<GrpcChannelOptions>> ChannelOptionsActions { get; } = new List<Action<GrpcChannelOptions>>();
+        public IServiceProvider Services { get; }
 
         /// <summary>
-        /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
-        /// <para>
-        /// Interceptors set here are used when 
-        /// </para>
+        /// 
         /// </summary>
-        public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
+        public string Name { get; }
 
         /// <summary>
-        /// Gets or sets a delegate that will override how a client is created.
+        /// 
+        /// </summary>
+        public IList<Interceptor> Interceptors { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public GrpcChannelOptions ChannelOptions { get; }
+
+        /// <summary>
+        /// 
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
-
-        /// <summary>
-        /// Gets a list of operations used to configure an <see cref="GrpcClientBuilder"/>.
-        /// </summary>
-        public IList<Action<GrpcClientBuilder>> ClientBuilderActions { get; } = new List<Action<GrpcClientBuilder>>();
     }
 }

@@ -50,12 +50,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
-                {
-                    options.ChannelOptionsActions.Add(o => configureChannel(services, o));
-                });
+                options.ClientBuilderActions.Add(b => configureChannel(b.Services, b.ChannelOptions));
             });
 
             return builder;
@@ -83,7 +80,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.ChannelOptionsActions.Add(configureChannel);
+                options.ClientBuilderActions.Add(b => configureChannel(b.ChannelOptions));
             });
 
             return builder;
@@ -109,12 +106,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
-                {
-                    options.Interceptors.Add(configureInvoker(services));
-                });
+                options.ClientBuilderActions.Add(b => b.Interceptors.Add(configureInvoker(b.Services)));
             });
 
             return builder;
@@ -142,7 +136,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.Interceptors.Add(configureInvoker());
+                options.ClientBuilderActions.Add(b => b.Interceptors.Add(configureInvoker()));
             });
 
             return builder;
@@ -193,12 +187,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
-                {
-                    options.Creator = (callInvoker) => configureCreator(services, callInvoker);
-                });
+                options.ClientBuilderActions.Add(b => b.Creator = (callInvoker) => configureCreator(b.Services, callInvoker));
             });
 
             return builder;
@@ -227,7 +218,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.Creator = (callInvoker) => configureCreator(callInvoker);
+                options.ClientBuilderActions.Add(b => b.Creator = configureCreator);
             });
 
             return builder;
