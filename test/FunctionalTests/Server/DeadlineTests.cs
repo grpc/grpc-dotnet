@@ -28,6 +28,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Server
@@ -125,6 +126,111 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.AreNotEqual(0, messageCount);
 
             response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+        }
+
+        [Test]
+        public async Task UnaryMethodErrorWithinDeadline()
+        {
+            static async Task<HelloReply> ThrowErrorWithinDeadline(HelloRequest request, ServerCallContext context)
+            {
+                await Task.Delay(10);
+                throw new InvalidOperationException("An error.");
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                {
+                    // Deadline happened before write
+                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                        writeContext.State.ToString() == "Error when executing service method 'ThrowErrorWithinDeadline'." &&
+                        writeContext.Exception!.Message == "An error.")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ThrowErrorWithinDeadline, nameof(ThrowErrorWithinDeadline));
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
+            httpRequest.Content = new GrpcStreamContent(requestStream);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: An error.");
+        }
+
+        [Test]
+        public async Task UnaryMethodErrorAfterExceedDeadline()
+        {
+            static async Task<HelloReply> ThrowErrorExceedDeadline(HelloRequest request, ServerCallContext context)
+            {
+                while (!context.CancellationToken.IsCancellationRequested)
+                {
+                    await Task.Delay(50);
+                }
+
+                throw new InvalidOperationException("An error.");
+            }
+
+            // Arrange
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                {
+                    // Deadline happened before write
+                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                        writeContext.State.ToString() == "Error when executing service method 'ThrowErrorExceedDeadline'." &&
+                        writeContext.Exception!.Message == "An error.")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ThrowErrorExceedDeadline, nameof(ThrowErrorExceedDeadline));
+
+            var requestMessage = new HelloRequest
+            {
+                Name = "World"
+            };
+
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
+            httpRequest.Content = new GrpcStreamContent(requestStream);
+
+            // Act
+            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+            // Ensure follow up error is logged.
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => HasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'ThrowErrorExceedDeadline'."),
+                "Missing follow up error log.").DefaultTimeout();
         }
 
         [Test]

@@ -390,6 +390,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (timeout != TimeSpan.Zero)
             {
                 DeadlineManager = ServerCallDeadlineManager.Create(this, clock ?? SystemClock.Instance, timeout, HttpContext.RequestAborted);
+                GrpcServerLog.DeadlineStarted(Logger, timeout);
             }
 
             var serviceDefaultCompression = Options.ResponseCompressionAlgorithm;
