@@ -8,7 +8,7 @@
   <ItemGroup>
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Client" Link="Protos\count.proto" />
 
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensions30PackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Net.ClientFactory" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
