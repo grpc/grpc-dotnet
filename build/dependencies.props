@@ -9,8 +9,8 @@
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
     <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>3.0.0</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
-    <MicrosoftExtensionsPackageVersion>2.1.1</MicrosoftExtensionsPackageVersion>
-    <MicrosoftExtensions30PackageVersion>3.0.0</MicrosoftExtensions30PackageVersion>
+    <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
+    <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.6.1</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0</MicrosoftSourceLinkGitHubPackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
