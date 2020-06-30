@@ -102,6 +102,14 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineStarted =
             LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(26, "DeadlineStarted"), "Request deadline timeout of {Timeout} started.");
 
+        private static readonly Action<ILogger, Exception?> _deadlineStopped =
+            LoggerMessage.Define(LogLevel.Trace, new EventId(27, "DeadlineStopped"), "Request deadline stopped.");
+
+        internal static void DeadlineStopped(ILogger logger)
+        {
+            _deadlineStopped(logger, null);
+        }
+
         public static void DeadlineStarted(ILogger logger, TimeSpan timeout)
         {
             _deadlineStarted(logger, timeout, null);
