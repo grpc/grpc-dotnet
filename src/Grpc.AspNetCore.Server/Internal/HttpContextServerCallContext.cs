@@ -163,6 +163,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
+                GrpcServerLog.DeadlineStopped(Logger);
             }
         }
 
@@ -238,35 +239,15 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.CompletedTask;
             }
 
-            var lockTask = DeadlineManager.Lock.WaitAsync();
-            if (lockTask.IsCompletedSuccessfully)
-            {
-                Task disposeTask;
-                try
-                {
-                    EndCallCore();
-                }
-                finally
-                {
-                    DeadlineManager.Lock.Release();
-
-                    // Can't return from a finally
-                    disposeTask = DeadlineManager.DisposeAsync().AsTask();
-                }
-
-                return disposeTask;
-            }
-            else
-            {
-                return EndCallAsyncCore(lockTask);
-            }
+            // There is a deadline so just accept the overhead of a state machine during cleanup
+            return EndCallAsyncCore();
         }
 
-        private async Task EndCallAsyncCore(Task lockTask)
+        private async Task EndCallAsyncCore()
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            await lockTask;
+            await DeadlineManager.Lock.WaitAsync();
 
             try
             {
@@ -276,6 +257,7 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
+                GrpcServerLog.DeadlineStopped(Logger);
             }
         }
 
@@ -390,6 +372,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (timeout != TimeSpan.Zero)
             {
                 DeadlineManager = ServerCallDeadlineManager.Create(this, clock ?? SystemClock.Instance, timeout, HttpContext.RequestAborted);
+                GrpcServerLog.DeadlineStarted(Logger, timeout);
             }
 
             var serviceDefaultCompression = Options.ResponseCompressionAlgorithm;
