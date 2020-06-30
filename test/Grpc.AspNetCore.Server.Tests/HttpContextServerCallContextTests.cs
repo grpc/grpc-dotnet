@@ -445,7 +445,10 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsTrue(context.CancellationToken.IsCancellationRequested);
             Assert.IsTrue(httpContext.RequestAborted.IsCancellationRequested);
 
-            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            var write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineStarted");
+            Assert.AreEqual("Request deadline timeout of 00:00:01 started.", write.State.ToString());
+
+            write = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
             Assert.AreEqual("Request with timeout of 00:00:01 has exceeded its deadline.", write.State.ToString());
         }
 

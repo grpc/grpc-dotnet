@@ -54,6 +54,13 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
             }
 
+            if (serverCallContext.DeadlineManager != null && serverCallContext.DeadlineManager.CallComplete)
+            {
+                // The deadline has been exceeded and the call has been completed.
+                // There is no point trying to write to the response because it has been finished.
+                return;
+            }
+
             var responseBodyWriter = httpContext.Response.BodyWriter;
             await responseBodyWriter.WriteMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
         }

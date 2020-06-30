@@ -99,6 +99,22 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
             LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
 
+        private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineStarted =
+            LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(26, "DeadlineStarted"), "Request deadline timeout of {Timeout} started.");
+
+        private static readonly Action<ILogger, Exception?> _deadlineStopped =
+            LoggerMessage.Define(LogLevel.Trace, new EventId(27, "DeadlineStopped"), "Request deadline stopped.");
+
+        internal static void DeadlineStopped(ILogger logger)
+        {
+            _deadlineStopped(logger, null);
+        }
+
+        public static void DeadlineStarted(ILogger logger, TimeSpan timeout)
+        {
+            _deadlineStarted(logger, timeout, null);
+        }
+
         public static void DeadlineExceeded(ILogger logger, TimeSpan timeout)
         {
             _deadlineExceeded(logger, timeout, null);
