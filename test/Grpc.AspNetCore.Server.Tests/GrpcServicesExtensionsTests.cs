@@ -98,5 +98,26 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             Assert.AreEqual(null, options.MaxReceiveMessageSize);
         }
+
+        [Test]
+        public void AddServiceOptions_MaxReceiveMessageSizeNull_NullOverrideGlobalOptions()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpc()
+                .AddServiceOptions<object>(o =>
+                {
+                    o.MaxReceiveMessageSize = null;
+                });
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var options = serviceProvider.GetRequiredService<IOptions<GrpcServiceOptions<object>>>().Value;
+
+            // Assert
+            Assert.AreEqual(null, options.MaxReceiveMessageSize);
+        }
     }
 }

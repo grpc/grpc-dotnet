@@ -50,7 +50,8 @@ namespace Grpc.AspNetCore.Server.Internal
             _globalOptions = globalOptions.Value;
         }
 
-        private MethodOptions CreateMethodOptions()
+        // Internal for testing
+        internal MethodOptions CreateMethodOptions()
         {
             return MethodOptions.Create(new[] { _globalOptions, _serviceOptions });
         }

@@ -34,7 +34,7 @@ namespace Grpc.AspNetCore.Server.Internal
             if (!options._maxReceiveMessageSizeConfigured)
             {
                 // Only default MaxReceiveMessageSize if it was not configured
-                options.MaxReceiveMessageSize = DefaultReceiveMaxMessageSize;
+                options._maxReceiveMessageSize = DefaultReceiveMaxMessageSize;
             }
             if (options._compressionProviders == null || options._compressionProviders.Count == 0)
             {

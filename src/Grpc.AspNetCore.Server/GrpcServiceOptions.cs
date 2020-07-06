@@ -29,13 +29,22 @@ namespace Grpc.AspNetCore.Server
     {
         internal IList<ICompressionProvider>? _compressionProviders;
         internal bool _maxReceiveMessageSizeConfigured;
-        
-        private int? _maxReceiveMessageSize;
-        
+        internal int? _maxReceiveMessageSize;
+        internal bool _maxSendMessageSizeConfigured;
+        internal int? _maxSendMessageSize;
+
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
         /// </summary>
-        public int? MaxSendMessageSize { get; set; }
+        public int? MaxSendMessageSize
+        {
+            get => _maxSendMessageSize;
+            set
+            {
+                _maxSendMessageSize = value;
+                _maxSendMessageSizeConfigured = true;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be received by the server.
