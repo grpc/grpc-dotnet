@@ -35,6 +35,10 @@ namespace Grpc.AspNetCore.Server
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be sent from the server.
+        /// Attempting to send a message that exceeds the configured maximum message size results in an exception.
+        /// <para>
+        /// A <c>null</c> value removes the maximum message size limit. Defaults to <c>null</c>.
+        /// </para>
         /// </summary>
         public int? MaxSendMessageSize
         {
@@ -48,6 +52,10 @@ namespace Grpc.AspNetCore.Server
 
         /// <summary>
         /// Gets or sets the maximum message size in bytes that can be received by the server.
+        /// If the server receives a message that exceeds this limit, it throws an exception.
+        /// <para>
+        /// A <c>null</c> value removes the maximum message size limit. Defaults to 4,194,304 (4 MB).
+        /// </para>
         /// </summary>
         public int? MaxReceiveMessageSize
         {
