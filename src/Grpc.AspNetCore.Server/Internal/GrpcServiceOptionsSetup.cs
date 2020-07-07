@@ -27,13 +27,14 @@ namespace Grpc.AspNetCore.Server.Internal
         // Default to no send limit and 4mb receive limit.
         // Matches the gRPC C impl defaults
         // https://github.com/grpc/grpc/blob/977df7208a6e3f9a62a6369af5cd6e4b69b4fdec/include/grpc/impl/codegen/grpc_types.h#L413-L416
-        private const int DefaultReceiveMaxMessageSize = 4 * 1024 * 1024;
+        internal const int DefaultReceiveMaxMessageSize = 4 * 1024 * 1024;
 
         public void Configure(GrpcServiceOptions options)
         {
-            if (options.MaxReceiveMessageSize == null)
+            if (!options._maxReceiveMessageSizeConfigured)
             {
-                options.MaxReceiveMessageSize = DefaultReceiveMaxMessageSize;
+                // Only default MaxReceiveMessageSize if it was not configured
+                options._maxReceiveMessageSize = DefaultReceiveMaxMessageSize;
             }
             if (options._compressionProviders == null || options._compressionProviders.Count == 0)
             {
