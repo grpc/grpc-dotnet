@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
 using Grpc.AspNetCore.Server;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Net.Compression;
 
 namespace Grpc.Shared.Server
@@ -113,7 +114,9 @@ namespace Grpc.Shared.Server
             var resolvedCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
             var tempInterceptors = new List<InterceptorRegistration>();
             int? maxSendMessageSize = null;
-            int? maxReceiveMessageSize = null;
+            var maxSendMessageSizeConfigured = false;
+            int? maxReceiveMessageSize = GrpcServiceOptionsSetup.DefaultReceiveMaxMessageSize;
+            var maxReceiveMessageSizeConfigured = false;
             bool? enableDetailedErrors = null;
             string? responseCompressionAlgorithm = null;
             CompressionLevel? responseCompressionLevel = null;
@@ -122,8 +125,16 @@ namespace Grpc.Shared.Server
             {
                 AddCompressionProviders(resolvedCompressionProviders, options.CompressionProviders);
                 tempInterceptors.InsertRange(0, options.Interceptors);
-                maxSendMessageSize ??= options.MaxSendMessageSize;
-                maxReceiveMessageSize ??= options.MaxReceiveMessageSize;
+                if (!maxSendMessageSizeConfigured && options._maxSendMessageSizeConfigured)
+                {
+                    maxSendMessageSize = options.MaxSendMessageSize;
+                    maxSendMessageSizeConfigured = true;
+                }
+                if (!maxReceiveMessageSizeConfigured && options._maxReceiveMessageSizeConfigured)
+                {
+                    maxReceiveMessageSize = options.MaxReceiveMessageSize;
+                    maxReceiveMessageSizeConfigured = true;
+                }
                 enableDetailedErrors ??= options.EnableDetailedErrors;
                 responseCompressionAlgorithm ??= options.ResponseCompressionAlgorithm;
                 responseCompressionLevel ??= options.ResponseCompressionLevel;

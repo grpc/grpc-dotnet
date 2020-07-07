@@ -48,12 +48,20 @@ namespace Grpc.Net.Client
         public ChannelCredentials? Credentials { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum message size in bytes that can be sent from the client.
+        /// Gets or sets the maximum message size in bytes that can be sent from the client. Attempting to send a message
+        /// that exceeds the configured maximum message size results in an exception.
+        /// <para>
+        /// A <c>null</c> value removes the maximum message size limit. Defaults to <c>null</c>.
+        /// </para>
         /// </summary>
         public int? MaxSendMessageSize { get; set; }
 
         /// <summary>
-        /// Gets or sets the maximum message size in bytes that can be received by the client.
+        /// Gets or sets the maximum message size in bytes that can be received by the client. If the client receives a
+        /// message that exceeds this limit, it throws an exception.
+        /// <para>
+        /// A <c>null</c> value removes the maximum message size limit. Defaults to 4,194,304 (4 MB).
+        /// </para>
         /// </summary>
         public int? MaxReceiveMessageSize { get; set; }
 
