@@ -81,6 +81,21 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void CreateMethodOptions_MaxReceiveMessageSizeGlobalNullWithOverride_UseOverride()
+        {
+            // Arrange
+            var factory = CreateServerCallHandlerFactory(
+                o => o.MaxReceiveMessageSize = null,
+                o => o.MaxReceiveMessageSize = 1);
+
+            // Act
+            var options = factory.CreateMethodOptions();
+
+            // Assert
+            Assert.AreEqual(1, options.MaxReceiveMessageSize);
+        }
+
+        [Test]
         public void CreateMethodOptions_MaxSendMessageSizeServiceNull_NullValue()
         {
             // Arrange
@@ -93,6 +108,21 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Assert
             Assert.AreEqual(null, options.MaxSendMessageSize);
+        }
+
+        [Test]
+        public void CreateMethodOptions_MaxSendMessageSizeGlobalNullWithOverride_UseOverride()
+        {
+            // Arrange
+            var factory = CreateServerCallHandlerFactory(
+                o => o.MaxSendMessageSize = null,
+                o => o.MaxSendMessageSize = 1);
+
+            // Act
+            var options = factory.CreateMethodOptions();
+
+            // Assert
+            Assert.AreEqual(1, options.MaxSendMessageSize);
         }
 
         private static ServerCallHandlerFactory<object> CreateServerCallHandlerFactory(
