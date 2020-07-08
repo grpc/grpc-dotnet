@@ -29,7 +29,7 @@ namespace GrpcClient
         public string? Scenario { get; set; }
         public bool Latency { get; set; }
         public string? Protocol { get; set; }
-        public bool ClientCertificate { get; set; }
+        public bool EnableCertAuth { get; set; }
         public LogLevel LogLevel { get; set; }
         public int RequestSize { get; set; }
         public int ResponseSize { get; set; }

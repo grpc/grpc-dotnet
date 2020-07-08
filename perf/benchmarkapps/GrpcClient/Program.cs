@@ -73,7 +73,7 @@ namespace GrpcClient
             rootCommand.AddOption(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
             rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
             rootCommand.AddOption(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
-            rootCommand.AddOption(new Option<bool>(new string[] { "--clientCertificate" }, () => false, "Flag indicating whether client sends a client certificate"));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate"));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
@@ -366,7 +366,7 @@ namespace GrpcClient
             {
                 default:
                 case GrpcClientType.GrpcCore:
-                    if (_options.ClientCertificate)
+                    if (_options.EnableCertAuth)
                     {
                         throw new Exception("Client certificate not implemented for Grpc.Core");
                     }
@@ -386,7 +386,7 @@ namespace GrpcClient
                     var httpClientHandler = new HttpClientHandler();
                     httpClientHandler.UseProxy = false;
                     httpClientHandler.AllowAutoRedirect = false;
-                    if (_options.ClientCertificate)
+                    if (_options.EnableCertAuth)
                     {
                         var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                         var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
