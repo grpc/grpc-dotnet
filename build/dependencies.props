@@ -19,7 +19,7 @@
     <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
-    <OpenTelemetryPackageVersion>0.2.0-alpha.100</OpenTelemetryPackageVersion>
+    <OpenTelemetryPackageVersion>0.4.0-beta.2</OpenTelemetryPackageVersion>
     <SystemCommandLinePackageVersion>2.0.0-beta1.20214.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.3.0-alpha.20214.1</SystemCommandLineRenderingPackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
