@@ -305,7 +305,7 @@ namespace GrpcClient
                 BenchmarksEventSource.Measure("grpc/latency/mean", mean);
                 BenchmarksEventSource.Measure("grpc/latency/max", _maxLatency);
 
-                Log($"Mean latency: {totalSum:0.###}ms");
+                Log($"Mean latency: {mean:0.###}ms");
                 Log($"Max latency: {_maxLatency:0.###}ms");
             }
         }
