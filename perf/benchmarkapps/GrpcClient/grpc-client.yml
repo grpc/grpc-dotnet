@@ -16,5 +16,6 @@
       grpcClientType: GrpcNetClient
       requestSize: 0
       responseSize: 0
-      clientCertificate: false
-    arguments: "-c {{connections}} --streams {{streams}} -d {{duration}} -p {{protocol}} -s {{scenario}} -u {{serverUri}}:{{serverPort}}{{path}} -w {{warmup}} --grpcClientType {{grpcClientType}} --requestSize {{requestSize}} --responseSize {{responseSize}} --clientCertificate {{clientCertificate}} {% if logLevel != 'none' %} --logLevel {{ logLevel }} {% endif %}"
+      enableCertAuth: false
+      latency: false
+    arguments: "-c {{connections}} --streams {{streams}} -d {{duration}} -p {{protocol}} -s {{scenario}} -u {{serverUri}}:{{serverPort}}{{path}} -w {{warmup}} --grpcClientType {{grpcClientType}} --requestSize {{requestSize}} --responseSize {{responseSize}} --enableCertAuth {{enableCertAuth}} --latency {{latency}} {% if logLevel != 'none' %} --logLevel {{ logLevel }} {% endif %}"

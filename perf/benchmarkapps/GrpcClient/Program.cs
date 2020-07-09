@@ -73,7 +73,7 @@ namespace GrpcClient
             rootCommand.AddOption(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
             rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
             rootCommand.AddOption(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
-            rootCommand.AddOption(new Option<bool>(new string[] { "--clientCertificate" }, () => false, "Flag indicating whether client sends a client certificate"));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate"));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
@@ -262,7 +262,9 @@ namespace GrpcClient
                     _latencyPerConnection[i].Sort();
                 }
 
-                BenchmarksEventSource.Measure("grpc/latency/mean", totalSum / totalCount);
+                var mean = (totalCount != 0) ? totalSum / totalCount : totalSum;
+
+                BenchmarksEventSource.Measure("grpc/latency/mean", mean);
 
                 var allConnections = new List<double>();
                 foreach (var connectionLatency in _latencyPerConnection)
@@ -280,6 +282,13 @@ namespace GrpcClient
                 BenchmarksEventSource.Measure("grpc/latency/90", GetPercentile(90, allConnections));
                 BenchmarksEventSource.Measure("grpc/latency/99", GetPercentile(99, allConnections));
                 BenchmarksEventSource.Measure("grpc/latency/max", GetPercentile(100, allConnections));
+
+                Log($"Mean latency: {mean:0.###}ms");
+                Log($"Max latency: {GetPercentile(100, allConnections):0.###}ms");
+                Log($"50 percentile latency: {GetPercentile(50, allConnections):0.###}ms");
+                Log($"75 percentile latency: {GetPercentile(75, allConnections):0.###}ms");
+                Log($"90 percentile latency: {GetPercentile(90, allConnections):0.###}ms");
+                Log($"99 percentile latency: {GetPercentile(99, allConnections):0.###}ms");
             }
             else
             {
@@ -291,15 +300,12 @@ namespace GrpcClient
                     totalCount += average.count;
                 }
 
-                if (totalCount != 0)
-                {
-                    totalSum /= totalCount;
-                }
+                var mean = (totalCount != 0) ? totalSum / totalCount : totalSum;
 
-                BenchmarksEventSource.Measure("grpc/latency/mean", totalSum);
+                BenchmarksEventSource.Measure("grpc/latency/mean", mean);
                 BenchmarksEventSource.Measure("grpc/latency/max", _maxLatency);
 
-                Log($"Mean latency: {totalSum:0.###}ms");
+                Log($"Mean latency: {mean:0.###}ms");
                 Log($"Max latency: {_maxLatency:0.###}ms");
             }
         }
@@ -366,7 +372,7 @@ namespace GrpcClient
             {
                 default:
                 case GrpcClientType.GrpcCore:
-                    if (_options.ClientCertificate)
+                    if (_options.EnableCertAuth)
                     {
                         throw new Exception("Client certificate not implemented for Grpc.Core");
                     }
@@ -386,7 +392,7 @@ namespace GrpcClient
                     var httpClientHandler = new HttpClientHandler();
                     httpClientHandler.UseProxy = false;
                     httpClientHandler.AllowAutoRedirect = false;
-                    if (_options.ClientCertificate)
+                    if (_options.EnableCertAuth)
                     {
                         var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                         var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
