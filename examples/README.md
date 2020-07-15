@@ -189,3 +189,22 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 * Configure ASP.NET Core server to support `grpc-web` and `grpc-web-text` content types
 * Configure ASP.NET Core server to enable gRPC-Web cross-origin requests (CORS)
 * Call gRPC services with JavaScript from a SPA
+
+## [Microservicer](./Microservicer)
+
+The microserver example shows how to use gRPC in a microservice solution. The backend app hosts a gRPC service that is called by the frontend app. In the frontend app the gRPC client factory is used to inject a gRPC client into the MVC controller.
+
+This example uses [tye](https://github.com/dotnet/tye) to run the microservice solution and for service discovery. When `tye run` command is run in the solution directory:
+
+1. Tye builds and runs the frontend and backend apps.
+2. Tye injects service addresses into each app.
+3. The frontend app configures the gRPC client with the backend address in *Startup.cs*.
+
+[Install the Tye dotnet tool](https://github.com/dotnet/tye/blob/master/docs/getting_started.md) and then execute `tye run` in the *examples/Microserver* directory.
+
+##### Scenarios:
+
+* Microservices
+* Client factory
+* Mixing frontend RESTful API with backend gRPC services
+* App development with [Tye](https://github.com/dotnet/tye)

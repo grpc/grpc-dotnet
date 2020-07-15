@@ -1,0 +1,6 @@
+name: microservicer
+services:
+- name: frontend
+  project: Frontend/Frontend.csproj
+- name: backend
+  project: Backend/Backend.csproj
