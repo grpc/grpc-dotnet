@@ -1,0 +1,73 @@
+@page
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+<form id="sendGet">
+    <h3>Greeter</h3>
+    <p>
+        Send a GET request to the Web API controller. The name is sent as a URL parameter.
+    </p>
+    <div class="form-row align-items-center">
+        <div class="col-auto">
+            <label class="sr-only" for="inlineFormInput">Hello</label>
+            <input type="text" class="form-control mb-2" id="nameGet" placeholder="Hello" required>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary mb-2">Send</button>
+            <div class="spinner-border" role="status" id="loading">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    </div>
+</form>
+<div class="alert alert-success" role="alert" id="resultGet"></div>
+
+@section Scripts {
+    <script type="text/javascript">
+        var nameGetInput = document.getElementById('nameGet');
+        var getForm = document.getElementById('sendGet');
+        var resultGetText = document.getElementById('resultGet');
+        var loadingIndicator = document.getElementById('loading');
+        
+        getForm.addEventListener('submit', function (event) {
+            if (getForm.checkValidity()) {
+                resultGetText.innerHTML = '';
+                loadingIndicator.style.display = 'inline-block';
+
+                var url = '/api/greeter/' + encodeURIComponent(nameGetInput.value);
+                fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                }).then(function (response) {
+                    response.text().then(function (data) {
+                        loadingIndicator.style.display = 'none';
+                        resultGetText.innerHTML = `<h6>Request</h6>
+<p><code>GET ${url}</code></p>
+<h6>Response</h6>
+<p><code>${htmlEscape(data)}</code></p>
+<h6>Result</h6>
+<p>${JSON.parse(data).message}</p>`;
+                    });
+                });
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+        }, false);
+
+        function htmlEscape(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+    </script>
+}
