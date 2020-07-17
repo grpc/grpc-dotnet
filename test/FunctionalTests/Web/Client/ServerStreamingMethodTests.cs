@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         {
             // Arrage
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory
@@ -85,7 +85,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         {
             // Arrage
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory
@@ -105,7 +105,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
             Assert.AreEqual("test", call.ResponseStream.Current.Message);
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None));
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
             Assert.AreEqual("Aborted from server side.", ex.Status.Detail);
@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         {
             // Arrage
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory
@@ -148,7 +148,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             cts.Cancel();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None));
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual("Call canceled by the client.", ex.Status.Detail);
 

@@ -115,7 +115,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             }
 
             public ICollection<EndpointDataSource> DataSources { get; }
-            public IServiceProvider? ServiceProvider { get; set; }
+            public IServiceProvider ServiceProvider { get; set; } = default!;
 
             public IApplicationBuilder CreateApplicationBuilder()
             {

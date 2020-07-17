@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.FunctionalTests.TestServer
 
         protected GrpcChannel CreateChannel()
         {
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, new GrpcChannelOptions
+            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, new GrpcChannelOptions
             {
                 LoggerFactory = LoggerFactory,
                 HttpClient = Fixture.Client

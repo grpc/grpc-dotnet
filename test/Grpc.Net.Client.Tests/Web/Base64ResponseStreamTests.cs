@@ -26,6 +26,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Web
@@ -151,7 +152,7 @@ namespace Grpc.Net.Client.Tests.Web
 
             // Act 3
             StreamReader r = new StreamReader(base64Stream, Encoding.UTF8);
-            var footerText = await r.ReadToEndAsync();
+            var footerText = await r.ReadToEndAsync().DefaultTimeout();
 
             Assert.AreEqual("\r\ngrpc-status: 0", footerText);
         }

@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web
         protected GrpcChannel CreateGrpcWebChannel()
         {
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory

@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act
-            var result = await r.ReadAsync();
+            var result = await r.ReadAsync().AsTask().DefaultTimeout();
 
             // Assert
             Assert.Greater(result.Buffer.Length, 0);
@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act
-            var resultTask = r.ReadAsync();
+            var resultTask = r.ReadAsync().AsTask().DefaultTimeout();
 
             Assert.IsFalse(resultTask.IsCompleted);
 
@@ -84,7 +84,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act
-            var resultTask = r.ReadAsync();
+            var resultTask = r.ReadAsync().AsTask().DefaultTimeout();
 
             Assert.IsFalse(resultTask.IsCompleted);
 
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
 
             r.AdvanceTo(result.Buffer.Start, result.Buffer.End);
 
-            result = await r.ReadAsync();
+            result = await r.ReadAsync().AsTask().DefaultTimeout();
 
             CollectionAssert.AreEqual(initialData, result.Buffer.ToArray());
         }
@@ -194,7 +194,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act
-            var readTask = r.ReadAsync();
+            var readTask = r.ReadAsync().AsTask().DefaultTimeout();
 
             r.CancelPendingRead();
 
@@ -214,7 +214,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act
-            var readTask = r.ReadAsync();
+            var readTask = r.ReadAsync().AsTask().DefaultTimeout();
 
             r.CancelPendingRead();
 
@@ -234,11 +234,11 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var r = new Base64PipeReader(testPipe.Reader);
 
             // Act 1
-            var readTask = r.ReadAsync();
+            var readTask = r.ReadAsync().AsTask().DefaultTimeout();
 
             r.CancelPendingRead();
 
-            var result = await readTask;
+            var result = await readTask.DefaultTimeout();
 
             // Assert 1
             Assert.IsTrue(result.IsCanceled);
@@ -246,7 +246,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             // Act 2
             r.AdvanceTo(result.Buffer.Start, result.Buffer.End);
             await testPipe.Writer.WriteAsync(new byte[] { (byte)'A', (byte)'=', (byte)'=' }).AsTask().DefaultTimeout();
-            result = await r.ReadAsync();
+            result = await r.ReadAsync().AsTask().DefaultTimeout();
 
             // Assert 2
             CollectionAssert.AreEqual(Convert.FromBase64String("AA=="), result.Buffer.ToArray());
@@ -302,7 +302,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
                 readMessages++;
             }
 
-            var endResult = await r.ReadAsync();
+            var endResult = await r.ReadAsync().AsTask().DefaultTimeout();
             Assert.IsTrue(endResult.IsCompleted);
         }
     }

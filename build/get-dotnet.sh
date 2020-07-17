@@ -27,4 +27,8 @@ echo "Downloading install script: $install_script_url => $install_script_path"
 curl -sSL -o $install_script_path $install_script_url
 chmod +x $install_script_path
 
+# Install .NET Core 3.x SDK to run 3.x test targets
+$install_script_path -v 3.1.300 -i $dotnet_install_path
+
+# Install .NET version specified by global.json
 $install_script_path -v $sdk_version -i $dotnet_install_path

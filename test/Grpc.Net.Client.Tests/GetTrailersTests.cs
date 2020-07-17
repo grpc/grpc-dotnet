@@ -240,7 +240,7 @@ namespace Grpc.Net.Client.Tests
 
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 var stream = new SyncPointMemoryStream();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(stream));
 

@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act & Assert
             var a = new Activity("a").Start();
-            Assert.AreEqual("a", Activity.Current.OperationName);
+            Assert.AreEqual("a", Activity.Current!.OperationName);
 
             var call = await Task.Run(() =>
             {
@@ -84,10 +84,10 @@ namespace Grpc.Net.Client.Tests
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-            var result = new List<KeyValuePair<string, object>>();
+            var result = new List<KeyValuePair<string, object?>>();
 
             // Act
-            using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object>>(result)))
+            using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object?>>(result)))
             {
                 var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
                 c.Dispose();
@@ -96,10 +96,10 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(2, result.Count);
             Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[0].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value, "Request"));
+            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value!, "Request"));
             Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[1].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value, "Request"));
-            Assert.AreEqual(responseMessage, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value, "Response"));
+            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
+            Assert.AreEqual(responseMessage, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
         }
 
         [Test]
@@ -117,17 +117,17 @@ namespace Grpc.Net.Client.Tests
 
             string? activityName = null;
             TimeSpan? activityDurationOnStop = null;
-            Action<KeyValuePair<string, object>> onDiagnosticMessage = (m) =>
+            Action<KeyValuePair<string, object?>> onDiagnosticMessage = (m) =>
             {
                 if (m.Key == GrpcDiagnostics.ActivityStopKey)
                 {
-                    activityName = Activity.Current.OperationName;
+                    activityName = Activity.Current!.OperationName;
                     activityDurationOnStop = Activity.Current.Duration;
                 }
             };
 
             // Act
-            using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object>>(onDiagnosticMessage)))
+            using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ActionObserver<KeyValuePair<string, object?>>(onDiagnosticMessage)))
             {
                 var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
                 c.Dispose();

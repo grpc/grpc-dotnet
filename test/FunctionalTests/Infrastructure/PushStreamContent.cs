@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             Headers.ContentType = mediaType ?? new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             return _onStreamAvailable(stream);
         }

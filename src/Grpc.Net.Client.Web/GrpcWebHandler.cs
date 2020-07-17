@@ -115,7 +115,7 @@ namespace Grpc.Net.Client.Web
 
         private async Task<HttpResponseMessage> SendAsyncCore(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            request.Content = new GrpcWebRequestContent(request.Content, GrpcWebMode);
+            request.Content = new GrpcWebRequestContent(request.Content!, GrpcWebMode);
 
             // Set WebAssemblyEnableStreamingResponse to true on gRPC-Web request.
             // https://github.com/mono/mono/blob/a0d69a4e876834412ba676f544d447ec331e7c01/sdks/wasm/framework/src/System.Net.Http.WebAssemblyHttpHandler/WebAssemblyHttpHandler.cs#L149
@@ -124,7 +124,9 @@ namespace Grpc.Net.Client.Web
             // return content once the entire response has been downloaded. This breaks server streaming.
             //
             // https://github.com/mono/mono/issues/18718
+#pragma warning disable CS0618 // Type or member is obsolete
             request.Properties[WebAssemblyEnableStreamingResponseKey] = true;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (HttpVersion != null)
             {

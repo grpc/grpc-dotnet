@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.AspNetCore.Http;
+
 namespace Grpc.AspNetCore.Web.Internal
 {
     internal static class GrpcWebProtocolConstants
@@ -23,6 +25,11 @@ namespace Grpc.AspNetCore.Web.Internal
         internal const string GrpcContentType = "application/grpc";
         internal const string GrpcWebContentType = "application/grpc-web";
         internal const string GrpcWebTextContentType = "application/grpc-web-text";
+
+#if NET5_0
+        internal static readonly string Http2Protocol = HttpProtocol.Http2;
+#else
         internal const string Http2Protocol = "HTTP/2";
+#endif
     }
 }

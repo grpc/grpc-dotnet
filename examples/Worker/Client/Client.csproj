@@ -1,5 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
-
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    TODO(JamesNK): SDK temporarily changed from Microsoft.NET.Sdk.Worker to Microsoft.NET.Sdk.Web
+    because of .NET 5 bug.
+  -->
+  
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>dotnet-Client-33BD397C-6A11-40D0-AF85-24B9610F7517</UserSecretsId>

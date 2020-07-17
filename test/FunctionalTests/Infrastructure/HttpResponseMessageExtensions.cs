@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         public static void AssertIsSuccessfulGrpcRequest(this HttpResponseMessage response, string contentType = GrpcProtocolConstants.GrpcContentType)
         {
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual(contentType, response.Content.Headers.ContentType.MediaType);
+            Assert.AreEqual(contentType, response.Content?.Headers?.ContentType?.MediaType);
         }
 
         public static async Task<T> GetSuccessfulGrpcMessageAsync<T>(this HttpResponseMessage response, string contentType = GrpcProtocolConstants.GrpcContentType) where T : class, IMessage, new()

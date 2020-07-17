@@ -329,7 +329,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.IsTrue(Guid.TryParse(methodName, out var _));
 
             Assert.IsTrue(response.TrailingHeaders.TryGetValues("Test-Peer", out _));
-            Assert.AreEqual(Fixture.Client.BaseAddress.Authority, response.TrailingHeaders.GetValues("Test-Host").Single());
+            Assert.AreEqual(Fixture.Client.BaseAddress!.Authority, response.TrailingHeaders.GetValues("Test-Host").Single());
         }
 
         [Test]

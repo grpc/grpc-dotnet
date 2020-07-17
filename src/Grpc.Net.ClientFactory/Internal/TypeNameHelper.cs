@@ -92,7 +92,7 @@ namespace Grpc.Net.ClientFactory.Internal
             }
             else
             {
-                var name = options.FullName ? type.FullName : type.Name;
+                var name = options.FullName ? type.FullName! : type.Name;
                 builder.Append(name);
 
                 if (options.NestedTypeDelimiter != DefaultNestedTypeDelimiter)
@@ -107,7 +107,7 @@ namespace Grpc.Net.ClientFactory.Internal
             var innerType = type;
             while (innerType.IsArray)
             {
-                innerType = innerType.GetElementType();
+                innerType = innerType.GetElementType()!;
             }
 
             ProcessType(builder, innerType, options);
@@ -117,7 +117,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 builder.Append('[');
                 builder.Append(',', type.GetArrayRank() - 1);
                 builder.Append(']');
-                type = type.GetElementType();
+                type = type.GetElementType()!;
             }
         }
 
@@ -126,14 +126,14 @@ namespace Grpc.Net.ClientFactory.Internal
             var offset = 0;
             if (type.IsNested)
             {
-                offset = type.DeclaringType.GetGenericArguments().Length;
+                offset = type.DeclaringType!.GetGenericArguments().Length;
             }
 
             if (options.FullName)
             {
                 if (type.IsNested)
                 {
-                    ProcessGenericType(builder, type.DeclaringType, genericArguments, offset, options);
+                    ProcessGenericType(builder, type.DeclaringType!, genericArguments, offset, options);
                     builder.Append(options.NestedTypeDelimiter);
                 }
                 else if (!string.IsNullOrEmpty(type.Namespace))

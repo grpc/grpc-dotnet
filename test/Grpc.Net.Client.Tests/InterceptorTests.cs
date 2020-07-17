@@ -122,8 +122,8 @@ namespace Grpc.Net.Client.Tests
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var requestContent = await request.Content.ReadAsStreamAsync();
-                await requestContent.CopyToAsync(new MemoryStream());
+                var requestContent = await request.Content!.ReadAsStreamAsync().DefaultTimeout();
+                await requestContent.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply { Message = "PASS" }).DefaultTimeout();
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
@@ -139,7 +139,7 @@ namespace Grpc.Net.Client.Tests
             await call.RequestStream.WriteAsync("A");
             await call.RequestStream.WriteAsync("B");
             await call.RequestStream.WriteAsync("C");
-            await call.RequestStream.CompleteAsync();
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
             // Assert
             Assert.AreEqual("3", await call.ResponseAsync);

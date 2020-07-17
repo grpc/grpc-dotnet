@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Web
@@ -63,8 +64,8 @@ namespace Grpc.Net.Client.Tests.Web
             var data = Encoding.UTF8.GetBytes(s);
 
             // Act
-            await gprcWebStream.WriteAsync(data);
-            await gprcWebStream.FlushAsync();
+            await gprcWebStream.WriteAsync(data).AsTask().DefaultTimeout();
+            await gprcWebStream.FlushAsync().DefaultTimeout();
 
             // Assert
             var base64 = Encoding.UTF8.GetString(ms.ToArray());
@@ -124,8 +125,8 @@ namespace Grpc.Net.Client.Tests.Web
             var data = Encoding.UTF8.GetBytes("Hello world");
 
             // Act
-            await gprcWebStream.WriteAsync(data);
-            await gprcWebStream.FlushAsync();
+            await gprcWebStream.WriteAsync(data).AsTask().DefaultTimeout();
+            await gprcWebStream.FlushAsync().DefaultTimeout();
 
             // Assert
             var base64 = Encoding.UTF8.GetString(ms.ToArray());

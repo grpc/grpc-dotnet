@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var buffer = w.GetMemory(initialData.Length);
             initialData.CopyTo(buffer);
             w.Advance(initialData.Length);
-            await w.CompleteAsync();
+            await w.CompleteAsync().AsTask().DefaultTimeout();
 
             // Assert
             var result = await testPipe.Reader.ReadAsync().AsTask().DefaultTimeout();

@@ -21,6 +21,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -33,10 +34,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task PreflightRequest_UnsupportedMethod_Return405()
         {
             // Arrange
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "Greet.Greeter/SayHello");
-            httpRequestMessage.Headers.Add("Origin", "http://localhost");
-            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
-            httpRequestMessage.Version = new Version(2, 0);
+            var httpRequestMessage = CreateRequestMessage("Greet.Greeter/SayHello");
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
@@ -50,10 +48,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task PreflightRequest_SupportedMethod_Return405()
         {
             // Arrange
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "Greet.SecondGreeter/SayHello");
-            httpRequestMessage.Headers.Add("Origin", "http://localhost");
-            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
-            httpRequestMessage.Version = new Version(2, 0);
+            var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/SayHello");
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
@@ -67,10 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task PreflightRequest_UnimplementedSupportedMethod_Return405()
         {
             // Arrange
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "Greet.SecondGreeter/ThisIsNotImplemented");
-            httpRequestMessage.Headers.Add("Origin", "http://localhost");
-            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
-            httpRequestMessage.Version = new Version(2, 0);
+            var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/ThisIsNotImplemented");
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
@@ -84,10 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task PreflightRequest_UnimplementedSupportedService_Return405()
         {
             // Arrange
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Options, "ThisIsNotImplemented/SayHello");
-            httpRequestMessage.Headers.Add("Origin", "http://localhost");
-            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
-            httpRequestMessage.Version = new Version(2, 0);
+            var httpRequestMessage = CreateRequestMessage("ThisIsNotImplemented/SayHello");
 
             // Act
             var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
@@ -95,6 +84,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
             Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+        }
+
+        private static HttpRequestMessage CreateRequestMessage(string path)
+        {
+            var httpRequestMessage = GrpcHttpHelper.Create(path, HttpMethod.Options);
+            httpRequestMessage.Headers.Add("Origin", "http://localhost");
+            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
+
+            return httpRequestMessage;
         }
     }
 }

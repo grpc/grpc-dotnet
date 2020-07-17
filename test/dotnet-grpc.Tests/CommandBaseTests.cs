@@ -510,10 +510,10 @@ namespace Grpc.Dotnet.Cli.Tests
             var packageRefs = commandBase.Project.GetItems(CommandBase.PackageReferenceElement);
             var protobufReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Google.Protobuf");
             Assert.NotNull(protobufReference);
-            Assert.AreEqual("4.5.6", protobufReference.GetMetadataValue("Version"));
+            Assert.AreEqual("4.5.6", protobufReference!.GetMetadataValue("Version"));
             var toolsReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Tools");
             Assert.NotNull(toolsReference);
-            Assert.AreEqual("7.8.9", toolsReference.GetMetadataValue("Version"));
+            Assert.AreEqual("7.8.9", toolsReference!.GetMetadataValue("Version"));
             var clientFactoryReference = packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.Net.ClientFactory");
             Assert.NotNull(clientFactoryReference);
             var clientFactoryVersion = GetType().Assembly
@@ -521,7 +521,7 @@ namespace Grpc.Dotnet.Cli.Tests
                 .Select(a => a as GrpcDependencyAttribute)
                 .Single(a => a.Name == "Grpc.Net.ClientFactory")
                 .Version;
-            Assert.AreEqual(clientFactoryVersion, clientFactoryReference.GetMetadataValue("Version"));
+            Assert.AreEqual(clientFactoryVersion, clientFactoryReference!.GetMetadataValue("Version"));
         }
     }
 }
