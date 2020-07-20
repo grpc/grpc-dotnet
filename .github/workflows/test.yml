@@ -9,10 +9,15 @@ on:
 jobs:
 
   build:
-    name: Build
+    name: Basic Tests
     runs-on: ubuntu-latest
     steps:
 
-    - name: build_and_test
-      run: |
-        build_and_test.sh
+    - name: Check out code
+      uses: actions/checkout@v2
+    
+    - name: Install dotnet
+      run: ./build/get-dotnet.sh
+
+    - name: Build and run tests
+      run: ./build_and_test.sh
