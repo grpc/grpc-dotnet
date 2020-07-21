@@ -42,6 +42,10 @@ namespace Grpc.Dotnet.Cli.Tests
                 // Act
                 Directory.SetCurrentDirectory(tempDir);
                 var command = new ListCommand(testConsole, null);
+
+                Assert.IsNotNull(command.Project);
+                Assert.AreEqual("test.csproj", Path.GetFileName(command.Project.FullPath));
+                
                 command.List();
 
                 // Assert
@@ -49,10 +53,10 @@ namespace Grpc.Dotnet.Cli.Tests
                 var lines = output.Split(Environment.NewLine);
 
                 // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
-                Assert.True(lines[0].Contains("Protobuf Reference"));
-                Assert.True(lines[0].Contains("Service Type"));
-                Assert.True(lines[0].Contains("Source URL"));
-                Assert.True(lines[0].Contains("Access"));
+                AssertContains(lines[0], "Protobuf Reference");
+                AssertContains(lines[0], "Service Type");
+                AssertContains(lines[0], "Source URL");
+                AssertContains(lines[0], "Access");
 
                 // Second line is the reference to
                 //<Protobuf Include="Proto/a.proto">
@@ -70,6 +74,11 @@ namespace Grpc.Dotnet.Cli.Tests
                 Directory.SetCurrentDirectory(currentDir);
                 Directory.Delete(tempDir, true);
             }
+        }
+
+        private void AssertContains(string source, string s)
+        {
+            Assert.True(source.Contains(s), $"Source '{source}' does not contain '{s}'.");
         }
     }
 }

@@ -104,11 +104,24 @@ namespace Grpc.Dotnet.Cli.Commands
             Region region;
             try
             {
-                // System.Console.WindowWidth can throw an IOException when runnning without a console attached
-                region = new Region(0, 0, System.Console.WindowWidth, System.Console.WindowHeight);
+                // Some environments incorrectly report zero width when there is no console
+                var width = System.Console.WindowWidth;
+                if (width == 0)
+                {
+                    width = int.MaxValue;
+                }
+
+                var height = System.Console.WindowHeight;
+                if (height == 0)
+                {
+                    height = int.MaxValue;
+                }
+
+                region = new Region(0, 0, width, height);
             }
             catch (IOException)
             {
+                // System.Console.WindowWidth can throw an IOException when runnning without a console attached
                 region = new Region(0, 0, int.MaxValue, int.MaxValue);
             }
             screen.Child?.Render(consoleRenderer, region);
