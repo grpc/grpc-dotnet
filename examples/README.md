@@ -158,7 +158,9 @@ The compressor example shows how to enable compression of gRPC request and respo
 
 ## [Liber](./Liber)
 
-The liber example shows how to add Protobuf messages to shared .NET libraries. This example has two proto files:
+The liber example shows how to add Protobuf messages to a shared .NET project. Sharing generated messages is an alternative to each project generating their own copy. Protobuf messages in a shared project makes it easier to write reusable libraries that use messages.
+
+This example has two proto files:
 
 * *common.proto* contains a common `Name` message type.
 * *greet.proto* has a service definition. It imports *common.proto* and uses the `Name` message.
@@ -166,13 +168,13 @@ The liber example shows how to add Protobuf messages to shared .NET libraries. T
 The `Name` .NET type generated from *common.proto* and is shared throughout the project:
 
 * *Common.csproj* uses Grpc.Tools to generate messages contained in *common.proto*.
-* *Client.csproj* uses Grpc.Tools to generate client for *greet.proto*. There is no `<Protobuf>` reference for *common.proto*. Instead the type is shared by the client app referencing common project.
-* *Server.csproj* uses Grpc.Tools to generate server for *greet.proto*. It also references the common project.
+* *Client.csproj* uses Grpc.Tools to generate the gRPC client for *greet.proto*. There is no `<Protobuf>` reference for *common.proto* because we don't want its messages generated in this project. Instead the .NET types for its messages are referenced from the common project.
+* *Server.csproj* uses Grpc.Tools to generate the gRPC service for *greet.proto*. It also references the common project.
 
 ##### Scenarios:
 
-* Add common messages to shared libraries
-* Include common messages in gRPC services
+* Add messages to shared .NET projects
+* Use shared messages in gRPC services
 
 ## [Browser](./Browser)
 
