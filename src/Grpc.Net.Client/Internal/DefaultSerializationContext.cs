@@ -65,12 +65,8 @@ namespace Grpc.Net.Client.Internal
                     payload = _array;
                     return true;
                 case InternalState.CompleteBufferWriter:
-                    if (_array != null)
-                    {
-                        payload = _array.AsMemory(GrpcProtocolConstants.HeaderSize, PayloadLength!.Value);
-                        return true;
-                    }
-                    break;
+                    payload = _array.AsMemory(GrpcProtocolConstants.HeaderSize, PayloadLength.GetValueOrDefault());
+                    return true;
             }
 
             payload = default;
@@ -105,8 +101,11 @@ namespace Grpc.Net.Client.Internal
             switch (_state)
             {
                 case InternalState.Initialized:
+                    Debug.Assert(PayloadLength != null, "SetPayloadLength must have already been called.");
+
                     _state = InternalState.IncompleteBufferWriter;
-                    _array = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + PayloadLength!.Value);
+                    // Leave room for the header to be written in front of the payload data
+                    _array = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + PayloadLength.GetValueOrDefault());
                     return this;
                 case InternalState.IncompleteBufferWriter:
                     return this;
@@ -125,7 +124,7 @@ namespace Grpc.Net.Client.Internal
             switch (_state)
             {
                 case InternalState.IncompleteBufferWriter:
-                    Debug.Assert(_writerPosition == PayloadLength!.Value);
+                    Debug.Assert(_writerPosition == PayloadLength.GetValueOrDefault(), "Must have written to the end of the payload length.");
                     _state = InternalState.CompleteBufferWriter;
                     break;
                 default:
@@ -136,17 +135,19 @@ namespace Grpc.Net.Client.Internal
 
         void IBufferWriter<byte>.Advance(int count)
         {
-            Debug.Assert(_writerPosition + count <= PayloadLength!.Value);
+            Debug.Assert(_writerPosition + count <= PayloadLength.GetValueOrDefault(), "Can't advance past the total payload length.");
             _writerPosition += count;
         }
 
         Memory<byte> IBufferWriter<byte>.GetMemory(int sizeHint)
         {
+            // Leave room for the header to be written in front of the payload data
             return _array.AsMemory(GrpcProtocolConstants.HeaderSize + _writerPosition);
         }
 
         Span<byte> IBufferWriter<byte>.GetSpan(int sizeHint)
         {
+            // Leave room for the header to be written in front of the payload data
             return _array.AsSpan(GrpcProtocolConstants.HeaderSize + _writerPosition);
         }
     }
