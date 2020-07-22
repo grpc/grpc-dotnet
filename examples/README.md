@@ -165,7 +165,7 @@ This example has two proto files:
 * *common.proto* contains a common `Name` message type.
 * *greet.proto* has a service definition. It imports *common.proto* and uses the `Name` message.
 
-The `Name` .NET type generated from *common.proto* and is shared throughout the project:
+The `Name` .NET type is generated from *common.proto* in the common project and is shared throughout the solution:
 
 * *Common.csproj* uses Grpc.Tools to generate messages contained in *common.proto*.
 * *Client.csproj* uses Grpc.Tools to generate the gRPC client for *greet.proto*. There is no `<Protobuf>` reference for *common.proto* because we don't want its messages generated in this project. Instead the .NET types for its messages are referenced from the common project.
@@ -173,7 +173,7 @@ The `Name` .NET type generated from *common.proto* and is shared throughout the 
 
 ##### Scenarios:
 
-* Add messages to shared .NET projects
+* Add Protobuf messages to shared .NET projects
 * Use shared messages in gRPC services
 
 ## [Browser](./Browser)
