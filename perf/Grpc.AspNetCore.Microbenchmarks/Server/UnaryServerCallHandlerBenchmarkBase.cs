@@ -114,8 +114,23 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
 
         protected virtual Marshaller<ChatMessage> CreateMarshaller()
         {
-            var marshaller = Marshallers.Create((arg) => MessageExtensions.ToByteArray(arg), bytes => new ChatMessage());
-            return marshaller;
+            var binder = new FakeBinder();
+            Chatter.BindService(binder, null);
+
+            return binder.ChatMessageMarshaller!;
+        }
+
+        private class FakeBinder : ServiceBinderBase
+        {
+            public Marshaller<ChatMessage>? ChatMessageMarshaller { get; private set; }
+
+            public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
+            {
+                if (method.Name == "Chat")
+                {
+                    ChatMessageMarshaller = (Marshaller<ChatMessage>)(object)method.RequestMarshaller;
+                }
+            }
         }
 
         protected virtual void SetupHttpContext(HttpContext httpContext)

@@ -260,13 +260,14 @@ namespace Grpc.Net.Client
             Dictionary<string, ICompressionProvider> compressionProviders,
             CallOptions callOptions)
         {
+            DefaultSerializationContext? serializationContext = null;
+
             try
             {
                 GrpcCallLog.SendingMessage(logger);
 
                 // Serialize message first. Need to know size to prefix the length in the header
-                var serializationContext = new DefaultSerializationContext();
-                serializationContext.Reset();
+                serializationContext = new DefaultSerializationContext();
                 serializer(message, serializationContext);
                 if (!serializationContext.TryGetPayload(out var data))
                 {
@@ -295,21 +296,34 @@ namespace Grpc.Net.Client
                 }
 
                 var totalSize = data.Length + GrpcProtocolConstants.HeaderSize;
-                var completeData = ArrayPool<byte>.Shared.Rent(totalSize);
-                try
-                {
-                    var buffer = completeData.AsMemory(0, totalSize);
 
+                if (serializationContext.IsBufferWriter && !isCompressed)
+                {
+                    var buffer = serializationContext.GetUnderlyingArray().Slice(0, totalSize);
                     WriteHeader(buffer.Span.Slice(0, GrpcProtocolConstants.HeaderSize), isCompressed, data.Length);
-                    data.CopyTo(buffer.Slice(GrpcProtocolConstants.HeaderSize));
 
                     // Sending the header+content in a single WriteAsync call has significant performance benefits
                     // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
                     await stream.WriteAsync(buffer, callOptions.CancellationToken).ConfigureAwait(false);
                 }
-                finally
+                else
                 {
-                    ArrayPool<byte>.Shared.Return(completeData);
+                    var rentedArray = ArrayPool<byte>.Shared.Rent(totalSize);
+                    var buffer = rentedArray.AsMemory(0, totalSize);
+                    try
+                    {
+
+                        WriteHeader(buffer.Span.Slice(0, GrpcProtocolConstants.HeaderSize), isCompressed, data.Length);
+                        data.CopyTo(buffer.Slice(GrpcProtocolConstants.HeaderSize));
+
+                        // Sending the header+content in a single WriteAsync call has significant performance benefits
+                        // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
+                        await stream.WriteAsync(buffer, callOptions.CancellationToken).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(rentedArray);
+                    }
                 }
 
                 GrpcCallLog.MessageSent(logger);
@@ -318,6 +332,10 @@ namespace Grpc.Net.Client
             {
                 GrpcCallLog.ErrorSendingMessage(logger, ex);
                 throw;
+            }
+            finally
+            {
+                serializationContext?.Reset();
             }
         }
 

@@ -25,13 +25,13 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal sealed class DefaultSerializationContext : SerializationContext
+    internal sealed class DefaultSerializationContext : SerializationContext, IBufferWriter<byte>
     {
         private byte[]? _array;
         private InternalState _state;
+        private int _writerPosition;
 
         public int? PayloadLength { get; set; }
-        private ArrayBufferWriter<byte>? _bufferWriter;
 
         private enum InternalState : byte
         {
@@ -44,12 +44,12 @@ namespace Grpc.Net.Client.Internal
         public void Reset()
         {
             PayloadLength = null;
-            if (_bufferWriter != null)
+            if (IsBufferWriter)
             {
-                // Reuse existing buffer writer
-                _bufferWriter.Clear();
+                ArrayPool<byte>.Shared.Return(_array);
             }
             _array = null;
+            _writerPosition = 0;
             _state = InternalState.Initialized;
         }
 
@@ -65,9 +65,9 @@ namespace Grpc.Net.Client.Internal
                     payload = _array;
                     return true;
                 case InternalState.CompleteBufferWriter:
-                    if (_bufferWriter != null)
+                    if (_array != null)
                     {
-                        payload = _bufferWriter.WrittenMemory;
+                        payload = _array.AsMemory(GrpcProtocolConstants.HeaderSize, PayloadLength!.Value);
                         return true;
                     }
                     break;
@@ -76,6 +76,10 @@ namespace Grpc.Net.Client.Internal
             payload = default;
             return false;
         }
+
+        public bool IsBufferWriter => _state == InternalState.IncompleteBufferWriter || _state == InternalState.CompleteBufferWriter;
+
+        public Memory<byte> GetUnderlyingArray() => _array;
 
         public override void SetPayloadLength(int payloadLength)
         {
@@ -102,21 +106,14 @@ namespace Grpc.Net.Client.Internal
             {
                 case InternalState.Initialized:
                     _state = InternalState.IncompleteBufferWriter;
-                    return ResolveBufferWriter();
+                    _array = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + PayloadLength!.Value);
+                    return this;
                 case InternalState.IncompleteBufferWriter:
-                    return ResolveBufferWriter();
+                    return this;
                 default:
                     ThrowInvalidState(_state);
                     return default!;
             }
-        }
-
-        private IBufferWriter<byte> ResolveBufferWriter()
-        {
-            // TODO(JamesNK): I believe length should be known by the context before the buffer writer is
-            // fetched for the first time. Should be able to initialize a custom buffer writer with pooled
-            // array of the required size.
-            return _bufferWriter ??= new ArrayBufferWriter<byte>();
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -128,12 +125,29 @@ namespace Grpc.Net.Client.Internal
             switch (_state)
             {
                 case InternalState.IncompleteBufferWriter:
+                    Debug.Assert(_writerPosition == PayloadLength!.Value);
                     _state = InternalState.CompleteBufferWriter;
                     break;
                 default:
                     ThrowInvalidState(_state);
                     break;
             }
+        }
+
+        void IBufferWriter<byte>.Advance(int count)
+        {
+            Debug.Assert(_writerPosition + count <= PayloadLength!.Value);
+            _writerPosition += count;
+        }
+
+        Memory<byte> IBufferWriter<byte>.GetMemory(int sizeHint)
+        {
+            return _array.AsMemory(GrpcProtocolConstants.HeaderSize + _writerPosition);
+        }
+
+        Span<byte> IBufferWriter<byte>.GetSpan(int sizeHint)
+        {
+            return _array.AsSpan(GrpcProtocolConstants.HeaderSize + _writerPosition);
         }
     }
 }
