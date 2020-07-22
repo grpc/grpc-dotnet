@@ -156,6 +156,26 @@ The compressor example shows how to enable compression of gRPC request and respo
 * Compression of request messages. gRPC clients should use the `grpc-internal-encoding-request` metadata value.
 * Compression of response messages. gRPC services should configure the `ResponseCompressionAlgorithm` setting.
 
+## [Liber](./Liber)
+
+The liber example shows how to add Protobuf messages to a shared .NET project. Sharing generated messages is an alternative to each project generating their own copy. Protobuf messages in a shared project makes it easier to write reusable libraries that use messages.
+
+This example has two proto files:
+
+* *common.proto* contains a common `Name` message type.
+* *greet.proto* has a service definition. It imports *common.proto* and uses the `Name` message.
+
+The `Name` .NET type is generated from *common.proto* in the common project and is shared throughout the solution:
+
+* *Common.csproj* uses Grpc.Tools to generate messages contained in *common.proto*.
+* *Client.csproj* uses Grpc.Tools to generate the gRPC client for *greet.proto*. There is no `<Protobuf>` reference for *common.proto* because we don't want its messages generated in this project. Instead the .NET types for its messages are referenced from the common project.
+* *Server.csproj* uses Grpc.Tools to generate the gRPC service for *greet.proto*. It also references the common project.
+
+##### Scenarios:
+
+* Add Protobuf messages to shared .NET projects
+* Use shared messages in gRPC services
+
 ## [Browser](./Browser)
 
 The browser example shows how to use [gRPC-Web](https://github.com/grpc/grpc-web) with ASP.NET Core to call a gRPC service from a browser. Browser apps have limited HTTP/2 features and need to use gRPC-Web instead. This example requires [npm and NodeJS](https://nodejs.org/) to be installed on your computer.
