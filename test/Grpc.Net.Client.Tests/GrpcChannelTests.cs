@@ -113,6 +113,42 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task Build_HttpClient_UsedForRequestsAsync()
+        {
+            // Arrange
+            var handler = new ExceptionHttpMessageHandler("HttpClient");
+            var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+            {
+                HttpClient = new HttpClient(handler)
+            });
+            var client = new Greeter.GreeterClient(channel);
+
+            // Act
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest()));
+
+            // Assert
+            Assert.AreEqual("HttpClient", ex.Status.DebugException.Message);
+        }
+
+        [Test]
+        public async Task Build_HttpHandler_UsedForRequestsAsync()
+        {
+            // Arrange
+            var handler = new ExceptionHttpMessageHandler("HttpHandler");
+            var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+            {
+                HttpHandler = handler
+            });
+            var client = new Greeter.GreeterClient(channel);
+
+            // Act
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest()));
+
+            // Assert
+            Assert.AreEqual("HttpHandler", ex.Status.DebugException.Message);
+        }
+
+        [Test]
         public void Dispose_NotCalled_NotDisposed()
         {
             // Arrange
@@ -280,6 +316,21 @@ namespace Grpc.Net.Client.Tests
             protected override void Dispose(bool disposing)
             {
                 Disposed = true;
+            }
+        }
+
+        public class ExceptionHttpMessageHandler : HttpMessageHandler
+        {
+            public string ExceptionMessage { get; }
+
+            public ExceptionHttpMessageHandler(string exceptionMessage)
+            {
+                ExceptionMessage = exceptionMessage;
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                return Task.FromException<HttpResponseMessage>(new InvalidOperationException(ExceptionMessage));
             }
         }
     }
