@@ -16,7 +16,7 @@
     <MicrosoftTyePackageVersion>0.3.0-alpha.20319.3</MicrosoftTyePackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
-    <NewtonsoftJsonPackageVersion>12.0.2</NewtonsoftJsonPackageVersion>
+    <NewtonsoftJsonPackageVersion>12.0.3</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
     <OpenTelemetryPackageVersion>0.2.0-alpha.100</OpenTelemetryPackageVersion>
