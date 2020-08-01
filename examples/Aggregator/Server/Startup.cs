@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Diagnostics;
 using Count;
 using Greet;
 using Microsoft.AspNetCore.Builder;
@@ -26,8 +25,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry.Trace.Configuration;
+using OpenTelemetry.Trace;
 
 namespace Server
 {
@@ -50,9 +48,10 @@ namespace Server
             {
                 services.AddOpenTelemetry(telemetry =>
                 {
-                    telemetry.UseZipkin(o => o.ServiceName = "aggregator");
-                    telemetry.AddDependencyCollector();
-                    telemetry.AddRequestCollector();
+                    telemetry.UseZipkinExporter(o => o.ServiceName = "aggregator");
+                    telemetry.AddGrpcClientInstrumentation();
+                    telemetry.AddHttpClientInstrumentation();
+                    telemetry.AddAspNetCoreInstrumentation();
                 });
             }
 
