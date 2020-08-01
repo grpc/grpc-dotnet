@@ -50,6 +50,7 @@ namespace Server
                 {
                     telemetry.UseZipkinExporter(o => o.ServiceName = "aggregator");
                     telemetry.AddGrpcClientInstrumentation();
+                    telemetry.AddHttpClientInstrumentation();
                     telemetry.AddAspNetCoreInstrumentation();
                 });
             }
