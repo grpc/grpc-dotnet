@@ -11,10 +11,11 @@
 
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
 
-    <PackageReference Include="OpenTelemetry.Hosting" Version="$(OpenTelemetryPackageVersion)" />
     <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Collector.Dependencies" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Collector.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Grpc" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryPackageVersion)" />
   </ItemGroup>
 
 </Project>
