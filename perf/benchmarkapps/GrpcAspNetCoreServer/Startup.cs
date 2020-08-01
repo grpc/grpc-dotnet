@@ -105,7 +105,7 @@ namespace GrpcAspNetCoreServer
                     ms.Seek(0, SeekOrigin.Begin);
 
                     JsonSerializer serializer = new JsonSerializer();
-                    var message = serializer.Deserialize<SimpleRequest>(new JsonTextReader(new StreamReader(ms)));
+                    var message = serializer.Deserialize<SimpleRequest>(new JsonTextReader(new StreamReader(ms)))!;
 
                     ms.Seek(0, SeekOrigin.Begin);
                     using (var writer = new JsonTextWriter(new StreamWriter(ms, Encoding.UTF8, 1024, true)))
