@@ -112,6 +112,7 @@ namespace GrpcClient
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(_options.Duration + _options.Warmup));
 
+            _warmingUp = true;
             _ = Task.Run(async () =>
             {
                 await Task.Delay(TimeSpan.FromSeconds(_options.Warmup));
