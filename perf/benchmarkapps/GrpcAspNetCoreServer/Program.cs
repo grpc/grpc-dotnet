@@ -110,7 +110,14 @@ namespace GrpcAspNetCoreServer
                     if (Enum.TryParse<LogLevel>(config["LogLevel"], out var logLevel) && logLevel != LogLevel.None)
                     {
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
-                        loggerFactory.AddConsole(o => o.TimestampFormat = "ss.ffff ").SetMinimumLevel(logLevel);
+
+                        loggerFactory
+#if NETCOREAPP3_1
+                            .AddConsole(o => o.TimestampFormat = "ss.ffff ")
+#else
+                            .AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ")
+#endif
+                            .SetMinimumLevel(logLevel);
                     }
                 })
                 .UseDefaultServiceProvider((context, options) =>

@@ -48,8 +48,8 @@ namespace GrpcClient
         private static List<List<double>> _latencyPerConnection = null!;
         private static double _maxLatency;
         private static Stopwatch _workTimer = new Stopwatch();
-        private static bool _warmingUp;
-        private static bool _stopped;
+        private static volatile bool _warmingUp;
+        private static volatile bool _stopped;
         private static SemaphoreSlim _lock = new SemaphoreSlim(1);
         private static List<(double sum, int count)> _latencyAverage = null!;
         private static int _totalRequests;
