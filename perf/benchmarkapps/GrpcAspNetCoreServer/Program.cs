@@ -112,10 +112,10 @@ namespace GrpcAspNetCoreServer
                         Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
 
                         loggerFactory
-#if NETCOREAPP3_1
-                            .AddConsole(o => o.TimestampFormat = "ss.ffff ")
-#else
+#if NET5_0
                             .AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ")
+#else
+                            .AddConsole(o => o.TimestampFormat = "ss.ffff ")
 #endif
                             .SetMinimumLevel(logLevel);
                     }
