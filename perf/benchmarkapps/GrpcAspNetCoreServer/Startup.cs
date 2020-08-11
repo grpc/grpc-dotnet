@@ -24,6 +24,7 @@ using Grpc.Testing;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,8 +45,13 @@ namespace GrpcAspNetCoreServer
         {
             services.AddGrpc(o =>
             {
-                // Small performance benefits to not add catch-all routes to handle UNIMPLEMENTED for unknown services
+                // Small performance benefit to not add catch-all routes to handle UNIMPLEMENTED for unknown services
                 o.IgnoreUnknownServices = true;
+            });
+            services.Configure<RouteOptions>(c =>
+            {
+                // Small performance benefit to skip checking for security metadata on endpoint
+                c.SuppressCheckForUnhandledSecurityMetadata = true;
             });
             services.AddSingleton<BenchmarkServiceImpl>();
             services.AddControllers();
