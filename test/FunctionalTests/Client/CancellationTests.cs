@@ -39,7 +39,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [TestCase(20)]
         public async Task DuplexStreaming_CancelAfterHeadersInParallel_Success(int tasks)
         {
-            await CancelInParallel(tasks, waitForHeaders: true, interations: 10);
+            await CancelInParallel(tasks, waitForHeaders: true, interations: 10).TimeoutAfter(TimeSpan.FromSeconds(60));
         }
 
         [TestCase(1)]
@@ -47,7 +47,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [TestCase(20)]
         public async Task DuplexStreaming_CancelWithoutHeadersInParallel_Success(int tasks)
         {
-            await CancelInParallel(tasks, waitForHeaders: false, interations: 10);
+            await CancelInParallel(tasks, waitForHeaders: false, interations: 10).TimeoutAfter(TimeSpan.FromSeconds(60));
         }
 
         private async Task CancelInParallel(int tasks, bool waitForHeaders, int interations)
@@ -96,29 +96,39 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = new StreamService.StreamServiceClient(Channel);
 
-            await TestHelpers.RunParallel(tasks, async () =>
+            await TestHelpers.RunParallel(tasks, async taskIndex =>
             {
-                for (int i = 0; i < interations; i++)
+                try
                 {
-                    var cts = new CancellationTokenSource();
-                    var headers = new Metadata();
-                    if (waitForHeaders)
+                    for (int i = 0; i < interations; i++)
                     {
-                        headers.Add("flush-headers", bool.TrueString);
+                        Logger.LogInformation($"Staring {taskIndex}-{i}");
+
+                        var cts = new CancellationTokenSource();
+                        var headers = new Metadata();
+                        if (waitForHeaders)
+                        {
+                            headers.Add("flush-headers", bool.TrueString);
+                        }
+                        using var call = client.EchoAllData(cancellationToken: cts.Token, headers: headers);
+
+                        if (waitForHeaders)
+                        {
+                            await call.ResponseHeadersAsync.DefaultTimeout();
+                        }
+
+                        await call.RequestStream.WriteAsync(new DataMessage
+                        {
+                            Data = ByteString.CopyFrom(data)
+                        }).DefaultTimeout();
+
+                        cts.Cancel();
                     }
-                    var call = client.EchoAllData(cancellationToken: cts.Token, headers: headers);
-
-                    if (waitForHeaders)
-                    {
-                        await call.ResponseHeadersAsync.DefaultTimeout();
-                    }
-
-                    await call.RequestStream.WriteAsync(new DataMessage
-                    {
-                        Data = ByteString.CopyFrom(data)
-                    }).DefaultTimeout();
-
-                    cts.Cancel();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Cancellation error");
+                    throw;
                 }
             });
         }
@@ -172,7 +182,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Act
             var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
-            await syncPoint.WaitForSyncPoint();
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
             syncPoint.Continue();
 
             // Assert
@@ -238,7 +248,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Act
             var call = client.ServerStreamingCall(new DataMessage());
-            await syncPoint.WaitForSyncPoint();
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
             syncPoint.Continue();
 
             // Assert
@@ -288,9 +298,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 // Cancellation happened after checking token but before writing message
                 if (writeContext.LoggerName == "Grpc.AspNetCore.Server.ServerCallHandler" &&
-                    writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                    writeContext.Exception is InvalidOperationException &&
-                    writeContext.Exception.Message == "Cannot write message after request is complete.")
+                    writeContext.EventId.Name == "ErrorExecutingServiceMethod")
                 {
                     return true;
                 }

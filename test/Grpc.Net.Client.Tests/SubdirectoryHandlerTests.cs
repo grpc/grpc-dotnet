@@ -82,7 +82,7 @@ namespace Grpc.Net.Client.Tests
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                var url = $"{request.RequestUri.Scheme}://{request.RequestUri.Host}{_subdirectory}{request.RequestUri.AbsolutePath}";
+                var url = $"{request.RequestUri!.Scheme}://{request.RequestUri.Host}{_subdirectory}{request.RequestUri.AbsolutePath}";
                 request.RequestUri = new Uri(url, UriKind.Absolute);
                 return base.SendAsync(request, cancellationToken);
             }

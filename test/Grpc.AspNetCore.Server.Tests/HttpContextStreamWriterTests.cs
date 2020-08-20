@@ -87,7 +87,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await writer.WriteAsync(new HelloReply
             {
                 Message = "Hello world 1"
-            });
+            }).DefaultTimeout();
 
             // Assert 1
             Assert.AreEqual(0, ms.Length);
@@ -96,12 +96,12 @@ namespace Grpc.AspNetCore.Server.Tests
             await writer.WriteAsync(new HelloReply
             {
                 Message = "Hello world 2"
-            });
+            }).DefaultTimeout();
 
             // Assert 2
             Assert.AreEqual(0, ms.Length);
 
-            await httpContext.Response.BodyWriter.FlushAsync();
+            await httpContext.Response.BodyWriter.FlushAsync().AsTask().DefaultTimeout();
 
             ms.Seek(0, SeekOrigin.Begin);
             var pipeReader = PipeReader.Create(ms);

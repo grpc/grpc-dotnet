@@ -412,7 +412,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                     (r.Exception!.Message == "Cannot write message after request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
 
                 return errorLogged;
-            }, "Expected error not thrown.");
+            }, "Expected error not thrown.").DefaultTimeout();
 
             await TestHelpers.AssertIsTrueRetryAsync(
                 () => HasLog(LogLevel.Trace, "DeadlineStopped", "Request deadline stopped."),

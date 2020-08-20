@@ -43,7 +43,7 @@ namespace Grpc.Net.Client.Web.Internal
                 : GrpcWebProtocolConstants.GrpcWebHeader;
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context) =>
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
             _mode == GrpcWebMode.GrpcWebText
                 ? SerializeTextToStreamAsync(stream)
                 : _inner.CopyToAsync(stream);

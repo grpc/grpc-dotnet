@@ -23,10 +23,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public static class GrpcHttpHelper
     {
-        public static HttpRequestMessage Create(string url)
+        public static HttpRequestMessage Create(string url, HttpMethod? method = null)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
+            var request = new HttpRequestMessage(method ?? HttpMethod.Post, url);
             request.Version = new Version(2, 0);
+#if NET5_0
+            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+#endif
 
             return request;
         }

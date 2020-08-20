@@ -77,11 +77,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 // if it is written in the test's execution context.
                 ExecutionContext.Run(_executionContext, s =>
                 {
-                    var timestamp = $"{(DateTimeOffset.UtcNow - _timeStart).TotalSeconds.ToString("N3")}s";
+                    var timestamp = $"{(DateTimeOffset.UtcNow - _timeStart).TotalSeconds:N3}s";
 
                     var logLine = timestamp + " " + _categoryName + " - " + logLevel + ": " + formatter(state, exception);
 
                     _writer.WriteLine(logLine);
+                    if (exception != null)
+                    {
+                        _writer.WriteLine(exception);
+                    }
                 }, null);
             }
         }

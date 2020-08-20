@@ -104,7 +104,7 @@ message HelloReply {
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                var requestUriString = request.RequestUri.ToString();
+                var requestUriString = request.RequestUri!.ToString();
                 Assert.Contains(requestUriString, _contentDictionary.Keys);
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {

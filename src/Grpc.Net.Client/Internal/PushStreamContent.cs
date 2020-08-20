@@ -37,7 +37,7 @@ namespace Grpc.Net.Client.Internal
             _streamWriter = streamWriter;
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             // Immediately flush request stream to send headers
             // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081

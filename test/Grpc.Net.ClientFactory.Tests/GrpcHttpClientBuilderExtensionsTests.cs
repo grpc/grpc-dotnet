@@ -341,7 +341,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 // Get stream from request content so gRPC client serializes request message
-                _ = await request.Content.ReadAsStreamAsync();
+                _ = await request.Content!.ReadAsStreamAsync();
 
                 var reply = new HelloReply { Message = "Hello world" };
                 var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();

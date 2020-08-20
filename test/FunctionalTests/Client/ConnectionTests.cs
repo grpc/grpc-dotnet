@@ -22,7 +22,6 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
-using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Client
@@ -33,10 +32,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ALPN_ProtocolDowngradedToHttp1_ThrowErrorFromServer()
         {
+            SetExpectedErrorsFilter(r =>
+            {
+                return r.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" && r.EventId.Name == "ErrorStartingCall";
+            });
+
             // Arrange
             var httpClient = Fixture.CreateClient(TestServerEndpointName.Http1WithTls);
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 LoggerFactory = LoggerFactory,
                 HttpClient = httpClient
@@ -49,9 +53,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+#if NET5_0
+            var debugException = ex.Status.DebugException;
+            Assert.AreEqual("The SSL connection could not be established, see inner exception.", debugException.Message);
+#else
             Assert.AreEqual("Request protocol 'HTTP/1.1' is not supported.", ex.Status.Detail);
-
-            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Internal', Message: 'Request protocol 'HTTP/1.1' is not supported.'.");
+#endif
         }
     }
 }

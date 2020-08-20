@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
                     endpointConventionBuilders.Add(endpointBuilder);
 
-                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, method.Pattern.RawText);
+                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, method.Pattern.RawText ?? string.Empty);
                 }
             }
             else
@@ -137,7 +137,10 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private static IEndpointConventionBuilder CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
         {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            // https://github.com/dotnet/aspnetcore/issues/24042
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcUnimplementedConstraint.Instance });
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
 
             endpointBuilder.Add(ep =>
@@ -154,7 +157,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         {
             public static readonly GrpcUnimplementedConstraint Instance = new GrpcUnimplementedConstraint();
 
-            public bool Match(HttpContext httpContext, IRouter route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
+            public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
             {
                 if (httpContext == null)
                 {

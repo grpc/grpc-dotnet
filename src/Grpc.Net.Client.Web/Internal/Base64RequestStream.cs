@@ -84,7 +84,13 @@ namespace Grpc.Net.Client.Web.Internal
 
                 EnsureSuccess(
                     Base64.EncodeToUtf8(data.Span.Slice(0, encodeLength), localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
-                    OperationStatus.NeedMoreData);
+#if NETSTANDARD2_1
+                    OperationStatus.NeedMoreData
+#else
+                    // React to fix https://github.com/dotnet/runtime/pull/281
+                    encodeLength == bytesConsumed ? OperationStatus.Done : OperationStatus.NeedMoreData
+#endif
+                    );
 
                 var base64Remainder = _buffer.Length - localBuffer.Length;
                 await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten + base64Remainder), cancellationToken).ConfigureAwait(false);
@@ -113,7 +119,7 @@ namespace Grpc.Net.Client.Web.Internal
         {
             if (status != expectedStatus)
             {
-                throw new InvalidOperationException("Error encoding content to base64: " + status);
+                throw new InvalidOperationException($"Error encoding content to base64. Expected status: {expectedStatus}, actual status: {status}.");
             }
         }
 
@@ -146,7 +152,7 @@ namespace Grpc.Net.Client.Web.Internal
             base.Dispose(disposing);
         }
 
-        #region Stream implementation
+#region Stream implementation
         public override bool CanRead => _inner.CanRead;
         public override bool CanSeek => _inner.CanSeek;
         public override bool CanWrite => _inner.CanWrite;
@@ -183,6 +189,6 @@ namespace Grpc.Net.Client.Web.Internal
             WriteAsync(buffer.AsMemory(0, count)).AsTask().GetAwaiter().GetResult();
             FlushAsync().GetAwaiter().GetResult();
         }
-        #endregion
+#endregion
     }
 }

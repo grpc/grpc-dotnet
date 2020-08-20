@@ -40,7 +40,7 @@ namespace Grpc.Net.Client.Internal
             Headers.ContentType = mediaType;
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             var writeMessageTask = _call.WriteMessageAsync(stream, _content, _grpcEncoding, _call.Options);
             if (writeMessageTask.IsCompletedSuccessfully)

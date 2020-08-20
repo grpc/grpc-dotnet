@@ -87,23 +87,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 client = new HttpClient(httpClientHandler);
             }
 
+            if (endpointName == TestServerEndpointName.Http2)
+            {
+                client.DefaultRequestVersion = new Version(2, 0);
+#if NET5_0
+                client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+#endif
+            }
+            client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+
+            return (client, handler);
+        }
+
+        public Uri GetUrl(TestServerEndpointName? endpointName = null)
+        {
             switch (endpointName)
             {
                 case TestServerEndpointName.Http1:
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
-                    break;
+                    return new Uri(_server.GetUrl(endpointName.Value));
                 case TestServerEndpointName.Http2:
-                    client.DefaultRequestVersion = new Version(2, 0);
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
-                    break;
+                    return new Uri(_server.GetUrl(endpointName.Value));
                 case TestServerEndpointName.Http1WithTls:
-                    client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
-                    break;
+                    return new Uri(_server.GetUrl(endpointName.Value));
                 default:
                     throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
             }
-
-            return (client, handler);
         }
 
         internal event Action<LogRecord> ServerLogged

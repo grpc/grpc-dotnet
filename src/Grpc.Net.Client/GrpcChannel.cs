@@ -21,7 +21,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
@@ -99,10 +98,56 @@ namespace Grpc.Net.Client
         {
             // HttpMessageInvoker should always dispose handler if Disposed is called on it.
             // Decision to dispose invoker is controlled by _shouldDisposeHttpClient.
-            var httpInvoker = new HttpMessageInvoker(handler ?? new HttpClientHandler(), disposeHandler: true);
+            if (handler == null)
+            {
+#if NET5_0
+                handler = new SocketsHttpHandler
+                {
+                    EnableMultipleHttp2Connections = true
+                };
+#else
+                handler = new HttpClientHandler();
+#endif
+            }
+
+#if NET5_0
+            // HttpClientHandler has an internal handler that sets request telemetry header.
+            // If the handler is SocketsHttpHandler then we know that the header will never be set
+            // so wrap with a telemetry header setting handler.
+            if (IsSocketsHttpHandler(handler))
+            {
+                handler = new TelemetryHeaderHandler(handler);
+            }
+#endif
+
+            var httpInvoker = new HttpMessageInvoker(handler, disposeHandler: true);
 
             return httpInvoker;
         }
+
+#if NET5_0
+        private static bool IsSocketsHttpHandler(HttpMessageHandler handler)
+        {
+            if (handler is SocketsHttpHandler)
+            {
+                return true;
+            }
+
+            HttpMessageHandler? currentHandler = handler;
+            DelegatingHandler? delegatingHandler;
+            while ((delegatingHandler = currentHandler as DelegatingHandler) != null)
+            {
+                currentHandler = delegatingHandler.InnerHandler;
+
+                if (currentHandler is SocketsHttpHandler)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+#endif
 
         internal void RegisterActiveCall(IDisposable grpcCall)
         {

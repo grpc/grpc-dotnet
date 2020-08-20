@@ -27,6 +27,6 @@ namespace Grpc.Tests.Shared
             HttpContext = httpContext;
         }
 
-        public HttpContext HttpContext { get; set; }
+        public HttpContext? HttpContext { get; set; }
     }
 }

@@ -44,7 +44,7 @@ namespace Grpc.Shared.TestAssets
         }
     }
 
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
     public class CoreChannelWrapper : IChannelWrapper
     {
         private Channel _channel;

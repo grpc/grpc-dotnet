@@ -51,7 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
             ));
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 LoggerFactory = LoggerFactory,
                 HttpClient = httpClient

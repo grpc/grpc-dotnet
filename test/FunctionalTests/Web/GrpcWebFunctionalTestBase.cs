@@ -33,38 +33,38 @@ namespace Grpc.AspNetCore.FunctionalTests.Web
 
     public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
     {
-        private readonly GrpcTestMode _grpcTestMode;
-        private readonly TestServerEndpointName _endpointName;
+        public GrpcTestMode GrpcTestMode { get; }
+        public TestServerEndpointName EndpointName { get; }
 
         protected GrpcWebFunctionalTestBase(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
         {
-            _grpcTestMode = grpcTestMode;
-            _endpointName = endpointName;
+            GrpcTestMode = grpcTestMode;
+            EndpointName = endpointName;
         }
 
         protected HttpClient CreateGrpcWebClient()
         {
-            var protocol = _endpointName == TestServerEndpointName.Http1
+            var protocol = EndpointName == TestServerEndpointName.Http1
                 ? new Version(1, 1)
                 : new Version(2, 0);
 
             GrpcWebHandler? grpcWebHandler = null;
-            if (_grpcTestMode != GrpcTestMode.Grpc)
+            if (GrpcTestMode != GrpcTestMode.Grpc)
             {
-                var mode = _grpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
+                var mode = GrpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
                 grpcWebHandler = new GrpcWebHandler(mode)
                 {
                     HttpVersion = protocol
                 };
             }
 
-            return Fixture.CreateClient(_endpointName, grpcWebHandler);
+            return Fixture.CreateClient(EndpointName, grpcWebHandler);
         }
 
         protected GrpcChannel CreateGrpcWebChannel()
         {
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory

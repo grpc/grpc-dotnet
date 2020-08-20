@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
         public Stream Body { get; set; } = Stream.Null;
         public bool HasStarted { get; }
         public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
-        public string ReasonPhrase { get; set; } = string.Empty;
+        public string? ReasonPhrase { get; set; } = string.Empty;
         public int StatusCode { get; set; }
 
         public void OnCompleted(Func<object, Task> callback, object state)

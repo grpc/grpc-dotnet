@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal bool HasResponseTrailers => _responseTrailers != null;
 
-        protected override string MethodCore => HttpContext.Request.Path.Value;
+        protected override string MethodCore => HttpContext.Request.Path.Value!;
 
         protected override string HostCore => HttpContext.Request.Host.Value;
 
@@ -313,7 +313,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public ServerCallContext ServerCallContext => this;
 
-        protected override IDictionary<object, object> UserStateCore => HttpContext.Items;
+        protected override IDictionary<object, object> UserStateCore => HttpContext.Items!;
 
         internal bool HasBufferedMessage { get; set; }
 
@@ -377,7 +377,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             var serviceDefaultCompression = Options.ResponseCompressionAlgorithm;
             if (serviceDefaultCompression != null &&
-                !string.Equals(serviceDefaultCompression, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal) &&
+                !GrpcProtocolConstants.IsGrpcEncodingIdentity(serviceDefaultCompression) &&
                 IsEncodingInRequestAcceptEncoding(serviceDefaultCompression))
             {
                 ResponseGrpcEncoding = serviceDefaultCompression;
@@ -387,7 +387,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
             }
 
-            HttpContext.Response.Headers.Append(GrpcProtocolConstants.MessageEncodingHeader, ResponseGrpcEncoding);
+            HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
         }
 
         private Activity? GetHostActivity()

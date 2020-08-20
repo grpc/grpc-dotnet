@@ -9,7 +9,7 @@
     <Protobuf Include="..\Proto\count.proto" GrpcServices="Server" Link="Protos\count.proto" />
 
     <PackageReference Include="Microsoft.AspNetCore.Components" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="$(MicrosoftAspNetCoreBlazorPackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="$(MicrosoftAspNetCoreBlazor31PackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>

@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.Server.Internal
             foreach (X509Extension ext in cert.Extensions)
             {
                 // Extension is SAN2
-                if (ext.Oid.Value == X509SubjectAlternativeNameConstants.Oid)
+                if (ext.Oid?.Value == X509SubjectAlternativeNameConstants.Oid)
                 {
                     string asnString = ext.Format(false);
                     if (string.IsNullOrWhiteSpace(asnString))

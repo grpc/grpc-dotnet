@@ -62,7 +62,7 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
         }
 
         [Obsolete]
-        public override void OnWriterCompleted(Action<Exception, object> callback, object state)
+        public override void OnWriterCompleted(Action<Exception?, object> callback, object state)
         {
             _pipeReader.OnWriterCompleted(callback, state);
         }

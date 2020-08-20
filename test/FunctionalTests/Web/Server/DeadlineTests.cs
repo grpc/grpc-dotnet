@@ -214,7 +214,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                     (r.Exception!.Message == "Cannot write message after request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
 
                 return errorLogged;
-            }, "Expected error not thrown.");
+            }, "Expected error not thrown.").DefaultTimeout();
         }
     }
 }

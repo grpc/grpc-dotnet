@@ -40,7 +40,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             };
             configure?.Invoke(channelOptions);
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, channelOptions);
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, channelOptions);
             channel.Clock = systemClock ?? SystemClock.Instance;
             if (disableClientDeadline != null)
             {

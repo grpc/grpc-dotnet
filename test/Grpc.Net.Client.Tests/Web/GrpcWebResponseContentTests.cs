@@ -52,7 +52,7 @@ namespace Grpc.Net.Client.Tests.Web
         {
             public bool Disposed { get; private set; }
 
-            protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
             {
                 throw new System.NotImplementedException();
             }
