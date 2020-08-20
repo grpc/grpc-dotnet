@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.Server.Internal
             LoggerMessage.Define(LogLevel.Trace, new EventId(13, "ReceivedMessage"), "Received message.");
 
         private static readonly Action<ILogger, Exception?> _errorReadingMessage =
-            LoggerMessage.Define(LogLevel.Error, new EventId(14, "ErrorReadingMessage"), "Error reading message.");
+            LoggerMessage.Define(LogLevel.Information, new EventId(14, "ErrorReadingMessage"), "Error reading message.");
 
         private static readonly Action<ILogger, Exception?> _sendingMessage =
             LoggerMessage.Define(LogLevel.Debug, new EventId(15, "SendingMessage"), "Sending message.");
@@ -73,7 +73,7 @@ namespace Grpc.AspNetCore.Server.Internal
             LoggerMessage.Define(LogLevel.Trace, new EventId(16, "MessageSent"), "Message sent.");
 
         private static readonly Action<ILogger, Exception?> _errorSendingMessage =
-            LoggerMessage.Define(LogLevel.Error, new EventId(17, "ErrorSendingMessage"), "Error sending message.");
+            LoggerMessage.Define(LogLevel.Information, new EventId(17, "ErrorSendingMessage"), "Error sending message.");
 
         private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
             LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(18, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
