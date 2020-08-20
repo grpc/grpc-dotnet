@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -59,11 +60,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                 request.Carriers.Add(i.ToString());
             }
 
-            // Act
-            var response = await client.GetLibraryAsync(request).ResponseAsync.DefaultTimeout();
+            try
+            {
+                // Act
+                var response = await client.GetLibraryAsync(request).ResponseAsync.DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual("admin", response.UserId);
+                // Assert
+                Assert.AreEqual("admin", response.UserId);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error for {GrpcTestMode}-{EndpointName}", ex);
+            }
         }
     }
 }
