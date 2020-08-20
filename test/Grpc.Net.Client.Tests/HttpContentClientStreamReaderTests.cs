@@ -215,7 +215,7 @@ namespace Grpc.Net.Client.Tests
         private static GrpcChannel CreateChannel(HttpClient httpClient, ILoggerFactory? loggerFactory = null, bool? throwOperationCanceledOnCancellation = null)
         {
             return GrpcChannel.ForAddress(
-                httpClient.BaseAddress,
+                httpClient.BaseAddress!,
                 new GrpcChannelOptions
                 {
                     HttpClient = httpClient,

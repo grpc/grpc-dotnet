@@ -147,7 +147,7 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(httpRequestMessage);
             Assert.AreEqual("99999999S", httpRequestMessage!.Headers.GetValues(GrpcProtocolConstants.TimeoutHeader).Single());
 
-            var s = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "DeadlineTimeoutTooLong");
+            var s = testSink.Writes.Single(w => w.EventId.Name == "DeadlineTimeoutTooLong");
             Assert.AreEqual("Deadline timeout 2000.00:00:00 is above maximum allowed timeout of 99999999 seconds. Maximum timeout will be used.", s.Message);
         }
 
@@ -193,7 +193,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
@@ -222,7 +222,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
@@ -459,7 +459,7 @@ namespace Grpc.Net.Client.Tests
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
+                var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);

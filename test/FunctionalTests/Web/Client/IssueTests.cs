@@ -16,10 +16,12 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Net.Client;
+using Grpc.Tests.Shared;
 using Issue;
 using NUnit.Framework;
 
@@ -43,7 +45,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         {
             // Arrage
             var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory
@@ -58,11 +60,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                 request.Carriers.Add(i.ToString());
             }
 
-            // Act
-            var response = await client.GetLibraryAsync(request);
+            try
+            {
+                // Act
+                var response = await client.GetLibraryAsync(request).ResponseAsync.DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual("admin", response.UserId);
+                // Assert
+                Assert.AreEqual("admin", response.UserId);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error for {GrpcTestMode}-{EndpointName}", ex);
+            }
         }
     }
 }

@@ -46,7 +46,7 @@ namespace Grpc.Net.Client.Web.Internal
             Headers.ContentType = GrpcWebProtocolConstants.GrpcHeader;
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             // This method will only be called by tests when response content is
             // accessed via ReadAsBytesAsync. The gRPC client will always

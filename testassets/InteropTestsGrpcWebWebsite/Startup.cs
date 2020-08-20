@@ -32,8 +32,8 @@ namespace InteropTestsClientGrpcWeb
                 app.UseWebAssemblyDebugging();
             }
 
-            app.UseStaticFiles();
             app.UseBlazorFrameworkFiles();
+            app.UseStaticFiles();
 
             app.UseRouting();
 

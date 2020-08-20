@@ -143,7 +143,7 @@ namespace Grpc.Net.Client.Tests
         {
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                var content = (PushStreamContent<TRequest, TResponse>)request.Content;
+                var content = (PushStreamContent<TRequest, TResponse>)request.Content!;
                 await content.PushComplete.DefaultTimeout();
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);

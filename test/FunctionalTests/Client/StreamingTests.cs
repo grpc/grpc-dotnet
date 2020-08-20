@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -310,14 +311,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = new StreamService.StreamServiceClient(Channel);
 
-            await TestHelpers.RunParallel(tasks, async () =>
+            await TestHelpers.RunParallel(tasks, async taskIndex =>
             {
-                var (sent, received) = await EchoData(total, data, client);
+                var (sent, received) = await EchoData(total, data, client).DefaultTimeout();
 
                 // Assert
                 Assert.AreEqual(sent, total);
                 Assert.AreEqual(received, total);
-            });
+            }).DefaultTimeout();
         }
 
         [Test]
@@ -326,7 +327,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             SetExpectedErrorsFilter(writeContext =>
             {
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorStartingCall" &&
                     writeContext.Exception is TaskCanceledException)
                 {
                     return true;
@@ -354,7 +354,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var httpClient = Fixture.CreateClient();
             httpClient.Timeout = TimeSpan.FromSeconds(0.5);
 
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress, new GrpcChannelOptions
+            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
                 HttpClient = httpClient,
                 LoggerFactory = LoggerFactory
@@ -490,7 +490,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var call = client.ServerStreamingCall(new DataMessage());
 
             // Assert
-            var headers = await call.ResponseHeadersAsync;
+            var headers = await call.ResponseHeadersAsync.DefaultTimeout();
             var keyHeaders = headers.GetAll("key").ToList();
             Assert.AreEqual("key", keyHeaders[0].Key);
             Assert.AreEqual("Value1", keyHeaders[0].Value);
@@ -524,5 +524,80 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
             return data;
         }
+
+#if NET5_0
+        [Test]
+        public Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
+        {
+            return RunConcurrentStreams(writeResponseHeaders: false);
+        }
+
+        [Test]
+        public Task MaxConcurrentStreams_StartIndividually_AdditionalConnectionsCreated()
+        {
+            return RunConcurrentStreams(writeResponseHeaders: true);
+        }
+
+        private async Task RunConcurrentStreams(bool writeResponseHeaders)
+        {
+            var streamCount = 201;
+            var count = 0;
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task WaitForAllStreams(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                Interlocked.Increment(ref count);
+
+                if (writeResponseHeaders)
+                {
+                    await context.WriteResponseHeadersAsync(new Metadata());
+                }
+
+                if (count == streamCount)
+                {
+                    tcs.SetResult(null);
+                }
+
+                await tcs.Task;
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<DataMessage, DataMessage>(WaitForAllStreams);
+
+            var channel = GrpcChannel.ForAddress(Fixture.GetUrl(TestServerEndpointName.Http2));
+
+            var client = TestClientFactory.Create(channel, method);
+
+            var calls = new AsyncDuplexStreamingCall<DataMessage, DataMessage>[streamCount];
+            try
+            {
+                // Act
+                for (var i = 0; i < calls.Length; i++)
+                {
+                    var call = client.DuplexStreamingCall();
+                    calls[i] = call;
+
+                    if (writeResponseHeaders)
+                    {
+                        await call.ResponseHeadersAsync.DefaultTimeout();
+                    }
+                }
+
+                // Assert
+                await Task.WhenAll(calls.Select(c => c.ResponseHeadersAsync)).DefaultTimeout();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Received {count} of {streamCount} on the server.", ex);
+            }
+            finally
+            {
+                for (var i = 0; i < calls.Length; i++)
+                {
+                    calls[i].Dispose();
+                }
+            }
+        }
+#endif
     }
 }

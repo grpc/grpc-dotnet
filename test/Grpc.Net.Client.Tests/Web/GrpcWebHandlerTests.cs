@@ -141,9 +141,11 @@ namespace Grpc.Net.Client.Tests.Web
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestVersion = request.Version;
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (request.Properties.TryGetValue(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
-                    WebAssemblyEnableStreamingResponse = (bool)enableStreaming;
+                    WebAssemblyEnableStreamingResponse = (bool)enableStreaming!;
                 }
 
                 return Task.FromResult(new HttpResponseMessage()

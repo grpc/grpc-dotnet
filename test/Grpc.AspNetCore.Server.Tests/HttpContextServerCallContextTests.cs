@@ -545,9 +545,9 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("TestValue", httpContext.Items["TestKey"]);
         }
 
-        [TestCase(GrpcProtocolConstants.MessageAcceptEncodingHeader, false)]
-        [TestCase(GrpcProtocolConstants.MessageEncodingHeader, false)]
-        [TestCase(GrpcProtocolConstants.TimeoutHeader, false)]
+        [TestCase("grpc-accept-encoding", false)]
+        [TestCase("grpc-encoding", false)]
+        [TestCase("grpc-timeout", false)]
         [TestCase("content-type", false)]
         [TestCase("te", false)]
         [TestCase("host", false)]
@@ -670,7 +670,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 context.Initialize();
 
                 // Assert
-                Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
+                Assert.AreEqual("/Package.Service/Method", Activity.Current!.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
             }
         }
 
@@ -691,7 +691,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 }
 
                 // Assert
-                Assert.AreEqual("/Package.Service/Method", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
+                Assert.AreEqual("/Package.Service/Method", Activity.Current?.Tags.Single(t => t.Key == GrpcServerConstants.ActivityMethodTag).Value);
             }
         }
 
@@ -707,10 +707,10 @@ namespace Grpc.AspNetCore.Server.Tests
 
                 // Act
                 context.Initialize();
-                await context.EndCallAsync();
+                await context.EndCallAsync().DefaultTimeout();
 
                 // Assert
-                Assert.AreEqual("8", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
+                Assert.AreEqual("8", Activity.Current!.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
             }
         }
 
@@ -729,7 +729,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 await context.ProcessHandlerErrorAsync(new Exception(), "MethodName");
 
                 // Assert
-                Assert.AreEqual("2", Activity.Current.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
+                Assert.AreEqual("2", Activity.Current!.Tags.Single(t => t.Key == GrpcServerConstants.ActivityStatusCodeTag).Value);
             }
         }
 

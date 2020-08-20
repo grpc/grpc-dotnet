@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
 
             var handler = TestHttpMessageHandler.Create(async r =>
             {
-                await r.Content.CopyToAsync(Stream.Null);
+                await r.Content!.CopyToAsync(Stream.Null);
 
                 var content = new ByteArrayContent(requestMessage);
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");

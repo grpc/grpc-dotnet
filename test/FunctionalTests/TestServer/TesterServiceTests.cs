@@ -150,9 +150,9 @@ namespace Grpc.AspNetCore.FunctionalTests.TestServer
             using var call = client.SayHelloServerStreamingError(new HelloRequest { Name = "Joe" });
 
             // Assert
-            Assert.IsTrue(await call.ResponseStream.MoveNext());
+            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
         }

@@ -22,6 +22,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Web.Client
@@ -58,7 +59,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             // Act
             var call = client.UnaryCall(new HelloRequest());
 
-            await call;
+            await call.ResponseAsync.DefaultTimeout();
 
             // Assert
             var trailers = call.GetTrailers();
@@ -100,7 +101,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             // Act
             var call = client.UnaryCall(new HelloRequest());
 
-            await call;
+            await call.ResponseAsync.DefaultTimeout();
 
             // Assert
             var trailers = call.GetTrailers();

@@ -116,7 +116,7 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestContentType");
             Assert.IsNotNull(log);
-            Assert.AreEqual("Request content-type of 'text/plain' is not supported.", log.Message);
+            Assert.AreEqual("Request content-type of 'text/plain' is not supported.", log!.Message);
         }
 
         [Test]
@@ -154,9 +154,11 @@ namespace Grpc.AspNetCore.Server.Tests
             // Assert
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
             Assert.IsNotNull(log);
-            Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log.Message);
+            Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log!.Message);
         }
 
+#if !NET5_0
+        // .NET Core 3.0 + IIS returned HTTP/2.0 as the protocol
         [Test]
         public async Task ProtocolValidation_IISHttp2Protocol_Success()
         {
@@ -174,6 +176,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "UnsupportedRequestProtocol");
             Assert.IsNull(log);
         }
+#endif
 
         [Test]
         public async Task StatusDebugException_ErrorInHandler_SetInDebugException()

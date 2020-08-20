@@ -51,32 +51,12 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
         {
             if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
             {
-                // This might be a CORS preflight request and CORS middleware hasn't been configured
-                if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
-                {
-                    GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
-
-                    GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status405MethodNotAllowed, StatusCode.Internal, "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
-                    httpContext.Response.Headers[HeaderNames.Allow] = HttpMethods.Post;
-                    return Task.CompletedTask;
-                }
-                else
-                {
-                    GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
-
-                    GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
-                    return Task.CompletedTask;
-                }
+                return ProcessInvalidContentTypeRequest(httpContext, error);
             }
-            if (httpContext.Request.Protocol != GrpcProtocolConstants.Http2Protocol &&
-                httpContext.Request.Protocol != GrpcProtocolConstants.Http20Protocol)
-            {
-                GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
 
-                var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
-                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
-                httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
-                return Task.CompletedTask;
+            if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol))
+            {
+                return ProcessNonHttp2Request(httpContext);
             }
 
             var serverCallContext = new HttpContextServerCallContext(httpContext, MethodInvoker.Options, typeof(TRequest), typeof(TResponse), Logger);
@@ -145,6 +125,36 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                     // In that case we can't disable the max request body size for the request stream
                     GrpcServerLog.UnableToDisableMaxRequestBodySize(Logger);
                 }
+            }
+        }
+
+        private Task ProcessNonHttp2Request(HttpContext httpContext)
+        {
+            GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
+
+            var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
+            GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+            httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
+            return Task.CompletedTask;
+        }
+
+        private Task ProcessInvalidContentTypeRequest(HttpContext httpContext, string error)
+        {
+            // This might be a CORS preflight request and CORS middleware hasn't been configured
+            if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+            {
+                GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
+
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status405MethodNotAllowed, StatusCode.Internal, "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
+                httpContext.Response.Headers[HeaderNames.Allow] = HttpMethods.Post;
+                return Task.CompletedTask;
+            }
+            else
+            {
+                GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+
+                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+                return Task.CompletedTask;
             }
         }
     }

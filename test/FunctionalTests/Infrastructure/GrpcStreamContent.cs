@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _content = content;
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             return _content.CopyToAsync(stream);
         }

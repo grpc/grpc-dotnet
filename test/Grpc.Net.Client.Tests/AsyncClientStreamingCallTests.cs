@@ -69,7 +69,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
             Assert.AreEqual(new Uri("https://localhost/ServiceName/MethodName"), httpRequestMessage.RequestUri);
-            Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content.Headers.ContentType);
+            Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content?.Headers?.ContentType);
         }
 
         [Test]
@@ -80,7 +80,7 @@ namespace Grpc.Net.Client.Tests
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                content = (PushStreamContent<HelloRequest, HelloReply>)request.Content;
+                content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 await content.PushComplete.DefaultTimeout();
 
                 HelloReply reply = new HelloReply
@@ -104,7 +104,7 @@ namespace Grpc.Net.Client.Tests
             var responseTask = call.ResponseAsync;
             Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
 
-            var streamTask = content!.ReadAsStreamAsync();
+            var streamTask = content!.ReadAsStreamAsync().DefaultTimeout();
 
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "2" }).DefaultTimeout();
@@ -177,7 +177,7 @@ namespace Grpc.Net.Client.Tests
             var writeTask1 = call.RequestStream.WriteAsync(new HelloRequest { Name = "1" });
             Assert.IsFalse(writeTask1.IsCompleted);
 
-            var completeTask = call.RequestStream.CompleteAsync();
+            var completeTask = call.RequestStream.CompleteAsync().DefaultTimeout();
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => completeTask).DefaultTimeout();
 
             Assert.AreEqual("Can't complete the client stream writer because the previous write is in progress.", ex.Message);
@@ -196,7 +196,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            await call.RequestStream.CompleteAsync();
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();

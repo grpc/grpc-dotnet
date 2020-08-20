@@ -114,7 +114,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedMethod = httpContext.Request.RouteValues["unimplementedMethod"]?.ToString() ?? "<unknown>";
                 Log.MethodUnimplemented(logger, unimplementedMethod);
-                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value!);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Method is unimplemented."));
                 return Task.CompletedTask;
@@ -142,7 +142,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 var unimplementedService = httpContext.Request.RouteValues["unimplementedService"]?.ToString() ?? "<unknown>";
                 Log.ServiceUnimplemented(logger, unimplementedService);
-                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value);
+                GrpcEventSource.Log.CallUnimplemented(httpContext.Request.Path.Value!);
 
                 GrpcProtocolHelpers.SetStatus(GrpcProtocolHelpers.GetTrailersDestination(httpContext.Response), new Status(StatusCode.Unimplemented, "Service is unimplemented."));
                 return Task.CompletedTask;

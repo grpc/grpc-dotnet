@@ -44,7 +44,7 @@ namespace FunctionalTestsWebsite.Services
 
         public override Task<HelloReply> SayHelloWithHttpContextAccessor(HelloRequest request, ServerCallContext context)
         {
-            var httpContext = _httpContextAccessor.HttpContext;
+            var httpContext = _httpContextAccessor.HttpContext!;
             context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
 
             return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });

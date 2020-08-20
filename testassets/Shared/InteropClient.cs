@@ -33,7 +33,7 @@ using Microsoft.Extensions.Logging;
 using Empty = Grpc.Testing.Empty;
 using Grpc.Shared.TestAssets;
 
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
 using Google.Apis.Auth.OAuth2;
 using Grpc.Auth;
 using Grpc.Core.Logging;
@@ -75,7 +75,7 @@ namespace Grpc.Shared.TestAssets
 
         public async Task Run()
         {
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
             var channel = IsHttpClient() ? await HttpClientCreateChannel() : await CoreCreateChannel();
 #else
             var channel = await HttpClientCreateChannel();
@@ -115,7 +115,7 @@ namespace Grpc.Shared.TestAssets
             }
 
             var httpClientHandler = new HttpClientHandler();
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 #endif
 
@@ -123,7 +123,7 @@ namespace Grpc.Shared.TestAssets
             {
                 var pem = File.ReadAllText("Certs/ca.pem");
                 var certData = GetBytesFromPem(pem, "CERTIFICATE");
-                var cert = new X509Certificate2(certData);
+                var cert = new X509Certificate2(certData!);
 
                 httpClientHandler.ClientCertificates.Add(cert);
             }
@@ -152,7 +152,7 @@ namespace Grpc.Shared.TestAssets
             return new GrpcChannelWrapper(channel);
         }
 
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
         private async Task<IChannelWrapper> CoreCreateChannel()
         {
             var credentials = await CreateCredentialsAsync();
@@ -176,7 +176,7 @@ namespace Grpc.Shared.TestAssets
             var credentials = ChannelCredentials.Insecure;
             if (options.UseTls)
             {
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
                 if (useTestCaOverride ?? options.UseTestCa)
                 {
                     credentials = TestCredentials.CreateSslCredentials();
@@ -188,7 +188,7 @@ namespace Grpc.Shared.TestAssets
                 }
             }
 
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
             if (options.TestCase == "jwt_token_creds")
             {
                 var googleCredential = await GoogleCredential.GetApplicationDefaultAsync();
@@ -226,7 +226,7 @@ namespace Grpc.Shared.TestAssets
             ["ping_pong"] = RunPingPongAsync,
             ["empty_stream"] = RunEmptyStreamAsync,
             ["compute_engine_creds"] = RunComputeEngineCreds,
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
             ["jwt_token_creds"] = RunJwtTokenCreds,
             ["oauth2_auth_token"] = RunOAuth2AuthTokenAsync,
             ["per_rpc_creds"] = RunPerRpcCredsAsync,
@@ -394,7 +394,7 @@ namespace Grpc.Shared.TestAssets
             Assert.AreEqual(defaultServiceAccount, response.Username);
         }
 
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
         public static async Task RunJwtTokenCreds(IChannelWrapper channel, ClientOptions options)
         {
             var client = CreateClient<TestService.TestServiceClient>(channel);
@@ -597,7 +597,7 @@ namespace Grpc.Shared.TestAssets
             }
 
             // We want to test a unary call in gRPC-Web but skip the unsupported full duplex call.
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
             {
                 // step 2: test full duplex call
                 var request = new StreamingOutputCallRequest { ResponseStatus = echoStatus };
@@ -816,7 +816,7 @@ namespace Grpc.Shared.TestAssets
         }
 
         // extracts the client_email field from service account file used for auth test cases
-#if !NETSTANDARD2_1
+#if !BLAZOR_WASM
         private static string GetEmailFromServiceAccountFile()
         {
             string keyFile = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS")!;

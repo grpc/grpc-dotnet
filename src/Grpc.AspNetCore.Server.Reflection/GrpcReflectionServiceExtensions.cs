@@ -54,7 +54,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 var grpcEndpointMetadata = endpointDataSource.Endpoints
                     .Select(ep => ep.Metadata.GetMetadata<GrpcMethodMetadata>())
-                    .Where(m => m != null)
+                    .OfType<GrpcMethodMetadata>()
                     .ToList();
 
                 var serviceTypes = grpcEndpointMetadata.Select(m => m.ServiceType).Distinct().ToList();

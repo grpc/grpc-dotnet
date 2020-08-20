@@ -40,7 +40,7 @@ namespace Grpc.Net.Client.Tests
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 // Trigger request stream serialization
-                await request.Content.ReadAsStreamAsync().DefaultTimeout();
+                await request.Content!.ReadAsStreamAsync().DefaultTimeout();
 
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply
                 {

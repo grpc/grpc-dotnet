@@ -246,7 +246,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 HttpContext = httpContext;
             }
 
-            public HttpContext HttpContext { get; set; }
+            public HttpContext? HttpContext { get; set; }
         }
 
         public class TestLoggerProvider : ILoggerProvider

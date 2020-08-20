@@ -55,7 +55,7 @@ namespace Grpc.AspNetCore.FunctionalTests
             {
                 options.HttpClient = Fixture.Client;
             }
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress, options);
+            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, options);
         }
 
         protected virtual void ConfigureServices(IServiceCollection services) { }

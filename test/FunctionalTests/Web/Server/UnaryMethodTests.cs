@@ -62,10 +62,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            var s = await response.Content.ReadAsStreamAsync();
+            var s = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var reader = PipeReader.Create(s);
 
-            var message = await MessageHelpers.AssertReadStreamMessageAsync<EchoResponse>(reader);
+            var message = await MessageHelpers.AssertReadStreamMessageAsync<EchoResponse>(reader).DefaultTimeout();
             Assert.AreEqual("test", message!.Message);
 
             response.AssertTrailerStatus();
@@ -92,10 +92,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
-            var s = await response.Content.ReadAsStreamAsync();
+            var s = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var reader = PipeReader.Create(s);
 
-            var readResult = await reader.ReadAsync();
+            var readResult = await reader.ReadAsync().AsTask().DefaultTimeout();
             Assert.AreEqual(0, readResult.Buffer.Length);
             Assert.IsTrue(readResult.IsCompleted);
 

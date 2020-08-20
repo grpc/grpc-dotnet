@@ -361,7 +361,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 {
                     throw new RpcException(NoMessageEncodingMessageStatus);
                 }
-                if (string.Equals(encoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal))
+                if (GrpcProtocolConstants.IsGrpcEncodingIdentity(encoding))
                 {
                     throw new RpcException(IdentityMessageEncodingMessageStatus);
                 }
@@ -400,7 +400,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {

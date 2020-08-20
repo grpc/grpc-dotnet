@@ -31,9 +31,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private readonly CallInvoker _callInvoker;
         private readonly Method<TRequest, TResponse> _method;
 
-        public TestClient(ChannelBase channel, Method<TRequest, TResponse> method)
+        public TestClient(CallInvoker callInvoker, Method<TRequest, TResponse> method)
         {
-            _callInvoker = channel.CreateCallInvoker();
+            _callInvoker = callInvoker;
             _method = method;
         }
 
@@ -66,7 +66,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             where TRequest : class
             where TResponse : class
         {
-            return new TestClient<TRequest, TResponse>(channel, method);
+            return new TestClient<TRequest, TResponse>(channel.CreateCallInvoker(), method);
+        }
+
+        public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
+            CallInvoker callInvoker,
+            Method<TRequest, TResponse> method)
+            where TRequest : class
+            where TResponse : class
+        {
+            return new TestClient<TRequest, TResponse>(callInvoker, method);
         }
     }
 }
