@@ -1,9 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
-    <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
     <DefineConstants>BLAZOR_WASM</DefineConstants>
   </PropertyGroup>
 
