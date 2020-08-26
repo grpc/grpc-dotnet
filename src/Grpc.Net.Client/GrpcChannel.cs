@@ -101,10 +101,17 @@ namespace Grpc.Net.Client
             if (handler == null)
             {
 #if NET5_0
-                handler = new SocketsHttpHandler
+                if (SocketsHttpHandler.IsSupported)
                 {
-                    EnableMultipleHttp2Connections = true
-                };
+                    handler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = true
+                    };
+                }
+                else
+                {
+                    handler = new HttpClientHandler();
+                }
 #else
                 handler = new HttpClientHandler();
 #endif
@@ -120,6 +127,8 @@ namespace Grpc.Net.Client
             }
 #endif
 
+            // Use HttpMessageInvoker instead of HttpClient because it is faster
+            // and we don't need client's features.
             var httpInvoker = new HttpMessageInvoker(handler, disposeHandler: true);
 
             return httpInvoker;
