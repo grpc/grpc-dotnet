@@ -30,19 +30,18 @@ namespace Client
 {
     public partial class Program
     {
-        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-interprocessor.tmp");
+        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
 
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
+            using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
                 HttpHandler = CreateHttpHandler(SocketPath)
             });
             var client = new Greeter.GreeterClient(channel);
 
-            await UnaryCallExample(client);
-
-            await ServerStreamingCallExample(client);
+            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+            Console.WriteLine("Greeting: " + reply.Message);
 
             Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
@@ -59,32 +58,6 @@ namespace Client
             };
 
             return socketsHttpHandler;
-        }
-
-        private static async Task UnaryCallExample(Greeter.GreeterClient client)
-        {
-            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
-        }
-
-        private static async Task ServerStreamingCallExample(Greeter.GreeterClient client)
-        {
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(TimeSpan.FromSeconds(3.5));
-
-            using var call = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token);
-
-            try
-            {
-                await foreach (var message in call.ResponseStream.ReadAllAsync())
-                {
-                    Console.WriteLine("Greeting: " + message.Message);
-                }
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-            {
-                Console.WriteLine("Stream cancelled.");
-            }
         }
     }
 }

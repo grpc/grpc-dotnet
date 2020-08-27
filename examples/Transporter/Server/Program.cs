@@ -24,7 +24,7 @@ namespace Server
 {
     public class Program
     {
-        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-interprocessor.tmp");
+        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
 
         public static void Main(string[] args)
         {
