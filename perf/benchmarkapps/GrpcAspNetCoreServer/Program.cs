@@ -61,46 +61,33 @@ namespace GrpcAspNetCoreServer
                     webBuilder.ConfigureKestrel((context, options) =>
                     {
                         var endPoint = config.CreateIPEndPoint();
+                        var udsFilePath = config["udsFilePath"];
 
-                        // ListenAnyIP will work with IPv4 and IPv6.
-                        // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
-                        // creating a connection on a local Windows machine.
-                        options.ListenAnyIP(endPoint.Port, listenOptions =>
+                        if (string.IsNullOrEmpty(udsFilePath))
                         {
-                            var protocol = config["protocol"] ?? "";
-                            bool.TryParse(config["enableCertAuth"], out var enableCertAuth);
+                            // ListenAnyIP will work with IPv4 and IPv6.
+                            // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
+                            // creating a connection on a local Windows machine.
+                            options.ListenAnyIP(endPoint.Port, listenOptions =>
+                            {
+                                ConfigureListenOptions(listenOptions, config, endPoint);
+                            });
+                        }
+                        else
+                        {
+                            var socketPath = ResolveUdsPath(udsFilePath);
+                            if (File.Exists(socketPath))
+                            {
+                                File.Delete(socketPath);
+                            }
 
-                            Console.WriteLine($"Address: {endPoint.Address}:{endPoint.Port}, Protocol: {protocol}");
-                            Console.WriteLine($"Certificate authentication: {enableCertAuth}");
+                            Console.WriteLine($"Socket path: {socketPath}");
 
-                            if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
+                            options.ListenUnixSocket(socketPath, listenOptions =>
                             {
-                                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-
-                                var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-                                var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
-                                listenOptions.UseHttps(certPath, "testPassword", httpsOptions =>
-                                {
-                                    if (enableCertAuth)
-                                    {
-                                        httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
-                                        httpsOptions.AllowAnyClientCertificate();
-                                    }
-                                });
-                            }
-                            else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
-                            {
-                                listenOptions.Protocols = HttpProtocols.Http2;
-                            }
-                            else if (protocol.Equals("http1", StringComparison.OrdinalIgnoreCase))
-                            {
-                                listenOptions.Protocols = HttpProtocols.Http1;
-                            }
-                            else
-                            {
-                                throw new InvalidOperationException($"Unexpected protocol: {protocol}");
-                            }
-                        });
+                                ConfigureListenOptions(listenOptions, config, endPoint);
+                            });
+                        }
                     });
                 })
                 .ConfigureLogging(loggerFactory =>
@@ -126,6 +113,45 @@ namespace GrpcAspNetCoreServer
                 });
 
             return hostBuilder;
+        }
+
+        private static string ResolveUdsPath(string udsFileName) => Path.Combine(Path.GetTempPath(), udsFileName);
+
+        private static void ConfigureListenOptions(ListenOptions listenOptions, IConfigurationRoot config, System.Net.IPEndPoint endPoint)
+        {
+            var protocol = config["protocol"] ?? "";
+            bool.TryParse(config["enableCertAuth"], out var enableCertAuth);
+
+            Console.WriteLine($"Address: {endPoint.Address}:{endPoint.Port}, Protocol: {protocol}");
+            Console.WriteLine($"Certificate authentication: {enableCertAuth}");
+
+            if (protocol.Equals("h2", StringComparison.OrdinalIgnoreCase))
+            {
+                listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+
+                var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                var certPath = Path.Combine(basePath!, "Certs/testCert.pfx");
+                listenOptions.UseHttps(certPath, "testPassword", httpsOptions =>
+                {
+                    if (enableCertAuth)
+                    {
+                        httpsOptions.ClientCertificateMode = Microsoft.AspNetCore.Server.Kestrel.Https.ClientCertificateMode.AllowCertificate;
+                        httpsOptions.AllowAnyClientCertificate();
+                    }
+                });
+            }
+            else if (protocol.Equals("h2c", StringComparison.OrdinalIgnoreCase))
+            {
+                listenOptions.Protocols = HttpProtocols.Http2;
+            }
+            else if (protocol.Equals("http1", StringComparison.OrdinalIgnoreCase))
+            {
+                listenOptions.Protocols = HttpProtocols.Http1;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unexpected protocol: {protocol}");
+            }
         }
     }
 }
