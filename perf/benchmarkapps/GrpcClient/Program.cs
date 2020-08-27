@@ -24,6 +24,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime;
 using System.Runtime.InteropServices;
@@ -62,6 +64,7 @@ namespace GrpcClient
         {
             var rootCommand = new RootCommand();
             rootCommand.AddOption(new Option<string>(new string[] { "-u", "--url" }, "The server url to request") { Required = true });
+            rootCommand.AddOption(new Option<string>(new string[] { "--udsFileName" }, "The Unix Domain Socket file name"));
             rootCommand.AddOption(new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open"));
             rootCommand.AddOption(new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds"));
             rootCommand.AddOption(new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds"));
@@ -390,7 +393,7 @@ namespace GrpcClient
                     // It allows HttpClient to make HTTP/2 calls without TLS.
                     AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-                    var httpClientHandler = new HttpClientHandler();
+                    var httpClientHandler = new SocketsHttpHandler();
                     httpClientHandler.UseProxy = false;
                     httpClientHandler.AllowAutoRedirect = false;
                     if (_options.EnableCertAuth)
@@ -398,12 +401,19 @@ namespace GrpcClient
                         var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                         var certPath = Path.Combine(basePath!, "Certs", "client.pfx");
                         var clientCertificate = new X509Certificate2(certPath, "1111");
-                        httpClientHandler.ClientCertificates.Add(clientCertificate);
+                        httpClientHandler.SslOptions.ClientCertificates = new X509CertificateCollection
+                        {
+                            clientCertificate
+                        };
+                    }
+                    if (!string.IsNullOrEmpty(_options.UdsFileName))
+                    {
+                        httpClientHandler.ConnectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
                     }
 
                     // TODO(JamesNK): Check whether the disable can be removed once .NET 5 is finalized
 #pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-                    httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                    httpClientHandler.SslOptions.RemoteCertificateValidationCallback = (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
 #pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
 
                     return GrpcChannel.ForAddress(address, new GrpcChannelOptions
@@ -413,6 +423,8 @@ namespace GrpcClient
                     });
             }
         }
+
+        private static string ResolveUdsPath(string udsFileName) => Path.Combine(Path.GetTempPath(), udsFileName);
 
         private static SslCredentials GetSslCredentials()
         {
