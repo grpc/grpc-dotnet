@@ -12,6 +12,7 @@
 
     <!-- This is required to avoid a build server error when using a preview version of Grpc.Tools -->
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
   </ItemGroup>
 
 </Project>
