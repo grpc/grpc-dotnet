@@ -20,7 +20,6 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -31,13 +30,11 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace Grpc.Net.Client
 {
     internal static partial class StreamExtensions
     {
-        private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
         private static readonly Status ReceivedMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
         private static readonly Status NoMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         private static readonly Status IdentityMessageEncodingMessageStatus = new Status(StatusCode.Internal, "Request sent 'identity' grpc-encoding value with compressed message.");
@@ -48,6 +45,7 @@ namespace Grpc.Net.Client
 
         public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
             this Stream responseStream,
+            DefaultDeserializationContext deserializationContext,
             ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
@@ -147,7 +145,6 @@ namespace Grpc.Net.Client
 
                 GrpcCallLog.DeserializingMessage(logger, length, typeof(TResponse));
 
-                var deserializationContext = new DefaultDeserializationContext();
                 deserializationContext.SetPayload(payload);
                 var message = deserializer(deserializationContext);
                 deserializationContext.SetPayload(null);
@@ -249,114 +246,43 @@ namespace Grpc.Net.Client
             }
         }
 
-        // TODO(JamesNK): Reuse serialization context between message writes. Improve client/duplex streaming allocations.
         public static async ValueTask WriteMessageAsync<TMessage>(
             this Stream stream,
-            ILogger logger,
+            GrpcCall call,
             TMessage message,
             Action<TMessage, SerializationContext> serializer,
-            string grpcEncoding,
-            int? maximumMessageSize,
-            Dictionary<string, ICompressionProvider> compressionProviders,
             CallOptions callOptions)
         {
+            var serializationContext = call.SerializationContext;
+            serializationContext.CallOptions = callOptions;
+            serializationContext.Initialize();
+
             try
             {
-                GrpcCallLog.SendingMessage(logger);
+                GrpcCallLog.SendingMessage(call.Logger);
 
                 // Serialize message first. Need to know size to prefix the length in the header
-                var serializationContext = new DefaultSerializationContext();
-                serializationContext.Reset();
                 serializer(message, serializationContext);
                 if (!serializationContext.TryGetPayload(out var data))
                 {
                     throw new InvalidOperationException("Serialization did not return a payload.");
                 }
 
-                GrpcCallLog.SerializedMessage(logger, typeof(TMessage), data.Length);
+                // Sending the header+content in a single WriteAsync call has significant performance benefits
+                // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
+                await stream.WriteAsync(data, callOptions.CancellationToken).ConfigureAwait(false);
 
-                if (data.Length > maximumMessageSize)
-                {
-                    throw new RpcException(SendingMessageExceedsLimitStatus);
-                }
-
-                var isCompressed =
-                   GrpcProtocolHelpers.CanWriteCompressed(callOptions.WriteOptions) &&
-                   !string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
-
-                if (isCompressed)
-                {
-                    data = CompressMessage(
-                        logger,
-                        grpcEncoding,
-                        CompressionLevel.Fastest,
-                        compressionProviders,
-                        data);
-                }
-
-                var totalSize = data.Length + GrpcProtocolConstants.HeaderSize;
-                var completeData = ArrayPool<byte>.Shared.Rent(totalSize);
-                try
-                {
-                    var buffer = completeData.AsMemory(0, totalSize);
-
-                    WriteHeader(buffer.Span.Slice(0, GrpcProtocolConstants.HeaderSize), isCompressed, data.Length);
-                    data.CopyTo(buffer.Slice(GrpcProtocolConstants.HeaderSize));
-
-                    // Sending the header+content in a single WriteAsync call has significant performance benefits
-                    // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
-                    await stream.WriteAsync(buffer, callOptions.CancellationToken).ConfigureAwait(false);
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(completeData);
-                }
-
-                GrpcCallLog.MessageSent(logger);
+                GrpcCallLog.MessageSent(call.Logger);
             }
             catch (Exception ex)
             {
-                GrpcCallLog.ErrorSendingMessage(logger, ex);
+                GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
                 throw;
             }
-        }
-
-        private static ReadOnlyMemory<byte> CompressMessage(ILogger logger, string compressionEncoding, CompressionLevel? compressionLevel, Dictionary<string, ICompressionProvider> compressionProviders, ReadOnlyMemory<byte> messageData)
-        {
-            if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
+            finally
             {
-                GrpcCallLog.CompressingMessage(logger, compressionProvider.EncodingName);
-
-                var output = new MemoryStream();
-
-                // Compression stream must be disposed before its content is read.
-                // GZipStream writes final Adler32 at the end of the stream.
-                using (var compressionStream = compressionProvider.CreateCompressionStream(output, compressionLevel))
-                {
-                    compressionStream.Write(messageData.Span);
-                }
-
-                return output.GetBuffer().AsMemory(0, (int)output.Length);
+                serializationContext.Reset();
             }
-
-            // Should never reach here
-            throw new InvalidOperationException($"Could not find compression provider for '{compressionEncoding}'.");
-        }
-
-        private static void WriteHeader(Span<byte> headerData, bool isCompressed, int length)
-        {
-            // Compression flag
-            headerData[0] = isCompressed ? (byte)1 : (byte)0;
-
-            // Message length
-            EncodeMessageLength(length, headerData.Slice(1, 4));
-        }
-
-        private static void EncodeMessageLength(int messageLength, Span<byte> destination)
-        {
-            Debug.Assert(destination.Length >= GrpcProtocolConstants.MessageDelimiterSize, "Buffer too small to encode message length.");
-
-            BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
         }
     }
 }

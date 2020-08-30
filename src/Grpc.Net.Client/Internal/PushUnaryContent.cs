@@ -30,19 +30,17 @@ namespace Grpc.Net.Client.Internal
     {
         private readonly TRequest _content;
         private readonly GrpcCall<TRequest, TResponse> _call;
-        private readonly string _grpcEncoding;
 
-        public PushUnaryContent(TRequest content, GrpcCall<TRequest, TResponse> call, string grpcEncoding, MediaTypeHeaderValue mediaType)
+        public PushUnaryContent(TRequest content, GrpcCall<TRequest, TResponse> call, MediaTypeHeaderValue mediaType)
         {
             _content = content;
             _call = call;
-            _grpcEncoding = grpcEncoding;
             Headers.ContentType = mediaType;
         }
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
-            var writeMessageTask = _call.WriteMessageAsync(stream, _content, _grpcEncoding, _call.Options);
+            var writeMessageTask = _call.WriteMessageAsync(stream, _content, _call.Options);
             if (writeMessageTask.IsCompletedSuccessfully)
             {
                 GrpcEventSource.Log.MessageSent();

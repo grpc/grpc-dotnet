@@ -30,13 +30,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal partial class GrpcCall<TRequest, TResponse> : IDisposable
+    internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IDisposable
         where TRequest : class
         where TResponse : class
     {
-        // Getting logger name from generic type is slow
-        private const string LoggerName = "Grpc.Net.Client.Internal.GrpcCall";
-
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
         private readonly DateTime _deadline;
@@ -51,10 +48,7 @@ namespace Grpc.Net.Client.Internal
         public bool Disposed { get; private set; }
         public bool ResponseFinished { get; private set; }
         public HttpResponseMessage? HttpResponse { get; private set; }
-        public CallOptions Options { get; }
         public Method<TRequest, TResponse> Method { get; }
-        public GrpcChannel Channel { get; }
-        public ILogger Logger { get; }
 
         // These are set depending on the type of gRPC call
         private TaskCompletionSource<TResponse>? _responseTcs;
@@ -62,6 +56,7 @@ namespace Grpc.Net.Client.Internal
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
         public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel)
+            : base(options, channel)
         {
             // Validate deadline before creating any objects that require cleanup
             ValidateDeadline(options.Deadline);
@@ -71,9 +66,6 @@ namespace Grpc.Net.Client.Internal
             _callTcs = new TaskCompletionSource<Status>();
             Method = method;
             _grpcMethodInfo = grpcMethodInfo;
-            Options = options;
-            Channel = channel;
-            Logger = channel.LoggerFactory.CreateLogger(LoggerName);
             _deadline = options.Deadline ?? DateTime.MaxValue;
 
             Channel.RegisterActiveCall(this);
@@ -93,6 +85,9 @@ namespace Grpc.Net.Client.Internal
         {
             get { return _callCts.Token; }
         }
+
+        public override Type RequestType => typeof(TRequest);
+        public override Type ResponseType => typeof(TResponse);
 
         public void StartUnary(TRequest request)
         {
@@ -386,10 +381,10 @@ namespace Grpc.Net.Client.Internal
 
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
         {
+            RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
             message.Content = new PushUnaryContent<TRequest, TResponse>(
                 request,
                 this,
-                GrpcProtocolHelpers.GetRequestEncoding(message.Headers),
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
 
@@ -519,12 +514,9 @@ namespace Grpc.Net.Client.Internal
                             // Read entire response body immediately and read status from trailers
                             // Trailers are only available once the response body had been read
                             var responseStream = await HttpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                            var message = await responseStream.ReadMessageAsync(
-                                Logger,
-                                Method.ResponseMarshaller.ContextualDeserializer,
+                            var message = await ReadMessageAsync(
+                                responseStream,
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
-                                Channel.ReceiveMaxMessageSize,
-                                Channel.CompressionProviders,
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
                             status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
@@ -776,7 +768,8 @@ namespace Grpc.Net.Client.Internal
 
         private void CreateWriter(HttpRequestMessage message)
         {
-            ClientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this, message);
+            RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
+            ClientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this);
 
             message.Content = new PushStreamContent<TRequest, TResponse>(ClientStreamWriter, GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
@@ -898,16 +891,12 @@ namespace Grpc.Net.Client.Internal
         internal ValueTask WriteMessageAsync(
             Stream stream,
             TRequest message,
-            string grpcEncoding,
             CallOptions callOptions)
         {
             return stream.WriteMessageAsync(
-                Logger,
+                this,
                 message,
                 Method.RequestMarshaller.ContextualSerializer,
-                grpcEncoding,
-                Channel.SendMaxMessageSize,
-                Channel.CompressionProviders,
                 callOptions);
         }
 
@@ -918,6 +907,7 @@ namespace Grpc.Net.Client.Internal
             CancellationToken cancellationToken)
         {
             return responseStream.ReadMessageAsync(
+                DeserializationContext,
                 Logger,
                 Method.ResponseMarshaller.ContextualDeserializer,
                 grpcEncoding,
