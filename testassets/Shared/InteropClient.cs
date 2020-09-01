@@ -117,7 +117,6 @@ namespace Grpc.Shared.TestAssets
             var httpClientHandler = new HttpClientHandler();
 #if !BLAZOR_WASM
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-#endif
 
             if (options.UseTestCa)
             {
@@ -127,6 +126,7 @@ namespace Grpc.Shared.TestAssets
 
                 httpClientHandler.ClientCertificates.Add(cert);
             }
+#endif
 
             HttpMessageHandler httpMessageHandler;
             if (options.GrpcWebMode != null)
