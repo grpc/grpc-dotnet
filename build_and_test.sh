@@ -42,5 +42,4 @@ done
 
 echo "Tests finished"
 
-# Temporarily disable while using nightly .NET SDK build
-# source grpcweb_interoptests.sh
+source grpcweb_interoptests.sh
