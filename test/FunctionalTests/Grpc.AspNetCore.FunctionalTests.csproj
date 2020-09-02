@@ -20,6 +20,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" />
 
     <ProjectReference Include="..\..\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj" />
 

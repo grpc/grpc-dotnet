@@ -16,37 +16,42 @@
 
 #endregion
 
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.FunctionalTests.Client
 {
     [TestFixture]
     public class TelemetryTests : FunctionalTestBase
     {
-        [Test]
-        public async Task InternalHandler_UnaryCall_TelemetryHeaderSentWithRequest()
+        [TestCase(ClientType.Channel)]
+        [TestCase(ClientType.ClientFactory)]
+        public async Task InternalHandler_UnaryCall_TelemetryHeaderSentWithRequest(ClientType clientType)
         {
-            await TestTelemetryHeaderIsSet(handler: null);
+            await TestTelemetryHeaderIsSet(clientType, handler: null);
         }
 
 #if NET5_0
-        [Test]
-        public async Task SocketsHttpHandler_UnaryCall_TelemetryHeaderSentWithRequest()
+        [TestCase(ClientType.Channel)]
+        [TestCase(ClientType.ClientFactory)]
+        public async Task Channel_SocketsHttpHandler_UnaryCall_TelemetryHeaderSentWithRequest(ClientType clientType)
         {
-            await TestTelemetryHeaderIsSet(handler: new SocketsHttpHandler());
+            await TestTelemetryHeaderIsSet(clientType, handler: new SocketsHttpHandler());
         }
 
-        [Test]
-        public async Task SocketsHttpHandlerWrapped_UnaryCall_TelemetryHeaderSentWithRequest()
+        [TestCase(ClientType.Channel)]
+        [TestCase(ClientType.ClientFactory)]
+        public async Task Channel_SocketsHttpHandlerWrapped_UnaryCall_TelemetryHeaderSentWithRequest(ClientType clientType)
         {
-            await TestTelemetryHeaderIsSet(handler: new TestDelegatingHandler(new SocketsHttpHandler()));
+            await TestTelemetryHeaderIsSet(clientType, handler: new TestDelegatingHandler(new SocketsHttpHandler()));
         }
 
         private class TestDelegatingHandler : DelegatingHandler
@@ -57,7 +62,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 #endif
 
-        private async Task TestTelemetryHeaderIsSet(HttpMessageHandler? handler)
+        private async Task TestTelemetryHeaderIsSet(ClientType clientType, HttpMessageHandler? handler)
         {
             string? telemetryHeader = null;
             Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
@@ -75,23 +80,58 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Arrange
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
-
-            var options = new GrpcChannelOptions
-            {
-                LoggerFactory = LoggerFactory,
-                HttpHandler = handler
-            };
-
-            // Want to test the behavior of the default, internally created handler.
-            // Only supply the URL to a manually created GrpcChannel.
-            var channel = GrpcChannel.ForAddress(Fixture.GetUrl(TestServerEndpointName.Http2), options);
-            var client = TestClientFactory.Create(channel, method);
+            var client = CreateClient(clientType, method, handler);
 
             // Act
             await client.UnaryCall(new HelloRequest());
 
             // Assert
             Assert.IsNotNull(telemetryHeader);
+        }
+
+        private TestClient<HelloRequest, HelloReply> CreateClient(ClientType clientType, Method<HelloRequest, HelloReply> method, HttpMessageHandler? handler)
+        {
+            switch (clientType)
+            {
+                case ClientType.Channel:
+                    {
+                        var options = new GrpcChannelOptions
+                        {
+                            LoggerFactory = LoggerFactory,
+                            HttpHandler = handler
+                        };
+
+                        // Want to test the behavior of the default, internally created handler.
+                        // Only supply the URL to a manually created GrpcChannel.
+                        var channel = GrpcChannel.ForAddress(Fixture.GetUrl(TestServerEndpointName.Http2), options);
+                        return TestClientFactory.Create(channel, method);
+                    }
+                case ClientType.ClientFactory:
+                    {
+                        var serviceCollection = new ServiceCollection();
+                        serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
+                        serviceCollection
+                            .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
+                            {
+                                options.Address = Fixture.GetUrl(TestServerEndpointName.Http2);
+                            })
+                            .ConfigureGrpcClientCreator(invoker =>
+                            {
+                                return TestClientFactory.Create(invoker, method);
+                            });
+                        var services = serviceCollection.BuildServiceProvider();
+
+                        return services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
+                    }
+                default:
+                    throw new InvalidOperationException("Unexpected value.");
+            }
+        }
+
+        public enum ClientType
+        {
+            Channel,
+            ClientFactory
         }
     }
 }

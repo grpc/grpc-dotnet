@@ -17,6 +17,8 @@
   <ItemGroup>
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
+    <Compile Include="..\Shared\HttpHandlerFactory.cs" Link="Internal\HttpHandlerFactory.cs" />
+    <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\TelemetryHeaderHandler.cs" />
   </ItemGroup>
 
   <ItemGroup>
