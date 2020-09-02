@@ -30,6 +30,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -54,6 +55,7 @@ namespace Grpc.Net.Client.Tests
 
                 helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -105,6 +107,7 @@ namespace Grpc.Net.Client.Tests
 
                 helloRequest = await StreamExtensions.ReadMessageAsync(
                     new MemoryStream(requestData),
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -172,6 +175,7 @@ namespace Grpc.Net.Client.Tests
 
                 helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -219,6 +223,7 @@ namespace Grpc.Net.Client.Tests
 
                 helloRequest = await StreamExtensions.ReadMessageAsync(
                     requestStream,
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -258,8 +263,8 @@ namespace Grpc.Net.Client.Tests
             HttpRequestMessage? httpRequestMessage = null;
             HelloRequest? helloRequest1 = null;
             HelloRequest? helloRequest2 = null;
-            bool? isRequestNotCompressed1 = null;
-            bool? isRequestNotCompressed2 = null;
+            bool? isRequestCompressed1 = null;
+            bool? isRequestCompressed2 = null;
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
@@ -268,9 +273,10 @@ namespace Grpc.Net.Client.Tests
                 var requestData = await request.Content!.ReadAsByteArrayAsync().DefaultTimeout();
                 var requestStream = new MemoryStream(requestData);
 
-                isRequestNotCompressed1 = requestData[0] == 0;
+                isRequestCompressed1 = requestData[0] == 1;
                 helloRequest1 = await StreamExtensions.ReadMessageAsync(
                     requestStream,
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -279,9 +285,10 @@ namespace Grpc.Net.Client.Tests
                     singleMessage: false,
                     CancellationToken.None);
 
-                isRequestNotCompressed2 = requestData[requestStream.Position] == 0;
+                isRequestCompressed2 = requestData[requestStream.Position] == 1;
                 helloRequest2 = await StreamExtensions.ReadMessageAsync(
                     requestStream,
+                    new DefaultDeserializationContext(),
                     NullLogger.Instance,
                     ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                     "gzip",
@@ -339,8 +346,8 @@ namespace Grpc.Net.Client.Tests
             Debug.Assert(helloRequest2 != null);
             Assert.AreEqual("Hello Two", helloRequest2.Name);
 
-            Assert.IsFalse(isRequestNotCompressed1);
-            Assert.IsTrue(isRequestNotCompressed2);
+            Assert.IsTrue(isRequestCompressed1);
+            Assert.IsFalse(isRequestCompressed2);
         }
 
         private static Metadata CreateClientCompressionMetadata(string algorithmName)

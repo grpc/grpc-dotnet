@@ -21,30 +21,33 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Pipelines;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.Net.Client.Internal
 {
-    internal sealed class HttpContextSerializationContext : SerializationContext
+    internal sealed class GrpcCallSerializationContext : SerializationContext, IBufferWriter<byte>
     {
         private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
 
-        private readonly HttpContextServerCallContext _serverCallContext;
+        private readonly GrpcCall _call;
         private InternalState _state;
         private int? _payloadLength;
         private ICompressionProvider? _compressionProvider;
-        private ArrayBufferWriter<byte>? _bufferWriter;
-
-        public PipeWriter ResponseBufferWriter { get; set; } = default!;
 
         private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
 
-        public HttpContextSerializationContext(HttpContextServerCallContext serverCallContext)
+        private ArrayBufferWriter<byte>? _bufferWriter;
+        private byte[]? _buffer;
+        private int _bufferPosition;
+
+        public CallOptions CallOptions { get; set; }
+
+        public GrpcCallSerializationContext(GrpcCall call)
         {
-            _serverCallContext = serverCallContext;
+            _call = call;
         }
 
         private enum InternalState : byte
@@ -55,35 +58,75 @@ namespace Grpc.AspNetCore.Server.Internal
             CompleteBufferWriter,
         }
 
-        public void Reset()
+        public void Initialize()
         {
             _compressionProvider = ResolveCompressionProvider();
 
             _payloadLength = null;
-            if (_bufferWriter != null)
-            {
-                // Reuse existing buffer writer
-                _bufferWriter.Clear();
-            }
             _state = InternalState.Initialized;
+            _bufferPosition = 0;
+        }
+
+        public void Reset()
+        {
+            // Release writer and buffer.
+            // Stream could be long running and we don't want to hold onto large
+            // buffer arrays for a long period of time.
+            _bufferWriter = null;
+
+            if (_buffer != null)
+            {
+                ArrayPool<byte>.Shared.Return(_buffer);
+                _buffer = null;
+                _bufferPosition = 0;
+            }
+        }
+
+        /// <summary>
+        /// Obtains the payload from this operation, and returns a boolean indicating
+        /// whether the serialization was complete; the state is reset either way.
+        /// </summary>
+        public bool TryGetPayload(out ReadOnlyMemory<byte> payload)
+        {
+            switch (_state)
+            {
+                case InternalState.CompleteArray:
+                case InternalState.CompleteBufferWriter:
+                    if (_buffer != null)
+                    {
+                        payload = _buffer.AsMemory(0, _bufferPosition);
+                        return true;
+                    }
+                    else if (_bufferWriter != null)
+                    {
+                        payload = _bufferWriter.WrittenMemory;
+                        return true;
+                    }
+                    break;
+            }
+
+            payload = default;
+            return false;
         }
 
         private ICompressionProvider? ResolveCompressionProvider()
         {
             Debug.Assert(
-                _serverCallContext.ResponseGrpcEncoding != null,
+                _call.RequestGrpcEncoding != null,
                 "Response encoding should have been calculated at this point.");
 
             var canCompress =
-                GrpcProtocolHelpers.CanWriteCompressed(_serverCallContext.WriteOptions) &&
-                !GrpcProtocolConstants.IsGrpcEncodingIdentity(_serverCallContext.ResponseGrpcEncoding);
+               GrpcProtocolHelpers.CanWriteCompressed(CallOptions.WriteOptions) &&
+               !string.Equals(_call.RequestGrpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal);
 
             if (canCompress)
             {
-                if (_serverCallContext.Options.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding, out var compressionProvider))
+                if (_call.Channel.CompressionProviders.TryGetValue(_call.RequestGrpcEncoding, out var compressionProvider))
                 {
                     return compressionProvider;
                 }
+                
+                throw new InvalidOperationException($"Could not find compression provider for '{_call.RequestGrpcEncoding}'.");
             }
 
             return null;
@@ -109,7 +152,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 case InternalState.Initialized:
                     _state = InternalState.CompleteArray;
 
-                    GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, payload.Length);
+                    GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, payload.Length);
                     WriteMessage(payload);
                     break;
                 default:
@@ -118,20 +161,13 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private static void WriteHeader(PipeWriter pipeWriter, int length, bool compress)
+        private static void WriteHeader(Span<byte> headerData, int length, bool compress)
         {
-            const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
-            const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
-
-            var headerData = pipeWriter.GetSpan(HeaderSize);
-
             // Compression flag
             headerData[0] = compress ? (byte)1 : (byte)0;
 
             // Message length
             BinaryPrimitives.WriteUInt32BigEndian(headerData.Slice(1), (uint)length);
-
-            pipeWriter.Advance(HeaderSize);
         }
 
         public override IBufferWriter<byte> GetBufferWriter()
@@ -139,6 +175,8 @@ namespace Grpc.AspNetCore.Server.Internal
             switch (_state)
             {
                 case InternalState.Initialized:
+                    var bufferWriter = ResolveBufferWriter();
+
                     // When writing directly to the buffer the header with message size needs to be written first
                     if (DirectSerializationSupported)
                     {
@@ -146,11 +184,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         EnsureMessageSizeAllowed(_payloadLength.Value);
 
-                        WriteHeader(ResponseBufferWriter, _payloadLength.Value, compress: false);
+                        WriteHeader(_buffer, _payloadLength.Value, compress: false);
+                        _bufferPosition += GrpcProtocolConstants.HeaderSize;
                     }
 
                     _state = InternalState.IncompleteBufferWriter;
-                    return ResolveBufferWriter();
+                    return bufferWriter;
                 case InternalState.IncompleteBufferWriter:
                     return ResolveBufferWriter();
                 default:
@@ -161,14 +200,30 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private IBufferWriter<byte> ResolveBufferWriter()
         {
-            return DirectSerializationSupported
-                ? (IBufferWriter<byte>)ResponseBufferWriter
-                : _bufferWriter ??= new ArrayBufferWriter<byte>();
+            if (DirectSerializationSupported)
+            {
+                if (_buffer == null)
+                {
+                    _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + _payloadLength.GetValueOrDefault());
+                }
+
+                return this;
+            }
+            else if (_bufferWriter == null)
+            {
+                // Initialize buffer writer with exact length if available.
+                // ArrayBufferWriter doesn't allow zero initial length.
+                _bufferWriter = _payloadLength > 0
+                    ? new ArrayBufferWriter<byte>(_payloadLength.GetValueOrDefault())
+                    : new ArrayBufferWriter<byte>();
+            }
+
+            return _bufferWriter;
         }
 
         private void EnsureMessageSizeAllowed(int payloadLength)
         {
-            if (payloadLength > _serverCallContext.Options.MaxSendMessageSize)
+            if (payloadLength > _call.Channel.SendMaxMessageSize)
             {
                 throw new RpcException(SendingMessageExceedsLimitStatus);
             }
@@ -191,12 +246,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         var data = _bufferWriter.WrittenSpan;
 
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, data.Length);
+                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, data.Length);
                         WriteMessage(data);
                     }
                     else
                     {
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.GetValueOrDefault());
+                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, _payloadLength.GetValueOrDefault());
                     }
                     break;
                 default:
@@ -214,26 +269,53 @@ namespace Grpc.AspNetCore.Server.Internal
                 data = CompressMessage(data);
             }
 
-            WriteHeader(ResponseBufferWriter, data.Length, compress: _compressionProvider != null);
-            ResponseBufferWriter.Write(data);
+            _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + data.Length);
+
+            WriteHeader(_buffer, data.Length, compress: _compressionProvider != null);
+            _bufferPosition += GrpcProtocolConstants.HeaderSize;
+
+            data.CopyTo(_buffer.AsSpan(GrpcProtocolConstants.HeaderSize));
+            _bufferPosition += data.Length;
         }
 
         private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData)
         {
             Debug.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
 
-            GrpcServerLog.CompressingMessage(_serverCallContext.Logger, _compressionProvider.EncodingName);
+            GrpcCallLog.CompressingMessage(_call.Logger, _compressionProvider.EncodingName);
 
             var output = new MemoryStream();
 
             // Compression stream must be disposed before its content is read.
             // GZipStream writes final Adler32 at the end of the stream on dispose.
-            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, _serverCallContext.Options.ResponseCompressionLevel))
+            using (var compressionStream = _compressionProvider.CreateCompressionStream(output, CompressionLevel.Fastest))
             {
                 compressionStream.Write(messageData);
             }
 
             return output.GetBuffer().AsSpan(0, (int)output.Length);
+        }
+
+        public void Advance(int count)
+        {
+            if (_buffer != null)
+            {
+                _bufferPosition += count;
+            }
+            else
+            {
+                _bufferWriter!.Advance(count);
+            }
+        }
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            return _buffer != null ? _buffer.AsMemory(_bufferPosition) : _bufferWriter!.GetMemory(sizeHint);
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            return _buffer != null ? _buffer.AsSpan(_bufferPosition) : _bufferWriter!.GetSpan(sizeHint);
         }
     }
 }

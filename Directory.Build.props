@@ -12,6 +12,7 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)keys\Grpc.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
 
     <!-- Don't make missing XML docs a fatal build error, but still surface so we have visibility into undocumented APIs. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591</WarningsNotAsErrors>

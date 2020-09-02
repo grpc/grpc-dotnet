@@ -26,6 +26,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -113,6 +114,7 @@ namespace Grpc.Net.Client.Tests
 
             var requestContent = await streamTask.DefaultTimeout();
             var requestMessage = await requestContent.ReadMessageAsync(
+                new DefaultDeserializationContext(),
                 NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
@@ -122,6 +124,7 @@ namespace Grpc.Net.Client.Tests
                 CancellationToken.None).AsTask().DefaultTimeout();
             Assert.AreEqual("1", requestMessage!.Name);
             requestMessage = await requestContent.ReadMessageAsync(
+                new DefaultDeserializationContext(),
                 NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
