@@ -27,7 +27,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Shared
 {
     internal sealed class TelemetryHeaderHandler : DelegatingHandler
     {
