@@ -115,30 +115,6 @@ namespace Grpc.Net.Client
             return httpInvoker;
         }
 
-#if NET5_0
-        private static bool IsSocketsHttpHandler(HttpMessageHandler handler)
-        {
-            if (handler is SocketsHttpHandler)
-            {
-                return true;
-            }
-
-            HttpMessageHandler? currentHandler = handler;
-            DelegatingHandler? delegatingHandler;
-            while ((delegatingHandler = currentHandler as DelegatingHandler) != null)
-            {
-                currentHandler = delegatingHandler.InnerHandler;
-
-                if (currentHandler is SocketsHttpHandler)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-#endif
-
         internal void RegisterActiveCall(IDisposable grpcCall)
         {
             lock (ActiveCalls)
