@@ -24,6 +24,7 @@ using System.Net.Http;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -100,31 +101,11 @@ namespace Grpc.Net.Client
             // Decision to dispose invoker is controlled by _shouldDisposeHttpClient.
             if (handler == null)
             {
-#if NET5_0
-                if (SocketsHttpHandler.IsSupported)
-                {
-                    handler = new SocketsHttpHandler
-                    {
-                        EnableMultipleHttp2Connections = true
-                    };
-                }
-                else
-                {
-                    handler = new HttpClientHandler();
-                }
-#else
-                handler = new HttpClientHandler();
-#endif
+                handler = HttpHandlerFactory.CreatePrimaryHandler();
             }
 
 #if NET5_0
-            // HttpClientHandler has an internal handler that sets request telemetry header.
-            // If the handler is SocketsHttpHandler then we know that the header will never be set
-            // so wrap with a telemetry header setting handler.
-            if (IsSocketsHttpHandler(handler))
-            {
-                handler = new TelemetryHeaderHandler(handler);
-            }
+            handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
 
             // Use HttpMessageInvoker instead of HttpClient because it is faster
@@ -133,30 +114,6 @@ namespace Grpc.Net.Client
 
             return httpInvoker;
         }
-
-#if NET5_0
-        private static bool IsSocketsHttpHandler(HttpMessageHandler handler)
-        {
-            if (handler is SocketsHttpHandler)
-            {
-                return true;
-            }
-
-            HttpMessageHandler? currentHandler = handler;
-            DelegatingHandler? delegatingHandler;
-            while ((delegatingHandler = currentHandler as DelegatingHandler) != null)
-            {
-                currentHandler = delegatingHandler.InnerHandler;
-
-                if (currentHandler is SocketsHttpHandler)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-#endif
 
         internal void RegisterActiveCall(IDisposable grpcCall)
         {

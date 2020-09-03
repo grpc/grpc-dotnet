@@ -84,6 +84,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             // Arrange
             var list = new List<int>();
+            var testHttpMessageHandler = new TestHttpMessageHandler();
 
             var services = new ServiceCollection();
             services
@@ -94,7 +95,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(1)))
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(2)))
                 .AddInterceptor(() => new CallbackInterceptor(o => list.Add(3)))
-                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+                .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -105,6 +106,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
+            Assert.IsTrue(testHttpMessageHandler.Invoked);
             Assert.IsNotNull(response);
             Assert.AreEqual(3, list.Count);
             Assert.AreEqual(1, list[0]);
@@ -338,8 +340,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
         private class TestHttpMessageHandler : HttpMessageHandler
         {
+            public bool Invoked { get; private set; }
+
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
+                Invoked = true;
+
                 // Get stream from request content so gRPC client serializes request message
                 _ = await request.Content!.ReadAsStreamAsync();
 

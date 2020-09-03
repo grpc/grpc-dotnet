@@ -24,6 +24,7 @@ using System.Threading;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
+using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -334,7 +335,16 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
-            services.AddHttpClient(name, configureTypedClient);
+            services
+                .AddHttpClient(name, configureTypedClient)
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    var handler = HttpHandlerFactory.CreatePrimaryHandler();
+#if NET5_0
+                    handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
+#endif
+                    return handler;
+                });
 
             var builder = new DefaultHttpClientBuilder(services, name);
 
