@@ -408,7 +408,8 @@ namespace GrpcClient
                     }
                     if (!string.IsNullOrEmpty(_options.UdsFileName))
                     {
-                        httpClientHandler.ConnectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
+                        // Removed in .NET 5. Re-enable when support is added back in .NET 6
+                        // httpClientHandler.ConnectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
                     }
 
                     // TODO(JamesNK): Check whether the disable can be removed once .NET 5 is finalized
