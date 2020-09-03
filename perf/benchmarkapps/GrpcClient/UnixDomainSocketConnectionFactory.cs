@@ -24,6 +24,8 @@ using System.Threading.Tasks;
 
 namespace GrpcClient
 {
+    // Removed in .NET 5. Re-enable when support is added back in .NET 6
+    /*
     public class UnixDomainSocketConnectionFactory : SocketsConnectionFactory
     {
         private readonly EndPoint _endPoint;
@@ -38,4 +40,5 @@ namespace GrpcClient
             return base.ConnectAsync(_endPoint, options, cancellationToken);
         }
     }
+    */
 }
