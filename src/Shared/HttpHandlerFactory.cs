@@ -25,6 +25,9 @@ namespace Grpc.Shared
         public static HttpMessageHandler CreatePrimaryHandler()
         {
 #if NET5_0
+            // If we're in .NET 5 and SocketsHttpHandler is supported (it's not in Blazor WebAssembly)
+            // then create SocketsHttpHandler with EnableMultipleHttp2Connections set to true. That will
+            // allow a gRPC channel to create new connections if the maximum allow concurrency is exceeded.
             if (SocketsHttpHandler.IsSupported)
             {
                 return new SocketsHttpHandler
@@ -32,13 +35,9 @@ namespace Grpc.Shared
                     EnableMultipleHttp2Connections = true
                 };
             }
-            else
-            {
-                return new HttpClientHandler();
-            }
-#else
-            return new HttpClientHandler();
 #endif
+
+            return new HttpClientHandler();
         }
 
 #if NET5_0
@@ -46,7 +45,7 @@ namespace Grpc.Shared
         {
             // HttpClientHandler has an internal handler that sets request telemetry header.
             // If the handler is SocketsHttpHandler then we know that the header will never be set
-            // so wrap with a telemetry header setting handler.
+            // so wrap with a handler that is responsible for setting the telemetry header.
             if (IsSocketsHttpHandler(handler))
             {
                 return new TelemetryHeaderHandler(handler);
