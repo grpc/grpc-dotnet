@@ -16,11 +16,9 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using System;
 using System.Buffers;
 using System.Buffers.Text;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,9 +31,13 @@ namespace Grpc.AspNetCore.Web.Internal
     internal class Base64PipeReader : PipeReader
     {
         private readonly PipeReader _inner;
-        private ReadOnlySequence<byte> _currentInnerBuffer;
         private ReadOnlySequence<byte> _currentDecodedBuffer;
-        private byte[]? _rentedBuffer;
+        private ReadOnlySequence<byte> _currentInnerBuffer;
+
+        // Keep track of how much of the inner result has been read in its own field.
+        // Can't use inner buffer length because an inner buffer could be set but not
+        // read if it has less than 4 bytes (minimum decode size).
+        private long _currentInnerBufferRead;
 
         public Base64PipeReader(PipeReader inner)
         {
@@ -46,9 +48,9 @@ namespace Grpc.AspNetCore.Web.Internal
         {
             var consumedPosition = ResolvePosition(consumed);
 
-            _inner.AdvanceTo(consumedPosition);
+            UpdateCurrentBuffers(consumed, consumedPosition);
 
-            ReturnBuffer();
+            _inner.AdvanceTo(consumedPosition);
         }
 
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
@@ -61,9 +63,20 @@ namespace Grpc.AspNetCore.Web.Internal
                 ? _currentInnerBuffer.End
                 : ResolvePosition(examined);
 
-            _inner.AdvanceTo(consumedPosition, examinedPosition);
+            UpdateCurrentBuffers(consumed, consumedPosition);
 
-            ReturnBuffer();
+            _inner.AdvanceTo(consumedPosition, examinedPosition);
+        }
+
+        private void UpdateCurrentBuffers(SequencePosition consumed, SequencePosition consumedPosition)
+        {
+            var lengthBefore = _currentInnerBuffer.Length;
+
+            _currentDecodedBuffer = _currentDecodedBuffer.Slice(consumed);
+            _currentInnerBuffer = _currentInnerBuffer.Slice(consumedPosition);
+
+            // Substract difference in the inner buffer from how much has been decoded.
+            _currentInnerBufferRead -= lengthBefore - _currentInnerBuffer.Length;
         }
 
         private SequencePosition ResolvePosition(SequencePosition base64Position)
@@ -110,20 +123,19 @@ namespace Grpc.AspNetCore.Web.Internal
         {
             _inner.Complete(exception);
 
-            ReturnBuffer();
-        }
-
-        private void ReturnBuffer()
-        {
-            if (_rentedBuffer != null)
-            {
-                ArrayPool<byte>.Shared.Return(_rentedBuffer);
-                _rentedBuffer = null;
-            }
+            _currentInnerBuffer = ReadOnlySequence<byte>.Empty;
+            _currentDecodedBuffer = ReadOnlySequence<byte>.Empty;
         }
 
         public async override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
+            // ReadAsync needs to handle some common situations:
+            // 1. Base64 requires are least 4 bytes to decode content. If less than 4 bytes are returned
+            //    from the inner reader then repeatedly call the inner reader until 4 bytes are available.
+            // 2. It is possible that ReadAsync is called many times without consuming the data. We don't
+            //    want to decode the same base64 content over and over. ReadAsync only decodes new content
+            //    and appends it to a sequence.
+
             var innerResult = await _inner.ReadAsync(cancellationToken);
             if (innerResult.Buffer.IsEmpty)
             {
@@ -133,7 +145,7 @@ namespace Grpc.AspNetCore.Web.Internal
             }
 
             // Minimum valid base64 length is 4. Read until we have at least that much content
-            while (innerResult.Buffer.Length < 4)
+            while (innerResult.Buffer.Length - _currentInnerBufferRead < 4)
             {
                 if (innerResult.IsCompleted)
                 {
@@ -158,31 +170,57 @@ namespace Grpc.AspNetCore.Web.Internal
             }
 
             // Limit result to complete base64 segments (multiples of 4)
-            var buffer = innerResult.Buffer.Slice(0, (innerResult.Buffer.Length / 4) * 4);
+            var newResultLength = innerResult.Buffer.Length - _currentInnerBufferRead;
+            var newResultValidLength = (newResultLength / 4) * 4;
+
+            var buffer = innerResult.Buffer.Slice(_currentInnerBufferRead, newResultValidLength);
 
             // The content can contain multiple fragments of base64 content
             // Check for padding, and limit returned data to one fragment at a time
             var paddingIndex = PositionOf(buffer, (byte)'=');
             if (paddingIndex != null)
             {
-                _currentInnerBuffer = buffer.Slice(0, ((paddingIndex.Value / 4) + 1) * 4);
-            }
-            else
-            {
-                _currentInnerBuffer = buffer;
+                buffer = buffer.Slice(0, ((paddingIndex.Value / 4) + 1) * 4);
             }
 
-            var length = (int)_currentInnerBuffer.Length;
-            // Any rented buffer should have been returned
-            Debug.Assert(_rentedBuffer == null);
-            _rentedBuffer = ArrayPool<byte>.Shared.Rent(length);
-            _currentInnerBuffer.CopyTo(_rentedBuffer);
+            // Copy the buffer data to a new array.
+            // Need a copy that we own because it will be decoded in place.
+            var decodedBuffer = buffer.ToArray();
 
-            var validLength = (length / 4) * 4;
-            var status = Base64.DecodeFromUtf8InPlace(_rentedBuffer.AsSpan(0, validLength), out var bytesWritten);
+            var status = Base64.DecodeFromUtf8InPlace(decodedBuffer, out var bytesWritten);
             if (status == OperationStatus.Done || status == OperationStatus.NeedMoreData)
             {
-                _currentDecodedBuffer = new ReadOnlySequence<byte>(_rentedBuffer, 0, bytesWritten);
+                _currentInnerBuffer = innerResult.Buffer.Slice(0, _currentInnerBufferRead + decodedBuffer.Length);
+
+                _currentInnerBufferRead = _currentInnerBuffer.Length;
+
+                // Update decoded buffer. If there have been multiple reads with the same content then
+                // newly decoded content will be appended to the sequence.
+                if (_currentDecodedBuffer.IsEmpty)
+                {
+                    // Avoid creating segments for single segment sequence.
+                    _currentDecodedBuffer = new ReadOnlySequence<byte>(decodedBuffer, 0, bytesWritten);
+                }
+                else if (_currentDecodedBuffer.IsSingleSegment)
+                {
+                    var start = new MemorySegment<byte>(_currentDecodedBuffer.First);
+
+                    // Append new content to end.
+                    var end = start.Append(decodedBuffer.AsMemory(0, bytesWritten));
+
+                    _currentDecodedBuffer = new ReadOnlySequence<byte>(start, 0, end, end.Memory.Length);
+                }
+                else
+                {
+                    var start = (MemorySegment<byte>)_currentDecodedBuffer.Start.GetObject()!;
+                    var end = (MemorySegment<byte>)_currentDecodedBuffer.End.GetObject()!;
+
+                    // Append new content to end.
+                    end = end.Append(decodedBuffer.AsMemory(0, bytesWritten));
+
+                    _currentDecodedBuffer = new ReadOnlySequence<byte>(start, 0, end, end.Memory.Length);
+                }
+
                 return new ReadResult(
                     _currentDecodedBuffer,
                     innerResult.IsCanceled,
@@ -235,51 +273,6 @@ namespace Grpc.AspNetCore.Web.Internal
             }
 
             return null;
-        }
-
-        private static bool ValidatePadding(in ReadOnlySequence<byte> source)
-        {
-            if (source.IsSingleSegment)
-            {
-                return ValidatePaddingCore(source.First.Span);
-            }
-            else
-            {
-                return ValidatePaddingMultiSegment(source);
-            }
-        }
-
-        private static bool ValidatePaddingMultiSegment(in ReadOnlySequence<byte> source)
-        {
-            var position = source.Start;
-            
-            while (source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
-            {
-                if (!ValidatePaddingCore(memory.Span))
-                {
-                    return false;
-                }
-                
-                if (position.GetObject() == null)
-                {
-                    break;
-                }
-            }
-
-            return true;
-        }
-
-        private static bool ValidatePaddingCore(ReadOnlySpan<byte> span)
-        {
-            for (var i = 0; i < span.Length; i++)
-            {
-                if (span[i] != '=')
-                {
-                    return false;
-                }
-            }
-
-            return true;
         }
     }
 }
