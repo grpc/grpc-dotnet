@@ -83,7 +83,7 @@ namespace Grpc.Net.Client.Internal
             return headers;
         }
 
-        private static bool ShouldSkipHeader(string name)
+        internal static bool ShouldSkipHeader(string name)
         {
             if (name.Length == 0)
             {
