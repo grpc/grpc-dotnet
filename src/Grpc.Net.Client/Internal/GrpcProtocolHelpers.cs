@@ -62,15 +62,7 @@ namespace Grpc.Net.Client.Internal
 
             foreach (var header in responseHeaders)
             {
-                // ASP.NET Core includes pseudo headers in the set of request headers
-                // whereas, they are not in gRPC implementations. We will filter them
-                // out when we construct the list of headers on the context.
-                if (header.Key.StartsWith(':'))
-                {
-                    continue;
-                }
-                // Exclude grpc related headers
-                if (header.Key.StartsWith("grpc-", StringComparison.OrdinalIgnoreCase))
+                if (ShouldSkipHeader(header.Key))
                 {
                     continue;
                 }
@@ -89,6 +81,32 @@ namespace Grpc.Net.Client.Internal
             }
 
             return headers;
+        }
+
+        internal static bool ShouldSkipHeader(string name)
+        {
+            if (name.Length == 0)
+            {
+                return false;
+            }
+
+            switch (name[0])
+            {
+                case ':':
+                    // ASP.NET Core includes pseudo headers in the set of request headers
+                    // whereas, they are not in gRPC implementations. We will filter them
+                    // out when we construct the list of headers on the context.
+                    return true;
+                case 'g':
+                case 'G':
+                    // Exclude known grpc headers. This matches Grpc.Core client behavior.
+                    return string.Equals(name, GrpcProtocolConstants.StatusTrailer, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(name, GrpcProtocolConstants.MessageTrailer, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(name, GrpcProtocolConstants.MessageEncodingHeader, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(name, GrpcProtocolConstants.MessageAcceptEncodingHeader, StringComparison.OrdinalIgnoreCase);
+                default:
+                    return false;
+            }
         }
 
         private const int MillisecondsPerSecond = 1000;
