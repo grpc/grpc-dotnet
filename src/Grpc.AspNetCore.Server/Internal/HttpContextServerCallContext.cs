@@ -383,6 +383,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 ResponseGrpcEncoding = serviceDefaultCompression;
             }
 
+            // grpc-encoding response header is optional and is inferred as 'identity' when not present.
+            // Only write a non-identity value for performance.
             if (ResponseGrpcEncoding != null)
             {
                 HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
