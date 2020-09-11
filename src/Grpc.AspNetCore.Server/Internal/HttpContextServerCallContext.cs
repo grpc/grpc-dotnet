@@ -382,12 +382,13 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 ResponseGrpcEncoding = serviceDefaultCompression;
             }
-            else
-            {
-                ResponseGrpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
-            }
 
-            HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
+            // grpc-encoding response header is optional and is inferred as 'identity' when not present.
+            // Only write a non-identity value for performance.
+            if (ResponseGrpcEncoding != null)
+            {
+                HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
+            }
         }
 
         private Activity? GetHostActivity()
@@ -530,11 +531,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal void ValidateAcceptEncodingContainsResponseEncoding()
         {
-            Debug.Assert(ResponseGrpcEncoding != null);
+            var resolvedResponseGrpcEncoding = ResponseGrpcEncoding ?? GrpcProtocolConstants.IdentityGrpcEncoding;
 
-            if (!IsEncodingInRequestAcceptEncoding(ResponseGrpcEncoding))
+            if (!IsEncodingInRequestAcceptEncoding(resolvedResponseGrpcEncoding))
             {
-                GrpcServerLog.EncodingNotInAcceptEncoding(Logger, ResponseGrpcEncoding);
+                GrpcServerLog.EncodingNotInAcceptEncoding(Logger, resolvedResponseGrpcEncoding);
             }
         }
     }
