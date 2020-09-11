@@ -17,6 +17,7 @@
 #endregion
 
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -35,6 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
             {
                 context.ResponseTrailers.Add(new Metadata.Entry("Name", "the value was empty"));
+                context.ResponseTrailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
                 context.Status = new Status(StatusCode.InvalidArgument, "Validation failed");
                 return Task.FromResult(new HelloReply());
             }
@@ -65,13 +67,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             var trailers = call.GetTrailers();
-            Assert.AreEqual(1, trailers.Count);
+            Assert.AreEqual(2, trailers.Count);
             Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.AreEqual(1, ex.Trailers.Count);
+            Assert.AreEqual(2, ex.Trailers.Count);
             Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")));
         }
 
         [Test]
@@ -81,6 +85,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             {
                 var trailers = new Metadata();
                 trailers.Add(new Metadata.Entry("Name", "the value was empty"));
+                trailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
                 return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
             }
 
@@ -110,13 +115,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             var trailers = call.GetTrailers();
-            Assert.GreaterOrEqual(trailers.Count, 1);
+            Assert.GreaterOrEqual(trailers.Count, 2);
             Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.GreaterOrEqual(ex.Trailers.Count, 1);
+            Assert.GreaterOrEqual(ex.Trailers.Count, 2);
             Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")));
 
             AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
         }
