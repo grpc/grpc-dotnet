@@ -210,7 +210,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            Assert.IsFalse(response.Headers.Contains(GrpcProtocolConstants.MessageEncodingHeader));
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
@@ -490,7 +490,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual("identity", response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            Assert.IsFalse(response.Headers.Contains(GrpcProtocolConstants.MessageEncodingHeader));
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
