@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.Net.Http.Headers;
 using Grpc.Net.Client.Internal;
-using Grpc.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -53,6 +51,25 @@ namespace Grpc.Net.Client.Tests
         {
             var encoded = GrpcProtocolHelpers.EncodeTimeout(milliseconds);
             Assert.AreEqual(expected, encoded);
+        }
+
+        [TestCase(":status", true)]
+        [TestCase(":STATUS", true)]
+        [TestCase("grpc-status", true)]
+        [TestCase("GRPC-STATUS", true)]
+        [TestCase("grpc-message", true)]
+        [TestCase("GRPC-MESSAGE", true)]
+        [TestCase("grpc-encoding", true)]
+        [TestCase("GRPC-ENCODING", true)]
+        [TestCase("grpc-accept-encoding", true)]
+        [TestCase("GRPC-ACCEPT-ENCODING", true)]
+        [TestCase("custom", false)]
+        [TestCase("grpc-status-details-bin", false)]
+        [TestCase("GRPC-STATUS-DETAILS-BIN", false)]
+        public void ShouldSkipHeader(string header, bool skipped)
+        {
+            var result = GrpcProtocolHelpers.ShouldSkipHeader(header);
+            Assert.AreEqual(skipped, result);
         }
     }
 }
