@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.Net.Http.Headers;
 using Grpc.Net.Client.Internal;
-using Grpc.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
