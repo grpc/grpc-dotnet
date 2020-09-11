@@ -70,16 +70,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private ICompressionProvider? ResolveCompressionProvider()
         {
-            var canCompress =
+            if (_serverCallContext.ResponseGrpcEncoding != null &&
                 GrpcProtocolHelpers.CanWriteCompressed(_serverCallContext.WriteOptions) &&
-                _serverCallContext.ResponseGrpcEncoding != null;
-
-            if (canCompress)
+                _serverCallContext.Options.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding, out var compressionProvider))
             {
-                if (_serverCallContext.Options.CompressionProviders.TryGetValue(_serverCallContext.ResponseGrpcEncoding!, out var compressionProvider))
-                {
-                    return compressionProvider;
-                }
+                return compressionProvider;
             }
 
             return null;
