@@ -66,6 +66,10 @@ namespace Grpc.Net.Client.Tests
         [TestCase("custom", false)]
         [TestCase("grpc-status-details-bin", false)]
         [TestCase("GRPC-STATUS-DETAILS-BIN", false)]
+        [TestCase("content-encoding", true)]
+        [TestCase("CONTENT-ENCODING", true)]
+        [TestCase("content-type", true)]
+        [TestCase("CONTENT-TYPE", true)]
         public void ShouldSkipHeader(string header, bool skipped)
         {
             var result = GrpcProtocolHelpers.ShouldSkipHeader(header);

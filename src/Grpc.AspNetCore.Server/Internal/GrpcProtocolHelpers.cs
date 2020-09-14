@@ -231,5 +231,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
             return canCompress;
         }
+
+        internal static bool ShouldSkipHeader(string name)
+        {
+            return name.StartsWith(':') || GrpcProtocolConstants.FilteredHeaders.Contains(name);
+        }
     }
 }
