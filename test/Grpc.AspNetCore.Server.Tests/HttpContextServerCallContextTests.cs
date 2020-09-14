@@ -570,7 +570,11 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[headerName] = Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello world"));
+
+            // A base64 valid value is required for -bin headers
+            var value = Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello world"));
+            httpContext.Request.Headers[headerName] = value;
+
             var serverCallContext = CreateServerCallContext(httpContext);
 
             // Act
