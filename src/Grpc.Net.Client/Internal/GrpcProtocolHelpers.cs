@@ -109,10 +109,6 @@ namespace Grpc.Net.Client.Internal
                     // Exclude known HTTP headers. This matches Grpc.Core client behavior.
                     return string.Equals(name, "content-encoding", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(name, "content-type", StringComparison.OrdinalIgnoreCase);
-                //case 'a':
-                //case 'A':
-                //    // Exclude known grpc headers. This matches Grpc.Core client behavior.
-                //    return string.Equals(name, "accept-encoding", StringComparison.OrdinalIgnoreCase);
                 default:
                     return false;
             }
