@@ -24,6 +24,7 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
@@ -569,7 +570,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[headerName] = "value";
+            httpContext.Request.Headers[headerName] = Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello world"));
             var serverCallContext = CreateServerCallContext(httpContext);
 
             // Act
