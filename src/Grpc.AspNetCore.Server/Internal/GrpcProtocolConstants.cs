@@ -34,8 +34,8 @@ namespace Grpc.AspNetCore.Server.Internal
         internal static readonly string Http2Protocol = HttpProtocol.Http2;
 #else
         internal const string Http2Protocol = "HTTP/2";
-#endif
         internal const string Http20Protocol = "HTTP/2.0"; // This is what IIS sets
+#endif
 
 #if NET5_0
         internal static readonly string TimeoutHeader = HeaderNames.GrpcTimeout;
