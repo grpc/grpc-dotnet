@@ -53,7 +53,6 @@ namespace InteropTestsWebsite
                         var http1Port = context.Configuration.GetValue<int>("port_http1", -1);
                         var useTls = context.Configuration.GetValue<bool>("use_tls", false);
 
-                        options.AddServerHeader = false;
                         options.Limits.MinRequestBodyDataRate = null;
                         options.ListenAnyIP(http2Port, o => ConfigureEndpoint(o, useTls, HttpProtocols.Http2));
                         if (http1Port != -1)
