@@ -88,6 +88,9 @@ namespace GrpcAspNetCoreServer
                                 ConfigureListenOptions(listenOptions, config, endPoint);
                             });
                         }
+
+                        // Other gRPC servers don't include a server header
+                        options.AddServerHeader = false;
                     });
                 })
                 .ConfigureLogging(loggerFactory =>
