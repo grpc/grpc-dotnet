@@ -77,6 +77,7 @@ namespace Grpc.AspNetCore.Server.Internal
             MessageEncodingHeader,
             MessageAcceptEncodingHeader,
             TimeoutHeader,
+            HeaderNames.ContentEncoding,
             HeaderNames.ContentType,
             HeaderNames.TE,
             HeaderNames.Host,

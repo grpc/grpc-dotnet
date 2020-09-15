@@ -24,6 +24,7 @@ using System.IO.Pipelines;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
@@ -546,18 +547,34 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [TestCase("grpc-accept-encoding", false)]
+        [TestCase("GRPC-ACCEPT-ENCODING", false)]
         [TestCase("grpc-encoding", false)]
+        [TestCase("GRPC-ENCODING", false)]
         [TestCase("grpc-timeout", false)]
+        [TestCase("GRPC-TIMEOUT", false)]
         [TestCase("content-type", false)]
+        [TestCase("CONTENT-TYPE", false)]
+        [TestCase("content-encoding", false)]
+        [TestCase("CONTENT-ENCODING", false)]
         [TestCase("te", false)]
+        [TestCase("TE", false)]
         [TestCase("host", false)]
+        [TestCase("HOST", false)]
         [TestCase("accept-encoding", false)]
+        [TestCase("ACCEPT-ENCODING", false)]
         [TestCase("user-agent", true)]
+        [TestCase("USER-AGENT", true)]
+        [TestCase("grpc-status-details-bin", true)]
+        [TestCase("GRPC-STATUS-DETAILS-BIN", true)]
         public void RequestHeaders_ManyHttpRequestHeaders_HeadersFiltered(string headerName, bool addedToRequestHeaders)
         {
             // Arrange
             var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers[headerName] = "value";
+
+            // A base64 valid value is required for -bin headers
+            var value = Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello world"));
+            httpContext.Request.Headers[headerName] = value;
+
             var serverCallContext = CreateServerCallContext(httpContext);
 
             // Act
