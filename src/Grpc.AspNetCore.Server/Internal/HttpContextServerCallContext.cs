@@ -117,13 +117,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
                     foreach (var header in HttpContext.Request.Headers)
                     {
-                        // gRPC metadata contains a subset of the request headers
-                        // Filter out pseudo headers (start with :) and other known headers
-                        if (header.Key.StartsWith(':') || GrpcProtocolConstants.FilteredHeaders.Contains(header.Key))
+                        if (GrpcProtocolHelpers.ShouldSkipHeader(header.Key))
                         {
                             continue;
                         }
-                        else if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
+
+                        if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
                         {
                             _requestHeaders.Add(header.Key, GrpcProtocolHelpers.ParseBinaryHeader(header.Value));
                         }
