@@ -61,9 +61,9 @@ namespace GrpcAspNetCoreServer
                     webBuilder.ConfigureKestrel((context, options) =>
                     {
                         var endPoint = config.CreateIPEndPoint();
-                        var udsFilePath = config["udsFilePath"];
+                        var udsFileName = config["udsFileName"];
 
-                        if (string.IsNullOrEmpty(udsFilePath))
+                        if (string.IsNullOrEmpty(udsFileName))
                         {
                             // ListenAnyIP will work with IPv4 and IPv6.
                             // Chosen over Listen+IPAddress.Loopback, which would have a 2 second delay when
@@ -75,7 +75,7 @@ namespace GrpcAspNetCoreServer
                         }
                         else
                         {
-                            var socketPath = ResolveUdsPath(udsFilePath);
+                            var socketPath = ResolveUdsPath(udsFileName);
                             if (File.Exists(socketPath))
                             {
                                 File.Delete(socketPath);

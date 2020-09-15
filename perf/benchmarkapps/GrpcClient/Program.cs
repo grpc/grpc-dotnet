@@ -389,10 +389,6 @@ namespace GrpcClient
                     var address = useTls ? "https://" : "http://";
                     address += target;
 
-                    // This switch must be set before creating the GrpcChannel/HttpClient.
-                    // It allows HttpClient to make HTTP/2 calls without TLS.
-                    AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-
                     var httpClientHandler = new SocketsHttpHandler();
                     httpClientHandler.UseProxy = false;
                     httpClientHandler.AllowAutoRedirect = false;
@@ -408,8 +404,8 @@ namespace GrpcClient
                     }
                     if (!string.IsNullOrEmpty(_options.UdsFileName))
                     {
-                        // Removed in .NET 5. Re-enable when support is added back in .NET 6
-                        // httpClientHandler.ConnectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
+                        var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
+                        httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
                     }
 
                     // TODO(JamesNK): Check whether the disable can be removed once .NET 5 is finalized

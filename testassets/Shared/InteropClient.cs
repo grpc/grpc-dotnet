@@ -106,7 +106,6 @@ namespace Grpc.Shared.TestAssets
             string scheme;
             if (!options.UseTls)
             {
-                AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
                 scheme = "http";
             }
             else
