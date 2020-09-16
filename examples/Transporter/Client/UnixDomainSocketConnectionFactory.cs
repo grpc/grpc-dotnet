@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -23,7 +24,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GrpcClient
+namespace Client
 {
     public class UnixDomainSocketConnectionFactory
     {

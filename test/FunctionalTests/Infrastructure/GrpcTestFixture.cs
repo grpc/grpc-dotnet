@@ -50,7 +50,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             DynamicGrpc = _server.Host!.Services.GetRequiredService<DynamicGrpcServiceRegistry>();
 
+#if !NET5_0
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+#endif
 
             (Client, Handler) = CreateHttpCore();
         }
