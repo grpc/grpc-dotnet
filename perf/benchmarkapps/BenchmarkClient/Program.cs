@@ -41,8 +41,6 @@ namespace BenchmarkClient
 
         static async Task Main(string[] args)
         {
-            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-
             var benchmarkResults = new List<BenchmarkResult>();
 
             var grpcNetClientChannelFactory = new GrpcNetClientChannelFactory(Target, UseTls, UseClientCertificate, UseGrpcWeb);
