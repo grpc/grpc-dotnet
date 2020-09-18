@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -67,7 +68,7 @@ namespace Server
             });
         }
 
-        public bool TryForwardMail(out Mail message)
+        public bool TryForwardMail([NotNullWhen(true)] out Mail? message)
         {
             if (_incomingMail.Reader.TryRead(out message))
             {

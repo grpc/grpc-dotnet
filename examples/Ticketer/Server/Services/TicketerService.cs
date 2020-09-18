@@ -48,7 +48,7 @@ namespace Server
 
             return Task.FromResult(new BuyTicketsResponse
             {
-                Success = _ticketRepository.BuyTickets(user.Identity.Name!, request.Count)
+                Success = _ticketRepository.BuyTickets(user.Identity!.Name!, request.Count)
             });
         }
     }

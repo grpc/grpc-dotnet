@@ -11,8 +11,6 @@ The greeter shows how to create unary (non-streaming) and server streaming gRPC 
 ##### Scenarios:
 
 * Unary call
-* Server streaming call
-* Client canceling a call
 
 ## [Counter](./Counter)
 
@@ -31,9 +29,9 @@ The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET
 
 * Bi-directional streaming call
 
-## [Logger](./Logger)
+## [Interceptor](./Interceptor)
 
-The logger shows how to use interceptors on the client and server. The client interceptor adds additional metadata to each call and the server interceptor logs that metadata on the server.
+The interceptor shows how to use gRPC interceptors on the client and server. The client interceptor adds additional metadata to each call and the server interceptor logs that metadata on the server.
 
 ##### Scenarios:
 

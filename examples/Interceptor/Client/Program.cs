@@ -30,7 +30,7 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var invoker = channel.Intercept(new ClientLoggerInterceptor());
 
             var client = new Greeter.GreeterClient(invoker);
@@ -55,19 +55,17 @@ namespace Client
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(3.5));
 
-            using (var call = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token))
+            using var call = client.SayHellos(new HelloRequest { Name = "GreeterClient" }, cancellationToken: cts.Token);
+            try
             {
-                try
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
                 {
-                    await foreach (var message in call.ResponseStream.ReadAllAsync())
-                    {
-                        Console.WriteLine("Greeting: " + message.Message);
-                    }
+                    Console.WriteLine("Greeting: " + message.Message);
                 }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    Console.WriteLine("Stream cancelled.");
-                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                Console.WriteLine("Stream cancelled.");
             }
         }
     }

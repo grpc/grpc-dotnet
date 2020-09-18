@@ -30,9 +30,10 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new ServerReflectionClient(channel);
 
+            Console.WriteLine("Calling reflection service:");
             var response = await SingleRequestAsync(client, new ServerReflectionRequest
             {
                 ListServices = "" // Get all services
@@ -51,7 +52,7 @@ namespace Client
 
         private static async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionClient client, ServerReflectionRequest request)
         {
-            var call = client.ServerReflectionInfo();
+            using var call = client.ServerReflectionInfo();
             await call.RequestStream.WriteAsync(request);
             Debug.Assert(await call.ResponseStream.MoveNext());
 
