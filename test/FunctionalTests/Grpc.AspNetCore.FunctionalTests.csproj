@@ -24,7 +24,7 @@
 
     <ProjectReference Include="..\..\testassets\FunctionalTestsWebsite\FunctionalTestsWebsite.csproj" />
 
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreApp31PackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsLoggingTestingPackageVersion)" />
 
     <None Update="server1.pfx">
