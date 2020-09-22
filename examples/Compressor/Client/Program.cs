@@ -29,7 +29,7 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Greeter.GreeterClient(channel);
 
             await UnaryCallExample(client);
@@ -42,7 +42,8 @@ namespace Client
         private static async Task UnaryCallExample(Greeter.GreeterClient client)
         {
             // 'grpc-internal-encoding-request' is a special metadata value that tells
-            // the client to compress the request. This metadata is not sent as a header.
+            // the client to compress the request.
+            // This metadata is only used in the client is not sent as a header to the server.
             var metadata = new Metadata();
             metadata.Add("grpc-internal-encoding-request", "gzip");
 

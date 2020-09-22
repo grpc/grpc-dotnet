@@ -33,7 +33,7 @@ namespace Client
 
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress(Address);
+            using var channel = GrpcChannel.ForAddress(Address);
             var client = new Ticketer.TicketerClient(channel);
 
             Console.WriteLine("gRPC Ticketer");

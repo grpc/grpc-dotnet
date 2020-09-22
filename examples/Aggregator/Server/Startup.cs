@@ -46,9 +46,9 @@ namespace Server
 
             if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
             {
-                services.AddOpenTelemetry(telemetry =>
+                services.AddOpenTelemetryTracing(telemetry =>
                 {
-                    telemetry.UseZipkinExporter(o => o.ServiceName = "aggregator");
+                    telemetry.AddZipkinExporter(o => o.ServiceName = "aggregator");
                     telemetry.AddGrpcClientInstrumentation();
                     telemetry.AddHttpClientInstrumentation();
                     telemetry.AddAspNetCoreInstrumentation();

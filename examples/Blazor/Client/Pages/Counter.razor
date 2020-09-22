@@ -25,7 +25,7 @@
         cts = new CancellationTokenSource();
 
         var client = new Count.Counter.CounterClient(Channel);
-        var call = client.StartCounter(new CounterRequest() { Start = currentCount }, cancellationToken: cts.Token);
+        using var call = client.StartCounter(new CounterRequest() { Start = currentCount }, cancellationToken: cts.Token);
 
         try
         {

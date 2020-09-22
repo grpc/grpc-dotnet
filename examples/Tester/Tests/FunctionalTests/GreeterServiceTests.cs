@@ -51,16 +51,14 @@ namespace Tests.FunctionalTests
             HelloReply response;
 
             // Act
-            using (var call = client.SayHelloClientStreaming())
+            using var call = client.SayHelloClientStreaming();
+            foreach (var name in names)
             {
-                foreach (var name in names)
-                {
-                    await call.RequestStream.WriteAsync(new HelloRequest { Name = name });
-                }
-                await call.RequestStream.CompleteAsync();
-
-                response = await call;
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = name });
             }
+            await call.RequestStream.CompleteAsync();
+
+            response = await call;
 
             // Assert
             Assert.AreEqual("Hello James, Jo, Lee", response.Message);
@@ -77,20 +75,18 @@ namespace Tests.FunctionalTests
             var callCancelled = false;
 
             // Act
-            using (var call = client.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, cancellationToken: cts.Token))
+            using var call = client.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, cancellationToken: cts.Token);
+            try
             {
-                try
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
                 {
-                    await foreach (var message in call.ResponseStream.ReadAllAsync())
-                    {
-                        hasMessages = true;
-                        cts.Cancel();
-                    }
+                    hasMessages = true;
+                    cts.Cancel();
                 }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    callCancelled = true;
-                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                callCancelled = true;
             }
 
             // Assert
@@ -108,18 +104,16 @@ namespace Tests.FunctionalTests
             var messages = new List<string>();
 
             // Act
-            using (var call = client.SayHelloBidirectionalStreaming())
+            using var call = client.SayHelloBidirectionalStreaming();
+            foreach (var name in names)
             {
-                foreach (var name in names)
-                {
-                    await call.RequestStream.WriteAsync(new HelloRequest { Name = name });
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = name });
 
-                    Assert.IsTrue(await call.ResponseStream.MoveNext());
-                    messages.Add(call.ResponseStream.Current.Message);
-                }
-
-                await call.RequestStream.CompleteAsync();
+                Assert.IsTrue(await call.ResponseStream.MoveNext());
+                messages.Add(call.ResponseStream.Current.Message);
             }
+
+            await call.RequestStream.CompleteAsync();
 
             // Assert
             Assert.AreEqual(3, messages.Count);

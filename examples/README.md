@@ -6,22 +6,21 @@ If you are brand new to gRPC on .NET a good place to start is the getting starte
 
 ## [Greeter](./Greeter)
 
-The greeter shows how to create unary (non-streaming) and server streaming gRPC methods in ASP.NET Core, and call them from a client.
+The greeter shows how to create unary (non-streaming) gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
 * Unary call
-* Server streaming call
-* Client canceling a call
 
 ## [Counter](./Counter)
 
-The counter shows how to create unary (non-streaming) and client streaming gRPC methods in ASP.NET Core, and call them from a client.
+The counter shows how to create unary (non-streaming), client streaming and server streaming gRPC methods in ASP.NET Core, and call them from a client.
 
 ##### Scenarios:
 
 * Unary call
 * Client streaming call
+* Server streaming call
 
 ## [Mailer](./Mailer)
 
@@ -31,9 +30,9 @@ The mailer shows how to create a bi-directional streaming gRPC method in ASP.NET
 
 * Bi-directional streaming call
 
-## [Logger](./Logger)
+## [Interceptor](./Interceptor)
 
-The logger shows how to use interceptors on the client and server. The client interceptor adds additional metadata to each call and the server interceptor logs that metadata on the server.
+The interceptor shows how to use gRPC interceptors on the client and server. The client interceptor adds additional metadata to each call and the server interceptor logs that metadata on the server.
 
 ##### Scenarios:
 

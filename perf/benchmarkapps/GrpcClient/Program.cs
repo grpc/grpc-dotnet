@@ -408,10 +408,8 @@ namespace GrpcClient
                         httpClientHandler.ConnectCallback = connectionFactory.ConnectAsync;
                     }
 
-                    // TODO(JamesNK): Check whether the disable can be removed once .NET 5 is finalized
-#pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-                    httpClientHandler.SslOptions.RemoteCertificateValidationCallback = (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
-#pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.
+                    httpClientHandler.SslOptions.RemoteCertificateValidationCallback =
+                        (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
 
                     return GrpcChannel.ForAddress(address, new GrpcChannelOptions
                     {
