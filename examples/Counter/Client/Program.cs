@@ -19,22 +19,26 @@
 using System;
 using System.Threading.Tasks;
 using Count;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Grpc.Net.Client;
 
 namespace Client
 {
     public class Program
     {
-        static Random RNG = new Random();
+        private static readonly Random Random = new Random();
 
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Counter.CounterClient(channel);
 
             await UnaryCallExample(client);
 
             await ClientStreamingCallExample(client);
+
+            await ServerStreamingCallExample(client);
 
             Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
@@ -43,26 +47,34 @@ namespace Client
 
         private static async Task UnaryCallExample(Counter.CounterClient client)
         {
-            var reply = await client.IncrementCountAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            var reply = await client.IncrementCountAsync(new Empty());
             Console.WriteLine("Count: " + reply.Count);
         }
 
         private static async Task ClientStreamingCallExample(Counter.CounterClient client)
         {
-            using (var call = client.AccumulateCount())
+            using var call = client.AccumulateCount();
+            for (var i = 0; i < 3; i++)
             {
-                for (var i = 0; i < 3; i++)
-                {
-                    var count = RNG.Next(5);
-                    Console.WriteLine($"Accumulating with {count}");
-                    await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
-                    await Task.Delay(2000);
-                }
+                var count = Random.Next(5);
+                Console.WriteLine($"Accumulating with {count}");
+                await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
+                await Task.Delay(TimeSpan.FromSeconds(2));
+            }
 
-                await call.RequestStream.CompleteAsync();
+            await call.RequestStream.CompleteAsync();
 
-                var response = await call;
-                Console.WriteLine($"Count: {response.Count}");
+            var response = await call;
+            Console.WriteLine($"Count: {response.Count}");
+        }
+
+        private static async Task ServerStreamingCallExample(Counter.CounterClient client)
+        {
+            using var call = client.Countdown(new Empty());
+
+            await foreach (var message in call.ResponseStream.ReadAllAsync())
+            {
+                Console.WriteLine($"Countdown: {message.Count}");
             }
         }
     }

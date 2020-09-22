@@ -29,14 +29,14 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Health.HealthClient(channel);
 
             Console.WriteLine("Watching health status");
             Console.WriteLine("Press any key to exit...");
 
             var cts = new CancellationTokenSource();
-            var call = client.Watch(new HealthCheckRequest { Service = "" }, cancellationToken: cts.Token);
+            using var call = client.Watch(new HealthCheckRequest { Service = "" }, cancellationToken: cts.Token);
             var watchTask = Task.Run(async () =>
             {
                 try

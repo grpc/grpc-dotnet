@@ -29,11 +29,11 @@ namespace Client
 {
     public class Program
     {
-        static Random RNG = new Random();
+        private static readonly Random Random = new Random();
 
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Aggregator.AggregatorClient(channel);
 
             await ServerStreamingCallExample(client);
@@ -49,39 +49,35 @@ namespace Client
             var cts = new CancellationTokenSource();
             cts.CancelAfter(TimeSpan.FromSeconds(3.5));
 
-            using (var replies = client.SayHellos(new HelloRequest { Name = "AggregatorClient" }, cancellationToken: cts.Token))
+            using var call = client.SayHellos(new HelloRequest { Name = "AggregatorClient" }, cancellationToken: cts.Token);
+            try
             {
-                try
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
                 {
-                    await foreach (var message in replies.ResponseStream.ReadAllAsync())
-                    {
-                        Console.WriteLine("Greeting: " + message.Message);
-                    }
+                    Console.WriteLine("Greeting: " + message.Message);
                 }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    Console.WriteLine("Stream cancelled.");
-                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                Console.WriteLine("Stream cancelled.");
             }
         }
 
         private static async Task ClientStreamingCallExample(Aggregator.AggregatorClient client)
         {
-            using (var call = client.AccumulateCount())
+            using var call = client.AccumulateCount();
+            for (var i = 0; i < 3; i++)
             {
-                for (var i = 0; i < 3; i++)
-                {
-                    var count = RNG.Next(5);
-                    Console.WriteLine($"Accumulating with {count}");
-                    await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
-                    await Task.Delay(2000);
-                }
-
-                await call.RequestStream.CompleteAsync();
-
-                var response = await call;
-                Console.WriteLine($"Count: {response.Count}");
+                var count = Random.Next(5);
+                Console.WriteLine($"Accumulating with {count}");
+                await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
+                await Task.Delay(2000);
             }
+
+            await call.RequestStream.CompleteAsync();
+
+            var response = await call;
+            Console.WriteLine($"Count: {response.Count}");
         }
     }
 }

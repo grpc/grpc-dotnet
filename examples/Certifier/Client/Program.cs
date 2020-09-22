@@ -47,7 +47,7 @@ namespace Client
             try
             {
                 Console.WriteLine($"Setting up HttpClient. Client has certificate: {includeClientCertificate}");
-                var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
+                using var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
                 {
                     HttpHandler = CreateHttpHandler(includeClientCertificate)
                 });

@@ -75,8 +75,8 @@ namespace Server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<GreeterService>()
-                .RequireCors("AllowAll")
-                .EnableGrpcWeb();
+                    .RequireCors("AllowAll")
+                    .EnableGrpcWeb();
             });
 
             app.UseSpa(spa =>
@@ -103,7 +103,7 @@ namespace Server
                 FileName = fileName,
                 Arguments = args,
                 WorkingDirectory = "ClientApp",
-            });
+            })!;
         }
     }
 }

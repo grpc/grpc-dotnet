@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.Threading.Tasks;
 using Count;
 using Google.Protobuf.WellKnownTypes;
@@ -53,6 +54,15 @@ namespace Server
             }
 
             return new CounterReply { Count = _counter.Count };
+        }
+
+        public override async Task Countdown(Empty request, IServerStreamWriter<CounterReply> responseStream, ServerCallContext context)
+        {
+            for (var i = _counter.Count; i >= 0; i--)
+            {
+                await responseStream.WriteAsync(new CounterReply { Count = i });
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
         }
     }
 }

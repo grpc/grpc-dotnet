@@ -4,9 +4,8 @@
     <GoogleProtobufPackageVersion>3.13.0</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.32.0-pre1</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.32.0-pre1</GrpcPackageVersion>
-    <MicrosoftAspNetCoreAppPackageVersion>3.1.3</MicrosoftAspNetCoreAppPackageVersion>
-    <MicrosoftAspNetCoreBlazorPackageVersion>5.0.0-rc.1.20431.20</MicrosoftAspNetCoreBlazorPackageVersion>
-    <MicrosoftAspNetCoreBlazor31PackageVersion>3.2.0</MicrosoftAspNetCoreBlazor31PackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>5.0.0-rc.1.20451.17</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
     <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>3.0.0</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
@@ -20,7 +19,7 @@
     <NewtonsoftJsonPackageVersion>12.0.3</NewtonsoftJsonPackageVersion>
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
-    <OpenTelemetryPackageVersion>0.4.0-beta.2</OpenTelemetryPackageVersion>
+    <OpenTelemetryPackageVersion>0.6.0-beta.1</OpenTelemetryPackageVersion>
     <SystemCommandLinePackageVersion>2.0.0-beta1.20214.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.3.0-alpha.20214.1</SystemCommandLineRenderingPackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>

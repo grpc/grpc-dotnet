@@ -31,9 +31,10 @@ namespace Client
 
         static async Task Main(string[] args)
         {
-            var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
             var client = new Racer.RacerClient(channel);
 
+            Console.WriteLine($"Race duration: {RaceDuration.TotalSeconds} seconds");
             Console.WriteLine("Press any key to start race...");
             Console.ReadKey();
 

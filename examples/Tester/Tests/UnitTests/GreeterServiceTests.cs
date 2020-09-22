@@ -54,7 +54,7 @@ namespace Tests.UnitTests
             var responseStream = new TestServerStreamWriter<HelloReply>(callContext);
 
             // Act
-            var call = service.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, responseStream, callContext);
+            using var call = service.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, responseStream, callContext);
 
             // Assert
             Assert.IsFalse(call.IsCompletedSuccessfully, "Method should run until cancelled.");
@@ -85,7 +85,7 @@ namespace Tests.UnitTests
             var requestStream = new TestAsyncStreamReader<HelloRequest>(callContext);
 
             // Act
-            var call = service.SayHelloClientStreaming(requestStream, callContext);
+            using var call = service.SayHelloClientStreaming(requestStream, callContext);
 
             requestStream.AddMessage(new HelloRequest { Name = "James" });
             requestStream.AddMessage(new HelloRequest { Name = "Jo" });
@@ -108,7 +108,7 @@ namespace Tests.UnitTests
             var responseStream = new TestServerStreamWriter<HelloReply>(callContext);
 
             // Act
-            var call = service.SayHelloBidirectionalStreaming(requestStream, responseStream, callContext);
+            using var call = service.SayHelloBidirectionalStreaming(requestStream, responseStream, callContext);
 
             // Assert
             requestStream.AddMessage(new HelloRequest { Name = "James" });

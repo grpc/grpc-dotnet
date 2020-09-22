@@ -54,9 +54,9 @@ namespace Tests.UnitTests.Helpers
         {
             _serverCallContext.CancellationToken.ThrowIfCancellationRequested();
 
-            if (await _channel.Reader.WaitToReadAsync())
+            if (await _channel.Reader.WaitToReadAsync() &&
+                _channel.Reader.TryRead(out var message))
             {
-                _channel.Reader.TryRead(out var message);
                 Current = message;
                 return true;
             }
