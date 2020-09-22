@@ -19,13 +19,15 @@
 using System;
 using System.Threading.Tasks;
 using Count;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Grpc.Net.Client;
 
 namespace Client
 {
     public class Program
     {
-        private static Random _random = new Random();
+        private static readonly Random Random = new Random();
 
         static async Task Main(string[] args)
         {
@@ -36,6 +38,8 @@ namespace Client
 
             await ClientStreamingCallExample(client);
 
+            await ServerStreamingCallExample(client);
+
             Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
@@ -43,7 +47,7 @@ namespace Client
 
         private static async Task UnaryCallExample(Counter.CounterClient client)
         {
-            var reply = await client.IncrementCountAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            var reply = await client.IncrementCountAsync(new Empty());
             Console.WriteLine("Count: " + reply.Count);
         }
 
@@ -52,16 +56,26 @@ namespace Client
             using var call = client.AccumulateCount();
             for (var i = 0; i < 3; i++)
             {
-                var count = _random.Next(5);
+                var count = Random.Next(5);
                 Console.WriteLine($"Accumulating with {count}");
                 await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
-                await Task.Delay(2000);
+                await Task.Delay(TimeSpan.FromSeconds(2));
             }
 
             await call.RequestStream.CompleteAsync();
 
             var response = await call;
             Console.WriteLine($"Count: {response.Count}");
+        }
+
+        private static async Task ServerStreamingCallExample(Counter.CounterClient client)
+        {
+            using var call = client.Countdown(new Empty());
+
+            await foreach (var message in call.ResponseStream.ReadAllAsync())
+            {
+                Console.WriteLine($"Countdown: {message.Count}");
+            }
         }
     }
 }

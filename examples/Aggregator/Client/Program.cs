@@ -29,7 +29,7 @@ namespace Client
 {
     public class Program
     {
-        private static Random _random = new Random();
+        private static readonly Random Random = new Random();
 
         static async Task Main(string[] args)
         {
@@ -68,7 +68,7 @@ namespace Client
             using var call = client.AccumulateCount();
             for (var i = 0; i < 3; i++)
             {
-                var count = _random.Next(5);
+                var count = Random.Next(5);
                 Console.WriteLine($"Accumulating with {count}");
                 await call.RequestStream.WriteAsync(new CounterRequest { Count = count });
                 await Task.Delay(2000);
