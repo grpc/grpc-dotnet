@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server
@@ -33,7 +34,11 @@ namespace Grpc.AspNetCore.Server
         /// </summary>
         /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
-        public void Add<TInterceptor>(params object[] args) where TInterceptor : Interceptor
+        public void Add<
+#if NET5_0
+            [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
+#endif
+            TInterceptor>(params object[] args) where TInterceptor : Interceptor
         {
             Add(typeof(TInterceptor), args);
         }
@@ -43,7 +48,11 @@ namespace Grpc.AspNetCore.Server
         /// </summary>
         /// <param name="interceptorType">The interceptor type.</param>
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
-        public void Add(Type interceptorType, params object[] args)
+        public void Add(
+#if NET5_0
+            [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
+#endif
+            Type interceptorType, params object[] args)
         {
             if (interceptorType == null)
             {

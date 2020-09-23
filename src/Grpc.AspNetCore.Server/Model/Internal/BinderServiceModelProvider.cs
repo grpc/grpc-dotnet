@@ -17,12 +17,17 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Shared.Server;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
-    internal class BinderServiceMethodProvider<TService> : IServiceMethodProvider<TService> where TService : class
+    internal class BinderServiceMethodProvider<
+#if NET5_0
+        [DynamicallyAccessedMembers(ProviderServiceBinder<TService>.ServiceAccessibility)]
+#endif
+        TService> : IServiceMethodProvider<TService> where TService : class
     {
         private readonly ILogger<BinderServiceMethodProvider<TService>> _logger;
 
