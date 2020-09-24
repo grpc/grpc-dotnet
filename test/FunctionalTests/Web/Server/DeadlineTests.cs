@@ -86,28 +86,24 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
 
             var grpcWebClient = CreateGrpcWebClient();
 
-            // TODO(JamesNK): This test is/was flaky. Remove loop if this test is no longer a problem
-            for (int i = 0; i < 20; i++)
+            var requestMessage = new HelloRequest
             {
-                var requestMessage = new HelloRequest
-                {
-                    Name = "World"
-                };
+                Name = "World"
+            };
 
-                var requestStream = new MemoryStream();
-                MessageHelpers.WriteMessage(requestStream, requestMessage);
+            var requestStream = new MemoryStream();
+            MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-                var httpRequest = GrpcHttpHelper.Create(method.FullName);
-                httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "50m");
-                httpRequest.Content = new GrpcStreamContent(requestStream);
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "50m");
+            httpRequest.Content = new GrpcStreamContent(requestStream);
 
-                // Act
-                var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+            // Act
+            var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
-                // Assert
-                response.AssertIsSuccessfulGrpcRequest();
-                response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-            }
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
         }
 
         [Test]

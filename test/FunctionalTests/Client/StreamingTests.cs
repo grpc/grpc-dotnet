@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -513,6 +514,53 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             Assert.AreEqual(StatusCode.Aborted, call.GetStatus().StatusCode);
             Assert.AreEqual("Message", call.GetStatus().Detail);
+        }
+
+        [Test]
+        public async Task DuplexStreaming_CancelResponseMoveNext_CancellationSentToServer()
+        {
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            async Task DuplexStreamingWithCancellation(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                try
+                {
+                    await foreach (var message in requestStream.ReadAllAsync())
+                    {
+                        await responseStream.WriteAsync(message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<DataMessage, DataMessage>(DuplexStreamingWithCancellation);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.DuplexStreamingCall();
+
+            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) });
+
+            await call.ResponseStream.MoveNext();
+
+            var cts = new CancellationTokenSource();
+            var task = call.ResponseStream.MoveNext(cts.Token);
+
+            cts.Cancel();
+
+            // Assert
+            var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(() => task);
+            Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
+            Assert.AreEqual("Call canceled by the client.", clientEx.Status.Detail);
+
+            await ExceptionAssert.ThrowsAsync<IOException>(() => tcs.Task);
         }
 
         private static byte[] CreateTestData(int size)
