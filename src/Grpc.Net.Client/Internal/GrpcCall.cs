@@ -388,6 +388,14 @@ namespace Grpc.Net.Client.Internal
                 GrpcProtocolConstants.GrpcContentTypeHeaderValue);
         }
 
+        public void CancelCallFromCancellationToken()
+        {
+            using (StartScope())
+            {
+                CancelCall(new Status(StatusCode.Cancelled, "Call canceled by the client."));
+            }
+        }
+
         private void CancelCall(Status status)
         {
             // Set overall call status first. Status can be used in throw RpcException from cancellation.
@@ -690,13 +698,7 @@ namespace Grpc.Net.Client.Internal
                 // The cancellation token will cancel the call CTS.
                 // This must be registered after the client writer has been created
                 // so that cancellation will always complete the writer.
-                _ctsRegistration = Options.CancellationToken.Register(() =>
-                {
-                    using (StartScope())
-                    {
-                        CancelCall(new Status(StatusCode.Cancelled, "Call canceled by the client."));
-                    }
-                });
+                _ctsRegistration = Options.CancellationToken.Register(CancelCallFromCancellationToken);
             }
 
             return (diagnosticSourceEnabled, activity);
