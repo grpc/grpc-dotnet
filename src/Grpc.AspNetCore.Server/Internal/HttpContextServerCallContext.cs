@@ -39,6 +39,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private Metadata? _responseTrailers;
         private Status _status;
         private AuthContext? _authContext;
+        private Activity? _activity;
         // Internal for tests
         internal ServerCallDeadlineManager? DeadlineManager;
         private HttpContextSerializationContext? _serializationContext;
@@ -275,10 +276,9 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void LogCallEnd()
         {
-            var activity = GetHostActivity();
-            if (activity != null)
+            if (_activity != null)
             {
-                activity.AddTag(GrpcServerConstants.ActivityStatusCodeTag, _status.StatusCode.ToTrailerString());
+                _activity.AddTag(GrpcServerConstants.ActivityStatusCodeTag, _status.StatusCode.ToTrailerString());
             }
             if (_status.StatusCode != StatusCode.OK)
             {
@@ -358,10 +358,10 @@ namespace Grpc.AspNetCore.Server.Internal
         // Clock is for testing
         public void Initialize(ISystemClock? clock = null)
         {
-            var activity = GetHostActivity();
-            if (activity != null)
+            _activity = GetHostActivity();
+            if (_activity != null)
             {
-                activity.AddTag(GrpcServerConstants.ActivityMethodTag, MethodCore);
+                _activity.AddTag(GrpcServerConstants.ActivityMethodTag, MethodCore);
             }
 
             GrpcEventSource.Log.CallStart(MethodCore);
