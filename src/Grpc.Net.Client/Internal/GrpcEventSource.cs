@@ -125,27 +125,27 @@ namespace Grpc.Net.Client.Internal
                 // This is the convention for initializing counters in the RuntimeEventSource (lazily on the first enable command).
                 // They aren't disabled afterwards...
 
-                _totalCallsCounter ??= new PollingCounter("total-calls", this, () => _totalCalls)
+                _totalCallsCounter ??= new PollingCounter("total-calls", this, () => Volatile.Read(ref _totalCalls))
                 {
                     DisplayName = "Total Calls",
                 };
-                _currentCallsCounter ??= new PollingCounter("current-calls", this, () => _currentCalls)
+                _currentCallsCounter ??= new PollingCounter("current-calls", this, () => Volatile.Read(ref _currentCalls))
                 {
                     DisplayName = "Current Calls"
                 };
-                _callsFailedCounter ??= new PollingCounter("calls-failed", this, () => _callsFailed)
+                _callsFailedCounter ??= new PollingCounter("calls-failed", this, () => Volatile.Read(ref _callsFailed))
                 {
                     DisplayName = "Total Calls Failed",
                 };
-                _callsDeadlineExceededCounter ??= new PollingCounter("calls-deadline-exceeded", this, () => _callsDeadlineExceeded)
+                _callsDeadlineExceededCounter ??= new PollingCounter("calls-deadline-exceeded", this, () => Volatile.Read(ref _callsDeadlineExceeded))
                 {
                     DisplayName = "Total Calls Deadline Exceeded",
                 };
-                _messagesSentCounter ??= new PollingCounter("messages-sent", this, () => _messageSent)
+                _messagesSentCounter ??= new PollingCounter("messages-sent", this, () => Volatile.Read(ref _messageSent))
                 {
                     DisplayName = "Total Messages Sent",
                 };
-                _messagesReceivedCounter ??= new PollingCounter("messages-received", this, () => _messageReceived)
+                _messagesReceivedCounter ??= new PollingCounter("messages-received", this, () => Volatile.Read(ref _messageReceived))
                 {
                     DisplayName = "Total Messages Received",
                 };
