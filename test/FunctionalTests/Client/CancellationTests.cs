@@ -131,6 +131,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     throw;
                 }
             });
+
+            // Wait a short amount of time so that any server cancellation error
+            // finishes being thrown before the next test starts.
+            await Task.Delay(50);
         }
 
         [Test]
