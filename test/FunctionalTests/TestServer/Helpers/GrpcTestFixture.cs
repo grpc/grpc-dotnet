@@ -66,12 +66,16 @@ namespace Tests.FunctionalTests.Helpers
             _host = builder.Start();
             _server = _host.GetTestServer();
 
+#if !NET5_0
             // Need to set the response version to 2.0.
             // Required because of this TestServer issue - https://github.com/aspnet/AspNetCore/issues/16940
-            var responseVersionHandler = new ResponseVersionHandler();
-            responseVersionHandler.InnerHandler = _server.CreateHandler();
+            var handler = new ResponseVersionHandler();
+            handler.InnerHandler = _server.CreateHandler();
+#else
+            var handler = _server.CreateHandler();
+#endif
 
-            var client = new HttpClient(responseVersionHandler);
+            var client = new HttpClient(handler);
             client.BaseAddress = new Uri("http://localhost");
 
             Client = client;
@@ -88,6 +92,7 @@ namespace Tests.FunctionalTests.Helpers
             _server.Dispose();
         }
 
+#if !NET5_0
         private class ResponseVersionHandler : DelegatingHandler
         {
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -98,6 +103,7 @@ namespace Tests.FunctionalTests.Helpers
                 return response;
             }
         }
+#endif
 
         public IDisposable GetTestContext()
         {
