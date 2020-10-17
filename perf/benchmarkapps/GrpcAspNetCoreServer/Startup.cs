@@ -21,7 +21,9 @@ using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Testing;
+#if NET5_0
 using Microsoft.AspNetCore.Authentication.Certificate;
+#endif
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -45,8 +47,10 @@ namespace GrpcAspNetCoreServer
         {
             services.AddGrpc(o =>
             {
+#if NET5_0
                 // Small performance benefit to not add catch-all routes to handle UNIMPLEMENTED for unknown services
                 o.IgnoreUnknownServices = true;
+#endif
             });
             services.Configure<RouteOptions>(c =>
             {
@@ -56,6 +60,7 @@ namespace GrpcAspNetCoreServer
             services.AddSingleton<BenchmarkServiceImpl>();
             services.AddControllers();
 
+#if NET5_0
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {
@@ -68,6 +73,7 @@ namespace GrpcAspNetCoreServer
                         options.AllowedCertificateTypes = CertificateTypes.All;
                     });
             }
+#endif
         }
 
         public void Configure(IApplicationBuilder app, IHostApplicationLifetime applicationLifetime)
@@ -77,19 +83,23 @@ namespace GrpcAspNetCoreServer
 
             app.UseRouting();
 
+#if NET5_0
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {
                 app.UseAuthentication();
                 app.UseAuthorization();
             }
+#endif
 
+#if GRPC_WEB
             bool.TryParse(_config["enableGrpcWeb"], out var enableGrpcWeb);
 
             if (enableGrpcWeb)
             {
                 app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
             }
+#endif
 
             app.UseMiddleware<ServiceProvidersMiddleware>();
 
@@ -129,11 +139,13 @@ namespace GrpcAspNetCoreServer
 
         private void ConfigureAuthorization(IEndpointConventionBuilder builder)
         {
+#if NET5_0
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {
                 builder.RequireAuthorization();
             }
+#endif
         }
     }
 }

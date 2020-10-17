@@ -23,6 +23,8 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
+#if NET5_0
+
 namespace GrpcClient
 {
     public class UnixDomainSocketConnectionFactory
@@ -51,3 +53,5 @@ namespace GrpcClient
         }
     }
 }
+
+#endif
