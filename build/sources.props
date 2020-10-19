@@ -18,5 +18,12 @@
       $(RestoreSources);
       https://grpc.jfrog.io/grpc/api/nuget/v3/grpc-nuget-dev;
     </RestoreSources>
+    <!-- The following is a temporary change so 5.0 build works during transition from rc to rtm -->
+    <RestoreSources>
+      $(RestoreSources);
+      https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-runtime-b928f03f/nuget/v3/index.json;
+      https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-efcore-ab94ac91/nuget/v3/index.json;
+    </RestoreSources>
   </PropertyGroup>
 </Project>
+

@@ -23,10 +23,13 @@ namespace GrpcClient
     public class ClientOptions
     {
         public string? Url { get; set; }
+#if NET5_0
         public string? UdsFileName { get; set; }
+#endif
         public int Connections { get; set; }
         public int Warmup { get; set; }
         public int Duration { get; set; }
+        public int? CallCount { get; set; }
         public string? Scenario { get; set; }
         public bool Latency { get; set; }
         public string? Protocol { get; set; }
