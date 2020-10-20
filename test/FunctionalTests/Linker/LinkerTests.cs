@@ -56,10 +56,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
 
                 try
                 {
-                    await PublishApp(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath)
-                        .TimeoutAfter(Timeout);
-                    await PublishApp(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath)
-                        .TimeoutAfter(Timeout);
+                    var publishWebsiteTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath);
+                    var publishClientTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath);
+
+                    await Task.WhenAll(publishWebsiteTask, publishClientTask).TimeoutAfter(Timeout);
 
                     websiteProcess.Start(Path.Combine(linkerTestsWebsitePath, "LinkerTestsWebsite.dll"));
                     await websiteProcess.WaitForReadyAsync().TimeoutAfter(Timeout);
@@ -92,7 +92,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
             }
         }
 
-        private static async Task PublishApp(string path, string outputPath)
+        private static async Task PublishAppAsync(string path, string outputPath)
         {
             var resolvedPath = Path.GetFullPath(path);
             Console.WriteLine($"Publishing {resolvedPath}");
