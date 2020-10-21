@@ -68,7 +68,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                 {
                     // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline'.")
+                        writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline-True'.")
                     {
                         return true;
                     }
