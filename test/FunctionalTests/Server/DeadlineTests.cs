@@ -189,12 +189,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         {
             static async Task<HelloReply> ThrowErrorExceedDeadline(HelloRequest request, ServerCallContext context)
             {
-                while (!context.CancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(50);
-                }
+                await Task.Delay(1000, context.CancellationToken);
 
-                throw new InvalidOperationException("An error.");
+                return new HelloReply();
             }
 
             // Arrange
@@ -204,8 +201,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 {
                     // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'ThrowErrorExceedDeadline'." &&
-                        writeContext.Exception!.Message == "An error.")
+                        writeContext.State.ToString() == "Error when executing service method 'ThrowErrorExceedDeadline'.")
                     {
                         return true;
                     }
@@ -256,6 +252,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 {
                     await Task.Delay(50);
                 }
+
+                await Task.Delay(50);
 
                 return new HelloReply();
             }

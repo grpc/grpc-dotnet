@@ -153,7 +153,20 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
+            Logger.LogInformation("Blah blah");
+
+            if (DeadlineManager.CancellationToken.IsCancellationRequested)
+            {
+                //await Task.Yield();
+
+                // The deadline has been exceeded. Ensure deadline thread has finished.
+                await DeadlineManager.CancellationProcessedTask;
+                //await DeadlineManager.DeadlineExceededTask;
+            }
+
             await DeadlineManager.Lock.WaitAsync();
+
+            await Task.Delay(100);
 
             try
             {
