@@ -20,7 +20,6 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -30,7 +29,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private Task? _deadlineExceededTask;
         private CancellationTokenRegistration _deadlineExceededRegistration;
         private CancellationTokenRegistration _requestAbortedRegistration;
-        private TaskCompletionSource<object?> _cancellationProcessedTcs;
+        private readonly TaskCompletionSource<object?> _cancellationProcessedTcs;
         protected HttpContextServerCallContext ServerCallContext { get; }
 
         internal DateTime Deadline { get; private set; }
@@ -41,9 +40,10 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public CancellationToken CancellationToken => _deadlineCts!.Token;
 
-        // Task to wait for when a call is being completed to ensure that the deadline cancellation
-        // events have finished processing. This avoids a race condition between deadline being
-        // raised as the call completing.
+        // Task to wait for when a call is being completed to ensure that registered deadline cancellation
+        // events have finished processing.
+        // - Avoids a race condition between deadline being raised and the call completing.
+        // - Required because OCE error thrown from token happens before registered events.
         public Task CancellationProcessedTask => _cancellationProcessedTcs.Task;
 
         public static ServerCallDeadlineManager Create(
@@ -102,8 +102,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected void DeadlineExceeded()
         {
-            ServerCallContext.Logger.LogInformation("DeadlineExceeded");
-
             _deadlineExceededTask = DeadlineExceededAsync();
         }
 

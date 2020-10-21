@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 
             if (serverCallContext.DeadlineManager != null && serverCallContext.DeadlineManager.CancellationToken.IsCancellationRequested)
             {
-                // The cancellation token has been raised. Ensure that any deadline manage tasks have
+                // The cancellation token has been raised. Ensure that any DeadlineManager tasks have
                 // been completed before continuing.
                 await serverCallContext.DeadlineManager.CancellationProcessedTask;
 
