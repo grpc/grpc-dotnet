@@ -184,79 +184,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.True(HasLog(LogLevel.Trace, "DeadlineStopped", "Request deadline stopped."));
         }
 
-        [Test]
-        public async Task UnaryMethodErrorAfterExceedDeadline()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task UnaryMethodDeadlineExceeded(bool throwErrorOnCancellation)
         {
-            static async Task<HelloReply> ThrowErrorExceedDeadline(HelloRequest request, ServerCallContext context)
+            async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
             {
-                while (!context.CancellationToken.IsCancellationRequested)
+                try
                 {
-                    await Task.Delay(50);
+                    await Task.Delay(1000, context.CancellationToken);
                 }
-
-                throw new InvalidOperationException("An error.");
-            }
-
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                catch (OperationCanceledException) when (!throwErrorOnCancellation)
                 {
-                    // Deadline happened before write
-                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'ThrowErrorExceedDeadline'." &&
-                        writeContext.Exception!.Message == "An error.")
-                    {
-                        return true;
-                    }
+                    // nom nom nom
                 }
-
-                return false;
-            });
-
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ThrowErrorExceedDeadline, nameof(ThrowErrorExceedDeadline));
-
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, requestMessage);
-
-            var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
-
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
-
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-
-            Assert.True(HasLog(LogLevel.Debug, "DeadlineExceeded", "Request with timeout of 00:00:00.2000000 has exceeded its deadline."));
-
-            // Ensure follow up error is logged.
-            await TestHelpers.AssertIsTrueRetryAsync(
-                () => HasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'ThrowErrorExceedDeadline'."),
-                "Missing follow up error log.").DefaultTimeout();
-
-            await TestHelpers.AssertIsTrueRetryAsync(
-                () => HasLog(LogLevel.Trace, "DeadlineStopped", "Request deadline stopped."),
-                "Missing deadline stopped log.").DefaultTimeout();
-        }
-
-        [Test]
-        public async Task UnaryMethodDeadlineExceeded()
-        {
-            static async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
-            {
-                while (!context.CancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(50);
-                }
-
+                
                 return new HelloReply();
             }
 
@@ -265,17 +207,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             {
                 if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
                 {
-                    // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
-                    {
-                        return true;
-                    }
-
-                    // Deadline happened during write (error raised from pipeline writer)
-                    if (writeContext.Exception is InvalidOperationException &&
-                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                        writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline-True'.")
                     {
                         return true;
                     }
@@ -284,7 +217,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 return false;
             });
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, nameof(WaitUntilDeadline));
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, $"{nameof(WaitUntilDeadline)}-{throwErrorOnCancellation}");
 
             var requestMessage = new HelloRequest
             {
@@ -335,8 +268,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 {
                     // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
+                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'.")
                     {
                         return true;
                     }

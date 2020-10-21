@@ -29,6 +29,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private Task? _deadlineExceededTask;
         private CancellationTokenRegistration _deadlineExceededRegistration;
         private CancellationTokenRegistration _requestAbortedRegistration;
+        private readonly TaskCompletionSource<object?> _cancellationProcessedTcs;
         protected HttpContextServerCallContext ServerCallContext { get; }
 
         internal DateTime Deadline { get; private set; }
@@ -38,6 +39,12 @@ namespace Grpc.AspNetCore.Server.Internal
         public bool CallComplete { get; private set; }
 
         public CancellationToken CancellationToken => _deadlineCts!.Token;
+
+        // Task to wait for when a call is being completed to ensure that registered deadline cancellation
+        // events have finished processing.
+        // - Avoids a race condition between deadline being raised and the call completing.
+        // - Required because OCE error thrown from token happens before registered events.
+        public Task CancellationProcessedTask => _cancellationProcessedTcs.Task;
 
         public static ServerCallDeadlineManager Create(
             HttpContextServerCallContext serverCallContext,
@@ -68,6 +75,7 @@ namespace Grpc.AspNetCore.Server.Internal
             ServerCallContext = serverCallContext;
 
             Lock = new SemaphoreSlim(1, 1);
+            _cancellationProcessedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         public void Initialize(ISystemClock clock, TimeSpan timeout, CancellationToken requestAborted)
@@ -76,6 +84,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _deadlineCts = CreateCancellationTokenSource(timeout, clock);
             _deadlineExceededRegistration = _deadlineCts.Token.Register(DeadlineExceeded);
+
             _requestAbortedRegistration = requestAborted.Register(() =>
             {
                 // Call is complete if the request has aborted
@@ -98,29 +107,36 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private async Task DeadlineExceededAsync()
         {
-            if (!CanExceedDeadline())
-            {
-                return;
-            }
-
-            Debug.Assert(Lock != null, "Lock has not been created.");
-
-            await Lock.WaitAsync();
-
             try
             {
-                // Double check after lock is aquired
                 if (!CanExceedDeadline())
                 {
                     return;
                 }
 
-                await ServerCallContext.DeadlineExceededAsync();
-                CallComplete = true;
+                Debug.Assert(Lock != null, "Lock has not been created.");
+
+                await Lock.WaitAsync();
+
+                try
+                {
+                    // Double check after lock is aquired
+                    if (!CanExceedDeadline())
+                    {
+                        return;
+                    }
+
+                    await ServerCallContext.DeadlineExceededAsync();
+                    CallComplete = true;
+                }
+                finally
+                {
+                    Lock.Release();
+                }
             }
             finally
             {
-                Lock.Release();
+                _cancellationProcessedTcs.TrySetResult(null);
             }
         }
 

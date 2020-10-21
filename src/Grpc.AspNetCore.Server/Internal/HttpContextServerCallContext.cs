@@ -153,6 +153,13 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
+            if (DeadlineManager.CancellationToken.IsCancellationRequested)
+            {
+                // The cancellation token has been raised. Ensure that any DeadlineManager tasks have
+                // been completed before continuing.
+                await DeadlineManager.CancellationProcessedTask;
+            }
+
             await DeadlineManager.Lock.WaitAsync();
 
             try
