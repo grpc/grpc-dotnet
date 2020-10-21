@@ -44,17 +44,20 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
         {
         }
 
-        [Test]
-        public async Task UnaryMethodDeadlineExceeded()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task UnaryMethodDeadlineExceeded(bool throwErrorOnCancellation)
         {
-            static async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
+            async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
             {
-                while (!context.CancellationToken.IsCancellationRequested)
+                try
                 {
-                    await Task.Delay(10);
+                    await Task.Delay(1000, context.CancellationToken);
                 }
-
-                await Task.Delay(50);
+                catch (OperationCanceledException) when (!throwErrorOnCancellation)
+                {
+                    // nom nom nom
+                }
 
                 return new HelloReply();
             }
@@ -65,15 +68,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                 {
                     // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
-                    {
-                        return true;
-                    }
-
-                    // Deadline happened during write (error raised from pipeline writer)
-                    if (writeContext.Exception is InvalidOperationException &&
-                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                        writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline-True'.")
                     {
                         return true;
                     }
@@ -82,7 +77,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                 return false;
             });
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, nameof(WaitUntilDeadline));
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, $"{nameof(WaitUntilDeadline)}-{throwErrorOnCancellation}");
 
             var grpcWebClient = CreateGrpcWebClient();
 
@@ -95,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "50m");
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "100m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
