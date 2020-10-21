@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,9 +30,17 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class InterceptorRegistration
     {
+#if NET5_0
+        internal const DynamicallyAccessedMemberTypes InterceptorAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods;
+#endif
+
         internal object[] _args;
 
-        internal InterceptorRegistration(Type type, object[] arguments)
+        internal InterceptorRegistration(
+#if NET5_0
+            [DynamicallyAccessedMembers(InterceptorAccessibility)]
+#endif
+            Type type, object[] arguments)
         {
             if (type == null)
             {
@@ -56,6 +65,9 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Get the type of the interceptor.
         /// </summary>
+#if NET5_0
+        [DynamicallyAccessedMembers(InterceptorAccessibility)]
+#endif
         public Type Type { get; }
 
         /// <summary>

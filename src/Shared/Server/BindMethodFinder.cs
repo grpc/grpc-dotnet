@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Grpc.Core;
 
@@ -65,6 +66,10 @@ namespace Grpc.Shared.Server
             return null;
         }
 
+#if NET5_0
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2075:UnrecognizedReflectionPattern",
+            Justification = "Fallback doesn't have BindServiceMethodAttribute so can't be verified.")]
+#endif
         internal static MethodInfo? GetBindMethodFallback(Type serviceType)
         {
             // Search for the generated service base class

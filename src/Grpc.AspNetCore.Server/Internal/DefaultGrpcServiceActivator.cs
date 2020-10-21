@@ -17,13 +17,21 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal sealed class DefaultGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    internal sealed class DefaultGrpcServiceActivator<
+#if NET5_0
+        [DynamicallyAccessedMembers(ServiceAccessibility)]
+#endif
+        TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class
     {
+#if NET5_0
+        internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors;
+#endif
         private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(() => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
 
         public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
