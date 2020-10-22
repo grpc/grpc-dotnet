@@ -491,7 +491,6 @@ namespace Grpc.Net.Client.Internal
                             if (status.Value.StatusCode != StatusCode.OK)
                             {
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                                SetFailedResult(status.Value);
                             }
                             else
                             {
@@ -504,10 +503,15 @@ namespace Grpc.Net.Client.Internal
                                 status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
 
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
-                                SetFailedResult(status.Value);
                             }
 
                             FinishResponseAndCleanUp(status.Value);
+
+                            // Set failed result makes the response task thrown an error. Must be called after
+                            // the response is finished. Reasons:
+                            // - Finishing the response sets the status. Required for GetStatus to be successful.
+                            // - We want GetStatus to always work when called after the response task is done.
+                            SetFailedResult(status.Value);
                         }
                         else
                         {
@@ -543,6 +547,10 @@ namespace Grpc.Net.Client.Internal
                                 FinishResponseAndCleanUp(status.Value);
                                 finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
+                                // Set failed result makes the response task thrown an error. Must be called after
+                                // the response is finished. Reasons:
+                                // - Finishing the response sets the status. Required for GetStatus to be successful.
+                                // - We want GetStatus to always work when called after the response task is done.
                                 SetFailedResult(status.Value);
                             }
                             else
@@ -558,6 +566,10 @@ namespace Grpc.Net.Client.Internal
                                 }
                                 else
                                 {
+                                    // Set failed result makes the response task thrown an error. Must be called after
+                                    // the response is finished. Reasons:
+                                    // - Finishing the response sets the status. Required for GetStatus to be successful.
+                                    // - We want GetStatus to always work when called after the response task is done.
                                     SetFailedResult(status.Value);
                                 }
                             }
