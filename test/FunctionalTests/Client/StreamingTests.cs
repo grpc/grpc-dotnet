@@ -601,9 +601,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     await context.WriteResponseHeadersAsync(new Metadata());
                 }
 
-                if (count == streamCount)
+                if (count >= streamCount)
                 {
-                    tcs.SetResult(null);
+                    tcs.TrySetResult(null);
                 }
 
                 await tcs.Task;
