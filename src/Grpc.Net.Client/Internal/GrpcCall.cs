@@ -34,6 +34,8 @@ namespace Grpc.Net.Client.Internal
         where TRequest : class
         where TResponse : class
     {
+        private const string ErrorStartingCallMessage = "Error starting gRPC call.";
+
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
         private readonly DateTime _deadline;
@@ -249,7 +251,7 @@ namespace Grpc.Net.Client.Internal
             }
             catch (Exception ex)
             {
-                ResolveException(ex, out _, out var resolvedException);
+                ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException);
                 throw resolvedException;
             }
         }
@@ -592,7 +594,7 @@ namespace Grpc.Net.Client.Internal
                 catch (Exception ex)
                 {
                     Exception resolvedException;
-                    ResolveException(ex, out status, out resolvedException);
+                    ResolveException(ErrorStartingCallMessage, ex, out status, out resolvedException);
 
                     finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                     _responseTcs?.TrySetException(resolvedException);
@@ -606,7 +608,7 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private void ResolveException(Exception ex, [NotNull] out Status? status, out Exception resolvedException)
+        internal void ResolveException(string summary, Exception ex, [NotNull] out Status? status, out Exception resolvedException)
         {
             if (ex is OperationCanceledException)
             {
@@ -621,8 +623,9 @@ namespace Grpc.Net.Client.Internal
             else
             {
                 var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
+                var statusCode = GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex);
 
-                status = new Status(StatusCode.Internal, "Error starting gRPC call. " +  exceptionMessage, ex);
+                status = new Status(statusCode, summary + " " + exceptionMessage, ex);
                 resolvedException = CreateRpcException(status.Value);
             }
         }

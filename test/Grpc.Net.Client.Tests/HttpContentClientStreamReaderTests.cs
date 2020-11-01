@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -201,6 +202,32 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(ex, write.Exception);
         }
 
+        [Test]
+        public async Task MoveNext_StreamThrowsIOException_ThrowErrorUnavailable()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var stream = new TestStream();
+                var content = new StreamContent(stream);
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK, content));
+            });
+
+            var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
+            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory);
+            var call = CreateGrpcCall(channel);
+            call.StartServerStreaming(new HelloRequest());
+
+            // Act
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ClientStreamReader!.MoveNext(CancellationToken.None)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+            Assert.AreEqual("Error reading next message. IOException: Test", ex.Status.Detail);
+        }
+
         private static GrpcCall<HelloRequest, HelloReply> CreateGrpcCall(GrpcChannel channel)
         {
             var uri = new Uri("http://localhost");
@@ -222,6 +249,45 @@ namespace Grpc.Net.Client.Tests
                     LoggerFactory = loggerFactory,
                     ThrowOperationCanceledOnCancellation = throwOperationCanceledOnCancellation ?? false
                 });
+        }
+
+        private class TestStream : Stream
+        {
+            public override bool CanRead { get; }
+            public override bool CanSeek { get; }
+            public override bool CanWrite { get; }
+            public override long Length { get; }
+            public override long Position { get; set; }
+
+            public override void Flush()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void SetLength(long value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                return new ValueTask<int>(Task.FromException<int>(new IOException("Test")));
+            }
         }
     }
 }

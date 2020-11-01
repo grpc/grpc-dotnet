@@ -195,6 +195,12 @@ namespace Grpc.Net.Client.Internal
 
                 throw _call.CreateCanceledStatusException();
             }
+            catch (Exception ex)
+            {
+                // Throw RpcException from MoveNext. Consistent with Grpc.Core.
+                _call.ResolveException("Error reading next message.", ex, out _, out var resolvedException);
+                throw resolvedException;
+            }
             finally
             {
                 ctsRegistration?.Dispose();

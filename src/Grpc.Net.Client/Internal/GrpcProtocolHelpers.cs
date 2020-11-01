@@ -20,9 +20,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Compression;
@@ -375,6 +377,30 @@ namespace Grpc.Net.Client.Internal
 
             status = new Status((StatusCode)statusValue, grpcMessage);
             return true;
+        }
+
+        public static StatusCode ResolveRpcExceptionStatusCode(Exception ex)
+        {
+            var current = ex;
+            do
+            {
+                // Grpc.Core tends to return Unavailable if there is a problem establishing the connection.
+                // Additional changes here are likely required for cases when Unavailable is being returned
+                // when it shouldn't be.
+                if (current is SocketException)
+                {
+                    // SocketError.ConnectionRefused happens when port is not available.
+                    // SocketError.HostNotFound happens when unknown host is specified.
+                    return StatusCode.Unavailable;
+                }
+                else if (current is IOException)
+                {
+                    // IOException happens if there is a protocol mismatch.
+                    return StatusCode.Unavailable;
+                }
+            } while ((current = current.InnerException) != null);
+
+            return StatusCode.Internal;
         }
     }
 }
