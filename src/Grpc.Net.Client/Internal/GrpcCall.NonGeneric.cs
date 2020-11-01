@@ -17,6 +17,9 @@
 #endregion
 
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http;
 using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
@@ -30,6 +33,11 @@ namespace Grpc.Net.Client.Internal
 
         private GrpcCallSerializationContext? _serializationContext;
         private DefaultDeserializationContext? _deserializationContext;
+
+        protected Metadata? Trailers { get; set; }
+
+        public bool ResponseFinished { get; protected set; }
+        public HttpResponseMessage? HttpResponse { get; protected set; }
 
         public GrpcCallSerializationContext SerializationContext
         {
@@ -55,6 +63,32 @@ namespace Grpc.Net.Client.Internal
             Options = options;
             Channel = channel;
             Logger = channel.LoggerFactory.CreateLogger(LoggerName);
+        }
+
+        internal RpcException CreateRpcException(Status status)
+        {
+            TryGetTrailers(out var trailers);
+            return new RpcException(status, trailers ?? Metadata.Empty);
+        }
+
+        protected bool TryGetTrailers([NotNullWhen(true)] out Metadata? trailers)
+        {
+            if (Trailers == null)
+            {
+                // Trailers are read from the end of the request.
+                // If the request isn't finished then we can't get the trailers.
+                if (!ResponseFinished)
+                {
+                    trailers = null;
+                    return false;
+                }
+
+                Debug.Assert(HttpResponse != null);
+                Trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
+            }
+
+            trailers = Trailers;
+            return true;
         }
     }
 }

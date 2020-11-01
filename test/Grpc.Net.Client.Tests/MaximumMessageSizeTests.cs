@@ -38,10 +38,8 @@ namespace Grpc.Net.Client.Tests
         {
             var requestStream = await request.Content!.ReadAsStreamAsync().DefaultTimeout();
 
-            var helloRequest = await StreamExtensions.ReadMessageAsync(
+            var helloRequest = await StreamSerializationHelper.ReadMessageAsync(
                 requestStream,
-                new DefaultDeserializationContext(),
-                NullLogger.Instance,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 "gzip",
                 maximumMessageSize: null,

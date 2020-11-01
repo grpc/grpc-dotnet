@@ -225,7 +225,7 @@ namespace Grpc.Net.Client.Internal
         {
             if (payloadLength > _call.Channel.SendMaxMessageSize)
             {
-                throw new RpcException(SendingMessageExceedsLimitStatus);
+                throw _call.CreateRpcException(SendingMessageExceedsLimitStatus);
             }
         }
 
