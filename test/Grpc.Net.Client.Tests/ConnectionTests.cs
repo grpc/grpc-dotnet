@@ -17,7 +17,10 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -49,6 +52,45 @@ namespace Grpc.Net.Client.Tests
 
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
             Assert.AreEqual("Bad gRPC response. Response protocol downgraded to HTTP/1.1.", ex.Status.Detail);
+        }
+
+        [TestCase(SocketError.HostNotFound, StatusCode.Unavailable)]
+        [TestCase(SocketError.ConnectionRefused, StatusCode.Unavailable)]
+        public async Task UnaryCall_SocketException_ThrowCorrectStatus(SocketError socketError, StatusCode statusCode)
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromException<HttpResponseMessage>(new HttpRequestException("Blah", new SocketException((int)socketError)));
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest());
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            Assert.AreEqual(statusCode, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task UnaryCall_IOException_ThrowCorrectStatus()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromException<HttpResponseMessage>(new HttpRequestException("Blah", new IOException("")));
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest());
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
         }
     }
 }
