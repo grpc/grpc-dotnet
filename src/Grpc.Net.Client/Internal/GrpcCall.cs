@@ -44,12 +44,9 @@ namespace Grpc.Net.Client.Internal
         private Task<HttpResponseMessage>? _httpResponseTask;
         private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
-        private Metadata? _trailers;
         private CancellationTokenRegistration? _ctsRegistration;
 
         public bool Disposed { get; private set; }
-        public bool ResponseFinished { get; private set; }
-        public HttpResponseMessage? HttpResponse { get; private set; }
         public Method<TRequest, TResponse> Method { get; }
 
         // These are set depending on the type of gRPC call
@@ -249,9 +246,8 @@ namespace Grpc.Net.Client.Internal
 
                 return GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException))
             {
-                ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException);
                 throw resolvedException;
             }
         }
@@ -285,7 +281,7 @@ namespace Grpc.Net.Client.Internal
             {
                 // Trailers are in the header because there is no message.
                 // Note that some default headers will end up in the trailers (e.g. Date, Server).
-                _trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
+                Trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
                 return status;
             }
 
@@ -361,26 +357,6 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private bool TryGetTrailers([NotNullWhen(true)] out Metadata? trailers)
-        {
-            if (_trailers == null)
-            {
-                // Trailers are read from the end of the request.
-                // If the request isn't finished then we can't get the trailers.
-                if (!ResponseFinished)
-                {
-                    trailers = null;
-                    return false;
-                }
-
-                Debug.Assert(HttpResponse != null);
-                _trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders);
-            }
-
-            trailers = _trailers;
-            return true;
-        }
-
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
         {
             RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
@@ -437,12 +413,6 @@ namespace Grpc.Net.Client.Internal
             }
 
             return null;
-        }
-
-        internal RpcException CreateRpcException(Status status)
-        {
-            TryGetTrailers(out var trailers);
-            return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
         private async Task RunCall(HttpRequestMessage request, TimeSpan? timeout)
@@ -608,17 +578,36 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        internal void ResolveException(string summary, Exception ex, [NotNull] out Status? status, out Exception resolvedException)
+        /// <summary>
+        /// Resolve the specified exception to an end-user exception that will be thrown from the client.
+        /// The resolved exception is normally a RpcException. Returns true when the resolved exception is changed.
+        /// </summary>
+        internal bool ResolveException(string summary, Exception ex, [NotNull] out Status? status, out Exception resolvedException)
         {
             if (ex is OperationCanceledException)
             {
                 status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
-                resolvedException = Channel.ThrowOperationCanceledOnCancellation ? ex : CreateRpcException(status.Value);
+                if (!Channel.ThrowOperationCanceledOnCancellation)
+                {
+                    resolvedException = CreateRpcException(status.Value);
+                    return true;
+                }
             }
             else if (ex is RpcException rpcException)
             {
                 status = rpcException.Status;
-                resolvedException = CreateRpcException(status.Value);
+                
+                // If trailers have been set, and the RpcException isn't using them, then
+                // create new RpcException with trailers. Want to try and avoid this as
+                // the exact stack location will be lost.
+                //
+                // Trailers could be set in another thread so copy to local variable.
+                var trailers = Trailers;
+                if (trailers != null && rpcException.Trailers != trailers)
+                {
+                    resolvedException = CreateRpcException(status.Value);
+                    return true;
+                }
             }
             else
             {
@@ -627,7 +616,11 @@ namespace Grpc.Net.Client.Internal
 
                 status = new Status(statusCode, summary + " " + exceptionMessage, ex);
                 resolvedException = CreateRpcException(status.Value);
+                return true;
             }
+
+            resolvedException = ex;
+            return false;
         }
 
         private void SetFailedResult(Status status)
@@ -924,12 +917,9 @@ namespace Grpc.Net.Client.Internal
             CancellationToken cancellationToken)
         {
             return responseStream.ReadMessageAsync(
-                DeserializationContext,
-                Logger,
+                this,
                 Method.ResponseMarshaller.ContextualDeserializer,
                 grpcEncoding,
-                Channel.ReceiveMaxMessageSize,
-                Channel.CompressionProviders,
                 singleMessage,
                 cancellationToken);
         }

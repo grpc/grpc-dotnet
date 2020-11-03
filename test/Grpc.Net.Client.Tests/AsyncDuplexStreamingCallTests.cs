@@ -120,9 +120,8 @@ namespace Grpc.Net.Client.Tests
 
             Assert.IsNotNull(content);
             var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
-            var requestMessage = await requestContent.ReadMessageAsync(
-                deserializationContext,
-                NullLogger.Instance,
+            var requestMessage = await StreamSerializationHelper.ReadMessageAsync(
+                requestContent,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,
@@ -130,9 +129,8 @@ namespace Grpc.Net.Client.Tests
                 singleMessage: false,
                 CancellationToken.None).AsTask().DefaultTimeout();
             Assert.AreEqual("1", requestMessage!.Name);
-            requestMessage = await requestContent.ReadMessageAsync(
-                deserializationContext,
-                NullLogger.Instance,
+            requestMessage = await StreamSerializationHelper.ReadMessageAsync(
+                requestContent,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,
