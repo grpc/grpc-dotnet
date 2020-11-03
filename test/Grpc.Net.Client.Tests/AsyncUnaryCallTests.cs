@@ -112,9 +112,8 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(content);
 
             var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
-            var requestMessage = await requestContent.ReadMessageAsync(
-                new DefaultDeserializationContext(),
-                NullLogger.Instance,
+            var requestMessage = await StreamSerializationHelper.ReadMessageAsync(
+                requestContent,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
                 GrpcProtocolConstants.IdentityGrpcEncoding,
                 maximumMessageSize: null,

@@ -45,12 +45,9 @@ namespace Grpc.Net.Client
 
         public static async ValueTask<TResponse?> ReadMessageAsync<TResponse>(
             this Stream responseStream,
-            DefaultDeserializationContext deserializationContext,
-            ILogger logger,
+            GrpcCall call,
             Func<DeserializationContext, TResponse> deserializer,
             string grpcEncoding,
-            int? maximumMessageSize,
-            Dictionary<string, ICompressionProvider> compressionProviders,
             bool singleMessage,
             CancellationToken cancellationToken)
             where TResponse : class
@@ -59,7 +56,7 @@ namespace Grpc.Net.Client
 
             try
             {
-                GrpcCallLog.ReadingMessage(logger);
+                GrpcCallLog.ReadingMessage(call.Logger);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Buffer is used to read header, then message content.
@@ -83,7 +80,7 @@ namespace Grpc.Net.Client
                 {
                     if (received == 0)
                     {
-                        GrpcCallLog.NoMessageReturned(logger);
+                        GrpcCallLog.NoMessageReturned(call.Logger);
                         return default;
                     }
 
@@ -98,9 +95,9 @@ namespace Grpc.Net.Client
 
                 if (length > 0)
                 {
-                    if (length > maximumMessageSize)
+                    if (length > call.Channel.ReceiveMaxMessageSize)
                     {
-                        throw new RpcException(ReceivedMessageExceedsLimitStatus);
+                        throw call.CreateRpcException(ReceivedMessageExceedsLimitStatus);
                     }
 
                     // Replace buffer if the message doesn't fit
@@ -120,20 +117,20 @@ namespace Grpc.Net.Client
                 {
                     if (grpcEncoding == null)
                     {
-                        throw new RpcException(NoMessageEncodingMessageStatus);
+                        throw call.CreateRpcException(NoMessageEncodingMessageStatus);
                     }
                     if (string.Equals(grpcEncoding, GrpcProtocolConstants.IdentityGrpcEncoding, StringComparison.Ordinal))
                     {
-                        throw new RpcException(IdentityMessageEncodingMessageStatus);
+                        throw call.CreateRpcException(IdentityMessageEncodingMessageStatus);
                     }
 
                     // Performance improvement would be to decompress without converting to an intermediary byte array
-                    if (!TryDecompressMessage(logger, grpcEncoding, compressionProviders, buffer, length, out var decompressedMessage))
+                    if (!TryDecompressMessage(call.Logger, grpcEncoding, call.Channel.CompressionProviders, buffer, length, out var decompressedMessage))
                     {
                         var supportedEncodings = new List<string>();
                         supportedEncodings.Add(GrpcProtocolConstants.IdentityGrpcEncoding);
-                        supportedEncodings.AddRange(compressionProviders.Select(c => c.Key));
-                        throw new RpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
+                        supportedEncodings.AddRange(call.Channel.CompressionProviders.Select(c => c.Key));
+                        throw call.CreateRpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
                     }
 
                     payload = decompressedMessage.GetValueOrDefault();
@@ -143,11 +140,11 @@ namespace Grpc.Net.Client
                     payload = new ReadOnlySequence<byte>(buffer, 0, length);
                 }
 
-                GrpcCallLog.DeserializingMessage(logger, length, typeof(TResponse));
+                GrpcCallLog.DeserializingMessage(call.Logger, length, typeof(TResponse));
 
-                deserializationContext.SetPayload(payload);
-                var message = deserializer(deserializationContext);
-                deserializationContext.SetPayload(null);
+                call.DeserializationContext.SetPayload(payload);
+                var message = deserializer(call.DeserializationContext);
+                call.DeserializationContext.SetPayload(null);
 
                 if (singleMessage)
                 {
@@ -159,13 +156,13 @@ namespace Grpc.Net.Client
                     }
                 }
 
-                GrpcCallLog.ReceivedMessage(logger);
+                GrpcCallLog.ReceivedMessage(call.Logger);
                 return message;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
                 // Don't write error when user cancels read
-                GrpcCallLog.ErrorReadingMessage(logger, ex);
+                GrpcCallLog.ErrorReadingMessage(call.Logger, ex);
                 throw;
             }
             finally
