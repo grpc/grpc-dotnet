@@ -146,6 +146,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.CompletedTask;
             }
 
+            // Could have a fast path for no deadline being raised when an error happens,
+            // but it isn't worth the complexity.
             return ProcessHandlerErrorAsyncCore(ex, method);
         }
 
@@ -153,14 +155,10 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            if (DeadlineManager.CancellationToken.IsCancellationRequested)
+            if (!DeadlineManager.TrySetCallComplete())
             {
-                // The cancellation token has been raised. Ensure that any DeadlineManager tasks have
-                // been completed before continuing.
-                await DeadlineManager.CancellationProcessedTask;
+                await DeadlineManager.WaitDeadlineCompleteAsync();
             }
-
-            await DeadlineManager.Lock.WaitAsync();
 
             try
             {
@@ -168,7 +166,6 @@ namespace Grpc.AspNetCore.Server.Internal
             }
             finally
             {
-                DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
                 GrpcServerLog.DeadlineStopped(Logger);
             }
@@ -203,8 +200,8 @@ namespace Grpc.AspNetCore.Server.Internal
                 _status = new Status(StatusCode.Unknown, message, ex);
             }
 
-            // Don't update trailers if request has exceeded deadline/aborted
-            if (DeadlineManager == null || !DeadlineManager.CallComplete)
+            // Don't update trailers if request has exceeded deadline
+            if (DeadlineManager == null || !DeadlineManager.IsDeadlineExceededStarted)
             {
                 HttpContext.Response.ConsolidateTrailers(this);
             }
@@ -245,8 +242,15 @@ namespace Grpc.AspNetCore.Server.Internal
                 EndCallCore();
                 return Task.CompletedTask;
             }
+            else if (DeadlineManager.TrySetCallComplete())
+            {
+                // Fast path when deadline hasn't been raised.
+                EndCallCore();
+                GrpcServerLog.DeadlineStopped(Logger);
+                return DeadlineManager.DisposeAsync().AsTask();
+            }
 
-            // There is a deadline so just accept the overhead of a state machine during cleanup
+            // Deadline is exceeded
             return EndCallAsyncCore();
         }
 
@@ -254,29 +258,28 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             Debug.Assert(DeadlineManager != null, "Deadline manager should have been created.");
 
-            await DeadlineManager.Lock.WaitAsync();
-
             try
             {
+                // Deadline has started
+                await DeadlineManager.WaitDeadlineCompleteAsync();
+
                 EndCallCore();
+                DeadlineManager.SetCallEnded();
+                GrpcServerLog.DeadlineStopped(Logger);
             }
             finally
             {
-                DeadlineManager.Lock.Release();
                 await DeadlineManager.DisposeAsync();
-                GrpcServerLog.DeadlineStopped(Logger);
             }
         }
 
         private void EndCallCore()
         {
-            // Don't set trailers if deadline exceeded or request aborted
-            if (DeadlineManager == null || !DeadlineManager.CallComplete)
+            // Don't update trailers if request has exceeded deadline
+            if (DeadlineManager == null || !DeadlineManager.IsDeadlineExceededStarted)
             {
                 HttpContext.Response.ConsolidateTrailers(this);
             }
-
-            DeadlineManager?.SetCallEnded();
 
             LogCallEnd();
         }
@@ -377,7 +380,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (timeout != TimeSpan.Zero)
             {
-                DeadlineManager = ServerCallDeadlineManager.Create(this, clock ?? SystemClock.Instance, timeout, HttpContext.RequestAborted);
+                DeadlineManager = new ServerCallDeadlineManager(this, clock ?? SystemClock.Instance, timeout);
                 GrpcServerLog.DeadlineStarted(Logger, timeout);
             }
 

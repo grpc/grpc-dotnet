@@ -17,21 +17,13 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
@@ -39,7 +31,7 @@ using NUnit.Framework;
 namespace Grpc.AspNetCore.Server.Tests
 {
     [TestFixture]
-    public class LongTimeoutServerCallDeadlineManagerTests
+    public class ServerCallDeadlineManagerTests
     {
         [Test]
         public async Task SmallDeadline_DeadlineExceededWithoutReschedule()
@@ -54,10 +46,8 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
 
-            var manager = new LongTimeoutServerCallDeadlineManager(context);
-
             // Act
-            manager.Initialize(testSystemClock, timeout, CancellationToken.None);
+            var manager = new ServerCallDeadlineManager(context, SystemClock.Instance, timeout);
 
             // Assert
             var assertTask = TestHelpers.AssertIsTrueRetryAsync(
@@ -87,11 +77,8 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
 
-            var manager = new LongTimeoutServerCallDeadlineManager(context);
-            manager.MaxTimerDueTime = 5;
-
             // Act
-            manager.Initialize(testSystemClock, timeout, CancellationToken.None);
+            var manager = new ServerCallDeadlineManager(context, testSystemClock, timeout, maxTimerDueTime: 5);
 
             // Assert
             var assertTask = TestHelpers.AssertIsTrueRetryAsync(

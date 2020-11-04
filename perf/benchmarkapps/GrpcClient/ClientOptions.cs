@@ -39,5 +39,6 @@ namespace GrpcClient
         public int ResponseSize { get; set; }
         public GrpcClientType GrpcClientType { get; set; }
         public int Streams { get; set; }
+        public int Deadline { get; set; }
     }
 }
