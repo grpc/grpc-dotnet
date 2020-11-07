@@ -13,7 +13,7 @@
     <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.6.1</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0</MicrosoftSourceLinkGitHubPackageVersion>
-    <MicrosoftTyePackageVersion>0.3.0-alpha.20319.3</MicrosoftTyePackageVersion>
+    <MicrosoftTyePackageVersion>0.5.0-alpha.20555.1</MicrosoftTyePackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.10.0</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.3</NewtonsoftJsonPackageVersion>
