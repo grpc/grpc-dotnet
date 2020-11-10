@@ -25,10 +25,12 @@ namespace Grpc.AspNetCore.Server.Internal
 {
     internal class ServerCallDeadlineManager : IAsyncDisposable
     {
+        // Max System.Threading.Timer due time
+        private const long DefaultMaxTimerDueTime = uint.MaxValue - 1;
+
         // Avoid allocating delegates
         private static readonly TimerCallback DeadlineExceededDelegate = DeadlineExceededCallback;
         private static readonly TimerCallback DeadlineExceededLongDelegate = DeadlineExceededLongCallback;
-        private const long DefaultMaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
         private readonly Timer _longDeadlineTimer;
         private readonly ISystemClock _systemClock;
@@ -214,10 +216,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public ValueTask DisposeAsync()
         {
-            // Deadline registration needs to be disposed with DisposeAsync, and the task completed
-            // before the lock can be disposed.
-            // Awaiting deadline registration and deadline task ensures it has finished running, so there is
-            // no way for deadline logic to attempt to wait on a disposed lock.
+            // Timer.DisposeAsync will wait until any in-progress callbacks are complete.
+            // By itself, this isn't enough to ensure the deadline has finished being raised because
+            // the callback doesn't return Task. _deadlineExceededCompleteTcs must also be awaited
+            // (it is set when a deadline starts being raised) to ensure the deadline manager is finished
+            // and resources can be disposed.
+
             var disposeTask = _longDeadlineTimer.DisposeAsync();
 
             if (disposeTask.IsCompletedSuccessfully &&
