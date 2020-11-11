@@ -53,13 +53,11 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
             }
 
-            if (serverCallContext.DeadlineManager != null && serverCallContext.DeadlineManager.IsDeadlineExceededStarted)
+            // Check if deadline exceeded while method was invoked. If it has then skip trying to write
+            // the response message because it will always fail.
+            // Note that the call is still going so the deadline could still be exceeded after this point.
+            if (serverCallContext.DeadlineManager?.IsDeadlineExceededStarted ?? false)
             {
-                // The cancellation token has been raised. Ensure that any DeadlineManager tasks have
-                // been completed before continuing.
-                await serverCallContext.DeadlineManager.WaitDeadlineCompleteAsync();
-
-                // There is no point trying to write to the response because it has been finished.
                 return;
             }
 

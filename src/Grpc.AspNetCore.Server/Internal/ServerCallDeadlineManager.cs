@@ -23,7 +23,7 @@ using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
-    internal class ServerCallDeadlineManager : IAsyncDisposable
+    internal sealed class ServerCallDeadlineManager : IAsyncDisposable
     {
         // Max System.Threading.Timer due time
         private const long DefaultMaxTimerDueTime = uint.MaxValue - 1;
@@ -44,6 +44,7 @@ namespace Grpc.AspNetCore.Server.Internal
         public bool IsCallComplete { get; private set; }
         public bool IsDeadlineExceededStarted => _deadlineExceededCompleteTcs != null;
 
+        // Accessed by developers via ServerCallContext.CancellationToken
         public CancellationToken CancellationToken
         {
             get
@@ -91,7 +92,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Create timer and set to field before setting time.
                 // Ensures there is no weird situation where the timer triggers
                 // before the field is set. Shouldn't happen because only long deadlines
-                // will take this pass but better to be safe than sorry.
+                // will take this path but better to be safe than sorry.
                 _longDeadlineTimer = new Timer(DeadlineExceededLongDelegate, (this, maxTimerDueTime), Timeout.Infinite, Timeout.Infinite);
                 _longDeadlineTimer.Change(timerMilliseconds, Timeout.Infinite);
             }
@@ -235,7 +236,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 (_deadlineExceededCompleteTcs == null || _deadlineExceededCompleteTcs.Task.IsCompletedSuccessfully))
             {
                 // Fast-path to avoid async state machine.
-                Dispose(true);
+                DisposeCore();
                 return default;
             }
 
@@ -251,10 +252,10 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 await _deadlineExceededCompleteTcs.Task;
             }
-            Dispose(true);
+            DisposeCore();
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void DisposeCore()
         {
             _deadlineCts?.Dispose();
             _requestAbortedRegistration.Dispose();
