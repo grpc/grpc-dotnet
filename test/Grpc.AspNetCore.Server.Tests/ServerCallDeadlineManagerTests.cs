@@ -96,6 +96,43 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "DeadlineTimerRescheduled"));
         }
 
+        [Test]
+        public async Task CancellationToken_ThrowExceptionInRegister()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var timeout = TimeSpan.FromMilliseconds(100);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            var exception = new InvalidOperationException("Test");
+
+            // Act
+            var manager = new ServerCallDeadlineManager(context, SystemClock.Instance, timeout);
+
+            // Assert
+            manager.CancellationToken.Register(() =>
+            {
+                throw exception;
+            });
+
+            await TestHelpers.AssertIsTrueRetryAsync(
+              () => context.Status.StatusCode == StatusCode.DeadlineExceeded,
+              "StatusCode not set to DeadlineExceeded.").DefaultTimeout();
+
+            await manager.WaitDeadlineCompleteAsync().DefaultTimeout();
+
+            var deadlineExceededWrite = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual("Request with timeout of 00:00:00.1000000 has exceeded its deadline.", deadlineExceededWrite.Message);
+
+            var deadlineCancellationErrorWrite = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
+            Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", deadlineCancellationErrorWrite.Message);
+            Assert.AreEqual(exception, deadlineCancellationErrorWrite.Exception.InnerException);
+        }
+
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
         {
             return HttpContextServerCallContextHelper.CreateServerCallContext(

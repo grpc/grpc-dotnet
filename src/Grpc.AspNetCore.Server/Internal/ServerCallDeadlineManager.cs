@@ -57,9 +57,9 @@ namespace Grpc.AspNetCore.Server.Internal
                         if (_deadlineCts == null)
                         {
                             _deadlineCts = new CancellationTokenSource();
-                            if (IsDeadlineExceededStarted)
+                            if (IsDeadlineExceededStarted && IsCallComplete)
                             {
-                                // Deadline might already have been exceeded so the token is immediately cancelled
+                                // If deadline has started exceeding and it has finished then the token can be immediately cancelled
                                 _deadlineCts.Cancel();
                             }
                             else
@@ -189,8 +189,15 @@ namespace Grpc.AspNetCore.Server.Internal
                 lock (this)
                 {
                     IsCallComplete = true;
+
+                    // Canceling CTS will trigger registered callbacks.
+                    // Exception could be thrown from them.
                     _deadlineCts?.Cancel();
                 }
+            }
+            catch (Exception ex)
+            {
+                GrpcServerLog.DeadlineCancellationError(_serverCallContext.Logger, ex);
             }
             finally
             {

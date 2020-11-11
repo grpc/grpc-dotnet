@@ -443,45 +443,38 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal async Task DeadlineExceededAsync()
         {
-            try
+            GrpcServerLog.DeadlineExceeded(Logger, GetTimeout());
+            GrpcEventSource.Log.CallDeadlineExceeded();
+
+            var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+
+            var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(HttpContext.Response);
+            GrpcProtocolHelpers.SetStatus(trailersDestination, status);
+
+            _status = status;
+
+            // Immediately send remaining response content and trailers
+            // If feature is null then reset/abort will still end request, but response won't have trailers
+            var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
+            if (completionFeature != null)
             {
-                GrpcServerLog.DeadlineExceeded(Logger, GetTimeout());
-                GrpcEventSource.Log.CallDeadlineExceeded();
-
-                var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-
-                var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(HttpContext.Response);
-                GrpcProtocolHelpers.SetStatus(trailersDestination, status);
-
-                _status = status;
-
-                // Immediately send remaining response content and trailers
-                // If feature is null then reset/abort will still end request, but response won't have trailers
-                var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
-                if (completionFeature != null)
-                {
-                    await completionFeature.CompleteAsync();
-                }
-
-                // HttpResetFeature should always be set on context,
-                // but in case it isn't, fall back to HttpContext.Abort.
-                // Abort will send error code INTERNAL_ERROR instead of NO_ERROR.
-                var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
-                if (resetFeature != null)
-                {
-                    GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
-                    resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
-                }
-                else
-                {
-                    // Note that some clients will fail with error code INTERNAL_ERROR.
-                    GrpcServerLog.AbortingResponse(Logger);
-                    HttpContext.Abort();
-                }
+                await completionFeature.CompleteAsync();
             }
-            catch (Exception ex)
+
+            // HttpResetFeature should always be set on context,
+            // but in case it isn't, fall back to HttpContext.Abort.
+            // Abort will send error code INTERNAL_ERROR instead of NO_ERROR.
+            var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
+            if (resetFeature != null)
             {
-                GrpcServerLog.DeadlineCancellationError(Logger, ex);
+                GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
+                resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
+            }
+            else
+            {
+                // Note that some clients will fail with error code INTERNAL_ERROR.
+                GrpcServerLog.AbortingResponse(Logger);
+                HttpContext.Abort();
             }
         }
 
