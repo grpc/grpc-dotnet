@@ -502,6 +502,29 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
+        public void CancellationToken_WithDeadlineAndRequestAborted_AccessCancellationTokenBeforeAbort_DeadlineStatusNotSet()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var requestLifetimeFeature = new TestHttpRequestLifetimeFeature();
+            var httpContext = new DefaultHttpContext();
+            httpContext.Features.Set<IHttpRequestLifetimeFeature>(requestLifetimeFeature);
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1000S";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            context.Initialize();
+
+            // Act
+            var ct = context.CancellationToken;
+            requestLifetimeFeature.Abort();
+
+            // Assert
+            Assert.AreNotEqual(StatusCode.DeadlineExceeded, context.Status.StatusCode);
+            Assert.IsTrue(ct.IsCancellationRequested);
+        }
+
+        [Test]
         public void AuthContext_NoClientCertificate_Unauthenticated()
         {
             // Arrange
@@ -628,7 +651,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
 
-            Assert.IsFalse(serverCallContext.DeadlineManager!.CallComplete);
+            Assert.IsFalse(serverCallContext.DeadlineManager!.IsCallComplete);
 
             // Wait for dispose to finish
             syncPoint.Continue();
@@ -636,7 +659,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
 
-            Assert.IsTrue(serverCallContext.DeadlineManager!.CallComplete);
+            Assert.IsTrue(serverCallContext.DeadlineManager!.IsCallComplete);
         }
 
         [Test]

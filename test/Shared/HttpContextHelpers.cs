@@ -46,11 +46,12 @@ namespace Grpc.Tests.Shared
             bool skipTrailerFeatureSet = false,
             string? protocol = null,
             string? contentType = null,
-            IServiceProvider? serviceProvider = null)
+            IServiceProvider? serviceProvider = null,
+            Func<Task>? completeAsyncAction = null)
         {
             var httpContext = new DefaultHttpContext();
             var responseFeature = new TestHttpResponseFeature();
-            var responseBodyFeature = new TestHttpResponseBodyFeature(httpContext.Features.Get<IHttpResponseBodyFeature>(), responseFeature);
+            var responseBodyFeature = new TestHttpResponseBodyFeature(httpContext.Features.Get<IHttpResponseBodyFeature>(), responseFeature, completeAsyncAction);
 
             httpContext.RequestServices = serviceProvider!;
             httpContext.Request.Protocol = protocol ?? GrpcProtocolConstants.Http2Protocol;
@@ -96,19 +97,22 @@ namespace Grpc.Tests.Shared
         {
             private readonly IHttpResponseBodyFeature _innerResponseBodyFeature;
             private readonly TestHttpResponseFeature _responseFeature;
+            private readonly Func<Task>? _completeAsyncAction;
 
             public Stream Stream => _innerResponseBodyFeature.Stream;
             public PipeWriter Writer => _innerResponseBodyFeature.Writer;
 
-            public TestHttpResponseBodyFeature(IHttpResponseBodyFeature innerResponseBodyFeature, TestHttpResponseFeature responseFeature)
+            public TestHttpResponseBodyFeature(IHttpResponseBodyFeature innerResponseBodyFeature, TestHttpResponseFeature responseFeature, Func<Task>? completeAsyncAction = null)
             {
                 _innerResponseBodyFeature = innerResponseBodyFeature ?? throw new ArgumentNullException(nameof(innerResponseBodyFeature));
                 _responseFeature = responseFeature ?? throw new ArgumentNullException(nameof(responseFeature));
+                _completeAsyncAction = completeAsyncAction;
             }
 
-            public Task CompleteAsync()
+            public async Task CompleteAsync()
             {
-                return _innerResponseBodyFeature.CompleteAsync();
+                await (_completeAsyncAction?.Invoke() ?? Task.CompletedTask);
+                await _innerResponseBodyFeature.CompleteAsync();
             }
 
             public void DisableBuffering()

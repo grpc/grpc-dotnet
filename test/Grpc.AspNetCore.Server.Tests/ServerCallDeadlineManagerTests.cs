@@ -17,21 +17,13 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
@@ -39,7 +31,7 @@ using NUnit.Framework;
 namespace Grpc.AspNetCore.Server.Tests
 {
     [TestFixture]
-    public class LongTimeoutServerCallDeadlineManagerTests
+    public class ServerCallDeadlineManagerTests
     {
         [Test]
         public async Task SmallDeadline_DeadlineExceededWithoutReschedule()
@@ -54,10 +46,8 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
 
-            var manager = new LongTimeoutServerCallDeadlineManager(context);
-
             // Act
-            manager.Initialize(testSystemClock, timeout, CancellationToken.None);
+            var manager = new ServerCallDeadlineManager(context, SystemClock.Instance, timeout);
 
             // Assert
             var assertTask = TestHelpers.AssertIsTrueRetryAsync(
@@ -87,11 +77,8 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
             var context = CreateServerCallContext(httpContext, testLogger);
 
-            var manager = new LongTimeoutServerCallDeadlineManager(context);
-            manager.MaxTimerDueTime = 5;
-
             // Act
-            manager.Initialize(testSystemClock, timeout, CancellationToken.None);
+            var manager = new ServerCallDeadlineManager(context, testSystemClock, timeout, maxTimerDueTime: 5);
 
             // Assert
             var assertTask = TestHelpers.AssertIsTrueRetryAsync(
@@ -107,6 +94,43 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Request with timeout of 00:00:00.1000000 has exceeded its deadline.", write.Message);
 
             Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "DeadlineTimerRescheduled"));
+        }
+
+        [Test]
+        public async Task CancellationToken_ThrowExceptionInRegister()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testLogger = new TestLogger(string.Empty, testSink, true);
+
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var timeout = TimeSpan.FromMilliseconds(100);
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "100m";
+            var context = CreateServerCallContext(httpContext, testLogger);
+            var exception = new InvalidOperationException("Test");
+
+            // Act
+            var manager = new ServerCallDeadlineManager(context, SystemClock.Instance, timeout);
+
+            // Assert
+            manager.CancellationToken.Register(() =>
+            {
+                throw exception;
+            });
+
+            await TestHelpers.AssertIsTrueRetryAsync(
+              () => context.Status.StatusCode == StatusCode.DeadlineExceeded,
+              "StatusCode not set to DeadlineExceeded.").DefaultTimeout();
+
+            await manager.WaitDeadlineCompleteAsync().DefaultTimeout();
+
+            var deadlineExceededWrite = testSink.Writes.Single(w => w.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual("Request with timeout of 00:00:00.1000000 has exceeded its deadline.", deadlineExceededWrite.Message);
+
+            var deadlineCancellationErrorWrite = testSink.Writes.Single(w => w.EventId.Name == "DeadlineCancellationError");
+            Assert.AreEqual("Error occurred while trying to cancel the request due to deadline exceeded.", deadlineCancellationErrorWrite.Message);
+            Assert.AreEqual(exception, deadlineCancellationErrorWrite.Exception.InnerException);
         }
 
         private HttpContextServerCallContext CreateServerCallContext(HttpContext httpContext, ILogger? logger = null)
