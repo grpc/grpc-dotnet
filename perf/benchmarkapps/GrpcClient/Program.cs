@@ -80,6 +80,7 @@ namespace GrpcClient
             rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
             rootCommand.AddOption(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
             rootCommand.AddOption(new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate"));
+            rootCommand.AddOption(new Option<int>(new string[] { "--deadline" }, "Duration of deadline in seconds"));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
@@ -519,13 +520,24 @@ namespace GrpcClient
             }
         }
 
+        private static CallOptions CreateCallOptions()
+        {
+            var callOptions = new CallOptions();
+            if (_options.Deadline > 0)
+            {
+                callOptions = callOptions.WithDeadline(DateTime.UtcNow.AddSeconds(_options.Deadline));
+            }
+
+            return callOptions;
+        }
+
         private static async Task PingPongStreaming(CancellationTokenSource cts, int connectionId, int streamId)
         {
             Log(connectionId, streamId, $"Starting {_options.Scenario}");
 
             var client = new BenchmarkService.BenchmarkServiceClient(_channels[connectionId]);
             var request = CreateSimpleRequest();
-            using var call = client.StreamingCall();
+            using var call = client.StreamingCall(CreateCallOptions());
 
             while (!cts.IsCancellationRequested)
             {
@@ -570,7 +582,9 @@ namespace GrpcClient
             Log(connectionId, streamId, $"Starting {_options.Scenario}");
 
             var client = new BenchmarkService.BenchmarkServiceClient(_channels[connectionId]);
-            using var call = client.StreamingFromServer(CreateSimpleRequest(), cancellationToken: cts.Token);
+            var callOptions = CreateCallOptions();
+            callOptions.WithCancellationToken(cts.Token);
+            using var call = client.StreamingFromServer(CreateSimpleRequest(), callOptions);
 
             while (!cts.IsCancellationRequested)
             {
@@ -622,7 +636,7 @@ namespace GrpcClient
                 try
                 {
                     var start = DateTime.UtcNow;
-                    var response = await client.UnaryCallAsync(CreateSimpleRequest());
+                    var response = await client.UnaryCallAsync(CreateSimpleRequest(), CreateCallOptions());
                     var end = DateTime.UtcNow;
 
                     ReceivedDateTime(start, end, connectionId);
