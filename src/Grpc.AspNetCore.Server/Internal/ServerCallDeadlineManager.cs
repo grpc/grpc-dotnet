@@ -139,8 +139,11 @@ namespace Grpc.AspNetCore.Server.Internal
             lock (this)
             {
                 IsCallComplete = true;
-                _deadlineCts!.Cancel();
             }
+
+            // Doesn't matter if error from Cancel throws. Canceller of request aborted will handle exception.
+            Debug.Assert(_deadlineCts != null, "Deadline CTS is created when request aborted method is registered.");
+            _deadlineCts.Cancel();
         }
 
         private long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
@@ -190,11 +193,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 lock (this)
                 {
                     IsCallComplete = true;
-
-                    // Canceling CTS will trigger registered callbacks.
-                    // Exception could be thrown from them.
-                    _deadlineCts?.Cancel();
                 }
+
+                // Canceling CTS will trigger registered callbacks.
+                // Exception could be thrown from them.
+                _deadlineCts?.Cancel();
             }
             catch (Exception ex)
             {
@@ -257,8 +260,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private void DisposeCore()
         {
-            _deadlineCts?.Dispose();
+            // Remove request abort registration before disposing _deadlineCts.
+            // Don't want an aborted request to attempt to cancel a disposed CTS.
             _requestAbortedRegistration.Dispose();
+
+            _deadlineCts?.Dispose();
         }
     }
 }
