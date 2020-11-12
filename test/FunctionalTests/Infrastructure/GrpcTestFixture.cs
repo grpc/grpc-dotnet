@@ -106,10 +106,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             switch (endpointName)
             {
                 case TestServerEndpointName.Http1:
-                    return new Uri(_server.GetUrl(endpointName.Value));
                 case TestServerEndpointName.Http2:
-                    return new Uri(_server.GetUrl(endpointName.Value));
                 case TestServerEndpointName.Http1WithTls:
+                case TestServerEndpointName.Http2WithTls:
                     return new Uri(_server.GetUrl(endpointName.Value));
                 default:
                     throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
