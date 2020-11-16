@@ -104,6 +104,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     });
                     options.ListenLocalhost(50030, listenOptions =>
                     {
+                        listenOptions.Protocols = HttpProtocols.Http2;
+
+                        var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
+                        var certPath = Path.Combine(basePath!, "server1.pfx");
+                        listenOptions.UseHttps(certPath, "1111");
+                    });
+                    options.ListenLocalhost(50020, listenOptions =>
+                    {
                         listenOptions.Protocols = HttpProtocols.Http1;
 
                         var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
@@ -137,7 +145,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             {
                 [TestServerEndpointName.Http2] = "http://127.0.0.1:50050",
                 [TestServerEndpointName.Http1] = "http://127.0.0.1:50040",
-                [TestServerEndpointName.Http1WithTls] = "https://127.0.0.1:50030"
+                [TestServerEndpointName.Http2WithTls] = "https://127.0.0.1:50030",
+                [TestServerEndpointName.Http1WithTls] = "https://127.0.0.1:50020"
             };
 
             _lifetime.ApplicationStopped.Register(() =>

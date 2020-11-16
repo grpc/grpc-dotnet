@@ -22,6 +22,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         Http2,
         Http1,
+        Http2WithTls,
         Http1WithTls
     }
 }
