@@ -135,6 +135,15 @@ namespace Grpc.Net.Client.Web
                 // uses what the browser has negotiated.
                 request.Version = HttpVersion;
             }
+#if NET5_0
+            else if (request.RequestUri?.Scheme == Uri.UriSchemeHttps)
+            {
+                // If no explicit HttpVersion is set and the request is using TLS then default to HTTP/1.1.
+                // HTTP/1.1 together with HttpVersionPolicy.RequestVersionOrHigher it will be compatible
+                // with all endpoints.
+                request.Version = System.Net.HttpVersion.Version11;
+            }
+#endif
 
             var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
