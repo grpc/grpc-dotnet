@@ -17,10 +17,13 @@
 #endregion
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
 using Grpc.Tests.Shared;
@@ -42,7 +45,7 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Act 1
             var contentHeaderData = new byte[5];
-            var read1 = await responseStream.ReadAsync(contentHeaderData);
+            var read1 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 1
             Assert.AreEqual(5, read1);
@@ -53,7 +56,7 @@ namespace Grpc.Net.Client.Web.Tests
             Assert.AreEqual(0, contentHeaderData[4]);
 
             // Act 2
-            var read2 = await responseStream.ReadAsync(contentHeaderData);
+            var read2 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 2
             Assert.AreEqual(0, read2);
@@ -72,7 +75,7 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Act 1
             var contentHeaderData = new byte[5];
-            var read1 = await responseStream.ReadAsync(contentHeaderData);
+            var read1 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 1
             Assert.AreEqual(5, read1);
@@ -83,7 +86,7 @@ namespace Grpc.Net.Client.Web.Tests
             Assert.AreEqual(0, contentHeaderData[4]);
 
             // Act 2
-            var read2 = await responseStream.ReadAsync(contentHeaderData);
+            var read2 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 2
             Assert.AreEqual(0, read2);
@@ -100,7 +103,7 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Act 1
             var contentHeaderData = new byte[1024];
-            var read1 = await responseStream.ReadAsync(contentHeaderData);
+            var read1 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 1
             Assert.AreEqual(5, read1);
@@ -111,13 +114,13 @@ namespace Grpc.Net.Client.Web.Tests
             Assert.AreEqual(1, contentHeaderData[4]);
 
             // Act 2
-            var read2 = await responseStream.ReadAsync(contentHeaderData);
+            var read2 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 2
             Assert.AreEqual(1, read2);
 
             // Act 2
-            var read3 = await responseStream.ReadAsync(contentHeaderData);
+            var read3 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 2
             Assert.AreEqual(0, read3);
@@ -133,7 +136,7 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Act 1
             var contentHeaderData = new byte[5];
-            var read1 = await responseStream.ReadAsync(contentHeaderData);
+            var read1 = await ReadAsync(responseStream, contentHeaderData);
 
             // Assert 1
             Assert.AreEqual(5, read1);
@@ -144,7 +147,7 @@ namespace Grpc.Net.Client.Web.Tests
             Assert.AreEqual(0, contentHeaderData[4]);
 
             // Act 2
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => responseStream.ReadAsync(contentHeaderData).AsTask());
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => ReadAsync(responseStream, contentHeaderData));
 
             // Assert 2
             Assert.AreEqual("Unexpected data after trailers.", ex.Message);
@@ -165,8 +168,19 @@ namespace Grpc.Net.Client.Web.Tests
         public void Trim(string initial, string expected)
         {
             var result = GrpcWebResponseStream.Trim(Encoding.UTF8.GetBytes(initial));
-            var s = Encoding.UTF8.GetString(result);
+            var s = Encoding.UTF8.GetString(result.ToArray());
             Assert.AreEqual(expected, s);
+        }
+
+        private static Task<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
+        {
+#if NET472
+            var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
+            Debug.Assert(success);
+            return stream.ReadAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);
+#else
+            return stream.ReadAsync(data, cancellationToken).AsTask();
+#endif
         }
     }
 }

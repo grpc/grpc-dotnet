@@ -158,7 +158,12 @@ namespace Grpc.Net.Client.Web
 
             if (response.Content != null && IsMatchingResponseContentType(GrpcWebMode, response.Content.Headers.ContentType?.MediaType))
             {
-                response.Content = new GrpcWebResponseContent(response.Content, GrpcWebMode, response.TrailingHeaders);
+#if NETSTANDARD2_0
+                // In netstandard2.0 we look for headers in request properties. Need to create them.
+                response.EnsureTrailingHeaders();
+#endif
+
+                response.Content = new GrpcWebResponseContent(response.Content, GrpcWebMode, response.TrailingHeaders());
             }
 
             // The gRPC client validates HTTP version 2.0 and will error if it isn't. Always set
@@ -167,7 +172,7 @@ namespace Grpc.Net.Client.Web
             //
             // Note: Some handlers don't correctly set HttpResponseMessage.Version.
             // We can't rely on it being set correctly. It is safest to always set it to 2.0.
-            response.Version = System.Net.HttpVersion.Version20;
+            response.Version = GrpcWebProtocolConstants.Http2Version;
 
             return response;
         }

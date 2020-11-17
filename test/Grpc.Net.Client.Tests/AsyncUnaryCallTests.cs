@@ -180,6 +180,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.NotNull(responseMessage);
+
             Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
             Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);

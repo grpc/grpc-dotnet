@@ -19,8 +19,10 @@
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -77,11 +79,18 @@ namespace Grpc.Net.Client.Web.Tests
                 _maxReadLength = maxReadLength;
             }
 
+#if NET472
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                return base.ReadAsync(buffer, offset, Math.Min(count, _maxReadLength), cancellationToken);
+            }
+#else
             public override ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
             {
                 var resolvedDestination = destination.Slice(0, Math.Min(_maxReadLength, destination.Length));
                 return base.ReadAsync(resolvedDestination, cancellationToken);
             }
+#endif
         }
 
         private static byte[] CreateTestData(int size)
@@ -137,7 +146,7 @@ namespace Grpc.Net.Client.Web.Tests
             var messageData = await ReadContent(base64Stream, 6);
 
             // Assert 2
-            var s = Encoding.UTF8.GetString(messageData.AsSpan(2));
+            var s = Encoding.UTF8.GetString(messageData.AsSpan(2).ToArray());
             Assert.AreEqual("test", s);
 
             // Act 3
@@ -189,7 +198,7 @@ namespace Grpc.Net.Client.Web.Tests
             var messageData = await ReadContent(base64Stream, 6);
 
             // Assert 2
-            var s = Encoding.UTF8.GetString(messageData.AsSpan(2));
+            var s = Encoding.UTF8.GetString(messageData.AsSpan(2).ToArray());
             Assert.AreEqual("test", s);
 
             // Act 3
@@ -226,7 +235,7 @@ namespace Grpc.Net.Client.Web.Tests
                 var received = 0;
                 int read;
                 messageData = new byte[length];
-                while ((read = await responseStream.ReadAsync(messageData.AsMemory(received, messageData.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
+                while ((read = await ReadAsync(responseStream, messageData.AsMemory(received, messageData.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
                 {
                     received += read;
 
@@ -255,7 +264,7 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Act
             var buffer = new byte[1024];
-            var read = await base64Stream.ReadAsync(buffer);
+            var read = await ReadAsync(base64Stream, buffer);
 
             // Assert
             Assert.AreEqual(read, data.Length);
@@ -276,7 +285,7 @@ namespace Grpc.Net.Client.Web.Tests
             var buffer = new byte[1];
 
             int read;
-            while ((read = await base64Stream.ReadAsync(buffer)) > 0)
+            while ((read = await ReadAsync(base64Stream, buffer)) > 0)
             {
                 allData.AddRange(buffer.AsSpan(0, read).ToArray());
             }
@@ -300,7 +309,7 @@ namespace Grpc.Net.Client.Web.Tests
             var buffer = new byte[2];
 
             int read;
-            while ((read = await base64Stream.ReadAsync(buffer)) > 0)
+            while ((read = await ReadAsync(base64Stream, buffer)) > 0)
             {
                 allData.AddRange(buffer.AsSpan(0, read).ToArray());
             }
@@ -332,7 +341,7 @@ namespace Grpc.Net.Client.Web.Tests
             var buffer = new byte[readSize];
 
             int read;
-            while ((read = await base64Stream.ReadAsync(buffer)) > 0)
+            while ((read = await ReadAsync(base64Stream, buffer)) > 0)
             {
                 allData.AddRange(buffer.AsSpan(0, read).ToArray());
             }
@@ -340,6 +349,17 @@ namespace Grpc.Net.Client.Web.Tests
 
             // Assert
             CollectionAssert.AreEqual(data, readData);
+        }
+
+        private static Task<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
+        {
+#if NET472
+            var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
+            Debug.Assert(success);
+            return stream.ReadAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);
+#else
+            return stream.ReadAsync(data, cancellationToken).AsTask();
+#endif
         }
     }
 }

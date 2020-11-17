@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -28,6 +27,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 

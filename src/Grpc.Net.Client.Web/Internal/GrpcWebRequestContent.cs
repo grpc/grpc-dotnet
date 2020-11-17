@@ -61,6 +61,16 @@ namespace Grpc.Net.Client.Web.Internal
 
         protected override bool TryComputeLength(out long length)
         {
+            // ContentLength is calculated using the inner content's TryComputeLength.
+            var contentLength = _inner.Headers.ContentLength;
+            if (contentLength != null)
+            {
+                length = _mode == GrpcWebMode.GrpcWebText
+                    ? ((4 * contentLength.GetValueOrDefault() / 3) + 3) & ~3
+                    : contentLength.GetValueOrDefault();
+                return true;
+            }
+
             length = -1;
             return false;
         }

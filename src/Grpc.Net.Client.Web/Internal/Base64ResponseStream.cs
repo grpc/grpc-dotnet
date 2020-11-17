@@ -21,6 +21,7 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,8 +41,16 @@ namespace Grpc.Net.Client.Web.Internal
             _inner = inner;
         }
 
+#if NETSTANDARD2_0
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+#else
         public override async ValueTask<int> ReadAsync(Memory<byte> data, CancellationToken cancellationToken = default)
+#endif
         {
+#if NETSTANDARD2_0
+            var data = buffer.AsMemory(offset, count);
+#endif
+
             // There is enough remaining data to fill passed in data
             if (data.Length <= _remainder)
             {
@@ -73,7 +82,7 @@ namespace Grpc.Net.Client.Web.Internal
             // Minimum valid base64 length is 4. Read until we have at least that much content
             do
             {
-                var read = await _inner.ReadAsync(availableReadData, cancellationToken).ConfigureAwait(false);
+                var read = await StreamHelpers.ReadAsync(_inner, availableReadData, cancellationToken).ConfigureAwait(false);
                 if (read == 0)
                 {
                     if (_remainder > 0)

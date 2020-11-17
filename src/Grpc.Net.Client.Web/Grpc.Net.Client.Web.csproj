@@ -6,11 +6,16 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
+    <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\TrailingHeadersHelpers.cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="$(SystemMemoryPackageVersion)" />
   </ItemGroup>
 
 </Project>
