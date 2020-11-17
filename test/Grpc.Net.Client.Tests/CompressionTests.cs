@@ -145,12 +145,12 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(response);
             Assert.AreEqual("Hello world", response.Message);
 
-            Debug.Assert(httpRequestMessage != null);
+            CompatibilityExtensions.Assert(httpRequestMessage != null);
             Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
             Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
-            Debug.Assert(helloRequest != null);
+            CompatibilityExtensions.Assert(helloRequest != null);
             Assert.AreEqual("Hello", helloRequest.Name);
 
             Assert.AreEqual(compressionDisabledOnOptions, isRequestNotCompressed);
@@ -163,7 +163,7 @@ namespace Grpc.Net.Client.Tests
             HttpRequestMessage? httpRequestMessage = null;
             HelloRequest? helloRequest = null;
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var handler = TestHttpMessageHandler.Create(async request =>
             {
                 httpRequestMessage = request;
 
@@ -188,7 +188,7 @@ namespace Grpc.Net.Client.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcEncoding: "gzip");
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest
@@ -324,14 +324,14 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(response);
             Assert.AreEqual("Hello world", response.Message);
 
-            Debug.Assert(httpRequestMessage != null);
+            CompatibilityExtensions.Assert(httpRequestMessage != null);
             Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
             Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
-            Debug.Assert(helloRequest1 != null);
+            CompatibilityExtensions.Assert(helloRequest1 != null);
             Assert.AreEqual("Hello One", helloRequest1.Name);
-            Debug.Assert(helloRequest2 != null);
+            CompatibilityExtensions.Assert(helloRequest2 != null);
             Assert.AreEqual("Hello Two", helloRequest2.Name);
 
             Assert.IsTrue(isRequestCompressed1);

@@ -59,6 +59,16 @@ namespace Grpc.Net.Client.Internal
         internal static readonly string TEHeader;
         internal static readonly string TEHeaderValue;
 
+        internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
+        {
+            return IdentityGrpcEncoding + "," +
+#if !NETSTANDARD2_0
+                string.Join(',', compressionProviders.Select(p => p.Key));
+#else
+                string.Join(",", compressionProviders.Select(p => p.Key));
+#endif
+        }
+
         static GrpcProtocolConstants()
         {
             var userAgent = "grpc-dotnet";
@@ -85,7 +95,7 @@ namespace Grpc.Net.Client.Internal
             TEHeader = "TE";
             TEHeaderValue = "trailers";
 
-            DefaultMessageAcceptEncodingValue = IdentityGrpcEncoding + "," + string.Join(',', DefaultCompressionProviders.Select(p => p.Key));
+            DefaultMessageAcceptEncodingValue = GetMessageAcceptEncoding(DefaultCompressionProviders);
         }
     }
 }

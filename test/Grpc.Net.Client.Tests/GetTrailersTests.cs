@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
@@ -44,7 +45,7 @@ namespace Grpc.Net.Client.Tests
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
                 response.Headers.Add("custom", "ABC");
-                response.TrailingHeaders.Add("custom-header", "value");
+                response.TrailingHeaders().Add("custom-header", "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -69,7 +70,7 @@ namespace Grpc.Net.Client.Tests
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
                 response.Headers.Add("custom", "ABC");
-                response.TrailingHeaders.Add("custom-header", "value");
+                response.TrailingHeaders().Add("custom-header", "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -214,7 +215,7 @@ namespace Grpc.Net.Client.Tests
                     }).DefaultTimeout();
 
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-                response.TrailingHeaders.Add("custom-header", "value");
+                response.TrailingHeaders().Add("custom-header", "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -238,7 +239,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var trailingHeadersWrittenTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            var handler = TestHttpMessageHandler.Create(request =>
             {
                 var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
                 var stream = new SyncPointMemoryStream();
@@ -253,14 +254,14 @@ namespace Grpc.Net.Client.Tests
                     await stream.AddDataAndWait(messageData).DefaultTimeout();
                     await stream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
 
-                    response.TrailingHeaders.Add("custom-header", "value");
+                    response.TrailingHeaders().Add("custom-header", "value");
                     trailingHeadersWrittenTcs.SetResult(true);
                 });
 
                 return Task.FromResult(response);
             });
 
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "https://localhost");
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());

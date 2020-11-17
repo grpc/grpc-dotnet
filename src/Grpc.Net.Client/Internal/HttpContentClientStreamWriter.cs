@@ -93,7 +93,7 @@ namespace Grpc.Net.Client.Internal
                 using (_call.StartScope())
                 {
                     // Call has already completed
-                    if (_call.CallTask.IsCompletedSuccessfully)
+                    if (_call.CallTask.IsCompletedSuccessfully())
                     {
                         var status = _call.CallTask.Result;
                         if (_call.CancellationToken.IsCancellationRequested &&
@@ -159,7 +159,11 @@ namespace Grpc.Net.Client.Internal
                     callOptions = callOptions.WithWriteOptions(WriteOptions);
                 }
 
-                await _call.WriteMessageAsync(writeStream, message, callOptions).ConfigureAwait(false);
+                await _call.WriteMessageAsync(
+                    writeStream,
+                    message,
+                    _call.Method.RequestMarshaller.ContextualSerializer,
+                    callOptions).ConfigureAwait(false);
 
                 // Flush stream to ensure messages are sent immediately
                 await writeStream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);

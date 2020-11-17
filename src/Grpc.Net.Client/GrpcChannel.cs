@@ -46,6 +46,7 @@ namespace Grpc.Net.Client
 
         internal Uri Address { get; }
         internal HttpMessageInvoker HttpInvoker { get; }
+        internal bool IsWinHttp { get; }
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
         internal ILoggerFactory LoggerFactory { get; }
@@ -76,6 +77,7 @@ namespace Grpc.Net.Client
 
             Address = address;
             HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
+            IsWinHttp = channelOptions.HttpHandler != null ? HttpHandlerFactory.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.WinHttpHandler") : false;
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
             ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
@@ -109,7 +111,7 @@ namespace Grpc.Net.Client
 #if NET5_0
             handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
-
+            
             // Use HttpMessageInvoker instead of HttpClient because it is faster
             // and we don't need client's features.
             var httpInvoker = new HttpMessageInvoker(handler, disposeHandler: true);

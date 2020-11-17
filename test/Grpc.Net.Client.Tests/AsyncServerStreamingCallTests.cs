@@ -191,7 +191,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.NotNull(responseMessage);
-            Assert.IsFalse(responseMessage!.TrailingHeaders.Any()); // sanity check that there are no trailers
+            Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
             Assert.AreEqual("Detail!", call.GetStatus().Detail);
@@ -219,7 +219,7 @@ namespace Grpc.Net.Client.Tests
             await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout();
 
             // Assert
-            Assert.IsTrue(responseMessage!.TrailingHeaders.TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers
+            Assert.IsTrue(responseMessage!.TrailingHeaders().TryGetValues(GrpcProtocolConstants.StatusTrailer, out _)); // sanity status is in trailers
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
             Assert.AreEqual(null, call.GetStatus().Detail);

@@ -83,7 +83,7 @@ namespace Grpc.Net.Client.Internal
                 }
             }
 
-            if (_call.CallTask.IsCompletedSuccessfully)
+            if (_call.CallTask.IsCompletedSuccessfully())
             {
                 var status = _call.CallTask.Result;
                 if (status.StatusCode == StatusCode.OK)
@@ -156,7 +156,7 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 
-                Debug.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
+                CompatibilityExtensions.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
 
                 Current = await _call.ReadMessageAsync(
                     _responseStream,

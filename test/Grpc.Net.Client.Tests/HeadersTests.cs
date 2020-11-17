@@ -27,7 +27,6 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
-using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -105,12 +104,12 @@ namespace Grpc.Net.Client.Tests
             // User-Agent is always sent
             Assert.AreEqual(0, httpRequestMessage!.Headers.Count(h =>
             {
-                if (string.Equals(h.Key, HeaderNames.UserAgent, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(h.Key, "user-agent", StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
 
-                if (string.Equals(h.Key, HeaderNames.TE, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(h.Key, "te", StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }

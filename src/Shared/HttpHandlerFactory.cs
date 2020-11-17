@@ -46,17 +46,18 @@ namespace Grpc.Shared
             // HttpClientHandler has an internal handler that sets request telemetry header.
             // If the handler is SocketsHttpHandler then we know that the header will never be set
             // so wrap with a handler that is responsible for setting the telemetry header.
-            if (IsSocketsHttpHandler(handler))
+            if (HasHttpHandlerType(handler, "System.Net.Http.SocketsHttpHandler"))
             {
                 return new TelemetryHeaderHandler(handler);
             }
 
             return handler;
         }
+#endif
 
-        private static bool IsSocketsHttpHandler(HttpMessageHandler handler)
+        public static bool HasHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
         {
-            if (handler is SocketsHttpHandler)
+            if (handler?.GetType().FullName == handlerTypeName)
             {
                 return true;
             }
@@ -67,7 +68,7 @@ namespace Grpc.Shared
             {
                 currentHandler = delegatingHandler.InnerHandler;
 
-                if (currentHandler is SocketsHttpHandler)
+                if (currentHandler?.GetType().FullName == handlerTypeName)
                 {
                     return true;
                 }
@@ -75,6 +76,5 @@ namespace Grpc.Shared
 
             return false;
         }
-#endif
     }
 }

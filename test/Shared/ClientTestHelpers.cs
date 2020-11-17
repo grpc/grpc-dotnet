@@ -98,9 +98,11 @@ namespace Grpc.Tests.Shared
 
                 var output = new MemoryStream();
                 var compressionStream = compressionProvider.CreateCompressionStream(output, System.IO.Compression.CompressionLevel.Fastest);
+                var compressedData = response.ToByteArray();
 
-                compressionStream.Write(response.ToByteArray());
+                compressionStream.Write(compressedData, 0, compressedData.Length);
                 compressionStream.Flush();
+                compressionStream.Dispose();
                 data = output.ToArray();
             }
             else
@@ -109,7 +111,7 @@ namespace Grpc.Tests.Shared
             }
 
             await ResponseUtils.WriteHeaderAsync(ms, data.Length, compress, CancellationToken.None);
-            await ms.WriteAsync(data);
+            await ms.WriteAsync(data, 0, data.Length);
         }
 
         public static async Task<byte[]> GetResponseDataAsync<TResponse>(TResponse response) where TResponse : IMessage<TResponse>

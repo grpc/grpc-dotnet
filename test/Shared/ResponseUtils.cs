@@ -26,6 +26,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
 
 namespace Grpc.Tests.Shared
 {
@@ -58,15 +59,25 @@ namespace Grpc.Tests.Shared
                 Version = version ?? ProtocolVersion
             };
 
+            message.RequestMessage = new HttpRequestMessage();
+#if NET472
+            message.RequestMessage.Properties[CompatibilityExtensions.ResponseTrailersKey] = new ResponseTrailers();
+#endif
             message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
 
             if (grpcStatusCode != null)
             {
-                message.TrailingHeaders.Add(StatusTrailer, grpcStatusCode.Value.ToString("D"));
+                message.TrailingHeaders().Add(StatusTrailer, grpcStatusCode.Value.ToString("D"));
             }
 
             return message;
         }
+
+#if NET472
+        private class ResponseTrailers : HttpHeaders
+        {
+        }
+#endif
 
         private const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"
         private const int HeaderSize = MessageDelimiterSize + 1; // message length + compression flag
@@ -89,6 +100,16 @@ namespace Grpc.Tests.Shared
             Debug.Assert(destination.Length >= MessageDelimiterSize, "Buffer too small to encode message length.");
 
             BinaryPrimitives.WriteUInt32BigEndian(destination, (uint)messageLength);
+        }
+
+        public static HttpHeaders TrailingHeaders(this HttpResponseMessage responseMessage)
+        {
+#if NET472
+            responseMessage.RequestMessage.Properties.TryGetValue(CompatibilityExtensions.ResponseTrailersKey, out var value);
+            return (HttpHeaders)value;
+#else
+            return responseMessage.TrailingHeaders;
+#endif
         }
     }
 }

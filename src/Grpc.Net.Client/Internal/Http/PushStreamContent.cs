@@ -23,7 +23,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal.Http
 {
     internal class PushStreamContent<TRequest, TResponse> : HttpContent
         where TRequest : class
@@ -57,7 +57,8 @@ namespace Grpc.Net.Client.Internal
             return false;
         }
 
-        // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes
+        // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes.
+        // WARNING: Will run SerializeToStreamAsync again on .NET Framework.
         internal Task PushComplete => ReadAsStreamAsync();
     }
 }

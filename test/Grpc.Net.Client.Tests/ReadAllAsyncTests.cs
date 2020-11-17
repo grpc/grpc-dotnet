@@ -27,6 +27,8 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
+#if !NET472
+
 namespace Grpc.Net.Client.Tests
 {
     [TestFixture]
@@ -278,3 +280,5 @@ namespace Grpc.Net.Client.Tests
         }
     }
 }
+
+#endif

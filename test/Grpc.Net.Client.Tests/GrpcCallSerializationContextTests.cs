@@ -20,6 +20,7 @@ using System;
 using System.Buffers.Binary;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -47,7 +48,7 @@ namespace Grpc.Net.Client.Tests
                 serializationContext.Complete();
 
                 // Assert
-                Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
+                var payload = serializationContext.Memory;
                 var header = DecodeHeader(payload.Span);
                 Assert.IsFalse(header.Compressed);
                 Assert.AreEqual(1, header.Length);
@@ -78,11 +79,10 @@ namespace Grpc.Net.Client.Tests
                 serializationContext.Complete();
 
                 // Assert
-                Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-                var header = DecodeHeader(payload.Span);
+                var header = DecodeHeader(serializationContext.Memory.Span);
                 Assert.IsFalse(header.Compressed);
                 Assert.AreEqual(1, header.Length);
-                Assert.AreEqual(byte.MaxValue, payload.Span[5]);
+                Assert.AreEqual(byte.MaxValue, serializationContext.Memory.Span[5]);
 
                 serializationContext.Reset();
             }
@@ -104,8 +104,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Complete();
 
             // Assert
-            Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-            var header = DecodeHeader(payload.Span);
+            var header = DecodeHeader(serializationContext.Memory.Span);
             Assert.IsTrue(header.Compressed);
             Assert.AreEqual(21, header.Length);
         }
@@ -127,8 +126,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Complete();
 
             // Assert
-            Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-            var header = DecodeHeader(payload.Span);
+            var header = DecodeHeader(serializationContext.Memory.Span);
             Assert.IsTrue(header.Compressed);
             Assert.AreEqual(21, header.Length);
         }
@@ -151,8 +149,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Complete();
 
             // Assert
-            Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-            var header = DecodeHeader(payload.Span);
+            var header = DecodeHeader(serializationContext.Memory.Span);
             Assert.IsFalse(header.Compressed);
             Assert.AreEqual(1, header.Length);
         }
@@ -193,8 +190,7 @@ namespace Grpc.Net.Client.Tests
                 serializationContext.Complete(new byte[] { 1 });
 
                 // Assert
-                Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-                var header = DecodeHeader(payload.Span);
+                var header = DecodeHeader(serializationContext.Memory.Span);
                 Assert.IsFalse(header.Compressed);
                 Assert.AreEqual(1, header.Length);
 
@@ -217,8 +213,7 @@ namespace Grpc.Net.Client.Tests
                 serializationContext.Complete(new byte[] { 1 });
 
                 // Assert
-                Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-                var header = DecodeHeader(payload.Span);
+                var header = DecodeHeader(serializationContext.Memory.Span);
                 Assert.IsTrue(header.Compressed);
                 Assert.AreEqual(21, header.Length);
 
@@ -238,8 +233,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Complete(new byte[] { 1 });
 
             // Assert
-            Assert.IsTrue(serializationContext.TryGetPayload(out var payload));
-            var header = DecodeHeader(payload.Span);
+            var header = DecodeHeader(serializationContext.Memory.Span);
             Assert.IsFalse(header.Compressed);
             Assert.AreEqual(1, header.Length);
         }
@@ -284,7 +278,8 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Reset();
 
             // Assert
-            Assert.IsFalse(serializationContext.TryGetPayload(out _));
+            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.Memory.ToArray());
+            Assert.AreEqual("Serialization did not return a payload.", ex.Message);
         }
 
         [Test]
@@ -305,7 +300,8 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Reset();
 
             // Assert
-            Assert.IsFalse(serializationContext.TryGetPayload(out _));
+            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.Memory.ToArray());
+            Assert.AreEqual("Serialization did not return a payload.", ex.Message);
         }
 
         private class TestGrpcCall : GrpcCall

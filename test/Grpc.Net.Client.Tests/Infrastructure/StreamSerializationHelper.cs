@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure
 {
     internal static class StreamSerializationHelper
     {
-        public static ValueTask<TResponse?> ReadMessageAsync<TResponse>(
+        public static Task<TResponse?> ReadMessageAsync<TResponse>(
             Stream responseStream,
             //ILogger logger,
             Func<DeserializationContext, TResponse> deserializer,
@@ -52,7 +52,13 @@ namespace Grpc.Net.Client.Tests.Infrastructure
 
             var tempCall = new TestGrpcCall(new CallOptions(), tempChannel, typeof(TResponse));
 
-            return responseStream.ReadMessageAsync(tempCall, deserializer, grpcEncoding, singleMessage, cancellationToken);
+            var task = responseStream.ReadMessageAsync(tempCall, deserializer, grpcEncoding, singleMessage, cancellationToken);
+
+#if !NET472
+            return task.AsTask();
+#else
+            return task;
+#endif
         }
 
         private class TestGrpcCall : GrpcCall
