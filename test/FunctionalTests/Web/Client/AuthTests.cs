@@ -92,6 +92,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
             // Assert
             Assert.AreEqual("Hello test", response.Message);
+
+            Assert.AreEqual("testuser", response.Claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
         }
 
         [Test]
