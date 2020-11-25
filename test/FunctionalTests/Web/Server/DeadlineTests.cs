@@ -129,7 +129,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                     // Deadline happened before write
                     if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
                         writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                        writeContext.Exception!.Message == "Cannot write message after request is complete.")
+                        writeContext.Exception!.Message == "Can't write the message because the request is complete.")
                     {
                         return true;
                     }
@@ -202,7 +202,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                 var errorLogged = Logs.Any(r =>
                     r.EventId.Name == "ErrorExecutingServiceMethod" &&
                     r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                    (r.Exception!.Message == "Cannot write message after request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
+                    (r.Exception!.Message == "Can't write the message because the request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
 
                 return errorLogged;
             }, "Expected error not thrown.").DefaultTimeout();

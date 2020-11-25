@@ -29,6 +29,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private readonly Action<TResponse, SerializationContext> _serializer;
         private readonly object _writeLock;
         private Task? _writeTask;
+        private bool _completed;
 
         public HttpContextStreamWriter(HttpContextServerCallContext context, Action<TResponse, SerializationContext> serializer)
         {
@@ -50,9 +51,9 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromException(new ArgumentNullException(nameof(message)));
             }
 
-            if (_context.CancellationToken.IsCancellationRequested)
+            if (_completed || _context.CancellationToken.IsCancellationRequested)
             {
-                return Task.FromException(new InvalidOperationException("Cannot write message after request is complete."));
+                return Task.FromException(new InvalidOperationException("Can't write the message because the request is complete."));
             }
 
             lock (_writeLock)
@@ -68,6 +69,11 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             return _writeTask;
+        }
+
+        public void Complete()
+        {
+            _completed = true;
         }
 
         /// <summary>

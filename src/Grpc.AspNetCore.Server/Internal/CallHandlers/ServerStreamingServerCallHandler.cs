@@ -48,7 +48,14 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
 
             var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
-            await _invoker.Invoke(httpContext, serverCallContext, request, streamWriter);
+            try
+            {
+                await _invoker.Invoke(httpContext, serverCallContext, request, streamWriter);
+            }
+            finally
+            {
+                streamWriter.Complete();
+            }
         }
     }
 }

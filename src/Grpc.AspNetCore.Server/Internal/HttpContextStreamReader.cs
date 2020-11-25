@@ -30,6 +30,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private readonly HttpContextServerCallContext _serverCallContext;
         private readonly Func<DeserializationContext, TRequest> _deserializer;
+        private bool _completed;
 
         public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
         {
@@ -57,6 +58,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.FromCanceled<bool>(cancellationToken);
             }
 
+            if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
+            {
+                return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
+            }
+
             var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
             if (!request.IsCompletedSuccessfully)
             {
@@ -77,6 +83,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
             Current = request;
             return true;
+        }
+
+        public void Complete()
+        {
+            _completed = true;
         }
     }
 }

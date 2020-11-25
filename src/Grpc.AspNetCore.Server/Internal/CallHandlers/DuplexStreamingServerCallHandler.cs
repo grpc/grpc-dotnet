@@ -42,15 +42,22 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             _invoker = invoker;
         }
 
-        protected override Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
         {
             // Disable request body data rate for client streaming
             DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
 
             var streamReader = new HttpContextStreamReader<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
             var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
-
-            return _invoker.Invoke(httpContext, serverCallContext, streamReader, streamWriter);
+            try
+            {
+                await _invoker.Invoke(httpContext, serverCallContext, streamReader, streamWriter);
+            }
+            finally
+            {
+                streamReader.Complete();
+                streamWriter.Complete();
+            }
         }
     }
 }
