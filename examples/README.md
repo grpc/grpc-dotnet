@@ -247,7 +247,9 @@ To use gRPC with UDS:
 
 ## [Transporter](./Transporter)
 
-**.NET 5 or later required**
+**Requirements:**
+* .NET 5 or later
+* Linux, MacOS or a [modern version of Windows](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/)
 
 The transporter example shows how to use gRPC over non-TCP transports. This example uses a [Unix domain socket (UDS)](https://en.wikipedia.org/wiki/Unix_domain_socket) to send gRPC messages between the client and server.
 
