@@ -20,6 +20,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,9 +36,17 @@ namespace Client
 
             builder.Services.AddSingleton(services =>
             {
-                // Get the service address from appsettings.json
                 var config = services.GetRequiredService<IConfiguration>();
+                var navigationManager = services.GetRequiredService<NavigationManager>();
+
+                // Get the service address from appsettings.json
                 var backendUrl = config["BackendUrl"];
+
+                // If no address is set then fallback to the current webpage URL
+                if (string.IsNullOrEmpty(backendUrl))
+                {
+                    backendUrl = navigationManager.BaseUri;
+                }
 
                 // Create a channel with a GrpcWebHandler that is addressed to the backend server.
                 //
