@@ -36,15 +36,14 @@ namespace Client
 
             builder.Services.AddSingleton(services =>
             {
-                var config = services.GetRequiredService<IConfiguration>();
-                var navigationManager = services.GetRequiredService<NavigationManager>();
-
                 // Get the service address from appsettings.json
+                var config = services.GetRequiredService<IConfiguration>();
                 var backendUrl = config["BackendUrl"];
 
                 // If no address is set then fallback to the current webpage URL
                 if (string.IsNullOrEmpty(backendUrl))
                 {
+                    var navigationManager = services.GetRequiredService<NavigationManager>();
                     backendUrl = navigationManager.BaseUri;
                 }
 
