@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Linq;
 using System.Threading.Tasks;
 using Authorize;
 using Grpc.Core;
@@ -29,7 +30,16 @@ namespace FunctionalTestsWebsite.Services
     {
         public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
         {
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            var claims = context.GetHttpContext().User.Claims.ToList();
+
+            var reply = new HelloReply();
+            reply.Message = "Hello " + request.Name;
+            foreach (var claim in claims)
+            {
+                reply.Claims.Add(claim.Type, claim.Value);
+            }
+
+            return Task.FromResult(reply);
         }
     }
 }
