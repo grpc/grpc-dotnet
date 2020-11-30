@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -43,10 +44,10 @@ namespace Client
                 await socket.ConnectAsync(_endPoint, cancellationToken).ConfigureAwait(false);
                 return new NetworkStream(socket, true);
             }
-            catch
+            catch (Exception ex)
             {
                 socket.Dispose();
-                throw;
+                throw new HttpRequestException($"Error connecting to '{_endPoint}'.", ex);
             }
         }
     }
