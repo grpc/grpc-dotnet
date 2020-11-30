@@ -230,24 +230,9 @@ This example uses [tye](https://github.com/dotnet/tye) to run the solution and f
 
 ## [Transporter](./Transporter)
 
-**.NET 5 or later required**
-
-The transporter example shows how to use gRPC over non-TCP transports. This example uses a [Unix domain socket (UDS)](https://en.wikipedia.org/wiki/Unix_domain_socket) to send gRPC messages between the client and server.
-
-To use gRPC with UDS:
-
-1. The client creates a channel with a custom SocketsConnectionFactory. The factory connects to a specified UDS endpoint.
-2. The server configures a UDS endpoint with [KestrelServerOptions.ListenUnixSocket](https://docs.microsoft.com/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserveroptions.listenunixsocket) in *Program.cs*.
-
-##### Scenarios:
-
-* Unix domain sockets
-* SocketsConnectionFactory
-* [KestrelServerOptions.ListenUnixSocket](https://docs.microsoft.com/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserveroptions.listenunixsocket)
-
-## [Transporter](./Transporter)
-
-**.NET 5 or later required**
+**Requirements:**
+* .NET 5 or later
+* Linux, MacOS or a [modern version of Windows](https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/)
 
 The transporter example shows how to use gRPC over non-TCP transports. This example uses a [Unix domain socket (UDS)](https://en.wikipedia.org/wiki/Unix_domain_socket) to send gRPC messages between the client and server.
 
