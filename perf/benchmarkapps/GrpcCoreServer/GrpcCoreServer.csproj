@@ -2,15 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
-
-  <!-- Allow benchmarks to specify the latest framework -->
-  <ItemGroup Condition="'$(BenchmarksTargetFramework)' != ''">
-    <FrameworkReference Update="Microsoft.AspNetCore.App" RuntimeFrameworkVersion="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="$(MicrosoftNETCoreAppPackageVersion)" />
-  </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Server" Link="Protos\benchmark_service.proto" />
