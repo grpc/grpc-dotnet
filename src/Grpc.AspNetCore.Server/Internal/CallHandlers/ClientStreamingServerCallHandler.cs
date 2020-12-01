@@ -44,8 +44,17 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             // Disable request body data rate for client streaming
             DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
 
+            TResponse? response;
+
             var streamReader = new HttpContextStreamReader<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
-            var response = await _invoker.Invoke(httpContext, serverCallContext, streamReader);
+            try
+            {
+                response = await _invoker.Invoke(httpContext, serverCallContext, streamReader);
+            }
+            finally
+            {
+                streamReader.Complete();
+            }
 
             if (response == null)
             {

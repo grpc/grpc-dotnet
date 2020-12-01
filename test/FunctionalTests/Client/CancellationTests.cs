@@ -65,7 +65,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     // Cancellation when service is receiving message
                     if (writeContext.Exception is InvalidOperationException &&
-                        writeContext.Exception.Message == "Cannot write message after request is complete.")
+                        writeContext.Exception.Message == "Can't read messages after the request is complete.")
+                    {
+                        return true;
+                    }
+
+                    // Cancellation when service is writing message
+                    if (writeContext.Exception is InvalidOperationException &&
+                        writeContext.Exception.Message == "Can't write the message because the request is complete.")
                     {
                         return true;
                     }

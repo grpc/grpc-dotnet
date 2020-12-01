@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -459,6 +460,281 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ServerStreaming_WriteAfterMethodComplete_Error(bool writeBeforeExit)
+        {
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            Task? writeTask = null;
+            async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                writeTask = Task.Run(async () =>
+                {
+                    if (writeBeforeExit)
+                    {
+                        await responseStream.WriteAsync(new DataMessage());
+                    }
+
+                    await syncPoint.WaitToContinue();
+
+                    await responseStream.WriteAsync(new DataMessage());
+                });
+
+                await tcs.Task;
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage());
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+            tcs.SetResult(null);
+
+            // Assert
+            if (writeBeforeExit)
+            {
+                Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            }
+
+            Assert.IsFalse(await call.ResponseStream.MoveNext().DefaultTimeout());
+            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+
+            syncPoint.Continue();
+
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await writeTask!.DefaultTimeout());
+            Assert.AreEqual("Can't write the message because the request is complete.", ex.Message);
+
+            Assert.IsFalse(await call.ResponseStream.MoveNext());
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ServerStreaming_WriteAfterMethodCancelled_Error(bool writeBeforeExit)
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    (writeContext.Exception is TaskCanceledException || writeContext.Exception is HttpRequestException))
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    writeContext.EventId.Name == "ErrorReadingMessage")
+                {
+                    return true;
+                }
+
+
+                return false;
+            });
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            Task? writeTask = null;
+            async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                writeTask = Task.Run(async () =>
+                {
+                    if (writeBeforeExit)
+                    {
+                        await responseStream.WriteAsync(new DataMessage());
+                    }
+
+                    await syncPoint.WaitToContinue();
+
+                    context.GetHttpContext().Abort();
+
+                    await responseStream.WriteAsync(new DataMessage());
+                });
+
+                await tcs.Task;
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage());
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+            // Assert
+            if (writeBeforeExit)
+            {
+                Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            }
+
+            syncPoint.Continue();
+
+            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask!).DefaultTimeout();
+            Assert.AreEqual("Can't write the message because the request is complete.", serverException.Message);
+
+            // Ensure the server abort reaches the client
+            await Task.Delay(100);
+
+            var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unavailable, clientException.StatusCode);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ClientStreaming_ReadAfterMethodComplete_Error(bool readBeforeExit)
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.HttpContentClientStreamWriter" &&
+                    writeContext.Exception is InvalidOperationException)
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            Task? readTask = null;
+            async Task<DataMessage> ClientStreamingWithTrailers(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                readTask = Task.Run(async () =>
+                {
+                    if (readBeforeExit)
+                    {
+                        Assert.IsTrue(await requestStream.MoveNext());
+                    }
+
+                    await syncPoint.WaitToContinue();
+
+                    Assert.IsFalse(await requestStream.MoveNext());
+                });
+
+                await tcs.Task;
+                return new DataMessage();
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            // Assert
+            if (readBeforeExit)
+            {
+                await call.RequestStream.WriteAsync(new DataMessage()).DefaultTimeout();
+            }
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+            tcs.SetResult(null);
+
+            var response = await call;
+
+            syncPoint.Continue();
+
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask!).DefaultTimeout();
+            Assert.AreEqual("Can't read messages after the request is complete.", ex.Message);
+
+            var clientException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
+            Assert.AreEqual("Can't write the message because the call is complete.", clientException.Message);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ClientStreaming_ReadAfterMethodCancelled_Error(bool readBeforeExit)
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                    (writeContext.Exception is TaskCanceledException || writeContext.Exception is HttpRequestException))
+                {
+                    return true;
+                }
+
+                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.HttpContentClientStreamWriter" &&
+                    writeContext.Exception is InvalidOperationException)
+                {
+                    return true;
+                }
+
+
+                return false;
+            });
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            Task? readTask = null;
+            async Task<DataMessage> ClientStreamingWithTrailers(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                readTask = Task.Run(async () =>
+                {
+                    if (readBeforeExit)
+                    {
+                        Assert.IsTrue(await requestStream.MoveNext());
+                    }
+
+                    await syncPoint.WaitToContinue();
+
+                    context.GetHttpContext().Abort();
+
+                    Assert.IsFalse(await requestStream.MoveNext());
+                });
+
+                await tcs.Task;
+                return new DataMessage();
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithTrailers);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            // Assert
+            if (readBeforeExit)
+            {
+                await call.RequestStream.WriteAsync(new DataMessage()).DefaultTimeout();
+            }
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+            syncPoint.Continue();
+
+            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask!).DefaultTimeout();
+            Assert.AreEqual("Can't read messages after the request is complete.", serverException.Message);
+
+            // Ensure the server abort reaches the client
+            await Task.Delay(100);
+
+            var clientException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
+            Assert.AreEqual("Can't write the message because the call is complete.", clientException.Message);
+        }
+
         [Test]
         public async Task ServerStreaming_ThrowErrorWithTrailers_TrailersReturnedToClient()
         {
@@ -560,7 +836,19 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
             Assert.AreEqual("Call canceled by the client.", clientEx.Status.Detail);
 
-            await ExceptionAssert.ThrowsAsync<IOException>(() => tcs.Task);
+            var serverEx = await ExceptionAssert.ThrowsAsync<Exception>(() => tcs.Task);
+            if (serverEx is IOException)
+            {
+                // Cool
+            }
+            else if (serverEx is InvalidOperationException)
+            {
+                Assert.AreEqual("Can't read messages after the request is complete.", serverEx.Message);
+            }
+            else
+            {
+                Assert.Fail();
+            }
         }
 
         private static byte[] CreateTestData(int size)
