@@ -419,7 +419,7 @@ namespace GrpcClient
                             clientCertificate
                         };
                     }
-#if NET5_0
+#if NET5_0 || NET6_0
                     if (!string.IsNullOrEmpty(_options.UdsFileName))
                     {
                         var connectionFactory = new UnixDomainSocketConnectionFactory(new UnixDomainSocketEndPoint(ResolveUdsPath(_options.UdsFileName)));
@@ -432,7 +432,7 @@ namespace GrpcClient
 
                     return GrpcChannel.ForAddress(address, new GrpcChannelOptions
                     {
-#if NET5_0
+#if NET5_0 || NET6_0
                         HttpHandler = httpClientHandler,
 #else
                         HttpClient = new HttpClient(httpClientHandler),
