@@ -5,6 +5,11 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ '**' ]
+  schedule:
+    - cron: 0 0 * * * # daily at 00:00
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
 
