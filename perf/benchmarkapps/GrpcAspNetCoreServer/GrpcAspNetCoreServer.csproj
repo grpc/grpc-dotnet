@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <!-- Uncomment line below to enable gRPC-Web on the server -->
     <DefineConstants Condition="'$(EnableGrpcWeb)' == 'true'">$(DefineConstants);GRPC_WEB</DefineConstants>
@@ -12,12 +11,6 @@
     <!-- <EnableDefaultProtoBufItems>true</EnableDefaultProtoBufItems> -->
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
-
-  <!-- Allow benchmarks to specify the latest framework -->
-  <ItemGroup Condition="'$(BenchmarksTargetFramework)' != ''">
-    <FrameworkReference Update="Microsoft.AspNetCore.App" RuntimeFrameworkVersion="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <FrameworkReference Update="Microsoft.NETCore.App" RuntimeFrameworkVersion="$(MicrosoftNETCoreAppPackageVersion)" />
-  </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Server" Link="Protos\benchmark_service.proto" />
@@ -41,7 +34,7 @@
     <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
   </ItemGroup>
   
-  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0'">
     <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
