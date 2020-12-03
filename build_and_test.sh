@@ -41,5 +41,3 @@ do
 done
 
 echo "Tests finished"
-
-source grpcweb_interoptests.sh
