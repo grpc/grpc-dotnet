@@ -26,3 +26,14 @@ jobs:
 
     - name: Build and run tests
       run: ./build_and_test.sh
+
+  grpc_web:
+    name: gRPC-Web Tests
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Run interop tests
+      run: ./grpcweb_interoptests.sh
