@@ -8,8 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
 
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 </Project>
