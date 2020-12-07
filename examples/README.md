@@ -249,7 +249,9 @@ To use gRPC with UDS:
 
 ## [Coder](./Coder)
 
-The coder example shows how to create a code-first gRPC service and call it from a code-first client. This example uses [protobuf-net.Grpc](https://github.com/protobuf-net/protobuf-net.Grpc), a community project that adds code-first support to `Grpc.AspNetCore` and `Grpc.Net.Client`.
+The coder example shows how to create a code-first gRPC service and client. This example uses [protobuf-net.Grpc](https://github.com/protobuf-net/protobuf-net.Grpc), a community project that adds code-first support to `Grpc.AspNetCore` and `Grpc.Net.Client`.
+
+Code-first is a good choice if an app is written entirely in .NET. Code contracts can't be used by other languages and cross-platform apps should use *.proto* contracts.
 
 ##### Scenarios:
 
