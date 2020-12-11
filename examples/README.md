@@ -246,3 +246,15 @@ To use gRPC with UDS:
 * Unix domain sockets
 * SocketsHttpHandler.ConnectCallback
 * [KestrelServerOptions.ListenUnixSocket](https://docs.microsoft.com/dotnet/api/microsoft.aspnetcore.server.kestrel.core.kestrelserveroptions.listenunixsocket)
+
+## [Coder](./Coder)
+
+The coder example shows how to create a code-first gRPC service and client. This example uses [protobuf-net.Grpc](https://github.com/protobuf-net/protobuf-net.Grpc), a community project that adds code-first support to `Grpc.AspNetCore` and `Grpc.Net.Client`.
+
+Code-first is a good choice if an app is written entirely in .NET. Code contracts can't be used by other languages and cross-platform apps should use *.proto* contracts.
+
+##### Scenarios:
+
+* Configure [protobuf-net.Grpc](https://github.com/protobuf-net/protobuf-net.Grpc)
+* Create a code-first gRPC service
+* Create a code-first gRPC client
