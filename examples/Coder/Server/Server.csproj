@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj" />
+    
+    <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="$(ProtobufNetGrpcPackageVersion)" />
+  </ItemGroup>
+
+</Project>

@@ -20,6 +20,7 @@
     <NunitPackageVersion>3.12.0</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
     <OpenTelemetryPackageVersion>0.6.0-beta.1</OpenTelemetryPackageVersion>
+    <ProtobufNetGrpcPackageVersion>1.0.140</ProtobufNetGrpcPackageVersion>
     <SystemCommandLinePackageVersion>2.0.0-beta1.20214.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.3.0-alpha.20214.1</SystemCommandLineRenderingPackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
