@@ -40,7 +40,7 @@
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="5.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
