@@ -40,6 +40,10 @@
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
+    <!--
+      TODO(JamesNK): This package ref should use MicrosoftAspNetCoreAppPackageVersion.
+      There is currently an issue using 6.0 versions so hardcode to 5.0
+      -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="5.0.1" />
   </ItemGroup>
 
