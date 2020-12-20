@@ -14,7 +14,7 @@ env:
 jobs:
 
   build:
-    name: Basic Tests
+    name: Foo BAR DO NOT MERGE
     runs-on: ubuntu-latest
     steps:
 
