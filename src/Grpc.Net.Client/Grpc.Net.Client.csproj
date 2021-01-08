@@ -6,14 +6,14 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0;net6.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' OR '$(TargetFramework)' == 'netstandard2.1'">
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="$(SystemDiagnosticsDiagnosticSourcePackageVersion)" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0'">
     <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 

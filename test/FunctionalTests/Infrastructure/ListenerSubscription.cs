@@ -51,5 +51,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             _tcs.TrySetResult(null);
         }
+
+        internal bool IsMatched => _tcs.Task.IsCompletedSuccessfully;
     }
 }

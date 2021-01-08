@@ -467,8 +467,18 @@ namespace Grpc.AspNetCore.Server.Internal
             var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
             if (resetFeature != null)
             {
-                GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
-                resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
+                // HTTP/3 has different error codes
+                var errorCode =
+#if NET6_0_OR_GREATER
+                    GrpcProtocolConstants.IsHttp2(HttpContext.Request.Protocol)
+                        ? GrpcProtocolConstants.Http2ResetStreamNoError
+                        : GrpcProtocolConstants.Http3ResetStreamNoError;
+#else
+                    GrpcProtocolConstants.Http2ResetStreamNoError;
+#endif
+
+                GrpcServerLog.ResettingResponse(Logger, errorCode);
+                resetFeature.Reset(errorCode);
             }
             else
             {

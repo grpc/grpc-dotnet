@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             await TestTelemetryHeaderIsSet(clientType, handler: null);
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         [TestCase(ClientType.Channel)]
         [TestCase(ClientType.ClientFactory)]
         public async Task Channel_SocketsHttpHandler_UnaryCall_TelemetryHeaderSentWithRequest(ClientType clientType)
@@ -70,7 +70,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
             {
                 telemetryHeader = context.RequestHeaders.GetValue(
-#if NET5_0
+#if NET5_0_OR_GREATER
                     "traceparent"
 #else
                     "request-id"
@@ -85,7 +85,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var client = CreateClient(clientType, method, handler);
 
             // Act
-#if NET5_0
+#if NET5_0_OR_GREATER
             var result = new List<KeyValuePair<string, object?>>();
 
             using var allSubscription = new AllListenersObserver(new Dictionary<string, IObserver<KeyValuePair<string, object?>>>
@@ -101,7 +101,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             Assert.IsNotNull(telemetryHeader);
 
-#if NET5_0
+#if NET5_0_OR_GREATER
             Assert.AreEqual(4, result.Count);
             Assert.AreEqual("System.Net.Http.HttpRequestOut.Start", result[0].Key);
             Assert.AreEqual("System.Net.Http.Request", result[1].Key);

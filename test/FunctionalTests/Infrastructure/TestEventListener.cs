@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
@@ -29,13 +30,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     {
         private readonly object _lock = new object();
         private readonly List<ListenerSubscription> _subscriptions;
-
+        private readonly ILogger _logger;
         private readonly int _eventId;
 
-        public TestEventListener(int eventId)
+        public TestEventListener(int eventId, ILoggerFactory loggerFactory)
         {
             _eventId = eventId;
             _subscriptions = new List<ListenerSubscription>();
+            _logger = loggerFactory.CreateLogger<TestEventListener>();
         }
 
         public EventWrittenEventArgs? EventData { get; private set; }
@@ -75,8 +77,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
                             if (subscription.ExpectedValue == currentValue)
                             {
+                                _logger.LogDebug($"{subscription.CounterName} current value {currentValue} matched expected {subscription.ExpectedValue}.");
+
                                 subscription.SetMatched();
                                 subscription.Dispose();
+                            }
+                            else
+                            {
+                                if (!subscription.IsMatched)
+                                {
+                                    _logger.LogDebug($"{subscription.CounterName} current value {currentValue} doesn't match expected {subscription.ExpectedValue}.");
+                                }
                             }
                         }
                     }

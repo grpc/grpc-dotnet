@@ -18,6 +18,7 @@
 
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
@@ -57,6 +58,7 @@ namespace FunctionalTestsWebsite
 
             services
                 .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator })
                 .EnableCallContextPropagation();
 
             services.AddAuthorization(options =>

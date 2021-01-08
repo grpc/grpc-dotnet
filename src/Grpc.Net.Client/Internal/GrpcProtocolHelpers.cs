@@ -63,7 +63,12 @@ namespace Grpc.Net.Client.Internal
         {
             var headers = new Metadata();
 
+#if NET6_0_OR_GREATER
+            // Use NonValidated to avoid race-conditions and because it is faster.
+            foreach (var header in responseHeaders.NonValidated)
+#else
             foreach (var header in responseHeaders)
+#endif
             {
                 if (ShouldSkipHeader(header.Key))
                 {
@@ -196,29 +201,22 @@ namespace Grpc.Net.Client.Internal
 
         internal static string GetRequestEncoding(HttpRequestHeaders headers)
         {
-            if (headers.TryGetValues(GrpcProtocolConstants.MessageEncodingHeader, out var encodingValues))
-            {
-                return encodingValues.First();
-            }
-            else
-            {
-                return GrpcProtocolConstants.IdentityGrpcEncoding;
-            }
+            var grpcRequestEncoding = GetHeaderValue(
+                headers,
+                GrpcProtocolConstants.MessageEncodingHeader,
+                first: true);
+
+            return grpcRequestEncoding ?? GrpcProtocolConstants.IdentityGrpcEncoding;
         }
 
         internal static string GetGrpcEncoding(HttpResponseMessage response)
         {
-            string grpcEncoding;
-            if (response.Headers.TryGetValues(GrpcProtocolConstants.MessageEncodingHeader, out var values))
-            {
-                grpcEncoding = values.First();
-            }
-            else
-            {
-                grpcEncoding = GrpcProtocolConstants.IdentityGrpcEncoding;
-            }
+            var grpcEncoding = GetHeaderValue(
+                response.Headers,
+                GrpcProtocolConstants.MessageEncodingHeader,
+                first: true);
 
-            return grpcEncoding;
+            return grpcEncoding ?? GrpcProtocolConstants.IdentityGrpcEncoding;
         }
 
         internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
@@ -302,13 +300,39 @@ namespace Grpc.Net.Client.Internal
             headers.TryAddWithoutValidation(entry.Key, value);
         }
 
-        public static string? GetHeaderValue(HttpHeaders? headers, string name)
+        public static string? GetHeaderValue(HttpHeaders? headers, string name, bool first = false)
         {
             if (headers == null)
             {
                 return null;
             }
 
+#if NET6_0_OR_GREATER
+            if (!headers.NonValidated.TryGetValues(name, out var values))
+            {
+                return null;
+            }
+
+            using (var e = values.GetEnumerator())
+            {
+                if (!e.MoveNext())
+                {
+                    return null;
+                }
+
+                var result = e.Current;
+                if (!e.MoveNext())
+                {
+                    return result;
+                }
+
+                if (first)
+                {
+                    return result;
+                }
+            }
+            throw new InvalidOperationException($"Multiple {name} headers.");
+#else
             if (!headers.TryGetValues(name, out var values))
             {
                 return null;
@@ -324,8 +348,13 @@ namespace Grpc.Net.Client.Internal
                 case 1:
                     return valuesArray[0];
                 default:
+                    if (first)
+                    {
+                        return valuesArray[0];
+                    }
                     throw new InvalidOperationException($"Multiple {name} headers.");
             }
+#endif
         }
 
         public static Status GetResponseStatus(HttpResponseMessage httpResponse, bool isBrowser, bool isWinHttp)
@@ -359,7 +388,7 @@ namespace Grpc.Net.Client.Internal
 
         public static bool TryGetStatusCore(HttpHeaders headers, [NotNullWhen(true)]out Status? status)
         {
-            var grpcStatus = GrpcProtocolHelpers.GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
+            var grpcStatus = GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
 
             // grpc-status is a required trailer
             if (grpcStatus == null)
@@ -376,7 +405,7 @@ namespace Grpc.Net.Client.Internal
 
             // grpc-message is optional
             // Always read the gRPC message from the same headers collection as the status
-            var grpcMessage = GrpcProtocolHelpers.GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
+            var grpcMessage = GetHeaderValue(headers, GrpcProtocolConstants.MessageTrailer);
 
             if (!string.IsNullOrEmpty(grpcMessage))
             {

@@ -34,9 +34,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
 {
     [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
     [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
+#endif
     [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
     [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
+#endif
     [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
+#endif
     public class DeadlineTests : GrpcWebFunctionalTestBase
     {
         public DeadlineTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
@@ -90,7 +99,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
             var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "100m");
+            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "300m");
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act

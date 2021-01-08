@@ -26,12 +26,12 @@ using Microsoft.AspNetCore.Routing;
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
     internal class ProviderServiceBinder<
-#if NET5_0
+#if NET5_0_OR_GREATER
         [DynamicallyAccessedMembers(ServiceAccessibility)]
 #endif
         TService> : ServiceBinderBase where TService : class
     {
-#if NET5_0
+#if NET5_0_OR_GREATER
         // Non-public methods is required by GetMethod overload that has a BindingFlags argument.
         internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
 #endif
