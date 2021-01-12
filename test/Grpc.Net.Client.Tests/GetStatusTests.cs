@@ -188,6 +188,36 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_MissingStatusBrowser_ThrowError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: null);
+                return response;
+            });
+
+            var os = new TestOperatingSystem { IsBrowser = true };
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, operatingSystem: os);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            Assert.AreEqual("No grpc-status found on response. If the gRPC call is cross domain then CORS must be correctly configured. Access-Control-Expose-Headers needs to include 'grpc-status' and 'grpc-message'.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        }
+
+        private class TestOperatingSystem : IOperatingSystem
+        {
+            public bool IsBrowser { get; set; }
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_InvalidStatus_ThrowError()
         {
             // Arrange

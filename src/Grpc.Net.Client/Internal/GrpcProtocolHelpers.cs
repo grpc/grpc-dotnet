@@ -327,14 +327,20 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        public static Status GetResponseStatus(HttpResponseMessage httpResponse)
+        public static Status GetResponseStatus(HttpResponseMessage httpResponse, bool isBrowser)
         {
             Status? status;
             try
             {
                 if (!TryGetStatusCore(httpResponse.TrailingHeaders, out status))
                 {
-                    status = new Status(StatusCode.Cancelled, "No grpc-status found on response.");
+                    var detail = "No grpc-status found on response.";
+                    if (isBrowser)
+                    {
+                        detail += " If the gRPC call is cross domain then CORS must be correctly configured. Access-Control-Expose-Headers needs to include 'grpc-status' and 'grpc-message'.";
+                    }
+
+                    status = new Status(StatusCode.Cancelled, detail);
                 }
             }
             catch (Exception ex)
