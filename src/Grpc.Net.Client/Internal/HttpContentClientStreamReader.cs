@@ -167,7 +167,7 @@ namespace Grpc.Net.Client.Internal
                 {
                     // No more content in response so report status to call.
                     // The call will handle finishing the response.
-                    var status = GrpcProtocolHelpers.GetResponseStatus(_httpResponse);
+                    var status = GrpcProtocolHelpers.GetResponseStatus(_httpResponse, _call.Channel.OperatingSystem.IsBrowser);
                     _call.ResponseStreamEnded(status);
                     if (status.StatusCode != StatusCode.OK)
                     {

@@ -503,7 +503,7 @@ namespace Grpc.Net.Client.Internal
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
-                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser);
 
                             if (message == null)
                             {
