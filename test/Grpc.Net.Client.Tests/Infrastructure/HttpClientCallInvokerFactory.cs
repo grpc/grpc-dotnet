@@ -31,7 +31,8 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             ISystemClock? systemClock = null,
             Action<GrpcChannelOptions>? configure = null,
             bool? disableClientDeadline = null,
-            long? maxTimerPeriod = null)
+            long? maxTimerPeriod = null,
+            IOperatingSystem? operatingSystem = null)
         {
             var channelOptions = new GrpcChannelOptions
             {
@@ -49,6 +50,10 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             if (maxTimerPeriod != null)
             {
                 channel.MaxTimerDueTime = maxTimerPeriod.Value;
+            }
+            if (operatingSystem != null)
+            {
+                channel.OperatingSystem = operatingSystem;
             }
 
             return new HttpClientCallInvoker(channel);

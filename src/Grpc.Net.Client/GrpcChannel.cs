@@ -55,8 +55,10 @@ namespace Grpc.Net.Client
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
-        // Timing related options that are set in unit tests
+
+        // Options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
+        internal IOperatingSystem OperatingSystem = Internal.OperatingSystem.Instance;
         internal bool DisableClientDeadline;
         internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
