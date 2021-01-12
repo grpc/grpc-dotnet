@@ -117,7 +117,17 @@ namespace Grpc.AspNetCore.Web.Internal
                 {
                     if (value != null)
                     {
-                        var position = Encoding.ASCII.GetBytes(kv.Key, currentBuffer);
+                        // Get lower-case ASCII bytes for the key.
+                        // gRPC-Web protocol says that names should be lower-case and grpc-web JS client
+                        // will check for 'grpc-status' and 'grpc-message' in trailers with lower-case key.
+                        // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md#protocol-differences-vs-grpc-over-http2
+                        for (int i = 0; i < kv.Key.Length; i++)
+                        {
+                            char c = kv.Key[i];
+                            currentBuffer[i] = (byte)((uint)(c - 'A') <= ('Z' - 'A') ? c | 0x20 : c);
+                        }
+
+                        var position = kv.Key.Length;
 
                         currentBuffer[position++] = Colon;
                         currentBuffer[position++] = Space;
