@@ -75,6 +75,31 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
+        public void WriteTrailers_OneTrailerMixedCase_WrittenToOutputLowerCase()
+        {
+            // Arrange
+            var trailers = new HeaderDictionary();
+            trailers.Add("One", "Two");
+            var output = new ArrayBufferWriter<byte>();
+
+            // Act
+            GrpcWebProtocolHelpers.WriteTrailers(trailers, output);
+
+            // Assert
+            Assert.AreEqual(15, output.WrittenSpan.Length);
+
+            Assert.AreEqual(128, output.WrittenSpan[0]);
+            Assert.AreEqual(0, output.WrittenSpan[1]);
+            Assert.AreEqual(0, output.WrittenSpan[2]);
+            Assert.AreEqual(0, output.WrittenSpan[3]);
+            Assert.AreEqual(10, output.WrittenSpan[4]);
+
+            var text = Encoding.ASCII.GetString(output.WrittenSpan.Slice(5));
+
+            Assert.AreEqual("one: Two\r\n", text);
+        }
+
+        [Test]
         public void WriteTrailers_MultiValueTrailer_WrittenToOutput()
         {
             // Arrange
