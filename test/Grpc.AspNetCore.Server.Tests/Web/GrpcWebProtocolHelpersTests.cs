@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         {
             // Arrange
             var trailers = new HeaderDictionary();
-            trailers.Add("One", "two");
+            trailers.Add("One", "Two");
             var output = new ArrayBufferWriter<byte>();
 
             // Act
@@ -96,7 +96,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
 
             var text = Encoding.ASCII.GetString(output.WrittenSpan.Slice(5));
 
-            Assert.AreEqual("one: two\r\n", text);
+            Assert.AreEqual("one: Two\r\n", text);
         }
 
         [Test]
