@@ -20,6 +20,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
@@ -38,6 +39,9 @@ namespace Grpc.Net.Client.Web
     public sealed class GrpcWebHandler : DelegatingHandler
     {
         internal const string WebAssemblyEnableStreamingResponseKey = "WebAssemblyEnableStreamingResponse";
+
+        // Internal and mutable for unit testing.
+        internal IOperatingSystem OperatingSystem { get; set; } = Internal.OperatingSystem.Instance;
 
         /// <summary>
         /// Gets or sets the HTTP version to use when making gRPC-Web calls.
@@ -117,6 +121,11 @@ namespace Grpc.Net.Client.Web
         {
             request.Content = new GrpcWebRequestContent(request.Content!, GrpcWebMode);
 
+            if (OperatingSystem.IsBrowser)
+            {
+                FixBrowserUserAgent(request);
+            }
+
             // Set WebAssemblyEnableStreamingResponse to true on gRPC-Web request.
             // https://github.com/mono/mono/blob/a0d69a4e876834412ba676f544d447ec331e7c01/sdks/wasm/framework/src/System.Net.Http.WebAssemblyHttpHandler/WebAssemblyHttpHandler.cs#L149
             //
@@ -163,14 +172,29 @@ namespace Grpc.Net.Client.Web
             return response;
         }
 
+        private void FixBrowserUserAgent(HttpRequestMessage request)
+        {
+            const string userAgentHeader = "User-Agent";
+
+            // Remove the user-agent header and re-add it as x-user-agent.
+            // We don't want to override the browser's user-agent value.
+            // Consistent with grpc-web JS client which sends its header in x-user-agent.
+            // https://github.com/grpc/grpc-web/blob/2e3e8d2c501c4ddce5406ac24a637003eabae4cf/javascript/net/grpc/web/grpcwebclientbase.js#L323
+            if (request.Headers.TryGetValues(userAgentHeader, out var values))
+            {
+                request.Headers.Remove(userAgentHeader);
+                request.Headers.TryAddWithoutValidation("X-User-Agent", values);
+            }
+        }
+
         private static bool IsMatchingResponseContentType(GrpcWebMode mode, string? contentType)
         {
-            if (mode == Web.GrpcWebMode.GrpcWeb)
+            if (mode == GrpcWebMode.GrpcWeb)
             {
                 return CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcWebContentType, contentType);
             }
 
-            if (mode == Web.GrpcWebMode.GrpcWebText)
+            if (mode == GrpcWebMode.GrpcWebText)
             {
                 return CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcWebTextContentType, contentType);
             }
