@@ -18,6 +18,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -111,6 +112,36 @@ namespace Grpc.Net.Client.Tests.Web
         }
 
         [Test]
+        public async Task SendAsync_GrpcCallInBrowser_UserAgentFixed()
+        {
+            // Arrange
+            var request = new HttpRequestMessage
+            {
+                Version = HttpVersion.Version20,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+                }
+            };
+            request.Headers.TryAddWithoutValidation("User-Agent", "TestUserAgent");
+            var testHttpHandler = new TestHttpHandler();
+            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+            grpcWebHandler.OperatingSystem = new TestOperatingSystem
+            {
+                IsBrowser = true
+            };
+            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+            // Act
+            await messageInvoker.SendAsync(request, CancellationToken.None);
+
+            // Assert
+            Assert.AreEqual(false, testHttpHandler.RequestHeaders!.TryGetValues("user-agent", out _));
+            Assert.AreEqual(true, testHttpHandler.RequestHeaders!.TryGetValues("x-user-agent", out var values));
+            Assert.AreEqual("TestUserAgent", values!.Single());
+        }
+
+        [Test]
         public async Task SendAsync_NonGrpcCall_ResponseStreamingPropertyNotSet()
         {
             // Arrange
@@ -133,14 +164,21 @@ namespace Grpc.Net.Client.Tests.Web
             Assert.AreEqual(null, testHttpHandler.WebAssemblyEnableStreamingResponse);
         }
 
+        private class TestOperatingSystem : IOperatingSystem
+        {
+            public bool IsBrowser { get; set; }
+        }
+
         private class TestHttpHandler : HttpMessageHandler
         {
             public Version? RequestVersion { get; private set; }
             public bool? WebAssemblyEnableStreamingResponse { get; private set; }
+            public HttpRequestHeaders? RequestHeaders { get; private set; }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 RequestVersion = request.Version;
+                RequestHeaders = request.Headers;
 #pragma warning disable CS0618 // Type or member is obsolete
                 if (request.Properties.TryGetValue(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
 #pragma warning restore CS0618 // Type or member is obsolete
