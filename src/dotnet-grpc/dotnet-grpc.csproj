@@ -14,8 +14,11 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA2007</WarningsNotAsErrors>
     <NoWarn>$(NoWarn);CA2007</NoWarn>
 
-    <!-- The runtimeconfig.template.json file is used to allow roll-forward for future runtimes. We target netcoreapp3.0 as the lowest TFM. 
-      See https://github.com/dotnet/core-setup/blob/master/Documentation/design-docs/roll-forward-on-no-candidate-fx.md#roll-forward-in-absence-of-candidate-fx for details-->
+    <!-- The roll forward policy is set to LatestMajor to allow rolling forward to latest major and minor
+      version of the runtime even if requested major (netcoreapp3.0) is present. This ensures that the runtime
+      contains assemblies that are equal or newer than neede by the SDK assemblies resolved by the MSBuild locator.
+      See https://github.com/dotnet/designs/blob/main/accepted/2019/runtime-binding.md#rollforward for details-->
+    <RollForward>LatestMajor</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
