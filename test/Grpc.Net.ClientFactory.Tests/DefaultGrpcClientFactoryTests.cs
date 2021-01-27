@@ -141,10 +141,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("CustomName"));
 
             // Assert
-            Assert.AreEqual(@"Could not resolve the address for gRPC client 'GreeterClient'. Set an address when registering the client: services.AddGrpcClient<GreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
+            Assert.AreEqual(@"Could not resolve the address for gRPC client 'CustomName'. Set an address when registering the client: services.AddGrpcClient<GreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
         }
 
         [Test]
