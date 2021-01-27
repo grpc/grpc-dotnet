@@ -40,7 +40,7 @@ namespace Grpc.Net.ClientFactory.Internal
             _loggerFactory = loggerFactory;
         }
 
-        public CallInvoker CreateCallInvoker(HttpMessageHandler httpHandler, string name, GrpcClientFactoryOptions clientFactoryOptions)
+        public CallInvoker CreateCallInvoker(HttpMessageHandler httpHandler, string name, Type type, GrpcClientFactoryOptions clientFactoryOptions)
         {
             if (httpHandler == null)
             {
@@ -62,7 +62,7 @@ namespace Grpc.Net.ClientFactory.Internal
             var address = clientFactoryOptions.Address;
             if (address == null)
             {
-                throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{name}>(o => o.Address = new Uri(""https://localhost:5001""))");
+                throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{type.Name}>(o => o.Address = new Uri(""https://localhost:5001""))");
             }
 
             var channel = GrpcChannel.ForAddress(address, channelOptions);

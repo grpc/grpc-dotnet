@@ -51,7 +51,7 @@ namespace Grpc.Net.ClientFactory.Internal
 
             var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
             var httpHandler = _messageHandlerFactory.CreateHandler(name);
-            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, clientFactoryOptions);
+            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
 
             if (clientFactoryOptions.Creator != null)
             {
