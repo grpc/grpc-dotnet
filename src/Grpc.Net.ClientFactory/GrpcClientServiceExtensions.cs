@@ -301,25 +301,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // because we access it by reaching into the service collection.
             services.TryAddSingleton(new GrpcClientMappingRegistry());
 
-            Action<IServiceProvider, HttpClient> configureTypedClient = (s, httpClient) =>
-            {
-                var os = s.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>();
-                var clientOptions = os.Get(name);
-
-                httpClient.BaseAddress = clientOptions.Address;
-
-                // Long running server and duplex streaming gRPC requests may not
-                // return any messages for over 100 seconds, triggering a cancellation
-                // of HttpClient.SendAsync. Disable timeout in internally created
-                // HttpClient for channel.
-                //
-                // gRPC deadline should be the recommended way to timeout gRPC calls.
-                //
-                // https://github.com/dotnet/corefx/issues/41650
-                httpClient.Timeout = Timeout.InfiniteTimeSpan;
-            };
-
-            IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name, configureTypedClient);
+            IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name);
 
             return clientBuilder;
         }
@@ -327,7 +309,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// This is a custom method to register the HttpClient and typed factory. Needed because we need to access the config name when creating the typed client
         /// </summary>
-        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, HttpClient> configureTypedClient)
+        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name)
             where TClient : class
         {
             if (services == null)
@@ -336,7 +318,7 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             services
-                .AddHttpClient(name, configureTypedClient)
+                .AddHttpClient(name)
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
                     var handler = HttpHandlerFactory.CreatePrimaryHandler();

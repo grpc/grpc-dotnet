@@ -28,17 +28,17 @@ namespace Grpc.Net.ClientFactory.Internal
         private readonly IServiceProvider _serviceProvider;
         private readonly GrpcCallInvokerFactory _callInvokerFactory;
         private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientFactoryOptionsMonitor;
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpMessageHandlerFactory _messageHandlerFactory;
 
         public DefaultGrpcClientFactory(IServiceProvider serviceProvider,
             GrpcCallInvokerFactory callInvokerFactory,
             IOptionsMonitor<GrpcClientFactoryOptions> clientFactoryOptionsMonitor,
-            IHttpClientFactory httpClientFactory)
+            IHttpMessageHandlerFactory messageHandlerFactory)
         {
             _serviceProvider = serviceProvider;
             _callInvokerFactory = callInvokerFactory;
             _clientFactoryOptionsMonitor = clientFactoryOptionsMonitor;
-            _httpClientFactory = httpClientFactory;
+            _messageHandlerFactory = messageHandlerFactory;
         }
 
         public override TClient CreateClient<TClient>(string name) where TClient : class
@@ -50,8 +50,8 @@ namespace Grpc.Net.ClientFactory.Internal
             }
 
             var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
-            var httpClient = _httpClientFactory.CreateClient(name);
-            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpClient, name, clientFactoryOptions);
+            var httpHandler = _messageHandlerFactory.CreateHandler(name);
+            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
 
             if (clientFactoryOptions.Creator != null)
             {
