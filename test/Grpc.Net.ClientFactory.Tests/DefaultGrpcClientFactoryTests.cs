@@ -41,7 +41,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
     public class DefaultGrpcClientFactoryTests
     {
         [Test]
-        public void CreateClient_Default_InternalHttpClientHasInfiniteTimeout()
+        public void CreateClient_Default_DefaultInvokerSet()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
             // Assert
-            Assert.AreEqual(Timeout.InfiniteTimeSpan, ((HttpClient)client.CallInvoker.Channel.HttpInvoker).Timeout);
+            Assert.IsInstanceOf(typeof(HttpMessageInvoker), client.CallInvoker.Channel.HttpInvoker);
         }
 
         [Test]
@@ -141,19 +141,20 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("CustomName"));
 
             // Assert
-            Assert.AreEqual("Could not resolve the address for gRPC client 'GreeterClient'.", ex.Message);
+            Assert.AreEqual(@"Could not resolve the address for gRPC client 'CustomName'. Set an address when registering the client: services.AddGrpcClient<GreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
         }
 
         [Test]
-        public void CreateClient_AddressSpecifiedOnHttpClientFactory_UseHttpClientFactoryAddress()
+        public void CreateClient_AddressSpecifiedOnHttpClientFactory_ThrowError()
         {
             // Arrange
             var services = new ServiceCollection();
             services
                 .AddGrpcClient<TestGreeterClient>()
+                // The underlying handler is used directly so no longer look for address on HttpClient
                 .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -161,10 +162,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
             // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)));
 
             // Assert
-            Assert.AreEqual("http://contoso", client.CallInvoker.Channel.Address.OriginalString);
+            Assert.AreEqual(@"Could not resolve the address for gRPC client 'TestGreeterClient'. Set an address when registering the client: services.AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
         }
 
         [Test]
@@ -284,7 +285,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             return new DefaultGrpcClientFactory(serviceProvider,
                 serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
-                serviceProvider.GetRequiredService<IHttpClientFactory>());
+                serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>());
         }
     }
 }
