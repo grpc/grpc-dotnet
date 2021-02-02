@@ -1,6 +1,6 @@
 # gRPC for .NET Examples
 
-Examples of basic gRPC scenarios with gRPC for .NET.
+Examples of basic gRPC scenarios with gRPC for .NET. The examples should be executed within the repository to resolve packages correctly. Copying individual projects to different directories without also specifying package versions explicitly will result in incorrect package versions being resolved.
 
 If you are brand new to gRPC on .NET a good place to start is the getting started tutorial: [Create a gRPC client and server in ASP.NET Core](https://docs.microsoft.com/aspnet/core/tutorials/grpc/grpc-start)
 
