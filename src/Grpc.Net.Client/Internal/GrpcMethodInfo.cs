@@ -17,7 +17,10 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Grpc.Core;
+using Grpc.Net.Client.Configuration;
 
 namespace Grpc.Net.Client.Internal
 {
@@ -26,13 +29,115 @@ namespace Grpc.Net.Client.Internal
     /// </summary>
     internal class GrpcMethodInfo
     {
-        public GrpcMethodInfo(GrpcCallScope logScope, Uri callUri)
+        public GrpcMethodInfo(GrpcCallScope logScope, Uri callUri, MethodConfig? methodConfig)
         {
             LogScope = logScope;
             CallUri = callUri;
+            MethodConfig = CreateMethodConfig(methodConfig);
+        }
+
+        private MethodConfigInfo? CreateMethodConfig(MethodConfig? methodConfig)
+        {
+            if (methodConfig == null)
+            {
+                return null;
+            }
+            if (methodConfig.RetryPolicy != null && methodConfig.HedgingPolicy != null)
+            {
+                throw new InvalidOperationException("Method config can't have a retry policy and hedging policy.");
+            }
+
+            var m = new MethodConfigInfo();
+
+            if (methodConfig.RetryPolicy != null)
+            {
+                m.RetryPolicy = CreateRetryPolicy(methodConfig.RetryPolicy);
+            }
+
+            if (methodConfig.HedgingPolicy != null)
+            {
+                m.HedgingPolicy = CreateHedgingPolicy(methodConfig.HedgingPolicy);
+            }
+
+            return m;
+        }
+
+        internal static RetryPolicyInfo CreateRetryPolicy(RetryPolicy r)
+        {
+            if (!(r.MaxAttempts > 1))
+            {
+                throw new InvalidOperationException("Retry policy max attempts must be greater than 1.");
+            }
+            if (!(r.InitialBackoff > TimeSpan.Zero))
+            {
+                throw new InvalidOperationException("Retry policy initial backoff must be greater than zero.");
+            }
+            if (!(r.MaxBackoff > TimeSpan.Zero))
+            {
+                throw new InvalidOperationException("Retry policy maximum backoff must be greater than zero.");
+            }
+            if (!(r.BackoffMultiplier > 0))
+            {
+                throw new InvalidOperationException("Retry policy backoff multiplier must be greater than 0.");
+            }
+            if (!(r.RetryableStatusCodes.Count > 0))
+            {
+                throw new InvalidOperationException("Retry policy must specify at least 1 retryable status code.");
+            }
+
+            return new RetryPolicyInfo
+            {
+                MaxAttempts = r.MaxAttempts.GetValueOrDefault(),
+                InitialBackoff = r.InitialBackoff.GetValueOrDefault(),
+                MaxBackoff = r.MaxBackoff.GetValueOrDefault(),
+                BackoffMultiplier = r.BackoffMultiplier.GetValueOrDefault(),
+                RetryableStatusCodes = r.RetryableStatusCodes.ToList()
+            };
+        }
+
+        internal static HedgingPolicyInfo CreateHedgingPolicy(HedgingPolicy h)
+        {
+            if (!(h.MaxAttempts > 1))
+            {
+                throw new InvalidOperationException("Hedging policy max attempts must be greater than 1.");
+            }
+            if (!(h.HedgingDelay >= TimeSpan.Zero))
+            {
+                throw new InvalidOperationException("Hedging policy delay must be equal or greater than zero.");
+            }
+
+            return new HedgingPolicyInfo
+            {
+                MaxAttempts = h.MaxAttempts.GetValueOrDefault(),
+                HedgingDelay = h.HedgingDelay.GetValueOrDefault(),
+                NonFatalStatusCodes = h.NonFatalStatusCodes.ToList()
+            };
         }
 
         public GrpcCallScope LogScope { get; }
         public Uri CallUri { get; }
+        public MethodConfigInfo? MethodConfig { get; }
+    }
+
+    internal class MethodConfigInfo
+    {
+        public RetryPolicyInfo? RetryPolicy { get; set; }
+        public HedgingPolicyInfo? HedgingPolicy { get; set; }
+    }
+
+    internal class RetryPolicyInfo
+    {
+        public int MaxAttempts { get; init; }
+        public TimeSpan InitialBackoff { get; init; }
+        public TimeSpan MaxBackoff { get; init; }
+        public double BackoffMultiplier { get; init; }
+        public List<StatusCode> RetryableStatusCodes { get; init; } = default!;
+    }
+
+    internal class HedgingPolicyInfo
+    {
+        public int MaxAttempts { get; set; }
+        public TimeSpan HedgingDelay { get; set; }
+        public List<StatusCode> NonFatalStatusCodes { get; init; } = default!;
     }
 }

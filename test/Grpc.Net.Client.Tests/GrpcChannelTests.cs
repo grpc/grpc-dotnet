@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Net.Client.Configuration;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -167,6 +168,26 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(message, ex.Message);
         }
 #endif
+
+        [Test]
+        public void Build_ServiceConfigDuplicateMethodConfigNames_Error()
+        {
+            // Arrange
+            var options = CreateGrpcChannelOptions(o => o.ServiceConfig = new ServiceConfig
+            {
+                MethodConfigs =
+                {
+                    new MethodConfig { Names = { MethodName.Default } },
+                    new MethodConfig { Names = { MethodName.Default } }
+                }
+            });
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost", options));
+
+            // Assert
+            Assert.AreEqual("Duplicate method config found. Service: '', method: ''.", ex.Message);
+        }
 
         [Test]
         public void Dispose_NotCalled_NotDisposed()

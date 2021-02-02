@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using Grpc.Core;
+using Grpc.Net.Client.Configuration;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
 
@@ -64,6 +65,56 @@ namespace Grpc.Net.Client
         /// </para>
         /// </summary>
         public int? MaxReceiveMessageSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum retry attempts. This value limits any retry and hedging attempt values specified in
+        /// the service config.
+        /// <para>
+        /// Setting this value alone doesn't enable retries. Retries are enabled in the service config, which can be done
+        /// using <see cref="ServiceConfig"/>.
+        /// </para>
+        /// <para>
+        /// A <c>null</c> value removes the maximum retry attempts limit. Defaults to 5.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public int? MaxRetryAttempts { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum buffer size in bytes that can be used to store sent messages when retrying
+        /// or hedging calls. If the buffer limit is exceeded then no more retry attempts are made and all
+        /// hedging calls but one will be canceled. This limit is applied across all calls made using the channel.
+        /// <para>
+        /// Setting this value alone doesn't enable retries. Retries are enabled in the service config, which can be done
+        /// using <see cref="ServiceConfig"/>.
+        /// </para>
+        /// <para>
+        /// A <c>null</c> value removes the maximum retry buffer size limit. Defaults to 16,777,216 (16 MB).
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public long? MaxRetryBufferSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the maximum buffer size in bytes that can be used to store sent messages when retrying
+        /// or hedging calls. If the buffer limit is exceeded then no more retry attempts are made and all
+        /// hedging calls but one will be canceled. This limit is applied to one call.
+        /// <para>
+        /// Setting this value alone doesn't enable retries. Retries are enabled in the service config, which can be done
+        /// using <see cref="ServiceConfig"/>.
+        /// </para>
+        /// <para>
+        /// A <c>null</c> value removes the maximum retry buffer size limit per call. Defaults to 1,048,576 (1 MB).
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public long? MaxRetryBufferPerCallSize { get; set; }
 
         /// <summary>
         /// Gets or sets a collection of compression providers.
@@ -123,9 +174,21 @@ namespace Grpc.Net.Client
         /// Gets or sets a value indicating whether clients will throw <see cref="OperationCanceledException"/> for a call when its
         /// <see cref="CallOptions.CancellationToken"/> is triggered or its <see cref="CallOptions.Deadline"/> is exceeded.
         /// The default value is <c>false</c>.
-        /// Note: experimental API that can change or be removed without any prior notice.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
         /// </summary>
         public bool ThrowOperationCanceledOnCancellation { get; set; }
+
+        /// <summary>
+        /// Gets or sets the service config for a gRPC channel. A service config allows service owners to publish parameters
+        /// to be automatically used by all clients of their service. A service config can also be specified by a client
+        /// using this property.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public ServiceConfig? ServiceConfig { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
@@ -133,6 +196,9 @@ namespace Grpc.Net.Client
         public GrpcChannelOptions()
         {
             MaxReceiveMessageSize = GrpcChannel.DefaultMaxReceiveMessageSize;
+            MaxRetryAttempts = GrpcChannel.DefaultMaxRetryAttempts;
+            MaxRetryBufferSize = GrpcChannel.DefaultMaxRetryBufferSize;
+            MaxRetryBufferPerCallSize = GrpcChannel.DefaultMaxRetryBufferPerCallSize;
         }
     }
 }

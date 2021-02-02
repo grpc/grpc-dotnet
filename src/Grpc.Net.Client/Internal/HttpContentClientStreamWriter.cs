@@ -18,14 +18,16 @@
 
 using System;
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
+
+#if NETSTANDARD2_0
+using ValueTask = System.Threading.Tasks.Task;
+#endif
 
 namespace Grpc.Net.Client.Internal
 {
-    internal class HttpContentClientStreamWriter<TRequest, TResponse> : IClientStreamWriter<TRequest>
+    internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStreamWriterBase<TRequest>
         where TRequest : class
         where TResponse : class
     {
@@ -33,42 +35,38 @@ namespace Grpc.Net.Client.Internal
         private const string LoggerName = "Grpc.Net.Client.Internal.HttpContentClientStreamWriter";
 
         private readonly GrpcCall<TRequest, TResponse> _call;
-        private readonly ILogger _logger;
-        private readonly object _writeLock;
-        private Task? _writeTask;
         private bool _completeCalled;
 
         public TaskCompletionSource<Stream> WriteStreamTcs { get; }
         public TaskCompletionSource<bool> CompleteTcs { get; }
 
         public HttpContentClientStreamWriter(GrpcCall<TRequest, TResponse> call)
+            : base(call.Channel.LoggerFactory.CreateLogger(LoggerName))
         {
             _call = call;
-            _logger = call.Channel.LoggerFactory.CreateLogger(LoggerName);
 
             WriteStreamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
             CompleteTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _writeLock = new object();
             WriteOptions = _call.Options.WriteOptions;
         }
 
-        public WriteOptions WriteOptions { get; set; }
+        public override WriteOptions? WriteOptions { get; set; }
 
-        public Task CompleteAsync()
+        public override Task CompleteAsync()
         {
             _call.EnsureNotDisposed();
 
             using (_call.StartScope())
             {
-                Log.CompletingClientStream(_logger);
+                Log.CompletingClientStream(Logger);
 
-                lock (_writeLock)
+                lock (WriteLock)
                 {
                     // Pending writes need to be awaited first
                     if (IsWriteInProgressUnsynchronized)
                     {
                         var ex = new InvalidOperationException("Can't complete the client stream writer because the previous write is in progress.");
-                        Log.CompleteClientStreamError(_logger, ex);
+                        Log.CompleteClientStreamError(Logger, ex);
                         return Task.FromException(ex);
                     }
 
@@ -81,16 +79,26 @@ namespace Grpc.Net.Client.Internal
             return Task.CompletedTask;
         }
 
-        public Task WriteAsync(TRequest message)
+        public override Task WriteAsync(TRequest message)
         {
             if (message == null)
             {
                 throw new ArgumentNullException(nameof(message));
             }
 
+            return WriteAsync(WriteMessageToStream, message);
+
+            static ValueTask WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
+            {
+                return call.WriteMessageAsync(writeStream, message, callOptions);
+            }
+        }
+
+        public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+        {
             _call.EnsureNotDisposed();
 
-            lock (_writeLock)
+            lock (WriteLock)
             {
                 using (_call.StartScope())
                 {
@@ -122,27 +130,16 @@ namespace Grpc.Net.Client.Internal
                     }
 
                     // Save write task to track whether it is complete. Must be set inside lock.
-                    _writeTask = WriteAsyncCore(message);
+                    WriteTask = WriteAsyncCore(writeFunc, state);
                 }
             }
 
-            return _writeTask;
-        }
-
-        private Task CreateErrorTask(string message)
-        {
-            var ex = new InvalidOperationException(message);
-            Log.WriteMessageError(_logger, ex);
-            return Task.FromException(ex);
-        }
-
-        public void Dispose()
-        {
+            return WriteTask;
         }
 
         public GrpcCall<TRequest, TResponse> Call => _call;
 
-        private async Task WriteAsyncCore(TRequest message)
+        public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
         {
             try
             {
@@ -157,11 +154,7 @@ namespace Grpc.Net.Client.Internal
                     callOptions = callOptions.WithWriteOptions(WriteOptions);
                 }
 
-                await _call.WriteMessageAsync(
-                    writeStream,
-                    message,
-                    _call.Method.RequestMarshaller.ContextualSerializer,
-                    callOptions).ConfigureAwait(false);
+                await writeFunc(_call, writeStream, callOptions, state).ConfigureAwait(false);
 
                 // Flush stream to ensure messages are sent immediately
                 await writeStream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
@@ -171,46 +164,6 @@ namespace Grpc.Net.Client.Internal
             catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
             {
                 throw _call.CreateCanceledStatusException();
-            }
-        }
-
-        /// <summary>
-        /// A value indicating whether there is an async write already in progress.
-        /// Should only check this property when holding the write lock.
-        /// </summary>
-        private bool IsWriteInProgressUnsynchronized
-        {
-            get
-            {
-                var writeTask = _writeTask;
-                return writeTask != null && !writeTask.IsCompleted;
-            }
-        }
-
-        private static class Log
-        {
-            private static readonly Action<ILogger, Exception?> _completingClientStream =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "CompletingClientStream"), "Completing client stream.");
-
-            private static readonly Action<ILogger, Exception?> _writeMessageError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(2, "WriteMessageError"), "Error writing message.");
-
-            private static readonly Action<ILogger, Exception?> _completeClientStreamError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(3, "CompleteClientStreamError"), "Error completing client stream.");
-
-            public static void CompletingClientStream(ILogger logger)
-            {
-                _completingClientStream(logger, null);
-            }
-
-            public static void WriteMessageError(ILogger logger, Exception ex)
-            {
-                _writeMessageError(logger, ex);
-            }
-
-            public static void CompleteClientStreamError(ILogger logger, Exception ex)
-            {
-                _completeClientStreamError(logger, ex);
             }
         }
     }
