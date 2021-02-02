@@ -4,7 +4,7 @@ Examples of basic gRPC scenarios with gRPC for .NET.
 
 If you are brand new to gRPC on .NET a good place to start is the getting started tutorial: [Create a gRPC client and server in ASP.NET Core](https://docs.microsoft.com/aspnet/core/tutorials/grpc/grpc-start)
 
-**NOTE:** The example projects package references use version numbers from [dependencies.props](../build/dependencies.props). For example: `<PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />`. Sample projects that are copied to a location outside of the repository the package versions must be updated with a version to run correctly.
+**NOTE:** The example projects package references use version numbers from [dependencies.props](../build/dependencies.props). For example: `<PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />`. Sample projects that are copied outside of the repository must update package versions to run correctly.
 
 ## [Greeter](./Greeter)
 
