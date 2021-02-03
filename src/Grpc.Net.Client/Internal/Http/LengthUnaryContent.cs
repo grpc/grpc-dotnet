@@ -52,6 +52,7 @@ namespace Grpc.Net.Client.Internal.Http
             Headers.ContentType = mediaType;
         }
 
+        // Serialize message. Need to know size to prefix the length in the header.
         private byte[] SerializePayload()
         {
             var serializationContext = _call.SerializationContext;
@@ -60,11 +61,9 @@ namespace Grpc.Net.Client.Internal.Http
 
             try
             { 
-                // Serialize message first. Need to know size to prefix the length in the header
                 _call.Method.RequestMarshaller.ContextualSerializer(_content, serializationContext);
 
-                // Remove header. It will be written again with data to the request.
-                return serializationContext.Memory.ToArray();
+                return serializationContext.GetWrittenPayload().ToArray();
             }
             finally
             {
@@ -72,38 +71,18 @@ namespace Grpc.Net.Client.Internal.Http
             }
         }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
             if (_payload == null)
             {
                 _payload = SerializePayload();
             }
 
-#pragma warning disable CA2012 // Use ValueTasks correctly
-            var writeMessageTask = _call.WriteMessageAsync(
+            await _call.WriteMessageAsync(
                 stream,
-                _content,
-                DummySerializer,
-                _call.Options,
-                new PayloadSerializationContext(_payload));
-#pragma warning restore CA2012 // Use ValueTasks correctly
-            if (writeMessageTask.IsCompletedSuccessfully())
-            {
-                GrpcEventSource.Log.MessageSent();
-                return Task.CompletedTask;
-            }
+                _payload,
+                _call.Options).ConfigureAwait(false);
 
-            return WriteMessageCore(writeMessageTask);
-
-            static void DummySerializer(TRequest request, SerializationContext context)
-            {
-                // Don't do anything. PayloadSerializationContext already has payload.
-            }
-        }
-
-        private static async Task WriteMessageCore(ValueTask writeMessageTask)
-        {
-            await writeMessageTask.ConfigureAwait(false);
             GrpcEventSource.Log.MessageSent();
         }
 
@@ -116,20 +95,6 @@ namespace Grpc.Net.Client.Internal.Http
 
             length = _payload.Length;
             return true;
-        }
-
-        private sealed class PayloadSerializationContext : SerializationContext, IMemoryOwner<byte>
-        {
-            public PayloadSerializationContext(Memory<byte> payload)
-            {
-                Memory = payload;
-            }
-
-            public Memory<byte> Memory { get; }
-
-            public void Dispose()
-            {
-            }
         }
     }
 }

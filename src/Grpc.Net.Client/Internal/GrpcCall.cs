@@ -924,44 +924,41 @@ namespace Grpc.Net.Client.Internal
             CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
         }
 
-        internal async ValueTask WriteMessageAsync(
+        internal ValueTask WriteMessageAsync(
             Stream stream,
             TRequest message,
             Action<TRequest, SerializationContext> contextualSerializer,
             CallOptions callOptions)
         {
-            var serializationContext = SerializationContext;
-            serializationContext.CallOptions = callOptions;
-            serializationContext.Initialize();
-
-            try
-            {
-                await stream.WriteMessageAsync(
-                    this,
-                    message,
-                    contextualSerializer,
-                    callOptions,
-                    serializationContext).ConfigureAwait(false);
-            }
-            finally
-            {
-                serializationContext.Reset();
-            }
+            return stream.WriteMessageAsync(
+                this,
+                message,
+                contextualSerializer,
+                callOptions);
         }
 
         internal ValueTask WriteMessageAsync<TSerializationContext>(
             Stream stream,
             TRequest message,
             Action<TRequest, SerializationContext> contextualSerializer,
-            CallOptions callOptions,
-            TSerializationContext serializationContext) where TSerializationContext : SerializationContext, IMemoryOwner<byte>
+            CallOptions callOptions) where TSerializationContext : SerializationContext, IMemoryOwner<byte>
         {
             return stream.WriteMessageAsync(
                 this,
                 message,
                 contextualSerializer,
-                callOptions,
-                serializationContext);
+                callOptions);
+        }
+
+        internal ValueTask WriteMessageAsync(
+            Stream stream,
+            ReadOnlyMemory<byte> message,
+            CallOptions callOptions)
+        {
+            return stream.WriteMessageAsync(
+                this,
+                message,
+                callOptions);
         }
 
 #if !NETSTANDARD2_0

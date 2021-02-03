@@ -280,24 +280,55 @@ namespace Grpc.Net.Client
             }
         }
 
-        public static async ValueTask WriteMessageAsync<TMessage, TSerializationContext>(
-            this Stream stream, 
+        public static async ValueTask WriteMessageAsync<TMessage>(
+            this Stream stream,
             GrpcCall call,
             TMessage message,
             Action<TMessage, SerializationContext> serializer,
-            CallOptions callOptions,
-            TSerializationContext serializationContext) where TSerializationContext : SerializationContext, IMemoryOwner<byte>
+            CallOptions callOptions)
         {
+            // Sync relevant changes here with other WriteMessageAsync
+            var serializationContext = call.SerializationContext;
+            serializationContext.CallOptions = callOptions;
+            serializationContext.Initialize();
+            try
+            {
+                GrpcCallLog.SendingMessage(call.Logger);
+                
+                // Serialize message first. Need to know size to prefix the length in the header
+                serializer(message, serializationContext);
+                
+                // Sending the header+content in a single WriteAsync call has significant performance benefits
+                // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
+                await stream.WriteAsync(serializationContext.GetWrittenPayload(), callOptions.CancellationToken).ConfigureAwait(false);
+
+                GrpcCallLog.MessageSent(call.Logger);
+            }
+            catch (Exception ex)
+            {
+                GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+                throw;
+            }
+            finally
+            {
+                serializationContext.Reset();
+            }
+        }
+
+        public static async ValueTask WriteMessageAsync(
+            this Stream stream,
+            GrpcCall call,
+            ReadOnlyMemory<byte> data,
+            CallOptions callOptions)
+        {
+            // Sync relevant changes here with other WriteMessageAsync
             try
             {
                 GrpcCallLog.SendingMessage(call.Logger);
 
-                // Serialize message first. Need to know size to prefix the length in the header
-                serializer(message, serializationContext);
-
                 // Sending the header+content in a single WriteAsync call has significant performance benefits
                 // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
-                await stream.WriteAsync(serializationContext.Memory, callOptions.CancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(data, callOptions.CancellationToken).ConfigureAwait(false);
 
                 GrpcCallLog.MessageSent(call.Logger);
             }

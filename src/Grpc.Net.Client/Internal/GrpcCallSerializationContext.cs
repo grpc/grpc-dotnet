@@ -29,7 +29,7 @@ using Grpc.Net.Compression;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal sealed class GrpcCallSerializationContext : SerializationContext, IBufferWriter<byte>, IMemoryOwner<byte>
+    internal sealed class GrpcCallSerializationContext : SerializationContext, IBufferWriter<byte>
     {
         private static readonly Status SendingMessageExceedsLimitStatus = new Status(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
 
@@ -86,29 +86,24 @@ namespace Grpc.Net.Client.Internal
         /// <summary>
         /// Obtains the payload from this operation. Error is thrown if complete hasn't been called.
         /// </summary>
-        public Memory<byte> Memory
+        public ReadOnlyMemory<byte> GetWrittenPayload()
         {
-            get
+            switch (_state)
             {
-                switch (_state)
-                {
-                    case InternalState.CompleteArray:
-                    case InternalState.CompleteBufferWriter:
-                        if (_buffer != null)
-                        {
-                            return _buffer.AsMemory(0, _bufferPosition);
-                        }
-                        else if (_bufferWriter != null)
-                        {
-                            var success = MemoryMarshal.TryGetArray(_bufferWriter.WrittenMemory, out var segment);
-                            Debug.Assert(success);
-                            return segment;
-                        }
-                        break;
-                }
-
-                throw new InvalidOperationException("Serialization did not return a payload.");
+                case InternalState.CompleteArray:
+                case InternalState.CompleteBufferWriter:
+                    if (_buffer != null)
+                    {
+                        return _buffer.AsMemory(0, _bufferPosition);
+                    }
+                    else if (_bufferWriter != null)
+                    {
+                        return _bufferWriter.WrittenMemory;
+                    }
+                    break;
             }
+
+            throw new InvalidOperationException("Serialization did not return a payload.");
         }
 
         private ICompressionProvider? ResolveCompressionProvider()
