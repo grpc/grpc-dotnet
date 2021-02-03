@@ -297,7 +297,7 @@ namespace Grpc.Net.Client
                 
                 // Serialize message first. Need to know size to prefix the length in the header
                 serializer(message, serializationContext);
-                
+
                 // Sending the header+content in a single WriteAsync call has significant performance benefits
                 // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
                 await stream.WriteAsync(serializationContext.GetWrittenPayload(), callOptions.CancellationToken).ConfigureAwait(false);

@@ -319,9 +319,5 @@ namespace Grpc.Net.Client.Internal
         {
             return _buffer != null ? _buffer.AsSpan(_bufferPosition) : _bufferWriter!.GetSpan(sizeHint);
         }
-
-        public void Dispose()
-        {
-        }
     }
 }
