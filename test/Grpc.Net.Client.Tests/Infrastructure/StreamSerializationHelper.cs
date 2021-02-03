@@ -47,7 +47,8 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             var tempChannel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
             {
                 MaxReceiveMessageSize = maximumMessageSize,
-                CompressionProviders = compressionProviders?.Values.ToList()
+                CompressionProviders = compressionProviders?.Values.ToList(),
+                HttpHandler = new NullHttpHandler()
             });
 
             var tempCall = new TestGrpcCall(new CallOptions(), tempChannel, typeof(TResponse));

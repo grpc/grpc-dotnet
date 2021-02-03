@@ -20,6 +20,7 @@ using System;
 using System.Buffers.Binary;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -318,6 +319,7 @@ namespace Grpc.Net.Client.Tests
         {
             var channelOptions = new GrpcChannelOptions();
             channelOptions.MaxSendMessageSize = maxSendMessageSize;
+            channelOptions.HttpHandler = new NullHttpHandler();
 
             var call = new TestGrpcCall(new CallOptions(), GrpcChannel.ForAddress("http://localhost", channelOptions));
             call.RequestGrpcEncoding = requestGrpcEncoding ?? "identity";
