@@ -111,7 +111,7 @@ namespace Grpc.Net.Client
 #if NET5_0
             handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
-            
+
             // Use HttpMessageInvoker instead of HttpClient because it is faster
             // and we don't need client's features.
             var httpInvoker = new HttpMessageInvoker(handler, disposeHandler: true);

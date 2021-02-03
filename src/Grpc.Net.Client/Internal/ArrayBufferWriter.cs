@@ -1,10 +1,27 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
 
 using System.Diagnostics;
 
 #if NETSTANDARD2_0
 
+// Copied with permission from https://github.com/dotnet/runtime/blob/589d0dc326bf0699149f76033fa66d4b22b9a7fd/src/libraries/Common/src/System/Buffers/ArrayBufferWriter.cs
+// This copy of ArrayBufferWriter is only used with .NET Stardard 2.0. Later versions of .NET ship with this type.
 namespace System.Buffers
 {
     /// <summary>
@@ -201,12 +218,12 @@ namespace System.Buffers
 
         private static void ThrowInvalidOperationException_AdvancedTooFar(int capacity)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Cannot advance past the end of the buffer, which has a size of {capacity}.");
         }
 
         private static void ThrowOutOfMemoryException(uint capacity)
         {
-            throw new OutOfMemoryException();
+            throw new OutOfMemoryException($"Cannot allocate a buffer of size {capacity}.");
         }
     }
 }
