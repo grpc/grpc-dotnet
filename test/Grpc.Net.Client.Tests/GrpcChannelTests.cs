@@ -82,6 +82,7 @@ namespace Grpc.Net.Client.Tests
         {
             var o = new GrpcChannelOptions();
 #if NET472
+            // An error is thrown if no handler is specified by .NET Standard 2.0 target.
             o.HttpHandler = new NullHttpHandler();
 #endif
             func?.Invoke(o);
