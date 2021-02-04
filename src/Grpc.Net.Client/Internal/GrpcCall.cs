@@ -206,12 +206,16 @@ namespace Grpc.Net.Client.Internal
         /// Used by response stream reader to report it is finished.
         /// </summary>
         /// <param name="status">The completed response status code.</param>
-        public void ResponseStreamEnded(Status status)
+        /// <param name="finishedGracefully">true when the end of the response stream was read, otherwise false.</param>
+        public void ResponseStreamEnded(Status status, bool finishedGracefully)
         {
-            // Set response finished immediately rather than set it in logic resumed
-            // from the callTcs to avoid race condition.
-            // e.g. response stream finished and then immediately call GetTrailers().
-            ResponseFinished = true;
+            if (finishedGracefully)
+            {
+                // Set response finished immediately rather than set it in logic resumed
+                // from the callTcs to avoid race condition.
+                // e.g. response stream finished and then immediately call GetTrailers().
+                ResponseFinished = true;
+            }
 
             _callTcs.TrySetResult(status);
         }

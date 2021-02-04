@@ -18,6 +18,8 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -48,7 +50,10 @@ namespace Grpc.Tests.Shared
             HttpContent payload,
             StatusCode? grpcStatusCode = StatusCode.OK,
             string? grpcEncoding = null,
-            Version? version = null)
+            Version? version = null,
+            string? retryPushbackHeader = null,
+            IDictionary<string, string>? customHeaders = null,
+            IDictionary<string, string>? customTrailers = null)
         {
             payload.Headers.ContentType = GrpcContentTypeHeaderValue;
 
@@ -59,11 +64,63 @@ namespace Grpc.Tests.Shared
             };
 
             message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
+            if (retryPushbackHeader != null)
+            {
+                message.Headers.Add("grpc-retry-pushback-ms", retryPushbackHeader);
+            }
+
+            if (customHeaders != null)
+            {
+                foreach (var customHeader in customHeaders)
+                {
+                    message.Headers.Add(customHeader.Key, customHeader.Value);
+                }
+            }
 
             if (grpcStatusCode != null)
             {
                 message.TrailingHeaders.Add(StatusTrailer, grpcStatusCode.Value.ToString("D"));
             }
+
+            if (customTrailers != null)
+            {
+                foreach (var customTrailer in customTrailers)
+                {
+                    message.TrailingHeaders.Add(customTrailer.Key, customTrailer.Value);
+                }
+            }
+
+            return message;
+        }
+
+        public static HttpResponseMessage CreateHeadersOnlyResponse(
+            HttpStatusCode statusCode,
+            StatusCode grpcStatusCode,
+            string? grpcEncoding = null,
+            Version? version = null,
+            string? retryPushbackHeader = null,
+            IDictionary<string, string>? customHeaders = null)
+        {
+            var message = new HttpResponseMessage(statusCode)
+            {
+                Version = version ?? ProtocolVersion
+            };
+
+            message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
+            if (retryPushbackHeader != null)
+            {
+                message.Headers.Add("grpc-retry-pushback-ms", retryPushbackHeader);
+            }
+
+            if (customHeaders != null)
+            {
+                foreach (var customHeader in customHeaders)
+                {
+                    message.Headers.Add(customHeader.Key, customHeader.Value);
+                }
+            }
+
+            message.Headers.Add(StatusTrailer, grpcStatusCode.ToString("D"));
 
             return message;
         }

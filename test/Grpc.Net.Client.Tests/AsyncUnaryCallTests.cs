@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -125,7 +126,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_NonOkStatusTrailer_ThrowRpcError()
+        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessResponse_ReturnHeaders()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
@@ -143,15 +144,31 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessHeaders_ThrowRpcError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                var response = ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unimplemented, customHeaders: new Dictionary<string, string> { ["custom"] = "true" });
+                return Task.FromResult(response);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var headers = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseHeadersAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("true", headers.GetValue("custom"));
+        }
+
+        [Test]
         public async Task AsyncUnaryCall_SuccessTrailersOnly_ThrowNoMessageError()
         {
             // Arrange
             HttpResponseMessage? responseMessage = null;
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, new ByteArrayContent(Array.Empty<byte>()), grpcStatusCode: null);
-                responseMessage.Headers.Add(GrpcProtocolConstants.StatusTrailer, StatusCode.OK.ToString("D"));
-                responseMessage.Headers.Add(GrpcProtocolConstants.MessageTrailer, "Detail!");
+                responseMessage = ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.OK, customHeaders: new Dictionary<string, string> { [GrpcProtocolConstants.MessageTrailer] = "Detail!" });
                 return Task.FromResult(responseMessage);
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
