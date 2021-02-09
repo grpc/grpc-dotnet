@@ -36,6 +36,7 @@ namespace Grpc.Net.Client.Internal
         private readonly ILogger _logger;
         private readonly object _writeLock;
         private Task? _writeTask;
+        private bool _completeCalled;
 
         public TaskCompletionSource<Stream> WriteStreamTcs { get; }
         public TaskCompletionSource<bool> CompleteTcs { get; }
@@ -73,6 +74,7 @@ namespace Grpc.Net.Client.Internal
 
                     // Notify that the client stream is complete
                     CompleteTcs.TrySetResult(true);
+                    _completeCalled = true;
                 }
             }
 
@@ -92,33 +94,27 @@ namespace Grpc.Net.Client.Internal
             {
                 using (_call.StartScope())
                 {
+                    // CompleteAsync has already been called
+                    // Use explicit flag here. This error takes precedence over others.
+                    if (_completeCalled)
+                    {
+                        return CreateErrorTask("Request stream has already been completed.");
+                    }
+
                     // Call has already completed
                     if (_call.CallTask.IsCompletedSuccessfully)
                     {
                         var status = _call.CallTask.Result;
                         if (_call.CancellationToken.IsCancellationRequested &&
+                            _call.Channel.ThrowOperationCanceledOnCancellation &&
                             (status.StatusCode == StatusCode.Cancelled || status.StatusCode == StatusCode.DeadlineExceeded))
                         {
-                            if (!_call.Channel.ThrowOperationCanceledOnCancellation)
-                            {
-                                return Task.FromException(_call.CreateCanceledStatusException());
-                            }
-                            else
-                            {
-                                return Task.FromCanceled(_call.CancellationToken);
-                            }
+                            return Task.FromCanceled(_call.CancellationToken);
                         }
 
-                        return CreateErrorTask("Can't write the message because the call is complete.");
+                        return Task.FromException(_call.CreateCanceledStatusException());
                     }
 
-                    // CompleteAsync has already been called
-                    // Use IsCompleted here because that will track success and cancellation
-                    if (CompleteTcs.Task.IsCompleted)
-                    {
-                        return CreateErrorTask("Can't write the message because the client stream writer is complete.");
-                    }
-                    
                     // Pending writes need to be awaited first
                     if (IsWriteInProgressUnsynchronized)
                     {
@@ -143,6 +139,8 @@ namespace Grpc.Net.Client.Internal
         public void Dispose()
         {
         }
+
+        public GrpcCall<TRequest, TResponse> Call => _call;
 
         private async Task WriteAsyncCore(TRequest message)
         {

@@ -655,8 +655,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask!).DefaultTimeout();
             Assert.AreEqual("Can't read messages after the request is complete.", ex.Message);
 
-            var clientException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
-            Assert.AreEqual("Can't write the message because the call is complete.", clientException.Message);
+            var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
+            Assert.AreEqual(StatusCode.OK, clientException.StatusCode);
         }
 
         [TestCase(true)]
@@ -731,8 +731,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Ensure the server abort reaches the client
             await Task.Delay(100);
 
-            var clientException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
-            Assert.AreEqual("Can't write the message because the call is complete.", clientException.Message);
+            var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unavailable, clientException.StatusCode);
         }
 
         [Test]
