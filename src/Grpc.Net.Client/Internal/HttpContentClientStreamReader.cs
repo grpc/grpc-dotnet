@@ -168,7 +168,7 @@ namespace Grpc.Net.Client.Internal
                     // No more content in response so report status to call.
                     // The call will handle finishing the response.
                     var status = GrpcProtocolHelpers.GetResponseStatus(_httpResponse, _call.Channel.OperatingSystem.IsBrowser);
-                    _call.ResponseStreamEnded(status);
+                    _call.ResponseStreamEnded(status, finishedGracefully: true);
                     if (status.StatusCode != StatusCode.OK)
                     {
                         throw _call.CreateFailureStatusException(status);
@@ -180,7 +180,7 @@ namespace Grpc.Net.Client.Internal
                 GrpcEventSource.Log.MessageReceived();
                 return true;
             }
-            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
+            catch (OperationCanceledException ex)
             {
                 if (_call.ResponseFinished)
                 {
@@ -192,13 +192,37 @@ namespace Grpc.Net.Client.Internal
                         return false;
                     }
                 }
+                else
+                {
+                    _call.ResponseStreamEnded(new Status(StatusCode.Cancelled, ex.Message, ex), finishedGracefully: false);
+                }
 
-                throw _call.CreateCanceledStatusException();
+                if (!_call.Channel.ThrowOperationCanceledOnCancellation)
+                {
+                    throw _call.CreateCanceledStatusException();
+                }
+                else
+                {
+                    throw;
+                }
             }
-            catch (Exception ex) when (_call.ResolveException("Error reading next message.", ex, out _, out var resolvedException))
+            catch (Exception ex)
             {
-                // Throw RpcException from MoveNext. Consistent with Grpc.Core.
-                throw resolvedException;
+                var newException = _call.ResolveException("Error reading next message.", ex, out var status, out var resolvedException);
+                if (!_call.ResponseFinished)
+                {
+                    _call.ResponseStreamEnded(status.Value, finishedGracefully: false);
+                }
+
+                if (newException)
+                {
+                    // Throw RpcException from MoveNext. Consistent with Grpc.Core.
+                    throw resolvedException;
+                }
+                else
+                {
+                    throw;
+                }
             }
             finally
             {
