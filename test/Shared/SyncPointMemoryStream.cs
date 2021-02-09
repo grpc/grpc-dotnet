@@ -33,6 +33,7 @@ namespace Grpc.Tests.Shared
         private SyncPoint _syncPoint;
         private Func<Task> _awaiter;
         private byte[] _currentData;
+        private Exception? _exception;
 
         public SyncPointMemoryStream(bool runContinuationsAsynchronously = true)
         {
@@ -57,6 +58,12 @@ namespace Grpc.Tests.Shared
         {
             AddDataCore(data);
             _ = _awaiter();
+        }
+
+        public Task AddExceptionAndWait(Exception ex)
+        {
+            _exception = ex;
+            return _awaiter();
         }
 
         private void AddDataCore(byte[] data)
@@ -90,6 +97,16 @@ namespace Grpc.Tests.Shared
 
         private int ReadInternalBuffer(byte[] buffer, int offset, int count)
         {
+            if (_exception != null)
+            {
+                var ex = _exception;
+                _exception = null;
+
+                ResetSyncPointAndContinuePrevious();
+
+                throw ex;
+            }
+
             var readBytes = Math.Min(count, _currentData.Length);
             if (readBytes > 0)
             {
@@ -99,17 +116,22 @@ namespace Grpc.Tests.Shared
 
             if (_currentData.Length == 0)
             {
-                // We have read all data
-                // Signal AddDataAndWait to continue
-                // Reset sync point for next read
-                var syncPoint = _syncPoint;
-
-                ResetSyncPoint();
-
-                syncPoint.Continue();
+                ResetSyncPointAndContinuePrevious();
             }
 
             return readBytes;
+        }
+
+        private void ResetSyncPointAndContinuePrevious()
+        {
+            // We have read all data
+            // Signal AddDataAndWait to continue
+            // Reset sync point for next read
+            var syncPoint = _syncPoint;
+
+            ResetSyncPoint();
+
+            syncPoint.Continue();
         }
 
         private void ResetSyncPoint()
