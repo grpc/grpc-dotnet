@@ -690,7 +690,7 @@ namespace Grpc.Net.Client.Internal
                 {
                     GrpcCallLog.StartingDeadlineTimeout(Logger, timeout.Value);
 
-                    var dueTime = GetTimerDueTime(timeout.Value);
+                    var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(timeout.Value, Channel.MaxTimerDueTime);
                     _deadlineTimer = new Timer(DeadlineExceededCallback, null, dueTime, Timeout.Infinite);
                 }
             }
@@ -847,8 +847,6 @@ namespace Grpc.Net.Client.Internal
             return message;
         }
 
-        private long GetTimerDueTime(TimeSpan timeout) => CommonGrpcProtocolHelpers.GetTimerDueTime(timeout, Channel.MaxTimerDueTime);
-
         private TimeSpan? GetTimeout()
         {
             if (_deadline == DateTime.MaxValue)
@@ -889,7 +887,8 @@ namespace Grpc.Net.Client.Internal
                     // Reschedule DeadlineExceeded again until deadline has been exceeded.
                     GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
 
-                    _deadlineTimer!.Change(GetTimerDueTime(remaining), Timeout.Infinite);
+                    var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
+                    _deadlineTimer!.Change(dueTime, Timeout.Infinite);
                 }
             }
         }
