@@ -23,7 +23,7 @@ namespace Grpc.Shared
 {
     internal static class CommonGrpcProtocolHelpers
     {
-        // Timer and DateTime.UtcNow have a 14ms precision. Use half that value when scheduling deadline
+        // Timer and DateTime.UtcNow have a 14ms precision. Add a small delay when scheduling deadline
         // timer that tests if exceeded or not. This avoids rescheduling the deadline callback multiple
         // times when timer is triggered before DateTime.UtcNow reports the deadline has been exceeded.
         // e.g.
@@ -31,7 +31,7 @@ namespace Grpc.Shared
         // - The timer is rescheduled to run in 0.5ms.
         // - The deadline callback is raised again and there is now 0.4ms until deadline.
         // - The timer is rescheduled to run in 0.4ms, etc.
-        private static readonly int TimerEpsilonMilliseconds = 7;
+        private static readonly int TimerEpsilonMilliseconds = 4;
 
         public static long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
         {

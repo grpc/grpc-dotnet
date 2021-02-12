@@ -452,8 +452,18 @@ namespace Grpc.Net.Client.Internal
                     }
                     catch (Exception ex)
                     {
-                        GrpcCallLog.ErrorStartingCall(Logger, ex);
-                        throw;
+                        // Don't log OperationCanceledException if deadline has exceeded.
+                        if (ex is OperationCanceledException &&
+                            _callTcs.Task.IsCompletedSuccessfully &&
+                            _callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded)
+                        {
+                            throw;
+                        }
+                        else
+                        {
+                            GrpcCallLog.ErrorStartingCall(Logger, ex);
+                            throw;
+                        }
                     }
 
                     status = ValidateHeaders(HttpResponse);
