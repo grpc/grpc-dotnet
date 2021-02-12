@@ -23,15 +23,15 @@ namespace Grpc.Shared
 {
     internal static class CommonGrpcProtocolHelpers
     {
-        // Timer and DateTime.UtcNow have a 14ms precision. Use half that value when deciding if a deadline
-        // has been exceeded or not. This avoids rescheduling the deadline callback multiple times when
-        // timer is triggered before DateTime.UtcNow reports the deadline has been exceeded.
+        // Timer and DateTime.UtcNow have a 14ms precision. Use half that value when scheduling deadline
+        // timer that tests if exceeded or not. This avoids rescheduling the deadline callback multiple
+        // times when timer is triggered before DateTime.UtcNow reports the deadline has been exceeded.
         // e.g.
         // - The deadline callback is raised and there is 0.5ms until deadline.
         // - The timer is rescheduled to run in 0.5ms.
         // - The deadline callback is raised again and there is now 0.4ms until deadline.
         // - The timer is rescheduled to run in 0.4ms, etc.
-        private static readonly int DeadlineEpsilonMilliseconds = 7;
+        private static readonly int TimerEpsilonMilliseconds = 7;
 
         public static long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
         {
@@ -40,7 +40,9 @@ namespace Grpc.Shared
             var dueTimeMilliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
 
             // Add epislon to take into account Timer precision.
-            dueTimeMilliseconds += DeadlineEpsilonMilliseconds;
+            // This will avoid rescheduling the timer multiple times, but means deadline
+            // might run for some extra milliseconds
+            dueTimeMilliseconds += TimerEpsilonMilliseconds;
 
             dueTimeMilliseconds = Math.Min(dueTimeMilliseconds, maxTimerDueTime);
             // Timer can't have a negative due time
