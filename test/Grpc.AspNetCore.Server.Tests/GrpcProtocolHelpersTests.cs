@@ -84,6 +84,7 @@ namespace Grpc.AspNetCore.Server.Tests
         [TestCase("1m", 10000, true)]
         [TestCase("1u", 10, true)]
         [TestCase("100n", 1, true)]
+        [TestCase("1n", 0, true)]
         [TestCase("0S", 0, true)]
         [TestCase("", 0, false)]
         [TestCase("5", 0, false)]

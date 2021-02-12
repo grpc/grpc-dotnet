@@ -141,7 +141,7 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: testLoggerFactory, systemClock: testSystemClock);
 
             // Act
-            await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: deadline), new HelloRequest());
+            await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: deadline), new HelloRequest()).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(httpRequestMessage);

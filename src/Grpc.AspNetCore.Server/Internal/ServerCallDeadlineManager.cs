@@ -20,6 +20,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -86,7 +87,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _systemClock = clock;
 
-            var timerMilliseconds = GetTimerDueTime(timeout, maxTimerDueTime);
+            var timerMilliseconds = CommonGrpcProtocolHelpers.GetTimerDueTime(timeout, maxTimerDueTime);
             if (timerMilliseconds == maxTimerDueTime)
             {
                 // Create timer and set to field before setting time.
@@ -129,7 +130,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Reschedule DeadlineExceeded again until deadline has been exceeded.
                 GrpcServerLog.DeadlineTimerRescheduled(manager._serverCallContext.Logger, remaining);
 
-                manager._longDeadlineTimer.Change(manager.GetTimerDueTime(remaining, maxTimerDueTime), Timeout.Infinite);
+                manager._longDeadlineTimer.Change(CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, maxTimerDueTime), Timeout.Infinite);
             }
         }
 
@@ -144,18 +145,6 @@ namespace Grpc.AspNetCore.Server.Internal
             // Doesn't matter if error from Cancel throws. Canceller of request aborted will handle exception.
             Debug.Assert(_deadlineCts != null, "Deadline CTS is created when request aborted method is registered.");
             _deadlineCts.Cancel();
-        }
-
-        private long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
-        {
-            // Timer has a maximum allowed due time.
-            // The called method will rechedule the timer if the deadline time has not passed.
-            var dueTimeMilliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
-            dueTimeMilliseconds = Math.Min(dueTimeMilliseconds, maxTimerDueTime);
-            // Timer can't have a negative due time
-            dueTimeMilliseconds = Math.Max(dueTimeMilliseconds, 0);
-
-            return dueTimeMilliseconds;
         }
 
         public void SetCallEnded()

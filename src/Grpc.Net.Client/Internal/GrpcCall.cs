@@ -837,17 +837,7 @@ namespace Grpc.Net.Client.Internal
             return message;
         }
 
-        private long GetTimerDueTime(TimeSpan timeout)
-        {
-            // Timer has a maximum allowed due time.
-            // The called method will rechedule the timer if the deadline time has not passed.
-            var dueTimeMilliseconds = timeout.Ticks / TimeSpan.TicksPerMillisecond;
-            dueTimeMilliseconds = Math.Min(dueTimeMilliseconds, Channel.MaxTimerDueTime);
-            // Timer can't have a negative due time
-            dueTimeMilliseconds = Math.Max(dueTimeMilliseconds, 0);
-
-            return dueTimeMilliseconds;
-        }
+        private long GetTimerDueTime(TimeSpan timeout) => CommonGrpcProtocolHelpers.GetTimerDueTime(timeout, Channel.MaxTimerDueTime);
 
         private TimeSpan? GetTimeout()
         {

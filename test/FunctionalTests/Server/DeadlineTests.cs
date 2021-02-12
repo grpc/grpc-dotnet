@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
@@ -336,12 +337,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // The server has completed the response but is still running
             // Allow time for the server to complete
+            var expectedErrorMessages = new List<string>
+            {
+                "Can't write the message because the request is complete.",
+                "Writing is not allowed after writer was completed.",
+                "Invalid ordering of calling StartAsync or CompleteAsync and Advance."
+            };
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
                 var errorLogged = Logs.Any(r =>
                     r.EventId.Name == "ErrorExecutingServiceMethod" &&
                     r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                    (r.Exception!.Message == "Can't write the message because the request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
+                    expectedErrorMessages.Contains(r.Exception!.Message));
 
                 return errorLogged;
             }, "Expected error not thrown.").DefaultTimeout();

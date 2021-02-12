@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     public class DeadlineTests : FunctionalTestBase
     {
         [Test]
-        public async Task Unary_DeadlineExceedAfterServerCall_Failure()
+        public async Task Unary_SmallDeadline_ExceededWithoutReschedule()
         {
             var tcs = new TaskCompletionSource<DataMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             Task<DataMessage> UnaryTimeout(DataMessage request, ServerCallContext context)
