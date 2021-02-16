@@ -22,12 +22,11 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Web.Internal;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Web
+namespace Grpc.Net.Client.Web.Tests
 {
     [TestFixture]
     public class GrpcWebResponseStreamTests
@@ -59,7 +58,7 @@ namespace Grpc.Net.Client.Tests.Web
             // Assert 2
             Assert.AreEqual(0, read2);
             Assert.AreEqual(1, trailingHeaders.Count());
-            Assert.AreEqual("0", trailingHeaders.GetValues(GrpcProtocolConstants.StatusTrailer).Single());
+            Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
         }
 
         [Test]

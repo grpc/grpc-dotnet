@@ -45,7 +45,7 @@ namespace Grpc.Net.Client.Tests
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: true,
-                CancellationToken.None).AsTask().DefaultTimeout();
+                CancellationToken.None).DefaultTimeout();
 
             var reply = new HelloReply
             {

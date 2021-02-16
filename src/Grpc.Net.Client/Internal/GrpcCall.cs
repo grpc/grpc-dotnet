@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -25,8 +26,13 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
+
+#if NETSTANDARD2_0
+using ValueTask = System.Threading.Tasks.Task;
+#endif
 
 namespace Grpc.Net.Client.Internal
 {
@@ -188,7 +194,7 @@ namespace Grpc.Net.Client.Internal
 
         public Exception CreateCanceledStatusException()
         {
-            var status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+            var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
             return CreateRpcException(status);
         }
         
@@ -233,7 +239,7 @@ namespace Grpc.Net.Client.Internal
 
         private async Task<Metadata> GetResponseHeadersCoreAsync()
         {
-            Debug.Assert(_httpResponseTask != null);
+            CompatibilityExtensions.Assert(_httpResponseTask != null);
 
             try
             {
@@ -260,7 +266,7 @@ namespace Grpc.Net.Client.Internal
         {
             using (StartScope())
             {
-                if (CallTask.IsCompletedSuccessfully)
+                if (CallTask.IsCompletedSuccessfully())
                 {
                     return CallTask.Result;
                 }
@@ -271,7 +277,7 @@ namespace Grpc.Net.Client.Internal
 
         public Task<TResponse> GetResponseAsync()
         {
-            Debug.Assert(_responseTcs != null);
+            CompatibilityExtensions.Assert(_responseTcs != null);
             return _responseTcs.Task;
         }
 
@@ -291,7 +297,7 @@ namespace Grpc.Net.Client.Internal
 
             // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
             // Check that the response wasn't downgraded to HTTP/1.1.
-            if (httpResponse.Version < HttpVersion.Version20)
+            if (httpResponse.Version < CompatibilityExtensions.Version20)
             {
                 return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
             }
@@ -322,7 +328,11 @@ namespace Grpc.Net.Client.Internal
             switch (httpStatusCode)
             {
                 case HttpStatusCode.BadRequest:  // 400
+#if !NETSTANDARD2_0
                 case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
+#else
+                case (HttpStatusCode)431:
+#endif
                     return StatusCode.Internal;
                 case HttpStatusCode.Unauthorized:  // 401
                     return StatusCode.Unauthenticated;
@@ -330,7 +340,11 @@ namespace Grpc.Net.Client.Internal
                     return StatusCode.PermissionDenied;
                 case HttpStatusCode.NotFound:  // 404
                     return StatusCode.Unimplemented;
+#if !NETSTANDARD2_0
                 case HttpStatusCode.TooManyRequests:  // 429
+#else
+                case (HttpStatusCode)429:
+#endif
                 case HttpStatusCode.BadGateway:  // 502
                 case HttpStatusCode.ServiceUnavailable:  // 503
                 case HttpStatusCode.GatewayTimeout:  // 504
@@ -364,10 +378,22 @@ namespace Grpc.Net.Client.Internal
         private void SetMessageContent(TRequest request, HttpRequestMessage message)
         {
             RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
-            message.Content = new PushUnaryContent<TRequest, TResponse>(
-                request,
-                this,
-                GrpcProtocolConstants.GrpcContentTypeHeaderValue);
+
+            if (!Channel.IsWinHttp)
+            {
+                message.Content = new PushUnaryContent<TRequest, TResponse>(
+                    request,
+                    this,
+                    GrpcProtocolConstants.GrpcContentTypeHeaderValue);
+            }
+            else
+            {
+                // WinHttp doesn't support streaming request data so a length needs to be specified.
+                message.Content = new LengthUnaryContent<TRequest, TResponse>(
+                    request,
+                    this,
+                    GrpcProtocolConstants.GrpcContentTypeHeaderValue);
+            }
         }
 
         public void CancelCallFromCancellationToken()
@@ -563,7 +589,7 @@ namespace Grpc.Net.Client.Internal
                         else
                         {
                             // Duplex or server streaming call
-                            Debug.Assert(ClientStreamReader != null);
+                            CompatibilityExtensions.Assert(ClientStreamReader != null);
                             ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
 
                             // Wait until the response has been read and status read from trailers.
@@ -600,7 +626,7 @@ namespace Grpc.Net.Client.Internal
         {
             if (ex is OperationCanceledException)
             {
-                status = (CallTask.IsCompletedSuccessfully) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+                status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
                 if (!Channel.ThrowOperationCanceledOnCancellation)
                 {
                     resolvedException = CreateRpcException(status.Value);
@@ -639,7 +665,7 @@ namespace Grpc.Net.Client.Internal
 
         private void SetFailedResult(Status status)
         {
-            Debug.Assert(_responseTcs != null);
+            CompatibilityExtensions.Assert(_responseTcs != null);
 
             if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
             {
@@ -801,7 +827,7 @@ namespace Grpc.Net.Client.Internal
         private HttpRequestMessage CreateHttpRequestMessage(TimeSpan? timeout)
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
-            message.Version = HttpVersion.Version20;
+            message.Version = CompatibilityExtensions.Version20;
 #if NET5_0
             message.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 #endif
@@ -904,16 +930,45 @@ namespace Grpc.Net.Client.Internal
         internal ValueTask WriteMessageAsync(
             Stream stream,
             TRequest message,
+            Action<TRequest, SerializationContext> contextualSerializer,
             CallOptions callOptions)
         {
             return stream.WriteMessageAsync(
                 this,
                 message,
-                Method.RequestMarshaller.ContextualSerializer,
+                contextualSerializer,
                 callOptions);
         }
 
+        internal ValueTask WriteMessageAsync<TSerializationContext>(
+            Stream stream,
+            TRequest message,
+            Action<TRequest, SerializationContext> contextualSerializer,
+            CallOptions callOptions) where TSerializationContext : SerializationContext, IMemoryOwner<byte>
+        {
+            return stream.WriteMessageAsync(
+                this,
+                message,
+                contextualSerializer,
+                callOptions);
+        }
+
+        internal ValueTask WriteMessageAsync(
+            Stream stream,
+            ReadOnlyMemory<byte> message,
+            CallOptions callOptions)
+        {
+            return stream.WriteMessageAsync(
+                this,
+                message,
+                callOptions);
+        }
+
+#if !NETSTANDARD2_0
         internal ValueTask<TResponse?> ReadMessageAsync(
+#else
+        internal Task<TResponse?> ReadMessageAsync(
+#endif
             Stream responseStream,
             string grpcEncoding,
             bool singleMessage,

@@ -20,6 +20,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" PrivateAssets="all" />
 
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
+
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     

@@ -42,6 +42,41 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             configure?.Invoke(channelOptions);
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, channelOptions);
+            ConfigureChannel(systemClock, disableClientDeadline, maxTimerPeriod, operatingSystem, channel);
+
+            return new HttpClientCallInvoker(channel);
+        }
+
+        public static HttpClientCallInvoker Create(
+            HttpMessageHandler httpMessageHandler,
+            string address,
+            ILoggerFactory? loggerFactory = null,
+            ISystemClock? systemClock = null,
+            Action<GrpcChannelOptions>? configure = null,
+            bool? disableClientDeadline = null,
+            long? maxTimerPeriod = null,
+            IOperatingSystem? operatingSystem = null)
+        {
+            var channelOptions = new GrpcChannelOptions
+            {
+                LoggerFactory = loggerFactory,
+                HttpHandler = httpMessageHandler
+            };
+            configure?.Invoke(channelOptions);
+
+            var channel = GrpcChannel.ForAddress(address, channelOptions);
+            ConfigureChannel(systemClock, disableClientDeadline, maxTimerPeriod, operatingSystem, channel);
+
+            return new HttpClientCallInvoker(channel);
+        }
+
+        private static void ConfigureChannel(
+            ISystemClock? systemClock,
+            bool? disableClientDeadline,
+            long? maxTimerPeriod,
+            IOperatingSystem? operatingSystem,
+            GrpcChannel channel)
+        {
             channel.Clock = systemClock ?? SystemClock.Instance;
             if (disableClientDeadline != null)
             {
@@ -55,8 +90,6 @@ namespace Grpc.Net.Client.Tests.Infrastructure
             {
                 channel.OperatingSystem = operatingSystem;
             }
-
-            return new HttpClientCallInvoker(channel);
         }
     }
 }

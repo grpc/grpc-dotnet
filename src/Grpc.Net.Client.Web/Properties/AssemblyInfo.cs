@@ -18,7 +18,7 @@
 
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Grpc.Net.Client.Tests,PublicKey=" +
+[assembly: InternalsVisibleTo("Grpc.Net.Client.Web.Tests,PublicKey=" +
     "00240000048000009400000006020000002400005253413100040000010001002f5797a92c6fcde81bd4098f43" +
     "0442bb8e12768722de0b0cb1b15e955b32a11352740ee59f2c94c48edc8e177d1052536b8ac651bce11ce5da3a" +
     "27fc95aff3dc604a6971417453f9483c7b5e836756d5b271bf8f2403fe186e31956148c03d804487cf642f8cc0" +

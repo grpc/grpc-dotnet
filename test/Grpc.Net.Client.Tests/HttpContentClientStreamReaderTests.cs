@@ -206,7 +206,7 @@ namespace Grpc.Net.Client.Tests
         public async Task MoveNext_StreamThrowsIOException_ThrowErrorUnavailable()
         {
             // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            var handler = TestHttpMessageHandler.Create(request =>
             {
                 var stream = new TestStream();
                 var content = new StreamContent(stream);
@@ -216,7 +216,7 @@ namespace Grpc.Net.Client.Tests
             var testSink = new TestSink(e => e.LogLevel >= LogLevel.Error);
             var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
 
-            var channel = CreateChannel(httpClient, loggerFactory: testLoggerFactory);
+            var channel = CreateChannel(handler, "http://localhost", loggerFactory: testLoggerFactory);
             var call = CreateGrpcCall(channel);
             call.StartServerStreaming(new HelloRequest());
 
@@ -251,9 +251,21 @@ namespace Grpc.Net.Client.Tests
                 });
         }
 
+        private static GrpcChannel CreateChannel(HttpMessageHandler httpClient, string address, ILoggerFactory? loggerFactory = null, bool? throwOperationCanceledOnCancellation = null)
+        {
+            return GrpcChannel.ForAddress(
+                address,
+                new GrpcChannelOptions
+                {
+                    HttpHandler = httpClient,
+                    LoggerFactory = loggerFactory,
+                    ThrowOperationCanceledOnCancellation = throwOperationCanceledOnCancellation ?? false
+                });
+        }
+
         private class TestStream : Stream
         {
-            public override bool CanRead { get; }
+            public override bool CanRead => true;
             public override bool CanSeek { get; }
             public override bool CanWrite { get; }
             public override long Length { get; }
@@ -284,10 +296,17 @@ namespace Grpc.Net.Client.Tests
                 throw new NotImplementedException();
             }
 
+#if !NET472
             public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
             {
                 return new ValueTask<int>(Task.FromException<int>(new IOException("Test")));
             }
+#else
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                return Task.FromException<int>(new IOException("Test"));
+            }
+#endif
         }
     }
 }

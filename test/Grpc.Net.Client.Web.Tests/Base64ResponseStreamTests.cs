@@ -29,7 +29,7 @@ using Grpc.Net.Client.Web.Internal;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Web
+namespace Grpc.Net.Client.Web.Tests
 {
     [TestFixture]
     public class Base64ResponseStreamTests

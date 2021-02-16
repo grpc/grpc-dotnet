@@ -58,7 +58,7 @@ namespace Grpc.Net.Client.Internal
             return Convert.FromBase64String(decodable);
         }
 
-        public static Metadata BuildMetadata(HttpResponseHeaders responseHeaders)
+        public static Metadata BuildMetadata(HttpHeaders responseHeaders)
         {
             var headers = new Metadata();
 
@@ -227,7 +227,7 @@ namespace Grpc.Net.Client.Internal
                 return GrpcProtocolConstants.DefaultMessageAcceptEncodingValue;
             }
 
-            return GrpcProtocolConstants.IdentityGrpcEncoding + "," + string.Join(',', compressionProviders.Select(p => p.Key));
+            return GrpcProtocolConstants.GetMessageAcceptEncoding(compressionProviders);
         }
 
         internal static bool CanWriteCompressed(WriteOptions? writeOptions)
@@ -332,7 +332,7 @@ namespace Grpc.Net.Client.Internal
             Status? status;
             try
             {
-                if (!TryGetStatusCore(httpResponse.TrailingHeaders, out status))
+                if (!TryGetStatusCore(httpResponse.GetTrailingHeaders(), out status))
                 {
                     var detail = "No grpc-status found on response.";
                     if (isBrowser)
@@ -352,7 +352,7 @@ namespace Grpc.Net.Client.Internal
             return status.Value;
         }
 
-        public static bool TryGetStatusCore(HttpResponseHeaders headers, [NotNullWhen(true)]out Status? status)
+        public static bool TryGetStatusCore(HttpHeaders headers, [NotNullWhen(true)]out Status? status)
         {
             var grpcStatus = GrpcProtocolHelpers.GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
 

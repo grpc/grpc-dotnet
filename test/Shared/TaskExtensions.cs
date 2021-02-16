@@ -93,6 +93,7 @@ namespace Grpc.Tests.Shared
             ? $"The operation timed out after reaching the limit of {timeout.TotalMilliseconds}ms."
             : $"The operation at {filePath}:{lineNumber} timed out after reaching the limit of {timeout.TotalMilliseconds}ms.";
 
+#if !NET472
         public static IAsyncEnumerable<T> DefaultTimeout<T>(this IAsyncEnumerable<T> enumerable,
             [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)
@@ -159,5 +160,6 @@ namespace Grpc.Tests.Shared
                 return new ValueTask<bool>(_enumerator.MoveNextAsync().AsTask().TimeoutAfter(_timeout, _filePath, _lineNumber));
             }
         }
+#endif
     }
 }

@@ -27,12 +27,14 @@ namespace Grpc.Net.Client.Internal
     {
         public static readonly GrpcEventSource Log = new GrpcEventSource();
 
+#if !NETSTANDARD2_0
         private PollingCounter? _totalCallsCounter;
         private PollingCounter? _currentCallsCounter;
         private PollingCounter? _messagesSentCounter;
         private PollingCounter? _messagesReceivedCounter;
         private PollingCounter? _callsFailedCounter;
         private PollingCounter? _callsDeadlineExceededCounter;
+#endif
 
         private long _totalCalls;
         private long _currentCalls;
@@ -125,6 +127,7 @@ namespace Grpc.Net.Client.Internal
                 // This is the convention for initializing counters in the RuntimeEventSource (lazily on the first enable command).
                 // They aren't disabled afterwards...
 
+#if !NETSTANDARD2_0
                 _totalCallsCounter ??= new PollingCounter("total-calls", this, () => Volatile.Read(ref _totalCalls))
                 {
                     DisplayName = "Total Calls",
@@ -149,6 +152,7 @@ namespace Grpc.Net.Client.Internal
                 {
                     DisplayName = "Total Messages Received",
                 };
+#endif
             }
         }
     }

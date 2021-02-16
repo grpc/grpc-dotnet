@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net5.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net5.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,8 +23,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
-    <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
-
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
@@ -35,6 +34,11 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
     <PackageReference Include="System.CommandLine" Version="$(SystemCommandLinePackageVersion)" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
+    <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
   </ItemGroup>
 
 </Project>
