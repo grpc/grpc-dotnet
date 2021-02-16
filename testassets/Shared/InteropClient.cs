@@ -27,11 +27,11 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Grpc.Net.Client.Web;
 using Grpc.Testing;
 using Microsoft.Extensions.Logging;
 using Empty = Grpc.Testing.Empty;
 using Grpc.Shared.TestAssets;
+using System.Security.Authentication;
 
 #if !BLAZOR_WASM
 using Google.Apis.Auth.OAuth2;
@@ -39,6 +39,10 @@ using Grpc.Auth;
 using Grpc.Core.Logging;
 using Grpc.Gateway.Testing;
 using Newtonsoft.Json.Linq;
+#endif
+
+#if !NET472
+using Grpc.Net.Client.Web;
 #endif
 
 namespace Grpc.Shared.TestAssets
@@ -56,6 +60,7 @@ namespace Grpc.Shared.TestAssets
         public string? OAuthScope { get; set; }
         public string? ServiceAccountKeyFile { get; set; }
         public string? GrpcWebMode { get; set; }
+        public bool UseWinHttp { get; set; }
     }
 
     public class InteropClient
@@ -113,6 +118,49 @@ namespace Grpc.Shared.TestAssets
                 scheme = "https";
             }
 
+            HttpMessageHandler httpMessageHandler;
+            if (!options.UseWinHttp)
+            {
+                httpMessageHandler = CreateHttpClientHandler();
+            }
+            else
+            {
+                httpMessageHandler = CreateWinHttpHandler();
+            }
+
+#if !NET472
+            if (options.GrpcWebMode != null)
+            {
+                var mode = Enum.Parse<GrpcWebMode>(options.GrpcWebMode);
+                httpMessageHandler = new GrpcWebHandler(mode, httpMessageHandler)
+                {
+                    HttpVersion = new Version(1, 1)
+                };
+            }
+#endif
+
+            var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
+            {
+                Credentials = credentials,
+                HttpHandler = httpMessageHandler,
+                LoggerFactory = loggerFactory
+            });
+
+            return new GrpcChannelWrapper(channel);
+        }
+
+        private static WinHttpHandler CreateWinHttpHandler()
+        {
+#pragma warning disable CA1416 // Validate platform compatibility
+            var handler = new WinHttpHandler();
+            handler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
+            handler.ServerCertificateValidationCallback = (message, cert, chain, errors) => true;
+            return handler;
+#pragma warning restore CA1416 // Validate platform compatibility
+        }
+
+        private HttpClientHandler CreateHttpClientHandler()
+        {
             var httpClientHandler = new HttpClientHandler();
 #if !BLAZOR_WASM
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
@@ -126,29 +174,7 @@ namespace Grpc.Shared.TestAssets
                 httpClientHandler.ClientCertificates.Add(cert);
             }
 #endif
-
-            HttpMessageHandler httpMessageHandler;
-            if (options.GrpcWebMode != null)
-            {
-                var mode = Enum.Parse<GrpcWebMode>(options.GrpcWebMode);
-                httpMessageHandler = new GrpcWebHandler(mode, httpClientHandler)
-                {
-                    HttpVersion = new Version(1, 1)
-                };
-            }
-            else
-            {
-                httpMessageHandler = httpClientHandler;
-            }
-
-            var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
-            {
-                Credentials = credentials,
-                HttpHandler = httpMessageHandler,
-                LoggerFactory = loggerFactory
-            });
-
-            return new GrpcChannelWrapper(channel);
+            return httpClientHandler;
         }
 
 #if !BLAZOR_WASM

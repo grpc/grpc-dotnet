@@ -25,7 +25,7 @@ using Grpc.Net.Client.Web;
 using Grpc.Net.Client.Web.Internal;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Web
+namespace Grpc.Net.Client.Web.Tests
 {
     [TestFixture]
     public class GrpcWebResponseContentTests

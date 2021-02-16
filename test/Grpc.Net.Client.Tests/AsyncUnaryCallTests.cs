@@ -89,7 +89,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             HttpContent? content = null;
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var handler = TestHttpMessageHandler.Create(async request =>
             {
                 content = request.Content;
 
@@ -102,7 +102,7 @@ namespace Grpc.Net.Client.Tests
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
             // Act
             var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
@@ -120,7 +120,7 @@ namespace Grpc.Net.Client.Tests
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: true,
-                CancellationToken.None).AsTask().DefaultTimeout();
+                CancellationToken.None).DefaultTimeout();
 
             Assert.AreEqual("World", requestMessage!.Name);
         }
@@ -180,7 +180,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.NotNull(responseMessage);
-            Assert.IsFalse(responseMessage!.TrailingHeaders.Any()); // sanity check that there are no trailers
+            Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
             Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);
             Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);

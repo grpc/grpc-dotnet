@@ -42,7 +42,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Tests
 
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                responseMessage.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
+                responseMessage.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return responseMessage;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -110,7 +110,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var responseMessage = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                responseMessage.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
+                responseMessage.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return responseMessage;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);

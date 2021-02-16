@@ -33,11 +33,11 @@ namespace Grpc.Net.Client.Tests
     public class GetStatusTests
     {
         [TestCase(HttpStatusCode.BadRequest, StatusCode.Internal)]
-        [TestCase(HttpStatusCode.RequestHeaderFieldsTooLarge, StatusCode.Internal)]
+        [TestCase((HttpStatusCode)431, StatusCode.Internal)]
         [TestCase(HttpStatusCode.Unauthorized, StatusCode.Unauthenticated)]
         [TestCase(HttpStatusCode.Forbidden, StatusCode.PermissionDenied)]
         [TestCase(HttpStatusCode.NotFound, StatusCode.Unimplemented)]
-        [TestCase(HttpStatusCode.TooManyRequests, StatusCode.Unavailable)]
+        [TestCase((HttpStatusCode)429, StatusCode.Unavailable)]
         [TestCase(HttpStatusCode.BadGateway, StatusCode.Unavailable)]
         [TestCase(HttpStatusCode.ServiceUnavailable, StatusCode.Unavailable)]
         [TestCase(HttpStatusCode.GatewayTimeout, StatusCode.Unavailable)]
@@ -97,7 +97,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "value");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "%C2%A3");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "%C2%A3");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -147,8 +147,8 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: StatusCode.Aborted);
-                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "one");
-                response.TrailingHeaders.Add(GrpcProtocolConstants.MessageTrailer, "two");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "one");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.MessageTrailer, "two");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
@@ -225,7 +225,7 @@ namespace Grpc.Net.Client.Tests
             {
                 var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent, grpcStatusCode: null);
-                response.TrailingHeaders.Add(GrpcProtocolConstants.StatusTrailer, "value");
+                response.TrailingHeaders().Add(GrpcProtocolConstants.StatusTrailer, "value");
                 return response;
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);

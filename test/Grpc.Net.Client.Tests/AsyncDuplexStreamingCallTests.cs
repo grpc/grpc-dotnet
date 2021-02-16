@@ -17,6 +17,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -24,6 +25,7 @@ using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
@@ -92,17 +94,22 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var streamContent = new SyncPointMemoryStream();
+            var requestContentTcs = new TaskCompletionSource<Task<Stream>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             PushStreamContent<HelloRequest, HelloReply>? content = null;
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var handler = TestHttpMessageHandler.Create(async request =>
             {
                 content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
-                await content.PushComplete.DefaultTimeout();
+                var streamTask = content.ReadAsStreamAsync();
+                requestContentTcs.SetResult(streamTask);
+
+                // Wait for RequestStream.CompleteAsync()
+                await streamTask;
 
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(streamContent));
             });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "https://localhost");
 
             // Act
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
@@ -119,7 +126,7 @@ namespace Grpc.Net.Client.Tests
             var deserializationContext = new DefaultDeserializationContext();
 
             Assert.IsNotNull(content);
-            var requestContent = await content!.ReadAsStreamAsync().DefaultTimeout();
+            var requestContent = await await requestContentTcs.Task.DefaultTimeout();
             var requestMessage = await StreamSerializationHelper.ReadMessageAsync(
                 requestContent,
                 ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
@@ -127,7 +134,7 @@ namespace Grpc.Net.Client.Tests
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: false,
-                CancellationToken.None).AsTask().DefaultTimeout();
+                CancellationToken.None).DefaultTimeout();
             Assert.AreEqual("1", requestMessage!.Name);
             requestMessage = await StreamSerializationHelper.ReadMessageAsync(
                 requestContent,
@@ -136,7 +143,7 @@ namespace Grpc.Net.Client.Tests
                 maximumMessageSize: null,
                 GrpcProtocolConstants.DefaultCompressionProviders,
                 singleMessage: false,
-                CancellationToken.None).AsTask().DefaultTimeout();
+                CancellationToken.None).DefaultTimeout();
             Assert.AreEqual("2", requestMessage!.Name);
 
             Assert.IsNull(responseStream.Current);

@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -34,10 +35,8 @@ namespace Grpc.Net.Client.Tests
         public void Build_SslCredentialsWithHttps_Success()
         {
             // Arrange & Act
-            var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
-            {
-                Credentials = new SslCredentials()
-            });
+            var channel = GrpcChannel.ForAddress("https://localhost",
+                CreateGrpcChannelOptions(o => o.Credentials = new SslCredentials()));
 
             // Assert
             Assert.IsTrue(channel.IsSecure);
@@ -47,10 +46,8 @@ namespace Grpc.Net.Client.Tests
         public void Build_SslCredentialsWithHttp_ThrowsError()
         {
             // Arrange & Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                Credentials = new SslCredentials()
-            }));
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("http://localhost",
+                CreateGrpcChannelOptions(o => o.Credentials = new SslCredentials())));
 
             // Assert
             Assert.AreEqual("Channel is configured with secure channel credentials and can't use a HttpClient with a 'http' scheme.", ex.Message);
@@ -60,10 +57,8 @@ namespace Grpc.Net.Client.Tests
         public void Build_SslCredentialsWithArgs_ThrowsError()
         {
             // Arrange & Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
-            {
-                Credentials = new SslCredentials("rootCertificates!!!")
-            }));
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost",
+                CreateGrpcChannelOptions(o => o.Credentials = new SslCredentials("rootCertificates!!!"))));
 
             // Assert
             Assert.AreEqual(
@@ -76,23 +71,30 @@ namespace Grpc.Net.Client.Tests
         public void Build_InsecureCredentialsWithHttp_Success()
         {
             // Arrange & Act
-            var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure
-            });
+            var channel = GrpcChannel.ForAddress("http://localhost",
+                CreateGrpcChannelOptions(o => o.Credentials = ChannelCredentials.Insecure));
 
             // Assert
             Assert.IsFalse(channel.IsSecure);
+        }
+
+        private static GrpcChannelOptions CreateGrpcChannelOptions(Action<GrpcChannelOptions>? func = null)
+        {
+            var o = new GrpcChannelOptions();
+#if NET472
+            // An error is thrown if no handler is specified by .NET Standard 2.0 target.
+            o.HttpHandler = new NullHttpHandler();
+#endif
+            func?.Invoke(o);
+            return o;
         }
 
         [Test]
         public void Build_InsecureCredentialsWithHttps_ThrowsError()
         {
             // Arrange & Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure
-            }));
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost",
+                CreateGrpcChannelOptions(o => o.Credentials = ChannelCredentials.Insecure)));
 
             // Assert
             Assert.AreEqual("Channel is configured with insecure channel credentials and can't use a HttpClient with a 'https' scheme.", ex.Message);
@@ -148,11 +150,29 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("HttpHandler", ex.Status.DebugException.Message);
         }
 
+#if NET472
+        [Test]
+        public void Build_NoHttpProviderOnNetFx_Throw()
+        {
+            // Arrange & Act
+            var ex = Assert.Throws<PlatformNotSupportedException>(() => GrpcChannel.ForAddress("https://localhost"));
+
+            // Assert
+            var message =
+                $"gRPC requires extra configuration to successfully make RPC calls on older platforms such " +
+                $"as .NET Framework. An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)} or " +
+                $"{nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpClient)}. The configured HTTP provider must either support HTTP/2 or " +
+                $"be configured to use gRPC-Web. See https://aka.ms/pzkMXDs for details.";
+
+            Assert.AreEqual(message, ex.Message);
+        }
+#endif
+
         [Test]
         public void Dispose_NotCalled_NotDisposed()
         {
             // Arrange
-            var channel = GrpcChannel.ForAddress("https://localhost");
+            var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
 
             // Act (nothing)
 
@@ -160,6 +180,7 @@ namespace Grpc.Net.Client.Tests
             Assert.IsFalse(channel.Disposed);
         }
 
+#if !NET472
         [Test]
         public void Dispose_Called_Disposed()
         {
@@ -173,12 +194,13 @@ namespace Grpc.Net.Client.Tests
             Assert.IsTrue(channel.Disposed);
             Assert.Throws<ObjectDisposedException>(() => channel.HttpInvoker.SendAsync(new HttpRequestMessage(), CancellationToken.None));
         }
+#endif
 
         [Test]
         public void Dispose_CalledMultipleTimes_Disposed()
         {
             // Arrange
-            var channel = GrpcChannel.ForAddress("https://localhost");
+            var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
 
             // Act
             channel.Dispose();
@@ -192,7 +214,7 @@ namespace Grpc.Net.Client.Tests
         public void Dispose_CreateCallInvoker_ThrowError()
         {
             // Arrange
-            var channel = GrpcChannel.ForAddress("https://localhost");
+            var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
 
             // Act
             channel.Dispose();
@@ -205,7 +227,7 @@ namespace Grpc.Net.Client.Tests
         public async Task Dispose_StartCallOnClient_ThrowError()
         {
             // Arrange
-            var channel = GrpcChannel.ForAddress("https://localhost");
+            var channel = GrpcChannel.ForAddress("https://localhost", CreateGrpcChannelOptions());
             var client = new Greet.Greeter.GreeterClient(channel);
 
             // Act

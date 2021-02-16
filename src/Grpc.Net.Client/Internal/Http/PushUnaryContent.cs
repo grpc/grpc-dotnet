@@ -22,7 +22,11 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
-namespace Grpc.Net.Client.Internal
+#if NETSTANDARD2_0
+using ValueTask = System.Threading.Tasks.Task;
+#endif
+
+namespace Grpc.Net.Client.Internal.Http
 {
     internal class PushUnaryContent<TRequest, TResponse> : HttpContent
         where TRequest : class
@@ -40,8 +44,14 @@ namespace Grpc.Net.Client.Internal
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
-            var writeMessageTask = _call.WriteMessageAsync(stream, _content, _call.Options);
-            if (writeMessageTask.IsCompletedSuccessfully)
+#pragma warning disable CA2012 // Use ValueTasks correctly
+            var writeMessageTask = _call.WriteMessageAsync(
+                stream,
+                _content,
+                _call.Method.RequestMarshaller.ContextualSerializer,
+                _call.Options);
+#pragma warning restore CA2012 // Use ValueTasks correctly
+            if (writeMessageTask.IsCompletedSuccessfully())
             {
                 GrpcEventSource.Log.MessageSent();
                 return Task.CompletedTask;

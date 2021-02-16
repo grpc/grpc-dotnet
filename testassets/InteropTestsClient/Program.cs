@@ -19,6 +19,7 @@
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Reflection;
 using System.Threading.Tasks;
 using Grpc.Shared.TestAssets;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,10 +43,16 @@ namespace InteropTestsClient
             rootCommand.AddOption(new Option<string>(new string[] { "--oauth_scope", nameof(ClientOptions.OAuthScope) }));
             rootCommand.AddOption(new Option<string>(new string[] { "--service_account_key_file", nameof(ClientOptions.ServiceAccountKeyFile) }));
             rootCommand.AddOption(new Option<string>(new string[] { "--grpc_web_mode", nameof(ClientOptions.GrpcWebMode) }));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--use_winhttp", nameof(ClientOptions.UseWinHttp) }));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
+                var runtimeVersion = typeof(object).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
+
+                Console.WriteLine("Runtime: " + runtimeVersion);
                 Console.WriteLine("Use TLS: " + options.UseTls);
+                Console.WriteLine("Use WinHttp: " + options.UseWinHttp);
+                Console.WriteLine("Use GrpcWebMode: " + options.GrpcWebMode);
                 Console.WriteLine("Use Test CA: " + options.UseTestCa);
                 Console.WriteLine("Client type: " + options.ClientType);
                 Console.WriteLine("Server host: " + options.ServerHost);
