@@ -111,6 +111,10 @@ namespace Grpc.Tests.Shared
                 Version = version ?? ProtocolVersion
             };
 
+            message.RequestMessage = new HttpRequestMessage();
+#if NET472
+            message.RequestMessage.Properties[CompatibilityExtensions.ResponseTrailersKey] = new ResponseTrailers();
+#endif
             message.Headers.Add(MessageEncodingHeader, grpcEncoding ?? IdentityGrpcEncoding);
             if (retryPushbackHeader != null)
             {
