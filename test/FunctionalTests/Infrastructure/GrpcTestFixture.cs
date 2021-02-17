@@ -75,7 +75,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-            httpClientHandler.SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13;
+            httpClientHandler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
             HttpClient client;
             HttpMessageHandler handler;
