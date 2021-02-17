@@ -480,7 +480,7 @@ namespace Grpc.Net.Client.Internal
                     {
                         // Don't log OperationCanceledException if deadline has exceeded.
                         if (ex is OperationCanceledException &&
-                            _callTcs.Task.IsCompletedSuccessfully &&
+                            _callTcs.Task.IsCompletedSuccessfully() &&
                             _callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded)
                         {
                             throw;

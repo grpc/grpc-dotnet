@@ -91,7 +91,7 @@ namespace Grpc.Tests.Shared
             {
                 foreach (var customTrailer in customTrailers)
                 {
-                    message.TrailingHeaders.Add(customTrailer.Key, customTrailer.Value);
+                    message.TrailingHeaders().Add(customTrailer.Key, customTrailer.Value);
                 }
             }
 
