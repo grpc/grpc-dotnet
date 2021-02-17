@@ -18,6 +18,7 @@
 
 using System;
 using System.Net.Http;
+using System.Security.Authentication;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Server.Kestrel.Core;

@@ -28,6 +28,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal
 {
@@ -332,7 +333,7 @@ namespace Grpc.Net.Client.Internal
             Status? status;
             try
             {
-                if (!TryGetStatusCore(httpResponse.GetTrailingHeaders(), out status))
+                if (!TryGetStatusCore(httpResponse.TrailingHeaders(), out status))
                 {
                     var detail = "No grpc-status found on response.";
                     if (isBrowser)

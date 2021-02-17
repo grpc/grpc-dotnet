@@ -84,7 +84,7 @@ namespace Grpc.Net.Client.Internal
                 }
 
                 CompatibilityExtensions.Assert(HttpResponse != null);
-                Trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.GetTrailingHeaders());
+                Trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders());
             }
 
             trailers = Trailers;

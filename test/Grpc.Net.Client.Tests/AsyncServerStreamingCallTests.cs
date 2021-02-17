@@ -26,6 +26,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -322,6 +323,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.NotNull(responseMessage);
+
             Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);

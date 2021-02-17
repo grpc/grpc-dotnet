@@ -36,8 +36,16 @@ namespace Grpc.Net.Client.Web.Internal
             _inner = inner;
         }
 
+#if NETSTANDARD2_0
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+#else
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
+#endif
         {
+#if NETSTANDARD2_0
+            var data = buffer.AsMemory(offset, count);
+#endif
+
             if (_buffer == null)
             {
                 _buffer = ArrayPool<byte>.Shared.Rent(minimumLength: 4096);
@@ -84,7 +92,7 @@ namespace Grpc.Net.Client.Web.Internal
 
                 EnsureSuccess(
                     Base64.EncodeToUtf8(data.Span.Slice(0, encodeLength), localBuffer.Span, out var bytesConsumed, out var bytesWritten, isFinalBlock: false),
-#if NETSTANDARD2_1
+#if NETSTANDARD2_1 || NETSTANDARD2_0
                     OperationStatus.NeedMoreData
 #else
                     // React to fix https://github.com/dotnet/runtime/pull/281
@@ -93,7 +101,7 @@ namespace Grpc.Net.Client.Web.Internal
                     );
 
                 var base64Remainder = _buffer.Length - localBuffer.Length;
-                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten + base64Remainder), cancellationToken).ConfigureAwait(false);
+                await StreamHelpers.WriteAsync(_inner, _buffer, 0, bytesWritten + base64Remainder, cancellationToken).ConfigureAwait(false);
 
                 data = data.Slice(bytesConsumed);
                 localBuffer = _buffer;
@@ -103,7 +111,7 @@ namespace Grpc.Net.Client.Web.Internal
             // If there was not enough data to write along with remainder then write it here
             if (localBuffer.Length < _buffer.Length)
             {
-                await _inner.WriteAsync(_buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
+                await StreamHelpers.WriteAsync(_inner, _buffer, 0, 4, cancellationToken).ConfigureAwait(false);
             }
 
             if (data.Length > 0)
@@ -135,7 +143,7 @@ namespace Grpc.Net.Client.Web.Internal
             {
                 EnsureSuccess(Base64.EncodeToUtf8InPlace(_buffer, _remainder, out var bytesWritten));
 
-                await _inner.WriteAsync(_buffer.AsMemory(0, bytesWritten), cancellationToken).ConfigureAwait(false);
+                await StreamHelpers.WriteAsync(_inner, _buffer!, 0, bytesWritten, cancellationToken).ConfigureAwait(false);
                 _remainder = 0;
             }
         }
@@ -152,7 +160,7 @@ namespace Grpc.Net.Client.Web.Internal
             base.Dispose(disposing);
         }
 
-#region Stream implementation
+        #region Stream implementation
         public override bool CanRead => _inner.CanRead;
         public override bool CanSeek => _inner.CanSeek;
         public override bool CanWrite => _inner.CanWrite;
@@ -186,9 +194,13 @@ namespace Grpc.Net.Client.Web.Internal
         public override void Write(byte[] buffer, int offset, int count)
         {
             // Used by unit tests
+#if NETSTANDARD2_0
+            WriteAsync(buffer, 0, count).GetAwaiter().GetResult();
+#else
             WriteAsync(buffer.AsMemory(0, count)).AsTask().GetAwaiter().GetResult();
+#endif
             FlushAsync().GetAwaiter().GetResult();
         }
-#endregion
+        #endregion
     }
 }
