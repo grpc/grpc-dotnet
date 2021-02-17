@@ -18,6 +18,7 @@
 
 using System;
 using System.Net.Http;
+using System.Security.Authentication;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -74,6 +75,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
             var httpClientHandler = new HttpClientHandler();
             httpClientHandler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            httpClientHandler.SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13;
 
             HttpClient client;
             HttpMessageHandler handler;
