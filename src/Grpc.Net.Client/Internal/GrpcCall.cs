@@ -297,7 +297,7 @@ namespace Grpc.Net.Client.Internal
 
             // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
             // Check that the response wasn't downgraded to HTTP/1.1.
-            if (httpResponse.Version < CompatibilityExtensions.Version20)
+            if (httpResponse.Version < GrpcProtocolConstants.Http2Version)
             {
                 return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
             }
@@ -827,7 +827,7 @@ namespace Grpc.Net.Client.Internal
         private HttpRequestMessage CreateHttpRequestMessage(TimeSpan? timeout)
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
-            message.Version = CompatibilityExtensions.Version20;
+            message.Version = GrpcProtocolConstants.Http2Version;
 #if NET5_0
             message.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 #endif

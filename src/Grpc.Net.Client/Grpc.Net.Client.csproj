@@ -19,6 +19,7 @@
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
     <Compile Include="..\Shared\HttpHandlerFactory.cs" Link="Internal\Http\HttpHandlerFactory.cs" />
     <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\Http\TelemetryHeaderHandler.cs" />
+    <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\Http\TrailingHeadersHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

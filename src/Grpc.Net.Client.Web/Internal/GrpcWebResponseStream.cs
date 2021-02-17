@@ -49,8 +49,16 @@ namespace Grpc.Net.Client.Web.Internal
             _responseTrailers = responseTrailers;
         }
 
+#if NETSTANDARD2_0
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+#else
         public override async ValueTask<int> ReadAsync(Memory<byte> data, CancellationToken cancellationToken = default)
+#endif
         {
+#if NETSTANDARD2_0
+            var data = buffer.AsMemory(offset, count);
+#endif
+
             switch (_state)
             {
                 case ResponseState.Ready:
@@ -95,7 +103,7 @@ namespace Grpc.Net.Client.Web.Internal
                         data = data.Slice(0, _contentRemaining);
                     }
 
-                    var read = await _inner.ReadAsync(data, cancellationToken).ConfigureAwait(false);
+                    var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
                     _contentRemaining -= read;
                     if (_contentRemaining == 0)
                     {
@@ -137,7 +145,7 @@ namespace Grpc.Net.Client.Web.Internal
             // 2. The response stream is read to completion. HttpClient may not recognize the
             //    request as completing successfully if the request and response aren't completely
             //    consumed.
-            var count = await _inner.ReadAsync(data, cancellationToken).ConfigureAwait(false);
+            var count = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
             if (count > 0)
             {
                 throw new InvalidOperationException("Unexpected data after trailers.");
@@ -181,12 +189,21 @@ namespace Grpc.Net.Client.Web.Internal
                         throw new InvalidOperationException("Error parsing badly formatted trailing header.");
                     }
 
-                    var name = Encoding.ASCII.GetString(Trim(line.Slice(0, headerDelimiterIndex)));
-                    var value = Encoding.ASCII.GetString(Trim(line.Slice(headerDelimiterIndex + 1)));
+                    var name = GetString(Trim(line.Slice(0, headerDelimiterIndex)));
+                    var value = GetString(Trim(line.Slice(headerDelimiterIndex + 1)));
 
                     _responseTrailers.Add(name, value);
                 }
             }
+        }
+
+        private static string GetString(ReadOnlySpan<byte> span)
+        {
+#if NETSTANDARD2_0
+            return Encoding.ASCII.GetString(span.ToArray());
+#else
+            return Encoding.ASCII.GetString(span);
+#endif
         }
 
         internal static ReadOnlySpan<byte> Trim(ReadOnlySpan<byte> span)
@@ -228,7 +245,7 @@ namespace Grpc.Net.Client.Web.Internal
         {
             int read;
             var received = 0;
-            while ((read = await responseStream.ReadAsync(buffer.Slice(received, buffer.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
+            while ((read = await StreamHelpers.ReadAsync(responseStream, buffer.Slice(received, buffer.Length - received), cancellationToken).ConfigureAwait(false)) > 0)
             {
                 received += read;
 

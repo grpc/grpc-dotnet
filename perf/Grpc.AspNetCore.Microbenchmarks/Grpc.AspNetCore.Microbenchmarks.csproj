@@ -20,6 +20,7 @@
     <Compile Include="..\..\test\Shared\TestHttpMessageHandler.cs" Link="Internal\TestHttpMessageHandler.cs" />
     <Compile Include="..\..\test\Shared\TestRequestBodyPipeFeature.cs" Link="Internal\TestRequestBodyPipeFeature.cs" />
     <Compile Include="..\..\test\Shared\TestResponseBodyFeature.cs" Link="Internal\TestResponseBodyFeature.cs" />
+    <Compile Include="..\..\src\Shared\TrailingHeadersHelpers.cs" Link="Internal\TrailingHeadersHelpers.cs" />
 
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 

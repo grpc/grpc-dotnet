@@ -27,10 +27,10 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
 using Grpc.Testing;
 using Microsoft.Extensions.Logging;
 using Empty = Grpc.Testing.Empty;
-using Grpc.Shared.TestAssets;
 using System.Security.Authentication;
 
 #if !BLAZOR_WASM
@@ -39,10 +39,6 @@ using Grpc.Auth;
 using Grpc.Core.Logging;
 using Grpc.Gateway.Testing;
 using Newtonsoft.Json.Linq;
-#endif
-
-#if !NET472
-using Grpc.Net.Client.Web;
 #endif
 
 namespace Grpc.Shared.TestAssets
@@ -128,16 +124,14 @@ namespace Grpc.Shared.TestAssets
                 httpMessageHandler = CreateWinHttpHandler();
             }
 
-#if !NET472
-            if (options.GrpcWebMode != null)
+            if (!string.IsNullOrEmpty(options.GrpcWebMode) && !string.Equals(options.GrpcWebMode, "None", StringComparison.OrdinalIgnoreCase))
             {
-                var mode = Enum.Parse<GrpcWebMode>(options.GrpcWebMode);
+                var mode = (GrpcWebMode)Enum.Parse(typeof(GrpcWebMode), options.GrpcWebMode);
                 httpMessageHandler = new GrpcWebHandler(mode, httpMessageHandler)
                 {
                     HttpVersion = new Version(1, 1)
                 };
             }
-#endif
 
             var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
             {

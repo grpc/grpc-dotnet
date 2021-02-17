@@ -28,6 +28,12 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class GrpcProtocolConstants
     {
+#if !NETSTANDARD2_0
+        public static readonly Version Http2Version = System.Net.HttpVersion.Version20;
+#else
+        public static readonly Version Http2Version = new Version(2, 0);
+#endif
+
         internal const string GrpcContentType = "application/grpc";
         internal static readonly MediaTypeHeaderValue GrpcContentTypeHeaderValue = new MediaTypeHeaderValue("application/grpc");
 

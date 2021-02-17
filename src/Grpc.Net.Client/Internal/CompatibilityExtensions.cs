@@ -13,26 +13,6 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class CompatibilityExtensions
     {
-#if !NETSTANDARD2_0
-        public static readonly Version Version20 = HttpVersion.Version20;
-#else
-        public static readonly Version Version20 = new Version(2, 0);
-        public static readonly string ResponseTrailersKey = "__ResponseTrailers";
-#endif
-
-        public static HttpHeaders GetTrailingHeaders(this HttpResponseMessage responseMessage)
-        {
-#if !NETSTANDARD2_0
-            return responseMessage.TrailingHeaders;
-#else
-            if (!responseMessage.RequestMessage.Properties.TryGetValue(ResponseTrailersKey, out var headers))
-            {
-                throw new InvalidOperationException();
-            }
-            return (HttpHeaders)headers;
-#endif
-        }
-
         [Conditional("DEBUG")]
         public static void Assert([DoesNotReturnIf(false)] bool condition, string? message = null)
         {
