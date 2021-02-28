@@ -32,7 +32,7 @@ namespace Grpc.AspNetCore.Server.Internal
 #if NET5_0
         internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors;
 #endif
-        private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(() => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
+        private static readonly Lazy<ObjectFactory> _objectFactory = new Lazy<ObjectFactory>(static () => ActivatorUtilities.CreateFactory(typeof(TGrpcService), Type.EmptyTypes));
 
         public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
         {
