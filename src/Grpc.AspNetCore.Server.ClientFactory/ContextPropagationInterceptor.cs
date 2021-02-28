@@ -67,9 +67,6 @@ namespace Grpc.AspNetCore.ClientFactory
             }
         }
 
-        private ContextState<TCall> CreateContextState<TCall>(TCall call, CancellationTokenSource cancellationTokenSource) =>
-            new ContextState<TCall>(call, cancellationTokenSource);
-
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
         {
             var call = continuation(ConfigureContext(context, out var cts));
@@ -199,6 +196,9 @@ namespace Grpc.AspNetCore.ClientFactory
             errorMessage = null;
             return true;
         }
+
+        private ContextState<TCall> CreateContextState<TCall>(TCall call, CancellationTokenSource cancellationTokenSource) =>
+            new ContextState<TCall>(call, cancellationTokenSource);
 
         private class ContextState<TCall>
         {
