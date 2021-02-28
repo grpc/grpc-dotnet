@@ -98,7 +98,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
         [TestCase(Canceller.Context)]
         [TestCase(Canceller.User)]
-        public async Task CreateClient_ServerCallContextHasValues_UserCancellationToken_PropogatedDeadlineAndCancellation(Canceller canceller)
+        public async Task CreateClient_ServerCallContextAndUserCancellationToken_PropogatedDeadlineAndCancellation(Canceller canceller)
         {
             // Arrange
             var baseAddress = new Uri("http://localhost");
@@ -142,12 +142,16 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             // Assert
             Assert.AreEqual(deadline, options.Deadline);
+
+            // CancellationToken passed to call is a linked cancellation token.
+            // It's created from the context and user tokens.
             Assert.AreNotEqual(contextCts.Token, options.CancellationToken);
             Assert.AreNotEqual(userCts.Token, options.CancellationToken);
             Assert.AreNotEqual(CancellationToken.None, options.CancellationToken);
 
             Assert.IsFalse(responseTask.IsCompleted);
 
+            // Either CTS should cancel call.
             switch (canceller)
             {
                 case Canceller.Context:
