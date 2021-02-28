@@ -19,6 +19,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
+using System.Threading.Tasks;
 using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -56,12 +57,13 @@ namespace Grpc.AspNetCore.ClientFactory
             else
             {
                 return new AsyncClientStreamingCall<TRequest, TResponse>(
-                    call.RequestStream,
-                    call.ResponseAsync,
-                    call.ResponseHeadersAsync,
-                    call.GetStatus,
-                    call.GetTrailers,
-                    () => { call.Dispose(); cts.Dispose(); });
+                    requestStream: call.RequestStream,
+                    responseAsync: call.ResponseAsync,
+                    responseHeadersAsync: ClientStreamingCallbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                    getStatusFunc: ClientStreamingCallbacks<TRequest, TResponse>.GetStatus,
+                    getTrailersFunc: ClientStreamingCallbacks<TRequest, TResponse>.GetTrailers,
+                    disposeAction: ClientStreamingCallbacks<TRequest, TResponse>.Dispose,
+                    CreateContextState(call, cts));
             }
         }
 
@@ -75,12 +77,13 @@ namespace Grpc.AspNetCore.ClientFactory
             else
             {
                 return new AsyncDuplexStreamingCall<TRequest, TResponse>(
-                    call.RequestStream,
-                    call.ResponseStream,
-                    call.ResponseHeadersAsync,
-                    call.GetStatus,
-                    call.GetTrailers,
-                    () => { call.Dispose(); cts.Dispose(); });
+                    requestStream: call.RequestStream,
+                    responseStream: call.ResponseStream,
+                    responseHeadersAsync: DuplexStreamingCallbacks<TRequest, TResponse>.GetResponseHeadersAsync,
+                    getStatusFunc: DuplexStreamingCallbacks<TRequest, TResponse>.GetStatus,
+                    getTrailersFunc: DuplexStreamingCallbacks<TRequest, TResponse>.GetTrailers,
+                    disposeAction: DuplexStreamingCallbacks<TRequest, TResponse>.Dispose,
+                    CreateContextState(call, cts));
             }
         }
 
@@ -94,11 +97,12 @@ namespace Grpc.AspNetCore.ClientFactory
             else
             {
                 return new AsyncServerStreamingCall<TResponse>(
-                    call.ResponseStream,
-                    call.ResponseHeadersAsync,
-                    call.GetStatus,
-                    call.GetTrailers,
-                    () => { call.Dispose(); cts.Dispose(); });
+                    responseStream: call.ResponseStream,
+                    responseHeadersAsync: ServerStreamingCallbacks<TResponse>.GetResponseHeadersAsync,
+                    getStatusFunc: ServerStreamingCallbacks<TResponse>.GetStatus,
+                    getTrailersFunc: ServerStreamingCallbacks<TResponse>.GetTrailers,
+                    disposeAction: ServerStreamingCallbacks<TResponse>.Dispose,
+                    CreateContextState(call, cts));
             }
         }
 
@@ -112,11 +116,12 @@ namespace Grpc.AspNetCore.ClientFactory
             else
             {
                 return new AsyncUnaryCall<TResponse>(
-                    call.ResponseAsync,
-                    call.ResponseHeadersAsync,
-                    call.GetStatus,
-                    call.GetTrailers,
-                    () => { call.Dispose(); cts.Dispose(); });
+                    responseAsync: call.ResponseAsync,
+                    responseHeadersAsync: UnaryCallbacks<TResponse>.GetResponseHeadersAsync,
+                    getStatusFunc: UnaryCallbacks<TResponse>.GetStatus,
+                    getTrailersFunc: UnaryCallbacks<TResponse>.GetTrailers,
+                    disposeAction: UnaryCallbacks<TResponse>.Dispose,
+                    CreateContextState(call, cts));
             }
         }
 
@@ -192,6 +197,27 @@ namespace Grpc.AspNetCore.ClientFactory
             return true;
         }
 
+        private ContextState<TCall> CreateContextState<TCall>(TCall call, CancellationTokenSource cancellationTokenSource) where TCall : IDisposable =>
+            new ContextState<TCall>(call, cancellationTokenSource);
+
+        private class ContextState<TCall> : IDisposable where TCall : IDisposable
+        {
+            public ContextState(TCall call, CancellationTokenSource cancellationTokenSource)
+            {
+                Call = call;
+                CancellationTokenSource = cancellationTokenSource;
+            }
+
+            public TCall Call { get; }
+            public CancellationTokenSource CancellationTokenSource { get; }
+
+            public void Dispose()
+            {
+                Call.Dispose();
+                CancellationTokenSource.Dispose();
+            }
+        }
+
         private static class Log
         {
             private static readonly Action<ILogger, string, Exception?> _propagateServerCallContextFailure =
@@ -201,6 +227,45 @@ namespace Grpc.AspNetCore.ClientFactory
             {
                 _propagateServerCallContextFailure(logger, errorMessage, null);
             }
+        }
+
+        // Store static callbacks so delegates are allocated once
+        private static class UnaryCallbacks<TResponse>
+            where TResponse : class
+        {
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((ContextState<AsyncUnaryCall<TResponse>>)state).Call.ResponseHeadersAsync;
+            internal static readonly Func<object, Status> GetStatus = state => ((ContextState<AsyncUnaryCall<TResponse>>)state).Call.GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((ContextState<AsyncUnaryCall<TResponse>>)state).Call.GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((ContextState<AsyncUnaryCall<TResponse>>)state).Dispose();
+        }
+
+        private static class ServerStreamingCallbacks<TResponse>
+            where TResponse : class
+        {
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((ContextState<AsyncServerStreamingCall<TResponse>>)state).Call.ResponseHeadersAsync;
+            internal static readonly Func<object, Status> GetStatus = state => ((ContextState<AsyncServerStreamingCall<TResponse>>)state).Call.GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((ContextState<AsyncServerStreamingCall<TResponse>>)state).Call.GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((ContextState<AsyncServerStreamingCall<TResponse>>)state).Dispose();
+        }
+
+        private static class DuplexStreamingCallbacks<TRequest, TResponse>
+            where TRequest : class
+            where TResponse : class
+        {
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((ContextState<AsyncDuplexStreamingCall<TRequest, TResponse>>)state).Call.ResponseHeadersAsync;
+            internal static readonly Func<object, Status> GetStatus = state => ((ContextState<AsyncDuplexStreamingCall<TRequest, TResponse>>)state).Call.GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((ContextState<AsyncDuplexStreamingCall<TRequest, TResponse>>)state).Call.GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((ContextState<AsyncDuplexStreamingCall<TRequest, TResponse>>)state).Dispose();
+        }
+
+        private static class ClientStreamingCallbacks<TRequest, TResponse>
+            where TRequest : class
+            where TResponse : class
+        {
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((ContextState<AsyncClientStreamingCall<TRequest, TResponse>>)state).Call.ResponseHeadersAsync;
+            internal static readonly Func<object, Status> GetStatus = state => ((ContextState<AsyncClientStreamingCall<TRequest, TResponse>>)state).Call.GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((ContextState<AsyncClientStreamingCall<TRequest, TResponse>>)state).Call.GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((ContextState<AsyncClientStreamingCall<TRequest, TResponse>>)state).Dispose();
         }
     }
 }
