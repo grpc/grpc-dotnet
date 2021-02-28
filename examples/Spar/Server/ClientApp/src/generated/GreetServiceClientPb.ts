@@ -13,19 +13,18 @@
 
 import * as grpcWeb from 'grpc-web';
 
-import {
-  HelloReply,
-  HelloRequest} from './greet_pb';
+import * as greet_pb from './greet_pb';
+
 
 export class GreeterClient {
   client_: grpcWeb.AbstractClientBase;
   hostname_: string;
   credentials_: null | { [index: string]: string; };
-  options_: null | { [index: string]: string; };
+  options_: null | { [index: string]: any; };
 
   constructor (hostname: string,
                credentials?: null | { [index: string]: string; },
-               options?: null | { [index: string]: string; }) {
+               options?: null | { [index: string]: any; }) {
     if (!options) options = {};
     if (!credentials) credentials = {};
     options['format'] = 'text';
@@ -37,28 +36,28 @@ export class GreeterClient {
   }
 
   methodInfoSayHello = new grpcWeb.AbstractClientBase.MethodInfo(
-    HelloReply,
-    (request: HelloRequest) => {
+    greet_pb.HelloReply,
+    (request: greet_pb.HelloRequest) => {
       return request.serializeBinary();
     },
-    HelloReply.deserializeBinary
+    greet_pb.HelloReply.deserializeBinary
   );
 
   sayHello(
-    request: HelloRequest,
-    metadata: grpcWeb.Metadata | null): Promise<HelloReply>;
+    request: greet_pb.HelloRequest,
+    metadata: grpcWeb.Metadata | null): Promise<greet_pb.HelloReply>;
 
   sayHello(
-    request: HelloRequest,
+    request: greet_pb.HelloRequest,
     metadata: grpcWeb.Metadata | null,
     callback: (err: grpcWeb.Error,
-               response: HelloReply) => void): grpcWeb.ClientReadableStream<HelloReply>;
+               response: greet_pb.HelloReply) => void): grpcWeb.ClientReadableStream<greet_pb.HelloReply>;
 
   sayHello(
-    request: HelloRequest,
+    request: greet_pb.HelloRequest,
     metadata: grpcWeb.Metadata | null,
     callback?: (err: grpcWeb.Error,
-               response: HelloReply) => void) {
+               response: greet_pb.HelloReply) => void) {
     if (callback !== undefined) {
       return this.client_.rpcCall(
         this.hostname_ +
@@ -77,15 +76,15 @@ export class GreeterClient {
   }
 
   methodInfoSayHellos = new grpcWeb.AbstractClientBase.MethodInfo(
-    HelloReply,
-    (request: HelloRequest) => {
+    greet_pb.HelloReply,
+    (request: greet_pb.HelloRequest) => {
       return request.serializeBinary();
     },
-    HelloReply.deserializeBinary
+    greet_pb.HelloReply.deserializeBinary
   );
 
   sayHellos(
-    request: HelloRequest,
+    request: greet_pb.HelloRequest,
     metadata?: grpcWeb.Metadata) {
     return this.client_.serverStreaming(
       this.hostname_ +

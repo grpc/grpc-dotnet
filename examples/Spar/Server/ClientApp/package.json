@@ -9,17 +9,18 @@
     "protogen": "protoc -I ./../../Proto/ ./../../Proto/greet.proto --js_out=import_style=commonjs:./src/generated/ --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/generated/"
   },
   "dependencies": {
-    "google-protobuf": "^3.12.2",
-    "grpc-web": "^1.1.0",
-    "vue": "^2.6.11",
+    "google-protobuf": "^3.15.1",
+    "grpc-web": "^1.2.1",
+    "vue": "^2.6.12",
+    "vue-class-component": "^7.2.6",
     "vue-hot-reload-api": "^2.3.4",
-    "vue-property-decorator": "^8.4.2"
+    "vue-property-decorator": "^9.1.2"
   },
   "devDependencies": {
-    "@vue/component-compiler-utils": "^3.1.2",
+    "@vue/component-compiler-utils": "^3.2.0",
     "parcel-bundler": "^1.12.4",
     "rimraf": "^3.0.2",
-    "typescript": "^3.9.3",
-    "vue-template-compiler": "^2.6.11"
+    "typescript": "^4.1.5",
+    "vue-template-compiler": "^2.6.12"
   }
 }
