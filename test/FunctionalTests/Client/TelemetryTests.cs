@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Greet;
@@ -83,10 +85,29 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var client = CreateClient(clientType, method, handler);
 
             // Act
-            await client.UnaryCall(new HelloRequest());
+#if NET5_0
+            var result = new List<KeyValuePair<string, object?>>();
+
+            using var allSubscription = new AllListenersObserver(new Dictionary<string, IObserver<KeyValuePair<string, object?>>>
+            {
+                ["HttpHandlerDiagnosticListener"] = new ObserverToList<KeyValuePair<string, object?>>(result)
+            });
+            using (DiagnosticListener.AllListeners.Subscribe(allSubscription))
+#endif
+            {
+                await client.UnaryCall(new HelloRequest());
+            }
 
             // Assert
             Assert.IsNotNull(telemetryHeader);
+
+#if NET5_0
+            Assert.AreEqual(4, result.Count);
+            Assert.AreEqual("System.Net.Http.HttpRequestOut.Start", result[0].Key);
+            Assert.AreEqual("System.Net.Http.Request", result[1].Key);
+            Assert.AreEqual("System.Net.Http.HttpRequestOut.Stop", result[2].Key);
+            Assert.AreEqual("System.Net.Http.Response", result[3].Key);
+#endif
         }
 
         private TestClient<HelloRequest, HelloReply> CreateClient(ClientType clientType, Method<HelloRequest, HelloReply> method, HttpMessageHandler? handler)
@@ -132,6 +153,84 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             Channel,
             ClientFactory
+        }
+
+        internal class AllListenersObserver : IObserver<DiagnosticListener>, IDisposable
+        {
+            private readonly Dictionary<string, IObserver<KeyValuePair<string, object?>>> _observers;
+            private readonly List<IDisposable> _subscriptions;
+
+            public AllListenersObserver(Dictionary<string, IObserver<KeyValuePair<string, object?>>> observers)
+            {
+                _observers = observers;
+                _subscriptions = new List<IDisposable>();
+            }
+
+            public bool Completed { get; private set; }
+
+            public void Dispose()
+            {
+                foreach (var subscription in _subscriptions)
+                {
+                    subscription.Dispose();
+                }
+            }
+
+            public void OnCompleted()
+            {
+                Completed = true;
+            }
+
+            public void OnError(Exception error)
+            {
+                throw new Exception("Observer error", error);
+            }
+
+            public void OnNext(DiagnosticListener value)
+            {
+                if (value?.Name != null && _observers.TryGetValue(value.Name, out var observer))
+                {
+                    _subscriptions.Add(value.Subscribe(observer));
+                }
+            }
+        }
+
+        internal class ObserverToList<T> : IObserver<T>
+        {
+            public ObserverToList(List<T> output, Predicate<T>? filter = null, string? name = null)
+            {
+                _output = output;
+                _output.Clear();
+                _filter = filter;
+                _name = name;
+            }
+
+            public bool Completed { get; private set; }
+
+            #region private
+            public void OnCompleted()
+            {
+                Completed = true;
+            }
+
+            public void OnError(Exception error)
+            {
+                Assert.True(false, "Error happened on IObserver");
+            }
+
+            public void OnNext(T value)
+            {
+                Assert.False(Completed);
+                if (_filter == null || _filter(value))
+                {
+                    _output.Add(value);
+                }
+            }
+
+            private List<T> _output;
+            private Predicate<T>? _filter;
+            private string? _name;  // for debugging 
+            #endregion
         }
     }
 }
