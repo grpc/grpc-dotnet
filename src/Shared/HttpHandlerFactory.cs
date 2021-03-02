@@ -59,7 +59,12 @@ namespace Grpc.Shared
             // so wrap with a handler that is responsible for setting the telemetry header.
             if (HasHttpHandlerType(handler, "System.Net.Http.SocketsHttpHandler"))
             {
-                return new TelemetryHeaderHandler(handler);
+                // Double check telemetry handler hasn't already been added by something else
+                // like the client factory when it created the primary handler.
+                if (!HasHttpHandlerType(handler, typeof(TelemetryHeaderHandler).FullName!))
+                {
+                    return new TelemetryHeaderHandler(handler);
+                }
             }
 
             return handler;
