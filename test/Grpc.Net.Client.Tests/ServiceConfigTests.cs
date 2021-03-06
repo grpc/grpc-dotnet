@@ -169,7 +169,7 @@ namespace Grpc.Net.Client.Tests
         public void ConvertDurationText_Failure(string text)
         {
             // Arrange & Act
-            var ex = Assert.Throws<FormatException>(() => ConvertHelpers.ConvertDurationText(text));
+            var ex = Assert.Throws<FormatException>(() => ConvertHelpers.ConvertDurationText(text))!;
 
             // Assert
             Assert.AreEqual($"'{text}' isn't a valid duration.", ex.Message);

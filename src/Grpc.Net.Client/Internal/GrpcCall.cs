@@ -570,8 +570,7 @@ namespace Grpc.Net.Client.Internal
                 }
                 catch (Exception ex)
                 {
-                    Exception resolvedException;
-                    ResolveException(ErrorStartingCallMessage, ex, out status, out resolvedException);
+                    ResolveException(ErrorStartingCallMessage, ex, out status, out var resolvedException);
 
                     finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                     _responseTcs?.TrySetException(resolvedException);

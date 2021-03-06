@@ -141,13 +141,13 @@ namespace Grpc.AspNetCore.Server.Tests
             var originalText = new string('元', int.MaxValue / 8);
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => PercentEncodingHelpers.PercentEncode(originalText));
+            var ex = Assert.Throws<InvalidOperationException>(() => PercentEncodingHelpers.PercentEncode(originalText))!;
 
             // Assert
             Assert.AreEqual("Value is too large to encode.", ex.Message);
         }
 
-        private static TestCaseData[] ValidPercentEncodingTestCases =
+        private static readonly TestCaseData[] ValidPercentEncodingTestCases =
         {
             new TestCaseData("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~"),
             new TestCaseData("\x00", "%00"),

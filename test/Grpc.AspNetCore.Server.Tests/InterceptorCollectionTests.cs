@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptors = new InterceptorCollection();
 
             // Act
-            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add(typeof(Interceptor)));
+            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add(typeof(Interceptor)))!;
 
             // Assert
             Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);
@@ -76,7 +76,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var interceptors = new InterceptorCollection();
 
             // Act
-            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add<Interceptor>());
+            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add<Interceptor>())!;
 
             // Assert
             Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);

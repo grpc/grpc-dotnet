@@ -169,7 +169,7 @@ namespace Grpc.Net.Client.Tests
             span[0] = byte.MaxValue;
             bufferWriter.Advance(3);
 
-            var ex = Assert.Throws<RpcException>(() => serializationContext.Complete());
+            var ex = Assert.Throws<RpcException>(() => serializationContext.Complete())!;
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
@@ -246,7 +246,7 @@ namespace Grpc.Net.Client.Tests
             var serializationContext = CreateSerializationContext(requestGrpcEncoding: "unknown");
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.Initialize());
+            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.Initialize())!;
 
             // Assert
             Assert.AreEqual("Could not find compression provider for 'unknown'.", ex.Message);
@@ -260,7 +260,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Initialize();
 
             // Act
-            var ex = Assert.Throws<RpcException>(() => serializationContext.Complete(new byte[] { 1, 2, 3 }));
+            var ex = Assert.Throws<RpcException>(() => serializationContext.Complete(new byte[] { 1, 2, 3 }))!;
 
             // Assert
             Assert.AreEqual(StatusCode.ResourceExhausted, ex.StatusCode);
@@ -279,7 +279,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Reset();
 
             // Assert
-            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.GetWrittenPayload().ToArray());
+            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.GetWrittenPayload().ToArray())!;
             Assert.AreEqual("Serialization did not return a payload.", ex.Message);
         }
 
@@ -301,7 +301,7 @@ namespace Grpc.Net.Client.Tests
             serializationContext.Reset();
 
             // Assert
-            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.GetWrittenPayload().ToArray());
+            var ex = Assert.Throws<InvalidOperationException>(() => serializationContext.GetWrittenPayload().ToArray())!;
             Assert.AreEqual("Serialization did not return a payload.", ex.Message);
         }
 

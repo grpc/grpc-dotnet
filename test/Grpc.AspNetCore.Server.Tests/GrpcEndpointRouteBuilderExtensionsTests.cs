@@ -45,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act & Assert
-            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<Greeter.GreeterBase>());
+            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<Greeter.GreeterBase>())!;
             Assert.AreEqual("Unable to find the required services. Please add all the required services by calling " +
                     "'IServiceCollection.AddGrpc' inside the call to 'ConfigureServices(...)' in the application startup code.", ex.Message);
         }
@@ -59,7 +59,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
 
             // Act & Assert
-            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<ErrorService>());
+            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcService<ErrorService>())!;
             Assert.AreEqual("Error binding gRPC service 'ErrorService'.", ex.Message);
             Assert.AreEqual("Error!", ex.InnerException?.InnerException?.Message);
         }
@@ -296,7 +296,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var ex = Assert.Throws<InvalidOperationException>(() =>
             {
                 routeBuilder.MapGrpcService<GreeterWithAttributeService>();
-            });
+            })!;
 
             // Assert
             Assert.AreEqual("Error binding gRPC service 'GreeterWithAttributeService'.", ex.Message);

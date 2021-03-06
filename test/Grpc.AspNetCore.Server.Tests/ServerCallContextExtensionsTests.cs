@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             var serverCallContext = new TestServerCallContext(DateTime.MinValue, CancellationToken.None);
 
-            var ex = Assert.Throws<InvalidOperationException>(() => serverCallContext.GetHttpContext());
+            var ex = Assert.Throws<InvalidOperationException>(() => serverCallContext.GetHttpContext())!;
             Assert.AreEqual("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by ASP.NET Core.", ex.Message);
         }
 

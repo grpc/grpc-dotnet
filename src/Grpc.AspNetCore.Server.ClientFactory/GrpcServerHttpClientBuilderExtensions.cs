@@ -84,8 +84,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
                 {
                     // Builder is from AddGrpcClient if options have been configured with the same name
-                    var namedOptions = service.ImplementationInstance as ConfigureNamedOptions<GrpcClientFactoryOptions>;
-                    if (namedOptions != null && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
+                    if (service.ImplementationInstance is ConfigureNamedOptions<GrpcClientFactoryOptions> namedOptions && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
                     {
                         return;
                     }

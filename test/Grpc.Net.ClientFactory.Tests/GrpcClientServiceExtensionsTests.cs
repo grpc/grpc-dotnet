@@ -153,7 +153,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services.AddGrpcClient<Greeter.GreeterClient>();
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => services.AddGrpcClient<GreeterClient>());
+            var ex = Assert.Throws<InvalidOperationException>(() => services.AddGrpcClient<GreeterClient>())!;
 
             // Assert
             Assert.AreEqual(
