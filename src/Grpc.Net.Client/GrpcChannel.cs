@@ -23,10 +23,15 @@ using System.Linq;
 using System.Net.Http;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Configuration;
+using GrpcServiceConfig = Grpc.Net.Client.Configuration.ServiceConfig;
 using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Grpc.Net.Client.Internal.Retry;
+using System.Threading;
+using System.Diagnostics;
 
 namespace Grpc.Net.Client
 {
@@ -38,9 +43,15 @@ namespace Grpc.Net.Client
     public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
+        internal const int DefaultMaxRetryAttempts = 5;
+        internal const long DefaultMaxRetryBufferSize = 1024 * 1024 * 16; // 16 MB
+        internal const long DefaultMaxRetryBufferPerCallSize = 1024 * 1024; // 1 MB
 
+        private readonly object _lock;
         private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
         private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
+        private readonly Dictionary<MethodKey, MethodConfig>? _serviceConfigMethods;
+        private readonly Random? _random;
         // Internal for testing
         internal readonly HashSet<IDisposable> ActiveCalls;
 
@@ -49,6 +60,9 @@ namespace Grpc.Net.Client
         internal bool IsWinHttp { get; }
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
+        internal int? MaxRetryAttempts { get; }
+        internal long? MaxRetryBufferSize { get; }
+        internal long? MaxRetryBufferPerCallSize { get; }
         internal ILoggerFactory LoggerFactory { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
         internal bool? IsSecure { get; }
@@ -56,6 +70,10 @@ namespace Grpc.Net.Client
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
+
+        // Stateful
+        internal ChannelRetryThrottling? RetryThrottling { get; }
+        internal long CurrentRetryBufferSize;
 
         // Options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
@@ -67,6 +85,7 @@ namespace Grpc.Net.Client
 
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
+            _lock = new object();
             _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
 
             // Dispose the HTTP client/handler if...
@@ -80,12 +99,21 @@ namespace Grpc.Net.Client
             IsWinHttp = channelOptions.HttpHandler != null ? HttpHandlerFactory.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.WinHttpHandler") : false;
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
             ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
+            MaxRetryAttempts = channelOptions.MaxRetryAttempts;
+            MaxRetryBufferSize = channelOptions.MaxRetryBufferSize;
+            MaxRetryBufferPerCallSize = channelOptions.MaxRetryBufferPerCallSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
             _createMethodInfoFunc = CreateMethodInfo;
             ActiveCalls = new HashSet<IDisposable>();
+            if (channelOptions.ServiceConfig is { } serviceConfig)
+            {
+                RetryThrottling = serviceConfig.RetryThrottling != null ? CreateChannelRetryThrottling(serviceConfig.RetryThrottling) : null;
+                _serviceConfigMethods = CreateServiceConfigMethods(serviceConfig);
+                _random = new Random();
+            }
 
             if (channelOptions.Credentials != null)
             {
@@ -97,6 +125,46 @@ namespace Grpc.Net.Client
 
                 ValidateChannelCredentials();
             }
+        }
+
+        private ChannelRetryThrottling CreateChannelRetryThrottling(RetryThrottlingPolicy retryThrottling)
+        {
+            if (retryThrottling.MaxTokens == null)
+            {
+                throw CreateException(RetryThrottlingPolicy.MaxTokensPropertyName);
+            }
+            if (retryThrottling.TokenRatio == null)
+            {
+                throw CreateException(RetryThrottlingPolicy.TokenRatioPropertyName);
+            }
+
+            return new ChannelRetryThrottling(retryThrottling.MaxTokens.GetValueOrDefault(), retryThrottling.TokenRatio.GetValueOrDefault(), LoggerFactory);
+
+            static InvalidOperationException CreateException(string propertyName)
+            {
+                return new InvalidOperationException($"Retry throttling missing required property '{propertyName}'.");
+            }
+        }
+
+        private static Dictionary<MethodKey, MethodConfig> CreateServiceConfigMethods(GrpcServiceConfig serviceConfig)
+        {
+            var configs = new Dictionary<MethodKey, MethodConfig>();
+            for (var i = 0; i < serviceConfig.MethodConfigs.Count; i++)
+            {
+                var methodConfig = serviceConfig.MethodConfigs[i];
+                for (var j = 0; j < methodConfig.Names.Count; j++)
+                {
+                    var name = methodConfig.Names[j];
+                    var methodKey = new MethodKey(name.Service, name.Method);
+                    if (configs.ContainsKey(methodKey))
+                    {
+                        throw new InvalidOperationException($"Duplicate method config found. Service: '{name.Service}', method: '{name.Method}'.");
+                    }
+                    configs[methodKey] = methodConfig;
+                }
+            }
+
+            return configs;
         }
 
         private static HttpMessageInvoker CreateInternalHttpInvoker(HttpMessageHandler? handler)
@@ -121,7 +189,7 @@ namespace Grpc.Net.Client
 
         internal void RegisterActiveCall(IDisposable grpcCall)
         {
-            lock (ActiveCalls)
+            lock (_lock)
             {
                 ActiveCalls.Add(grpcCall);
             }
@@ -129,7 +197,7 @@ namespace Grpc.Net.Client
 
         internal void FinishActiveCall(IDisposable grpcCall)
         {
-            lock (ActiveCalls)
+            lock (_lock)
             {
                 ActiveCalls.Remove(grpcCall);
             }
@@ -144,8 +212,31 @@ namespace Grpc.Net.Client
         {
             var uri = new Uri(method.FullName, UriKind.Relative);
             var scope = new GrpcCallScope(method.Type, uri);
+            var methodConfig = ResolveMethodConfig(method);
 
-            return new GrpcMethodInfo(scope, new Uri(Address, uri));
+            return new GrpcMethodInfo(scope, new Uri(Address, uri), methodConfig);
+        }
+
+        private MethodConfig? ResolveMethodConfig(IMethod method)
+        {
+            if (_serviceConfigMethods != null)
+            {
+                MethodConfig? methodConfig;
+                if (_serviceConfigMethods.TryGetValue(new MethodKey(method.ServiceName, method.Name), out methodConfig))
+                {
+                    return methodConfig;
+                }
+                if (_serviceConfigMethods.TryGetValue(new MethodKey(method.ServiceName, null), out methodConfig))
+                {
+                    return methodConfig;
+                }
+                if (_serviceConfigMethods.TryGetValue(new MethodKey(null, null), out methodConfig))
+                {
+                    return methodConfig;
+                }
+            }
+
+            return null;
         }
 
         private static Dictionary<string, ICompressionProvider> ResolveCompressionProviders(IList<ICompressionProvider>? compressionProviders)
@@ -156,7 +247,7 @@ namespace Grpc.Net.Client
             }
 
             var resolvedCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
-            for (int i = 0; i < compressionProviders.Count; i++)
+            for (var i = 0; i < compressionProviders.Count; i++)
             {
                 var compressionProvider = compressionProviders[i];
                 if (!resolvedCompressionProviders.ContainsKey(compressionProvider.EncodingName))
@@ -197,47 +288,6 @@ namespace Grpc.Net.Client
             var invoker = new HttpClientCallInvoker(this);
 
             return invoker;
-        }
-
-        private class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
-        {
-            public bool? IsSecure { get; private set; }
-            public List<CallCredentials>? CallCredentials { get; private set; }
-
-            public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
-            {
-                channelCredentials.InternalPopulateConfiguration(this, null);
-
-                if (callCredentials != null)
-                {
-                    if (CallCredentials == null)
-                    {
-                        CallCredentials = new List<CallCredentials>();
-                    }
-
-                    CallCredentials.Add(callCredentials);
-                }
-            }
-
-            public override void SetInsecureCredentials(object state)
-            {
-                IsSecure = false;
-            }
-
-            public override void SetSslCredentials(object state, string rootCertificates, KeyCertificatePair keyCertificatePair, VerifyPeerCallback verifyPeerCallback)
-            {
-                if (!string.IsNullOrEmpty(rootCertificates) ||
-                    keyCertificatePair != null ||
-                    verifyPeerCallback != null)
-                {
-                    throw new InvalidOperationException(
-                        $"{nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}. " +
-                        $"{nameof(GrpcChannel)} uses HttpClient to make gRPC calls and HttpClient automatically loads root certificates from the operating system certificate store. " +
-                        $"Client certificates should be configured on HttpClient. See https://aka.ms/AA6we64 for details.");
-                }
-
-                IsSecure = true;
-            }
         }
 
         /// <summary>
@@ -309,7 +359,7 @@ namespace Grpc.Net.Client
                 return;
             }
 
-            lock (ActiveCalls)
+            lock (_lock)
             {
                 if (ActiveCalls.Count > 0)
                 {
@@ -329,6 +379,59 @@ namespace Grpc.Net.Client
                 HttpInvoker.Dispose();
             }
             Disposed = true;
+        }
+
+        internal bool TryAddToRetryBuffer(long messageSize)
+        {
+            lock (_lock)
+            {
+                if (CurrentRetryBufferSize + messageSize > MaxRetryBufferSize)
+                {
+                    return false;
+                }
+
+                CurrentRetryBufferSize += messageSize;
+                return true;
+            }
+        }
+
+        internal void RemoveFromRetryBuffer(long messageSize)
+        {
+            lock (_lock)
+            {
+                CurrentRetryBufferSize -= messageSize;
+            }
+        }
+
+        internal int GetRandomNumber(int minValue, int maxValue)
+        {
+            CompatibilityExtensions.Assert(_random != null);
+
+            lock (_lock)
+            {
+                return _random.Next(minValue, maxValue);
+            }
+        }
+
+        private struct MethodKey : IEquatable<MethodKey>
+        {
+            public MethodKey(string? service, string? method)
+            {
+                Service = service;
+                Method = method;
+            }
+
+            public string? Service { get; }
+            public string? Method { get; }
+
+            public override bool Equals(object? obj) => obj is MethodKey n ? Equals(n) : false;
+
+            // Service and method names are case sensitive.
+            public bool Equals(MethodKey other) => other.Service == Service && other.Method == Method;
+
+            public override int GetHashCode() =>
+                (Service != null ? StringComparer.Ordinal.GetHashCode(Service) : 0) ^
+                (Method != null ? StringComparer.Ordinal.GetHashCode(Method) : 0);
         }
     }
 }

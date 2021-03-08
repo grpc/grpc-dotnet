@@ -19,6 +19,8 @@
 using System;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Retry;
 
 namespace Grpc.Net.Client.Internal
 {
@@ -40,7 +42,7 @@ namespace Grpc.Net.Client.Internal
         /// </summary>
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartClientStreaming();
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
@@ -60,7 +62,7 @@ namespace Grpc.Net.Client.Internal
         /// </summary>
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartDuplexStreaming();
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
@@ -79,7 +81,7 @@ namespace Grpc.Net.Client.Internal
         /// </summary>
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartServerStreaming(request);
 
             return new AsyncServerStreamingCall<TResponse>(
@@ -96,7 +98,7 @@ namespace Grpc.Net.Client.Internal
         /// </summary>
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
         {
-            var call = CreateGrpcCall<TRequest, TResponse>(method, options);
+            var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartUnary(request);
 
             return new AsyncUnaryCall<TResponse>(
@@ -117,19 +119,47 @@ namespace Grpc.Net.Client.Internal
             return call.ResponseAsync.GetAwaiter().GetResult();
         }
 
-        private GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(
+        private static IGrpcCall<TRequest, TResponse> CreateRootGrpcCall<TRequest, TResponse>(
+            GrpcChannel channel,
             Method<TRequest, TResponse> method,
             CallOptions options)
             where TRequest : class
             where TResponse : class
         {
-            if (Channel.Disposed)
+            var methodInfo = channel.GetCachedGrpcMethodInfo(method);
+            var retryPolicy = methodInfo.MethodConfig?.RetryPolicy;
+            var hedgingPolicy = methodInfo.MethodConfig?.HedgingPolicy;
+
+            if (retryPolicy != null)
+            {
+                return new RetryCall<TRequest, TResponse>(retryPolicy, channel, method, options);
+            }
+            else if (hedgingPolicy != null)
+            {
+                return new HedgingCall<TRequest, TResponse>(hedgingPolicy, channel, method, options);
+            }
+            else
+            {
+                // No retry/hedge policy configured. Fast path!
+                return CreateGrpcCall<TRequest, TResponse>(channel, method, options, attempt: 1);
+            }
+        }
+
+        public static GrpcCall<TRequest, TResponse> CreateGrpcCall<TRequest, TResponse>(
+            GrpcChannel channel,
+            Method<TRequest, TResponse> method,
+            CallOptions options,
+            int attempt)
+            where TRequest : class
+            where TResponse : class
+        {
+            if (channel.Disposed)
             {
                 throw new ObjectDisposedException(nameof(GrpcChannel));
             }
 
-            var methodInfo = Channel.GetCachedGrpcMethodInfo(method);
-            var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, Channel);
+            var methodInfo = channel.GetCachedGrpcMethodInfo(method);
+            var call = new GrpcCall<TRequest, TResponse>(method, methodInfo, options, channel, attempt);
 
             return call;
         }
@@ -139,10 +169,10 @@ namespace Grpc.Net.Client.Internal
             where TRequest : class
             where TResponse : class
         {
-            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((GrpcCall<TRequest, TResponse>)state).GetResponseHeadersAsync();
-            internal static readonly Func<object, Status> GetStatus = state => ((GrpcCall<TRequest, TResponse>)state).GetStatus();
-            internal static readonly Func<object, Metadata> GetTrailers = state => ((GrpcCall<TRequest, TResponse>)state).GetTrailers();
-            internal static readonly Action<object> Dispose = state => ((GrpcCall<TRequest, TResponse>)state).Dispose();
+            internal static readonly Func<object, Task<Metadata>> GetResponseHeadersAsync = state => ((IGrpcCall<TRequest, TResponse>)state).GetResponseHeadersAsync();
+            internal static readonly Func<object, Status> GetStatus = state => ((IGrpcCall<TRequest, TResponse>)state).GetStatus();
+            internal static readonly Func<object, Metadata> GetTrailers = state => ((IGrpcCall<TRequest, TResponse>)state).GetTrailers();
+            internal static readonly Action<object> Dispose = state => ((IGrpcCall<TRequest, TResponse>)state).Dispose();
         }
     }
 }

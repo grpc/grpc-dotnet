@@ -31,7 +31,7 @@ namespace Grpc.Net.Client.Internal
         where TRequest : class
         where TResponse : class
     {
-        // Getting logger name from generic type is slow
+        // Getting logger name from generic type is slow. Cached copy.
         private const string LoggerName = "Grpc.Net.Client.Internal.HttpContentClientStreamReader";
 
         private static readonly Task<bool> FinishedTask = Task.FromResult(false);

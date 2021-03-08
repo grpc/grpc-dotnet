@@ -251,15 +251,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         {
             static async Task WriteUntilError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
             {
-                var i = 0;
-                while (true)
+                for (var i = 0; i < 5; i++)
                 {
                     var message = $"How are you {request.Name}? {i}";
                     await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
-                    i++;
-
                     await Task.Delay(10);
                 }
+
+                var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                context.CancellationToken.Register(s => ((TaskCompletionSource<bool>)s!).SetResult(true), tcs);
+                await tcs.Task;
+
+                await responseStream.WriteAsync(new HelloReply { Message = "Write after deadline" }).DefaultTimeout();
             }
 
             // Arrange

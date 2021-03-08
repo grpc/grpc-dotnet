@@ -33,9 +33,9 @@ namespace Grpc.Tests.Shared
 
         public static async Task AssertIsTrueRetryAsync(Func<bool> assert, string message)
         {
-            const int Retrys = 10;
+            const int Retries = 10;
 
-            for (int i = 0; i < Retrys; i++)
+            for (var i = 0; i < Retries; i++)
             {
                 if (i > 0)
                 {
@@ -48,13 +48,13 @@ namespace Grpc.Tests.Shared
                 }
             }
 
-            throw new Exception($"Assert failed after {Retrys} retries: {message}");
+            throw new Exception($"Assert failed after {Retries} retries: {message}");
         }
 
         public static async Task RunParallel(int count, Func<int, Task> action)
         {
             var actionTasks = new Task[count];
-            for (int i = 0; i < actionTasks.Length; i++)
+            for (var i = 0; i < actionTasks.Length; i++)
             {
                 actionTasks[i] = action(i);
             }

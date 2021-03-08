@@ -201,7 +201,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             httpRequest.Content = new PushStreamContent(
                 async s =>
                 {
-                    for (int i = 0; i < 10; i++)
+                    for (var i = 0; i < 10; i++)
                     {
                         await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
                         await s.FlushAsync().DefaultTimeout();

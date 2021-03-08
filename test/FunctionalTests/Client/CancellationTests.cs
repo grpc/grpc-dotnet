@@ -107,7 +107,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 try
                 {
-                    for (int i = 0; i < interations; i++)
+                    for (var i = 0; i < interations; i++)
                     {
                         Logger.LogInformation($"Staring {taskIndex}-{i}");
 
