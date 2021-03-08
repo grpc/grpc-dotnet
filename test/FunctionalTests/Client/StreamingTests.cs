@@ -350,11 +350,35 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 return false;
             });
 
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            async Task<DataComplete> ClientStreamedData(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                context.CancellationToken.Register(() => tcs.SetResult(null));
+
+                var total = 0L;
+                await foreach (var message in requestStream.ReadAllAsync())
+                {
+                    total += message.Data.Length;
+
+                    if (message.ServerDelayMilliseconds > 0)
+                    {
+                        await Task.Delay(message.ServerDelayMilliseconds);
+                    }
+                }
+
+                return new DataComplete
+                {
+                    Size = total
+                };
+            }
+
             // Arrange
-            var data = CreateTestData(1024 * 64); // 64 KB
+            var data = CreateTestData(1024); // 1 KB
+
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataComplete>(ClientStreamedData, "ClientStreamedDataTimeout");
 
             var httpClient = Fixture.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(0.5);
+            httpClient.Timeout = TimeSpan.FromSeconds(0.3);
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
@@ -362,30 +386,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 LoggerFactory = LoggerFactory
             });
 
-            var client = new StreamService.StreamServiceClient(channel);
+            var client = TestClientFactory.Create(channel, method);
+
             var dataMessage = new DataMessage
             {
                 Data = ByteString.CopyFrom(data)
             };
 
             // Act
-            var call = client.ClientStreamedData();
+            var call = client.ClientStreamingCall();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
-            {
-                while (true)
-                {
-                    await call.RequestStream.WriteAsync(dataMessage).DefaultTimeout();
+            await call.RequestStream.WriteAsync(dataMessage).DefaultTimeout();
 
-                    await Task.Delay(100);
-                }
-            }).DefaultTimeout();
+            await tcs.Task.DefaultTimeout();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(dataMessage)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
 
             AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: ''.");
+
+            await TestHelpers.AssertIsTrueRetryAsync(
+                () => HasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'ClientStreamedDataTimeout'."),
+                "Wait for server error so it doesn't impact other tests.").DefaultTimeout();
         }
 
         [Test]
@@ -539,12 +564,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             });
 
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+            var writeTcs = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            Task? writeTask = null;
             async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
             {
-                writeTask = Task.Run(async () =>
+                var writeTask = Task.Run(async () =>
                 {
                     if (writeBeforeExit)
                     {
@@ -557,6 +581,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     await responseStream.WriteAsync(new DataMessage());
                 });
+                writeTcs.SetResult(writeTask);
 
                 await tcs.Task;
             }
@@ -581,7 +606,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask!).DefaultTimeout();
+            var writeTask = await writeTcs.Task.DefaultTimeout();
+            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask).DefaultTimeout();
             Assert.AreEqual("Can't write the message because the request is complete.", serverException.Message);
 
             // Ensure the server abort reaches the client

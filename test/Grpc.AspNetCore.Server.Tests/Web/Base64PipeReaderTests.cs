@@ -130,7 +130,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
 
             Assert.IsFalse(resultTask.IsCompleted);
 
-            for (int i = 0; i < base64Data.Length; i++)
+            for (var i = 0; i < base64Data.Length; i++)
             {
                 await testPipe.Writer.WriteAsync(base64Data.AsMemory(i, 1));
                 await Task.Delay(10);

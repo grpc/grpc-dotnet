@@ -172,7 +172,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task UnaryMethod_DeadlineExceededCall_PollingCountersUpdatedCorrectly()
         {
             // Loop to ensure test is resilent across multiple runs
-            for (int i = 1; i < 3; i++)
+            for (var i = 1; i < 3; i++)
             {
                 var syncPoint = new SyncPoint();
 
@@ -248,7 +248,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task UnaryMethod_CancelCall_PollingCountersUpdatedCorrectly()
         {
             // Loop to ensure test is resilent across multiple runs
-            for (int i = 1; i < 3; i++)
+            for (var i = 1; i < 3; i++)
             {
                 var syncPoint = new SyncPoint();
                 var cts = new CancellationTokenSource();

@@ -27,6 +27,11 @@ namespace Grpc.Tests.Shared
         public static async Task<TException> ThrowsAsync<TException>(Func<Task> action, params string[] possibleMessages)
             where TException : Exception
         {
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
             try
             {
                 await action();

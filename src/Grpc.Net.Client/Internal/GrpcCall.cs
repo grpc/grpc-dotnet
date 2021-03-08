@@ -18,8 +18,10 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -27,6 +29,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
+using Grpc.Net.Client.Configuration;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
@@ -36,18 +39,19 @@ using ValueTask = System.Threading.Tasks.Task;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IDisposable
+    internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCall<TRequest, TResponse>
         where TRequest : class
         where TResponse : class
     {
-        private const string ErrorStartingCallMessage = "Error starting gRPC call.";
+        internal const string ErrorStartingCallMessage = "Error starting gRPC call.";
 
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<Status> _callTcs;
         private readonly DateTime _deadline;
         private readonly GrpcMethodInfo _grpcMethodInfo;
+        private readonly int _attemptCount;
 
-        private Task<HttpResponseMessage>? _httpResponseTask;
+        internal Task<HttpResponseMessage>? _httpResponseTask;
         private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
         private CancellationTokenRegistration? _ctsRegistration;
@@ -57,10 +61,12 @@ namespace Grpc.Net.Client.Internal
 
         // These are set depending on the type of gRPC call
         private TaskCompletionSource<TResponse>? _responseTcs;
+
+        public int MessagesWritten { get; private set; }
         public HttpContentClientStreamWriter<TRequest, TResponse>? ClientStreamWriter { get; private set; }
         public HttpContentClientStreamReader<TRequest, TResponse>? ClientStreamReader { get; private set; }
 
-        public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel)
+        public GrpcCall(Method<TRequest, TResponse> method, GrpcMethodInfo grpcMethodInfo, CallOptions options, GrpcChannel channel, int attemptCount)
             : base(options, channel)
         {
             // Validate deadline before creating any objects that require cleanup
@@ -72,9 +78,12 @@ namespace Grpc.Net.Client.Internal
             Method = method;
             _grpcMethodInfo = grpcMethodInfo;
             _deadline = options.Deadline ?? DateTime.MaxValue;
+            _attemptCount = attemptCount;
 
             Channel.RegisterActiveCall(this);
         }
+
+        public MethodConfigInfo? MethodConfig => _grpcMethodInfo.MethodConfig;
 
         private void ValidateDeadline(DateTime? deadline)
         {
@@ -94,40 +103,75 @@ namespace Grpc.Net.Client.Internal
         public override Type RequestType => typeof(TRequest);
         public override Type ResponseType => typeof(TResponse);
 
-        public void StartUnary(TRequest request)
-        {
-            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        IClientStreamWriter<TRequest>? IGrpcCall<TRequest, TResponse>.ClientStreamWriter => ClientStreamWriter;
+        IAsyncStreamReader<TResponse>? IGrpcCall<TRequest, TResponse>.ClientStreamReader => ClientStreamReader;
 
-            var timeout = GetTimeout();
-            var message = CreateHttpRequestMessage(timeout);
-            SetMessageContent(request, message);
-            _ = RunCall(message, timeout);
-        }
+        public void StartUnary(TRequest request) => StartUnaryCore(CreatePushUnaryContent(request));
 
         public void StartClientStreaming()
         {
-            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this);
+            var content = new PushStreamContent<TRequest, TResponse>(clientStreamWriter);
 
-            var timeout = GetTimeout();
-            var message = CreateHttpRequestMessage(timeout);
-            CreateWriter(message);
-            _ = RunCall(message, timeout);
+            StartClientStreamingCore(clientStreamWriter, content);
         }
 
-        public void StartServerStreaming(TRequest request)
+        public void StartServerStreaming(TRequest request) => StartServerStreamingCore(CreatePushUnaryContent(request));
+
+        private HttpContent CreatePushUnaryContent(TRequest request)
         {
-            var timeout = GetTimeout();
-            var message = CreateHttpRequestMessage(timeout);
-            SetMessageContent(request, message);
-            ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
-            _ = RunCall(message, timeout);
+            return !Channel.IsWinHttp
+                ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
+                : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
+
+            ValueTask WriteAsync(TRequest request, Stream stream)
+            {
+                return WriteMessageAsync(stream, request, Options);
+            }
         }
 
         public void StartDuplexStreaming()
         {
+            var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this);
+            var content = new PushStreamContent<TRequest, TResponse>(clientStreamWriter);
+
+            StartDuplexStreamingCore(clientStreamWriter, content);
+        }
+
+        internal void StartUnaryCore(HttpContent content)
+        {
+            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
             var timeout = GetTimeout();
             var message = CreateHttpRequestMessage(timeout);
-            CreateWriter(message);
+            SetMessageContent(content, message);
+            _ = RunCall(message, timeout);
+        }
+
+        internal void StartServerStreamingCore(HttpContent content)
+        {
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
+            SetMessageContent(content, message);
+            ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
+            _ = RunCall(message, timeout);
+        }
+
+        internal void StartClientStreamingCore(HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter, HttpContent content)
+        {
+            _responseTcs = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
+            SetWriter(message, clientStreamWriter, content);
+            _ = RunCall(message, timeout);
+        }
+
+        public void StartDuplexStreamingCore(HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter, HttpContent content)
+        {
+            var timeout = GetTimeout();
+            var message = CreateHttpRequestMessage(timeout);
+            SetWriter(message, clientStreamWriter, content);
             ClientStreamReader = new HttpContentClientStreamReader<TRequest, TResponse>(this);
             _ = RunCall(message, timeout);
         }
@@ -138,14 +182,14 @@ namespace Grpc.Net.Client.Internal
             {
                 Disposed = true;
 
-                Cleanup(new Status(StatusCode.Cancelled, "gRPC call disposed."));
+                Cleanup(GrpcProtocolConstants.DisposeCanceledStatus);
             }
         }
 
         /// <summary>
         /// Clean up can be called by:
         /// 1. The user. AsyncUnaryCall.Dispose et al will call this on Dispose
-        /// 2. <see cref="ValidateHeaders"/> will call dispose if errors fail validation
+        /// 2. <see cref="GrpcCall.ValidateHeaders"/> will call dispose if errors fail validation
         /// 3. <see cref="FinishResponseAndCleanUp"/> will call dispose
         /// </summary>
         private void Cleanup(Status status)
@@ -254,7 +298,15 @@ namespace Grpc.Net.Client.Internal
                     await CallTask.ConfigureAwait(false);
                 }
 
-                return GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
+                var metadata = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
+                
+                // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exposed-retry-metadata
+                if (_attemptCount > 1)
+                {
+                    metadata.Add(GrpcProtocolConstants.RetryPreviousAttemptsHeader, (_attemptCount - 1).ToString(CultureInfo.InvariantCulture));
+                }
+
+                return metadata;
             }
             catch (Exception ex) when (ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException))
             {
@@ -281,85 +333,6 @@ namespace Grpc.Net.Client.Internal
             return _responseTcs.Task;
         }
 
-        private Status? ValidateHeaders(HttpResponseMessage httpResponse)
-        {
-            GrpcCallLog.ResponseHeadersReceived(Logger);
-
-            // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
-            // An explicitly specified status header has priority over other failing statuses
-            if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
-            {
-                // Trailers are in the header because there is no message.
-                // Note that some default headers will end up in the trailers (e.g. Date, Server).
-                Trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
-                return status;
-            }
-
-            // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
-            // Check that the response wasn't downgraded to HTTP/1.1.
-            if (httpResponse.Version < GrpcProtocolConstants.Http2Version)
-            {
-                return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
-            }
-
-            if (httpResponse.StatusCode != HttpStatusCode.OK)
-            {
-                var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
-                return new Status(statusCode, "Bad gRPC response. HTTP status code: " + (int)httpResponse.StatusCode);
-            }
-            
-            if (httpResponse.Content?.Headers.ContentType == null)
-            {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");
-            }
-
-            var grpcEncoding = httpResponse.Content.Headers.ContentType;
-            if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, grpcEncoding?.MediaType))
-            {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
-            }
-
-            // Call is still in progress
-            return null;
-        }
-
-        private static StatusCode MapHttpStatusToGrpcCode(HttpStatusCode httpStatusCode)
-        {
-            switch (httpStatusCode)
-            {
-                case HttpStatusCode.BadRequest:  // 400
-#if !NETSTANDARD2_0
-                case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
-#else
-                case (HttpStatusCode)431:
-#endif
-                    return StatusCode.Internal;
-                case HttpStatusCode.Unauthorized:  // 401
-                    return StatusCode.Unauthenticated;
-                case HttpStatusCode.Forbidden:  // 403
-                    return StatusCode.PermissionDenied;
-                case HttpStatusCode.NotFound:  // 404
-                    return StatusCode.Unimplemented;
-#if !NETSTANDARD2_0
-                case HttpStatusCode.TooManyRequests:  // 429
-#else
-                case (HttpStatusCode)429:
-#endif
-                case HttpStatusCode.BadGateway:  // 502
-                case HttpStatusCode.ServiceUnavailable:  // 503
-                case HttpStatusCode.GatewayTimeout:  // 504
-                    return StatusCode.Unavailable;
-                default:
-                    if ((int)httpStatusCode >= 100 && (int)httpStatusCode < 200)
-                    {
-                        // 1xx. These headers should have been ignored.
-                        return StatusCode.Internal;
-                    }
-
-                    return StatusCode.Unknown;
-            }
-        }
-
         public Metadata GetTrailers()
         {
             using (StartScope())
@@ -375,32 +348,17 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private void SetMessageContent(TRequest request, HttpRequestMessage message)
+        private void SetMessageContent(HttpContent content, HttpRequestMessage message)
         {
             RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
-
-            if (!Channel.IsWinHttp)
-            {
-                message.Content = new PushUnaryContent<TRequest, TResponse>(
-                    request,
-                    this,
-                    GrpcProtocolConstants.GrpcContentTypeHeaderValue);
-            }
-            else
-            {
-                // WinHttp doesn't support streaming request data so a length needs to be specified.
-                message.Content = new LengthUnaryContent<TRequest, TResponse>(
-                    request,
-                    this,
-                    GrpcProtocolConstants.GrpcContentTypeHeaderValue);
-            }
+            message.Content = content;
         }
 
         public void CancelCallFromCancellationToken()
         {
             using (StartScope())
             {
-                CancelCall(new Status(StatusCode.Cancelled, "Call canceled by the client."));
+                CancelCall(GrpcProtocolConstants.ClientCanceledStatus);
             }
         }
 
@@ -478,10 +436,11 @@ namespace Grpc.Net.Client.Internal
                     }
                     catch (Exception ex)
                     {
-                        // Don't log OperationCanceledException if deadline has exceeded.
+                        // Don't log OperationCanceledException if deadline has exceeded
+                        // or the call has been canceled.
                         if (ex is OperationCanceledException &&
                             _callTcs.Task.IsCompletedSuccessfully() &&
-                            _callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded)
+                            (_callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded || _callTcs.Task.Result.StatusCode == StatusCode.Cancelled))
                         {
                             throw;
                         }
@@ -492,7 +451,12 @@ namespace Grpc.Net.Client.Internal
                         }
                     }
 
-                    status = ValidateHeaders(HttpResponse);
+                    GrpcCallLog.ResponseHeadersReceived(Logger);
+                    status = ValidateHeaders(HttpResponse, out var trailers);
+                    if (trailers != null)
+                    {
+                        Trailers = trailers;
+                    }
 
                     // A status means either the call has failed or grpc-status was returned in the response header
                     if (status != null)
@@ -651,10 +615,7 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
-                var statusCode = GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex);
-
-                status = new Status(statusCode, summary + " " + exceptionMessage, ex);
+                status = GrpcProtocolHelpers.CreateStatusFromException(summary, ex);
                 resolvedException = CreateRpcException(status.Value);
                 return true;
             }
@@ -816,12 +777,11 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        private void CreateWriter(HttpRequestMessage message)
+        private void SetWriter(HttpRequestMessage message, HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter, HttpContent content)
         {
             RequestGrpcEncoding = GrpcProtocolHelpers.GetRequestEncoding(message.Headers);
-            ClientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(this);
-
-            message.Content = new PushStreamContent<TRequest, TResponse>(ClientStreamWriter, GrpcProtocolConstants.GrpcContentTypeHeaderValue);
+            ClientStreamWriter = clientStreamWriter;
+            message.Content = content;
         }
 
         private HttpRequestMessage CreateHttpRequestMessage(TimeSpan? timeout)
@@ -841,6 +801,12 @@ namespace Grpc.Net.Client.Internal
             // A missing TE header results in servers aborting the gRPC call.
             headers.TryAddWithoutValidation(GrpcProtocolConstants.TEHeader, GrpcProtocolConstants.TEHeaderValue);
             headers.TryAddWithoutValidation(GrpcProtocolConstants.MessageAcceptEncodingHeader, Channel.MessageAcceptEncoding);
+
+            // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exposed-retry-metadata
+            if (_attemptCount > 1)
+            {
+                headers.TryAddWithoutValidation(GrpcProtocolConstants.RetryPreviousAttemptsHeader, (_attemptCount - 1).ToString(CultureInfo.InvariantCulture));
+            }
 
             if (Options.Headers != null && Options.Headers.Count > 0)
             {
@@ -929,38 +895,26 @@ namespace Grpc.Net.Client.Internal
 
         internal ValueTask WriteMessageAsync(
             Stream stream,
-            TRequest message,
-            Action<TRequest, SerializationContext> contextualSerializer,
-            CallOptions callOptions)
+            ReadOnlyMemory<byte> message,
+            CancellationToken cancellationToken)
         {
+            MessagesWritten++;
             return stream.WriteMessageAsync(
                 this,
                 message,
-                contextualSerializer,
-                callOptions);
-        }
-
-        internal ValueTask WriteMessageAsync<TSerializationContext>(
-            Stream stream,
-            TRequest message,
-            Action<TRequest, SerializationContext> contextualSerializer,
-            CallOptions callOptions) where TSerializationContext : SerializationContext, IMemoryOwner<byte>
-        {
-            return stream.WriteMessageAsync(
-                this,
-                message,
-                contextualSerializer,
-                callOptions);
+                cancellationToken);
         }
 
         internal ValueTask WriteMessageAsync(
             Stream stream,
-            ReadOnlyMemory<byte> message,
+            TRequest message,
             CallOptions callOptions)
         {
+            MessagesWritten++;
             return stream.WriteMessageAsync(
                 this,
                 message,
+                Method.RequestMarshaller.ContextualSerializer,
                 callOptions);
         }
 
@@ -980,6 +934,11 @@ namespace Grpc.Net.Client.Internal
                 grpcEncoding,
                 singleMessage,
                 cancellationToken);
+        }
+
+        public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+        {
+            return ClientStreamWriter!.WriteAsync(writeFunc, state);
         }
     }
 }

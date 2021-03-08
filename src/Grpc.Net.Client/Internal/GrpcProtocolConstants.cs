@@ -22,6 +22,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using Grpc.Core;
 using Grpc.Net.Compression;
 
 namespace Grpc.Net.Client.Internal
@@ -46,8 +47,10 @@ namespace Grpc.Net.Client.Internal
         internal const string IdentityGrpcEncoding = "identity";
 
         internal const string MessageAcceptEncodingHeader = "grpc-accept-encoding";
-
         internal const string CompressionRequestAlgorithmHeader = "grpc-internal-encoding-request";
+
+        internal const string RetryPushbackHeader = "grpc-retry-pushback-ms";
+        internal const string RetryPreviousAttemptsHeader = "grpc-previous-rpc-attempts";
 
         internal static readonly Dictionary<string, ICompressionProvider> DefaultCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal)
         {
@@ -64,6 +67,11 @@ namespace Grpc.Net.Client.Internal
         internal static readonly string UserAgentHeaderValue;
         internal static readonly string TEHeader;
         internal static readonly string TEHeaderValue;
+
+        internal static readonly Status DeadlineExceededStatus = new Status(StatusCode.DeadlineExceeded, string.Empty);
+        internal static readonly Status ThrottledStatus = new Status(StatusCode.Cancelled, "Retries stopped because retry throttling is active.");
+        internal static readonly Status ClientCanceledStatus = new Status(StatusCode.Cancelled, "Call canceled by the client.");
+        internal static readonly Status DisposeCanceledStatus = new Status(StatusCode.Cancelled, "gRPC call disposed.");
 
         internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
         {

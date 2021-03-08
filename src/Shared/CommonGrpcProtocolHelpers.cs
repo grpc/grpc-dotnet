@@ -31,7 +31,7 @@ namespace Grpc.Shared
         // - The timer is rescheduled to run in 0.5ms.
         // - The deadline callback is raised again and there is now 0.4ms until deadline.
         // - The timer is rescheduled to run in 0.4ms, etc.
-        private static readonly int TimerEpsilonMilliseconds = 4;
+        private static readonly int TimerEpsilonMilliseconds = 7;
 
         public static long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
         {
@@ -41,7 +41,7 @@ namespace Grpc.Shared
 
             // Add epislon to take into account Timer precision.
             // This will avoid rescheduling the timer multiple times, but means deadline
-            // might run for some extra milliseconds
+            // might run slightly longer than requested.
             dueTimeMilliseconds += TimerEpsilonMilliseconds;
 
             dueTimeMilliseconds = Math.Min(dueTimeMilliseconds, maxTimerDueTime);

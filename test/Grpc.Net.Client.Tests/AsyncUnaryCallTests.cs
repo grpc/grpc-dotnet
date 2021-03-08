@@ -43,10 +43,12 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             HttpRequestMessage? httpRequestMessage = null;
+            long? requestContentLength = null;
 
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 httpRequestMessage = request;
+                requestContentLength = httpRequestMessage!.Content!.Headers!.ContentLength;
 
                 HelloReply reply = new HelloReply
                 {
@@ -72,6 +74,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(new MediaTypeHeaderValue("application/grpc"), httpRequestMessage.Content?.Headers?.ContentType);
             Assert.AreEqual(GrpcProtocolConstants.TEHeaderValue, httpRequestMessage.Headers.TE.Single().Value);
             Assert.AreEqual("identity,gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
+            Assert.AreEqual(null, requestContentLength);
 
             var userAgent = httpRequestMessage.Headers.UserAgent.Single()!;
             Assert.AreEqual("grpc-dotnet", userAgent.Product?.Name);
@@ -81,6 +84,41 @@ namespace Grpc.Net.Client.Tests
             // Sending a long user agent with each call has performance implications.
             Assert.IsFalse(userAgent.Product!.Version!.Contains('+'));
             Assert.IsTrue(userAgent.Product!.Version!.Length <= 10);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_HasWinHttpHandler_ContentLengthOnHttpRequestMessagePopulated()
+        {
+            // Arrange
+            HttpRequestMessage? httpRequestMessage = null;
+            long? requestContentLength = null;
+
+            var handler = TestHttpMessageHandler.Create(async request =>
+            {
+                httpRequestMessage = request;
+                requestContentLength = httpRequestMessage!.Content!.Headers!.ContentLength;
+
+                HelloReply reply = new HelloReply
+                {
+                    Message = "Hello world"
+                };
+
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            // Just need to have a type called WinHttpHandler to activate new behavior.
+            var winHttpHandler = new WinHttpHandler(handler);
+            var invoker = HttpClientCallInvokerFactory.Create(winHttpHandler, "https://localhost");
+
+            // Act
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "Hello world" });
+
+            // Assert
+            Assert.AreEqual("Hello world", rs.Message);
+
+            Assert.IsNotNull(httpRequestMessage);
+            Assert.AreEqual(18, requestContentLength);
         }
 
         [Test]
@@ -126,7 +164,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessResponse_ReturnHeaders()
+        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessResponse_ThrowRpcError()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
@@ -144,7 +182,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessHeaders_ThrowRpcError()
+        public async Task AsyncUnaryCall_NonOkStatusTrailer_AccessHeaders_ReturnHeaders()
         {
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(request =>

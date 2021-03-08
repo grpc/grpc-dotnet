@@ -50,7 +50,7 @@ namespace Grpc.AspNetCore.Server
             {
                 throw new ArgumentNullException(nameof(arguments));
             }
-            for (int i = 0; i < arguments.Length; i++)
+            for (var i = 0; i < arguments.Length; i++)
             {
                 if (arguments[i] == null)
                 {

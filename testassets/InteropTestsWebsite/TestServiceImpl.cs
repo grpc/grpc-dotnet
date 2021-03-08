@@ -71,6 +71,7 @@ namespace Grpc.Testing
                 sum += request.Payload.Body.Length;
                 return Task.CompletedTask;
             });
+
             return new StreamingInputCallResponse { AggregatedPayloadSize = sum };
         }
 

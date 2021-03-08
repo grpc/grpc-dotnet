@@ -16,40 +16,37 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal.Http
+namespace Grpc.Net.Client.Internal
 {
+    // TODO: Still need generic args?
     internal class PushUnaryContent<TRequest, TResponse> : HttpContent
         where TRequest : class
         where TResponse : class
     {
-        private readonly TRequest _content;
-        private readonly GrpcCall<TRequest, TResponse> _call;
+        private readonly TRequest _request;
+        private readonly Func<TRequest, Stream, ValueTask> _startCallback;
 
-        public PushUnaryContent(TRequest content, GrpcCall<TRequest, TResponse> call, MediaTypeHeaderValue mediaType)
+        public PushUnaryContent(TRequest request, Func<TRequest, Stream, ValueTask> startCallback)
         {
-            _content = content;
-            _call = call;
-            Headers.ContentType = mediaType;
+            _request = request;
+            _startCallback = startCallback;
+            Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
         }
 
         protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
 #pragma warning disable CA2012 // Use ValueTasks correctly
-            var writeMessageTask = _call.WriteMessageAsync(
-                stream,
-                _content,
-                _call.Method.RequestMarshaller.ContextualSerializer,
-                _call.Options);
+            var writeMessageTask = _startCallback(_request, stream);
 #pragma warning restore CA2012 // Use ValueTasks correctly
             if (writeMessageTask.IsCompletedSuccessfully())
             {

@@ -402,12 +402,23 @@ namespace Grpc.Net.Client.Internal
                 }
                 else if (current is IOException)
                 {
+                    // TODO(JamesNK): IOException is also returned for aborted requests.
+                    // Need to think about what is the best status for aborted requests.
+
                     // IOException happens if there is a protocol mismatch.
                     return StatusCode.Unavailable;
                 }
             } while ((current = current.InnerException) != null);
 
             return StatusCode.Internal;
+        }
+
+        public static Status CreateStatusFromException(string summary, Exception ex)
+        {
+            var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
+            var statusCode = ResolveRpcExceptionStatusCode(ex);
+
+            return new Status(statusCode, summary + " " + exceptionMessage, ex);
         }
     }
 }
