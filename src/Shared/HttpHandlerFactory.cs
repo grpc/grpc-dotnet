@@ -43,10 +43,10 @@ namespace Grpc.Shared
             return new HttpClientHandler();
 #else
             var message =
-                $"gRPC requires extra configuration to successfully make RPC calls on older platforms such " +
-                $"as .NET Framework. An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)} or " +
-                $"{nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpClient)}. The configured HTTP provider must either support HTTP/2 or " +
-                $"be configured to use gRPC-Web. See https://aka.ms/pzkMXDs for details.";
+                $"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. " +
+                $"An HTTP provider must be specified using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}." +
+                $"The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. " +
+                $"See https://aka.ms/pzkMXDs for details.";
             throw new PlatformNotSupportedException(message);
 #endif
         }
