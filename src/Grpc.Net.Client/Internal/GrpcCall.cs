@@ -120,6 +120,9 @@ namespace Grpc.Net.Client.Internal
 
         private HttpContent CreatePushUnaryContent(TRequest request)
         {
+            // WinHttp currently doesn't support streaming request data so a length needs to be specified.
+            // This may change in a future version of Windows. When that happens an OS build version check
+            // can be added here to avoid WinHttpUnaryContent.
             return !Channel.IsWinHttp
                 ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
                 : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
