@@ -15,8 +15,8 @@
 
 echo "Starting gRPC-Web interop test containers"
 
-docker-compose -f docker-compose.yml build grpcweb-server
-docker-compose -f docker-compose.yml build grpcweb-client
+docker-compose -f docker-compose.yml --exit-code-from build grpcweb-server
+docker-compose -f docker-compose.yml --exit-code-from build grpcweb-client
 
 docker-compose -f docker-compose.yml up -d grpcweb-server
 docker-compose -f docker-compose.yml up -d grpcweb-client
