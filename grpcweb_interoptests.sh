@@ -15,13 +15,13 @@
 
 echo "Starting gRPC-Web interop test containers"
 
-docker-compose -f docker-compose.yml --exit-code-from build grpcweb-server
+docker-compose -f docker-compose.yml build grpcweb-server
 if [ $? -ne 0 ]
 then
   exit $?
 fi
 
-docker-compose -f docker-compose.yml --exit-code-from build grpcweb-client
+docker-compose -f docker-compose.yml build grpcweb-client
 if [ $? -ne 0 ]
 then
   exit $?
