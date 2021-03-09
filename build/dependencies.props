@@ -17,7 +17,7 @@
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
     <MoqPackageVersion>4.16.1</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.3</NewtonsoftJsonPackageVersion>
-    <NunitPackageVersion>3.12.0</NunitPackageVersion>
+    <NunitPackageVersion>3.13.1</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
     <OpenTelemetryPackageVersion>0.6.0-beta.1</OpenTelemetryPackageVersion>
     <ProtobufNetGrpcPackageVersion>1.0.140</ProtobufNetGrpcPackageVersion>
