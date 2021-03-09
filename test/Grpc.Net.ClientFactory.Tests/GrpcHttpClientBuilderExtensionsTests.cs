@@ -140,10 +140,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services.AddGrpcClient<Greeter.GreeterClient>();
             var client = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })))!;
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
 
-            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })))!;
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 
@@ -154,10 +154,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             var client = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })));
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(() => new CallbackInterceptor(o => { })))!;
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
 
-            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })));
+            ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor(s => new CallbackInterceptor(o => { })))!;
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 
@@ -207,7 +207,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             var client = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor<CallbackInterceptor>());
+            var ex = Assert.Throws<InvalidOperationException>(() => client.AddInterceptor<CallbackInterceptor>())!;
             Assert.AreEqual("AddInterceptor must be used with a gRPC client.", ex.Message);
         }
 
@@ -299,7 +299,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)))!;
 
             // Assert
             Assert.AreEqual("A null instance was returned by the configured client creator.", ex.Message);
@@ -325,7 +325,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             // Act
             var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)));
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)))!;
 
             // Assert
             Assert.AreEqual("The System.Object instance returned by the configured client creator is not compatible with Greet.Greeter+GreeterClient.", ex.Message);

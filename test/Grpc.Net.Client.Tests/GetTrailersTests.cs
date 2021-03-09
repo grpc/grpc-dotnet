@@ -99,7 +99,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
@@ -119,7 +119,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
@@ -140,7 +140,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
@@ -161,7 +161,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
@@ -192,7 +192,7 @@ namespace Grpc.Net.Client.Tests
             var responseStream = call.ResponseStream;
 
             Assert.IsTrue(await responseStream.MoveNext(CancellationToken.None).DefaultTimeout());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
@@ -288,7 +288,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);

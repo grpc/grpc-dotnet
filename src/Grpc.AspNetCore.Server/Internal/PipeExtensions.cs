@@ -262,7 +262,6 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 GrpcServerLog.ReadingMessage(logger);
 
-                ReadOnlySequence<byte>? data;
                 while (true)
                 {
                     var completeMessage = false;
@@ -278,7 +277,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         if (!buffer.IsEmpty)
                         {
-                            if (TryReadMessage(ref buffer, serverCallContext, out data))
+                            if (TryReadMessage(ref buffer, serverCallContext, out var data))
                             {
                                 completeMessage = true;
 

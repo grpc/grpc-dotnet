@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.Server
         /// Gets or sets a value indicating whether detailed error messages are sent to the peer.
         /// Detailed error messages include details from exceptions thrown on the server.
         /// </summary>
-        public bool? EnableDetailedErrors { get; set; } = null;
+        public bool? EnableDetailedErrors { get; set; }
 
         /// <summary>
         /// Gets or sets the compression algorithm used to compress messages sent from the server.

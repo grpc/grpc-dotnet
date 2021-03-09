@@ -145,7 +145,11 @@ namespace Grpc.Net.Client.Internal
                 {
                     try
                     {
+#if NET5_0
+                        _responseStream = await _httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+#else
                         _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);
+#endif
                     }
                     catch (ObjectDisposedException)
                     {

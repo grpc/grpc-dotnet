@@ -79,8 +79,7 @@ namespace Grpc.Shared
             }
 
             HttpMessageHandler? currentHandler = handler;
-            DelegatingHandler? delegatingHandler;
-            while ((delegatingHandler = currentHandler as DelegatingHandler) != null)
+            while (currentHandler is DelegatingHandler delegatingHandler)
             {
                 currentHandler = delegatingHandler.InnerHandler;
 

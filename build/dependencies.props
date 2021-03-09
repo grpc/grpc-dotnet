@@ -1,30 +1,30 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.12.1</BenchmarkDotNetPackageVersion>
-    <GoogleProtobufPackageVersion>3.14.0</GoogleProtobufPackageVersion>
+    <GoogleProtobufPackageVersion>3.15.5</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.33.1</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.35.0</GrpcPackageVersion>
-    <MicrosoftAspNetCoreAppPackageVersion>5.0.0</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>5.0.3</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>3.0.0</MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>5.0.3</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>
-    <MicrosoftNETTestSdkPackageVersion>16.6.1</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>16.9.1</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0</MicrosoftSourceLinkGitHubPackageVersion>
     <MicrosoftTyePackageVersion>0.5.0-alpha.20555.1</MicrosoftTyePackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>
-    <MoqPackageVersion>4.10.0</MoqPackageVersion>
+    <MoqPackageVersion>4.16.1</MoqPackageVersion>
     <NewtonsoftJsonPackageVersion>12.0.3</NewtonsoftJsonPackageVersion>
-    <NunitPackageVersion>3.12.0</NunitPackageVersion>
+    <NunitPackageVersion>3.13.1</NunitPackageVersion>
     <Nunit3TestAdapterPackageVersion>3.16.1</Nunit3TestAdapterPackageVersion>
     <OpenTelemetryPackageVersion>0.6.0-beta.1</OpenTelemetryPackageVersion>
     <ProtobufNetGrpcPackageVersion>1.0.140</ProtobufNetGrpcPackageVersion>
     <SystemCommandLinePackageVersion>2.0.0-beta1.20214.1</SystemCommandLinePackageVersion>
     <SystemCommandLineRenderingPackageVersion>0.3.0-alpha.20214.1</SystemCommandLineRenderingPackageVersion>
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
-    <SystemIOPipelinesPackageVersion>4.7.2</SystemIOPipelinesPackageVersion>
+    <SystemIOPipelinesPackageVersion>5.0.1</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.3</SystemMemoryPackageVersion>
     <SystemNetHttpWinHttpHandlerPackageVersion>5.0.0</SystemNetHttpWinHttpHandlerPackageVersion>
     <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>

@@ -132,7 +132,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             cts.Cancel();
 
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
 
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);

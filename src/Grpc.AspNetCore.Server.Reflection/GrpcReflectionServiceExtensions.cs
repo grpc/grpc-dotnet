@@ -69,8 +69,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     var descriptorPropertyInfo = definitionType?.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
                     if (descriptorPropertyInfo != null)
                     {
-                        var serviceDescriptor = descriptorPropertyInfo.GetValue(null) as Google.Protobuf.Reflection.ServiceDescriptor;
-                        if (serviceDescriptor != null)
+                        if (descriptorPropertyInfo.GetValue(null) is Google.Protobuf.Reflection.ServiceDescriptor serviceDescriptor)
                         {
                             serviceDescriptors.Add(serviceDescriptor);
                             continue;

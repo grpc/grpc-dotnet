@@ -101,7 +101,7 @@ namespace Grpc.Shared
             {
                 if (!first)
                 {
-                    sb.Append(" ");
+                    sb.Append(' ');
                 }
                 else
                 {

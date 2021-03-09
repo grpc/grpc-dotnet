@@ -27,7 +27,7 @@ using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
-    public class GrpcTestContext : IDisposable
+    public sealed class GrpcTestContext : IDisposable
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly ConcurrentDictionary<string, ILogger> _serverLoggers;
@@ -108,7 +108,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         private string GetTestName()
         {
-            var className = TestContext.CurrentContext.Test.ClassName;
+            var className = TestContext.CurrentContext.Test.ClassName!;
             var periodIndex = className.LastIndexOf('.');
             if (periodIndex > 0)
             {
