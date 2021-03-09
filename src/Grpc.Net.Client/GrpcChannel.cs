@@ -81,7 +81,7 @@ namespace Grpc.Net.Client
         internal bool DisableClientDeadline;
         internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
-        private bool _shouldDisposeHttpClient;
+        private readonly bool _shouldDisposeHttpClient;
 
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {

@@ -46,7 +46,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             var clientBuilder = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
+            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation())!;
             Assert.AreEqual("EnableCallContextPropagation must be used with a gRPC client.", ex.Message);
         }
 
@@ -57,7 +57,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services.AddGrpcClient<Greeter.GreeterClient>();
             var clientBuilder = services.AddHttpClient("TestClient");
 
-            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation());
+            var ex = Assert.Throws<InvalidOperationException>(() => clientBuilder.EnableCallContextPropagation())!;
             Assert.AreEqual("EnableCallContextPropagation must be used with a gRPC client.", ex.Message);
         }
 

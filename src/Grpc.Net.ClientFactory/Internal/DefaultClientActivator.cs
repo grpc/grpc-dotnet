@@ -35,12 +35,7 @@ namespace Grpc.Net.ClientFactory.Internal
 
         public DefaultClientActivator(IServiceProvider services)
         {
-            if (services == null)
-            {
-                throw new ArgumentNullException(nameof(services));
-            }
-
-            _services = services;
+            _services = services ?? throw new ArgumentNullException(nameof(services));
         }
 
         public ObjectFactory Activator

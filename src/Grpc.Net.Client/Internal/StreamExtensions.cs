@@ -159,7 +159,7 @@ namespace Grpc.Net.Client
                 {
                     // Check that there is no additional content in the stream for a single message
                     // There is no ReadByteAsync on stream. Reuse header array with ReadAsync, we don't need it anymore
-                    if (await responseStream.ReadAsync(buffer).ConfigureAwait(false) > 0)
+                    if (await responseStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false) > 0)
                     {
                         throw new InvalidDataException("Unexpected data after finished reading message.");
                     }

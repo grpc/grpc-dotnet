@@ -258,7 +258,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetStatus());
+            var ex = Assert.Throws<InvalidOperationException>(() => call.GetStatus())!;
 
             // Assert
             Assert.AreEqual("Unable to get the status because the call is not complete.", ex.Message);

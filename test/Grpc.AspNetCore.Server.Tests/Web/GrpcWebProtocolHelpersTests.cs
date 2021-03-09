@@ -133,7 +133,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var output = new ArrayBufferWriter<byte>();
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcWebProtocolHelpers.WriteTrailers(trailers, output));
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcWebProtocolHelpers.WriteTrailers(trailers, output))!;
 
             // Assert
             Assert.AreEqual("Invalid non-ASCII or control character in header: 0x000D", ex.Message);
@@ -148,7 +148,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var output = new ArrayBufferWriter<byte>();
 
             // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcWebProtocolHelpers.WriteTrailers(trailers, output));
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcWebProtocolHelpers.WriteTrailers(trailers, output))!;
 
             // Assert
             Assert.AreEqual("Invalid non-ASCII or control character in header: 0x007F", ex.Message);

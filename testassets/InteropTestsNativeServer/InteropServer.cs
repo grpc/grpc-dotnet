@@ -36,7 +36,7 @@ namespace InteropTestsNativeWebsite
             public bool? UseTls { get; set; }
         }
 
-        ServerOptions options;
+        readonly ServerOptions options;
 
         private InteropServer(ServerOptions options)
         {

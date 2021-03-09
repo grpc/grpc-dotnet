@@ -23,7 +23,7 @@
   <ItemGroup Condition="'$(IsGrpcPublishedPackage)' == 'true'">
     <None Include="$(PackageIconFullPath)" Pack="true" PackagePath="\"/>
 
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="$(MicrosoftCodeAnalysisFxCopAnalyzersPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="$(MicrosoftCodeAnalysisNetAnalyzersPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
