@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
 echo "Starting gRPC-Web interop test containers"
 
 docker-compose -f docker-compose.yml build grpcweb-server
