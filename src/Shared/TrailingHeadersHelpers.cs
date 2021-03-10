@@ -29,11 +29,16 @@ namespace Grpc.Shared
 #if !NETSTANDARD2_0
             return responseMessage.TrailingHeaders;
 #else
-            if (!responseMessage.RequestMessage.Properties.TryGetValue(ResponseTrailersKey, out var headers))
+            if (responseMessage.RequestMessage.Properties.TryGetValue(ResponseTrailersKey, out var headers) &&
+                headers is HttpHeaders httpHeaders)
             {
-                throw new InvalidOperationException("Couldn't find trailing headers on the response.");
+                return httpHeaders;
             }
-            return (HttpHeaders)headers;
+
+            // App targets .NET Standard 2.0 and the handler hasn't set trailers
+            // in RequestMessage.Properties with known key. Return empty collection.
+            // Client call will likely fail because it is unable to get a grpc-status.
+            return ResponseTrailers.Empty;
 #endif
         }
 
@@ -50,6 +55,7 @@ namespace Grpc.Shared
 
         private class ResponseTrailers : HttpHeaders
         {
+            public static readonly ResponseTrailers Empty = new ResponseTrailers();
         }
 #endif
     }

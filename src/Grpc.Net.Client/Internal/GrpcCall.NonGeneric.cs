@@ -68,7 +68,15 @@ namespace Grpc.Net.Client.Internal
 
         internal RpcException CreateRpcException(Status status)
         {
-            TryGetTrailers(out var trailers);
+            Metadata? trailers = null;
+            try
+            {
+                TryGetTrailers(out trailers);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error getting trailers.");
+            }
             return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
