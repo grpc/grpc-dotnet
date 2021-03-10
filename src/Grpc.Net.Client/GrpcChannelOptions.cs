@@ -84,7 +84,7 @@ namespace Grpc.Net.Client
 
         /// <summary>
         /// Gets or sets the maximum buffer size in bytes that can be used to store sent messages when retrying
-        /// or hedging calls. If the buffer limit is exceeded then no more retry attempts are made and all
+        /// or hedging calls. If the buffer limit is exceeded, then no more retry attempts are made and all
         /// hedging calls but one will be canceled. This limit is applied across all calls made using the channel.
         /// <para>
         /// Setting this value alone doesn't enable retries. Retries are enabled in the service config, which can be done
@@ -101,7 +101,7 @@ namespace Grpc.Net.Client
 
         /// <summary>
         /// Gets or sets the maximum buffer size in bytes that can be used to store sent messages when retrying
-        /// or hedging calls. If the buffer limit is exceeded then no more retry attempts are made and all
+        /// or hedging calls. If the buffer limit is exceeded, then no more retry attempts are made and all
         /// hedging calls but one will be canceled. This limit is applied to one call.
         /// <para>
         /// Setting this value alone doesn't enable retries. Retries are enabled in the service config, which can be done
