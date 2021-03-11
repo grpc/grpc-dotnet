@@ -17,6 +17,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -29,6 +31,7 @@ using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -124,6 +127,117 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
         }
+
+        [Test]
+        public async Task AsyncUnaryCall_ErrorParsingTrailers_ThrowsError()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var loggerFactory = new TestLoggerFactory(testSink, true);
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(
+                    HttpStatusCode.OK,
+                    streamContent,
+                    grpcStatusCode: StatusCode.Aborted,
+                    customTrailers: new Dictionary<string, string>
+                    {
+                        ["blah-bin"] = "!"
+                    });
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
+            Assert.AreEqual(null, ex.Status.Detail);
+            Assert.AreEqual(0, ex.Trailers.Count);
+
+            var log = testSink.Writes.Single(w => w.EventId.Name == "ErrorParsingTrailers");
+            Assert.AreEqual("Error parsing trailers.", log.State.ToString());
+            Assert.AreEqual("Invalid Base-64 header value.", log.Exception.Message);
+        }
+
+#if NET472
+        [Test]
+        public async Task AsyncUnaryCall_NoTrailers_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.RequestMessage.Properties.Remove("__ResponseTrailers");
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual("No grpc-status found on response.", ex.Status.Detail);
+            Assert.AreEqual(0, ex.Trailers.Count);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_BadTrailersType_ThrowsError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.RequestMessage.Properties["__ResponseTrailers"] = new object();
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual("No grpc-status found on response.", ex.Status.Detail);
+            Assert.AreEqual(0, ex.Trailers.Count);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_NoTrailers_WinHttpHandler_ThrowsError()
+        {
+            // Arrange
+            var httpMessageHandler = TestHttpMessageHandler.Create(async request =>
+            {
+                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.RequestMessage.Properties.Remove("__ResponseTrailers");
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(new WinHttpHandler(httpMessageHandler), "https://localhost");
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            Assert.AreEqual("No grpc-status found on response. Using gRPC with WinHttp has Windows and package version requirements. See https://aka.ms/pzkMXDs for details.", ex.Status.Detail);
+            Assert.AreEqual(0, ex.Trailers.Count);
+        }
+#endif
 
         [Test]
         public void AsyncClientStreamingCall_UnfinishedCall_ThrowsError()
