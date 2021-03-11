@@ -68,7 +68,21 @@ namespace Grpc.Net.Client.Internal
 
         internal RpcException CreateRpcException(Status status)
         {
-            TryGetTrailers(out var trailers);
+            // This code can be called from a background task.
+            // If an error is thrown when parsing the trailers into a Metadata
+            // collection then the background task will never complete and
+            // the gRPC call will hang. If the trailers are invalid then log
+            // an error message and return an empty trailers collection
+            // on the RpcException that we want to return to the app.
+            Metadata? trailers = null;
+            try
+            {
+                TryGetTrailers(out trailers);
+            }
+            catch (Exception ex)
+            {
+                GrpcCallLog.ErrorParsingTrailers(Logger, ex);
+            }
             return new RpcException(status, trailers ?? Metadata.Empty);
         }
 
