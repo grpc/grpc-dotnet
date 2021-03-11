@@ -144,7 +144,7 @@ namespace Grpc.Net.Client.Tests
                     grpcStatusCode: StatusCode.Aborted,
                     customTrailers: new Dictionary<string, string>
                     {
-                        ["blah-bin"] = "Not base64 text"
+                        ["blah-bin"] = "!"
                     });
                 response.Headers.Add("custom", "ABC");
                 return response;
@@ -160,9 +160,9 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(null, ex.Status.Detail);
             Assert.AreEqual(0, ex.Trailers.Count);
 
-            var log = testSink.Writes.Single(w => w.EventId.Name == "ErrorParsingTrailingHeaders");
-            Assert.AreEqual("Error parsing trailing headers.", log.State.ToString());
-            Assert.AreEqual("Invalid length for a Base-64 char array or string.", log.Exception.Message);
+            var log = testSink.Writes.Single(w => w.EventId.Name == "ErrorParsingTrailers");
+            Assert.AreEqual("Error parsing trailers.", log.State.ToString());
+            Assert.AreEqual("Invalid Base-64 header value.", log.Exception.Message);
         }
 
 #if NET472

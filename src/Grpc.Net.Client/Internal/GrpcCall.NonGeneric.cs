@@ -81,7 +81,7 @@ namespace Grpc.Net.Client.Internal
             }
             catch (Exception ex)
             {
-                GrpcCallLog.ErrorParsingTrailingHeaders(Logger, ex);
+                GrpcCallLog.ErrorParsingTrailers(Logger, ex);
             }
             return new RpcException(status, trailers ?? Metadata.Empty);
         }

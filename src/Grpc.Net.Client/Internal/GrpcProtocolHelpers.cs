@@ -53,7 +53,7 @@ namespace Grpc.Net.Client.Internal
                     break;
                 default:
                     // length%4 == 1 should be illegal
-                    throw new FormatException("Invalid base64 header value");
+                    throw new FormatException("Invalid Base-64 header value.");
             }
 
             return Convert.FromBase64String(decodable);
