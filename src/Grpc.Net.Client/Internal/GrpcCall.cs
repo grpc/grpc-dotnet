@@ -510,7 +510,7 @@ namespace Grpc.Net.Client.Internal
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
-                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.IsWinHttp);
 
                             if (message == null)
                             {

@@ -99,6 +99,9 @@ namespace Grpc.Net.Client.Internal
         private static readonly Action<ILogger, TimeSpan, Exception?> _deadlineTimerRescheduled =
             LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(25, "DeadlineTimerRescheduled"), "Deadline timer triggered but {Remaining} remaining before deadline exceeded. Deadline timer rescheduled.");
 
+        private static readonly Action<ILogger, Exception> _errorParsingTrailers =
+            LoggerMessage.Define(LogLevel.Error, new EventId(26, "ErrorParsingTrailers"), "Error parsing trailers.");
+
         public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
         {
             _startingCall(logger, methodType, uri, null);
@@ -222,6 +225,11 @@ namespace Grpc.Net.Client.Internal
         public static void DeadlineTimerRescheduled(ILogger logger, TimeSpan remaining)
         {
             _deadlineTimerRescheduled(logger, remaining, null);
+        }
+
+        public static void ErrorParsingTrailers(ILogger logger, Exception ex)
+        {
+            _errorParsingTrailers(logger, ex);
         }
     }
 }
