@@ -535,7 +535,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var writeTask = writeTcs.Task.DefaultTimeout();
+            var writeTask = await writeTcs.Task.DefaultTimeout();
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask).DefaultTimeout();
             Assert.AreEqual("Can't write the message because the request is complete.", ex.Message);
 
@@ -679,7 +679,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var readTask = readTcs.Task.DefaultTimeout();
+            var readTask = await readTcs.Task.DefaultTimeout();
             var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
             Assert.AreEqual("Can't read messages after the request is complete.", ex.Message);
 
