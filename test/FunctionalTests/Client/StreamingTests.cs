@@ -490,12 +490,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task ServerStreaming_WriteAfterMethodComplete_Error(bool writeBeforeExit)
         {
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+            var writeTcs = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            Task? writeTask = null;
             async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
             {
-                writeTask = Task.Run(async () =>
+                var writeTask = Task.Run(async () =>
                 {
                     if (writeBeforeExit)
                     {
@@ -506,6 +505,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     await responseStream.WriteAsync(new DataMessage());
                 });
+                writeTcs.SetResult(writeTask);
 
                 await tcs.Task;
             }
@@ -535,7 +535,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(async () => await writeTask!.DefaultTimeout());
+            var writeTask = await writeTcs.Task.DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => writeTask).DefaultTimeout();
             Assert.AreEqual("Can't write the message because the request is complete.", ex.Message);
 
             Assert.IsFalse(await call.ResponseStream.MoveNext());
@@ -633,12 +634,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             });
 
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+            var readTcs = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            Task? readTask = null;
             async Task<DataMessage> ClientStreamingWithTrailers(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
             {
-                readTask = Task.Run(async () =>
+                var readTask = Task.Run(async () =>
                 {
                     if (readBeforeExit)
                     {
@@ -649,6 +649,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     Assert.IsFalse(await requestStream.MoveNext());
                 });
+                readTcs.SetResult(readTask);
 
                 await tcs.Task;
                 return new DataMessage();
@@ -678,7 +679,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask!).DefaultTimeout();
+            var readTask = await readTcs.Task.DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
             Assert.AreEqual("Can't read messages after the request is complete.", ex.Message);
 
             var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
@@ -708,12 +710,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             });
 
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+            var readTcs = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            Task? readTask = null;
             async Task<DataMessage> ClientStreamingWithTrailers(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
             {
-                readTask = Task.Run(async () =>
+                var readTask = Task.Run(async () =>
                 {
                     if (readBeforeExit)
                     {
@@ -726,6 +727,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     Assert.IsFalse(await requestStream.MoveNext());
                 });
+                readTcs.SetResult(readTask);
 
                 await tcs.Task;
                 return new DataMessage();
@@ -751,7 +753,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             syncPoint.Continue();
 
-            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask!).DefaultTimeout();
+            var readTask = await readTcs.Task.DefaultTimeout();
+            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
             Assert.AreEqual("Can't read messages after the request is complete.", serverException.Message);
 
             // Ensure the server abort reaches the client
