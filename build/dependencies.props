@@ -2,7 +2,7 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.12.1</BenchmarkDotNetPackageVersion>
     <GoogleProtobufPackageVersion>3.15.5</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.33.1</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
+    <GrpcDotNetPackageVersion>2.36.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.36.1</GrpcPackageVersion>
     <MicrosoftAspNetCoreAppPackageVersion>5.0.3</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
