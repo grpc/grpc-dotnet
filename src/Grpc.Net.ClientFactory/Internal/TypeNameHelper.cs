@@ -143,7 +143,12 @@ namespace Grpc.Net.ClientFactory.Internal
                 }
             }
 
+#if NETSTANDARD2_0
+            var genericPartIndex = type.Name.IndexOf('`');
+#else
             var genericPartIndex = type.Name.IndexOf('`', StringComparison.Ordinal);
+#endif
+
             if (genericPartIndex <= 0)
             {
                 builder.Append(type.Name);

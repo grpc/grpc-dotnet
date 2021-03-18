@@ -31,6 +31,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Internal.Retry;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
@@ -299,10 +300,10 @@ namespace Grpc.Net.Client.Tests.Retry
             // Assert
             await TestHelpers.AssertIsTrueRetryAsync(() => hedgingCall._activeCalls.Count == 0, "Wait for all calls to fail.").DefaultTimeout();
 
-            CompatibilityExtensions.Assert(invoker.Channel.RetryThrottling != null);
+            CompatibilityHelpers.Assert(invoker.Channel.RetryThrottling != null);
             invoker.Channel.RetryThrottling.CallFailure();
             invoker.Channel.RetryThrottling.CallFailure();
-            CompatibilityExtensions.Assert(invoker.Channel.RetryThrottling.IsRetryThrottlingActive());
+            CompatibilityHelpers.Assert(invoker.Channel.RetryThrottling.IsRetryThrottlingActive());
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => hedgingCall.GetResponseAsync()).DefaultTimeout();
             Assert.AreEqual(1, callCount);

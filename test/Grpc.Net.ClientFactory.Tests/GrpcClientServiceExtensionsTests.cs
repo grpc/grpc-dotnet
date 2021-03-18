@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = baseAddress;
                 })
-                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -74,13 +74,13 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = baseAddress1;
                 })
-                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services
                 .AddGrpcClient<Greeter.GreeterClient>("Second", o =>
                 {
                     o.Address = baseAddress2;
                 })
-                .AddHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -101,10 +101,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var baseAddress = new Uri("http://localhost");
 
             var services = new ServiceCollection();
-            services.AddGrpcClient<Greeter.GreeterClient>(o =>
-            {
-                o.Address = baseAddress;
-            });
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = baseAddress;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             // Act
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -125,12 +127,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<Greeter.GreeterClient>(options =>
                 {
                     options.Address = new Uri("http://contoso");
-                });
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
             services
                 .AddGrpcClient<Greeter.GreeterClient>(options =>
                 {
                     options.Interceptors.Add(new CallbackInterceptor(o => { }));
-                });
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             // Act
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);

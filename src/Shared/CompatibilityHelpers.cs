@@ -9,9 +9,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Shared
 {
-    internal static class CompatibilityExtensions
+    internal static class CompatibilityHelpers
     {
         [Conditional("DEBUG")]
         public static void Assert([DoesNotReturnIf(false)] bool condition, string? message = null)

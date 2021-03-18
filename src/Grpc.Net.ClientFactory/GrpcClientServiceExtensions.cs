@@ -26,6 +26,7 @@ using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -321,12 +322,30 @@ namespace Microsoft.Extensions.DependencyInjection
                 .AddHttpClient(name)
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    var handler = HttpHandlerFactory.CreatePrimaryHandler();
-#if NET5_0
-                    handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
-#endif
-                    return handler;
+                    // Set PrimaryHandler to null so we can track whether the user
+                    // set a value or not. If they didn't set their own handler then
+                    // one will be created by PostConfigure.
+                    return null;
                 });
+
+            services.PostConfigure<HttpClientFactoryOptions>(name, options =>
+            {
+                options.HttpMessageHandlerBuilderActions.Add(static builder =>
+                {
+                    if (builder.PrimaryHandler == null)
+                    {
+                        // This will throw in .NET Standard 2.0 with a prompt that a user must set a handler.
+                        // Because it throws it should only be called in PostConfigure if no handler has been set.
+                        var handler = HttpHandlerFactory.CreatePrimaryHandler();
+#if NET5_0
+                        handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
+#endif
+
+                        builder.PrimaryHandler = handler;
+                    }
+                });
+            });
+
 
             var builder = new DefaultHttpClientBuilder(services, name);
 
@@ -357,7 +376,7 @@ namespace Microsoft.Extensions.DependencyInjection
         private static void ReserveClient(IHttpClientBuilder builder, Type type, string name)
         {
             var registry = (GrpcClientMappingRegistry)builder.Services.Single(sd => sd.ServiceType == typeof(GrpcClientMappingRegistry)).ImplementationInstance;
-            Debug.Assert(registry != null);
+            CompatibilityHelpers.Assert(registry != null);
 
             // Check for same name registered to two different types. This won't work because we rely on named options for the configuration.
             if (registry.NamedClientRegistrations.TryGetValue(name, out var otherType) && type != otherType)

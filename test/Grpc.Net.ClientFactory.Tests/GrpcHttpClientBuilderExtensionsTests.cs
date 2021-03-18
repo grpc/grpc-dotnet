@@ -124,7 +124,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Act
             services
                 .AddGrpcClient<Greeter.GreeterClient>((s, o) => o.Address = new Uri("http://localhost"))
-                .AddInterceptor<CallbackInterceptor>();
+                .AddInterceptor<CallbackInterceptor>()
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
 
             // Assert
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);

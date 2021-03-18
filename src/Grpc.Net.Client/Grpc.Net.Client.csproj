@@ -23,6 +23,8 @@
     <Compile Include="..\Shared\HttpHandlerFactory.cs" Link="Internal\Http\HttpHandlerFactory.cs" />
     <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\Http\TelemetryHeaderHandler.cs" />
     <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\Http\TrailingHeadersHelpers.cs" />
+    <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />
+    <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
   </ItemGroup>
 
   <ItemGroup>
