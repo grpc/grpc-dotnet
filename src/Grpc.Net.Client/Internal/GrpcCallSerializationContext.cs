@@ -26,6 +26,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal
 {
@@ -108,7 +109,7 @@ namespace Grpc.Net.Client.Internal
 
         private ICompressionProvider? ResolveCompressionProvider()
         {
-            CompatibilityExtensions.Assert(
+            CompatibilityHelpers.Assert(
                 _call.RequestGrpcEncoding != null,
                 "Response encoding should have been calculated at this point.");
 
@@ -177,7 +178,7 @@ namespace Grpc.Net.Client.Internal
                     // When writing directly to the buffer the header with message size needs to be written first
                     if (DirectSerializationSupported)
                     {
-                        CompatibilityExtensions.Assert(_payloadLength != null, "A payload length is required for direct serialization.");
+                        CompatibilityHelpers.Assert(_payloadLength != null, "A payload length is required for direct serialization.");
 
                         EnsureMessageSizeAllowed(_payloadLength.Value);
 
@@ -239,7 +240,7 @@ namespace Grpc.Net.Client.Internal
 
                     if (!DirectSerializationSupported)
                     {
-                        CompatibilityExtensions.Assert(_bufferWriter != null, "Buffer writer has been set to get to this state.");
+                        CompatibilityHelpers.Assert(_bufferWriter != null, "Buffer writer has been set to get to this state.");
 
                         var data = _bufferWriter.WrittenSpan;
 
@@ -277,7 +278,7 @@ namespace Grpc.Net.Client.Internal
 
         private ReadOnlySpan<byte> CompressMessage(ReadOnlySpan<byte> messageData)
         {
-            CompatibilityExtensions.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
+            CompatibilityHelpers.Assert(_compressionProvider != null, "Compression provider is not null to get here.");
 
             GrpcCallLog.CompressingMessage(_call.Logger, _compressionProvider.EncodingName);
 

@@ -375,7 +375,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
         protected async Task<IGrpcCall<TRequest, TResponse>?> GetActiveCallUnsynchronizedAsync(IGrpcCall<TRequest, TResponse>? previousCall)
         {
-            CompatibilityExtensions.Assert(NewActiveCallTcs != null);
+            CompatibilityHelpers.Assert(NewActiveCallTcs != null);
 
             var call = await NewActiveCallTcs.Task.ConfigureAwait(false);
 

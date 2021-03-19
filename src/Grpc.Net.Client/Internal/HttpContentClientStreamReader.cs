@@ -23,6 +23,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal
@@ -160,7 +161,7 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 
-                CompatibilityExtensions.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
+                CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
 
                 Current = await _call.ReadMessageAsync(
                     _responseStream,

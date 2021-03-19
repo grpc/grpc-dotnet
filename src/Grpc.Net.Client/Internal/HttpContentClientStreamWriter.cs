@@ -20,6 +20,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;

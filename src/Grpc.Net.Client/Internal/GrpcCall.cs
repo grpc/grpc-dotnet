@@ -286,7 +286,7 @@ namespace Grpc.Net.Client.Internal
 
         private async Task<Metadata> GetResponseHeadersCoreAsync()
         {
-            CompatibilityExtensions.Assert(_httpResponseTask != null);
+            CompatibilityHelpers.Assert(_httpResponseTask != null);
 
             try
             {
@@ -332,7 +332,7 @@ namespace Grpc.Net.Client.Internal
 
         public Task<TResponse> GetResponseAsync()
         {
-            CompatibilityExtensions.Assert(_responseTcs != null);
+            CompatibilityHelpers.Assert(_responseTcs != null);
             return _responseTcs.Task;
         }
 
@@ -556,7 +556,7 @@ namespace Grpc.Net.Client.Internal
                         else
                         {
                             // Duplex or server streaming call
-                            CompatibilityExtensions.Assert(ClientStreamReader != null);
+                            CompatibilityHelpers.Assert(ClientStreamReader != null);
                             ClientStreamReader.HttpResponseTcs.TrySetResult((HttpResponse, status));
 
                             // Wait until the response has been read and status read from trailers.
@@ -628,7 +628,7 @@ namespace Grpc.Net.Client.Internal
 
         private void SetFailedResult(Status status)
         {
-            CompatibilityExtensions.Assert(_responseTcs != null);
+            CompatibilityHelpers.Assert(_responseTcs != null);
 
             if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
             {

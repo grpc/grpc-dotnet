@@ -145,12 +145,12 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(response);
             Assert.AreEqual("Hello world", response.Message);
 
-            CompatibilityExtensions.Assert(httpRequestMessage != null);
+            CompatibilityHelpers.Assert(httpRequestMessage != null);
             Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
             Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
-            CompatibilityExtensions.Assert(helloRequest != null);
+            CompatibilityHelpers.Assert(helloRequest != null);
             Assert.AreEqual("Hello", helloRequest.Name);
 
             Assert.AreEqual(compressionDisabledOnOptions, isRequestNotCompressed);
@@ -324,14 +324,14 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(response);
             Assert.AreEqual("Hello world", response.Message);
 
-            CompatibilityExtensions.Assert(httpRequestMessage != null);
+            CompatibilityHelpers.Assert(httpRequestMessage != null);
             Assert.AreEqual("identity,gzip,test", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual("gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
             Assert.AreEqual(false, httpRequestMessage.Headers.Contains(GrpcProtocolConstants.CompressionRequestAlgorithmHeader));
 
-            CompatibilityExtensions.Assert(helloRequest1 != null);
+            CompatibilityHelpers.Assert(helloRequest1 != null);
             Assert.AreEqual("Hello One", helloRequest1.Name);
-            CompatibilityExtensions.Assert(helloRequest2 != null);
+            CompatibilityHelpers.Assert(helloRequest2 != null);
             Assert.AreEqual("Hello Two", helloRequest2.Name);
 
             Assert.IsTrue(isRequestCompressed1);
