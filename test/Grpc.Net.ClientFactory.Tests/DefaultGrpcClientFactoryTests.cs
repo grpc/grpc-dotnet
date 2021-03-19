@@ -214,7 +214,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var handler = handlerFactory.CreateHandler(nameof(TestGreeterClient));
 
             // Assert
-            bool hasSocketsHttpHandler = false;
+            var hasSocketsHttpHandler = false;
             HttpMessageHandler? currentHandler = handler;
             while (currentHandler is DelegatingHandler delegatingHandler)
             {
