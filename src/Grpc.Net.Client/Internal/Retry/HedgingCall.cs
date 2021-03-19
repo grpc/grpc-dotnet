@@ -23,6 +23,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal.Retry
 {
@@ -85,7 +86,7 @@ namespace Grpc.Net.Client.Internal.Retry
             {
                 call.CancellationToken.ThrowIfCancellationRequested();
 
-                CompatibilityExtensions.Assert(call._httpResponseTask != null, "Request should have been made if call is not preemptively cancelled.");
+                CompatibilityHelpers.Assert(call._httpResponseTask != null, "Request should have been made if call is not preemptively cancelled.");
                 httpResponse = await call._httpResponseTask.ConfigureAwait(false);
 
                 responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
@@ -291,12 +292,12 @@ namespace Grpc.Net.Client.Internal.Retry
 
         private async Task HedgingDelayAsync(TimeSpan hedgingDelay)
         {
-            CompatibilityExtensions.Assert(_hedgingDelayCts != null);
-            CompatibilityExtensions.Assert(_delayInterruptTcs != null);
+            CompatibilityHelpers.Assert(_hedgingDelayCts != null);
+            CompatibilityHelpers.Assert(_delayInterruptTcs != null);
 
             while (true)
             {
-                CompatibilityExtensions.Assert(_hedgingDelayCts != null);
+                CompatibilityHelpers.Assert(_hedgingDelayCts != null);
 
                 var completedTask = await Task.WhenAny(Task.Delay(hedgingDelay, _hedgingDelayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
                 if (completedTask != _delayInterruptTcs.Task)

@@ -22,6 +22,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.Net.Client.Internal.Retry
 {
@@ -129,7 +130,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     {
                         currentCall.CancellationToken.ThrowIfCancellationRequested();
 
-                        CompatibilityExtensions.Assert(currentCall._httpResponseTask != null, "Request should have been made if call is not preemptively cancelled.");
+                        CompatibilityHelpers.Assert(currentCall._httpResponseTask != null, "Request should have been made if call is not preemptively cancelled.");
                         httpResponse = await currentCall._httpResponseTask.ConfigureAwait(false);
 
                         responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
@@ -266,7 +267,7 @@ namespace Grpc.Net.Client.Internal.Retry
             // The retry client stream writer prevents multiple threads from reaching here.
             return DoClientStreamActionAsync(async call =>
             {
-                CompatibilityExtensions.Assert(call.ClientStreamWriter != null);
+                CompatibilityHelpers.Assert(call.ClientStreamWriter != null);
 
                 if (ClientStreamWriteOptions != null)
                 {

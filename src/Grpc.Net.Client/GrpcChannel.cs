@@ -405,7 +405,7 @@ namespace Grpc.Net.Client
 
         internal int GetRandomNumber(int minValue, int maxValue)
         {
-            CompatibilityExtensions.Assert(_random != null);
+            CompatibilityHelpers.Assert(_random != null);
 
             lock (_lock)
             {
