@@ -21,6 +21,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared;
+using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;

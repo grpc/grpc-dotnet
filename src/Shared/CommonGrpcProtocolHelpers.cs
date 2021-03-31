@@ -18,6 +18,7 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Grpc.Shared
 {
@@ -115,5 +116,8 @@ namespace Grpc.Shared
 
             return sb.ToString();
         }
+
+        public static readonly Task<bool> TrueTask = Task.FromResult(false);
+        public static readonly Task<bool> FalseTask = Task.FromResult(false);
     }
 }

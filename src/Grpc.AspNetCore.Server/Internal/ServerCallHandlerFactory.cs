@@ -25,6 +25,7 @@ using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Log = Grpc.AspNetCore.Server.Internal.ServerCallHandlerFactoryLog;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -148,24 +149,24 @@ namespace Grpc.AspNetCore.Server.Internal
                 return Task.CompletedTask;
             };
         }
+    }
 
-        private static class Log
+    internal static class ServerCallHandlerFactoryLog
+    {
+        private static readonly Action<ILogger, string, Exception?> _serviceUnimplemented =
+            LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "ServiceUnimplemented"), "Service '{ServiceName}' is unimplemented.");
+
+        private static readonly Action<ILogger, string, Exception?> _methodUnimplemented =
+            LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "MethodUnimplemented"), "Method '{MethodName}' is unimplemented.");
+
+        public static void ServiceUnimplemented(ILogger logger, string serviceName)
         {
-            private static readonly Action<ILogger, string, Exception?> _serviceUnimplemented =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "ServiceUnimplemented"), "Service '{ServiceName}' is unimplemented.");
+            _serviceUnimplemented(logger, serviceName, null);
+        }
 
-            private static readonly Action<ILogger, string, Exception?> _methodUnimplemented =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "MethodUnimplemented"), "Method '{MethodName}' is unimplemented.");
-
-            public static void ServiceUnimplemented(ILogger logger, string serviceName)
-            {
-                _serviceUnimplemented(logger, serviceName, null);
-            }
-
-            public static void MethodUnimplemented(ILogger logger, string methodName)
-            {
-                _methodUnimplemented(logger, methodName, null);
-            }
+        public static void MethodUnimplemented(ILogger logger, string methodName)
+        {
+            _methodUnimplemented(logger, methodName, null);
         }
     }
 }
