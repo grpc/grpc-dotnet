@@ -23,7 +23,7 @@ using System.Threading.Tasks;
 
 namespace Grpc.Tests.Shared
 {
-    public class TestHttpMessageHandler : DelegatingHandler
+    public class TestHttpMessageHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _sendAsync;
 

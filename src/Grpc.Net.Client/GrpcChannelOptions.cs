@@ -191,6 +191,25 @@ namespace Grpc.Net.Client
         public ServiceConfig? ServiceConfig { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether resolving a service config from the <see cref="Balancer.Resolver"/>
+        /// is disabled.
+        /// The default value is <c>false</c>.
+        /// <para>
+        /// A hint is provided to the resolver that it shouldn't fetch a service config.
+        /// If a service config is returned by then resolver then it is ignored.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public bool DisableResolverServiceConfig { get; set; }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public IServiceProvider? ServiceProvider { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
         /// </summary>
         public GrpcChannelOptions()

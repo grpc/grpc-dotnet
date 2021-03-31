@@ -214,11 +214,9 @@ namespace Grpc.Net.Client.Web.Tests
             {
                 Request = request;
                 RequestHeaders = request.Headers;
-#pragma warning disable CS0618 // Type or member is obsolete
-                if (request.Properties.TryGetValue(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
-#pragma warning restore CS0618 // Type or member is obsolete
+                if (request.TryGetOption<bool>(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
                 {
-                    WebAssemblyEnableStreamingResponse = (bool)enableStreaming!;
+                    WebAssemblyEnableStreamingResponse = enableStreaming;
                 }
 
                 return Task.FromResult(new HttpResponseMessage()

@@ -105,6 +105,7 @@ namespace Grpc.Net.Client.Tests
 
             // Act
             var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+            var requestContentTask = await requestContentTcs.Task.DefaultTimeout();
 
             // Assert
             Assert.IsNotNull(call);
@@ -113,7 +114,6 @@ namespace Grpc.Net.Client.Tests
             var responseTask = call.ResponseAsync;
             Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
 
-            var requestContentTask = await requestContentTcs.Task.DefaultTimeout();
 
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
             await call.RequestStream.WriteAsync(new HelloRequest { Name = "2" }).DefaultTimeout();

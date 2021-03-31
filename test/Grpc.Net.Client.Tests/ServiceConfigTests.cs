@@ -29,7 +29,7 @@ namespace Grpc.Net.Client.Tests
     public class ServiceConfigTests
     {
         [Test]
-        public void ServiceConfig_CreateUnderlyingConfig()
+        public void MethodConfig_CreateUnderlyingConfig()
         {
             // Arrange & Act
             var serviceConfig = new ServiceConfig
@@ -68,7 +68,7 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public void ServiceConfig_ReadUnderlyingConfig()
+        public void MethodConfig_ReadUnderlyingConfig()
         {
             // Arrange
             var inner = new Dictionary<string, object>
@@ -98,6 +98,63 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(TimeSpan.FromSeconds(1), serviceConfig.MethodConfigs[0].RetryPolicy!.InitialBackoff);
             Assert.AreEqual(StatusCode.Unavailable, serviceConfig.MethodConfigs[0].RetryPolicy!.RetryableStatusCodes[0]);
             Assert.AreEqual(StatusCode.Aborted, serviceConfig.MethodConfigs[0].RetryPolicy!.RetryableStatusCodes[1]);
+        }
+
+        [Test]
+        public void LoadBalancingConfig_CreateUnderlyingConfig()
+        {
+            // Arrange & Act
+            var serviceConfig = new ServiceConfig
+            {
+                LoadBalancingConfigs =
+                {
+                    new RoundRobinConfig(),
+                    new PickFirstConfig()
+                }
+            };
+
+            // Assert
+            Assert.AreEqual(2, serviceConfig.LoadBalancingConfigs.Count);
+            Assert.AreEqual(LoadBalancingConfig.RoundRobinPolicyName, serviceConfig.LoadBalancingConfigs[0].PolicyName);
+            Assert.AreEqual(LoadBalancingConfig.PickFirstPolicyName, serviceConfig.LoadBalancingConfigs[1].PolicyName);
+
+            var inner = serviceConfig.Inner;
+            var loadBalancingConfigs = (IList<object>)inner["loadBalancingConfig"];
+            var roundRobinConfig = (IDictionary<string, object>)loadBalancingConfigs[0];
+            var pickFirstConfig = (IDictionary<string, object>)loadBalancingConfigs[1];
+
+            Assert.IsNotNull((IDictionary<string, object>)roundRobinConfig[LoadBalancingConfig.RoundRobinPolicyName]);
+            Assert.IsNotNull((IDictionary<string, object>)pickFirstConfig[LoadBalancingConfig.PickFirstPolicyName]);
+        }
+
+        [Test]
+        public void LoadBalancingConfig_ReadUnderlyingConfig()
+        {
+            // Arrange
+            var inner = new Dictionary<string, object>
+            {
+                ["loadBalancingConfig"] = new List<object>
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["round_robin"] = new Dictionary<string, object> { }
+                    },
+                    new Dictionary<string, object>
+                    {
+                        ["pick_first"] = new Dictionary<string, object> { }
+                    }
+                }
+            };
+
+            // Act
+            var serviceConfig = new ServiceConfig(inner);
+
+            // Assert
+            Assert.AreEqual(2, serviceConfig.LoadBalancingConfigs.Count);
+            Assert.IsInstanceOf(typeof(RoundRobinConfig), serviceConfig.LoadBalancingConfigs[0]);
+            Assert.AreEqual(LoadBalancingConfig.RoundRobinPolicyName, serviceConfig.LoadBalancingConfigs[0].PolicyName);
+            Assert.IsInstanceOf(typeof(PickFirstConfig), serviceConfig.LoadBalancingConfigs[1]);
+            Assert.AreEqual(LoadBalancingConfig.PickFirstPolicyName, serviceConfig.LoadBalancingConfigs[1].PolicyName);
         }
 
         [Test]

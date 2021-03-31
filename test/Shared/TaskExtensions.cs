@@ -27,6 +27,19 @@ namespace Grpc.Tests.Shared
 {
     internal static class TaskExtensions
     {
+#if NET472
+        // Allow AsTask in tests where the Task/ValueTask is already a task.
+        public static Task<T> AsTask<T>(this Task<T> task)
+        {
+            return task;
+        }
+
+        public static Task AsTask(this Task task)
+        {
+            return task;
+        }
+#endif
+
         public static Task<T> DefaultTimeout<T>(this Task<T> task,
             [CallerFilePath] string? filePath = null,
             [CallerLineNumber] int lineNumber = default)

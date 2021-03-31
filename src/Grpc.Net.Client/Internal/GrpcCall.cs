@@ -32,6 +32,7 @@ using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Configuration;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
+using Grpc.Net.Client.Balancer.Internal;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;
@@ -123,7 +124,7 @@ namespace Grpc.Net.Client.Internal
             // WinHttp currently doesn't support streaming request data so a length needs to be specified.
             // This may change in a future version of Windows. When that happens an OS build version check
             // can be added here to avoid WinHttpUnaryContent.
-            return !Channel.IsWinHttp
+            return Channel.HttpHandlerType != HttpHandlerType.WinHttp
                 ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
                 : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
 
@@ -510,7 +511,7 @@ namespace Grpc.Net.Client.Internal
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
-                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.IsWinHttp);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.HttpHandlerType == HttpHandlerType.WinHttp);
 
                             if (message == null)
                             {
@@ -836,6 +837,11 @@ namespace Grpc.Net.Client.Internal
             if (timeout != null)
             {
                 headers.TryAddWithoutValidation(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
+            }
+
+            if (Options.IsWaitForReady)
+            {
+                message.SetOption(BalancerHttpHandler.WaitForReadyKey, true);
             }
 
             return message;

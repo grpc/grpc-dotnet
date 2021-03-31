@@ -1,0 +1,113 @@
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Grpc.Net.Client.Configuration;
+using Grpc.Net.Client.Internal;
+using Microsoft.Extensions.Logging;
+
+namespace Grpc.Net.Client.Balancer
+{
+    /// <summary>
+    /// A <see cref="LoadBalancer"/> that attempts to connect to all addresses. gRPC calls are distributed
+    /// across all successful connections using round-robin logic.
+    /// </summary>
+    public sealed class RoundRobinBalancer : SubchannelsLoadBalancer
+    {
+        private readonly IRandomGenerator _randomGenerator;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoundRobinBalancer"/> class.
+        /// </summary>
+        /// <param name="controller">The controller.</param>
+        /// <param name="loggerFactory">The logger factory.</param>
+        public RoundRobinBalancer(IChannelControlHelper controller, ILoggerFactory loggerFactory)
+            : this(controller, loggerFactory, new RandomGenerator())
+        {
+        }
+
+        internal RoundRobinBalancer(IChannelControlHelper controller, ILoggerFactory loggerFactory, IRandomGenerator randomGenerator)
+            : base(controller, loggerFactory)
+        {
+            _randomGenerator = randomGenerator;
+        }
+
+        /// <inheritdoc />
+        protected override SubchannelPicker CreatePicker(List<Subchannel> readySubchannels)
+        {
+            var pickCount = _randomGenerator.Next(0, readySubchannels.Count);
+            return new RoundRobinPicker(readySubchannels, pickCount);
+        }
+    }
+
+    internal class RoundRobinPicker : SubchannelPicker
+    {
+        // Internal for testing
+        internal readonly List<Subchannel> _subchannels;
+        private long _pickCount;
+
+        public RoundRobinPicker(List<Subchannel> subchannels, long pickCount)
+        {
+            _subchannels = subchannels;
+            _pickCount = pickCount;
+        }
+
+        public override PickResult Pick(PickContext context)
+        {
+            var c = Interlocked.Increment(ref _pickCount);
+            var index = (c - 1) % _subchannels.Count;
+            var item = _subchannels[(int)index];
+
+            return PickResult.ForComplete(item);
+        }
+
+        public override string ToString()
+        {
+            return string.Join(", ", _subchannels.Select(s => s.ToString()));
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="LoadBalancerFactory"/> that matches the name <c>round_robin</c>
+    /// and creates <see cref="RoundRobinBalancer"/> instances.
+    /// </summary>
+    public sealed class RoundRobinBalancerFactory : LoadBalancerFactory
+    {
+        private readonly ILoggerFactory _loggerFactory;
+
+        /// <inheritdoc />
+        public override string Name { get; } = LoadBalancingConfig.RoundRobinPolicyName;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoundRobinBalancerFactory"/> class.
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory.</param>
+        public RoundRobinBalancerFactory(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+        }
+
+        /// <inheritdoc />
+        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
+        {
+            return new RoundRobinBalancer(controller, _loggerFactory);
+        }
+    }
+}
