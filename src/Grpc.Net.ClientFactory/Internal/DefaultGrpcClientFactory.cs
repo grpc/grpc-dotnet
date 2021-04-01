@@ -19,6 +19,7 @@
 using System;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 
 namespace Grpc.Net.ClientFactory.Internal
@@ -27,17 +28,20 @@ namespace Grpc.Net.ClientFactory.Internal
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly GrpcCallInvokerFactory _callInvokerFactory;
-        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _clientFactoryOptionsMonitor;
+        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _grpcClientFactoryOptionsMonitor;
+        private readonly IOptionsMonitor<HttpClientFactoryOptions> _httpClientFactoryOptionsMonitor;
         private readonly IHttpMessageHandlerFactory _messageHandlerFactory;
 
         public DefaultGrpcClientFactory(IServiceProvider serviceProvider,
             GrpcCallInvokerFactory callInvokerFactory,
-            IOptionsMonitor<GrpcClientFactoryOptions> clientFactoryOptionsMonitor,
+            IOptionsMonitor<GrpcClientFactoryOptions> grpcClientFactoryOptionsMonitor,
+            IOptionsMonitor<HttpClientFactoryOptions> httpClientFactoryOptionsMonitor,
             IHttpMessageHandlerFactory messageHandlerFactory)
         {
             _serviceProvider = serviceProvider;
             _callInvokerFactory = callInvokerFactory;
-            _clientFactoryOptionsMonitor = clientFactoryOptionsMonitor;
+            _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;
+            _httpClientFactoryOptionsMonitor = httpClientFactoryOptionsMonitor;
             _messageHandlerFactory = messageHandlerFactory;
         }
 
@@ -49,7 +53,13 @@ namespace Grpc.Net.ClientFactory.Internal
                 throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
             }
 
-            var clientFactoryOptions = _clientFactoryOptionsMonitor.Get(name);
+            var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
+            if (httpClientFactoryOptions.HttpClientActions.Count > 0)
+            {
+                throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
+            }
+
+            var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
             var httpHandler = _messageHandlerFactory.CreateHandler(name);
             var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
 
