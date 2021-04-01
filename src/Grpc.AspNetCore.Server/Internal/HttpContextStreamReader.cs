@@ -20,14 +20,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
     {
-        private static readonly Task<bool> True = Task.FromResult(true);
-        private static readonly Task<bool> False = Task.FromResult(false);
-
         private readonly HttpContextServerCallContext _serverCallContext;
         private readonly Func<DeserializationContext, TRequest> _deserializer;
         private bool _completed;
@@ -69,7 +67,9 @@ namespace Grpc.AspNetCore.Server.Internal
                 return MoveNextAsync(request);
             }
 
-            return ProcessPayload(request.Result) ? True : False;
+            return ProcessPayload(request.Result)
+                ? CommonGrpcProtocolHelpers.TrueTask
+                : CommonGrpcProtocolHelpers.FalseTask;
         }
 
         private bool ProcessPayload(TRequest? request)

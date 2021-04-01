@@ -28,6 +28,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
+using Log = Grpc.Net.Client.Internal.Retry.RetryCallBaseLog;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;
