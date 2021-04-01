@@ -20,6 +20,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Shared.Server;
 using Microsoft.Extensions.Logging;
+using Log = Grpc.AspNetCore.Server.Model.Internal.BinderServiceMethodProviderLog;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
@@ -62,16 +63,16 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 Log.BindMethodNotFound(_logger, typeof(TService));
             }
         }
+    }
 
-        private static class Log
+    internal static class BinderServiceMethodProviderLog
+    {
+        private static readonly Action<ILogger, Type, Exception?> _bindMethodNotFound =
+            LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(1, "BindMethodNotFound"), "Could not find bind method for {ServiceType}.");
+
+        public static void BindMethodNotFound(ILogger logger, Type serviceType)
         {
-            private static readonly Action<ILogger, Type, Exception?> _bindMethodNotFound =
-                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(1, "BindMethodNotFound"), "Could not find bind method for {ServiceType}.");
-
-            public static void BindMethodNotFound(ILogger logger, Type serviceType)
-            {
-                _bindMethodNotFound(logger, serviceType, null);
-            }
+            _bindMethodNotFound(logger, serviceType, null);
         }
     }
 }

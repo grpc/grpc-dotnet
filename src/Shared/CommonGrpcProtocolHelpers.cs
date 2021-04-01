@@ -18,11 +18,15 @@
 
 using System;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Grpc.Shared
 {
     internal static class CommonGrpcProtocolHelpers
     {
+        public static readonly Task<bool> TrueTask = Task.FromResult(true);
+        public static readonly Task<bool> FalseTask = Task.FromResult(false);
+
         // Timer and DateTime.UtcNow have a 14ms precision. Add a small delay when scheduling deadline
         // timer that tests if exceeded or not. This avoids rescheduling the deadline callback multiple
         // times when timer is triggered before DateTime.UtcNow reports the deadline has been exceeded.

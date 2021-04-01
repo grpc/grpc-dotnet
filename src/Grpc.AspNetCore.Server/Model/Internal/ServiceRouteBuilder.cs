@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using Microsoft.Extensions.Logging;
+using Log = Grpc.AspNetCore.Server.Model.Internal.ServiceRouteBuilderLog;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
@@ -184,32 +185,32 @@ namespace Grpc.AspNetCore.Server.Model.Internal
             {
             }
         }
+    }
 
-        private static class Log
+    internal static class ServiceRouteBuilderLog
+    {
+        private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _addedServiceMethod =
+            LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Trace, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+
+        private static readonly Action<ILogger, Type, Exception?> _discoveringServiceMethods =
+            LoggerMessage.Define<Type>(LogLevel.Trace, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
+
+        private static readonly Action<ILogger, Type, Exception?> _noServiceMethodsDiscovered =
+            LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
+
+        public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
         {
-            private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _addedServiceMethod =
-                LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Trace, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+            _addedServiceMethod(logger, methodName, serviceName, methodType, routePattern, null);
+        }
 
-            private static readonly Action<ILogger, Type, Exception?> _discoveringServiceMethods =
-                LoggerMessage.Define<Type>(LogLevel.Trace, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
+        public static void DiscoveringServiceMethods(ILogger logger, Type serviceType)
+        {
+            _discoveringServiceMethods(logger, serviceType, null);
+        }
 
-            private static readonly Action<ILogger, Type, Exception?> _noServiceMethodsDiscovered =
-                LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
-
-            public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
-            {
-                _addedServiceMethod(logger, methodName, serviceName, methodType, routePattern, null);
-            }
-
-            public static void DiscoveringServiceMethods(ILogger logger, Type serviceType)
-            {
-                _discoveringServiceMethods(logger, serviceType, null);
-            }
-
-            public static void NoServiceMethodsDiscovered(ILogger logger, Type serviceType)
-            {
-                _noServiceMethodsDiscovered(logger, serviceType, null);
-            }
+        public static void NoServiceMethodsDiscovered(ILogger logger, Type serviceType)
+        {
+            _noServiceMethodsDiscovered(logger, serviceType, null);
         }
     }
 }

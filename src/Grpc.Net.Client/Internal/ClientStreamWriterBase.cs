@@ -22,6 +22,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
+using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
 
 namespace Grpc.Net.Client.Internal
 {
@@ -69,32 +70,32 @@ namespace Grpc.Net.Client.Internal
                 return writeTask != null && !writeTask.IsCompleted;
             }
         }
+    }
 
-        protected static class Log
+    internal static class ClientStreamWriterBaseLog
+    {
+        private static readonly Action<ILogger, Exception?> _completingClientStream =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(1, "CompletingClientStream"), "Completing client stream.");
+
+        private static readonly Action<ILogger, Exception?> _writeMessageError =
+            LoggerMessage.Define(LogLevel.Error, new EventId(2, "WriteMessageError"), "Error writing message.");
+
+        private static readonly Action<ILogger, Exception?> _completeClientStreamError =
+            LoggerMessage.Define(LogLevel.Error, new EventId(3, "CompleteClientStreamError"), "Error completing client stream.");
+
+        public static void CompletingClientStream(ILogger logger)
         {
-            private static readonly Action<ILogger, Exception?> _completingClientStream =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "CompletingClientStream"), "Completing client stream.");
+            _completingClientStream(logger, null);
+        }
 
-            private static readonly Action<ILogger, Exception?> _writeMessageError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(2, "WriteMessageError"), "Error writing message.");
+        public static void WriteMessageError(ILogger logger, Exception ex)
+        {
+            _writeMessageError(logger, ex);
+        }
 
-            private static readonly Action<ILogger, Exception?> _completeClientStreamError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(3, "CompleteClientStreamError"), "Error completing client stream.");
-
-            public static void CompletingClientStream(ILogger logger)
-            {
-                _completingClientStream(logger, null);
-            }
-
-            public static void WriteMessageError(ILogger logger, Exception ex)
-            {
-                _writeMessageError(logger, ex);
-            }
-
-            public static void CompleteClientStreamError(ILogger logger, Exception ex)
-            {
-                _completeClientStreamError(logger, ex);
-            }
+        public static void CompleteClientStreamError(ILogger logger, Exception ex)
+        {
+            _completeClientStreamError(logger, ex);
         }
     }
 }
