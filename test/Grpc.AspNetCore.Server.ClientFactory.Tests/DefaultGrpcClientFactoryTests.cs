@@ -30,6 +30,7 @@ using Grpc.Net.ClientFactory.Internal;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
@@ -334,6 +335,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             return new DefaultGrpcClientFactory(serviceProvider,
                 serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>(),
                 serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>());
         }
     }

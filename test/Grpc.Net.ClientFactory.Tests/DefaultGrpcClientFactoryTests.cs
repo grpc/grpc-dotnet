@@ -19,6 +19,7 @@
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -151,13 +152,12 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public void CreateClient_AddressSpecifiedOnHttpClientFactory_ThrowError()
+        public void CreateClient_ConfigureHttpClient_ThrowError()
         {
             // Arrange
             var services = new ServiceCollection();
             services
                 .AddGrpcClient<TestGreeterClient>()
-                // The underlying handler is used directly so no longer look for address on HttpClient
                 .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"))
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
@@ -172,7 +172,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
 
             // Assert
-            Assert.AreEqual(@"Could not resolve the address for gRPC client 'TestGreeterClient'. Set an address when registering the client: services.AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
+            Assert.AreEqual("The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name 'TestGreeterClient'.", ex.Message);
         }
 
 #if NET472
@@ -346,6 +346,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             return new DefaultGrpcClientFactory(serviceProvider,
                 serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
                 serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>(),
                 serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>());
         }
     }
