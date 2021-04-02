@@ -57,7 +57,7 @@ namespace Grpc.Net.Client.Tests
             var testFactory = new TestLoggerFactory(testSink, enabled: true);
 
             // Act
-            GrpcChannel.ForAddress(address, new GrpcChannelOptions { LoggerFactory = testFactory });
+            GrpcChannel.ForAddress(address, CreateGrpcChannelOptions(o => o.LoggerFactory = testFactory));
 
             // Assert
             var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "AddressPathUnused");
