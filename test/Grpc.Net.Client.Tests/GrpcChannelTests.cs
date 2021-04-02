@@ -26,12 +26,42 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Client.Configuration;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
+using Microsoft.Extensions.Logging.Testing;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Tests
 {
     [TestFixture]
     public class GrpcChannelTests
     {
+        [Test]
+        public void Build_AddressWithoutHost_Error()
+        {
+            // Arrange & Act
+            var ex = Assert.Throws<ArgumentException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
+
+            // Assert
+            Assert.AreEqual("Address 'test.example.com:5001' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.", ex.Message);
+        }
+
+        [Test]
+        public void Build_AddressWithPath_Log()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            // Act
+            GrpcChannel.ForAddress("https://localhost:5001/path", new GrpcChannelOptions { LoggerFactory = testFactory });
+
+            // Assert
+            var log = testSink.Writes.Single(w => w.EventId.Name == "AddressPathUnused");
+            Assert.AreEqual(LogLevel.Debug, log.LogLevel);
+            Assert.AreEqual("The path in the channel's address 'https://localhost:5001/path' won't be used when making gRPC calls. " +
+                "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/FmC5xG7 for details.", log.Message);
+        }
+
         [Test]
         public void Build_SslCredentialsWithHttps_Success()
         {
