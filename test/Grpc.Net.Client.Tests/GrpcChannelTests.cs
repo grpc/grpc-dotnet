@@ -45,21 +45,35 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("Address 'test.example.com:5001' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.", ex.Message);
         }
 
-        [Test]
-        public void Build_AddressWithPath_Log()
+        [TestCase("https://localhost:5001/path", true)]
+        [TestCase("https://localhost:5001/?query=ya", true)]
+        [TestCase("https://localhost:5001//", true)]
+        [TestCase("https://localhost:5001/", false)]
+        [TestCase("https://localhost:5001", false)]
+        public void Build_AddressWithPath_Log(string address, bool hasPathOrQuery)
         {
             // Arrange
             var testSink = new TestSink();
             var testFactory = new TestLoggerFactory(testSink, enabled: true);
 
             // Act
-            GrpcChannel.ForAddress("https://localhost:5001/path", new GrpcChannelOptions { LoggerFactory = testFactory });
+            GrpcChannel.ForAddress(address, new GrpcChannelOptions { LoggerFactory = testFactory });
 
             // Assert
-            var log = testSink.Writes.Single(w => w.EventId.Name == "AddressPathUnused");
-            Assert.AreEqual(LogLevel.Debug, log.LogLevel);
-            Assert.AreEqual("The path in the channel's address 'https://localhost:5001/path' won't be used when making gRPC calls. " +
-                "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/FmC5xG7 for details.", log.Message);
+            var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "AddressPathUnused");
+            if (hasPathOrQuery)
+            {
+                Assert.IsNotNull(log);
+                Assert.AreEqual(LogLevel.Debug, log!.LogLevel);
+
+                var message = $"The path in the channel's address '{address}' won't be used when making gRPC calls. " +
+                    "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/FmC5xG7 for details.";
+                Assert.AreEqual(message, log.Message);
+            }
+            else
+            {
+                Assert.IsNull(log);
+            }
         }
 
         [Test]

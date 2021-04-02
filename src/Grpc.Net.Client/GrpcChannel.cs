@@ -128,7 +128,7 @@ namespace Grpc.Net.Client
                 ValidateChannelCredentials();
             }
 
-            if (!string.IsNullOrEmpty(Address.PathAndQuery))
+            if (!string.IsNullOrEmpty(Address.PathAndQuery) && Address.PathAndQuery != "/")
             {
                 Log.AddressPathUnused(Logger, Address.OriginalString);
             }
