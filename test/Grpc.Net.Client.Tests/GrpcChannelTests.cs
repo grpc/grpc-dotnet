@@ -26,12 +26,56 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Client.Configuration;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
+using Microsoft.Extensions.Logging.Testing;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Tests
 {
     [TestFixture]
     public class GrpcChannelTests
     {
+        [Test]
+        public void Build_AddressWithoutHost_Error()
+        {
+            // Arrange & Act
+            var ex = Assert.Throws<ArgumentException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
+
+            // Assert
+            Assert.AreEqual("Address 'test.example.com:5001' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.", ex.Message);
+        }
+
+        [TestCase("https://localhost:5001/path", true)]
+        [TestCase("https://localhost:5001/?query=ya", true)]
+        [TestCase("https://localhost:5001//", true)]
+        [TestCase("https://localhost:5001/", false)]
+        [TestCase("https://localhost:5001", false)]
+        public void Build_AddressWithPath_Log(string address, bool hasPathOrQuery)
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testFactory = new TestLoggerFactory(testSink, enabled: true);
+
+            // Act
+            GrpcChannel.ForAddress(address, CreateGrpcChannelOptions(o => o.LoggerFactory = testFactory));
+
+            // Assert
+            var log = testSink.Writes.SingleOrDefault(w => w.EventId.Name == "AddressPathUnused");
+            if (hasPathOrQuery)
+            {
+                Assert.IsNotNull(log);
+                Assert.AreEqual(LogLevel.Debug, log!.LogLevel);
+
+                var message = $"The path in the channel's address '{address}' won't be used when making gRPC calls. " +
+                    "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.";
+                Assert.AreEqual(message, log.Message);
+            }
+            else
+            {
+                Assert.IsNull(log);
+            }
+        }
+
         [Test]
         public void Build_SslCredentialsWithHttps_Success()
         {
