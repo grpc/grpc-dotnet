@@ -64,6 +64,7 @@ namespace Grpc.Net.Client
         internal long? MaxRetryBufferSize { get; }
         internal long? MaxRetryBufferPerCallSize { get; }
         internal ILoggerFactory LoggerFactory { get; }
+        internal ILogger Logger { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
         internal bool? IsSecure { get; }
         internal List<CallCredentials>? CallCredentials { get; }
@@ -105,6 +106,7 @@ namespace Grpc.Net.Client
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
+            Logger = LoggerFactory.CreateLogger<GrpcChannel>();
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
             _createMethodInfoFunc = CreateMethodInfo;
             ActiveCalls = new HashSet<IDisposable>();
@@ -124,6 +126,11 @@ namespace Grpc.Net.Client
                 CallCredentials = configurator.CallCredentials;
 
                 ValidateChannelCredentials();
+            }
+
+            if (!string.IsNullOrEmpty(Address.PathAndQuery) && Address.PathAndQuery != "/")
+            {
+                Log.AddressPathUnused(Logger, Address.OriginalString);
             }
         }
 
@@ -339,6 +346,11 @@ namespace Grpc.Net.Client
                 throw new ArgumentNullException(nameof(channelOptions));
             }
 
+            if (string.IsNullOrEmpty(address.Host))
+            {
+                throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
+            }
+
             if (channelOptions.HttpClient != null && channelOptions.HttpHandler != null)
             {
                 throw new ArgumentException($"{nameof(GrpcChannelOptions.HttpClient)} and {nameof(GrpcChannelOptions.HttpHandler)} have been configured. " +
@@ -432,6 +444,17 @@ namespace Grpc.Net.Client
             public override int GetHashCode() =>
                 (Service != null ? StringComparer.Ordinal.GetHashCode(Service) : 0) ^
                 (Method != null ? StringComparer.Ordinal.GetHashCode(Method) : 0);
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, string, Exception?> _addressPathUnused =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "AddressPathUnused"), "The path in the channel's address '{Address}' won't be used when making gRPC calls. A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.");
+
+            public static void AddressPathUnused(ILogger logger, string address)
+            {
+                _addressPathUnused(logger, address, null);
+            }
         }
     }
 }
