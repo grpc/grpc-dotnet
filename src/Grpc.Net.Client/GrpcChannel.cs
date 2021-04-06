@@ -449,7 +449,7 @@ namespace Grpc.Net.Client
         private static class Log
         {
             private static readonly Action<ILogger, string, Exception?> _addressPathUnused =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "AddressPathUnused"), "The path in the channel's address '{Address}' won't be used when making gRPC calls. A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/FmC5xG7 for details.");
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "AddressPathUnused"), "The path in the channel's address '{Address}' won't be used when making gRPC calls. A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.");
 
             public static void AddressPathUnused(ILogger logger, string address)
             {

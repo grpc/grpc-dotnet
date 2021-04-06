@@ -67,7 +67,7 @@ namespace Grpc.Net.Client.Tests
                 Assert.AreEqual(LogLevel.Debug, log!.LogLevel);
 
                 var message = $"The path in the channel's address '{address}' won't be used when making gRPC calls. " +
-                    "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/FmC5xG7 for details.";
+                    "A DelegatingHandler can be used to include a path with gRPC calls. See https://aka.ms/aspnet/grpc/subdir for details.";
                 Assert.AreEqual(message, log.Message);
             }
             else
