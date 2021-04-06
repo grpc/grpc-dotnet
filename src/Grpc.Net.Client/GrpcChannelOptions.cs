@@ -43,7 +43,7 @@ namespace Grpc.Net.Client
         /// <para>
         /// The underlying <see cref="System.Net.Http.HttpClient"/> used by the channel automatically loads root certificates
         /// from the operating system certificate store.
-        /// Client certificates should be configured on HttpClient. See https://aka.ms/AA6we64 for details.
+        /// Client certificates should be configured on HttpClient. See https://aka.ms/aspnet/grpc/certauth for details.
         /// </para>
         /// </remarks>
         public ChannelCredentials? Credentials { get; set; }

@@ -192,7 +192,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var ex = Assert.Throws<PlatformNotSupportedException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
 
             // Assert
-            Assert.AreEqual(@"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. An HTTP provider must be specified using GrpcChannelOptions.HttpHandler.The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. See https://aka.ms/pzkMXDs for details.", ex.Message);
+            Assert.AreEqual(@"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. An HTTP provider must be specified using GrpcChannelOptions.HttpHandler.The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. See https://aka.ms/aspnet/grpc/netstandard for details.", ex.Message);
         }
 #endif
 
