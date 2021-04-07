@@ -475,7 +475,7 @@ namespace GrpcClient
         {
             return new SimpleRequest
             {
-                Payload = new Payload { Body = ByteString.CopyFrom(new byte[_options.RequestSize]) },
+                Payload = new Payload { Body = UnsafeByteOperations.UnsafeWrap(new byte[_options.RequestSize]) },
                 ResponseSize = _options.ResponseSize
             };
         }

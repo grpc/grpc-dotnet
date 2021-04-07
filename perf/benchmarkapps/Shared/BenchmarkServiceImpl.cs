@@ -69,7 +69,7 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
     {
         var response = new SimpleResponse
         {
-            Payload = new Payload { Body = ByteString.CopyFrom(new byte[100]) }
+            Payload = new Payload { Body = UnsafeByteOperations.UnsafeWrap(new byte[100]) }
         };
         var clientComplete = false;
 
@@ -94,7 +94,7 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 
     public static SimpleResponse CreateResponse(SimpleRequest request)
     {
-        var body = ByteString.CopyFrom(new byte[request.ResponseSize]);
+        var body = UnsafeByteOperations.UnsafeWrap(new byte[request.ResponseSize]);
 
         var payload = new Payload { Body = body };
         return new SimpleResponse { Payload = payload };

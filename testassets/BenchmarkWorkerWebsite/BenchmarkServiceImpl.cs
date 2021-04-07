@@ -47,7 +47,7 @@ namespace Grpc.Testing
 
         private static Payload CreateZerosPayload(int size)
         {
-            return new Payload { Body = ByteString.CopyFrom(new byte[size]) };
+            return new Payload { Body = UnsafeByteOperations.UnsafeWrap(new byte[size]) };
         }
     }
 }
