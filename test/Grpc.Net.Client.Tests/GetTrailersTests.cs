@@ -234,7 +234,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual("No grpc-status found on response. Using gRPC with WinHttp has Windows and package version requirements. See https://aka.ms/pzkMXDs for details.", ex.Status.Detail);
+            Assert.AreEqual("No grpc-status found on response. Using gRPC with WinHttp has Windows and package version requirements. See https://aka.ms/aspnet/grpc/netstandard for details.", ex.Status.Detail);
             Assert.AreEqual(0, ex.Trailers.Count);
         }
 #endif
