@@ -342,7 +342,7 @@ namespace Grpc.Net.Client.Internal
                     }
                     if (isWinHttp)
                     {
-                        detail += " Using gRPC with WinHttp has Windows and package version requirements. See https://aka.ms/pzkMXDs for details.";
+                        detail += " Using gRPC with WinHttp has Windows and package version requirements. See https://aka.ms/aspnet/grpc/netstandard for details.";
                     }
 
                     status = new Status(StatusCode.Cancelled, detail);
