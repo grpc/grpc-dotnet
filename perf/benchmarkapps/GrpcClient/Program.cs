@@ -546,16 +546,16 @@ namespace GrpcClient
                     break;
                 }
 
+                var start = DateTime.UtcNow;
                 try
                 {
-                    var start = DateTime.UtcNow;
                     await call.RequestStream.WriteAsync(request);
                     if (!await call.ResponseStream.MoveNext())
                     {
                         throw new Exception("Unexpected end of stream.");
                     }
-                    var end = DateTime.UtcNow;
 
+                    var end = DateTime.UtcNow;
                     ReceivedDateTime(start, end, connectionId);
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cts.IsCancellationRequested)
@@ -565,6 +565,9 @@ namespace GrpcClient
                 }
                 catch (Exception ex)
                 {
+                    var end = DateTime.UtcNow;
+                    ReceivedDateTime(start, end, connectionId);
+
                     HandleError(connectionId);
 
                     Log(connectionId, streamId, $"Error message: {ex}");
@@ -593,15 +596,15 @@ namespace GrpcClient
                     break;
                 }
 
+                var start = DateTime.UtcNow;
                 try
                 {
-                    var start = DateTime.UtcNow;
                     if (!await call.ResponseStream.MoveNext())
                     {
                         throw new Exception("Unexpected end of stream.");
                     }
-                    var end = DateTime.UtcNow;
 
+                    var end = DateTime.UtcNow;
                     ReceivedDateTime(start, end, connectionId);
                 }
                 catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cts.IsCancellationRequested)
@@ -611,6 +614,9 @@ namespace GrpcClient
                 }
                 catch (Exception ex)
                 {
+                    var end = DateTime.UtcNow;
+                    ReceivedDateTime(start, end, connectionId);
+
                     HandleError(connectionId);
 
                     Log(connectionId, streamId, $"Error message: {ex}");
@@ -633,16 +639,19 @@ namespace GrpcClient
                     break;
                 }
 
+                var start = DateTime.UtcNow;
                 try
                 {
-                    var start = DateTime.UtcNow;
                     var response = await client.UnaryCallAsync(CreateSimpleRequest(), CreateCallOptions());
-                    var end = DateTime.UtcNow;
 
+                    var end = DateTime.UtcNow;
                     ReceivedDateTime(start, end, connectionId);
                 }
                 catch (Exception ex)
                 {
+                    var end = DateTime.UtcNow;
+                    ReceivedDateTime(start, end, connectionId);
+
                     HandleError(connectionId);
 
                     Log(connectionId, streamId, $"Error message: {ex}");
