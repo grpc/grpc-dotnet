@@ -17,7 +17,11 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Net.Http;
+using System.Threading;
+using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
@@ -59,9 +63,11 @@ namespace Grpc.Net.ClientFactory.Internal
                 throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
             }
 
-            var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
             var httpHandler = _messageHandlerFactory.CreateHandler(name);
-            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
+
+            var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
+
+            var callInvoker = GetOrCreateCallInvoker<TClient>(name, httpHandler, clientFactoryOptions);
 
             if (clientFactoryOptions.Creator != null)
             {
@@ -81,6 +87,64 @@ namespace Grpc.Net.ClientFactory.Internal
             {
                 return defaultClientActivator.CreateClient(callInvoker);
             }
+        }
+
+        private CallInvoker GetOrCreateCallInvoker<TClient>(string name, HttpMessageHandler httpHandler, GrpcClientFactoryOptions clientFactoryOptions) where TClient : class
+        {
+            // Buckle up because creating the channel and invoker is a bit of a hack. The goal here is to
+            // have a channel with the same DI scope and lifetime as the handlers.
+            //
+            // To do this the DefaultGrpcClientFactoryHandler is added to the handler chain. This handler
+            // stores the service provider for the handler scope, and it caches the channel. When the handler
+            // is disposed it will dispose the channel.
+            //
+            // Logic:
+            // 1. The handler is gotten from the handler chain.
+            // 2. If the handler hasn't been initialized then create the channel using the scoped service provider.
+            // 3. Return the channel.
+            var factoryHandler = GetHttpHandlerType<DefaultGrpcClientFactoryHandler>(httpHandler);
+            if (factoryHandler == null)
+            {
+                throw new InvalidOperationException($"No gRPC client configured with name '{name}'."); ;
+            }
+
+            if (!factoryHandler.IsInitialized)
+            {
+                lock (factoryHandler)
+                {
+                    if (!factoryHandler.IsInitialized)
+                    {
+                        var result = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
+
+                        factoryHandler.Channel = result.Channel;
+                        factoryHandler.Invoker = result.Invoker;
+                        factoryHandler.IsInitialized = true;
+                    }
+                }
+            }
+            
+            return factoryHandler.Invoker;
+        }
+
+        private static T? GetHttpHandlerType<T>(HttpMessageHandler handler) where T : DelegatingHandler
+        {
+            if (handler is T match)
+            {
+                return match;
+            }
+
+            HttpMessageHandler? currentHandler = handler;
+            while (currentHandler is DelegatingHandler delegatingHandler)
+            {
+                currentHandler = delegatingHandler.InnerHandler;
+
+                if (currentHandler is T m)
+                {
+                    return m;
+                }
+            }
+
+            return null;
         }
     }
 }

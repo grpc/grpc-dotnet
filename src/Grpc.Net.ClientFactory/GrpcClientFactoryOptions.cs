@@ -48,5 +48,15 @@ namespace Grpc.Net.ClientFactory
         /// Gets or sets a delegate that will override how a client is created.
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public TimeSpan AbsoluteChannelLifeTime { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public TimeSpan SlidingChannelLifeTime { get; set; }
     }
 }

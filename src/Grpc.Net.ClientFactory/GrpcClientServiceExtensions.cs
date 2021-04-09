@@ -294,6 +294,7 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
+            services.TryAddTransient<DefaultGrpcClientFactoryHandler>();
 
             services.TryAddSingleton<GrpcCallInvokerFactory>();
             services.TryAddSingleton<DefaultClientActivator<TClient>>();
@@ -302,7 +303,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // because we access it by reaching into the service collection.
             services.TryAddSingleton(new GrpcClientMappingRegistry());
 
-            IHttpClientBuilder clientBuilder = services.AddGrpcHttpClient<TClient>(name);
+            var clientBuilder = services.AddGrpcHttpClient<TClient>(name);
 
             return clientBuilder;
         }
@@ -346,7 +347,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 });
             });
 
-
             var builder = new DefaultHttpClientBuilder(services, name);
 
             builder.Services.AddTransient<TClient>(s =>
@@ -354,6 +354,29 @@ namespace Microsoft.Extensions.DependencyInjection
                 var clientFactory = s.GetRequiredService<GrpcClientFactory>();
                 return clientFactory.CreateClient<TClient>(builder.Name);
             });
+
+            builder.AddHttpMessageHandler<DefaultGrpcClientFactoryHandler>();
+            builder.SetHandlerLifetime(TimeSpan.FromMinutes(30));
+
+            // Buckle up, because this is the biggest hack you've ever seen.
+            //builder.AddHttpMessageHandler(s =>
+            //{
+            //    var handler = new DefaultGrpcClientFactoryHandler();
+
+            //    var clientFactory = s.GetRequiredService<GrpcClientFactory>();
+            //    if (clientFactory is DefaultGrpcClientFactory defaultClientFactory)
+            //    {
+            //        var topLevelHandler = new ChannelRootHandler();
+
+            //        var result = defaultClientFactory.CreateChannel(builder.Name, topLevelHandler, typeof(TClient), s);
+
+            //        handler.Channel = result.Channel;
+            //        handler.Invoker = result.Invoker;
+            //        handler.RootHandler = topLevelHandler;
+            //    }
+
+            //    return handler;
+            //});
 
             ReserveClient(builder, typeof(TClient), name);
 

@@ -63,6 +63,55 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public void CreateClient_MultipleCalls_ChannelIsShared()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+            // Act
+            var client1 = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            var client2 = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+
+            // Assert
+            Assert.AreEqual(client1.CallInvoker.Channel, client2.CallInvoker.Channel);
+        }
+
+        [Test]
+        public void CreateClient_DisposeHandler_ChannelIsShared()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+            var messageHandlerFactory = serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>();
+            var handler = messageHandlerFactory.CreateHandler(nameof(TestGreeterClient));
+
+            // Top-level handler is LifetimeTrackingHttpMessageHandler and doesn't dispose inner handlers.
+            // Get a reference to its inner handler which will propagate dispose calls.
+            var nonTrackingHandler = ((DelegatingHandler)handler).InnerHandler!;
+
+            // Act
+            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+            nonTrackingHandler.Dispose();
+
+            // Assert
+            Assert.AreEqual(true, client.CallInvoker.Channel.Disposed);
+        }
+
+        [Test]
         public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
         {
             // Arrange
@@ -117,8 +166,28 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var services = new ServiceCollection();
             services.AddOptions();
             services
-                .AddGrpcClient<TestGreeterClient>()
+                .AddGrpcClient<TestGreeterClient>("Test")
                 .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"))!;
+
+            // Assert
+            Assert.AreEqual("No gRPC client configured with name 'Test'.", ex.Message);
+        }
+
+        [Test]
+        public void CreateClient_NameDoesntMatchRegistration_ThrowError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>()
+                .ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -137,7 +206,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Arrange
             var services = new ServiceCollection();
             services
-                .AddGrpcClient<Greeter.GreeterClient>()
+                .AddGrpcClient<Greeter.GreeterClient>("CustomName")
                 .ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);

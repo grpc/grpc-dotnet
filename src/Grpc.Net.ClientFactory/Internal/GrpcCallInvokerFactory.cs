@@ -40,7 +40,7 @@ namespace Grpc.Net.ClientFactory.Internal
             _loggerFactory = loggerFactory;
         }
 
-        public CallInvoker CreateCallInvoker(HttpMessageHandler httpHandler, string name, Type type, GrpcClientFactoryOptions clientFactoryOptions)
+        public (CallInvoker Invoker, GrpcChannel Channel) CreateCallInvoker(HttpMessageHandler httpHandler, string name, Type type, GrpcClientFactoryOptions clientFactoryOptions)
         {
             if (httpHandler == null)
             {
@@ -73,7 +73,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 ? httpClientCallInvoker
                 : httpClientCallInvoker.Intercept(clientFactoryOptions.Interceptors.ToArray());
 
-            return resolvedCallInvoker;
+            return (resolvedCallInvoker, channel);
         }
     }
 }
