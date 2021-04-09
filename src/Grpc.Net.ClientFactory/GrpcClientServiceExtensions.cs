@@ -36,6 +36,8 @@ namespace Microsoft.Extensions.DependencyInjection
     /// </summary>
     public static class GrpcClientServiceExtensions
     {
+        private static readonly TimeSpan DefaultChannelAndHandlerLifeTime = TimeSpan.FromMinutes(30);
+
         /// <summary>
         /// Adds the <see cref="IHttpClientFactory"/> and related services to the <see cref="IServiceCollection"/> and configures
         /// a binding between the <typeparamref name="TClient"/> type and a named <see cref="HttpClient"/>. The client name
@@ -356,27 +358,7 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             builder.AddHttpMessageHandler<DefaultGrpcClientFactoryHandler>();
-            builder.SetHandlerLifetime(TimeSpan.FromMinutes(30));
-
-            // Buckle up, because this is the biggest hack you've ever seen.
-            //builder.AddHttpMessageHandler(s =>
-            //{
-            //    var handler = new DefaultGrpcClientFactoryHandler();
-
-            //    var clientFactory = s.GetRequiredService<GrpcClientFactory>();
-            //    if (clientFactory is DefaultGrpcClientFactory defaultClientFactory)
-            //    {
-            //        var topLevelHandler = new ChannelRootHandler();
-
-            //        var result = defaultClientFactory.CreateChannel(builder.Name, topLevelHandler, typeof(TClient), s);
-
-            //        handler.Channel = result.Channel;
-            //        handler.Invoker = result.Invoker;
-            //        handler.RootHandler = topLevelHandler;
-            //    }
-
-            //    return handler;
-            //});
+            builder.SetHandlerLifetime(DefaultChannelAndHandlerLifeTime);
 
             ReserveClient(builder, typeof(TClient), name);
 
