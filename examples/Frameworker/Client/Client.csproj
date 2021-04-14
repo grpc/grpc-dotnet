@@ -12,7 +12,6 @@
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
-    <!-- Fetched from https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet6/nuget/v3/index.json feed -->
-    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="6.0.0-preview.3.21160.4" PrivateAssets="All" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
   </ItemGroup>
 </Project>
