@@ -26,7 +26,7 @@
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
     <SystemIOPipelinesPackageVersion>5.0.1</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.3</SystemMemoryPackageVersion>
-    <SystemNetHttpWinHttpHandlerPackageVersion>5.0.0</SystemNetHttpWinHttpHandlerPackageVersion>
+    <SystemNetHttpWinHttpHandlerPackageVersion>6.0.0-preview.3.21201.4</SystemNetHttpWinHttpHandlerPackageVersion>
     <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
   </PropertyGroup>
 </Project>
