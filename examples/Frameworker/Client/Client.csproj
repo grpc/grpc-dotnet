@@ -12,6 +12,6 @@
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
 
-    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="6.0.0-preview.3.21201.4" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
   </ItemGroup>
 </Project>
