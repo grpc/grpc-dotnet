@@ -14,16 +14,47 @@ This document summarizes the differences between the two available implementatio
 One might choose one or the other implementation mostly for one of these reasons
 
 - avoid use of native code
-- ability to use .NET Core 3 and ASP.NET Core 3 (it's a brand new stack so not everyone will be able to use immediately)
+- ability to use one of the newer .NET Frameworks: grpc-dotnet requires at least .NET Core 3+ or .NET 5+ (.NET Core 3.1 LTS was released in December 2019 so legacy stacks might still be using an older framework)
 - want seamless integration with ASP.NET Core 3, dependency injection etc.
 - features available (see breakdown)
-- maturity level
-- performance (TODO: add data)
+- performance (while data we have data that seems to indicate that grpc-dotnet peforms at least as well as Grpc.Core, we strongly encourage to run your own benchmarks if performance matters for your application)
+
+## Frameworks supported
+
+Grpc.Core supports a wide range of .NET Framework versions, included some very old ones. A more detailed overview is [here]( https://github.com/grpc/grpc/tree/master/src/csharp#supported-platforms)
+
+grpc-dotnet requires a more modern .NET Framework: A detailed summary of .NET Framework versions supported by grpc-dotnet is [here](https://docs.microsoft.com/en-us/aspnet/core/grpc/supported-platforms). Note that there's ongoing work to add [grpc-dotnet client support on
+legacy .NET Framework](https://docs.microsoft.com/en-us/aspnet/core/grpc/netstandard).
 
 ## Comparison of supported features 
 
 Beyond the basic RPC functionality, there are a lot of gRPC features that may or may not be supported. The summary
 of supported features in both implementation is available in this section.
+
+### Proxyless service mesh (XDS) support
+
+While support for some of the Proxyless service mesh functionality comes "for free" by virtue of using the implementation from C-core native library, we don't officially support the proxyless service mesh functionality in C#.
+
+In grpc-dotnet, we currently don't provide proxyless service mesh support, but it's something that we plan to add in the future. One of the first features we want to integrate is XDS load balancing.
+
+### Load Balancing
+
+Grpc.Core provides basic client load balancing policies PICK_FIRST, ROUND_ROBIN. Besides that, there are two client-lookaside LB policies that are implemented, but we don't recommend using them.
+
+- grpclb - limited use externally as there's no official implementation of the LB policy. We don't recommend using as it's been basically deprecated by the XDS loadbalancing.
+- XDS - Load balancing using the Envoy Universal Data Plane APIs (xDS). It does work in Grpc.Core (because it's implemented in C-core native library), but as noted above, we don't provide official support for the proxyless service mesh functionality in Grpc.Core.
+
+grpc-dotnet currently doesn't provide any loadbalancing policies, but there is ongoing work to add basic client load balancing policies, as well as suport for XDS loadbalancing.
+
+Proxy loadbalancing is supported by both implementations because loadbalancing is done by a separate process (e.g. Envoy, ngingx etc.) that proxies the traffic.
+
+None of the implementations currently allow user-provided custom loadbalancing policies (= a plugin that provides the loadbalancing logic).
+
+Also see:
+- https://github.com/grpc/grpc/blob/master/doc/load-balancing.md
+- https://github.com/grpc/grpc/blob/master/doc/naming.md
+- https://github.com/grpc/proposal/blob/master/A5-grpclb-in-dns.md
+- https://github.com/grpc/proposal/blob/master/A24-lb-policy-config.md
 
 ### Service config
 
@@ -49,24 +80,6 @@ In addition to gRPC-aware interceptors, grpc-dotnet also allows interception at 
 
 - Incoming gRPC HTTP/2 requests can be processed using [ASP.NET Core middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/middleware/).
 - Outgoing gRPC HTTP/2 requests can be processed using [HttpClient HttpMessageHandlers](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpmessagehandler).
-
-### Load Balancing
-
-Grpc.Core provides basic client load balancing policies PICK_FIRST, ROUND_ROBIN and client-lookaside LB policies:
-
-- grpclb - limited use externally as there's no official implementation of the LB policy
-- XDS - Load balancing using the Envoy Universal Data Plane APIs (xDS). Currently this is work in progress but once ready, it will be the LB of choice for lookaside LB.
-
-grpc-dotnet currently doesn't provide any loadbalancing policies. It is likely that to support the XDS loadbalancing policy, features will need to be added to .NET HttpClient.
-
-Proxy loadbalancing is supported by both implementations because loadbalancing is done by a separate process (e.g. Envoy, ngingx etc.) that proxies the traffic.
-
-None of the implementations currently allow user-provided custom loadbalancing policies (= a plugin that provides the loadbalancing logic).
-
-- https://github.com/grpc/grpc/blob/master/doc/load-balancing.md
-- https://github.com/grpc/grpc/blob/master/doc/naming.md
-- https://github.com/grpc/proposal/blob/master/A5-grpclb-in-dns.md
-- https://github.com/grpc/proposal/blob/master/A24-lb-policy-config.md
 
 ### Transport support
 
