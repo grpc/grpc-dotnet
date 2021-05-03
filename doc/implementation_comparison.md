@@ -11,14 +11,17 @@ This document summarizes the differences between the two available implementatio
 
 ## Criteria for choosing between grpc-dotnet and gRPC C#
 
-One might choose one or the other implementation mostly for one of these reasons
+Starting from May 2021, gRPC for .NET is the recommended implemention of gRPC for C#.
+The original [gRPC C#](https://github.com/grpc/grpc/tree/master/src/csharp) implementation (distributed as the `Grpc.Core` nuget package) is now in maintenance mode and will be deprecated in the future.
+See [blogpost](https://grpc.io/blog/grpc-csharp-future/) for more details.
 
-- avoid use of native code
-- ability to use one of the newer .NET Frameworks: grpc-dotnet requires at least .NET Core 3+ or .NET 5+ (.NET Core 3.1 LTS was released in December 2019 so legacy stacks might still be using an older framework)
-- want seamless integration with ASP.NET Core 3, dependency injection etc.
-- features available (see breakdown)
+Here are some key points in which the two implementation differ:
+
+- grpc-dotnet avoids the use of native code (while Grpc.Core use the native C-core library internally)
+- grpc-dotnet requires a newer version of .NET (see the "Framework supported" section)
+- grpc-dotnet server integrates seamlessly ASP.NET Core (and allows e.g. dependency injection)
 - performance (while data we have data that seems to indicate that grpc-dotnet peforms at least as well as Grpc.Core, we strongly encourage to run your own benchmarks if performance matters for your application)
-
+- features available (see breakdown below)
 ## Frameworks supported
 
 Grpc.Core supports a wide range of .NET Framework versions, included some very old ones. A more detailed overview is [here]( https://github.com/grpc/grpc/tree/master/src/csharp#supported-platforms)

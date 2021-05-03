@@ -1,7 +1,5 @@
 # gRPC for .NET
 
-## Available now on .NET Core 3.0!
-
 gRPC is a modern, open source, high-performance remote procedure call (RPC) framework that can run anywhere. gRPC enables client and server applications to communicate transparently, and simplifies the building of connected systems.
 
 gRPC functionality for .NET Core 3.0 includes:
@@ -10,9 +8,12 @@ gRPC functionality for .NET Core 3.0 includes:
 * [Grpc.Net.Client](https://www.nuget.org/packages/Grpc.Net.Client) &ndash; A gRPC client for .NET Core that builds upon the familiar `HttpClient`. The client uses new HTTP/2 functionality in .NET Core.
 * [Grpc.Net.ClientFactory](https://www.nuget.org/packages/Grpc.Net.ClientFactory) &ndash; gRPC client integration with `HttpClientFactory`. The client factory allows gRPC clients to be centrally configured and injected into your app with DI.
 
-Please note that gRPC for .NET does not replace [gRPC for C#](https://github.com/grpc/grpc/tree/master/src/csharp) (gRPC C# API over native C-core binaries). These implementations coexist and share many of the same APIs to avoid lock-in. There are currently no plans for one implementation to replace the other one. gRPC for C# is the recommended solution for frameworks that gRPC for .NET does not support, such as .NET Framework.
-
 For more information, see [An introduction to gRPC on .NET](https://docs.microsoft.com/aspnet/core/grpc/).
+
+## gRPC for .NET is now the recommended implementation!
+
+Starting from May 2021, gRPC for .NET is the recommended implemention of gRPC for C#. The original [gRPC for C#](https://github.com/grpc/grpc/tree/master/src/csharp) implementation (distributed as the `Grpc.Core` nuget package) is now in maintenance mode and will be deprecated in the future.
+See [blogpost](https://grpc.io/blog/grpc-csharp-future/) for more details.
 
 ## To start using gRPC for .NET
 
