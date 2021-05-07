@@ -260,3 +260,11 @@ Code-first is a good choice if an app is written entirely in .NET. Code contract
 * Configure [protobuf-net.Grpc](https://github.com/protobuf-net/protobuf-net.Grpc)
 * Create a code-first gRPC service
 * Create a code-first gRPC client
+
+## [Retrier](./Retrier)
+
+The retrier example shows how to configure a client to use gRPC retries to retry failed calls. gRPC retries enables resilient, fault tolerant gRPC apps in .NET.
+
+##### Scenarios:
+
+* Configure [gRPC retires](https://docs.microsoft.com/aspnet/core/grpc/retries)
