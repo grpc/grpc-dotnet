@@ -260,12 +260,12 @@ namespace GrpcClient
 
         private static void CalculateLatency()
         {
-            BenchmarksEventSource.Register("grpc/latency/mean;http/latency/mean", Operations.Max, Operations.Sum, "Mean latency (ms)", "Mean latency (ms)", "n0");
-            BenchmarksEventSource.Register("grpc/latency/50;http/latency/50", Operations.Max, Operations.Sum, "50th percentile latency (ms)", "50th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Register("grpc/latency/75;http/latency/75", Operations.Max, Operations.Sum, "75th percentile latency (ms)", "75th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Register("grpc/latency/90;http/latency/90", Operations.Max, Operations.Sum, "90th percentile latency (ms)", "90th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Register("grpc/latency/99;http/latency/99", Operations.Max, Operations.Sum, "99th percentile latency (ms)", "99th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Register("grpc/latency/max;http/latency/max", Operations.Max, Operations.Sum, "Max latency (ms)", "Max latency (ms)", "n0");
+            BenchmarksEventSource.Register("grpc/latency/mean;http/latency/mean", Operations.Max, Operations.Sum, "Mean latency (ms)", "Mean latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/50;http/latency/50", Operations.Max, Operations.Sum, "50th percentile latency (ms)", "50th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/75;http/latency/75", Operations.Max, Operations.Sum, "75th percentile latency (ms)", "75th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/90;http/latency/90", Operations.Max, Operations.Sum, "90th percentile latency (ms)", "90th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/99;http/latency/99", Operations.Max, Operations.Sum, "99th percentile latency (ms)", "99th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/max;http/latency/max", Operations.Max, Operations.Sum, "Max latency (ms)", "Max latency (ms)", "n2");
             if (_options.Latency)
             {
                 var totalCount = 0;
