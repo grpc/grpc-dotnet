@@ -37,6 +37,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Testing;
+using Microsoft.Crank.EventSources;
 using Microsoft.Extensions.Logging;
 
 namespace GrpcClient
@@ -96,9 +97,9 @@ namespace GrpcClient
                 Log($"{nameof(GCSettings.IsServerGC)}: {isServerGC}");
                 Log($"{nameof(Environment.ProcessorCount)}: {processorCount}");
 
-                BenchmarksEventSource.Log.Metadata("NetCoreAppVersion", "first", "first", ".NET Runtime Version", ".NET Runtime Version", "");
-                BenchmarksEventSource.Log.Metadata("IsServerGC", "first", "first", "Server GC enabled", "Server GC is enabled", "");
-                BenchmarksEventSource.Log.Metadata("ProcessorCount", "first", "first", "Processor Count", "Processor Count", "n0");
+                BenchmarksEventSource.Register("NetCoreAppVersion", Operations.First, Operations.First, ".NET Runtime Version", ".NET Runtime Version", "");
+                BenchmarksEventSource.Register("IsServerGC", Operations.First, Operations.First, "Server GC enabled", "Server GC is enabled", "");
+                BenchmarksEventSource.Register("ProcessorCount", Operations.First, Operations.First, "Processor Count", "Processor Count", "n0");
 
                 BenchmarksEventSource.Measure("NetCoreAppVersion", runtimeVersion);
                 BenchmarksEventSource.Measure("IsServerGC", isServerGC.ToString());
@@ -200,7 +201,7 @@ namespace GrpcClient
                 _lock.Release();
             }
 
-            BenchmarksEventSource.Log.Metadata("grpc/raw-errors", "all", "all", "Raw errors", "Raw errors", "object");
+            BenchmarksEventSource.Register("grpc/raw-errors", Operations.All, Operations.All, "Raw errors", "Raw errors", "object");
             BenchmarksEventSource.Measure("grpc/raw-errors", _errorStringBuilder.ToString());
         }
 
@@ -245,13 +246,13 @@ namespace GrpcClient
             Log($"Total requests: {requestDelta}");
             Log($"Total errors: {errors}");
 
-            BenchmarksEventSource.Log.Metadata("grpc/rps/max", "max", "sum", "Max RPS", "RPS: max", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/requests", "max", "sum", "Requests", "Total number of requests", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/errors/badresponses", "max", "sum", "Bad responses", "Non-2xx or 3xx responses", "n0");
+            BenchmarksEventSource.Register("grpc/rps/max;http/rps/mean", Operations.Max, Operations.Sum, "Max RPS", "RPS: max", "n0");
+            BenchmarksEventSource.Register("grpc/requests;http/requests", Operations.Max, Operations.Sum, "Requests", "Total number of requests", "n0");
+            BenchmarksEventSource.Register("grpc/errors/badresponses;http/requests/badresponses", Operations.Max, Operations.Sum, "Bad responses", "Non-2xx or 3xx responses", "n0");
 
-            BenchmarksEventSource.Measure("grpc/rps/max", rps);
-            BenchmarksEventSource.Measure("grpc/requests", requestDelta);
-            BenchmarksEventSource.Measure("grpc/errors/badresponses", errors);
+            BenchmarksEventSource.Measure("grpc/rps/max;http/rps/mean", rps);
+            BenchmarksEventSource.Measure("grpc/requests;http/requests", requestDelta);
+            BenchmarksEventSource.Measure("grpc/errors/badresponses;http/requests/badresponses", errors);
 
             // Latency
             CalculateLatency();
@@ -259,12 +260,12 @@ namespace GrpcClient
 
         private static void CalculateLatency()
         {
-            BenchmarksEventSource.Log.Metadata("grpc/latency/mean", "max", "sum", "Mean latency (ms)", "Mean latency (ms)", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/latency/50", "max", "sum", "50th percentile latency (ms)", "50th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/latency/75", "max", "sum", "75th percentile latency (ms)", "75th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/latency/90", "max", "sum", "90th percentile latency (ms)", "90th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/latency/99", "max", "sum", "99th percentile latency (ms)", "99th percentile latency (ms)", "n0");
-            BenchmarksEventSource.Log.Metadata("grpc/latency/max", "max", "sum", "Max latency (ms)", "Max latency (ms)", "n0");
+            BenchmarksEventSource.Register("grpc/latency/mean;http/latency/mean", Operations.Max, Operations.Sum, "Mean latency (ms)", "Mean latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/50;http/latency/50", Operations.Max, Operations.Sum, "50th percentile latency (ms)", "50th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/75;http/latency/75", Operations.Max, Operations.Sum, "75th percentile latency (ms)", "75th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/90;http/latency/90", Operations.Max, Operations.Sum, "90th percentile latency (ms)", "90th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/99;http/latency/99", Operations.Max, Operations.Sum, "99th percentile latency (ms)", "99th percentile latency (ms)", "n2");
+            BenchmarksEventSource.Register("grpc/latency/max;http/latency/max", Operations.Max, Operations.Sum, "Max latency (ms)", "Max latency (ms)", "n2");
             if (_options.Latency)
             {
                 var totalCount = 0;
@@ -282,7 +283,7 @@ namespace GrpcClient
 
                 var mean = (totalCount != 0) ? totalSum / totalCount : totalSum;
 
-                BenchmarksEventSource.Measure("grpc/latency/mean", mean);
+                BenchmarksEventSource.Measure("grpc/latency/mean;http/latency/mean", mean);
 
                 var allConnections = new List<double>();
                 foreach (var connectionLatency in _latencyPerConnection)
@@ -295,11 +296,11 @@ namespace GrpcClient
                 // Or we could preserve the results for each one and record them separately
                 allConnections.Sort();
 
-                BenchmarksEventSource.Measure("grpc/latency/50", GetPercentile(50, allConnections));
-                BenchmarksEventSource.Measure("grpc/latency/75", GetPercentile(75, allConnections));
-                BenchmarksEventSource.Measure("grpc/latency/90", GetPercentile(90, allConnections));
-                BenchmarksEventSource.Measure("grpc/latency/99", GetPercentile(99, allConnections));
-                BenchmarksEventSource.Measure("grpc/latency/max", GetPercentile(100, allConnections));
+                BenchmarksEventSource.Measure("grpc/latency/50;http/latency/50", GetPercentile(50, allConnections));
+                BenchmarksEventSource.Measure("grpc/latency/75;http/latency/75", GetPercentile(75, allConnections));
+                BenchmarksEventSource.Measure("grpc/latency/90;http/latency/90", GetPercentile(90, allConnections));
+                BenchmarksEventSource.Measure("grpc/latency/99;http/latency/99", GetPercentile(99, allConnections));
+                BenchmarksEventSource.Measure("grpc/latency/max;http/latency/max", GetPercentile(100, allConnections));
 
                 Log($"Mean latency: {mean:0.###}ms");
                 Log($"Max latency: {GetPercentile(100, allConnections):0.###}ms");
@@ -320,8 +321,8 @@ namespace GrpcClient
 
                 var mean = (totalCount != 0) ? totalSum / totalCount : totalSum;
 
-                BenchmarksEventSource.Measure("grpc/latency/mean", mean);
-                BenchmarksEventSource.Measure("grpc/latency/max", _maxLatency);
+                BenchmarksEventSource.Measure("grpc/latency/mean;http/latency/mean", mean);
+                BenchmarksEventSource.Measure("grpc/latency/max;http/latency/max", _maxLatency);
 
                 Log($"Mean latency: {mean:0.###}ms");
                 Log($"Max latency: {_maxLatency:0.###}ms");
