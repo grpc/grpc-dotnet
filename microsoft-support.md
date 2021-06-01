@@ -14,11 +14,11 @@ Support is provided for the following grpc-dotnet packages:
 * dotnet-grpc
 
 Notes:
-* Currently supported versions are v2.37.0 or later.
+* Currently supported grpc-dotnet versions are v2.37.0 or later.
 * Applications must be using a [currently supported .NET release](https://dotnet.microsoft.com/platform/support/policy).
-* Minimum supported version is the earliest major and minor release required to obtain assisted support. For releases prior to the minimum supported version please utilize public community channels for assistance or log issues directly on GitHub.
-* Assisted support is only available for the official builds released from grpc/grpc-dotnet: gRPC for .NET (github.com) and no assisted support option is available for individual forks.
-* Please note that new features and security\bug fixes are provided in the latest released version and are not backported to previous versions. To obtain the latest updates and features please upgrade to the latest available version.
+* Minimum supported version is the earliest major and minor release required to obtain assisted support. Please utilize public community channels for assistance or log issues directly on GitHub for releases prior to the minimum supported version.
+* Assisted support is only available for the official builds released from https://github.com/grpc/grpc-dotnet, and no assisted support option is available for individual forks.
+* Please note that new features and security\bug fixes are provided in the latest released version and are not backported to previous versions. To obtain the latest updates and features, please upgrade to the latest available version.
 
 Support has two key benefits:
 
