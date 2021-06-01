@@ -48,7 +48,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 Name = "references",
                 Description = CoreStrings.RefreshCommandArgumentDescription,
-                Arity = ArgumentArity.OneOrMore
+                Arity = ArgumentArity.ZeroOrMore
             });
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
