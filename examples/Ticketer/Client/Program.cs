@@ -74,14 +74,14 @@ namespace Client
         private static async Task<string> Authenticate()
         {
             Console.WriteLine($"Authenticating as {Environment.UserName}...");
-            var httpClient = new HttpClient();
-            var request = new HttpRequestMessage
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage
             {
                 RequestUri = new Uri($"{Address}/generateJwtToken?name={HttpUtility.UrlEncode(Environment.UserName)}"),
                 Method = HttpMethod.Get,
                 Version = new Version(2, 0)
             };
-            var tokenResponse = await httpClient.SendAsync(request);
+            using var tokenResponse = await httpClient.SendAsync(request);
             tokenResponse.EnsureSuccessStatusCode();
 
             var token = await tokenResponse.Content.ReadAsStringAsync();
