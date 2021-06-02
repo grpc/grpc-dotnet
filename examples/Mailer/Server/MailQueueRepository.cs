@@ -22,7 +22,7 @@ namespace Server
 {
     public class MailQueueRepository
     {
-        private ConcurrentDictionary<string, MailQueue> _mailQueues = new ConcurrentDictionary<string, MailQueue>();
+        private readonly ConcurrentDictionary<string, MailQueue> _mailQueues = new();
 
         public MailQueue GetMailQueue(string name)
         {

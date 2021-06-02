@@ -69,13 +69,13 @@ namespace Server
 
             _logger.LogInformation($"{mailboxName} disconnected");
 
-            async Task ReportChanges((int totalCount, int fowardCount, MailboxMessage.Types.Reason reason) state)
+            async Task ReportChanges(MailQueueChangeState state)
             {
                 await responseStream.WriteAsync(new MailboxMessage
                 {
-                    Forwarded = state.fowardCount,
-                    New = state.totalCount - state.fowardCount,
-                    Reason = state.reason
+                    Forwarded = state.ForwardedCount,
+                    New = state.TotalCount - state.ForwardedCount,
+                    Reason = state.Reason
                 });
             }
         }
