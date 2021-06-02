@@ -75,7 +75,6 @@ namespace Client
 
         private static string GetMailboxName(string[] args)
         {
-
             if (args.Length < 1)
             {
                 Console.WriteLine("No mailbox name provided. Using default name. Usage: dotnet run <name>.");
