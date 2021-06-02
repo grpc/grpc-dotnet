@@ -25,17 +25,9 @@ using Mail;
 
 namespace Server
 {
-    public class Mail
-    {
-        public Mail(int id, string content)
-        {
-            Id = id;
-            Content = content;
-        }
+    public record Mail(int Id, string Content);
 
-        public int Id { get; }
-        public string Content { get; }
-    }
+    public record MailQueueChangeState(int TotalCount, int ForwardedCount, MailboxMessage.Types.Reason Reason);
 
     public class MailQueue
     {
@@ -44,7 +36,7 @@ namespace Server
         private int _forwardedMailCount;
 
         public string Name { get; }
-        public event Func<(int totalCount, int newCount, MailboxMessage.Types.Reason reason), Task>? Changed;
+        public event Func<MailQueueChangeState, Task>? Changed;
 
         public MailQueue(string name)
         {
@@ -52,7 +44,7 @@ namespace Server
 
             _incomingMail = Channel.CreateUnbounded<Mail>();
 
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 var random = new Random();
 
@@ -83,7 +75,7 @@ namespace Server
 
         private void OnChange(MailboxMessage.Types.Reason reason)
         {
-            Changed?.Invoke((_totalMailCount, _forwardedMailCount, reason));
+            Changed?.Invoke(new MailQueueChangeState(_totalMailCount, _forwardedMailCount, reason));
         }
     }
 }
