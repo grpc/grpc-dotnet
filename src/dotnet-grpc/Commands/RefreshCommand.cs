@@ -48,7 +48,7 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 Name = "references",
                 Description = CoreStrings.RefreshCommandArgumentDescription,
-                Arity = ArgumentArity.OneOrMore
+                Arity = ArgumentArity.ZeroOrMore
             });
             command.AddOption(CommonOptions.ProjectOption());
             command.AddOption(new Option(
@@ -79,7 +79,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         public async Task RefreshAsync(bool dryRun, string[] references)
         {
-            var refsToRefresh = references.Length == 0 ? Project.GetItems(ProtobufElement).Where(p => p.HasMetadata(SourceUrlElement)) : ResolveReferences(references);
+            var refsToRefresh = references == null || references.Length == 0 ? Project.GetItems(ProtobufElement).Where(p => p.HasMetadata(SourceUrlElement)) : ResolveReferences(references);
 
             foreach (var reference in refsToRefresh)
             {
