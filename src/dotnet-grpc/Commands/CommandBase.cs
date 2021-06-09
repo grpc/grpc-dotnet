@@ -179,7 +179,10 @@ namespace Grpc.Dotnet.Cli.Commands
                 throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorReferenceDoesNotExist, file));
             }
 
-            if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(i.UnevaluatedInclude, file, StringComparison.OrdinalIgnoreCase)))
+            file = file.Replace('/', '\\');
+            additionalImportDirs = additionalImportDirs.Replace('/', '\\');
+
+            if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(i.UnevaluatedInclude.Replace('/', '\\'), file, StringComparison.OrdinalIgnoreCase)))
             {
                 if (!string.Equals(Path.GetExtension(file), ".proto", StringComparison.OrdinalIgnoreCase))
                 {
