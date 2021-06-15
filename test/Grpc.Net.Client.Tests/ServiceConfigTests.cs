@@ -31,6 +31,18 @@ namespace Grpc.Net.Client.Tests
         [Test]
         public void ServiceConfig_CreateUnderlyingConfig()
         {
+            CreateUnderlyingConfigCore();
+        }
+
+        [Test]
+        [SetCulture("fr-FR")]
+        public void ServiceConfig_CreateUnderlyingConfig_French()
+        {
+            CreateUnderlyingConfigCore();
+        }
+
+        private static void CreateUnderlyingConfigCore()
+        {
             // Arrange & Act
             var serviceConfig = new ServiceConfig
             {
@@ -42,7 +54,7 @@ namespace Grpc.Net.Client.Tests
                         RetryPolicy = new RetryPolicy
                         {
                             MaxAttempts = 5,
-                            InitialBackoff = TimeSpan.FromSeconds(1),
+                            InitialBackoff = TimeSpan.FromSeconds(1.1),
                             RetryableStatusCodes = { StatusCode.Unavailable, StatusCode.Aborted }
                         }
                     }
@@ -53,7 +65,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(1, serviceConfig.MethodConfigs.Count);
             Assert.AreEqual(1, serviceConfig.MethodConfigs[0].Names.Count);
             Assert.AreEqual(5, serviceConfig.MethodConfigs[0].RetryPolicy!.MaxAttempts);
-            Assert.AreEqual(TimeSpan.FromSeconds(1), serviceConfig.MethodConfigs[0].RetryPolicy!.InitialBackoff);
+            Assert.AreEqual(TimeSpan.FromSeconds(1.1), serviceConfig.MethodConfigs[0].RetryPolicy!.InitialBackoff);
             Assert.AreEqual(StatusCode.Unavailable, serviceConfig.MethodConfigs[0].RetryPolicy!.RetryableStatusCodes[0]);
             Assert.AreEqual(StatusCode.Aborted, serviceConfig.MethodConfigs[0].RetryPolicy!.RetryableStatusCodes[1]);
 
@@ -62,7 +74,7 @@ namespace Grpc.Net.Client.Tests
             var allServices = (IDictionary<string, object>)methodConfigs[0];
 
             Assert.AreEqual(5, (int)((IDictionary<string, object>)allServices["retryPolicy"])["maxAttempts"]);
-            Assert.AreEqual("1s", (string)((IDictionary<string, object>)allServices["retryPolicy"])["initialBackoff"]);
+            Assert.AreEqual("1.1s", (string)((IDictionary<string, object>)allServices["retryPolicy"])["initialBackoff"]);
             Assert.AreEqual("UNAVAILABLE", (string)((IList<object>)((IDictionary<string, object>)allServices["retryPolicy"])["retryableStatusCodes"])[0]);
             Assert.AreEqual("ABORTED", (string)((IList<object>)((IDictionary<string, object>)allServices["retryPolicy"])["retryableStatusCodes"])[1]);
         }
