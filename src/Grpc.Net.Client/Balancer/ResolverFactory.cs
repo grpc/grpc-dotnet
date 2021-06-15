@@ -52,7 +52,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="disableServiceConfig">
         /// The flag indicating whether the resolver should disable resolving a service config.
         /// </param>
-        public ResolverOptions(bool disableServiceConfig)
+        internal ResolverOptions(bool disableServiceConfig)
         {
             DisableServiceConfig = disableServiceConfig;
         }

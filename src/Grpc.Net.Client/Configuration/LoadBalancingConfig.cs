@@ -27,12 +27,12 @@ namespace Grpc.Net.Client.Configuration
     public class LoadBalancingConfig : ConfigObject
     {
         /// <summary>
-        /// 
+        /// <c>pick_first</c> policy name.
         /// </summary>
         public const string PickFirstPolicyName = "pick_first";
 
         /// <summary>
-        /// 
+        /// <c>round_robin</c> policy name.
         /// </summary>
         public const string RoundRobinPolicyName = "round_robin";
 
@@ -47,7 +47,7 @@ namespace Grpc.Net.Client.Configuration
         internal LoadBalancingConfig(IDictionary<string, object> inner) : base(inner) { }
 
         /// <summary>
-        /// 
+        /// Gets the load balancer policy name.
         /// </summary>
         public string PolicyName => Inner.Keys.Single();
     }

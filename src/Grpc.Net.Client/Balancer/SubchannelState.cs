@@ -32,7 +32,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="state">The connectivity state.</param>
         /// <param name="status">The status.</param>
         [DebuggerStepThrough]
-        public SubchannelState(ConnectivityState state, Status status)
+        internal SubchannelState(ConnectivityState state, Status status)
         {
             State = state;
             Status = status;

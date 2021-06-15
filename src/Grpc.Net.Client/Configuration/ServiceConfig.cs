@@ -50,9 +50,9 @@ namespace Grpc.Net.Client.Configuration
                 var item = s.Single();
                 switch (item.Key)
                 {
-                    case "round_robin":
+                    case LoadBalancingConfig.RoundRobinPolicyName:
                         return new RoundRobinConfig(s);
-                    case "pick_first":
+                    case LoadBalancingConfig.PickFirstPolicyName:
                         return new PickFirstConfig(s);
                     default:
                         // Unknown/unsupported config. Use base type.
