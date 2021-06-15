@@ -116,7 +116,7 @@ namespace Grpc.Net.Client.Internal.Configuration
 
             // This format is based on the Protobuf duration's JSON mapping.
             // https://github.com/protocolbuffers/protobuf/blob/35bdcabdd6a05ce9ee738ad7df8c1299d9c7fc4b/src/google/protobuf/duration.proto#L92
-            return value.GetValueOrDefault().TotalSeconds + "s";
+            return value.GetValueOrDefault().TotalSeconds.ToString(CultureInfo.InvariantCulture) + "s";
         }
     }
 }
