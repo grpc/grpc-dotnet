@@ -190,6 +190,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public ServiceConfig? ServiceConfig { get; set; }
 
+#if HAVE_LOAD_BALANCING
         /// <summary>
         /// Gets or sets a value indicating whether resolving a service config from the <see cref="Balancer.Resolver"/>
         /// is disabled.
@@ -203,9 +204,10 @@ namespace Grpc.Net.Client
         /// </para>
         /// </summary>
         public bool DisableResolverServiceConfig { get; set; }
+#endif
 
         /// <summary>
-        /// TODO
+        /// Gets or sets the <see cref="IServiceProvider"/> the channel uses to resolve types.
         /// </summary>
         public IServiceProvider? ServiceProvider { get; set; }
 

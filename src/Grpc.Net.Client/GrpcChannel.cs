@@ -215,6 +215,7 @@ namespace Grpc.Net.Client
             return HttpHandlerFactory.CalculateHandlerType(channelOptions.HttpHandler);
         }
 
+#if HAVE_LOAD_BALANCING
         private Resolver CreateResolver(GrpcChannelOptions options)
         {
             var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
@@ -243,6 +244,7 @@ namespace Grpc.Net.Client
             
             return resolvedFactories;
         }
+#endif
 
         private ChannelRetryThrottling CreateChannelRetryThrottling(RetryThrottlingPolicy retryThrottling)
         {
