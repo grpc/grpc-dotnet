@@ -122,7 +122,8 @@ namespace Grpc.Net.Client
         public IList<ICompressionProvider>? CompressionProviders { get; set; }
 
         /// <summary>
-        /// Gets or sets the logger factory used by the channel.
+        /// Gets or sets the logger factory used by the channel. If no value is specified then the channel
+        /// attempts to resolve an <see cref="ILoggerFactory"/> from the <see cref="ServiceProvider"/>.
         /// </summary>
         public ILoggerFactory? LoggerFactory { get; set; }
 
