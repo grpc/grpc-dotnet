@@ -40,7 +40,12 @@ namespace Grpc.Net.Client.Balancer
     /// is responsible for eventually invoking <see cref="RefreshAsync(CancellationToken)"/>.
     /// </para>
     /// </summary>
-    public abstract class Resolver : IDisposable
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        abstract class Resolver : IDisposable
     {
         /// <summary>
         /// Starts resolution.
@@ -82,7 +87,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents the results from a <see cref="Resolver"/>.
     /// </summary>
-    public sealed class ResolverResult
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class ResolverResult
     {
         private BalancerAttributes? _attributes;
 

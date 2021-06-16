@@ -23,7 +23,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Context used to pick a <see cref="Subchannel"/>.
     /// </summary>
-    public sealed class PickContext
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class PickContext
     {
         /// <summary>
         /// Gets or sets the <see cref="HttpRequestMessage"/>.

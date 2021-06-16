@@ -21,7 +21,12 @@ namespace Grpc.Net.Client
     /// <summary>
     /// The connectivity state.
     /// </summary>
-    public enum ConnectivityState
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        enum ConnectivityState
     {
         /// <summary>
         /// Not trying to create a connection.

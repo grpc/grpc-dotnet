@@ -27,7 +27,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents the state for a channel. This is created from results returned by a <see cref="Resolver"/>.
     /// </summary>
-    public sealed class ChannelState
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class ChannelState
     {
         [DebuggerStepThrough]
         internal ChannelState(Status status, IReadOnlyList<DnsEndPoint>? addresses, LoadBalancingConfig? loadBalancingConfig, BalancerAttributes attributes)

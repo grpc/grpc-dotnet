@@ -395,12 +395,13 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(0, channel.ActiveCalls.Count);
         }
 
+#if HAVE_LOAD_BALANCING
         [Test]
         public void Resolver_NoChannelCredentials_Error()
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
 
             var handler = new TestHttpMessageHandler();
             var channelOptions = new GrpcChannelOptions
@@ -424,7 +425,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
@@ -452,7 +453,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
@@ -491,7 +492,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
@@ -527,7 +528,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
@@ -566,7 +567,7 @@ namespace Grpc.Net.Client.Tests
             var currentConnectivityState = ConnectivityState.TransientFailure;
 
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async sc =>
             {
                 await syncPoint.WaitToContinue();
@@ -641,7 +642,7 @@ namespace Grpc.Net.Client.Tests
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
 
             var handler = new TestHttpMessageHandler();
             var channelOptions = new GrpcChannelOptions
@@ -655,7 +656,7 @@ namespace Grpc.Net.Client.Tests
             var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
 
             // Assert
-            Assert.IsInstanceOf(typeof(TestResolver), channel.Resolver);
+            Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.Resolver);
         }
 
         [Test]
@@ -687,17 +688,17 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("No address resolver configured for the scheme 'test'.", ex.Message);
         }
 
-        public class TestResolverFactory : ResolverFactory
+        public class ChannelTestResolverFactory : ResolverFactory
         {
             public override string Name => "test";
 
             public override Resolver Create(Uri address, ResolverOptions options)
             {
-                return new TestResolver();
+                return new ChannelTestResolver();
             }
         }
 
-        public class TestResolver : Resolver
+        public class ChannelTestResolver : Resolver
         {
             public override Task RefreshAsync(CancellationToken cancellationToken)
             {
@@ -709,6 +710,7 @@ namespace Grpc.Net.Client.Tests
                 throw new NotImplementedException();
             }
         }
+#endif
 
         public class TestHttpMessageHandler : HttpMessageHandler
         {

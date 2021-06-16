@@ -25,7 +25,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Collection of load balancing metadata attributes.
     /// </summary>
-    public sealed class BalancerAttributes : IDictionary<string, object?>
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class BalancerAttributes : IDictionary<string, object?>
     {
         /// <summary>
         /// Gets a read-only collection of metadata attributes.

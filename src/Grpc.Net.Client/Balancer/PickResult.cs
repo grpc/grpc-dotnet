@@ -26,7 +26,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A balancing decision made by a <see cref="SubchannelPicker"/> for a gRPC call.
     /// </summary>
-    public sealed class PickResult
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class PickResult
     {
         private readonly Action<CompleteContext>? _onComplete;
 
@@ -122,7 +127,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// The <see cref="PickResult"/> type.
     /// </summary>
-    public enum PickResultType
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        enum PickResultType
     {
         /// <summary>
         /// Result with a <see cref="Subchannel"/>.

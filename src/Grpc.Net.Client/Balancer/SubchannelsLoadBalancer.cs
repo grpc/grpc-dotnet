@@ -30,7 +30,12 @@ namespace Grpc.Net.Client.Balancer
     /// from addresses. It is designed to make it easy to implement a custom picking policy by overriding
     /// <see cref="CreatePicker(List{Subchannel})"/> and returning a custom <see cref="SubchannelPicker"/>.
     /// </summary>
-    public abstract class SubchannelsLoadBalancer : LoadBalancer
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        abstract class SubchannelsLoadBalancer : LoadBalancer
     {
         /// <summary>
         /// Gets the controller.

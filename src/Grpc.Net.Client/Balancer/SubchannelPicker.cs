@@ -26,7 +26,12 @@ namespace Grpc.Net.Client.Balancer
     /// determine which subchannel is returned for a call.
     /// </para>
     /// </summary>
-    public abstract class SubchannelPicker
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        abstract class SubchannelPicker
     {
         /// <summary>
         /// Picks a ready <see cref="Subchannel"/> for the specified context.

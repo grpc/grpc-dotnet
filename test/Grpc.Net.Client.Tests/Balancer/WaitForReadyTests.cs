@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -157,3 +158,4 @@ namespace Grpc.Net.Client.Tests.Balancer
     }
 }
 
+#endif

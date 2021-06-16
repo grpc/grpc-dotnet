@@ -49,7 +49,12 @@ namespace Grpc.Net.Client.Balancer
     /// </list>
     /// </para>
     /// </summary>
-    public abstract class LoadBalancer : IDisposable
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        abstract class LoadBalancer : IDisposable
     {
         /// <summary>
         /// Updates the <see cref="LoadBalancer"/> with state from the <see cref="Resolver"/>.
@@ -91,7 +96,12 @@ namespace Grpc.Net.Client.Balancer
     /// Factory for creating new <see cref="LoadBalancer"/> instances. A factory is used when the load balancer config name
     /// matches the factory name.
     /// </summary>
-    public abstract class LoadBalancerFactory
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        abstract class LoadBalancerFactory
     {
         /// <summary>
         /// Gets the load balancer factory name. A factory is used when the load balancer config name

@@ -24,7 +24,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents subchannel state.
     /// </summary>
-    public sealed class SubchannelState
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class SubchannelState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SubchannelState"/> class.

@@ -23,7 +23,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents the balancer state.
     /// </summary>
-    public sealed class BalancerState
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class BalancerState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="BalancerState"/> class with the specified state.

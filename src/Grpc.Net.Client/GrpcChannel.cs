@@ -287,7 +287,9 @@ namespace Grpc.Net.Client
             handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
 
+#if HAVE_LOAD_BALANCING
             handler = new BalancerHttpHandler(handler, ConnectionManager);
+#endif
 
             // Use HttpMessageInvoker instead of HttpClient because it is faster
             // and we don't need client's features.
@@ -469,7 +471,12 @@ namespace Grpc.Net.Client
         /// Gets current connectivity state of this channel.
         /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
         /// </summary>
-        public ConnectivityState State => ConnectionManager.State;
+#if HAVE_LOAD_BALANCING
+        public
+#else
+        internal
+#endif
+        ConnectivityState State => ConnectionManager.State;
 
         /// <summary>
         /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes different from <paramref name="lastObservedState"/>.
@@ -477,7 +484,12 @@ namespace Grpc.Net.Client
         /// <param name="lastObservedState">The last observed state. The task completes when <see cref="State"/> becomes different from this value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
+#if HAVE_LOAD_BALANCING
+        public
+#else
+        internal
+#endif
+        Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
         {
             return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
         }
@@ -557,7 +569,12 @@ namespace Grpc.Net.Client
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public Task ConnectAsync(CancellationToken cancellationToken = default)
+#if HAVE_LOAD_BALANCING
+        public
+#else
+        internal
+#endif
+        Task ConnectAsync(CancellationToken cancellationToken = default)
         {
             return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
         }

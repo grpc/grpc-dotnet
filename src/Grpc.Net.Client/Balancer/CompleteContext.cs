@@ -25,7 +25,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Context used to signal a call is complete.
     /// </summary>
-    public sealed class CompleteContext
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class CompleteContext
     {
         /// <summary>
         /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with.

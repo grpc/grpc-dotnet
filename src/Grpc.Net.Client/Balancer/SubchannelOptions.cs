@@ -25,7 +25,12 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents options used to create <see cref="Subchannel"/>.
     /// </summary>
-    public sealed class SubchannelOptions
+#if HAVE_LOAD_BALANCING
+    public
+#else
+    internal
+#endif
+        sealed class SubchannelOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SubchannelOptions"/> class.
