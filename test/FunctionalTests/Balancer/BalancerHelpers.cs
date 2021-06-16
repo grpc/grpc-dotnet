@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.IO;
 using System.Linq;
@@ -175,3 +176,4 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         }
     }
 }
+#endif

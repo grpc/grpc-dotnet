@@ -20,22 +20,20 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Configuration;
-//using GrpcServiceConfig = Grpc.Net.Client.Configuration.ServiceConfig;
+using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Retry;
 using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Grpc.Net.Client.Internal.Retry;
-using System.Threading;
-using System.Diagnostics;
-using System.Net;
-using System.Threading.Tasks;
-using Grpc.Net.Client.Balancer;
-using Grpc.Net.Client.Balancer.Internal;
 
 namespace Grpc.Net.Client
 {
@@ -44,7 +42,10 @@ namespace Grpc.Net.Client
     /// Client objects can reuse the same channel. Creating a channel is an expensive operation compared to invoking
     /// a remote call so in general you should reuse a single channel for as many calls as possible.
     /// </summary>
-    public sealed class GrpcChannel : ChannelBase, IDisposable, ISubchannelTransportFactory
+    public sealed class GrpcChannel : ChannelBase, IDisposable
+#if HAVE_LOAD_BALANCING
+        , ISubchannelTransportFactory
+#endif
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
         internal const int DefaultMaxRetryAttempts = 5;
@@ -75,9 +76,11 @@ namespace Grpc.Net.Client
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
 
+#if HAVE_LOAD_BALANCING
         // Load balancing
         internal Resolver Resolver { get; }
         internal ConnectionManager ConnectionManager { get; }
+#endif
 
         // Stateful
         internal ChannelRetryThrottling? RetryThrottling { get; }
@@ -112,6 +115,7 @@ namespace Grpc.Net.Client
             LoggerFactory = channelOptions.LoggerFactory ?? ResolveService<ILoggerFactory>(channelOptions.ServiceProvider, NullLoggerFactory.Instance);
             RandomGenerator = ResolveService<IRandomGenerator>(channelOptions.ServiceProvider, new RandomGenerator());
 
+#if HAVE_LOAD_BALANCING
             if (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp)
             {
                 Resolver = new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) });
@@ -133,6 +137,12 @@ namespace Grpc.Net.Client
                 c,
                 channelOptions.ServiceConfig,
                 ConnectionManager));
+#else
+            if (string.IsNullOrEmpty(address.Host))
+            {
+                throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
+            }
+#endif
 
             HttpHandlerType = CalculateHandlerType(channelOptions);
             HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -467,16 +477,12 @@ namespace Grpc.Net.Client
             return new GrpcChannel(address, channelOptions);
         }
 
+#if HAVE_LOAD_BALANCING
         /// <summary>
         /// Gets current connectivity state of this channel.
         /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
         /// </summary>
-#if HAVE_LOAD_BALANCING
-        public
-#else
-        internal
-#endif
-        ConnectivityState State => ConnectionManager.State;
+        public ConnectivityState State => ConnectionManager.State;
 
         /// <summary>
         /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes different from <paramref name="lastObservedState"/>.
@@ -484,15 +490,11 @@ namespace Grpc.Net.Client
         /// <param name="lastObservedState">The last observed state. The task completes when <see cref="State"/> becomes different from this value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-#if HAVE_LOAD_BALANCING
-        public
-#else
-        internal
-#endif
-        Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
+        public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
         {
             return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
         }
+#endif
 
         /// <summary>
         /// Releases the resources used by the <see cref="GrpcChannel"/> class.
@@ -524,8 +526,10 @@ namespace Grpc.Net.Client
             {
                 HttpInvoker.Dispose();
             }
+#if HAVE_LOAD_BALANCING
             ConnectionManager.Dispose();
             Resolver.Dispose();
+#endif
             Disposed = true;
         }
 
@@ -561,6 +565,7 @@ namespace Grpc.Net.Client
             }
         }
 
+#if HAVE_LOAD_BALANCING
         /// <summary>
         /// Allows explicitly requesting channel to connect without starting an RPC.
         /// Returned task completes once <see cref="State"/> Ready was seen.
@@ -569,12 +574,7 @@ namespace Grpc.Net.Client
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-#if HAVE_LOAD_BALANCING
-        public
-#else
-        internal
-#endif
-        Task ConnectAsync(CancellationToken cancellationToken = default)
+        public Task ConnectAsync(CancellationToken cancellationToken = default)
         {
             return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
         }
@@ -592,6 +592,7 @@ namespace Grpc.Net.Client
 
             return new PassiveSubchannelTransport(subchannel);
         }
+#endif
 
         private struct MethodKey : IEquatable<MethodKey>
         {

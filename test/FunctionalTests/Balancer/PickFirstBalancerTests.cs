@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 #if NET5_0_OR_GREATER
 
 using System;
@@ -266,4 +267,5 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
     }
 }
 
+#endif
 #endif

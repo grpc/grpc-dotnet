@@ -64,8 +64,7 @@ namespace Grpc.Net.Client.Balancer
 
         /// <summary>
         /// Request the <see cref="LoadBalancer"/> to establish connections now (if applicable) so that
-        /// feature calls can use a ready connection without waiting for a connection. This is triggered by
-        /// <see cref="GrpcChannel.ConnectAsync(System.Threading.CancellationToken)"/>.
+        /// feature calls can use a ready connection without waiting for a connection.
         /// </summary>
         public abstract void RequestConnection();
 

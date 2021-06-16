@@ -42,11 +42,19 @@ namespace Grpc.Net.Client.Tests
         [Test]
         public void Build_AddressWithoutHost_Error()
         {
+#if HAVE_LOAD_BALANCING
             // Arrange & Act
             var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
 
             // Assert
             Assert.AreEqual("No address resolver configured for the scheme 'test.example.com'.", ex.Message);
+#else
+            // Arrange & Act
+            var ex = Assert.Throws<ArgumentException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
+
+            // Assert
+            Assert.AreEqual("Address 'test.example.com:5001' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.", ex.Message);
+#endif
         }
 
         [TestCase("https://localhost:5001/path", true)]
