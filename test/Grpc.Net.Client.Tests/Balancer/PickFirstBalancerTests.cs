@@ -149,7 +149,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 new DnsEndPoint("localhost", 80)
             });
 
-            var transportFactory = new TestSubchannelTransportFactory(s => Task.FromResult(ConnectivityState.TransientFailure));
+            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
@@ -200,7 +200,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var connectivityState = ConnectivityState.TransientFailure;
 
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async s =>
+            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
             {
                 await syncPoint.WaitToContinue();
                 return connectivityState;
@@ -256,7 +256,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory(s =>
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
             {
                 transportConnectCount++;
                 return Task.FromResult(ConnectivityState.Ready);
@@ -306,7 +306,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
 
             var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory(s =>
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
             {
                 transportConnectCount++;
                 return Task.FromResult(ConnectivityState.Ready);
@@ -351,7 +351,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
 
             var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory(s =>
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
             {
                 transportConnectCount++;
                 return Task.FromResult(ConnectivityState.Ready);

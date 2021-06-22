@@ -164,7 +164,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 new DnsEndPoint("localhost", 80)
             });
 
-            var transportFactory = new TestSubchannelTransportFactory(s => Task.FromResult(ConnectivityState.TransientFailure));
+            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
@@ -222,7 +222,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             var connectState = ConnectivityState.Ready;
 
-            var transportFactory = new TestSubchannelTransportFactory(s => Task.FromResult(connectState));
+            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(connectState));
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 

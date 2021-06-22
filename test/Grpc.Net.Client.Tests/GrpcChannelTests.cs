@@ -578,7 +578,7 @@ namespace Grpc.Net.Client.Tests
 
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async sc =>
+            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
             {
                 await syncPoint.WaitToContinue();
                 return currentConnectivityState;

@@ -219,7 +219,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var currentConnectivityState = ConnectivityState.Ready;
 
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async sc =>
+            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
             {
                 await syncPoint.WaitToContinue();
                 return currentConnectivityState;

@@ -46,11 +46,10 @@ namespace Grpc.Net.Client.Balancer
         internal ISubchannelTransport Transport { get; set; } = default!;
 
         private readonly ConnectionManager _manager;
-        private readonly CancellationTokenSource _cts;
 
+        private CancellationTokenSource? _connectCts;
         private EventHandler<SubchannelState>? _stateChanged;
         private ConnectivityState _state;
-        private CancellationTokenSource? _delayCts;
         private TaskCompletionSource<object?>? _delayInterruptTcs;
 
         /// <summary>
@@ -83,7 +82,6 @@ namespace Grpc.Net.Client.Balancer
             _addresses = addresses.ToList();
             _manager = manager;
             Attributes = new BalancerAttributes();
-            _cts = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -99,14 +97,38 @@ namespace Grpc.Net.Client.Balancer
             var requireReconnect = false;
             lock (Lock)
             {
+                if (_addresses.SequenceEqual(addresses))
+                {
+                    // Don't do anything if new addresses match existing addresses.
+                    return;
+                }
+
                 _addresses.Clear();
                 _addresses.AddRange(addresses);
 
-                requireReconnect = (CurrentAddress != null && !_addresses.Contains(CurrentAddress));
+                switch (_state)
+                {
+                    case ConnectivityState.Idle:
+                        break;
+                    case ConnectivityState.Connecting:
+                    case ConnectivityState.TransientFailure:
+                        Logger.LogInformation($"Subchannel is connecting when its addresses are updated. Restart connect.");
+                        requireReconnect = true;
+                        break;
+                    case ConnectivityState.Ready:
+                        Logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
+                        requireReconnect = (CurrentAddress != null && !_addresses.Contains(CurrentAddress));
+                        break;
+                    case ConnectivityState.Shutdown:
+                        throw new InvalidOperationException("Subchannel has been shutdown.");
+                    default:
+                        throw new ArgumentOutOfRangeException("state", _state, "Unexpected state.");
+                }
+
             }
             if (requireReconnect)
             {
-                Logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
+                _connectCts?.Cancel();
                 Transport.Disconnect();
                 RequestConnection();
             }
@@ -149,6 +171,11 @@ namespace Grpc.Net.Client.Balancer
 
         private async Task ConnectTransportAsync()
         {
+            // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
+            _connectCts?.Cancel();
+
+            _connectCts = new CancellationTokenSource();
+
             const int InitialBackOffMs = 1000;
 
             try
@@ -166,23 +193,23 @@ namespace Grpc.Net.Client.Balancer
                         }
                     }
 
-                    if (await Transport.TryConnectAsync(_cts.Token).ConfigureAwait(false))
+                    if (await Transport.TryConnectAsync(_connectCts.Token).ConfigureAwait(false))
                     {
                         return;
                     }
 
-                    _cts.Token.ThrowIfCancellationRequested();
+                    _connectCts.Token.ThrowIfCancellationRequested();
 
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    _delayCts = new CancellationTokenSource();
+                    var delayCts = new CancellationTokenSource();
 
                     Logger.LogInformation($"Connect failed. Back off: {backoffMs}ms");
-                    var completedTask = await Task.WhenAny(Task.Delay(backoffMs, _delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
+                    var completedTask = await Task.WhenAny(Task.Delay(backoffMs, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
 
                     if (completedTask != _delayInterruptTcs.Task)
                     {
                         // Task.Delay won. Check CTS to see if it won because of cancellation.
-                        _delayCts.Token.ThrowIfCancellationRequested();
+                        delayCts.Token.ThrowIfCancellationRequested();
                     }
                     else
                     {
@@ -191,12 +218,16 @@ namespace Grpc.Net.Client.Balancer
 
                         // Cancel the Task.Delay that's no longer needed.
                         // https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/519ef7d231c01116f02bc04354816a735f2a36b6/AsyncGuidance.md#using-a-timeout
-                        _delayCts.Cancel();
+                        delayCts.Cancel();
                     }
 
                     // Exponential backoff with max.
                     backoffMs = (int)Math.Min(backoffMs * 1.6, 1000 * 120);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.LogInformation("Connect canceled.");
             }
             catch (Exception ex)
             {
@@ -269,8 +300,7 @@ namespace Grpc.Net.Client.Balancer
             UpdateConnectivityState(ConnectivityState.Shutdown);
             _stateChanged = null;
             Transport.Dispose();
-            _cts.Cancel();
-            _delayCts?.Cancel();
+            _connectCts?.Cancel();
         }
     }
 }

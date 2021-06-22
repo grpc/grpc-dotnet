@@ -31,21 +31,21 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
 {
     internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
     {
-        private readonly Func<Subchannel, Task<ConnectivityState>>? _onSubchannelTryConnect;
+        private readonly Func<Subchannel, CancellationToken, Task<ConnectivityState>>? _onSubchannelTryConnect;
 
         public List<TestSubchannelTransport> Transports { get; } = new List<TestSubchannelTransport>();
 
-        public TestSubchannelTransportFactory(Func<Subchannel, Task<ConnectivityState>>? onSubchannelTryConnect = null)
+        public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<ConnectivityState>>? onSubchannelTryConnect = null)
         {
             _onSubchannelTryConnect = onSubchannelTryConnect;
         }
 
         public ISubchannelTransport Create(Subchannel subchannel)
         {
-            Func<Task<ConnectivityState>>? onTryConnect = null;
+            Func<CancellationToken, Task<ConnectivityState>>? onTryConnect = null;
             if (_onSubchannelTryConnect != null)
             {
-                onTryConnect = () => _onSubchannelTryConnect(subchannel);
+                onTryConnect = (c) => _onSubchannelTryConnect(subchannel, c);
             }
 
             var transport = new TestSubchannelTransport(subchannel, onTryConnect);

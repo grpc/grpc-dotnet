@@ -31,7 +31,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
     {
         private ConnectivityState _state = ConnectivityState.Idle;
         private TaskCompletionSource<object?> _connectTcs;
-        private readonly Func<Task<ConnectivityState>>? _onTryConnect;
+        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
 
         public Subchannel Subchannel { get; }
 
@@ -39,7 +39,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
 
         public Task TryConnectTask => _connectTcs.Task;
 
-        public TestSubchannelTransport(Subchannel subchannel, Func<Task<ConnectivityState>>? onTryConnect)
+        public TestSubchannelTransport(Subchannel subchannel, Func<CancellationToken, Task<ConnectivityState>>? onTryConnect)
         {
             Subchannel = subchannel;
             _onTryConnect = onTryConnect;
@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
 #endif
             TryConnectAsync(CancellationToken cancellationToken)
         {
-            var newState = await (_onTryConnect?.Invoke() ?? Task.FromResult(ConnectivityState.Ready));
+            var newState = await (_onTryConnect?.Invoke(cancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
             CurrentEndPoint = Subchannel._addresses[0];
             Subchannel.UpdateConnectivityState(newState);

@@ -32,6 +32,14 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.Net.Client.Balancer.Internal
 {
 #if NET5_0_OR_GREATER
+    /// <summary>
+    /// Features:
+    /// 1. When a connection is requested the transport creates a Socket and connects to the server.
+    ///    The socket is used with the first stream created by SocketsHttpHandler.ConnectCallback.
+    ///    The transport keeps track of the socket or the streams in use to determine if the server is ready.
+    /// 2. Transport supports multiple addresses. When connecting it will iterate through the addresses,
+    ///    attempting to connect to each one.
+    /// </summary>
     internal class ActiveSubchannelTransport : ISubchannelTransport, IDisposable
     {
         private readonly Subchannel _subchannel;
@@ -71,23 +79,20 @@ namespace Grpc.Net.Client.Balancer.Internal
             _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
         }
 
-        public ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
+        public async ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(_subchannel._addresses.Count > 0);
             Debug.Assert(CurrentEndPoint == null);
 
-            return TryConnectSocketAsync(cancellationToken);
-        }
+            // Addresses could change while connecting. Make a copy of the subchannel's addresses.
+            var addresses = _subchannel.GetAddresses();
 
-        private async ValueTask<bool> TryConnectSocketAsync(CancellationToken cancellationToken)
-        {
-            // Loop through endpoints and attempt to connect
+            // Loop through endpoints and attempt to connect.
             Exception? firstConnectionError = null;
 
-            for (var i = 0; i < _subchannel._addresses.Count; i++)
+            for (var i = 0; i < addresses.Count; i++)
             {
-                var currentIndex = (i + _lastEndPointIndex) % _subchannel._addresses.Count;
-                var currentEndPoint = _subchannel._addresses[currentIndex];
+                var currentIndex = (i + _lastEndPointIndex) % addresses.Count;
+                var currentEndPoint = addresses[currentIndex];
 
                 Socket socket;
 

@@ -19,9 +19,11 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
@@ -265,6 +267,67 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(StatusCode.DataLoss, ex.StatusCode);
 
             Assert.AreEqual(1, loadBalancer!.PickCount);
+        }
+
+        [Test]
+        public async Task UpdateEndPoints_ConnectIsInProgress_InProgressConnectIsCanceledAndRestarted()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            var serviceProvider = services.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            var testLogger = loggerFactory.CreateLogger(GetType());
+
+            var resolver = new TestResolver();
+            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            {
+                new DnsEndPoint("localhost", 80)
+            });
+
+            var connectAddressesChannel = System.Threading.Channels.Channel.CreateUnbounded<DnsEndPoint>();
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+            var transportFactory = new TestSubchannelTransportFactory(async (s, c) =>
+            {
+                c.Register(state => ((SyncPoint)state!).Continue(), syncPoint);
+
+                var connectAddress = s.GetAddresses().Single();
+                testLogger.LogInformation("Writing connect address " + connectAddress);
+
+                await connectAddressesChannel.Writer.WriteAsync(connectAddress);
+                await syncPoint.WaitToContinue();
+
+                c.ThrowIfCancellationRequested();
+                return ConnectivityState.Ready;
+            });
+            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, new LoadBalancerFactory[0]);
+            clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
+
+            // Act
+            _ = clientChannel.ConnectAsync(waitForReady: true, CancellationToken.None).ConfigureAwait(false);
+
+            var connectAddress1 = await connectAddressesChannel.Reader.ReadAsync().AsTask().DefaultTimeout();
+            Assert.AreEqual(80, connectAddress1.Port);
+
+            // Endpoints are unchanged so continue connecting...
+            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            {
+                new DnsEndPoint("localhost", 80)
+            });
+            Assert.IsFalse(syncPoint.WaitToContinue().IsCompleted);
+
+            // Endpoints change so cancellation + reconnect triggered
+            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            {
+                new DnsEndPoint("localhost", 81)
+            });
+
+            await syncPoint.WaitToContinue().DefaultTimeout();
+
+            var connectAddress2 = await connectAddressesChannel.Reader.ReadAsync().AsTask().DefaultTimeout();
+            Assert.AreEqual(81, connectAddress2.Port);
         }
 
         private class DropLoadBalancer : LoadBalancer
