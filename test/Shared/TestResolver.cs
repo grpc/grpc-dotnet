@@ -46,7 +46,7 @@ namespace Grpc.Tests.Shared
 
         public void UpdateError(Status status)
         {
-            UpdateResult(ResolverResult.ForError(status));
+            UpdateResult(ResolverResult.ForFailure(status));
         }
 
         public void UpdateResult(ResolverResult result)

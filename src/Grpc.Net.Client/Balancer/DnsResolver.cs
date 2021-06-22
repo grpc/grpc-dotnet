@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.Balancer
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error getting DNS hosts from {dnsAddress}");
-                _listener(ResolverResult.ForError(new Status(StatusCode.Unavailable, $"Error getting DNS hosts from {dnsAddress}", ex)));
+                _listener(ResolverResult.ForFailure(new Status(StatusCode.Unavailable, $"Error getting DNS hosts from {dnsAddress}", ex)));
             }
         }
 

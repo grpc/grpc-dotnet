@@ -34,13 +34,12 @@ namespace Grpc.Net.Client.Balancer.Internal
 #if NET5_0_OR_GREATER
     internal class ActiveSubchannelTransport : ISubchannelTransport, IDisposable
     {
-        private readonly SemaphoreSlim _connectionCreateLock;
         private readonly Subchannel _subchannel;
         private readonly TimeSpan _socketPingInterval;
-        private int _lastEndPointIndex;
-
         internal readonly List<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> _activeStreams;
         private readonly Timer _socketConnectedTimer;
+
+        private int _lastEndPointIndex;
         private Socket? _initialSocket;
         private DnsEndPoint? _initialSocketEndPoint;
         private bool _disposed;
@@ -48,11 +47,8 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public ActiveSubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval)
         {
-            _connectionCreateLock = new SemaphoreSlim(1);
             _subchannel = subchannel;
             _socketPingInterval = socketPingInterval;
-            _lastEndPointIndex = -1; // Start -1 so first attempt is at index 0
-
             _activeStreams = new List<(DnsEndPoint, Socket, Stream?)>();
             _socketConnectedTimer = new Timer(OnSocketConnected, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
@@ -68,7 +64,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 _initialSocket?.Dispose();
                 _initialSocket = null;
                 _initialSocketEndPoint = null;
-                _lastEndPointIndex = -1; // Start -1 so first attempt is at index 0
+                _lastEndPointIndex = 0;
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
                 _currentEndPoint = null;
             }
@@ -85,69 +81,61 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private async ValueTask<bool> TryConnectSocketAsync(CancellationToken cancellationToken)
         {
-            await _connectionCreateLock.WaitAsync().ConfigureAwait(false);
-            try
+            // Loop through endpoints and attempt to connect
+            Exception? firstConnectionError = null;
+
+            for (var i = 0; i < _subchannel._addresses.Count; i++)
             {
-                // Loop through endpoints and attempt to connect
-                Exception? firstConnectionError = null;
+                var currentIndex = (i + _lastEndPointIndex) % _subchannel._addresses.Count;
+                var currentEndPoint = _subchannel._addresses[currentIndex];
 
-                for (var i = 0; i < _subchannel._addresses.Count; i++)
+                Socket socket;
+
+                _subchannel.Logger.LogInformation("Creating socket: " + currentEndPoint);
+                socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
+
+                try
                 {
-                    var currentIndex = (i + _lastEndPointIndex + 1) % _subchannel._addresses.Count;
-                    var currentEndPoint = _subchannel._addresses[currentIndex];
+                    _subchannel.Logger.LogInformation("Connecting: " + currentEndPoint);
+                    await socket.ConnectAsync(currentEndPoint, cancellationToken).ConfigureAwait(false);
+                    _subchannel.Logger.LogInformation("Connected: " + currentEndPoint);
 
-                    Socket socket;
-
-                    _subchannel.Logger.LogInformation("Creating socket: " + currentEndPoint);
-                    socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                    _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
-
-                    try
+                    lock (Lock)
                     {
-                        _subchannel.Logger.LogInformation("Connecting: " + currentEndPoint);
-                        await socket.ConnectAsync(currentEndPoint, cancellationToken).ConfigureAwait(false);
-                        _subchannel.Logger.LogInformation("Connected: " + currentEndPoint);
-
-                        lock (Lock)
-                        {
-                            _currentEndPoint = currentEndPoint;
-                            _lastEndPointIndex = currentIndex;
-                            _initialSocket = socket;
-                            _initialSocketEndPoint = currentEndPoint;
-                            _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
-                        }
-
-                        _subchannel.UpdateConnectivityState(ConnectivityState.Ready);
-                        return true;
+                        _currentEndPoint = currentEndPoint;
+                        _lastEndPointIndex = currentIndex;
+                        _initialSocket = socket;
+                        _initialSocketEndPoint = currentEndPoint;
+                        _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
                     }
-                    catch (Exception ex)
-                    {
-                        _subchannel.Logger.LogError("Connect error: " + currentEndPoint + " " + ex);
 
-                        if (firstConnectionError == null)
-                        {
-                            firstConnectionError = ex;
-                        }
+                    _subchannel.UpdateConnectivityState(ConnectivityState.Ready);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _subchannel.Logger.LogError("Connect error: " + currentEndPoint + " " + ex);
+
+                    if (firstConnectionError == null)
+                    {
+                        firstConnectionError = ex;
                     }
                 }
+            }
 
-                // All connections failed
-                _subchannel.UpdateConnectivityState(
-                    ConnectivityState.TransientFailure,
-                    new Status(StatusCode.Unavailable, "Error connecting to subchannel.", firstConnectionError));
-                lock (Lock)
-                {
-                    if (!_disposed)
-                    {
-                        _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
-                    }
-                }
-                return false;
-            }
-            finally
+            // All connections failed
+            _subchannel.UpdateConnectivityState(
+                ConnectivityState.TransientFailure,
+                new Status(StatusCode.Unavailable, "Error connecting to subchannel.", firstConnectionError));
+            lock (Lock)
             {
-                _connectionCreateLock.Release();
+                if (!_disposed)
+                {
+                    _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
+                }
             }
+            return false;
         }
 
         private async void OnSocketConnected(object? state)
@@ -179,7 +167,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                                 _initialSocket = null;
                                 _initialSocketEndPoint = null;
                                 _currentEndPoint = null;
-                                _lastEndPointIndex = -1; // Start -1 so first attempt is at index 0
+                                _lastEndPointIndex = 0;
                             }
                         }
                         _subchannel.UpdateConnectivityState(ConnectivityState.Idle);

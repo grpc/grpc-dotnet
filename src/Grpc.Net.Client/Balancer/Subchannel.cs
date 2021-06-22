@@ -124,6 +124,7 @@ namespace Grpc.Net.Client.Balancer
                 switch (_state)
                 {
                     case ConnectivityState.Idle:
+                        // Only start connecting underlying transport if in an idle state.
                         UpdateConnectivityState(ConnectivityState.Connecting);
                         break;
                     case ConnectivityState.Connecting:
@@ -131,7 +132,8 @@ namespace Grpc.Net.Client.Balancer
                     case ConnectivityState.TransientFailure:
                         Logger.LogInformation($"Subchannel is not idle: {_state}");
 
-                        // If connection is waiting in a delayed backoff then interrupt
+                        // We're already attempting to connect to the transport.
+                        // If the connection is waiting in a delayed backoff then interrupt
                         // the delay and immediately retry connection.
                         _delayInterruptTcs?.TrySetResult(null);
                         return;

@@ -116,12 +116,12 @@ namespace Grpc.Net.Client.Balancer
         public BalancerAttributes Attributes => _attributes ??= new BalancerAttributes();
 
         /// <summary>
-        /// Create <see cref="ResolverResult"/> for error.
+        /// Create <see cref="ResolverResult"/> for failure.
         /// </summary>
-        /// <param name="status">The error status.</param>
+        /// <param name="status">The error status. Must not be <see cref="StatusCode.OK"/>.</param>
         /// <returns>A resolver result.</returns>
         [DebuggerStepThrough]
-        public static ResolverResult ForError(Status status)
+        public static ResolverResult ForFailure(Status status)
         {
             if (status.StatusCode == StatusCode.OK)
             {
