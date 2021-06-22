@@ -51,7 +51,7 @@ namespace Grpc.Net.Client.Balancer
         }
 
         /// <inheritdoc />
-        protected override SubchannelPicker CreatePicker(List<Subchannel> readySubchannels)
+        protected override SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels)
         {
             var pickCount = _randomGenerator.Next(0, readySubchannels.Count);
             return new RoundRobinPicker(readySubchannels, pickCount);
@@ -64,16 +64,16 @@ namespace Grpc.Net.Client.Balancer
         internal readonly List<Subchannel> _subchannels;
         private long _pickCount;
 
-        public RoundRobinPicker(List<Subchannel> subchannels, long pickCount)
+        public RoundRobinPicker(IReadOnlyList<Subchannel> subchannels, long pickCount)
         {
-            _subchannels = subchannels;
+            _subchannels = subchannels.ToList();
             _pickCount = pickCount;
         }
 
         public override PickResult Pick(PickContext context)
         {
             var c = Interlocked.Increment(ref _pickCount);
-            var index = (c - 1) % _subchannels.Count;
+            var index = c % _subchannels.Count;
             var item = _subchannels[(int)index];
 
             return PickResult.ForSubchannel(item);

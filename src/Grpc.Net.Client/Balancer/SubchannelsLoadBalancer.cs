@@ -29,7 +29,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// An abstract <see cref="LoadBalancer"/> that manages creating <see cref="Subchannel"/> instances
     /// from addresses. It is designed to make it easy to implement a custom picking policy by overriding
-    /// <see cref="CreatePicker(List{Subchannel})"/> and returning a custom <see cref="SubchannelPicker"/>.
+    /// <see cref="CreatePicker(IReadOnlyList{Subchannel})"/> and returning a custom <see cref="SubchannelPicker"/>.
     /// </summary>
     public abstract class SubchannelsLoadBalancer : LoadBalancer
     {
@@ -122,26 +122,34 @@ namespace Grpc.Net.Client.Balancer
             var newSubchannels = new List<Subchannel>();
             var currentSubchannels = _addressSubchannels.ToList();
 
+            // The state's addresses is the new authoritative list of addresses.
+            // However, we want to keep existing subchannels when possible.
             foreach (var address in state.Addresses)
             {
+                // Check existing subchannels for a match.
                 var i = FindSubchannelByAddress(currentSubchannels, address);
 
-                AddressSubchannel newSubConnection;
+                AddressSubchannel newOrCurrentSubConnection;
                 if (i != null)
                 {
-                    newSubConnection = currentSubchannels[i.GetValueOrDefault()];
+                    // There is a match so take current subchannel.
+                    newOrCurrentSubConnection = currentSubchannels[i.GetValueOrDefault()];
+
+                    // Remove from current collection because any subchannels
+                    // remaining in this collection at the end will be disposed.
                     currentSubchannels.RemoveAt(i.GetValueOrDefault());
                 }
                 else
                 {
+                    // No match so create a new subchannel.
                     var c = Controller.CreateSubchannel(new SubchannelOptions(new[] { address }));
                     c.StateChanged += UpdateSubchannelState;
 
                     newSubchannels.Add(c);
-                    newSubConnection = new AddressSubchannel(c, address);
+                    newOrCurrentSubConnection = new AddressSubchannel(c, address);
                 }
 
-                allUpdatedSubchannels.Add(newSubConnection);
+                allUpdatedSubchannels.Add(newOrCurrentSubConnection);
             }
 
             // Any sub-connections still in this collection are no longer returned by the resolver.
@@ -173,16 +181,20 @@ namespace Grpc.Net.Client.Balancer
 
         private void UpdateBalancingState(Status status)
         {
-            var readySubchannels = _addressSubchannels
-                .Select(s => s.Subchannel)
-                .Where(s => s.State == ConnectivityState.Ready)
-                .ToList();
+            var readySubchannels = new List<Subchannel>();
+            for (var i = 0; i < _addressSubchannels.Count; i++)
+            {
+                var addressSubchannel = _addressSubchannels[i];
+                if (addressSubchannel.Subchannel.State == ConnectivityState.Ready)
+                {
+                    readySubchannels.Add(addressSubchannel.Subchannel);
+                }
+            }
 
             if (readySubchannels.Count == 0)
             {
                 // No READY subchannels, determine aggregate state and error status
                 var isConnecting = false;
-                ConnectivityState? aggState = null;
                 foreach (var subchannel in _addressSubchannels)
                 {
                     var state = subchannel.Subchannel.State;
@@ -190,10 +202,7 @@ namespace Grpc.Net.Client.Balancer
                     if (state == ConnectivityState.Connecting || state == ConnectivityState.Idle)
                     {
                         isConnecting = true;
-                    }
-                    if (aggState == null || aggState == ConnectivityState.TransientFailure)
-                    {
-                        aggState = state;
+                        break;
                     }
                 }
 
@@ -284,7 +293,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         /// <param name="readySubchannels">A collection of ready subchannels.</param>
         /// <returns>A subchannel picker.</returns>
-        protected abstract SubchannelPicker CreatePicker(List<Subchannel> readySubchannels);
+        protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
         private record AddressSubchannel(Subchannel Subchannel, DnsEndPoint Address);
     }

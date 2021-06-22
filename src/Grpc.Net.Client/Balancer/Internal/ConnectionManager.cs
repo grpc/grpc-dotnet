@@ -77,7 +77,8 @@ namespace Grpc.Net.Client.Balancer.Internal
         public bool DisableResolverServiceConfig { get; }
         public LoadBalancerFactory[] LoadBalancerFactories { get; }
 
-        public IList<Subchannel> GetSubchannels()
+        // For unit tests.
+        internal IReadOnlyList<Subchannel> GetSubchannels()
         {
             lock (_subchannels)
             {
@@ -259,6 +260,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     Logger.LogInformation("Channel state updated: " + state.ConnectivityState);
                     State = state.ConnectivityState;
 
+                    // Iterate in reverse to reduce shifting items in the list as watchers are removed.
                     for (var i = _stateWatchers.Count - 1; i >= 0; i--)
                     {
                         var stateWatcher = _stateWatchers[i];

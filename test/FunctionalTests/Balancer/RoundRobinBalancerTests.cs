@@ -19,31 +19,17 @@
 #if HAVE_LOAD_BALANCING
 #if NET5_0_OR_GREATER
 
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Sources;
 using Greet;
-using Grpc.AspNetCore.FunctionalTests;
-using Grpc.AspNetCore.FunctionalTests.Client;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Configuration;
-using Grpc.Net.Client.Internal;
-using Grpc.Shared;
 using Grpc.Tests.Shared;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 

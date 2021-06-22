@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         {
         }
 
-        protected override SubchannelPicker CreatePicker(List<Subchannel> readySubchannels)
+        protected override SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels)
         {
             return new LeastUsedPicker(readySubchannels);
         }
@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         // Internal for testing
         internal readonly List<Subchannel> _subchannels;
 
-        public LeastUsedPicker(List<Subchannel> subchannels)
+        public LeastUsedPicker(IReadOnlyList<Subchannel> subchannels)
         {
             // Ensure all subchannels have an associated counter.
             foreach (var subchannel in subchannels)
@@ -60,7 +60,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 }
             }
 
-            _subchannels = subchannels;
+            _subchannels = subchannels.ToList();
         }
 
         public override PickResult Pick(PickContext context)
@@ -90,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             leastUsedCounter.Increment();
 
-            return PickResult.ForComplete(leastUsedSubchannel, c =>
+            return PickResult.ForSubchannel(leastUsedSubchannel, c =>
             {
                 leastUsedCounter.Decrement();
             });

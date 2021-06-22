@@ -347,7 +347,7 @@ namespace Grpc.Net.Client
             // Add a temp value as the host. This will get replaced in the HTTP request URI by the load balancer.
             if (string.IsNullOrEmpty(uriBuilder.Host))
             {
-                uriBuilder.Host = "tempuri.org";
+                //uriBuilder.Host = "tempuri.org";
             }
 
             return new GrpcMethodInfo(scope, uriBuilder.Uri, methodConfig);

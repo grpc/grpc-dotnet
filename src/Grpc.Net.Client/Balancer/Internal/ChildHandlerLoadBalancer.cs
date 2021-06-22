@@ -30,8 +30,19 @@ using Grpc.Shared;
 namespace Grpc.Net.Client.Balancer.Internal
 {
     /// <summary>
-    /// The load balancer is responsible for creating the real load balancer, and changing it if the resolver
-    /// returns a service config with a new policy name.
+    /// The load balancer is responsible for creating the real load balancer, and changing
+    /// it if the resolver returns a service config with a new policy name.
+    /// <para>
+    /// This load balancer has a reference to both a current and a pending load balancer.
+    /// 
+    /// If there is an update that prompts the load balancer to change then:
+    /// 1. New load balancer is created and set to pending. It will begin connecting.
+    /// 2. Current load balancer will continue to serve new gRPC calls.
+    /// 3. Once pending load balancer has a READY state then it is prompted to current.
+    /// 4. Old current load balancer is disposed.
+    /// 
+    /// This is designed so that there is a smooth transistion when the load balancer changes.
+    /// </para>
     /// </summary>
     internal sealed class ChildHandlerLoadBalancer : LoadBalancer
     {
@@ -131,6 +142,11 @@ namespace Grpc.Net.Client.Balancer.Internal
             return result;
         }
 
+        /// <summary>
+        /// Iterate through the load balancing configs and find the first config that has a factory.
+        /// That means it is supported by the client.
+        /// https://github.com/grpc/proposal/blob/master/A24-lb-policy-config.md
+        /// </summary>
         public static bool TryGetValidServiceConfigFactory(
             IList<LoadBalancingConfig> loadBalancingConfigs,
             LoadBalancerFactory[] factories,
