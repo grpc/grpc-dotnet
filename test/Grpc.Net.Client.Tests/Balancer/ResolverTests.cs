@@ -253,7 +253,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             syncPoint!.Continue();
 
             var pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(80, pick.EndPoint.Port);
+            Assert.AreEqual(80, pick.Address.Port);
 
             // Create new SyncPoint so new load balancer is waiting to connect
             syncPoint = new SyncPoint(runContinuationsAsynchronously: false);
@@ -271,7 +271,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             // Old address is still used because new load balancer is connecting
             pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(80, pick.EndPoint.Port);
+            Assert.AreEqual(80, pick.Address.Port);
 
             Assert.IsFalse(firstLoadBalancer!.Disposed);
 
@@ -279,7 +279,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             // New address is used
             pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(81, pick.EndPoint.Port);
+            Assert.AreEqual(81, pick.Address.Port);
 
             Assert.IsTrue(firstLoadBalancer!.Disposed);
 

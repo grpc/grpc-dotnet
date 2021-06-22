@@ -76,16 +76,16 @@ namespace Grpc.Net.Client.Balancer.Internal
             await _manager.ConnectAsync(waitForReady: false, cancellationToken).ConfigureAwait(false);
             var pickContext = new PickContext { Request = request };
             var result = await _manager.PickAsync(pickContext, waitForReady, cancellationToken).ConfigureAwait(false);
-            var endpoint = result.EndPoint!;
+            var address = result.Address!;
 
             // Update request host if required.
             if (!request.RequestUri.IsAbsoluteUri ||
-                request.RequestUri.Host != endpoint.Host ||
-                request.RequestUri.Port != endpoint.Port)
+                request.RequestUri.Host != address.Host ||
+                request.RequestUri.Port != address.Port)
             {
                 var uriBuilder = new UriBuilder(request.RequestUri);
-                uriBuilder.Host = endpoint.Host;
-                uriBuilder.Port = endpoint.Port;
+                uriBuilder.Host = address.Host;
+                uriBuilder.Port = address.Port;
                 request.RequestUri = uriBuilder.Uri;
             }
 
@@ -104,7 +104,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 // or the request is disposed.
                 result.OnComplete(new CompleteContext
                 {
-                    EndPoint = endpoint
+                    Address = address
                 });
 
                 return responseMessage;
@@ -113,7 +113,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             {
                 result.OnComplete(new CompleteContext
                 {
-                    EndPoint = endpoint,
+                    Address = address,
                     Error = ex
                 });
 

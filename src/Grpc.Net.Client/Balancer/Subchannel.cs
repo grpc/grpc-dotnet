@@ -56,7 +56,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets the current connected address.
         /// </summary>
-        public DnsEndPoint? CurrentEndPoint => Transport.CurrentEndPoint;
+        public DnsEndPoint? CurrentAddress => Transport.CurrentEndPoint;
 
         /// <summary>
         /// Gets the connectivity state.
@@ -102,11 +102,11 @@ namespace Grpc.Net.Client.Balancer
                 _addresses.Clear();
                 _addresses.AddRange(addresses);
 
-                requireReconnect = (CurrentEndPoint != null && !_addresses.Contains(CurrentEndPoint));
+                requireReconnect = (CurrentAddress != null && !_addresses.Contains(CurrentAddress));
             }
             if (requireReconnect)
             {
-                Logger.LogInformation($"Subchannel current endpoint {CurrentEndPoint} is not in the updated addresses.");
+                Logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
                 Transport.Disconnect();
                 RequestConnection();
             }

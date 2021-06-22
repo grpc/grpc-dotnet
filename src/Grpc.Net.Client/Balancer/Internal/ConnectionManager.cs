@@ -288,9 +288,9 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public async
 #if !NETSTANDARD2_0
-            ValueTask<(Subchannel Subchannel, DnsEndPoint EndPoint, Action<CompleteContext> OnComplete)>
+            ValueTask<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
 #else
-            Task<(Subchannel Subchannel, DnsEndPoint EndPoint, Action<CompleteContext> OnComplete)>
+            Task<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
 #endif
             PickAsync(PickContext context, bool waitForReady, CancellationToken cancellationToken)
         {
@@ -310,13 +310,13 @@ namespace Grpc.Net.Client.Balancer.Internal
                 {
                     case PickResultType.Complete:
                         var subchannel = result.Subchannel!;
-                        var endPoint = subchannel?.CurrentEndPoint;
+                        var address = subchannel?.CurrentAddress;
 
-                        if (subchannel != null && endPoint != null)
+                        if (subchannel != null && address != null)
                         {
-                            Logger.LogInformation($"Successfully picked subchannel {subchannel} with end point {endPoint}.");
+                            Logger.LogInformation($"Successfully picked subchannel {subchannel} with end point {address}.");
 
-                            return (subchannel, endPoint, result.Complete);
+                            return (subchannel, address, result.Complete);
                         }
                         else
                         {

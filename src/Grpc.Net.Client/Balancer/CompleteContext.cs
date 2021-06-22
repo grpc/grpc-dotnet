@@ -31,7 +31,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with.
         /// </summary>
-        public DnsEndPoint? EndPoint { get; set; }
+        public DnsEndPoint? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Exception"/> from making the call.

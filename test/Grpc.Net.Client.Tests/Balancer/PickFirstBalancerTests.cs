@@ -385,8 +385,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             await stateChangedTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, channel.State);
             Assert.AreEqual(2, transportConnectCount);
-            Assert.AreEqual("localhost", pick.EndPoint.Host);
-            Assert.AreEqual(80, pick.EndPoint.Port);
+            Assert.AreEqual("localhost", pick.Address.Host);
+            Assert.AreEqual(80, pick.Address.Port);
         }
     }
 }

@@ -48,7 +48,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public void OnRequestComplete(CompleteContext context)
         {
-            if (_currentEndPoint == null || !_currentEndPoint.Equals(context.EndPoint))
+            if (_currentEndPoint == null || !_currentEndPoint.Equals(context.Address))
             {
                 return;
             }

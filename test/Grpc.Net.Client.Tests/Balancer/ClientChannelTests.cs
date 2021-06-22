@@ -72,7 +72,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var result1 = await pickTask1.DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.EndPoint!);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.Address!);
 
             resolver.UpdateEndPoints(new List<DnsEndPoint>
             {
@@ -98,7 +98,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var result2 = await pickTask2.DefaultTimeout();
-            Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.EndPoint!);
+            Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!);
         }
 
         [Test]
