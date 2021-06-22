@@ -25,8 +25,10 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+#if HAVE_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
+#endif
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Retry;
@@ -481,6 +483,33 @@ namespace Grpc.Net.Client
 
 #if HAVE_LOAD_BALANCING
         /// <summary>
+        /// Allows explicitly requesting channel to connect without starting an RPC.
+        /// Returned task completes once <see cref="State"/> Ready was seen.
+        /// There is no need to call this explicitly unless your use case requires that.
+        /// Starting an RPC on a new channel will request connection implicitly.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public Task ConnectAsync(CancellationToken cancellationToken = default)
+        {
+            return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
+        }
+
+        ISubchannelTransport ISubchannelTransportFactory.Create(Subchannel subchannel)
+        {
+#if NET5_0_OR_GREATER
+            var isTcpTransport = HttpHandlerType == HttpHandlerType.Default;
+
+            if (isTcpTransport && SocketsHttpHandler.IsSupported)
+            {
+                return new ActiveSubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
+            }
+#endif
+
+            return new PassiveSubchannelTransport(subchannel);
+        }
+
+        /// <summary>
         /// Gets current connectivity state of this channel.
         /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
         /// </summary>
@@ -566,35 +595,6 @@ namespace Grpc.Net.Client
                 return RandomGenerator.Next(minValue, maxValue);
             }
         }
-
-#if HAVE_LOAD_BALANCING
-        /// <summary>
-        /// Allows explicitly requesting channel to connect without starting an RPC.
-        /// Returned task completes once <see cref="State"/> Ready was seen.
-        /// There is no need to call this explicitly unless your use case requires that.
-        /// Starting an RPC on a new channel will request connection implicitly.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public Task ConnectAsync(CancellationToken cancellationToken = default)
-        {
-            return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
-        }
-
-        ISubchannelTransport ISubchannelTransportFactory.Create(Subchannel subchannel)
-        {
-#if NET5_0_OR_GREATER
-            var isTcpTransport = HttpHandlerType == HttpHandlerType.Default;
-
-            if (isTcpTransport && SocketsHttpHandler.IsSupported)
-            {
-                return new ActiveSubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
-            }
-#endif
-
-            return new PassiveSubchannelTransport(subchannel);
-        }
-#endif
 
         private struct MethodKey : IEquatable<MethodKey>
         {

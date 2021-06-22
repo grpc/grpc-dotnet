@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Diagnostics;
 using System.Net;
@@ -26,12 +27,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A balancing decision made by a <see cref="SubchannelPicker"/> for a gRPC call.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class PickResult
+    public sealed class PickResult
     {
         private readonly Action<CompleteContext>? _onComplete;
 
@@ -127,12 +123,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// The <see cref="PickResult"/> type.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        enum PickResultType
+    public enum PickResultType
     {
         /// <summary>
         /// Result with a <see cref="Subchannel"/>.
@@ -152,3 +143,4 @@ namespace Grpc.Net.Client.Balancer
         Drop
     }
 }
+#endif

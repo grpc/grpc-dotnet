@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
@@ -26,12 +27,7 @@ namespace Grpc.Net.Client.Balancer
     /// determine which subchannel is returned for a call.
     /// </para>
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        abstract class SubchannelPicker
+    public abstract class SubchannelPicker
     {
         /// <summary>
         /// Picks a ready <see cref="Subchannel"/> for the specified context.
@@ -41,3 +37,4 @@ namespace Grpc.Net.Client.Balancer
         public abstract PickResult Pick(PickContext context);
     }
 }
+#endif

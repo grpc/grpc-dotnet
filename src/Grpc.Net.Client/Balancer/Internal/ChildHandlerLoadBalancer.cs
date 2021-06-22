@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -246,3 +247,4 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
     }
 }
+#endif

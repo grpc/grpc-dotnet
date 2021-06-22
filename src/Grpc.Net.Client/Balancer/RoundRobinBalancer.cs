@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -29,12 +30,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="LoadBalancer"/> that attempts to connect to all addresses. gRPC calls are distributed
     /// across all successful connections using round-robin logic.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class RoundRobinBalancer : SubchannelsLoadBalancer
+    public sealed class RoundRobinBalancer : SubchannelsLoadBalancer
     {
         private readonly IRandomGenerator _randomGenerator;
 
@@ -93,12 +89,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="LoadBalancerFactory"/> that matches the name <c>round_robin</c>
     /// and creates <see cref="RoundRobinBalancer"/> instances.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class RoundRobinBalancerFactory : LoadBalancerFactory
+    public sealed class RoundRobinBalancerFactory : LoadBalancerFactory
     {
         private readonly ILoggerFactory _loggerFactory;
 
@@ -121,3 +112,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

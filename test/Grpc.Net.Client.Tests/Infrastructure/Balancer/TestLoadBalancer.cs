@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 
 namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
@@ -48,3 +49,4 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
         }
     }
 }
+#endif

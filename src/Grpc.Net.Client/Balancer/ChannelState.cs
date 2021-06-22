@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -27,12 +28,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents the state for a channel. This is created from results returned by a <see cref="Resolver"/>.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class ChannelState
+    public sealed class ChannelState
     {
         [DebuggerStepThrough]
         internal ChannelState(Status status, IReadOnlyList<DnsEndPoint>? addresses, LoadBalancingConfig? loadBalancingConfig, BalancerAttributes attributes)
@@ -63,5 +59,5 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public BalancerAttributes Attributes { get; }
     }
-
 }
+#endif

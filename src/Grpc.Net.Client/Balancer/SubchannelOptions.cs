@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -25,12 +26,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents options used to create <see cref="Subchannel"/>.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class SubchannelOptions
+    public sealed class SubchannelOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SubchannelOptions"/> class.
@@ -48,3 +44,4 @@ namespace Grpc.Net.Client.Balancer
         public IReadOnlyList<DnsEndPoint> Addresses { get; }
     }
 }
+#endif

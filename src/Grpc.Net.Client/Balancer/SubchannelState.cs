@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Diagnostics;
 using Grpc.Core;
 
@@ -24,12 +25,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents subchannel state.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class SubchannelState
+    public sealed class SubchannelState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SubchannelState"/> class.
@@ -54,3 +50,4 @@ namespace Grpc.Net.Client.Balancer
         public Status Status { get; }
     }
 }
+#endif

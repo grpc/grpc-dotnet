@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Linq;
 using System.Net;
@@ -29,12 +30,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="Resolver"/> that returns addresses queried from a DNS hostname.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class DnsResolver : Resolver
+    public sealed class DnsResolver : Resolver
     {
         private readonly Uri _address;
         private readonly TimeSpan _refreshInterval;
@@ -138,12 +134,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="ResolverFactory"/> that matches the URI scheme <c>dns</c>
     /// and creates <see cref="DnsResolver"/> instances.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class DnsResolverFactory : ResolverFactory
+    public sealed class DnsResolverFactory : ResolverFactory
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly TimeSpan _refreshInterval;
@@ -169,3 +160,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

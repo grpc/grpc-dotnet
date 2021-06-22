@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 namespace Grpc.Net.Client.Balancer.Internal
 {
     internal sealed class EmptyPicker : SubchannelPicker
@@ -35,3 +36,4 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
     }
 }
+#endif

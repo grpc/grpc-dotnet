@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,12 +29,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="Resolver"/> that returns a static collection of addresses.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class StaticResolver : Resolver
+    public sealed class StaticResolver : Resolver
     {
         private readonly List<DnsEndPoint> _addresses;
         private Action<ResolverResult>? _listener;
@@ -91,12 +87,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="ResolverFactory"/> that matches the URI scheme <c>static</c>
     /// and creates <see cref="StaticResolver"/> instances.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class StaticResolverFactory : ResolverFactory
+    public sealed class StaticResolverFactory : ResolverFactory
     {
         private readonly Func<Uri, IEnumerable<DnsEndPoint>> _addressesCallback;
 
@@ -122,3 +113,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

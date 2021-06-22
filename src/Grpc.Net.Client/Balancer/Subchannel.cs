@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,12 +38,7 @@ namespace Grpc.Net.Client.Balancer
     /// is called to create a transport if there isn't any.
     /// </para>
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class Subchannel : IDisposable
+    public sealed class Subchannel : IDisposable
     {
         internal readonly List<DnsEndPoint> _addresses;
         internal ILogger Logger => _manager.Logger;
@@ -270,3 +266,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

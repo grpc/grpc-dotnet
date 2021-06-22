@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,12 +41,7 @@ namespace Grpc.Net.Client.Balancer
     /// is responsible for eventually invoking <see cref="RefreshAsync(CancellationToken)"/>.
     /// </para>
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        abstract class Resolver : IDisposable
+    public abstract class Resolver : IDisposable
     {
         /// <summary>
         /// Starts resolution.
@@ -87,12 +83,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Represents the results from a <see cref="Resolver"/>.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class ResolverResult
+    public sealed class ResolverResult
     {
         private BalancerAttributes? _attributes;
 
@@ -153,3 +144,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

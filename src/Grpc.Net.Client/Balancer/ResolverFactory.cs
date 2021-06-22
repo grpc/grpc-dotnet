@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 
 namespace Grpc.Net.Client.Balancer
@@ -24,12 +25,7 @@ namespace Grpc.Net.Client.Balancer
     /// Factory for creating new <see cref="Resolver"/> instances. A factory is used when the
     /// target address <see cref="Uri"/> scheme matches the factory name.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        abstract class ResolverFactory
+    public abstract class ResolverFactory
     {
         /// <summary>
         /// Gets the resolver factory name. A factory is used when the target <see cref="Uri"/> scheme
@@ -49,12 +45,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Options for creating a resolver.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class ResolverOptions
+    public sealed class ResolverOptions
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
@@ -73,3 +64,4 @@ namespace Grpc.Net.Client.Balancer
         public bool DisableServiceConfig { get; }
     }
 }
+#endif

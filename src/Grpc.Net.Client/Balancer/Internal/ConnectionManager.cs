@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -463,5 +464,5 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private record StateWatcher(CancellationToken CancellationToken, ConnectivityState? WaitForState, TaskCompletionSource<object?> Tcs);
     }
-
 }
+#endif

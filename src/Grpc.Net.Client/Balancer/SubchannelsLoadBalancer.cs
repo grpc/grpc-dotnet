@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -30,12 +31,7 @@ namespace Grpc.Net.Client.Balancer
     /// from addresses. It is designed to make it easy to implement a custom picking policy by overriding
     /// <see cref="CreatePicker(List{Subchannel})"/> and returning a custom <see cref="SubchannelPicker"/>.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        abstract class SubchannelsLoadBalancer : LoadBalancer
+    public abstract class SubchannelsLoadBalancer : LoadBalancer
     {
         /// <summary>
         /// Gets the controller.
@@ -292,5 +288,5 @@ namespace Grpc.Net.Client.Balancer
 
         private record AddressSubchannel(Subchannel Subchannel, DnsEndPoint Address);
     }
-
 }
+#endif

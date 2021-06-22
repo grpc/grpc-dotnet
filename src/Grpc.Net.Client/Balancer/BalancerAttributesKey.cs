@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Diagnostics;
 
 namespace Grpc.Net.Client.Balancer
@@ -24,12 +25,7 @@ namespace Grpc.Net.Client.Balancer
     /// Represents the key used to get and set <see cref="BalancerAttributes"/> values.
     /// </summary>
     /// <typeparam name="TValue">The value type.</typeparam>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        readonly struct BalancerAttributesKey<TValue>
+    public readonly struct BalancerAttributesKey<TValue>
     {
         /// <summary>
         /// Gets the key.
@@ -47,3 +43,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

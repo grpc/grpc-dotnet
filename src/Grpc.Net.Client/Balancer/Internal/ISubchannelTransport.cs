@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.IO;
 using System.Net;
@@ -48,3 +49,4 @@ namespace Grpc.Net.Client.Balancer.Internal
         ISubchannelTransport Create(Subchannel subchannel);
     }
 }
+#endif

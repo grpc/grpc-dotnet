@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Net;
 using Grpc.Core;
@@ -25,12 +26,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Context used to signal a call is complete.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class CompleteContext
+    public sealed class CompleteContext
     {
         /// <summary>
         /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with.
@@ -41,5 +37,6 @@ namespace Grpc.Net.Client.Balancer
         /// Gets or sets the <see cref="Exception"/> from making the call.
         /// </summary>
         public Exception? Error { get; set; }
-    }
 }
+}
+#endif

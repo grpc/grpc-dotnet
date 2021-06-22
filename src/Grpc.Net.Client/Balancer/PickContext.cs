@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Net.Http;
 
 namespace Grpc.Net.Client.Balancer
@@ -23,12 +24,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Context used to pick a <see cref="Subchannel"/>.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class PickContext
+    public sealed class PickContext
     {
         /// <summary>
         /// Gets or sets the <see cref="HttpRequestMessage"/>.
@@ -36,3 +32,4 @@ namespace Grpc.Net.Client.Balancer
         public HttpRequestMessage? Request { get; set; }
     }
 }
+#endif

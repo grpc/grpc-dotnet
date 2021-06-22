@@ -16,17 +16,13 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Provides essentials for <see cref="LoadBalancer"/> implementations.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        interface IChannelControlHelper
+    public interface IChannelControlHelper
     {
         /// <summary>
         /// Creates a <see cref="Subchannel"/>, which is a logical connection to the specified addresses.
@@ -50,3 +46,4 @@ namespace Grpc.Net.Client.Balancer
         void RefreshResolver();
     }
 }
+#endif

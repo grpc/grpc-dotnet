@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using Grpc.Core;
@@ -29,12 +30,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="LoadBalancer"/> that attempts to connect to addresses until a connection
     /// is successfully made. gRPC calls are all made to the first successful connection.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class PickFirstBalancer : LoadBalancer
+    public sealed class PickFirstBalancer : LoadBalancer
     {
         private readonly IChannelControlHelper _controller;
         private readonly ILogger _logger;
@@ -207,12 +203,7 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="LoadBalancerFactory"/> that matches the name <c>pick_first</c>
     /// and creates <see cref="PickFirstBalancer"/> instances.
     /// </summary>
-#if HAVE_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        sealed class PickFirstBalancerFactory : LoadBalancerFactory
+    public sealed class PickFirstBalancerFactory : LoadBalancerFactory
     {
         private readonly ILoggerFactory _loggerFactory;
 
@@ -235,3 +226,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif

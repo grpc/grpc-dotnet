@@ -30,9 +30,11 @@ using Microsoft.Extensions.Logging.Testing;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+#if HAVE_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Tests.Infrastructure.Balancer;
+#endif
 
 namespace Grpc.Net.Client.Tests
 {

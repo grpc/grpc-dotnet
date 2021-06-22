@@ -16,6 +16,7 @@
 
 #endregion
 
+#if HAVE_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
@@ -25,11 +26,7 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Collection of load balancing metadata attributes.
     /// </summary>
-#if HAVE_LOAD_BALANCING
     public
-#else
-    internal
-#endif
         sealed class BalancerAttributes : IDictionary<string, object?>
     {
         /// <summary>
@@ -115,3 +112,4 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 }
+#endif
