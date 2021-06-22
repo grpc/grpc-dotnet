@@ -49,6 +49,9 @@ namespace Grpc.Net.Client.Balancer
     ///   </item>
     /// </list>
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class LoadBalancer : IDisposable
     {
@@ -90,6 +93,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Factory for creating new <see cref="LoadBalancer"/> instances. A factory is used when the load balancer config name
     /// matches the factory name.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class LoadBalancerFactory
     {

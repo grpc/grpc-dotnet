@@ -37,6 +37,9 @@ namespace Grpc.Net.Client.Balancer
     /// a new transport. A transport won't be created otherwise unless <see cref="RequestConnection"/>
     /// is called to create a transport if there isn't any.
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class Subchannel : IDisposable
     {

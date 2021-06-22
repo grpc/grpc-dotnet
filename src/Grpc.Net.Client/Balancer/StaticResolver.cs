@@ -28,6 +28,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// A <see cref="Resolver"/> that returns a static collection of addresses.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class StaticResolver : Resolver
     {
@@ -86,6 +89,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="ResolverFactory"/> that matches the URI scheme <c>static</c>
     /// and creates <see cref="StaticResolver"/> instances.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class StaticResolverFactory : ResolverFactory
     {

@@ -40,17 +40,25 @@ namespace Grpc.Net.Client.Balancer
     /// A <see cref="Resolver"/> doesn't need to automatically re-resolve on failure. Instead, the callback
     /// is responsible for eventually invoking <see cref="RefreshAsync(CancellationToken)"/>.
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class Resolver : IDisposable
     {
         /// <summary>
-        /// Starts resolution.
+        /// Starts listening to resolver for results with the specified callback. Can only be called once.
+        /// <para>
+        /// The <see cref="ResolverResult"/> passed to the callback has addresses when successful,
+        /// otherwise a <see cref="Status"/> details the resolution error.
+        /// </para>
         /// </summary>
         /// <param name="listener">The callback used to receive updates on the target.</param>
         public abstract void Start(Action<ResolverResult> listener);
 
         /// <summary>
-        /// Refresh resolution. Can only be called after <see cref="Start(Action{ResolverResult})"/>.
+        /// Refresh resolution. Updated results are passed to the callback.
+        /// Can only be called after <see cref="Start(Action{ResolverResult})"/>.
         /// <para>
         /// This is only a hint. Implementation takes it as a signal but may not start resolution.
         /// </para>
@@ -82,6 +90,9 @@ namespace Grpc.Net.Client.Balancer
 
     /// <summary>
     /// Represents the results from a <see cref="Resolver"/>.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class ResolverResult
     {

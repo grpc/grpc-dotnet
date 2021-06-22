@@ -23,6 +23,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Represents the key used to get and set <see cref="BalancerAttributes"/> values.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     /// <typeparam name="TValue">The value type.</typeparam>
     public readonly struct BalancerAttributesKey<TValue>

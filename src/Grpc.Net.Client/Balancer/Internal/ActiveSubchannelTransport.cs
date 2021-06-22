@@ -33,6 +33,8 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
 #if NET5_0_OR_GREATER
     /// <summary>
+    /// Transport that makes it possible to monitor connectivity state while using HttpClient.
+    /// 
     /// Features:
     /// 1. When a connection is requested the transport creates a Socket and connects to the server.
     ///    The socket is used with the first stream created by SocketsHttpHandler.ConnectCallback.
@@ -221,6 +223,8 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
 
             var networkStream = new NetworkStream(socket, ownsSocket: true);
+
+            // This stream wrapper intercepts dispose.
             var stream = new StreamWrapper(networkStream, OnStreamDisposed);
 
             lock (Lock)
@@ -258,6 +262,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                         _activeStreams.RemoveAt(i);
                         _subchannel.Logger.LogInformation("Disconnected: " + CurrentEndPoint);
 
+                        // If the last active streams is removed then there is no active connection.
                         disconnect = _activeStreams.Count == 0;
 
                         break;
@@ -267,6 +272,10 @@ namespace Grpc.Net.Client.Balancer.Internal
 
             if (disconnect)
             {
+                // What happens after disconnect depends if the load balancer requests a new connection.
+                // For example:
+                // - Pick first will go into an idle state.
+                // - Round-robin will reconnect to get back to a ready state.
                 Disconnect();
             }
         }

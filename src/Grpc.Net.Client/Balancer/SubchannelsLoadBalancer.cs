@@ -30,6 +30,9 @@ namespace Grpc.Net.Client.Balancer
     /// An abstract <see cref="LoadBalancer"/> that manages creating <see cref="Subchannel"/> instances
     /// from addresses. It is designed to make it easy to implement a custom picking policy by overriding
     /// <see cref="CreatePicker(IReadOnlyList{Subchannel})"/> and returning a custom <see cref="SubchannelPicker"/>.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class SubchannelsLoadBalancer : LoadBalancer
     {

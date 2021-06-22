@@ -29,6 +29,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="LoadBalancer"/> that attempts to connect to all addresses. gRPC calls are distributed
     /// across all successful connections using round-robin logic.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class RoundRobinBalancer : SubchannelsLoadBalancer
     {
@@ -88,6 +91,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="LoadBalancerFactory"/> that matches the name <c>round_robin</c>
     /// and creates <see cref="RoundRobinBalancer"/> instances.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class RoundRobinBalancerFactory : LoadBalancerFactory
     {

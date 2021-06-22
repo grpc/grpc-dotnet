@@ -209,6 +209,9 @@ namespace Grpc.Net.Client
 
         /// <summary>
         /// Gets or sets the <see cref="IServiceProvider"/> the channel uses to resolve types.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
         /// </summary>
         public IServiceProvider? ServiceProvider { get; set; }
 

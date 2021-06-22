@@ -25,6 +25,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Represents options used to create <see cref="Subchannel"/>.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class SubchannelOptions
     {

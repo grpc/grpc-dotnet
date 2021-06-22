@@ -26,6 +26,9 @@ namespace Grpc.Net.Client.Balancer
     /// Load balancers implement <see cref="SubchannelPicker"/> with their own balancing logic to
     /// determine which subchannel is returned for a call.
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class SubchannelPicker
     {

@@ -23,6 +23,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Represents the balancer state.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class BalancerState
     {

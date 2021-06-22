@@ -491,6 +491,9 @@ namespace Grpc.Net.Client
         /// Returned task completes once <see cref="State"/> Ready was seen.
         /// There is no need to call this explicitly unless your use case requires that.
         /// Starting an RPC on a new channel will request connection implicitly.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
@@ -516,11 +519,17 @@ namespace Grpc.Net.Client
         /// <summary>
         /// Gets current connectivity state of this channel.
         /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
         /// </summary>
         public ConnectivityState State => ConnectionManager.State;
 
         /// <summary>
         /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes different from <paramref name="lastObservedState"/>.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
         /// </summary>
         /// <param name="lastObservedState">The last observed state. The task completes when <see cref="State"/> becomes different from this value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>

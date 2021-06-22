@@ -30,6 +30,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// A <see cref="Resolver"/> that returns addresses queried from a DNS hostname.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class DnsResolver : Resolver
     {
@@ -165,6 +168,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="ResolverFactory"/> that matches the URI scheme <c>dns</c>
     /// and creates <see cref="DnsResolver"/> instances.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class DnsResolverFactory : ResolverFactory
     {

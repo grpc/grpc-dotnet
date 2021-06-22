@@ -29,6 +29,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="LoadBalancer"/> that attempts to connect to addresses until a connection
     /// is successfully made. gRPC calls are all made to the first successful connection.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class PickFirstBalancer : LoadBalancer
     {
@@ -202,6 +205,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// A <see cref="LoadBalancerFactory"/> that matches the name <c>pick_first</c>
     /// and creates <see cref="PickFirstBalancer"/> instances.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class PickFirstBalancerFactory : LoadBalancerFactory
     {

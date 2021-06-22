@@ -25,6 +25,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Collection of load balancing metadata attributes.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public
         sealed class BalancerAttributes : IDictionary<string, object?>

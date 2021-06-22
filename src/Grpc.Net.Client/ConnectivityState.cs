@@ -16,17 +16,16 @@
 
 #endregion
 
+#if SUPPORT_LOAD_BALANCING
 namespace Grpc.Net.Client
 {
     /// <summary>
     /// The connectivity state.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
-#if SUPPORT_LOAD_BALANCING
-    public
-#else
-    internal
-#endif
-        enum ConnectivityState
+    public enum ConnectivityState
     {
         /// <summary>
         /// Not trying to create a connection.
@@ -50,3 +49,4 @@ namespace Grpc.Net.Client
         Shutdown
     }
 }
+#endif

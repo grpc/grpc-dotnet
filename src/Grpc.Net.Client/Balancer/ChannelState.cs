@@ -27,6 +27,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Represents the state for a channel. This is created from results returned by a <see cref="Resolver"/>.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class ChannelState
     {
@@ -45,12 +48,13 @@ namespace Grpc.Net.Client.Balancer
         public IReadOnlyList<DnsEndPoint>? Addresses { get; }
 
         /// <summary>
-        /// Gets an optional service config.
+        /// Gets an optional load balancing config.
         /// </summary>
         public LoadBalancingConfig? LoadBalancingConfig { get; }
 
         /// <summary>
-        /// Gets the status.
+        /// Gets the status. Successful results has an <see cref="StatusCode.OK"/> status.
+        /// A resolver error creates results with non-OK status. The status has details about the resolver error.
         /// </summary>
         public Status Status { get; }
 

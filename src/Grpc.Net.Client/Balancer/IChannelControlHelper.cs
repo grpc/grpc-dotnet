@@ -21,6 +21,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// Provides essentials for <see cref="LoadBalancer"/> implementations.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public interface IChannelControlHelper
     {

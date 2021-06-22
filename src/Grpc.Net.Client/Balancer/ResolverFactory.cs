@@ -24,6 +24,9 @@ namespace Grpc.Net.Client.Balancer
     /// <summary>
     /// Factory for creating new <see cref="Resolver"/> instances. A factory is used when the
     /// target address <see cref="Uri"/> scheme matches the factory name.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class ResolverFactory
     {
@@ -44,6 +47,9 @@ namespace Grpc.Net.Client.Balancer
 
     /// <summary>
     /// Options for creating a resolver.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class ResolverOptions
     {

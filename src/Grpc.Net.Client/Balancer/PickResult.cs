@@ -26,6 +26,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// A balancing decision made by a <see cref="SubchannelPicker"/> for a gRPC call.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public sealed class PickResult
     {
@@ -132,6 +135,9 @@ namespace Grpc.Net.Client.Balancer
 
     /// <summary>
     /// The <see cref="PickResult"/> type.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public enum PickResultType
     {
