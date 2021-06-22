@@ -20,7 +20,7 @@
 namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
-    /// Base type for picking a subchannel. A <see cref="SubchannelPicker"/> is reposible for picking
+    /// Base type for picking a subchannel. A <see cref="SubchannelPicker"/> is responsible for picking
     /// a ready <see cref="Subchannel"/> that gRPC calls will use.
     /// <para>
     /// Load balancers implement <see cref="SubchannelPicker"/> with their own balancing logic to
