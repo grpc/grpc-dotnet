@@ -340,14 +340,18 @@ namespace Grpc.Net.Client
             var methodConfig = ResolveMethodConfig(method);
 
             var uriBuilder = new UriBuilder(Address);
-            uriBuilder.Scheme = IsSecure ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
             uriBuilder.Path = method.FullName;
 
+            // The Uri used to create HttpRequestMessage must have a http or https scheme.
+            uriBuilder.Scheme = IsSecure ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+
+            // A Uri with a http or https scheme requires a host name.
             // Triple slash URIs, e.g. dns:///custom-value, won't have a host and UriBuilder throws an error.
-            // Add a temp value as the host. This will get replaced in the HTTP request URI by the load balancer.
+            // Add a temp value as the host. The tempuri.org host may show up in some logging but it will
+            // get replaced in the final HTTP request address by the load balancer.
             if (string.IsNullOrEmpty(uriBuilder.Host))
             {
-                //uriBuilder.Host = "tempuri.org";
+                uriBuilder.Host = "tempuri.org";
             }
 
             return new GrpcMethodInfo(scope, uriBuilder.Uri, methodConfig);
