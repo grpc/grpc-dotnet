@@ -23,6 +23,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
@@ -35,10 +36,12 @@ namespace Grpc.Net.Client.Balancer
         private readonly Uri _address;
         private readonly TimeSpan _refreshInterval;
         private readonly ILogger<DnsResolver> _logger;
+        private readonly object _lock = new object();
 
         private Timer? _timer;
         private Action<ResolverResult>? _listener;
         private bool _disposed;
+        private Task _refreshTask;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DnsResolver"/> class with the specified target <see cref="Uri"/>.
@@ -51,6 +54,7 @@ namespace Grpc.Net.Client.Balancer
             _address = address;
             _refreshInterval = refreshInterval;
             _logger = loggerFactory.CreateLogger<DnsResolver>();
+            _refreshTask = Task.CompletedTask;
         }
 
         /// <inheritdoc />
@@ -85,6 +89,21 @@ namespace Grpc.Net.Client.Balancer
             {
                 throw new InvalidOperationException("Resolver hasn't been started.");
             }
+
+            lock (_lock)
+            {
+                if (_refreshTask.IsCompleted)
+                {
+                    _refreshTask = RefreshCoreAsync();
+                }
+            }
+
+            await _refreshTask.ConfigureAwait(false);
+        }
+
+        private async Task RefreshCoreAsync()
+        {
+            CompatibilityHelpers.Assert(_listener != null);
 
             var dnsAddress = _address.AbsolutePath.TrimStart('/');
             _logger.LogTrace($"Getting DNS hosts from {dnsAddress}");
@@ -121,7 +140,20 @@ namespace Grpc.Net.Client.Balancer
         {
             try
             {
-                await RefreshAsync(CancellationToken.None).ConfigureAwait(false);
+                var awaitRefresh = false;
+                lock (_lock)
+                {
+                    if (_refreshTask.IsCompleted)
+                    {
+                        _refreshTask = RefreshCoreAsync();
+                        awaitRefresh = true;
+                    }
+                }
+
+                if (awaitRefresh)
+                {
+                    await _refreshTask.ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
