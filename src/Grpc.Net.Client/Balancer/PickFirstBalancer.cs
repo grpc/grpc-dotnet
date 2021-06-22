@@ -181,7 +181,7 @@ namespace Grpc.Net.Client.Balancer
 
             public override PickResult Pick(PickContext context)
             {
-                return PickResult.ForComplete(Subchannel);
+                return PickResult.ForSubchannel(Subchannel);
             }
         }
 

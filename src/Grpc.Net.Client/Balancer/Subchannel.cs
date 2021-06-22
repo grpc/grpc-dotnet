@@ -239,16 +239,22 @@ namespace Grpc.Net.Client.Balancer
         /// <inheritdocs />
         public override string ToString()
         {
-            return string.Join(", ", _addresses);
+            lock (Lock)
+            {
+                return string.Join(", ", _addresses);
+            }
         }
 
         /// <summary>
         /// Returns the addresses that this subchannel is bound to.
         /// </summary>
         /// <returns>The addresses that this subchannel is bound to.</returns>
-        public IList<DnsEndPoint> GetAddresses()
+        public IReadOnlyList<DnsEndPoint> GetAddresses()
         {
-            return _addresses.ToArray();
+            lock (Lock)
+            {
+                return _addresses.ToArray();
+            }
         }
 
         /// <summary>

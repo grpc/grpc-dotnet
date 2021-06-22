@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public override PickResult Pick(PickContext context)
         {
-            return PickResult.ForFail(_status);
+            return PickResult.ForFailure(_status);
         }
     }
 }

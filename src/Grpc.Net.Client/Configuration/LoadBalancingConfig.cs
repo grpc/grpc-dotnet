@@ -26,6 +26,9 @@ namespace Grpc.Net.Client.Configuration
     /// </summary>
     public class LoadBalancingConfig : ConfigObject
     {
+        // The policy names here match property names in in the service_config.proto
+        // https://github.com/grpc/grpc-proto/blob/ec886024c2f7b7f597ba89d5b7d60c3f94627b17/grpc/service_config/service_config.proto#L328-L373
+
         /// <summary>
         /// <c>pick_first</c> policy name.
         /// </summary>

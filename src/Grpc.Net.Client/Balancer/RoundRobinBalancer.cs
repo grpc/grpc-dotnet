@@ -76,7 +76,7 @@ namespace Grpc.Net.Client.Balancer
             var index = (c - 1) % _subchannels.Count;
             var item = _subchannels[(int)index];
 
-            return PickResult.ForComplete(item);
+            return PickResult.ForSubchannel(item);
         }
 
         public override string ToString()

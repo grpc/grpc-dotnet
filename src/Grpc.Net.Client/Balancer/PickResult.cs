@@ -46,12 +46,12 @@ namespace Grpc.Net.Client.Balancer
         public PickResultType Type { get; }
 
         /// <summary>
-        /// The <see cref="Subchannel"/> provided by <see cref="ForComplete(Subchannel, Action{CompleteContext}?)"/>.
+        /// The <see cref="Subchannel"/> provided by <see cref="ForSubchannel(Subchannel, Action{CompleteContext}?)"/>.
         /// </summary>
         public Subchannel? Subchannel { get; }
 
         /// <summary>
-        /// The <see cref="Grpc.Core.Status"/> provided by <see cref="ForFail(Status)"/> or <see cref="ForDrop(Status)"/>.
+        /// The <see cref="Grpc.Core.Status"/> provided by <see cref="ForFailure(Status)"/> or <see cref="ForDrop(Status)"/>.
         /// </summary>
         public Status Status { get; }
 
@@ -80,7 +80,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="onComplete">An optional callback to be notified of a call being completed.</param>
         /// <returns>The pick result.</returns>
         [DebuggerStepThrough]
-        public static PickResult ForComplete(Subchannel subchannel, Action<CompleteContext>? onComplete = null)
+        public static PickResult ForSubchannel(Subchannel subchannel, Action<CompleteContext>? onComplete = null)
         {
             return new PickResult(PickResultType.Complete, subchannel, Status.DefaultSuccess, onComplete);
         }
@@ -92,8 +92,13 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="status">The error status. Must not be <see cref="StatusCode.OK"/>.</param>
         /// <returns>The pick result.</returns>
         [DebuggerStepThrough]
-        public static PickResult ForFail(Status status)
+        public static PickResult ForFailure(Status status)
         {
+            if (status.StatusCode == StatusCode.OK)
+            {
+                throw new ArgumentException("Error status code must not be OK.", nameof(status));
+            }
+
             return new PickResult(PickResultType.Fail, subchannel: null, status, onComplete: null);
         }
 
@@ -106,6 +111,11 @@ namespace Grpc.Net.Client.Balancer
         [DebuggerStepThrough]
         public static PickResult ForDrop(Status status)
         {
+            if (status.StatusCode == StatusCode.OK)
+            {
+                throw new ArgumentException("Error status code must not be OK.", nameof(status));
+            }
+
             return new PickResult(PickResultType.Drop, subchannel: null, status, onComplete: null);
         }
 
@@ -126,19 +136,25 @@ namespace Grpc.Net.Client.Balancer
     public enum PickResultType
     {
         /// <summary>
-        /// Result with a <see cref="Subchannel"/>.
+        /// <see cref="PickResult"/> with a <see cref="Subchannel"/>.
         /// </summary>
         Complete,
         /// <summary>
-        /// Result with no result. Queue gRPC calls.
+        /// <see cref="PickResult"/> that was unable to resolve success or failure.
+        /// This result will queue gRPC calls until a non-queue result is available.
         /// </summary>
         Queue,
         /// <summary>
-        /// Result with a connectivity error. <see cref="CallOptions.IsWaitForReady"/> will queue gRPC calls.
+        /// <see cref="PickResult"/> with a connectivity error. gRPC calls fail
+        /// unless <see cref="CallOptions.IsWaitForReady"/> is set to <c>true</c>.
+        /// If <see cref="CallOptions.IsWaitForReady"/> is set to <c>true</c> then gRPC calls
+        /// will queue.
         /// </summary>
         Fail,
         /// <summary>
-        /// Result with an immediate failure. <see cref="CallOptions.IsWaitForReady"/> and retry are ignored.
+        /// <see cref="PickResult"/> with an immediate failure. All gRPC calls will fail,
+        /// regardless of what <see cref="CallOptions.IsWaitForReady"/> is set to,
+        /// and retry logic is bypassed.
         /// </summary>
         Drop
     }
