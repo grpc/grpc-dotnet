@@ -239,7 +239,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation($"All gRPC calls on server");
 
             var subchannel = balancer!._subchannel!;
-            var transport = (ActiveSubchannelTransport)subchannel.Transport;
+            var transport = (SocketConnectivitySubchannelTransport)subchannel.Transport;
             var activeStreams = transport._activeStreams;
 
             // Assert

@@ -109,7 +109,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
             var subchannel = balancer._subchannel!;
-            var transport = (ActiveSubchannelTransport)subchannel.Transport;
+            var transport = (SocketConnectivitySubchannelTransport)subchannel.Transport;
             var activeStreams = transport._activeStreams;
 
             // Assert

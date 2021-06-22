@@ -42,7 +42,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// 2. Transport supports multiple addresses. When connecting it will iterate through the addresses,
     ///    attempting to connect to each one.
     /// </summary>
-    internal class ActiveSubchannelTransport : ISubchannelTransport, IDisposable
+    internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
     {
         private readonly Subchannel _subchannel;
         private readonly TimeSpan _socketPingInterval;
@@ -55,12 +55,12 @@ namespace Grpc.Net.Client.Balancer.Internal
         private bool _disposed;
         private DnsEndPoint? _currentEndPoint;
 
-        public ActiveSubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval)
+        public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval)
         {
             _subchannel = subchannel;
             _socketPingInterval = socketPingInterval;
             _activeStreams = new List<(DnsEndPoint, Socket, Stream?)>();
-            _socketConnectedTimer = new Timer(OnSocketConnected, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         public object Lock => _subchannel.Lock;
@@ -145,7 +145,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             return false;
         }
 
-        private async void OnSocketConnected(object? state)
+        private async void OnCheckSocketConnection(object? state)
         {
             try
             {
@@ -155,8 +155,11 @@ namespace Grpc.Net.Client.Balancer.Internal
                     var closeSocket = false;
                     try
                     {
+                        // Check the socket is still valid by doing a zero byte send.
                         _subchannel.Logger.LogTrace("Checking socket: " + _initialSocketEndPoint);
                         await socket.SendAsync(Array.Empty<byte>(), SocketFlags.None).ConfigureAwait(false);
+
+                        // Also poll socket to check if it can be read from.
                         closeSocket = IsSocketInBadState(socket);
                     }
                     catch (Exception ex)
@@ -289,7 +292,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        public void OnRequestComplete(CompleteContext context)
+        public void OnRequestComplete(CompletionContext context)
         {
         }
     }

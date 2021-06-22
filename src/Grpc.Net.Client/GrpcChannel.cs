@@ -514,7 +514,7 @@ namespace Grpc.Net.Client
 
             if (isTcpTransport && SocketsHttpHandler.IsSupported)
             {
-                return new ActiveSubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
+                return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
             }
 #endif
 

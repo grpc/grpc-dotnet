@@ -32,10 +32,10 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class PickResult
     {
-        private readonly Action<CompleteContext>? _onComplete;
+        private readonly Action<CompletionContext>? _onComplete;
 
         [DebuggerStepThrough]
-        private PickResult(PickResultType pickResultType, Subchannel? subchannel, Status status, Action<CompleteContext>? onComplete)
+        private PickResult(PickResultType pickResultType, Subchannel? subchannel, Status status, Action<CompletionContext>? onComplete)
         {
             Type = pickResultType;
             Subchannel = subchannel;
@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Balancer
         public PickResultType Type { get; }
 
         /// <summary>
-        /// The <see cref="Subchannel"/> provided by <see cref="ForSubchannel(Subchannel, Action{CompleteContext}?)"/>.
+        /// The <see cref="Subchannel"/> provided by <see cref="ForSubchannel(Subchannel, Action{CompletionContext}?)"/>.
         /// </summary>
         public Subchannel? Subchannel { get; }
 
@@ -62,8 +62,17 @@ namespace Grpc.Net.Client.Balancer
         /// Called to notify the load balancer that a call is complete.
         /// </summary>
         /// <param name="context">The complete context.</param>
-        public void Complete(CompleteContext context)
+        public void Complete(CompletionContext context)
         {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+            if (context.Address == null)
+            {
+                throw new ArgumentException($"Required {nameof(CompletionContext.Address)} value isn't set on the context.");
+            }
+
             _onComplete?.Invoke(context);
             Subchannel?.Transport.OnRequestComplete(context);
         }
@@ -83,7 +92,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="onComplete">An optional callback to be notified of a call being completed.</param>
         /// <returns>The pick result.</returns>
         [DebuggerStepThrough]
-        public static PickResult ForSubchannel(Subchannel subchannel, Action<CompleteContext>? onComplete = null)
+        public static PickResult ForSubchannel(Subchannel subchannel, Action<CompletionContext>? onComplete = null)
         {
             return new PickResult(PickResultType.Complete, subchannel, Status.DefaultSuccess, onComplete);
         }

@@ -29,10 +29,10 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public sealed class CompleteContext
+    public sealed class CompletionContext
     {
         /// <summary>
-        /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with.
+        /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with. Required.
         /// </summary>
         public DnsEndPoint? Address { get; set; }
 

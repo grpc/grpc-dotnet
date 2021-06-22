@@ -46,7 +46,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         public object Lock => _subchannel.Lock;
         public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
 
-        public void OnRequestComplete(CompleteContext context)
+        public void OnRequestComplete(CompletionContext context)
         {
             if (_currentEndPoint == null || !_currentEndPoint.Equals(context.Address))
             {

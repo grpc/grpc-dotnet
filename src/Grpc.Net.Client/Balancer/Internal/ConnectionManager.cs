@@ -288,7 +288,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public async
 #if !NETSTANDARD2_0
-            ValueTask<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
+            ValueTask<(Subchannel Subchannel, DnsEndPoint Address, Action<CompletionContext> OnComplete)>
 #else
             Task<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
 #endif

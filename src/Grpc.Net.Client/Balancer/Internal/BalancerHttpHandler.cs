@@ -102,7 +102,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 // TODO(JamesNK): This doesn't take into account long running streams.
                 // If there is response content then we need to wait until it is read to the end
                 // or the request is disposed.
-                result.OnComplete(new CompleteContext
+                result.OnComplete(new CompletionContext
                 {
                     Address = address
                 });
@@ -111,7 +111,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
             catch (Exception ex)
             {
-                result.OnComplete(new CompleteContext
+                result.OnComplete(new CompletionContext
                 {
                     Address = address,
                     Error = ex

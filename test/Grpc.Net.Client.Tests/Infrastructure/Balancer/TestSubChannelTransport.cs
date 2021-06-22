@@ -61,7 +61,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
             return new ValueTask<Stream>(new MemoryStream());
         }
 
-        public void OnRequestComplete(CompleteContext context)
+        public void OnRequestComplete(CompletionContext context)
         {
         }
 

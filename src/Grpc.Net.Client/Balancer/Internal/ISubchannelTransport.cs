@@ -25,9 +25,14 @@ using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Balancer.Internal
 {
+    /// <summary>
+    /// An abstraction for subchannels to create a transport and connect to the server.
+    /// This abstraction allows the connection to be customized. Used in unit tests.
+    /// Might be made public in the future to support using load balancing with non-socket transports.
+    /// </summary>
     internal interface ISubchannelTransport : IDisposable
     {
-        void OnRequestComplete(CompleteContext context);
+        void OnRequestComplete(CompletionContext context);
         DnsEndPoint? CurrentEndPoint { get; }
 
 #if NET5_0_OR_GREATER
