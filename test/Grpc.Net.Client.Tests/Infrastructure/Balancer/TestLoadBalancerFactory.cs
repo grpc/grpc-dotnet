@@ -16,7 +16,7 @@
 
 #endregion
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
 using Grpc.Net.Client.Balancer;

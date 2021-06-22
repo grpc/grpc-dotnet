@@ -32,7 +32,7 @@ using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Configuration;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
 #endif
 
@@ -841,7 +841,7 @@ namespace Grpc.Net.Client.Internal
                 headers.TryAddWithoutValidation(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
             }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
             if (Options.IsWaitForReady)
             {
                 message.SetOption(BalancerHttpHandler.WaitForReadyKey, true);

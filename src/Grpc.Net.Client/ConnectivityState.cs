@@ -21,7 +21,7 @@ namespace Grpc.Net.Client
     /// <summary>
     /// The connectivity state.
     /// </summary>
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
     public
 #else
     internal

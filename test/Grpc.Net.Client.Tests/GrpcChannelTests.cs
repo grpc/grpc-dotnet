@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging.Testing;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Tests.Infrastructure.Balancer;
@@ -44,7 +44,7 @@ namespace Grpc.Net.Client.Tests
         [Test]
         public void Build_AddressWithoutHost_Error()
         {
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
             // Arrange & Act
             var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
 
@@ -405,7 +405,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(0, channel.ActiveCalls.Count);
         }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         [Test]
         public void Resolver_NoChannelCredentials_Error()
         {

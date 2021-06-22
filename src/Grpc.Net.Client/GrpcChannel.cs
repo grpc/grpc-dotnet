@@ -25,7 +25,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 #endif
@@ -45,7 +45,7 @@ namespace Grpc.Net.Client
     /// a remote call so in general you should reuse a single channel for as many calls as possible.
     /// </summary>
     public sealed class GrpcChannel : ChannelBase, IDisposable
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         , ISubchannelTransportFactory
 #endif
     {
@@ -78,7 +78,7 @@ namespace Grpc.Net.Client
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         // Load balancing
         internal Resolver Resolver { get; }
         internal ConnectionManager ConnectionManager { get; }
@@ -117,7 +117,7 @@ namespace Grpc.Net.Client
             LoggerFactory = channelOptions.LoggerFactory ?? ResolveService<ILoggerFactory>(channelOptions.ServiceProvider, NullLoggerFactory.Instance);
             RandomGenerator = ResolveService<IRandomGenerator>(channelOptions.ServiceProvider, new RandomGenerator());
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
             if (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp)
             {
                 Resolver = new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) });
@@ -217,7 +217,7 @@ namespace Grpc.Net.Client
             return HttpHandlerFactory.CalculateHandlerType(channelOptions.HttpHandler);
         }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         private Resolver CreateResolver(GrpcChannelOptions options)
         {
             var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
@@ -301,7 +301,7 @@ namespace Grpc.Net.Client
             handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
             handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
@@ -485,7 +485,7 @@ namespace Grpc.Net.Client
             return new GrpcChannel(address, channelOptions);
         }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         /// <summary>
         /// Allows explicitly requesting channel to connect without starting an RPC.
         /// Returned task completes once <see cref="State"/> Ready was seen.
@@ -561,7 +561,7 @@ namespace Grpc.Net.Client
             {
                 HttpInvoker.Dispose();
             }
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
             ConnectionManager.Dispose();
             Resolver.Dispose();
 #endif

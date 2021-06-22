@@ -16,7 +16,7 @@
 
 #endregion
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using System.Net.Http;
 
 namespace Grpc.Net.Client.Balancer

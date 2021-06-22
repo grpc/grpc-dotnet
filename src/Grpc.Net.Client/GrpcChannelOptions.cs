@@ -191,7 +191,7 @@ namespace Grpc.Net.Client
         /// </summary>
         public ServiceConfig? ServiceConfig { get; set; }
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
         /// <summary>
         /// Gets or sets a value indicating whether resolving a service config from the <see cref="Balancer.Resolver"/>
         /// is disabled.

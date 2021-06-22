@@ -16,7 +16,7 @@
 
 #endregion
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
@@ -75,24 +75,25 @@ namespace Grpc.Net.Client.Balancer
         bool IDictionary<string, object?>.Remove(string key) => _attributes.Remove(key);
         bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)_attributes).Remove(item);
         bool IDictionary<string, object?>.TryGetValue(string key, out object? value) => _attributes.TryGetValue(key, out value);
-        
+
         /// <summary>
         /// Gets the value associated with the specified key.
         /// </summary>
         /// <typeparam name="TValue">The value type.</typeparam>
-        /// <param name="key">The key of the key to get.</param>
+        /// <param name="key">The key of the <see cref="BalancerAttributesKey{TValue}"/> to get.</param>
         /// <param name="value">
-        /// When this method returns, contains the value associated with the specified key, if the key is found;
-        /// otherwise, the default value for the type of the <c>value</c> parameter.
+        /// When this method returns, contains the value associated with the specified key, if the key is found
+        /// and the value type matches the specified type. Otherwise, contains the default value for the type of
+        /// the <c>value</c> parameter.
         /// </param>
         /// <returns>
-        /// <c>true</c> if the <see cref="BalancerAttributes"/> contains an element with the specified key; otherwise <c>false</c>.
+        /// <c>true</c> if the <see cref="BalancerAttributes"/> contains an element with the specified key and value type; otherwise <c>false</c>.
         /// </returns>
         public bool TryGetValue<TValue>(BalancerAttributesKey<TValue> key, [MaybeNullWhen(false)] out TValue value)
         {
-            if (_attributes.TryGetValue(key.Key, out object? _value) && _value is TValue tvalue)
+            if (_attributes.TryGetValue(key.Key, out object? o) && o is TValue v)
             {
-                value = tvalue;
+                value = v;
                 return true;
             }
 

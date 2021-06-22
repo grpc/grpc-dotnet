@@ -16,7 +16,7 @@
 
 #endregion
 
-#if HAVE_LOAD_BALANCING
+#if SUPPORT_LOAD_BALANCING
 #if NET5_0_OR_GREATER
 
 using System.Collections.Generic;
