@@ -118,6 +118,11 @@ namespace Grpc.Net.Client
             RandomGenerator = ResolveService<IRandomGenerator>(channelOptions.ServiceProvider, new RandomGenerator());
 
 #if SUPPORT_LOAD_BALANCING
+            // Special case http and https schemes. These schemes don't use a dynamic resolver. An http/https
+            // address is always just one address and that is enabled using the static resolver.
+            //
+            // Even with just one address we still want to use the load balancing infrastructure. This enables
+            // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
             if (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp)
             {
                 Resolver = new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) });

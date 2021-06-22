@@ -41,9 +41,9 @@ namespace Grpc.Net.Client.Configuration
             new(i => new Values<MethodConfig, object>(i ?? new List<object>(), s => s.Inner, s => new MethodConfig((IDictionary<string, object>)s)), MethodConfigPropertyName);
 
         private ConfigProperty<Values<LoadBalancingConfig, object>, IList<object>> _loadBalancingConfigs =
-            new(i => new Values<LoadBalancingConfig, object>(i ?? new List<object>(), s => s.Inner, s => CreateLoadBalanacingConfig((IDictionary<string, object>)s)), LoadBalancingConfigPropertyName);
+            new(i => new Values<LoadBalancingConfig, object>(i ?? new List<object>(), s => s.Inner, s => CreateLoadBalancingConfig((IDictionary<string, object>)s)), LoadBalancingConfigPropertyName);
 
-        private static LoadBalancingConfig CreateLoadBalanacingConfig(IDictionary<string, object> s)
+        private static LoadBalancingConfig CreateLoadBalancingConfig(IDictionary<string, object> s)
         {
             if (s.Count == 1)
             {

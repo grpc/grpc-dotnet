@@ -29,8 +29,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public
-        sealed class BalancerAttributes : IDictionary<string, object?>
+    public sealed class BalancerAttributes : IDictionary<string, object?>
     {
         /// <summary>
         /// Gets a read-only collection of metadata attributes.
