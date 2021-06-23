@@ -38,7 +38,10 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// Features:
     /// 1. When a connection is requested the transport creates a Socket and connects to the server.
     ///    The socket is used with the first stream created by SocketsHttpHandler.ConnectCallback.
-    ///    The transport keeps track of the socket or the streams in use to determine if the server is ready.
+    ///    The transport keeps track of the socket or the streams in use to determine if the connection
+    ///    is ready. Connectivity API features require knowing whether there is a connection available.
+    ///    A limitation of the .NET support is only socket connectivity to the server is tracked.
+    ///    This transport is unable to check whether TLS and HTTP is succcessfully negotiated.
     /// 2. Transport supports multiple addresses. When connecting it will iterate through the addresses,
     ///    attempting to connect to each one.
     /// </summary>

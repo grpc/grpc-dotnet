@@ -77,7 +77,6 @@ namespace Grpc.Net.Client
 
 #if SUPPORT_LOAD_BALANCING
         // Load balancing
-        internal Resolver Resolver { get; }
         internal ConnectionManager ConnectionManager { get; }
 
         // Set in unit tests
@@ -131,17 +130,12 @@ namespace Grpc.Net.Client
             //
             // Even with just one address we still want to use the load balancing infrastructure. This enables
             // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
-            if (IsHttpOrHttpsAddress())
-            {
-                Resolver = new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) });
-            }
-            else
-            {
-                Resolver = CreateResolver(channelOptions);
-            }
+            var resolver = IsHttpOrHttpsAddress()
+                ? new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) })
+                : CreateResolver(channelOptions);
 
             ConnectionManager = new ConnectionManager(
-                Resolver,
+                resolver,
                 channelOptions.DisableResolverServiceConfig,
                 LoggerFactory,
                 SubchannelTransportFactory,
@@ -530,6 +524,10 @@ namespace Grpc.Net.Client
         /// There is no need to call this explicitly unless your use case requires that.
         /// Starting an RPC on a new channel will request connection implicitly.
         /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
+        /// <para>
         /// Note: Experimental API that can change or be removed without any prior notice.
         /// </para>
         /// </summary>
@@ -545,6 +543,10 @@ namespace Grpc.Net.Client
         /// Gets current connectivity state of this channel.
         /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
         /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
+        /// <para>
         /// Note: Experimental API that can change or be removed without any prior notice.
         /// </para>
         /// </summary>
@@ -558,7 +560,12 @@ namespace Grpc.Net.Client
         }
 
         /// <summary>
-        /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes different from <paramref name="lastObservedState"/>.
+        /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes
+        /// different from <paramref name="lastObservedState"/>.
+        /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
         /// <para>
         /// Note: Experimental API that can change or be removed without any prior notice.
         /// </para>
@@ -605,7 +612,6 @@ namespace Grpc.Net.Client
             }
 #if SUPPORT_LOAD_BALANCING
             ConnectionManager.Dispose();
-            Resolver.Dispose();
 #endif
             Disposed = true;
         }

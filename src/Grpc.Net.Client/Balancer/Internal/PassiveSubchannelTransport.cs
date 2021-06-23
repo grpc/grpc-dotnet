@@ -28,73 +28,28 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
     /// <summary>
     /// Subchannel transport used when SocketsHttpHandler isn't configured.
-    /// This transport isn't able to correctly determine connectivity state.
+    /// This transport will only be used when there is one address.
+    /// It isn't able to correctly determine connectivity state.
     /// </summary>
     internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
     {
-        private const int FailureThreshold = 5;
-
         private readonly Subchannel _subchannel;
-
-        private int _lastEndPointIndex;
         private DnsEndPoint? _currentEndPoint;
-
-        private int _failureCount;
 
         public PassiveSubchannelTransport(Subchannel subchannel)
         {
             _subchannel = subchannel;
-            _lastEndPointIndex = -1; // Start -1 so first attempt is at index 0
         }
 
-        public object Lock => _subchannel.Lock;
         public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
 
         public void OnRequestComplete(CompletionContext context)
         {
-            if (_currentEndPoint == null || !_currentEndPoint.Equals(context.Address))
-            {
-                return;
-            }
-
-            if (context.Error != null)
-            {
-                var passedThreshold = false;
-                lock (Lock)
-                {
-                    _failureCount++;
-                    if (_failureCount >= FailureThreshold)
-                    {
-                        passedThreshold = true;
-                        _failureCount = 0;
-                    }
-                }
-
-                if (passedThreshold)
-                {
-                    lock (Lock)
-                    {
-                        _currentEndPoint = null;
-                    }
-                    _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
-                }
-            }
-            else
-            {
-                lock (Lock)
-                {
-                    _failureCount = 0;
-                }
-            }
         }
 
         public void Disconnect()
         {
-            lock (Lock)
-            {
-                _failureCount = 0;
-                _currentEndPoint = null;
-            }
+            _currentEndPoint = null;
             _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
         }
 
@@ -106,18 +61,13 @@ namespace Grpc.Net.Client.Balancer.Internal
 #endif
             TryConnectAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(_subchannel._addresses.Count > 0);
+            Debug.Assert(_subchannel._addresses.Count == 1);
             Debug.Assert(CurrentEndPoint == null);
 
-            var currentIndex = (_lastEndPointIndex + 1) % _subchannel._addresses.Count;
-            var currentEndPoint = _subchannel._addresses[currentIndex];
+            var currentEndPoint = _subchannel._addresses[0];
 
             _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
-            lock (Lock)
-            {
-                _currentEndPoint = currentEndPoint;
-                _lastEndPointIndex = currentIndex;
-            }
+            _currentEndPoint = currentEndPoint;
             _subchannel.UpdateConnectivityState(ConnectivityState.Ready);
 
 #if !NETSTANDARD2_0
@@ -129,6 +79,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public void Dispose()
         {
+            _currentEndPoint = null;
         }
 
 #if NET5_0_OR_GREATER
