@@ -37,7 +37,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     {
         private readonly SemaphoreSlim _nextPickerLock;
         private readonly object _lock;
-        private readonly Resolver _resolver;
+        internal readonly Resolver _resolver;
         private readonly ISubchannelTransportFactory _subchannelTransportFactory;
         private readonly List<Subchannel> _subchannels;
         private readonly List<StateWatcher> _stateWatchers;

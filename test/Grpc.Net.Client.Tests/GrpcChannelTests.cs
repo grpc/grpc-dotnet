@@ -765,7 +765,7 @@ namespace Grpc.Net.Client.Tests
             var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
 
             // Assert
-            Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.Resolver);
+            Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager._resolver);
         }
 
         [Test]
