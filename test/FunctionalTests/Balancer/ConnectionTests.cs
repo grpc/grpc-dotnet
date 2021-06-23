@@ -113,7 +113,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var activeStreams = transport._activeStreams;
 
             // Assert
-            Assert.AreEqual(HttpHandlerType.Default, channel.HttpHandlerType);
+            Assert.AreEqual(HttpHandlerType.SocketsHttpHandler, channel.HttpHandlerType);
 
             await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 10, "Wait for connections to start.");
             foreach (var t in activeStreams)

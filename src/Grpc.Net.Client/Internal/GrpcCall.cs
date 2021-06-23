@@ -126,7 +126,7 @@ namespace Grpc.Net.Client.Internal
             // WinHttp currently doesn't support streaming request data so a length needs to be specified.
             // This may change in a future version of Windows. When that happens an OS build version check
             // can be added here to avoid WinHttpUnaryContent.
-            return Channel.HttpHandlerType != HttpHandlerType.WinHttp
+            return Channel.HttpHandlerType != HttpHandlerType.WinHttpHandler
                 ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
                 : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
 
@@ -513,7 +513,7 @@ namespace Grpc.Net.Client.Internal
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
-                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.HttpHandlerType == HttpHandlerType.WinHttp);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.HttpHandlerType == HttpHandlerType.WinHttpHandler);
 
                             if (message == null)
                             {

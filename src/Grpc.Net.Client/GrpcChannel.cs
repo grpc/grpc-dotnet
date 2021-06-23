@@ -45,9 +45,6 @@ namespace Grpc.Net.Client
     /// a remote call so in general you should reuse a single channel for as many calls as possible.
     /// </summary>
     public sealed class GrpcChannel : ChannelBase, IDisposable
-#if SUPPORT_LOAD_BALANCING
-        , ISubchannelTransportFactory
-#endif
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
         internal const int DefaultMaxRetryAttempts = 5;
@@ -82,6 +79,9 @@ namespace Grpc.Net.Client
         // Load balancing
         internal Resolver Resolver { get; }
         internal ConnectionManager ConnectionManager { get; }
+
+        // Set in unit tests
+        internal ISubchannelTransportFactory SubchannelTransportFactory;
 #endif
 
         // Stateful
@@ -116,14 +116,22 @@ namespace Grpc.Net.Client
             Address = address;
             LoggerFactory = channelOptions.LoggerFactory ?? ResolveService<ILoggerFactory>(channelOptions.ServiceProvider, NullLoggerFactory.Instance);
             RandomGenerator = ResolveService<IRandomGenerator>(channelOptions.ServiceProvider, new RandomGenerator());
+            HttpHandlerType = CalculateHandlerType(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
+            SubchannelTransportFactory = ResolveService<ISubchannelTransportFactory>(channelOptions.ServiceProvider, new SubChannelTransportFactory(this));
+
+            if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+            }
+
             // Special case http and https schemes. These schemes don't use a dynamic resolver. An http/https
             // address is always just one address and that is enabled using the static resolver.
             //
             // Even with just one address we still want to use the load balancing infrastructure. This enables
             // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
-            if (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp)
+            if (IsHttpOrHttpsAddress())
             {
                 Resolver = new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) });
             }
@@ -132,13 +140,11 @@ namespace Grpc.Net.Client
                 Resolver = CreateResolver(channelOptions);
             }
 
-            var transportFactory = ResolveService<ISubchannelTransportFactory>(channelOptions.ServiceProvider, this);
-
             ConnectionManager = new ConnectionManager(
                 Resolver,
                 channelOptions.DisableResolverServiceConfig,
                 LoggerFactory,
-                transportFactory,
+                SubchannelTransportFactory,
                 ResolveLoadBalancerFactories(channelOptions.ServiceProvider));
             ConnectionManager.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
                 c,
@@ -151,7 +157,6 @@ namespace Grpc.Net.Client
             }
 #endif
 
-            HttpHandlerType = CalculateHandlerType(channelOptions);
             HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
             ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
@@ -209,13 +214,18 @@ namespace Grpc.Net.Client
             }
         }
 
+        private bool IsHttpOrHttpsAddress()
+        {
+            return Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp;
+        }
+
         private static HttpHandlerType CalculateHandlerType(GrpcChannelOptions channelOptions)
         {
             if (channelOptions.HttpHandler == null)
             {
-                // No way to know what handler a HttpClient is using so be same and assume custom.
+                // No way to know what handler a HttpClient is using so assume custom.
                 return channelOptions.HttpClient == null
-                    ? HttpHandlerType.Default
+                    ? HttpHandlerType.SocketsHttpHandler
                     : HttpHandlerType.Custom;
             }
 
@@ -223,6 +233,29 @@ namespace Grpc.Net.Client
         }
 
 #if SUPPORT_LOAD_BALANCING
+        private void ValidateHttpHandlerSupportsConnectivity()
+        {
+            if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+            {
+                // SocketsHttpHandler is being used.
+                return;
+            }
+
+            if (SubchannelTransportFactory is not SubChannelTransportFactory)
+            {
+                // Custom transport is configured. Probably in a unit test.
+                return;
+            }
+
+            // Either the HTTP transport was configured with HttpClient, or SocketsHttpHandler.ConnectCallback is set.
+            // We don't know how HTTP requests will be sent so we throw an error.
+            throw new InvalidOperationException(
+                $"Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                $"The underlying HTTP transport must be a {nameof(SocketsHttpHandler)} with no " +
+                $"{nameof(SocketsHttpHandler)}.{nameof(SocketsHttpHandler.ConnectCallback)} configured. " +
+                $"The HTTP transport must be configured on the channel using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}.");
+        }
+
         private Resolver CreateResolver(GrpcChannelOptions options)
         {
             var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
@@ -504,21 +537,8 @@ namespace Grpc.Net.Client
         /// <returns></returns>
         public Task ConnectAsync(CancellationToken cancellationToken = default)
         {
+            ValidateHttpHandlerSupportsConnectivity();
             return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
-        }
-
-        ISubchannelTransport ISubchannelTransportFactory.Create(Subchannel subchannel)
-        {
-#if NET5_0_OR_GREATER
-            var isTcpTransport = HttpHandlerType == HttpHandlerType.Default;
-
-            if (isTcpTransport && SocketsHttpHandler.IsSupported)
-            {
-                return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
-            }
-#endif
-
-            return new PassiveSubchannelTransport(subchannel);
         }
 
         /// <summary>
@@ -528,7 +548,14 @@ namespace Grpc.Net.Client
         /// Note: Experimental API that can change or be removed without any prior notice.
         /// </para>
         /// </summary>
-        public ConnectivityState State => ConnectionManager.State;
+        public ConnectivityState State
+        {
+            get
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+                return ConnectionManager.State;
+            }
+        }
 
         /// <summary>
         /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes different from <paramref name="lastObservedState"/>.
@@ -541,6 +568,7 @@ namespace Grpc.Net.Client
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
         {
+            ValidateHttpHandlerSupportsConnectivity();
             return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
         }
 #endif
@@ -613,6 +641,28 @@ namespace Grpc.Net.Client
                 return RandomGenerator.Next(minValue, maxValue);
             }
         }
+
+#if SUPPORT_LOAD_BALANCING
+        private class SubChannelTransportFactory : ISubchannelTransportFactory
+        {
+            private readonly GrpcChannel _channel;
+
+            public SubChannelTransportFactory(GrpcChannel channel)
+            {
+                _channel = channel;
+            }
+
+            public ISubchannelTransport Create(Subchannel subchannel)
+            {
+                if (_channel.HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+                {
+                    return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
+                }
+
+                return new PassiveSubchannelTransport(subchannel);
+            }
+        }
+#endif
 
         private struct MethodKey : IEquatable<MethodKey>
         {

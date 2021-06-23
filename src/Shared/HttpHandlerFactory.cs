@@ -128,7 +128,7 @@ namespace Grpc.Shared
         {
             if (HasHttpHandlerType(handler, "System.Net.Http.WinHttpHandler"))
             {
-                return HttpHandlerType.WinHttp;
+                return HttpHandlerType.WinHttpHandler;
             }
             if (HasHttpHandlerType(handler, "System.Net.Http.SocketsHttpHandler"))
             {
@@ -139,11 +139,11 @@ namespace Grpc.Shared
                     return HttpHandlerType.Custom;
                 }
 #endif
-                return HttpHandlerType.Default;
+                return HttpHandlerType.SocketsHttpHandler;
             }
             if (GetHttpHandlerType(handler, typeof(HttpClientHandler)) != null)
             {
-                return HttpHandlerType.Default;
+                return HttpHandlerType.HttpClientHandler;
             }
 
             return HttpHandlerType.Custom;
@@ -152,8 +152,9 @@ namespace Grpc.Shared
 
     internal enum HttpHandlerType
     {
-        Default,
-        WinHttp,
+        SocketsHttpHandler,
+        HttpClientHandler,
+        WinHttpHandler,
         Custom
     }
 }

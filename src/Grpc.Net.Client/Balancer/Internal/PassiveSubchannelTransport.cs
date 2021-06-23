@@ -26,6 +26,10 @@ using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Balancer.Internal
 {
+    /// <summary>
+    /// Subchannel transport used when SocketsHttpHandler isn't configured.
+    /// This transport isn't able to correctly determine connectivity state.
+    /// </summary>
     internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
     {
         private const int FailureThreshold = 5;

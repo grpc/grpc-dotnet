@@ -30,6 +30,7 @@ using Microsoft.Extensions.Logging.Testing;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using System.IO;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -407,11 +408,64 @@ namespace Grpc.Net.Client.Tests
 
 #if SUPPORT_LOAD_BALANCING
         [Test]
+        public void Resolver_SocketHttpHandlerWithConnectCallback_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpHandler = new SocketsHttpHandler
+                {
+                    ConnectCallback = (context, ct) => new ValueTask<Stream>(new MemoryStream())
+                };
+            });
+        }
+
+        [Test]
+        public void Resolver_HttpClientHandler_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpHandler = new HttpClientHandler();
+            });
+        }
+
+        [Test]
+        public void Resolver_HttpClient_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpClient = new HttpClient();
+            });
+        }
+
+        private static void ConfigureLoadBalancingWithInvalidHttpHandler(Action<GrpcChannelOptions> channelOptionsFunc)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                Credentials = ChannelCredentials.Insecure
+            };
+            channelOptionsFunc(channelOptions);
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test:///localhost", channelOptions))!;
+
+            // Assert
+            Assert.AreEqual("Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                "The underlying HTTP transport must be a SocketsHttpHandler with no SocketsHttpHandler.ConnectCallback configured. " +
+                "The HTTP transport must be configured on the channel using GrpcChannelOptions.HttpHandler.", ex.Message);
+        }
+
+        [Test]
         public void Resolver_NoChannelCredentials_Error()
         {
             // Arrange
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
             var channelOptions = new GrpcChannelOptions
@@ -648,11 +702,56 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task ConnectAsync_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel => Task.FromResult(channel.ConnectAsync()));
+        }
+
+        [Test]
+        public async Task State_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel =>
+            {
+                Console.WriteLine(channel.State);
+                return Task.CompletedTask;
+            });
+        }
+
+        [Test]
+        public async Task WaitForStateChangedAsync_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel => channel.WaitForStateChangedAsync(channel.State));
+        }
+
+        private static async Task ConnectivityActionOnChannelWhenConnectivityNotSupported(Func<GrpcChannel, Task> action)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = new TestHttpMessageHandler()
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => action(channel)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                "The underlying HTTP transport must be a SocketsHttpHandler with no SocketsHttpHandler.ConnectCallback configured. " +
+                "The HTTP transport must be configured on the channel using GrpcChannelOptions.HttpHandler.", ex.Message);
+        }
+
+        [Test]
         public void Resolver_MatchInServiceProvider_Success()
         {
             // Arrange
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
 
             var handler = new TestHttpMessageHandler();
             var channelOptions = new GrpcChannelOptions
