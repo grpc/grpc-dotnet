@@ -40,9 +40,9 @@ namespace Frontend.Balancer
 
         public override string Name => _innerResolverFactory.Name;
 
-        public override Resolver Create(Uri address, ResolverOptions options)
+        public override Resolver Create(ResolverOptions options)
         {
-            return new ConfigurableResolver(_innerResolverFactory.Create(address, options), _balancerConfiguration);
+            return new ConfigurableResolver(_innerResolverFactory.Create(options), _balancerConfiguration);
         }
 
         private class ConfigurableResolver : Resolver

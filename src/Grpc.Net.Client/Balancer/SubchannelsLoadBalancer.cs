@@ -146,7 +146,7 @@ namespace Grpc.Net.Client.Balancer
                 {
                     // No match so create a new subchannel.
                     var c = Controller.CreateSubchannel(new SubchannelOptions(new[] { address }));
-                    c.StateChanged += UpdateSubchannelState;
+                    c.OnStateChanged(s => UpdateSubchannelState(c, s));
 
                     newSubchannels.Add(c);
                     newOrCurrentSubConnection = new AddressSubchannel(c, address);
@@ -236,11 +236,9 @@ namespace Grpc.Net.Client.Balancer
             Controller.UpdateState(new BalancerState(state, subchannelPicker));
         }
 
-        private void UpdateSubchannelState(object? sender, SubchannelState state)
+        private void UpdateSubchannelState(Subchannel subchannel, SubchannelState state)
         {
             _logger.LogInformation("Updating subchannel state.");
-
-            var subchannel = (Subchannel)sender!;
 
             var index = FindSubchannel(_addressSubchannels, subchannel);
             if (index == null)

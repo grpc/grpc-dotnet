@@ -51,7 +51,6 @@ namespace Grpc.Net.Client.Balancer
         private readonly ConnectionManager _manager;
 
         private CancellationTokenSource? _connectCts;
-        private EventHandler<SubchannelState>? _stateChanged;
         private ConnectivityState _state;
         private TaskCompletionSource<object?>? _delayInterruptTcs;
 
@@ -70,21 +69,49 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public BalancerAttributes Attributes { get; }
 
-        /// <summary>
-        /// Occurs when the <see cref="State"/> changes.
-        /// </summary>
-        public event EventHandler<SubchannelState> StateChanged
-        {
-            add { _stateChanged += value; }
-            remove { _stateChanged -= value; }
-        }
-
         internal Subchannel(ConnectionManager manager, IReadOnlyList<DnsEndPoint> addresses)
         {
             Lock = new object();
             _addresses = addresses.ToList();
             _manager = manager;
             Attributes = new BalancerAttributes();
+        }
+
+        private readonly List<StateChangedRegistration> _stateChangedRegistrations = new List<StateChangedRegistration>();
+
+        /// <summary>
+        /// Registers a callback that will be invoked this subchannel's state changes.
+        /// </summary>
+        /// <param name="callback">The callback that will be invoked when the subchannel's state changes.</param>
+        /// <returns>A subscription that can be disposed to unsubscribe from state changes.</returns>
+        public IDisposable OnStateChanged(Action<SubchannelState> callback)
+        {
+            var registration = new StateChangedRegistration(this, callback);
+            _stateChangedRegistrations.Add(registration);
+
+            return registration;
+        }
+
+        private sealed class StateChangedRegistration : IDisposable
+        {
+            private readonly Subchannel _subchannel;
+            private readonly Action<SubchannelState> _callback;
+
+            public StateChangedRegistration(Subchannel subchannel, Action<SubchannelState> callback)
+            {
+                _subchannel = subchannel;
+                _callback = callback;
+            }
+
+            public void Invoke(SubchannelState state)
+            {
+                _callback(state);
+            }
+
+            public void Dispose()
+            {
+                _subchannel._stateChangedRegistrations.Remove(this);
+            }
         }
 
         /// <summary>
@@ -264,11 +291,14 @@ namespace Grpc.Net.Client.Balancer
 
         internal void RaiseStateChanged(ConnectivityState state, Status status)
         {
-            var e = _stateChanged;
-            if (e != null)
+            Logger.LogInformation("Subchannel state change: " + this + " " + state);
+            if (_stateChangedRegistrations.Count > 0)
             {
-                Logger.LogInformation("Subchannel state change: " + this + " " + state);
-                e.Invoke(this, new SubchannelState(state, status));
+                var subchannelState = new SubchannelState(state, status);
+                foreach (var registration in _stateChangedRegistrations)
+                {
+                    registration.Invoke(subchannelState);
+                }
             }
         }
 
@@ -301,7 +331,7 @@ namespace Grpc.Net.Client.Balancer
         public void Dispose()
         {
             UpdateConnectivityState(ConnectivityState.Shutdown);
-            _stateChanged = null;
+            _stateChangedRegistrations.Clear();
             Transport.Dispose();
             _connectCts?.Cancel();
         }

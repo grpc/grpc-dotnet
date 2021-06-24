@@ -98,7 +98,7 @@ namespace Grpc.Net.Client.Balancer
                 try
                 {
                     _subchannel = _controller.CreateSubchannel(new SubchannelOptions(state.Addresses));
-                    _subchannel.StateChanged += UpdateSubchannelState;
+                    _subchannel.OnStateChanged(s => UpdateSubchannelState(_subchannel, s));
                 }
                 catch (Exception ex)
                 {
@@ -116,11 +116,9 @@ namespace Grpc.Net.Client.Balancer
             }
         }
 
-        private void UpdateSubchannelState(object? sender, SubchannelState state)
+        private void UpdateSubchannelState(Subchannel subchannel, SubchannelState state)
         {
             _logger.LogTrace($"Subchannel state updated to {state.State}.");
-
-            var subchannel = (Subchannel)sender!;
 
             if (_subchannel != subchannel)
             {
