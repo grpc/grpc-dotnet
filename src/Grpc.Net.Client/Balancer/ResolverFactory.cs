@@ -18,6 +18,8 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
+using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
 {
@@ -30,6 +32,13 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public abstract class ResolverFactory
     {
+#if SUPPORT_LOAD_BALANCING
+        internal static readonly ResolverFactory[] KnownLoadResolverFactories = new ResolverFactory[]
+        {
+            new DnsResolverFactory(Timeout.InfiniteTimeSpan)
+        };
+#endif
+
         /// <summary>
         /// Gets the resolver factory name. A factory is used when the target <see cref="Uri"/> scheme
         /// matches the factory name.
@@ -39,10 +48,9 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Creates a new <see cref="Resolver"/> with the specified options.
         /// </summary>
-        /// <param name="address">The target address <see cref="Uri"/>.</param>
-        /// <param name="options">The options.</param>
+        /// <param name="options">Options for creating a <see cref="Resolver"/>.</param>
         /// <returns>A new <see cref="Resolver"/>.</returns>
-        public abstract Resolver Create(Uri address, ResolverOptions options);
+        public abstract Resolver Create(ResolverOptions options);
     }
 
     /// <summary>
@@ -56,18 +64,27 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
         /// </summary>
-        /// <param name="disableServiceConfig">
-        /// The flag indicating whether the resolver should disable resolving a service config.
-        /// </param>
-        internal ResolverOptions(bool disableServiceConfig)
+        internal ResolverOptions(Uri address, bool disableServiceConfig, ILoggerFactory loggerFactory)
         {
+            Address = address;
             DisableServiceConfig = disableServiceConfig;
+            LoggerFactory = loggerFactory;
         }
+
+        /// <summary>
+        /// Gets the address.
+        /// </summary>
+        public Uri Address { get; }
 
         /// <summary>
         /// Gets a flag indicating whether the resolver should disable resolving a service config.
         /// </summary>
         public bool DisableServiceConfig { get; }
+
+        /// <summary>
+        /// Gets the logger factory.
+        /// </summary>
+        public ILoggerFactory LoggerFactory { get; }
     }
 }
 #endif

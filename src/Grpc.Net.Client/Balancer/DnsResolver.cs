@@ -34,7 +34,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public sealed class DnsResolver : Resolver
+    internal sealed class DnsResolver : Resolver
     {
         private readonly Uri _address;
         private readonly TimeSpan _refreshInterval;
@@ -174,17 +174,14 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class DnsResolverFactory : ResolverFactory
     {
-        private readonly ILoggerFactory _loggerFactory;
         private readonly TimeSpan _refreshInterval;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DnsResolverFactory"/> class with a refresh interval.
         /// </summary>
-        /// <param name="loggerFactory">A logger factory.</param>
         /// <param name="refreshInterval">An interval for automatically refreshing the DNS hostname.</param>
-        public DnsResolverFactory(ILoggerFactory loggerFactory, TimeSpan refreshInterval)
+        public DnsResolverFactory(TimeSpan refreshInterval)
         {
-            _loggerFactory = loggerFactory;
             _refreshInterval = refreshInterval;
         }
 
@@ -192,9 +189,9 @@ namespace Grpc.Net.Client.Balancer
         public override string Name => "dns";
 
         /// <inheritdoc />
-        public override Resolver Create(Uri address, ResolverOptions options)
+        public override Resolver Create(ResolverOptions options)
         {
-            return new DnsResolver(address, _loggerFactory, _refreshInterval);
+            return new DnsResolver(options.Address, options.LoggerFactory, _refreshInterval);
         }
     }
 }

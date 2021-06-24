@@ -253,13 +253,13 @@ namespace Grpc.Net.Client
         private Resolver CreateResolver(GrpcChannelOptions options)
         {
             var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
-            factories = factories.Union(new[] { new DnsResolverFactory(LoggerFactory, Timeout.InfiniteTimeSpan) });
+            factories = factories.Union(ResolverFactory.KnownLoadResolverFactories);
 
             foreach (var factory in factories)
             {
                 if (string.Equals(factory.Name, Address.Scheme, StringComparison.OrdinalIgnoreCase))
                 {
-                    return factory.Create(Address, new ResolverOptions(options.DisableResolverServiceConfig));
+                    return factory.Create(new ResolverOptions(Address, options.DisableResolverServiceConfig, LoggerFactory));
                 }
             }
 
@@ -268,15 +268,13 @@ namespace Grpc.Net.Client
 
         private LoadBalancerFactory[] ResolveLoadBalancerFactories(IServiceProvider? serviceProvider)
         {
-            var resolvedFactories = new LoadBalancerFactory[] { new PickFirstBalancerFactory(LoggerFactory), new RoundRobinBalancerFactory(LoggerFactory) };
-
             var serviceFactories = ResolveService<IEnumerable<LoadBalancerFactory>?>(serviceProvider, defaultValue: null);
             if (serviceFactories != null)
             {
-                resolvedFactories = serviceFactories.Union(resolvedFactories).ToArray();
+                return serviceFactories.Union(LoadBalancerFactory.KnownLoadBalancerFactories).ToArray();
             }
             
-            return resolvedFactories;
+            return LoadBalancerFactory.KnownLoadBalancerFactories;
         }
 #endif
 

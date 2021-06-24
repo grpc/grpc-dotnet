@@ -99,6 +99,14 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public abstract class LoadBalancerFactory
     {
+#if SUPPORT_LOAD_BALANCING
+        internal static readonly LoadBalancerFactory[] KnownLoadBalancerFactories = new LoadBalancerFactory[]
+        {
+            new PickFirstBalancerFactory(),
+            new RoundRobinBalancerFactory()
+        };
+#endif
+
         /// <summary>
         /// Gets the load balancer factory name. A factory is used when the load balancer config name
         /// matches the factory name.
@@ -108,10 +116,9 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Creates a new <see cref="LoadBalancer"/> with the specified options.
         /// </summary>
-        /// <param name="controller">The controller the load balancer will use.</param>
-        /// <param name="options">The options.</param>
+        /// <param name="options">Options for creating a <see cref="LoadBalancer"/>.</param>
         /// <returns>A new <see cref="LoadBalancer"/>.</returns>
-        public abstract LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options);
+        public abstract LoadBalancer Create(LoadBalancerOptions options);
     }
 }
 #endif

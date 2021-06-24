@@ -24,23 +24,23 @@ namespace Grpc.Tests.Shared
 {
     internal class TestResolverFactory : ResolverFactory
     {
-        private readonly Func<Uri, ResolverOptions, TestResolver> _createResolver;
+        private readonly Func<ResolverOptions, TestResolver> _createResolver;
 
         public override string Name { get; } = "test";
 
         public TestResolverFactory(TestResolver resolver)
         {
-            _createResolver = (address, options) => resolver;
+            _createResolver = o => resolver;
         }
 
-        public TestResolverFactory(Func<Uri, ResolverOptions, TestResolver> createResolver)
+        public TestResolverFactory(Func<ResolverOptions, TestResolver> createResolver)
         {
             _createResolver = createResolver;
         }
 
-        public override Resolver Create(Uri address, ResolverOptions options)
+        public override Resolver Create(ResolverOptions options)
         {
-            return _createResolver(address, options);
+            return _createResolver(options);
         }
     }
 }

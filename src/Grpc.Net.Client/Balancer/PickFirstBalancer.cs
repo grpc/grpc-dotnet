@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public sealed class PickFirstBalancer : LoadBalancer
+    internal sealed class PickFirstBalancer : LoadBalancer
     {
         private readonly IChannelControlHelper _controller;
         private readonly ILogger _logger;
@@ -211,25 +211,42 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class PickFirstBalancerFactory : LoadBalancerFactory
     {
-        private readonly ILoggerFactory _loggerFactory;
-
         /// <inheritdoc />
         public override string Name { get; } = LoadBalancingConfig.PickFirstPolicyName;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PickFirstBalancerFactory"/> class.
-        /// </summary>
-        /// <param name="loggerFactory">The logger factory.</param>
-        public PickFirstBalancerFactory(ILoggerFactory loggerFactory)
+        /// <inheritdoc />
+        public override LoadBalancer Create(LoadBalancerOptions options)
         {
-            _loggerFactory = loggerFactory;
+            return new PickFirstBalancer(options.Controller, options.LoggerFactory);
+        }
+    }
+
+    /// <summary>
+    /// Options for creating a <see cref="LoadBalancer"/>.
+    /// </summary>
+    public sealed class LoadBalancerOptions
+    {
+        internal LoadBalancerOptions(IChannelControlHelper controller, ILoggerFactory loggerFactory, IDictionary<string, object> configuration)
+        {
+            Controller = controller;
+            LoggerFactory = loggerFactory;
+            Configuration = configuration;
         }
 
-        /// <inheritdoc />
-        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
-        {
-            return new PickFirstBalancer(controller, _loggerFactory);
-        }
+        /// <summary>
+        /// Gets the <see cref="IChannelControlHelper"/>.
+        /// </summary>
+        public IChannelControlHelper Controller { get; }
+
+        /// <summary>
+        /// Gets the logger factory.
+        /// </summary>
+        public ILoggerFactory LoggerFactory { get; }
+
+        /// <summary>
+        /// Gets the load balancer configuration.
+        /// </summary>
+        public IDictionary<string, object> Configuration { get; }
     }
 }
 #endif

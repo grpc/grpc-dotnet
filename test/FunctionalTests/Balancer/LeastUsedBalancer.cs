@@ -142,18 +142,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
     public class LeastUsedBalancerFactory : LoadBalancerFactory
     {
-        private readonly ILoggerFactory _loggerFactory;
-
         public override string Name { get; } = "least_used";
 
-        public LeastUsedBalancerFactory(ILoggerFactory loggerFactory)
+        public override LoadBalancer Create(LoadBalancerOptions options)
         {
-            _loggerFactory = loggerFactory;
-        }
-
-        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
-        {
-            return new LeastUsedBalancer(controller, _loggerFactory);
+            return new LeastUsedBalancer(options.Controller, options.LoggerFactory);
         }
     }
 }

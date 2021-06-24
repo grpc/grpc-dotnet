@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public sealed class RoundRobinBalancer : SubchannelsLoadBalancer
+    internal sealed class RoundRobinBalancer : SubchannelsLoadBalancer
     {
         private readonly IRandomGenerator _randomGenerator;
 
@@ -61,7 +61,7 @@ namespace Grpc.Net.Client.Balancer
         }
     }
 
-    internal class RoundRobinPicker : SubchannelPicker
+    internal sealed class RoundRobinPicker : SubchannelPicker
     {
         // Internal for testing
         internal readonly List<Subchannel> _subchannels;
@@ -97,24 +97,13 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class RoundRobinBalancerFactory : LoadBalancerFactory
     {
-        private readonly ILoggerFactory _loggerFactory;
-
         /// <inheritdoc />
         public override string Name { get; } = LoadBalancingConfig.RoundRobinPolicyName;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RoundRobinBalancerFactory"/> class.
-        /// </summary>
-        /// <param name="loggerFactory">The logger factory.</param>
-        public RoundRobinBalancerFactory(ILoggerFactory loggerFactory)
-        {
-            _loggerFactory = loggerFactory;
-        }
-
         /// <inheritdoc />
-        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
+        public override LoadBalancer Create(LoadBalancerOptions options)
         {
-            return new RoundRobinBalancer(controller, _loggerFactory);
+            return new RoundRobinBalancer(options.Controller, options.LoggerFactory);
         }
     }
 }

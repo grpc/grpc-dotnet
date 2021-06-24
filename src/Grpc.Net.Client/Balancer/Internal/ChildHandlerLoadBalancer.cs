@@ -134,8 +134,10 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private (LoadBalancer, string) CreateLoadBalancer(LoadBalancerFactory factory, LoadBalancingConfig lbConfig)
         {
+            var configuration = (IDictionary<string, object>)lbConfig.Inner[lbConfig.PolicyName];
+
             var controller = new ChildHandlerController(this);
-            var loadBalancer = factory.Create(controller, (IDictionary<string, object>)lbConfig.Inner[lbConfig.PolicyName]);
+            var loadBalancer = factory.Create(new LoadBalancerOptions(controller, _connectionManager.LoggerFactory, configuration));
             var result = (loadBalancer, lbConfig.PolicyName);
             controller.Child = result;
 

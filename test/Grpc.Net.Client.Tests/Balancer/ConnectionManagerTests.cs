@@ -378,9 +378,9 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             public override string Name => "drop";
 
-            public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
+            public override LoadBalancer Create(LoadBalancerOptions options)
             {
-                return _loadBalancerFunc(controller);
+                return _loadBalancerFunc(options.Controller);
             }
         }
     }

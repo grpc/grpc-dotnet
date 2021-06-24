@@ -32,7 +32,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public sealed class StaticResolver : Resolver
+    internal sealed class StaticResolver : Resolver
     {
         private readonly List<DnsEndPoint> _addresses;
         private Action<ResolverResult>? _listener;
@@ -113,9 +113,9 @@ namespace Grpc.Net.Client.Balancer
         public override string Name => "static";
 
         /// <inheritdoc />
-        public override Resolver Create(Uri address, ResolverOptions options)
+        public override Resolver Create(ResolverOptions options)
         {
-            return new StaticResolver(_addressesCallback(address));
+            return new StaticResolver(_addressesCallback(options.Address));
         }
     }
 }

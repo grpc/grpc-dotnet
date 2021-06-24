@@ -302,7 +302,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 });
 
             ResolverOptions? resolverOptions = null;
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory((a, o) =>
+            services.AddSingleton<ResolverFactory>(new TestResolverFactory(o =>
             {
                 resolverOptions = o;
                 return resolver;

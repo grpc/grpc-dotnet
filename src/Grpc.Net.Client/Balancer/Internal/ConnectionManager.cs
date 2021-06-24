@@ -63,6 +63,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _cts = new CancellationTokenSource();
 
             Logger = loggerFactory.CreateLogger(GetType());
+            LoggerFactory = loggerFactory;
 
             _subchannels = new List<Subchannel>();
             _stateWatchers = new List<StateWatcher>();
@@ -74,6 +75,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public ConnectivityState State { get; private set; }
         public ILogger Logger { get; }
+        public ILoggerFactory LoggerFactory { get; }
         public bool DisableResolverServiceConfig { get; }
         public LoadBalancerFactory[] LoadBalancerFactories { get; }
 

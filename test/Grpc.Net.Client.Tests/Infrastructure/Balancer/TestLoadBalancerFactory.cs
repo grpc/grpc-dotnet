@@ -35,9 +35,9 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
             _onCreate = onCreate;
         }
 
-        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
+        public override LoadBalancer Create(LoadBalancerOptions options)
         {
-            return _onCreate(controller);
+            return _onCreate(options.Controller);
         }
     }
 }

@@ -801,7 +801,7 @@ namespace Grpc.Net.Client.Tests
         {
             public override string Name => "test";
 
-            public override Resolver Create(Uri address, ResolverOptions options)
+            public override Resolver Create(ResolverOptions options)
             {
                 return new ChannelTestResolver();
             }
