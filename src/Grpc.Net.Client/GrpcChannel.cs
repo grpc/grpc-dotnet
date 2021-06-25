@@ -660,7 +660,7 @@ namespace Grpc.Net.Client
             {
                 if (_channel.HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
                 {
-                    return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5));
+                    return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5), _channel.LoggerFactory);
                 }
 
                 return new PassiveSubchannelTransport(subchannel);

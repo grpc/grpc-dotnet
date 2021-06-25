@@ -23,6 +23,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client.Internal;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
@@ -36,15 +37,23 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     internal sealed class DnsResolver : Resolver
     {
+        // To prevent excessive re-resolution, we enforce a rate limit on DNS resolution requests.
+        private static readonly TimeSpan MinimumDnsResolutionRate = TimeSpan.FromSeconds(15);
+
         private readonly Uri _address;
         private readonly TimeSpan _refreshInterval;
         private readonly ILogger<DnsResolver> _logger;
+        private readonly CancellationTokenSource _cts;
         private readonly object _lock = new object();
 
         private Timer? _timer;
         private Action<ResolverResult>? _listener;
         private bool _disposed;
         private Task _refreshTask;
+        private DateTime _lastResolveStart;
+
+        // Internal for testing.
+        internal ISystemClock SystemClock = Client.Internal.SystemClock.Instance;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DnsResolver"/> class with the specified target <see cref="Uri"/>.
@@ -56,6 +65,7 @@ namespace Grpc.Net.Client.Balancer
         {
             _address = address;
             _refreshInterval = refreshInterval;
+            _cts = new CancellationTokenSource();
             _logger = loggerFactory.CreateLogger<DnsResolver>();
             _refreshTask = Task.CompletedTask;
         }
@@ -82,7 +92,7 @@ namespace Grpc.Net.Client.Balancer
         }
 
         /// <inheritdoc />
-        public override async Task RefreshAsync(CancellationToken cancellationToken)
+        public override Task RefreshAsync(CancellationToken cancellationToken)
         {
             if (_disposed)
             {
@@ -97,22 +107,38 @@ namespace Grpc.Net.Client.Balancer
             {
                 if (_refreshTask.IsCompleted)
                 {
-                    _refreshTask = RefreshCoreAsync();
+                    _refreshTask = RefreshCoreAsync(cancellationToken);
                 }
             }
 
-            await _refreshTask.ConfigureAwait(false);
+            return _refreshTask;
         }
 
-        private async Task RefreshCoreAsync()
+        private async Task RefreshCoreAsync(CancellationToken cancellationToken)
         {
             CompatibilityHelpers.Assert(_listener != null);
 
-            var dnsAddress = _address.AbsolutePath.TrimStart('/');
-            _logger.LogTrace($"Getting DNS hosts from {dnsAddress}");
-
             try
             {
+                var elapsedTimeSinceLastRefresh = SystemClock.UtcNow - _lastResolveStart;
+                if (elapsedTimeSinceLastRefresh < MinimumDnsResolutionRate)
+                {
+                    var delay = MinimumDnsResolutionRate - elapsedTimeSinceLastRefresh;
+                    _logger.LogTrace($"Waiting {delay} for DNS resolution rate limit of {MinimumDnsResolutionRate} to pass.");
+
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+
+                _lastResolveStart = SystemClock.UtcNow;
+
+                var dnsAddress = _address.AbsolutePath.TrimStart('/');
+
+                if (string.IsNullOrEmpty(dnsAddress))
+                {
+                    throw new InvalidOperationException($"Resolver address '{_address}' doesn't have a path.");
+                }
+
+                _logger.LogTrace($"Getting DNS hosts from '{dnsAddress}'");
                 var addresses = await Dns.GetHostAddressesAsync(dnsAddress).ConfigureAwait(false);
 
                 _logger.LogTrace($"{addresses.Length} DNS results from {dnsAddress}: " + string.Join<IPAddress>(", ", addresses));
@@ -124,8 +150,10 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error getting DNS hosts from {dnsAddress}");
-                _listener(ResolverResult.ForFailure(new Status(StatusCode.Unavailable, $"Error getting DNS hosts from {dnsAddress}", ex)));
+                var message = $"Error getting DNS hosts for address '{_address}'.";
+
+                _logger.LogError(ex, message);
+                _listener(ResolverResult.ForFailure(GrpcProtocolHelpers.CreateStatusFromException(message, ex, StatusCode.Unavailable)));
             }
         }
 
@@ -135,6 +163,7 @@ namespace Grpc.Net.Client.Balancer
             base.Dispose(disposing);
 
             _timer?.Dispose();
+            _cts.Cancel();
             _listener = null;
             _disposed = true;
         }
@@ -148,7 +177,7 @@ namespace Grpc.Net.Client.Balancer
                 {
                     if (_refreshTask.IsCompleted)
                     {
-                        _refreshTask = RefreshCoreAsync();
+                        _refreshTask = RefreshCoreAsync(_cts.Token);
                         awaitRefresh = true;
                     }
                 }
@@ -157,6 +186,10 @@ namespace Grpc.Net.Client.Balancer
                 {
                     await _refreshTask.ConfigureAwait(false);
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Don't log cancellation.
             }
             catch (Exception ex)
             {

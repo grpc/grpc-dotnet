@@ -325,7 +325,7 @@ namespace Microsoft.Extensions.DependencyInjection
                     // Set PrimaryHandler to null so we can track whether the user
                     // set a value or not. If they didn't set their own handler then
                     // one will be created by PostConfigure.
-                    return null;
+                    return null!;
                 });
 
             services.PostConfigure<HttpClientFactoryOptions>(name, options =>
@@ -375,7 +375,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         private static void ReserveClient(IHttpClientBuilder builder, Type type, string name)
         {
-            var registry = (GrpcClientMappingRegistry)builder.Services.Single(sd => sd.ServiceType == typeof(GrpcClientMappingRegistry)).ImplementationInstance;
+            var registry = (GrpcClientMappingRegistry?)builder.Services.Single(sd => sd.ServiceType == typeof(GrpcClientMappingRegistry)).ImplementationInstance;
             CompatibilityHelpers.Assert(registry != null);
 
             // Check for same name registered to two different types. This won't work because we rely on named options for the configuration.

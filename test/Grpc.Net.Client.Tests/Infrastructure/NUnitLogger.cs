@@ -62,7 +62,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure
         {
         }
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
 #if NET472
             // .NET Framework was throwing when ExecutionContext.Run was called:
@@ -81,7 +81,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure
 #endif
         }
 
-        private void Write<TState>(LogLevel logLevel, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        private void Write<TState>(LogLevel logLevel, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var timestamp = $"{_stopwatch.Elapsed.TotalSeconds:N3}s";
 

@@ -37,6 +37,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.AspNetCore.FunctionalTests.Balancer
 {
@@ -168,7 +169,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             public ISubchannelTransport Create(Subchannel subchannel)
             {
 #if NET5_0_OR_GREATER
-                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval);
+                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, NullLoggerFactory.Instance);
 #else
                 return new PassiveSubchannelTransport(subchannel);
 #endif

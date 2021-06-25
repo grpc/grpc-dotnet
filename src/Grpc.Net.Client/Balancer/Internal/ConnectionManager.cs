@@ -468,5 +468,9 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private record StateWatcher(CancellationToken CancellationToken, ConnectivityState? WaitForState, TaskCompletionSource<object?> Tcs);
     }
+
+    internal static partial class ConnectionManagerLog
+    {
+    }
 }
 #endif

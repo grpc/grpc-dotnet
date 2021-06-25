@@ -44,11 +44,11 @@ namespace Grpc.Net.Client.Balancer
     public sealed class Subchannel : IDisposable
     {
         internal readonly List<DnsEndPoint> _addresses;
-        internal ILogger Logger => _manager.Logger;
         internal readonly object Lock;
         internal ISubchannelTransport Transport { get; set; } = default!;
 
         private readonly ConnectionManager _manager;
+        private readonly ILogger _logger;
 
         private CancellationTokenSource? _connectCts;
         private ConnectivityState _state;
@@ -72,6 +72,8 @@ namespace Grpc.Net.Client.Balancer
         internal Subchannel(ConnectionManager manager, IReadOnlyList<DnsEndPoint> addresses)
         {
             Lock = new object();
+            _logger = manager.LoggerFactory.CreateLogger(GetType());
+
             _addresses = addresses.ToList();
             _manager = manager;
             Attributes = new BalancerAttributes();
@@ -142,11 +144,11 @@ namespace Grpc.Net.Client.Balancer
                         break;
                     case ConnectivityState.Connecting:
                     case ConnectivityState.TransientFailure:
-                        Logger.LogInformation($"Subchannel is connecting when its addresses are updated. Restart connect.");
+                        _logger.LogInformation($"Subchannel is connecting when its addresses are updated. Restart connect.");
                         requireReconnect = true;
                         break;
                     case ConnectivityState.Ready:
-                        Logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
+                        _logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
                         requireReconnect = (CurrentAddress != null && !_addresses.Contains(CurrentAddress));
                         break;
                     case ConnectivityState.Shutdown:
@@ -169,7 +171,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public void RequestConnection()
         {
-            Logger.LogInformation("Connection requested.");
+            _logger.LogInformation("Connection requested.");
 
             lock (Lock)
             {
@@ -182,7 +184,7 @@ namespace Grpc.Net.Client.Balancer
                     case ConnectivityState.Connecting:
                     case ConnectivityState.Ready:
                     case ConnectivityState.TransientFailure:
-                        Logger.LogInformation($"Subchannel is not idle: {_state}");
+                        _logger.LogInformation($"Subchannel is not idle: {_state}");
 
                         // We're already attempting to connect to the transport.
                         // If the connection is waiting in a delayed backoff then interrupt
@@ -210,7 +212,7 @@ namespace Grpc.Net.Client.Balancer
 
             try
             {
-                Logger.LogInformation("Connecting to transport.");
+                _logger.LogInformation("Connecting to transport.");
 
                 var backoffMs = InitialBackOffMs;
                 for (var attempt = 0; ; attempt++)
@@ -233,7 +235,7 @@ namespace Grpc.Net.Client.Balancer
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
 
-                    Logger.LogInformation($"Connect failed. Back off: {backoffMs}ms");
+                    _logger.LogInformation($"Connect failed. Back off: {backoffMs}ms");
                     var completedTask = await Task.WhenAny(Task.Delay(backoffMs, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
 
                     if (completedTask != _delayInterruptTcs.Task)
@@ -257,11 +259,11 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (OperationCanceledException)
             {
-                Logger.LogInformation("Connect canceled.");
+                _logger.LogInformation("Connect canceled.");
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error while connecting to transport.");
+                _logger.LogError(ex, "Error while connecting to transport.");
 
                 UpdateConnectivityState(ConnectivityState.TransientFailure);
             }
@@ -291,7 +293,7 @@ namespace Grpc.Net.Client.Balancer
 
         internal void RaiseStateChanged(ConnectivityState state, Status status)
         {
-            Logger.LogInformation("Subchannel state change: " + this + " " + state);
+            _logger.LogInformation("Subchannel state change: " + this + " " + state);
             if (_stateChangedRegistrations.Count > 0)
             {
                 var subchannelState = new SubchannelState(state, status);

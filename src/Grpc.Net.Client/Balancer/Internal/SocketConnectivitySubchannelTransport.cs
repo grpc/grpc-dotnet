@@ -47,6 +47,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// </summary>
     internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
     {
+        private readonly ILogger _logger;
         private readonly Subchannel _subchannel;
         private readonly TimeSpan _socketPingInterval;
         internal readonly List<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> _activeStreams;
@@ -58,8 +59,9 @@ namespace Grpc.Net.Client.Balancer.Internal
         private bool _disposed;
         private DnsEndPoint? _currentEndPoint;
 
-        public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval)
+        public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, ILoggerFactory loggerFactory)
         {
+            _logger = loggerFactory.CreateLogger<SocketConnectivitySubchannelTransport>();
             _subchannel = subchannel;
             _socketPingInterval = socketPingInterval;
             _activeStreams = new List<(DnsEndPoint, Socket, Stream?)>();
@@ -101,15 +103,15 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                 Socket socket;
 
-                _subchannel.Logger.LogInformation("Creating socket: " + currentEndPoint);
+                _logger.LogInformation("Creating socket: " + currentEndPoint);
                 socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
 
                 try
                 {
-                    _subchannel.Logger.LogInformation("Connecting: " + currentEndPoint);
+                    _logger.LogInformation("Connecting: " + currentEndPoint);
                     await socket.ConnectAsync(currentEndPoint, cancellationToken).ConfigureAwait(false);
-                    _subchannel.Logger.LogInformation("Connected: " + currentEndPoint);
+                    _logger.LogInformation("Connected: " + currentEndPoint);
 
                     lock (Lock)
                     {
@@ -125,7 +127,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 }
                 catch (Exception ex)
                 {
-                    _subchannel.Logger.LogError("Connect error: " + currentEndPoint + " " + ex);
+                    _logger.LogError("Connect error: " + currentEndPoint + " " + ex);
 
                     if (firstConnectionError == null)
                     {
@@ -159,7 +161,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     try
                     {
                         // Check the socket is still valid by doing a zero byte send.
-                        _subchannel.Logger.LogTrace("Checking socket: " + _initialSocketEndPoint);
+                        _logger.LogTrace("Checking socket: " + _initialSocketEndPoint);
                         await socket.SendAsync(Array.Empty<byte>(), SocketFlags.None).ConfigureAwait(false);
 
                         // Also poll socket to check if it can be read from.
@@ -167,7 +169,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     }
                     catch (Exception ex)
                     {
-                        _subchannel.Logger.LogTrace(ex, "Error when pinging socket " + _initialSocketEndPoint);
+                        _logger.LogTrace(ex, "Error when pinging socket " + _initialSocketEndPoint);
                     }
 
                     if (closeSocket)
@@ -189,13 +191,13 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
             catch (Exception ex)
             {
-                _subchannel.Logger.LogError(ex, "Error when checking socket.");
+                _logger.LogError(ex, "Error when checking socket.");
             }
         }
 
         public async ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
         {
-            _subchannel.Logger.LogInformation("GetStreamAsync: " + endPoint);
+            _logger.LogInformation("GetStreamAsync: " + endPoint);
 
             Socket? socket = null;
             lock (Lock)
@@ -236,7 +238,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             lock (Lock)
             {
                 _activeStreams.Add((endPoint, socket, stream));
-                _subchannel.Logger.LogInformation("Transport stream created");
+                _logger.LogInformation("Transport stream created");
             }
 
             return stream;
@@ -266,7 +268,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     if (t.Stream == streamWrapper)
                     {
                         _activeStreams.RemoveAt(i);
-                        _subchannel.Logger.LogInformation("Disconnected: " + CurrentEndPoint);
+                        _logger.LogInformation("Disconnected: " + CurrentEndPoint);
 
                         // If the last active streams is removed then there is no active connection.
                         disconnect = _activeStreams.Count == 0;
