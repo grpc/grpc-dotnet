@@ -18,39 +18,42 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
-    /// Factory for creating new <see cref="Resolver"/> instances. A factory is used when the
-    /// target address <see cref="Uri"/> scheme matches the factory name.
+    /// Options for creating a resolver.
     /// <para>
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    public abstract class ResolverFactory
+    public sealed class ResolverOptions
     {
-#if SUPPORT_LOAD_BALANCING
-        internal static readonly ResolverFactory[] KnownLoadResolverFactories = new ResolverFactory[]
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
+        /// </summary>
+        internal ResolverOptions(Uri address, bool disableServiceConfig, ILoggerFactory loggerFactory)
         {
-            new DnsResolverFactory(Timeout.InfiniteTimeSpan)
-        };
-#endif
+            Address = address;
+            DisableServiceConfig = disableServiceConfig;
+            LoggerFactory = loggerFactory;
+        }
 
         /// <summary>
-        /// Gets the resolver factory name. A factory is used when the target <see cref="Uri"/> scheme
-        /// matches the factory name.
+        /// Gets the address.
         /// </summary>
-        public abstract string Name { get; }
+        public Uri Address { get; }
 
         /// <summary>
-        /// Creates a new <see cref="Resolver"/> with the specified options.
+        /// Gets a flag indicating whether the resolver should disable resolving a service config.
         /// </summary>
-        /// <param name="options">Options for creating a <see cref="Resolver"/>.</param>
-        /// <returns>A new <see cref="Resolver"/>.</returns>
-        public abstract Resolver Create(ResolverOptions options);
+        public bool DisableServiceConfig { get; }
+
+        /// <summary>
+        /// Gets the logger factory.
+        /// </summary>
+        public ILoggerFactory LoggerFactory { get; }
     }
 }
 #endif

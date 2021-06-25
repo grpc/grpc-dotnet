@@ -218,33 +218,5 @@ namespace Grpc.Net.Client.Balancer
             return new PickFirstBalancer(options.Controller, options.LoggerFactory);
         }
     }
-
-    /// <summary>
-    /// Options for creating a <see cref="LoadBalancer"/>.
-    /// </summary>
-    public sealed class LoadBalancerOptions
-    {
-        internal LoadBalancerOptions(IChannelControlHelper controller, ILoggerFactory loggerFactory, IDictionary<string, object> configuration)
-        {
-            Controller = controller;
-            LoggerFactory = loggerFactory;
-            Configuration = configuration;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="IChannelControlHelper"/>.
-        /// </summary>
-        public IChannelControlHelper Controller { get; }
-
-        /// <summary>
-        /// Gets the logger factory.
-        /// </summary>
-        public ILoggerFactory LoggerFactory { get; }
-
-        /// <summary>
-        /// Gets the load balancer configuration.
-        /// </summary>
-        public IDictionary<string, object> Configuration { get; }
-    }
 }
 #endif

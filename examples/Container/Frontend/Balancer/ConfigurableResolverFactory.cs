@@ -50,6 +50,9 @@ namespace Frontend.Balancer
             private readonly Resolver _innerResolver;
             private readonly BalancerConfiguration _balancerConfiguration;
 
+            private ResolverResult? _lastResult;
+            private Action<ResolverResult>? _listener;
+
             public ConfigurableResolver(Resolver innerResolver, BalancerConfiguration balancerConfiguration)
             {
                 _innerResolver = innerResolver;
@@ -59,7 +62,11 @@ namespace Frontend.Balancer
 
             private void OnConfigurationUpdated(object? sender, EventArgs e)
             {
-                _ = RefreshAsync(CancellationToken.None);
+                // Can't just call RefreshAsync and get new results because of rate limiting.
+                if (_listener != null && _lastResult != null)
+                {
+                    RaiseResult(_listener, _lastResult);
+                }
             }
 
             public override Task RefreshAsync(CancellationToken cancellationToken)
@@ -69,25 +76,33 @@ namespace Frontend.Balancer
 
             public override void Start(Action<ResolverResult> listener)
             {
+                _listener = listener;
                 _innerResolver.Start(result =>
                 {
-                    var policyName = _balancerConfiguration.LoadBalancerPolicyName switch
-                    {
-                        LoadBalancerName.PickFirst => "pick_first",
-                        LoadBalancerName.RoundRobin => "round_robin",
-                        _ => throw new InvalidOperationException("Unexpected load balancer.")
-                    };
+                    _lastResult = result;
 
-                    var serviceConfig = new ServiceConfig
-                    {
-                        LoadBalancingConfigs = { new LoadBalancingConfig(policyName) }
-                    };
-
-                    // DNS results change order between refreshes.
-                    // Explicitly order by host to keep result order consistent.
-                    var orderedAddresses = result.Addresses!.OrderBy(a => a.Host).ToList();
-                    listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
+                    RaiseResult(_listener, result);
                 });
+            }
+
+            private void RaiseResult(Action<ResolverResult> listener, ResolverResult result)
+            {
+                var policyName = _balancerConfiguration.LoadBalancerPolicyName switch
+                {
+                    LoadBalancerName.PickFirst => "pick_first",
+                    LoadBalancerName.RoundRobin => "round_robin",
+                    _ => throw new InvalidOperationException("Unexpected load balancer.")
+                };
+
+                var serviceConfig = new ServiceConfig
+                {
+                    LoadBalancingConfigs = { new LoadBalancingConfig(policyName) }
+                };
+
+                // DNS results change order between refreshes.
+                // Explicitly order by host to keep result order consistent.
+                var orderedAddresses = result.Addresses!.OrderBy(a => a.Host).ToList();
+                listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
             }
         }
     }

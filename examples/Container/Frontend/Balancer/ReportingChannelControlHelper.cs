@@ -42,7 +42,7 @@ namespace Frontend.Balancer
         public Subchannel CreateSubchannel(SubchannelOptions options)
         {
             var subchannel = _controller.CreateSubchannel(options);
-            subchannel.StateChanged += OnSubchannelStateChanged;
+            subchannel.OnStateChanged(s => OnSubchannelStateChanged(subchannel, s));
             _subchannels.Add(subchannel);
 
             NotifySubscribers();
@@ -50,11 +50,11 @@ namespace Frontend.Balancer
             return subchannel;
         }
 
-        private void OnSubchannelStateChanged(object? sender, SubchannelState e)
+        private void OnSubchannelStateChanged(Subchannel subchannel, SubchannelState s)
         {
-            if (e.State == ConnectivityState.Shutdown)
+            if (s.State == ConnectivityState.Shutdown)
             {
-                _subchannels.Remove((Subchannel)sender!);
+                _subchannels.Remove(subchannel);
             }
         }
 

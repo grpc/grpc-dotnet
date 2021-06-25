@@ -96,17 +96,17 @@ namespace Frontend
             services.AddSingleton<BalancerConfiguration>();
             services.AddSingleton<ResolverFactory>(s =>
             {
-                var inner = new DnsResolverFactory(s.GetRequiredService<ILoggerFactory>(), TimeSpan.FromSeconds(10));
+                var inner = new DnsResolverFactory(TimeSpan.FromSeconds(15));
                 return new ConfigurableResolverFactory(inner, s.GetRequiredService<BalancerConfiguration>());
             });
             services.AddSingleton<LoadBalancerFactory>(s =>
             {
-                var inner = new RoundRobinBalancerFactory(s.GetRequiredService<ILoggerFactory>());
+                var inner = new RoundRobinBalancerFactory();
                 return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
             });
             services.AddSingleton<LoadBalancerFactory>(s =>
             {
-                var inner = new PickFirstBalancerFactory(s.GetRequiredService<ILoggerFactory>());
+                var inner = new PickFirstBalancerFactory();
                 return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
             });
         }

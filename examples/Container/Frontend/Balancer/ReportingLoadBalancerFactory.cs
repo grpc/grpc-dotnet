@@ -34,13 +34,14 @@ namespace Frontend.Balancer
 
         public override string Name => _loadBalancerFactory.Name;
 
-        public override LoadBalancer Create(IChannelControlHelper controller, IDictionary<string, object> options)
+        public override LoadBalancer Create(LoadBalancerOptions options)
         {
             // Wrap the helper so that state updates can be intercepted.
             // State information is then passed to the reporter.
-            var reportingController = new ReportingChannelControlHelper(controller, _subchannelReporter);
+            var reportingController = new ReportingChannelControlHelper(options.Controller, _subchannelReporter);
 
-            return _loadBalancerFactory.Create(reportingController, options);
+            options = new LoadBalancerOptions(reportingController, options.LoggerFactory, options.Configuration);
+            return _loadBalancerFactory.Create(options);
         }
     }
 }
