@@ -87,22 +87,29 @@ namespace Frontend.Balancer
 
             private void RaiseResult(Action<ResolverResult> listener, ResolverResult result)
             {
-                var policyName = _balancerConfiguration.LoadBalancerPolicyName switch
+                if (result.Addresses != null)
                 {
-                    LoadBalancerName.PickFirst => "pick_first",
-                    LoadBalancerName.RoundRobin => "round_robin",
-                    _ => throw new InvalidOperationException("Unexpected load balancer.")
-                };
+                    var policyName = _balancerConfiguration.LoadBalancerPolicyName switch
+                    {
+                        LoadBalancerName.PickFirst => "pick_first",
+                        LoadBalancerName.RoundRobin => "round_robin",
+                        _ => throw new InvalidOperationException("Unexpected load balancer.")
+                    };
 
-                var serviceConfig = new ServiceConfig
+                    var serviceConfig = new ServiceConfig
+                    {
+                        LoadBalancingConfigs = { new LoadBalancingConfig(policyName) }
+                    };
+
+                    // DNS results change order between refreshes.
+                    // Explicitly order by host to keep result order consistent.
+                    var orderedAddresses = result.Addresses!.OrderBy(a => a.Host).ToList();
+                    listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
+                }
+                else
                 {
-                    LoadBalancingConfigs = { new LoadBalancingConfig(policyName) }
-                };
-
-                // DNS results change order between refreshes.
-                // Explicitly order by host to keep result order consistent.
-                var orderedAddresses = result.Addresses!.OrderBy(a => a.Host).ToList();
-                listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
+                    listener(ResolverResult.ForFailure(result.Status));
+                }
             }
         }
     }

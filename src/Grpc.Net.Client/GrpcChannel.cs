@@ -198,7 +198,7 @@ namespace Grpc.Net.Client
                 }
             }
 
-            // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of a host.
+            // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of an authority.
             // Only log about a path being present if HTTP or HTTPS.
             if (!string.IsNullOrEmpty(Address.PathAndQuery) &&
                 Address.PathAndQuery != "/" &&
@@ -381,7 +381,9 @@ namespace Grpc.Net.Client
             // get replaced in the final HTTP request address by the load balancer.
             if (string.IsNullOrEmpty(uriBuilder.Host))
             {
-                uriBuilder.Host = "tempuri.org";
+                // .invalid is reserved for temporary host names.
+                // https://datatracker.ietf.org/doc/html/rfc2606#section-2
+                uriBuilder.Host = "loadbalancer.temporary.invalid";
             }
 
             return new GrpcMethodInfo(scope, uriBuilder.Uri, methodConfig);
