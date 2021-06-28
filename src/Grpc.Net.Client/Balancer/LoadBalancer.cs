@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using Grpc.Core;
 
 namespace Grpc.Net.Client.Balancer
 {

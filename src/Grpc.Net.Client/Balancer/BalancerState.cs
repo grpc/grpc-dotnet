@@ -18,6 +18,7 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System.Diagnostics;
+using Grpc.Core;
 
 namespace Grpc.Net.Client.Balancer
 {

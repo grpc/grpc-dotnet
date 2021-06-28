@@ -16,8 +16,9 @@
 
 #endregion
 
-#if SUPPORT_LOAD_BALANCING
-namespace Grpc.Net.Client
+#if NET5_0_OR_GREATER
+
+namespace Grpc.Core
 {
     /// <summary>
     /// The connectivity state.
@@ -49,4 +50,5 @@ namespace Grpc.Net.Client
         Shutdown
     }
 }
+
 #endif
