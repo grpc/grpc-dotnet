@@ -19,10 +19,23 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Tests.Infrastructure
 {
+    internal static class NUnitLoggerExtensions
+    {
+        public static void AddNUnitLogger(this IServiceCollection services)
+        {
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new NUnitLoggerProvider());
+                b.SetMinimumLevel(LogLevel.Trace);
+            });
+        }
+    }
+
     internal class NUnitLoggerProvider : ILoggerProvider
     {
         private readonly Stopwatch _stopwatch;

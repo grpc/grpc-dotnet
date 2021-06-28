@@ -22,6 +22,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Core;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 
@@ -46,10 +47,10 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
             _connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        public void UpdateState(ConnectivityState state)
+        public void UpdateState(ConnectivityState state, Status? status = null)
         {
             _state = state;
-            Subchannel.UpdateConnectivityState(_state);
+            Subchannel.UpdateConnectivityState(_state, status);
         }
 
         public void Dispose()

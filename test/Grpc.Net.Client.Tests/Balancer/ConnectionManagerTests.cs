@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
             var serviceProvider = services.BuildServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
@@ -108,7 +108,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
             var serviceProvider = services.BuildServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
@@ -151,11 +151,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var services = new ServiceCollection();
-            services.AddLogging(b =>
-            {
-                b.AddProvider(new NUnitLoggerProvider());
-                b.SetMinimumLevel(LogLevel.Trace);
-            });
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             DropLoadBalancer? loadBalancer = null;
@@ -219,11 +215,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var services = new ServiceCollection();
-            services.AddLogging(b =>
-            {
-                b.AddProvider(new NUnitLoggerProvider());
-                b.SetMinimumLevel(LogLevel.Trace);
-            });
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             DropLoadBalancer? loadBalancer = null;
@@ -274,7 +266,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
             var serviceProvider = services.BuildServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             var testLogger = loggerFactory.CreateLogger(GetType());

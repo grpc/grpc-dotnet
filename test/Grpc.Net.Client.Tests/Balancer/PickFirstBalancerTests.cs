@@ -25,6 +25,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -34,6 +35,7 @@ using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Balancer
@@ -46,7 +48,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -92,7 +94,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
@@ -141,7 +143,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -188,7 +190,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -247,7 +249,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -300,7 +302,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
@@ -345,7 +347,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
@@ -387,6 +389,138 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(2, transportConnectCount);
             Assert.AreEqual("localhost", pick.Address.Host);
             Assert.AreEqual(80, pick.Address.Port);
+        }
+
+        [Test]
+        public async Task UnaryCall_TransportConnecting_OnePickStarted()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            var testSink = new TestSink();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+
+            var resolver = new TestResolver();
+            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+
+            ILogger? logger = null;
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var transportConnectCount = 0;
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+            {
+                transportConnectCount++;
+
+                logger.LogInformation("Connect count: " + transportConnectCount);
+                if (transportConnectCount == 2)
+                {
+                    tcs.SetResult(null);
+                }
+
+                return Task.FromResult(ConnectivityState.Connecting);
+            });
+
+            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+            var serviceProvider = services.BuildServiceProvider();
+            logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+
+            var handler = new TestHttpMessageHandler((r, ct) => default!);
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                ServiceProvider = serviceProvider,
+                HttpHandler = handler
+            };
+
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+            {
+                o.Credentials = ChannelCredentials.Insecure;
+                o.ServiceProvider = services.BuildServiceProvider();
+            });
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
+            await tcs.Task.DefaultTimeout();
+
+            // Assert
+            var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
+            Assert.AreEqual(1, pickStartedCount);
+        }
+
+        [Test]
+        public async Task UnaryCall_TransportConnecting_ErrorAfterTransientFailure()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            var testSink = new TestSink();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+
+            var resolver = new TestResolver();
+            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+
+            ILogger? logger = null;
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var transportConnectCount = 0;
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+            {
+                transportConnectCount++;
+
+                logger.LogInformation("Connect count: " + transportConnectCount);
+                if (transportConnectCount == 2)
+                {
+                    tcs.SetResult(null);
+                }
+
+                return Task.FromResult(ConnectivityState.Connecting);
+            });
+
+            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+            var serviceProvider = services.BuildServiceProvider();
+            logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+
+            var handler = new TestHttpMessageHandler((r, ct) => default!);
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                ServiceProvider = serviceProvider,
+                HttpHandler = handler
+            };
+
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+            {
+                o.Credentials = ChannelCredentials.Insecure;
+                o.ServiceProvider = services.BuildServiceProvider();
+            });
+
+            _ = invoker.Channel.ConnectAsync();
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            await tcs.Task.DefaultTimeout();
+
+            // Assert
+            var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
+            Assert.AreEqual(1, pickStartedCount);
+
+            transportFactory.Transports.Single().UpdateState(ConnectivityState.TransientFailure, new Status(StatusCode.Unavailable, "An error"));
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+            Assert.AreEqual("An error", ex.Status.Detail);
         }
     }
 }

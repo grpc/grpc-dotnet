@@ -45,7 +45,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -103,7 +103,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -156,7 +156,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             var resolver = new TestResolver();
             resolver.UpdateEndPoints(new List<DnsEndPoint>
@@ -206,7 +206,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         {
             // Arrange
             var services = new ServiceCollection();
-            services.AddLogging(b => b.AddProvider(new NUnitLoggerProvider()));
+            services.AddNUnitLogger();
 
             SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 

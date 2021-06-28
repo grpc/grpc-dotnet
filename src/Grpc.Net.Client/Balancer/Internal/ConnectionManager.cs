@@ -282,11 +282,8 @@ namespace Grpc.Net.Client.Balancer.Internal
                 {
                     ConnectionManagerLog.ChannelPickerUpdated(Logger);
                     _picker = state.Picker;
-                    if (_nextPickerTcs.Task.IsCompleted)
-                    {
-                        _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
-                    }
                     _nextPickerTcs.SetResult(state.Picker);
+                    _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
             }
         }
