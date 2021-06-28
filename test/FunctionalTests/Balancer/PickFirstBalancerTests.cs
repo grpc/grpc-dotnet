@@ -219,7 +219,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint1.Address, endpoint2.Address }).DefaultTimeout();
-            var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -238,7 +237,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Logger.LogInformation($"All gRPC calls on server");
 
-            var subchannel = balancer!._subchannel!;
+            await BalancerHelpers.WaitForChannelStateAsync(channel, ConnectivityState.Ready).DefaultTimeout();
+
+            var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
+            var subchannel = balancer._subchannel!;
             var transport = (SocketConnectivitySubchannelTransport)subchannel.Transport;
             var activeStreams = transport._activeStreams;
 
@@ -263,6 +265,42 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Assert.AreEqual(1, activeStreams.Count);
             Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+        }
+
+        [Test]
+        public async Task UnaryCall_NoServerAndDeadlineAndWaitForReady_DeadlineTimeout()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+            endpoint.Dispose();
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, connect: false).DefaultTimeout();
+
+            var client = TestClientFactory.Create(channel, endpoint.Method);
+
+            // Act
+            var callOptions = new CallOptions();
+            callOptions = callOptions.WithWaitForReady();
+            callOptions = callOptions.WithDeadline(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(200)));
+
+            var callTask = client.UnaryCall(new HelloRequest { Name = "Balancer" }, callOptions).ResponseAsync;
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => callTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
         }
     }
 }

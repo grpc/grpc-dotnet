@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -161,7 +162,7 @@ namespace Grpc.Net.Client.Balancer
 
             if (removedSubConnections.Count == 0 && newSubchannels.Count == 0)
             {
-                _logger.LogTrace("Connections unchanged.");
+                SubchannelsLoadBalancerLog.ConnectionsUnchanged(_logger);
                 return;
             }
 
@@ -238,25 +239,25 @@ namespace Grpc.Net.Client.Balancer
 
         private void UpdateSubchannelState(Subchannel subchannel, SubchannelState state)
         {
-            _logger.LogInformation("Updating subchannel state.");
-
             var index = FindSubchannel(_addressSubchannels, subchannel);
             if (index == null)
             {
-                _logger.LogInformation("Ignored state change because of unknown subchannel.");
+                SubchannelsLoadBalancerLog.IgnoredSubchannelStateChange(_logger, subchannel.Id);
                 return;
             }
+
+            SubchannelsLoadBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State);
 
             UpdateBalancingState(state.Status);
 
             if (state.State == ConnectivityState.TransientFailure || state.State == ConnectivityState.Idle)
             {
-                _logger.LogInformation($"Refreshing resolver because subchannel {subchannel} is in state {state.State}.");
+                SubchannelsLoadBalancerLog.RefreshingResolverForSubchannel(_logger, subchannel.Id, state.State);
                 Controller.RefreshResolver();
             }
             if (state.State == ConnectivityState.Idle)
             {
-                _logger.LogInformation($"Requesting connection for subchannel {subchannel} because it is in state {state.State}.");
+                SubchannelsLoadBalancerLog.RequestingConnectionForSubchannel(_logger, subchannel.Id, state.State);
                 subchannel.RequestConnection();
             }
         }
@@ -297,6 +298,49 @@ namespace Grpc.Net.Client.Balancer
         protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
         private record AddressSubchannel(Subchannel Subchannel, DnsEndPoint Address);
+    }
+
+    internal static class SubchannelsLoadBalancerLog
+    {
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _processingSubchannelStateChanged =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Trace, new EventId(1, "ProcessingSubchannelStateChanged"), "Processing subchannel id '{SubchannelId}' state changed to {State}.");
+
+        private static readonly Action<ILogger, int, Exception?> _ignoredSubchannelStateChange =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "IgnoredSubchannelStateChange"), "Ignored state change because of unknown subchannel id '{SubchannelId}'.");
+
+        private static readonly Action<ILogger, Exception?> _connectionsUnchanged =
+            LoggerMessage.Define(LogLevel.Trace, new EventId(1, "ConnectionsUnchanged"), "Connections unchanged.");
+
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _refreshingResolverForSubchannel =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Trace, new EventId(1, "RefreshingResolverForSubchannel"), "Refreshing resolver because subchannel id '{SubchannelId}' is in state {State}.");
+
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _requestingConnectionForSubchannel =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Trace, new EventId(1, "RequestingConnectionForSubchannel"), "Requesting connection for subchannel id '{SubchannelId}' because it is in state {State}.");
+
+        public static void ProcessingSubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _processingSubchannelStateChanged(logger, subchannelId, state, null);
+        }
+
+        public static void IgnoredSubchannelStateChange(ILogger logger, int subchannelId)
+        {
+            _ignoredSubchannelStateChange(logger, subchannelId, null);
+        }
+
+        public static void ConnectionsUnchanged(ILogger logger)
+        {
+            _connectionsUnchanged(logger, null);
+        }
+
+        public static void RefreshingResolverForSubchannel(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _refreshingResolverForSubchannel(logger, subchannelId, state, null);
+        }
+
+        public static void RequestingConnectionForSubchannel(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _requestingConnectionForSubchannel(logger, subchannelId, state, null);
+        }
     }
 }
 #endif

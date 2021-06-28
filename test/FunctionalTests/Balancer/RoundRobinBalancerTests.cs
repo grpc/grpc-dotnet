@@ -146,12 +146,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
             using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
 
-            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address });
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
                 var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count(s => s.State == ConnectivityState.Ready) == 2;
+                return picker?._subchannels.Count == 2;
             }, "Wait for all subconnections to be connected.").DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
@@ -201,7 +201,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
             using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
 
-            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address });
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
@@ -227,6 +227,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
             Assert.AreEqual("Balancer", reply1.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
+
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
+                return picker?._subchannels.Count == 1;
+            }, "Wait for all subconnections to be connected.").DefaultTimeout();
         }
 
         [Test]
@@ -263,7 +269,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
             });
 
-            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver);
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {

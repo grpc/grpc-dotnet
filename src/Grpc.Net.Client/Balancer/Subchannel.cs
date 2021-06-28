@@ -46,6 +46,7 @@ namespace Grpc.Net.Client.Balancer
         internal readonly List<DnsEndPoint> _addresses;
         internal readonly object Lock;
         internal ISubchannelTransport Transport { get; set; } = default!;
+        internal int Id { get; }
 
         private readonly ConnectionManager _manager;
         private readonly ILogger _logger;
@@ -74,9 +75,12 @@ namespace Grpc.Net.Client.Balancer
             Lock = new object();
             _logger = manager.LoggerFactory.CreateLogger(GetType());
 
+            Id = manager.GetNextId();
             _addresses = addresses.ToList();
             _manager = manager;
             Attributes = new BalancerAttributes();
+
+            SubchannelLog.SubchannelCreated(_logger, Id, addresses);
         }
 
         private readonly List<StateChangedRegistration> _stateChangedRegistrations = new List<StateChangedRegistration>();
@@ -144,15 +148,20 @@ namespace Grpc.Net.Client.Balancer
                         break;
                     case ConnectivityState.Connecting:
                     case ConnectivityState.TransientFailure:
-                        _logger.LogInformation($"Subchannel is connecting when its addresses are updated. Restart connect.");
+                        SubchannelLog.AddressesUpdatedWhileConnecting(_logger, Id);
                         requireReconnect = true;
                         break;
                     case ConnectivityState.Ready:
-                        _logger.LogInformation($"Subchannel current endpoint {CurrentAddress} is not in the updated addresses.");
-                        requireReconnect = (CurrentAddress != null && !_addresses.Contains(CurrentAddress));
+                        // Transport uses the subchannel lock but take copy in an abundance of caution.
+                        var currentAddress = CurrentAddress;
+                        if (currentAddress != null && !_addresses.Contains(currentAddress))
+                        {
+                            requireReconnect = true;
+                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
+                        }
                         break;
                     case ConnectivityState.Shutdown:
-                        throw new InvalidOperationException("Subchannel has been shutdown.");
+                        throw new InvalidOperationException($"Subchannel id '{Id}' has been shutdown.");
                     default:
                         throw new ArgumentOutOfRangeException("state", _state, "Unexpected state.");
                 }
@@ -171,20 +180,20 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public void RequestConnection()
         {
-            _logger.LogInformation("Connection requested.");
-
             lock (Lock)
             {
                 switch (_state)
                 {
                     case ConnectivityState.Idle:
+                        SubchannelLog.ConnectionRequested(_logger, Id);
+
                         // Only start connecting underlying transport if in an idle state.
                         UpdateConnectivityState(ConnectivityState.Connecting);
                         break;
                     case ConnectivityState.Connecting:
                     case ConnectivityState.Ready:
                     case ConnectivityState.TransientFailure:
-                        _logger.LogInformation($"Subchannel is not idle: {_state}");
+                        SubchannelLog.ConnectionRequestedInNonIdleState(_logger, Id, _state);
 
                         // We're already attempting to connect to the transport.
                         // If the connection is waiting in a delayed backoff then interrupt
@@ -192,7 +201,7 @@ namespace Grpc.Net.Client.Balancer
                         _delayInterruptTcs?.TrySetResult(null);
                         return;
                     case ConnectivityState.Shutdown:
-                        throw new InvalidOperationException("Subchannel has been shutdown.");
+                        throw new InvalidOperationException($"Subchannel id '{Id}' has been shutdown.");
                     default:
                         throw new ArgumentOutOfRangeException("state", _state, "Unexpected state.");
                 }
@@ -212,7 +221,7 @@ namespace Grpc.Net.Client.Balancer
 
             try
             {
-                _logger.LogInformation("Connecting to transport.");
+                SubchannelLog.ConnectingTransport(_logger, Id);
 
                 var backoffMs = InitialBackOffMs;
                 for (var attempt = 0; ; attempt++)
@@ -235,8 +244,9 @@ namespace Grpc.Net.Client.Balancer
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
 
-                    _logger.LogInformation($"Connect failed. Back off: {backoffMs}ms");
-                    var completedTask = await Task.WhenAny(Task.Delay(backoffMs, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
+                    var delay = TimeSpan.FromMilliseconds(backoffMs);
+                    SubchannelLog.StartingConnectBackoff(_logger, Id, delay);
+                    var completedTask = await Task.WhenAny(Task.Delay(delay, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
 
                     if (completedTask != _delayInterruptTcs.Task)
                     {
@@ -245,6 +255,8 @@ namespace Grpc.Net.Client.Balancer
                     }
                     else
                     {
+                        SubchannelLog.ConnectBackoffInterrupted(_logger, Id);
+
                         // Delay interrupt was triggered. Reset back-off.
                         backoffMs = InitialBackOffMs;
 
@@ -259,11 +271,11 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("Connect canceled.");
+                SubchannelLog.ConnectCanceled(_logger, Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while connecting to transport.");
+                SubchannelLog.ConnectError(_logger, Id, ex);
 
                 UpdateConnectivityState(ConnectivityState.TransientFailure);
             }
@@ -293,7 +305,8 @@ namespace Grpc.Net.Client.Balancer
 
         internal void RaiseStateChanged(ConnectivityState state, Status status)
         {
-            _logger.LogInformation("Subchannel state change: " + this + " " + state);
+            SubchannelLog.SubchannelStateChanged(_logger, Id, state);
+
             if (_stateChangedRegistrations.Count > 0)
             {
                 var subchannelState = new SubchannelState(state, status);
@@ -336,6 +349,101 @@ namespace Grpc.Net.Client.Balancer
             _stateChangedRegistrations.Clear();
             Transport.Dispose();
             _connectCts?.Cancel();
+        }
+    }
+
+    internal static class SubchannelLog
+    {
+        private static readonly Action<ILogger, int, string, Exception?> _subchannelCreated =
+            LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(1, "SubchannelCreated"), "Subchannel id '{SubchannelId}' created with addresses: {Addresses}");
+
+        private static readonly Action<ILogger, int, Exception?> _addressesUpdatedWhileConnecting =
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(1, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
+
+        private static readonly Action<ILogger, int, DnsEndPoint, Exception?> _connectedAddressNotInUpdatedAddresses =
+            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(1, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
+
+        private static readonly Action<ILogger, int, Exception?> _connectionRequested =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
+
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _connectionRequestedInNonIdleState =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(1, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
+
+        private static readonly Action<ILogger, int, Exception?> _connectingTransport =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
+
+        private static readonly Action<ILogger, int, TimeSpan, Exception?> _startingConnectBackoff =
+            LoggerMessage.Define<int, TimeSpan>(LogLevel.Trace, new EventId(1, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
+
+        private static readonly Action<ILogger, int, Exception?> _connectBackoffInterrupted =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
+
+        private static readonly Action<ILogger, int, Exception?> _connectCanceled =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
+
+        private static readonly Action<ILogger, int, Exception?> _connectError =
+            LoggerMessage.Define<int>(LogLevel.Error, new EventId(1, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
+
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _subchannelStateChanged =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(1, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}.");
+
+        public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<DnsEndPoint> addresses)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                var addressesText = string.Join(", ", addresses.Select(a => a.Host + ":" + a.Port));
+                _subchannelCreated(logger, subchannelId, addressesText, null);
+            }
+        }
+
+        public static void AddressesUpdatedWhileConnecting(ILogger logger, int subchannelId)
+        {
+            _addressesUpdatedWhileConnecting(logger, subchannelId, null);
+        }
+
+        public static void ConnectedAddressNotInUpdatedAddresses(ILogger logger, int subchannelId, DnsEndPoint currentAddress)
+        {
+            _connectedAddressNotInUpdatedAddresses(logger, subchannelId, currentAddress, null);
+        }
+
+        public static void ConnectionRequested(ILogger logger, int subchannelId)
+        {
+            _connectionRequested(logger, subchannelId, null);
+        }
+
+        public static void ConnectionRequestedInNonIdleState(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _connectionRequestedInNonIdleState(logger, subchannelId, state, null);
+        }
+
+        public static void ConnectingTransport(ILogger logger, int subchannelId)
+        {
+            _connectingTransport(logger, subchannelId, null);
+        }
+
+        public static void StartingConnectBackoff(ILogger logger, int subchannelId, TimeSpan delay)
+        {
+            _startingConnectBackoff(logger, subchannelId, delay, null);
+        }
+
+        public static void ConnectBackoffInterrupted(ILogger logger, int subchannelId)
+        {
+            _connectBackoffInterrupted(logger, subchannelId, null);
+        }
+
+        public static void ConnectCanceled(ILogger logger, int subchannelId)
+        {
+            _connectCanceled(logger, subchannelId, null);
+        }
+
+        public static void ConnectError(ILogger logger, int subchannelId, Exception ex)
+        {
+            _connectError(logger, subchannelId, ex);
+        }
+
+        public static void SubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _subchannelStateChanged(logger, subchannelId, state, null);
         }
     }
 }

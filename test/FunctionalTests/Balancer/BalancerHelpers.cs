@@ -108,16 +108,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 endpointName);
         }
 
-        public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null)
+        public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null, bool? connect = null)
         {
             var resolver = new TestResolver();
             var e = endpoints.Select(i => new DnsEndPoint(i.Host, i.Port)).ToList();
             resolver.UpdateEndPoints(e);
 
-            return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler);
+            return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect);
         }
 
-        public static async Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, TestResolver resolver, HttpMessageHandler? httpMessageHandler = null)
+        public static async Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, TestResolver resolver, HttpMessageHandler? httpMessageHandler = null, bool? connect = null)
         {
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -139,8 +139,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 HttpHandler = httpMessageHandler
             });
 
-            await channel.ConnectAsync();
+            if (connect ?? false)
+            {
+                await channel.ConnectAsync();
+            }
+
             return channel;
+        }
+
+        public static async Task WaitForChannelStateAsync(GrpcChannel channel, ConnectivityState state)
+        {
+            ConnectivityState currentState = channel.State;
+            if (currentState == state)
+            {
+                return;
+            }
+
+            do
+            {
+                await channel.WaitForStateChangedAsync(currentState).DefaultTimeout();
+                currentState = channel.State;
+            } while (currentState != state);
         }
 
         public static T? GetInnerLoadBalancer<T>(GrpcChannel channel) where T : LoadBalancer

@@ -27,6 +27,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal
@@ -103,15 +104,14 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                 Socket socket;
 
-                _logger.LogInformation("Creating socket: " + currentEndPoint);
                 socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
 
                 try
                 {
-                    _logger.LogInformation("Connecting: " + currentEndPoint);
+                    SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, currentEndPoint);
                     await socket.ConnectAsync(currentEndPoint, cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("Connected: " + currentEndPoint);
+                    SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, currentEndPoint);
 
                     lock (Lock)
                     {
@@ -127,7 +127,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("Connect error: " + currentEndPoint + " " + ex);
+                    SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, currentEndPoint, ex);
 
                     if (firstConnectionError == null)
                     {
@@ -157,11 +157,13 @@ namespace Grpc.Net.Client.Balancer.Internal
                 var socket = _initialSocket;
                 if (socket != null)
                 {
+                    CompatibilityHelpers.Assert(_initialSocketEndPoint != null);
+
                     var closeSocket = false;
                     try
                     {
                         // Check the socket is still valid by doing a zero byte send.
-                        _logger.LogTrace("Checking socket: " + _initialSocketEndPoint);
+                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _initialSocketEndPoint);
                         await socket.SendAsync(Array.Empty<byte>(), SocketFlags.None).ConfigureAwait(false);
 
                         // Also poll socket to check if it can be read from.
@@ -169,7 +171,8 @@ namespace Grpc.Net.Client.Balancer.Internal
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogTrace(ex, "Error when pinging socket " + _initialSocketEndPoint);
+                        closeSocket = true;
+                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketEndPoint, ex);
                     }
 
                     if (closeSocket)
@@ -191,13 +194,13 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error when checking socket.");
+                SocketConnectivitySubchannelTransportLog.ErrorSocketTimer(_logger, ex);
             }
         }
 
         public async ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("GetStreamAsync: " + endPoint);
+            SocketConnectivitySubchannelTransportLog.CreatingStream(_logger, endPoint);
 
             Socket? socket = null;
             lock (Lock)
@@ -238,7 +241,6 @@ namespace Grpc.Net.Client.Balancer.Internal
             lock (Lock)
             {
                 _activeStreams.Add((endPoint, socket, stream));
-                _logger.LogInformation("Transport stream created");
             }
 
             return stream;
@@ -268,7 +270,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     if (t.Stream == streamWrapper)
                     {
                         _activeStreams.RemoveAt(i);
-                        _logger.LogInformation("Disconnected: " + CurrentEndPoint);
+                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, t.EndPoint);
 
                         // If the last active streams is removed then there is no active connection.
                         disconnect = _activeStreams.Count == 0;
@@ -299,6 +301,73 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public void OnRequestComplete(CompletionContext context)
         {
+        }
+    }
+
+    internal static class SocketConnectivitySubchannelTransportLog
+    {
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _connectingSocket =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to '{Address}'.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _connectedSocket =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Debug, new EventId(1, "ConnectedSocket"), "Connected to socket '{Address}'.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorConnectingSocket =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(1, "ErrorConnectingSocket"), "Error connecting to socket '{Address}'.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _checkingSocket =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "CheckingSocket"), "Checking socket '{Address}'.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorCheckingSocket =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(1, "ErrorCheckingSocket"), "Error checking socket '{Address}'.");
+
+        private static readonly Action<ILogger, Exception?> _errorSocketTimer =
+            LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorSocketTimer"), "Unexpected error in check socket timer.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _creatingStream =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "CreatingStream"), "Creating stream for '{Address}'.");
+
+        private static readonly Action<ILogger, DnsEndPoint, Exception?> _disposingStream =
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "DisposingStream"), "Disposing stream for '{Address}'.");
+
+        public static void ConnectingSocket(ILogger logger, DnsEndPoint address)
+        {
+            _connectingSocket(logger, address, null);
+        }
+
+        public static void ConnectedSocket(ILogger logger, DnsEndPoint address)
+        {
+            _connectedSocket(logger, address, null);
+        }
+
+        public static void ErrorConnectingSocket(ILogger logger, DnsEndPoint address, Exception ex)
+        {
+            _errorConnectingSocket(logger, address, ex);
+        }
+
+        public static void CheckingSocket(ILogger logger, DnsEndPoint address)
+        {
+            _checkingSocket(logger, address, null);
+        }
+
+        public static void ErrorCheckingSocket(ILogger logger, DnsEndPoint address, Exception ex)
+        {
+            _errorCheckingSocket(logger, address, ex);
+        }
+
+        public static void ErrorSocketTimer(ILogger logger, Exception ex)
+        {
+            _errorSocketTimer(logger, ex);
+        }
+
+        public static void CreatingStream(ILogger logger, DnsEndPoint address)
+        {
+            _creatingStream(logger, address, null);
+        }
+
+        public static void DisposingStream(ILogger logger, DnsEndPoint address)
+        {
+            _disposingStream(logger, address, null);
         }
     }
 #endif

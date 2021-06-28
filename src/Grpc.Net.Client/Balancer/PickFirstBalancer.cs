@@ -118,13 +118,13 @@ namespace Grpc.Net.Client.Balancer
 
         private void UpdateSubchannelState(Subchannel subchannel, SubchannelState state)
         {
-            _logger.LogTrace($"Subchannel state updated to {state.State}.");
-
             if (_subchannel != subchannel)
             {
-                _logger.LogTrace("Ignored state change because of unknown subchannel.");
+                PickFirstBalancerLog.IgnoredSubchannelStateChange(_logger, subchannel.Id);
                 return;
             }
+
+            PickFirstBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State);
 
             switch (state.State)
             {
@@ -197,6 +197,25 @@ namespace Grpc.Net.Client.Balancer
                 Subchannel.RequestConnection();
                 return base.Pick(context);
             }
+        }
+    }
+
+    internal static class PickFirstBalancerLog
+    {
+        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _processingSubchannelStateChanged =
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Trace, new EventId(1, "ProcessingSubchannelStateChanged"), "Processing subchannel id '{SubchannelId}' state changed to {State}.");
+
+        private static readonly Action<ILogger, int, Exception?> _ignoredSubchannelStateChange =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "IgnoredSubchannelStateChange"), "Ignored state change because of unknown subchannel id '{SubchannelId}'.");
+
+        public static void ProcessingSubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state)
+        {
+            _processingSubchannelStateChanged(logger, subchannelId, state, null);
+        }
+
+        public static void IgnoredSubchannelStateChange(ILogger logger, int subchannelId)
+        {
+            _ignoredSubchannelStateChange(logger, subchannelId, null);
         }
     }
 

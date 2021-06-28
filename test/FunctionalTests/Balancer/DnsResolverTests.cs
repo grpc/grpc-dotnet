@@ -88,7 +88,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.State.ToString() == "Error getting DNS hosts for address 'dns://localhost/'." &&
+                if (writeContext.State.ToString() == "Error querying DNS hosts for 'dns://localhost/'." &&
                     writeContext.Exception!.Message == "Resolver address 'dns://localhost/' doesn't have a path.")
                 {
                     return true;
@@ -153,7 +153,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         {
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.State.ToString() == "Error getting DNS hosts for address 'dns:///localhost'." &&
+                if (writeContext.State.ToString() == "Error querying DNS hosts for 'dns:///localhost'." &&
                     writeContext.Exception!.Message == "A task was canceled.")
                 {
                     return true;
