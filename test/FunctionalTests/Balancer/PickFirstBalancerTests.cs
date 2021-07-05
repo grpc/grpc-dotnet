@@ -302,6 +302,59 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => callTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
         }
+
+        [Test]
+        public async Task UnaryCall_MultipleChannelsShareHandler_ReconnectBetweenCalls_Success()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            var socketsHttpHandler = new SocketsHttpHandler();
+            var channel1 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
+            var channel2 = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }, socketsHttpHandler).DefaultTimeout();
+
+            var client1 = TestClientFactory.Create(channel1, endpoint.Method);
+            var client2 = TestClientFactory.Create(channel2, endpoint.Method);
+
+            // Act
+            var reply1Task = client1.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+            var reply2Task = client2.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Balancer", (await reply1Task).Message);
+            Assert.AreEqual("Balancer", (await reply2Task).Message);
+            Assert.AreEqual("127.0.0.1:50051", host);
+
+            Logger.LogInformation("Ending " + endpoint.Address);
+            endpoint.Dispose();
+
+            await Task.WhenAll(
+                BalancerHelpers.WaitForChannelStateAsync(channel1, ConnectivityState.Idle),
+                BalancerHelpers.WaitForChannelStateAsync(channel2, ConnectivityState.Idle)).DefaultTimeout();
+
+            Logger.LogInformation("Restarting");
+            using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            reply1Task = client1.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady()).ResponseAsync.DefaultTimeout();
+            reply2Task = client2.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady()).ResponseAsync.DefaultTimeout();
+
+            Assert.AreEqual("Balancer", (await reply1Task).Message);
+            Assert.AreEqual("Balancer", (await reply2Task).Message);
+            Assert.AreEqual("127.0.0.1:50051", host);
+        }
     }
 }
 
