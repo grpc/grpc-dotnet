@@ -52,6 +52,8 @@ namespace Grpc.Net.Client.Internal
         internal const string RetryPushbackHeader = "grpc-retry-pushback-ms";
         internal const string RetryPreviousAttemptsHeader = "grpc-previous-rpc-attempts";
 
+        internal const string DropRequestTrailer = "grpc-internal-drop-request";
+
         internal static readonly Dictionary<string, ICompressionProvider> DefaultCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal)
         {
             ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),

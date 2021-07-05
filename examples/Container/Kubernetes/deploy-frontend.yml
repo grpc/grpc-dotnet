@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: grpc-dotnet-container
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: frontend
+  template:
+    metadata:
+      labels:
+        app: grpc-dotnet-container
+        service: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: docker.io/grpc-dotnet/container-frontend:latest
+          imagePullPolicy: Never
+          resources:
+            limits:
+              cpu: "1"
+              memory: "200Mi"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:80
+            - name: BackendUrl
+              value: dns:///backend.default.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: grpc-dotnet-container
+    service: frontend
+spec:
+  type: NodePort
+  ports:
+    - port: 3200
+      targetPort: 80
+      protocol: TCP
+      nodePort: 30008
+  selector:
+    service: frontend

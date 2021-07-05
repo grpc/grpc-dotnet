@@ -133,9 +133,7 @@ namespace Grpc.Net.Client.Web
             // return content once the entire response has been downloaded. This breaks server streaming.
             //
             // https://github.com/mono/mono/issues/18718
-#pragma warning disable CS0618 // Type or member is obsolete
-            request.Properties[WebAssemblyEnableStreamingResponseKey] = true;
-#pragma warning restore CS0618 // Type or member is obsolete
+            request.SetOption(WebAssemblyEnableStreamingResponseKey, true);
 
             if (HttpVersion != null)
             {

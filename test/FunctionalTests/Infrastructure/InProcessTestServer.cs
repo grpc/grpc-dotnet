@@ -48,7 +48,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
         private readonly LogSinkProvider _logSinkProvider;
-        private readonly Action<IServiceCollection>? _initialConfigureServices;
+        private readonly Action<IServiceCollection> _initialConfigureServices;
+        private readonly Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> _configureKestrel;
         private IWebHost? _host;
         private IHostApplicationLifetime? _lifetime;
         private Dictionary<TestServerEndpointName, string>? _urls;
@@ -71,7 +72,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         public override IWebHost? Host => _host;
 
-        public InProcessTestServer(Action<IServiceCollection>? initialConfigureServices)
+        public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> configureKestrel)
         {
             _logSinkProvider = new LogSinkProvider();
             _loggerFactory = new LoggerFactory();
@@ -79,10 +80,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             _logger = _loggerFactory.CreateLogger<InProcessTestServer<TStartup>>();
 
             _initialConfigureServices = initialConfigureServices;
+            _configureKestrel = configureKestrel;
         }
 
         public override void StartServer()
         {
+            _urls = new Dictionary<TestServerEndpointName, string>();
+
             _host = new WebHostBuilder()
                 .ConfigureLogging(builder => builder
                     .SetMinimumLevel(LogLevel.Trace)
@@ -94,30 +98,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 .UseStartup(typeof(TStartup))
                 .UseKestrel(options =>
                 {
-                    options.ListenLocalhost(50050, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
-                    options.ListenLocalhost(50040, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1;
-                    });
-                    options.ListenLocalhost(50030, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http2;
-
-                        var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
-                        var certPath = Path.Combine(basePath!, "server1.pfx");
-                        listenOptions.UseHttps(certPath, "1111");
-                    });
-                    options.ListenLocalhost(50020, listenOptions =>
-                    {
-                        listenOptions.Protocols = HttpProtocols.Http1;
-
-                        var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
-                        var certPath = Path.Combine(basePath!, "server1.pfx");
-                        listenOptions.UseHttps(certPath, "1111");
-                    });
+                    _configureKestrel(options, _urls);
                 })
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .Build();
@@ -139,15 +120,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 throw new TimeoutException($"Timed out waiting for application to start.{Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
             }
             _logger.LogInformation("Test Server started");
-
-            // Get the URL from the server
-            _urls = new Dictionary<TestServerEndpointName, string>
-            {
-                [TestServerEndpointName.Http2] = "http://127.0.0.1:50050",
-                [TestServerEndpointName.Http1] = "http://127.0.0.1:50040",
-                [TestServerEndpointName.Http2WithTls] = "https://127.0.0.1:50030",
-                [TestServerEndpointName.Http1WithTls] = "https://127.0.0.1:50020"
-            };
 
             _lifetime.ApplicationStopped.Register(() =>
             {

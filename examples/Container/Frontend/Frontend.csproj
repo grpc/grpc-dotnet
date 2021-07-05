@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
+
+    <Protobuf Include="..\Proto\weather.proto" GrpcServices="Client" Link="Protos\weather.proto" Access="Internal" />
+  </ItemGroup>
+
+</Project>

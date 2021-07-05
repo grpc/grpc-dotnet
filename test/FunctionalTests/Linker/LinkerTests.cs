@@ -26,6 +26,9 @@ using Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
+// Skip running load running tests in debug configuration
+#if !DEBUG
+
 namespace Grpc.AspNetCore.FunctionalTests.Linker
 {
     [TestFixture]
@@ -143,3 +146,5 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
         }
     }
 }
+
+#endif

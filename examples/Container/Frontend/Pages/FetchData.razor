@@ -1,0 +1,220 @@
+﻿@page "/fetchdata"
+@inject GrpcChannel Channel
+@inject SubchannelReporter Reporter
+@inject BalancerConfiguration Configuration
+@using Google.Protobuf.WellKnownTypes
+@using System.Text
+@using System.Net
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+
+@if (error != null)
+{
+    <pre>@error</pre>
+}
+else if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.DateTime.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p>
+        Weather forecast data loaded from <strong>@server</strong>
+    </p>
+}
+
+<p>
+    <button class="btn btn-primary" @onclick="LoadDataAsync">Reload</button>
+</p>
+
+@if (subchannels != null)
+{
+    <hr />
+    <br />
+    
+    <div class="row align-items-center">
+        <div class="col-6">
+            <h2>@loadBalancerName <span class="badge @GetStateClass(connectionState) badge-pill">@connectionState</span></h2>
+        </div>
+        <div class="col-2">
+            <BalancerDialog />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-8">
+            <p>
+                Subchannels:
+            </p>
+            <ul class="list-group">
+                @foreach (var subchannel in subchannels)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>@FormatSubchannelAddresses(subchannel)</span>
+                        <span class="badge @GetStateClass(subchannel.State) badge-pill">@subchannel.State</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <br />
+}
+
+@code {
+    private IList<WeatherForecast>? forecasts;
+    private IList<Subchannel> subchannels = default!;
+    private ConnectivityState connectionState;
+    private IDisposable? subscription;
+    private string? server;
+    private string? error;
+    private string? loadBalancerName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        subscription = Reporter.Subscribe(new SubchannelReporterObserver(this, Configuration));
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        error = null;
+        try
+        {
+            var client = new WeatherForecasts.WeatherForecastsClient(Channel);
+            var call = client.GetWeatherForecastsAsync(new Empty(), new Grpc.Core.CallOptions().WithWaitForReady());
+
+            var updateData = InvokeAsync(async () =>
+            {
+                var responseHeaders = await call.ResponseHeadersAsync;
+                server = responseHeaders.GetValue("host");
+
+                forecasts = (await call).Forecasts;
+                StateHasChanged();
+            });
+
+            // Display "Loading..." only if update takes more than a certain amount of time.
+            if (await Task.WhenAny(updateData, Task.Delay(TimeSpan.FromSeconds(0.2))) != updateData)
+            {
+                // Display loading indicator
+                forecasts = null;
+                StateHasChanged();
+            }
+
+            await updateData;
+        }
+        catch (Exception ex)
+        {
+            error = ex.ToString();
+        }
+    }
+
+    public void Dispose()
+    {
+        subscription?.Dispose();
+    }
+
+    private MarkupString FormatSubchannelAddresses(Subchannel subchannel)
+    {
+        var html = new StringBuilder();
+
+        foreach (var address in subchannel.GetAddresses())
+        {
+            if (html.Length > 0)
+            {
+                html.Append(", ");
+            }
+            if (address.Equals(subchannel.CurrentAddress))
+            {
+                html.Append(FormatAddress(address));
+            }
+            else
+            {
+                html.Append($"<i>{FormatAddress(address)}</i>");
+            }
+        }
+
+        return new MarkupString(html.ToString());
+
+        static string FormatAddress(DnsEndPoint a)
+        {
+            var value = $"http://{a.Host}";
+            if (a.Port != 80)
+            {
+                value += ":" + a.Port;
+            }
+            return value;
+        }
+    }
+
+    private string GetStateClass(ConnectivityState state)
+    {
+        switch (state)
+        {
+            case ConnectivityState.Idle:
+                return "badge-primary";
+            case ConnectivityState.Connecting:
+                return "badge-warning";
+            case ConnectivityState.Ready:
+                return "badge-success";
+            case ConnectivityState.TransientFailure:
+                return "badge-danger";
+            case ConnectivityState.Shutdown:
+                return "badge-secondary";
+            default:
+                return "badge-primary";
+        }
+    }
+
+    private class SubchannelReporterObserver : IObserver<SubchannelReporterResult>
+    {
+        private readonly FetchData _page;
+        private readonly BalancerConfiguration _balancerConfiguration;
+
+        public SubchannelReporterObserver(FetchData page, BalancerConfiguration balancerConfiguration)
+        {
+            _page = page;
+            _balancerConfiguration = balancerConfiguration;
+        }
+
+        public void OnCompleted() { }
+        public void OnError(Exception error) { }
+        public void OnNext(SubchannelReporterResult value)
+        {
+            _ = _page.InvokeAsync(() =>
+            {
+                var updatedSubchannels = value.Subchannels.ToList();
+                updatedSubchannels.Reverse();
+
+                _page.loadBalancerName = _balancerConfiguration.LoadBalancerPolicyName == LoadBalancerName.PickFirst
+                    ? "Pick first"
+                    : "Round-robin";
+                _page.subchannels = updatedSubchannels;
+                _page.connectionState = value.State;
+                _page.StateHasChanged();
+            });
+        }
+    }
+}

@@ -29,6 +29,7 @@ namespace Grpc.Net.Client.Internal.Retry
         BufferExceeded,
         PushbackStop,
         UnexpectedError,
-        Canceled
+        Canceled,
+        Drop
     }
 }

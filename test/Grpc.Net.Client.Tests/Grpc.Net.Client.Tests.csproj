@@ -6,6 +6,10 @@
     <DisableAspNetCoreDefaultClientTypeOverride>true</DisableAspNetCoreDefaultClientTypeOverride>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Protobuf Include="Proto\greet.proto" GrpcServices="Client" />
 
@@ -20,6 +24,8 @@
     <Compile Include="..\Shared\SyncPointMemoryStream.cs" Link="Infrastructure\SyncPointMemoryStream.cs" />
     <Compile Include="..\Shared\TestHttpMessageHandler.cs" Link="Infrastructure\TestHttpMessageHandler.cs" />
     <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
+    <Compile Include="..\Shared\TestResolver.cs" Link="Infrastructure\Balancer\TestResolver.cs" />
+    <Compile Include="..\Shared\TestResolverFactory.cs" Link="Infrastructure\Balancer\TestResolverFactory.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,6 +35,7 @@
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="$(MicrosoftExtensionsLoggingTestingPackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)'=='net472'">

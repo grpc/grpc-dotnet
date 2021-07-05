@@ -29,6 +29,13 @@ using NUnit.Framework;
 using Microsoft.Extensions.Logging.Testing;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using System.IO;
+#if SUPPORT_LOAD_BALANCING
+using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Balancer.Internal;
+using Grpc.Net.Client.Tests.Infrastructure.Balancer;
+#endif
 
 namespace Grpc.Net.Client.Tests
 {
@@ -38,11 +45,19 @@ namespace Grpc.Net.Client.Tests
         [Test]
         public void Build_AddressWithoutHost_Error()
         {
+#if SUPPORT_LOAD_BALANCING
+            // Arrange & Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
+
+            // Assert
+            Assert.AreEqual("No address resolver configured for the scheme 'test.example.com'.", ex.Message);
+#else
             // Arrange & Act
             var ex = Assert.Throws<ArgumentException>(() => GrpcChannel.ForAddress("test.example.com:5001"))!;
 
             // Assert
             Assert.AreEqual("Address 'test.example.com:5001' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.", ex.Message);
+#endif
         }
 
         [TestCase("https://localhost:5001/path", true)]
@@ -87,22 +102,24 @@ namespace Grpc.Net.Client.Tests
             Assert.IsTrue(channel.IsSecure);
         }
 
-        [Test]
-        public void Build_SslCredentialsWithHttp_ThrowsError()
+        [TestCase("http://localhost")]
+        [TestCase("HTTP://localhost")]
+        public void Build_SslCredentialsWithHttp_ThrowsError(string address)
         {
             // Arrange & Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("http://localhost",
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress(address,
                 CreateGrpcChannelOptions(o => o.Credentials = new SslCredentials())))!;
 
             // Assert
             Assert.AreEqual("Channel is configured with secure channel credentials and can't use a HttpClient with a 'http' scheme.", ex.Message);
         }
 
-        [Test]
-        public void Build_SslCredentialsWithArgs_ThrowsError()
+        [TestCase("https://localhost")]
+        [TestCase("HTTPS://localhost")]
+        public void Build_SslCredentialsWithArgs_ThrowsError(string address)
         {
             // Arrange & Act
-            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("https://localhost",
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress(address,
                 CreateGrpcChannelOptions(o => o.Credentials = new SslCredentials("rootCertificates!!!"))))!;
 
             // Assert
@@ -388,6 +405,421 @@ namespace Grpc.Net.Client.Tests
             Assert.IsTrue(channel.Disposed);
             Assert.AreEqual(0, channel.ActiveCalls.Count);
         }
+
+#if SUPPORT_LOAD_BALANCING
+        [Test]
+        public void Resolver_SocketHttpHandlerWithConnectCallback_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpHandler = new SocketsHttpHandler
+                {
+                    ConnectCallback = (context, ct) => new ValueTask<Stream>(new MemoryStream())
+                };
+            });
+        }
+
+        [Test]
+        public void Resolver_HttpClientHandler_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpHandler = new HttpClientHandler();
+            });
+        }
+
+        [Test]
+        public void Resolver_HttpClient_Error()
+        {
+            ConfigureLoadBalancingWithInvalidHttpHandler(o =>
+            {
+                o.HttpClient = new HttpClient();
+            });
+        }
+
+        private static void ConfigureLoadBalancingWithInvalidHttpHandler(Action<GrpcChannelOptions> channelOptionsFunc)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                Credentials = ChannelCredentials.Insecure
+            };
+            channelOptionsFunc(channelOptions);
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test:///localhost", channelOptions))!;
+
+            // Assert
+            Assert.AreEqual("Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                "The underlying HTTP transport must be a SocketsHttpHandler with no SocketsHttpHandler.ConnectCallback configured. " +
+                "The HTTP transport must be configured on the channel using GrpcChannelOptions.HttpHandler.", ex.Message);
+        }
+
+        [Test]
+        public void Resolver_NoChannelCredentials_Error()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test:///localhost", channelOptions))!;
+
+            // Assert
+            Assert.AreEqual("Unable to determine the TLS configuration of the channel from address 'test:///localhost'. " +
+                "GrpcChannelOptions.Credentials must be specified when the address doesn't have a 'http' or 'https' scheme. " +
+                "To call TLS endpoints, set credentials to 'new SslCredentials()'. " +
+                "To call non-TLS endpoints, set credentials to 'ChannelCredentials.Insecure'.", ex.Message);
+        }
+
+        [Test]
+        public async Task State_ConnectAndDispose_StateChanges()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            // Assert
+            Assert.AreEqual(ConnectivityState.Idle, channel.State);
+
+            await channel.ConnectAsync().DefaultTimeout();
+            Assert.AreEqual(ConnectivityState.Ready, channel.State);
+
+            channel.Dispose();
+            Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
+        }
+
+        [Test]
+        public async Task WaitForStateChangedAsync_ConnectAndDispose_StateChanges()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            var waitForNonIdleTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+
+            // Assert
+            Assert.AreEqual(ConnectivityState.Idle, channel.State);
+            Assert.IsFalse(waitForNonIdleTask.IsCompleted);
+
+            await channel.ConnectAsync().DefaultTimeout();
+            await waitForNonIdleTask.DefaultTimeout();
+            Assert.AreEqual(ConnectivityState.Ready, channel.State);
+
+            var waitForNonReadyTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
+            Assert.IsFalse(waitForNonReadyTask.IsCompleted);
+
+            channel.Dispose();
+            await waitForNonReadyTask.DefaultTimeout();
+            Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
+
+            waitForNonReadyTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
+            Assert.IsTrue(waitForNonReadyTask.IsCompleted);
+        }
+
+        [Test]
+        public async Task WaitForStateChangedAsync_CancellationTokenBeforeEvent_StateChanges()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+            var cts = new CancellationTokenSource();
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            var waitForNonIdleTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+            var waitForNonIdleWithCancellationTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle, cts.Token);
+            var waitForNonIdleWithCancellationDupeTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle, cts.Token);
+
+            // Assert
+            Assert.IsFalse(waitForNonIdleTask.IsCompleted);
+            Assert.IsFalse(waitForNonIdleWithCancellationTask.IsCompleted);
+            Assert.IsFalse(waitForNonIdleWithCancellationDupeTask.IsCompleted);
+
+            cts.Cancel();
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => waitForNonIdleWithCancellationTask).DefaultTimeout();
+            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => waitForNonIdleWithCancellationDupeTask).DefaultTimeout();
+
+            await channel.ConnectAsync().DefaultTimeout();
+            await waitForNonIdleTask.DefaultTimeout();
+        }
+
+        [Test]
+        public async Task WaitForStateChangedAsync_CancellationTokenAfterEvent_StateChanges()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+            var cts = new CancellationTokenSource();
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            var waitForNonIdleTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+            var waitForNonIdleWithCancellationTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle, cts.Token);
+            var waitForNonIdleWithCancellationDupeTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle, cts.Token);
+
+            // Assert
+            Assert.IsFalse(waitForNonIdleTask.IsCompleted);
+            Assert.IsFalse(waitForNonIdleWithCancellationTask.IsCompleted);
+            Assert.IsFalse(waitForNonIdleWithCancellationDupeTask.IsCompleted);
+
+            await channel.ConnectAsync().DefaultTimeout();
+            await waitForNonIdleTask.DefaultTimeout();
+            await waitForNonIdleWithCancellationTask.DefaultTimeout();
+            await waitForNonIdleWithCancellationDupeTask.DefaultTimeout();
+
+            cts.Cancel();
+        }
+
+        [Test]
+        public async Task ConnectAsync_ShiftThroughStates_CompleteOnReady()
+        {
+            // Arrange
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var currentConnectivityState = ConnectivityState.TransientFailure;
+
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+            {
+                await syncPoint.WaitToContinue();
+                return currentConnectivityState;
+            }));
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            var waitForStateTask = WaitForStateAsync(channel, ConnectivityState.Connecting);
+
+            // Assert
+            Assert.IsFalse(waitForStateTask.IsCompleted);
+
+            var connectTask = channel.ConnectAsync();
+            Assert.IsFalse(connectTask.IsCompleted);
+
+            await waitForStateTask.DefaultTimeout();
+
+            waitForStateTask = WaitForStateAsync(channel, ConnectivityState.TransientFailure);
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            syncPoint.Continue();
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+            await waitForStateTask.DefaultTimeout();
+
+            waitForStateTask = WaitForStateAsync(channel, ConnectivityState.Ready);
+            Assert.IsFalse(connectTask.IsCompleted);
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            currentConnectivityState = ConnectivityState.Ready;
+            syncPoint.Continue();
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+            await connectTask.DefaultTimeout();
+            await waitForStateTask.DefaultTimeout();
+
+            Assert.AreEqual(ConnectivityState.Ready, channel.State);
+
+            waitForStateTask = WaitForStateAsync(channel, ConnectivityState.Ready);
+            channel.Dispose();
+
+            await waitForStateTask.DefaultTimeout();
+            Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
+        }
+
+        private async Task WaitForStateAsync(GrpcChannel channel, ConnectivityState state)
+        {
+            while (true)
+            {
+                var currentState = channel.State;
+                
+                if (currentState == state)
+                {
+                    return;
+                }
+
+                await channel.WaitForStateChangedAsync(currentState);
+            }
+        }
+
+        [Test]
+        public async Task ConnectAsync_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel => Task.FromResult(channel.ConnectAsync()));
+        }
+
+        [Test]
+        public async Task State_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel =>
+            {
+                Console.WriteLine(channel.State);
+                return Task.CompletedTask;
+            });
+        }
+
+        [Test]
+        public async Task WaitForStateChangedAsync_ConnectivityNotSupported_Error()
+        {
+            await ConnectivityActionOnChannelWhenConnectivityNotSupported(channel => channel.WaitForStateChangedAsync(channel.State));
+        }
+
+        private static async Task ConnectivityActionOnChannelWhenConnectivityNotSupported(Func<GrpcChannel, Task> action)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = new TestHttpMessageHandler()
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => action(channel)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                "The underlying HTTP transport must be a SocketsHttpHandler with no SocketsHttpHandler.ConnectCallback configured. " +
+                "The HTTP transport must be configured on the channel using GrpcChannelOptions.HttpHandler.", ex.Message);
+        }
+
+        [Test]
+        public void Resolver_MatchInServiceProvider_Success()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+            // Assert
+            Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager._resolver);
+        }
+
+        [Test]
+        public void Resolver_NoMatchInServiceProvider_Error()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                ServiceProvider = services.BuildServiceProvider()
+            };
+
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test:///localhost", channelOptions))!;
+
+            // Assert
+            Assert.AreEqual("No address resolver configured for the scheme 'test'.", ex.Message);
+        }
+
+        [Test]
+        public void Resolver_NoServiceProvider_Error()
+        {
+            // Arrange & Act
+            var ex = Assert.Throws<InvalidOperationException>(() => GrpcChannel.ForAddress("test:///localhost"))!;
+
+            // Assert
+            Assert.AreEqual("No address resolver configured for the scheme 'test'.", ex.Message);
+        }
+
+        public class ChannelTestResolverFactory : ResolverFactory
+        {
+            public override string Name => "test";
+
+            public override Resolver Create(ResolverOptions options)
+            {
+                return new ChannelTestResolver();
+            }
+        }
+
+        public class ChannelTestResolver : Resolver
+        {
+            public override Task RefreshAsync(CancellationToken cancellationToken)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Start(Action<ResolverResult> listener)
+            {
+                throw new NotImplementedException();
+            }
+        }
+#endif
 
         public class TestHttpMessageHandler : HttpMessageHandler
         {

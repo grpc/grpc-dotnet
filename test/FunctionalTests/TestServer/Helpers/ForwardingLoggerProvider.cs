@@ -50,9 +50,9 @@ namespace Tests.FunctionalTests.Helpers
                 _logAction = logAction;
             }
 
-            public IDisposable? BeginScope<TState>(TState state)
+            public IDisposable BeginScope<TState>(TState state)
             {
-                return null;
+                return null!;
             }
 
             public bool IsEnabled(LogLevel logLevel)
@@ -60,7 +60,7 @@ namespace Tests.FunctionalTests.Helpers
                 return true;
             }
 
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
             {
                 _logAction(logLevel, _categoryName, eventId, formatter(state, exception), exception);
             }

@@ -20,18 +20,22 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
+#if SUPPORT_LOAD_BALANCING
+using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Balancer.Internal;
+#endif
 using Grpc.Net.Client.Configuration;
-using GrpcServiceConfig = Grpc.Net.Client.Configuration.ServiceConfig;
+using Grpc.Net.Client.Internal;
+using Grpc.Net.Client.Internal.Retry;
 using Grpc.Net.Compression;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Grpc.Net.Client.Internal.Retry;
-using System.Threading;
-using System.Diagnostics;
 
 namespace Grpc.Net.Client
 {
@@ -51,13 +55,12 @@ namespace Grpc.Net.Client
         private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
         private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
         private readonly Dictionary<MethodKey, MethodConfig>? _serviceConfigMethods;
-        private readonly Random? _random;
         // Internal for testing
         internal readonly HashSet<IDisposable> ActiveCalls;
 
         internal Uri Address { get; }
         internal HttpMessageInvoker HttpInvoker { get; }
-        internal bool IsWinHttp { get; }
+        internal HttpHandlerType HttpHandlerType { get; }
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
         internal int? MaxRetryAttempts { get; }
@@ -66,11 +69,19 @@ namespace Grpc.Net.Client
         internal ILoggerFactory LoggerFactory { get; }
         internal ILogger Logger { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
-        internal bool? IsSecure { get; }
+        internal bool IsSecure { get; }
         internal List<CallCredentials>? CallCredentials { get; }
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
+
+#if SUPPORT_LOAD_BALANCING
+        // Load balancing
+        internal ConnectionManager ConnectionManager { get; }
+
+        // Set in unit tests
+        internal ISubchannelTransportFactory SubchannelTransportFactory;
+#endif
 
         // Stateful
         internal ChannelRetryThrottling? RetryThrottling { get; }
@@ -79,10 +90,16 @@ namespace Grpc.Net.Client
         // Options that are set in unit tests
         internal ISystemClock Clock = SystemClock.Instance;
         internal IOperatingSystem OperatingSystem = Internal.OperatingSystem.Instance;
+        internal IRandomGenerator RandomGenerator;
         internal bool DisableClientDeadline;
         internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
 
         private readonly bool _shouldDisposeHttpClient;
+
+        private T ResolveService<T>(IServiceProvider? serviceProvider, T defaultValue)
+        {
+            return (T?)serviceProvider?.GetService(typeof(T)) ?? defaultValue;
+        }
 
         internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
         {
@@ -96,8 +113,45 @@ namespace Grpc.Net.Client
                 || channelOptions.DisposeHttpClient;
 
             Address = address;
+            LoggerFactory = channelOptions.LoggerFactory ?? ResolveService<ILoggerFactory>(channelOptions.ServiceProvider, NullLoggerFactory.Instance);
+            RandomGenerator = ResolveService<IRandomGenerator>(channelOptions.ServiceProvider, new RandomGenerator());
+            HttpHandlerType = CalculateHandlerType(channelOptions);
+
+#if SUPPORT_LOAD_BALANCING
+            SubchannelTransportFactory = ResolveService<ISubchannelTransportFactory>(channelOptions.ServiceProvider, new SubChannelTransportFactory(this));
+
+            if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+            }
+
+            // Special case http and https schemes. These schemes don't use a dynamic resolver. An http/https
+            // address is always just one address and that is enabled using the static resolver.
+            //
+            // Even with just one address we still want to use the load balancing infrastructure. This enables
+            // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
+            var resolver = IsHttpOrHttpsAddress()
+                ? new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) })
+                : CreateResolver(channelOptions);
+
+            ConnectionManager = new ConnectionManager(
+                resolver,
+                channelOptions.DisableResolverServiceConfig,
+                LoggerFactory,
+                SubchannelTransportFactory,
+                ResolveLoadBalancerFactories(channelOptions.ServiceProvider));
+            ConnectionManager.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+                c,
+                channelOptions.ServiceConfig,
+                ConnectionManager));
+#else
+            if (string.IsNullOrEmpty(address.Host))
+            {
+                throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
+            }
+#endif
+
             HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
-            IsWinHttp = channelOptions.HttpHandler != null ? HttpHandlerFactory.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.WinHttpHandler") : false;
             SendMaxMessageSize = channelOptions.MaxSendMessageSize;
             ReceiveMaxMessageSize = channelOptions.MaxReceiveMessageSize;
             MaxRetryAttempts = channelOptions.MaxRetryAttempts;
@@ -105,7 +159,6 @@ namespace Grpc.Net.Client
             MaxRetryBufferPerCallSize = channelOptions.MaxRetryBufferPerCallSize;
             CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
-            LoggerFactory = channelOptions.LoggerFactory ?? NullLoggerFactory.Instance;
             Logger = LoggerFactory.CreateLogger<GrpcChannel>();
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
             _createMethodInfoFunc = CreateMethodInfo;
@@ -114,7 +167,6 @@ namespace Grpc.Net.Client
             {
                 RetryThrottling = serviceConfig.RetryThrottling != null ? CreateChannelRetryThrottling(serviceConfig.RetryThrottling) : null;
                 _serviceConfigMethods = CreateServiceConfigMethods(serviceConfig);
-                _random = new Random();
             }
 
             if (channelOptions.Credentials != null)
@@ -122,17 +174,109 @@ namespace Grpc.Net.Client
                 var configurator = new DefaultChannelCredentialsConfigurator();
                 channelOptions.Credentials.InternalPopulateConfiguration(configurator, null);
 
-                IsSecure = configurator.IsSecure;
+                IsSecure = configurator.IsSecure ?? false;
                 CallCredentials = configurator.CallCredentials;
 
                 ValidateChannelCredentials();
             }
+            else
+            {
+                if (Address.Scheme == Uri.UriSchemeHttp)
+                {
+                    IsSecure = false;
+                }
+                else if (Address.Scheme == Uri.UriSchemeHttps)
+                {
+                    IsSecure = true;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unable to determine the TLS configuration of the channel from address '{Address}'. " +
+                        $"{nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.Credentials)} must be specified when the address doesn't have a 'http' or 'https' scheme. " +
+                        "To call TLS endpoints, set credentials to 'new SslCredentials()'. " +
+                        "To call non-TLS endpoints, set credentials to 'ChannelCredentials.Insecure'.");
+                }
+            }
 
-            if (!string.IsNullOrEmpty(Address.PathAndQuery) && Address.PathAndQuery != "/")
+            // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of an authority.
+            // Only log about a path being present if HTTP or HTTPS.
+            if (!string.IsNullOrEmpty(Address.PathAndQuery) &&
+                Address.PathAndQuery != "/" &&
+                (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp))
             {
                 Log.AddressPathUnused(Logger, Address.OriginalString);
             }
         }
+
+        private bool IsHttpOrHttpsAddress()
+        {
+            return Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp;
+        }
+
+        private static HttpHandlerType CalculateHandlerType(GrpcChannelOptions channelOptions)
+        {
+            if (channelOptions.HttpHandler == null)
+            {
+                // No way to know what handler a HttpClient is using so assume custom.
+                return channelOptions.HttpClient == null
+                    ? HttpHandlerType.SocketsHttpHandler
+                    : HttpHandlerType.Custom;
+            }
+
+            return HttpHandlerFactory.CalculateHandlerType(channelOptions.HttpHandler);
+        }
+
+#if SUPPORT_LOAD_BALANCING
+        private void ValidateHttpHandlerSupportsConnectivity()
+        {
+            if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+            {
+                // SocketsHttpHandler is being used.
+                return;
+            }
+
+            if (SubchannelTransportFactory is not SubChannelTransportFactory)
+            {
+                // Custom transport is configured. Probably in a unit test.
+                return;
+            }
+
+            // Either the HTTP transport was configured with HttpClient, or SocketsHttpHandler.ConnectCallback is set.
+            // We don't know how HTTP requests will be sent so we throw an error.
+            throw new InvalidOperationException(
+                $"Channel is configured with an HTTP transport doesn't support client-side load balancing or connectivity state tracking. " +
+                $"The underlying HTTP transport must be a {nameof(SocketsHttpHandler)} with no " +
+                $"{nameof(SocketsHttpHandler)}.{nameof(SocketsHttpHandler.ConnectCallback)} configured. " +
+                $"The HTTP transport must be configured on the channel using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}.");
+        }
+
+        private Resolver CreateResolver(GrpcChannelOptions options)
+        {
+            var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
+            factories = factories.Union(ResolverFactory.KnownLoadResolverFactories);
+
+            foreach (var factory in factories)
+            {
+                if (string.Equals(factory.Name, Address.Scheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    return factory.Create(new ResolverOptions(Address, options.DisableResolverServiceConfig, LoggerFactory));
+                }
+            }
+
+            throw new InvalidOperationException($"No address resolver configured for the scheme '{Address.Scheme}'.");
+        }
+
+        private LoadBalancerFactory[] ResolveLoadBalancerFactories(IServiceProvider? serviceProvider)
+        {
+            var serviceFactories = ResolveService<IEnumerable<LoadBalancerFactory>?>(serviceProvider, defaultValue: null);
+            if (serviceFactories != null)
+            {
+                return serviceFactories.Union(LoadBalancerFactory.KnownLoadBalancerFactories).ToArray();
+            }
+            
+            return LoadBalancerFactory.KnownLoadBalancerFactories;
+        }
+#endif
 
         private ChannelRetryThrottling CreateChannelRetryThrottling(RetryThrottlingPolicy retryThrottling)
         {
@@ -153,7 +297,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static Dictionary<MethodKey, MethodConfig> CreateServiceConfigMethods(GrpcServiceConfig serviceConfig)
+        private static Dictionary<MethodKey, MethodConfig> CreateServiceConfigMethods(ServiceConfig serviceConfig)
         {
             var configs = new Dictionary<MethodKey, MethodConfig>();
             for (var i = 0; i < serviceConfig.MethodConfigs.Count; i++)
@@ -174,7 +318,7 @@ namespace Grpc.Net.Client
             return configs;
         }
 
-        private static HttpMessageInvoker CreateInternalHttpInvoker(HttpMessageHandler? handler)
+        private HttpMessageInvoker CreateInternalHttpInvoker(HttpMessageHandler? handler)
         {
             // HttpMessageInvoker should always dispose handler if Disposed is called on it.
             // Decision to dispose invoker is controlled by _shouldDisposeHttpClient.
@@ -185,6 +329,10 @@ namespace Grpc.Net.Client
 
 #if NET5_0
             handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
+#endif
+
+#if SUPPORT_LOAD_BALANCING
+            handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
             // Use HttpMessageInvoker instead of HttpClient because it is faster
@@ -221,7 +369,24 @@ namespace Grpc.Net.Client
             var scope = new GrpcCallScope(method.Type, uri);
             var methodConfig = ResolveMethodConfig(method);
 
-            return new GrpcMethodInfo(scope, new Uri(Address, uri), methodConfig);
+            var uriBuilder = new UriBuilder(Address);
+            uriBuilder.Path = method.FullName;
+
+            // The Uri used to create HttpRequestMessage must have a http or https scheme.
+            uriBuilder.Scheme = IsSecure ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+
+            // A Uri with a http or https scheme requires a host name.
+            // Triple slash URIs, e.g. dns:///custom-value, won't have a host and UriBuilder throws an error.
+            // Add a temp value as the host. The tempuri.org host may show up in some logging but it will
+            // get replaced in the final HTTP request address by the load balancer.
+            if (string.IsNullOrEmpty(uriBuilder.Host))
+            {
+                // .invalid is reserved for temporary host names.
+                // https://datatracker.ietf.org/doc/html/rfc2606#section-2
+                uriBuilder.Host = "loadbalancer.temporary.invalid";
+            }
+
+            return new GrpcMethodInfo(scope, uriBuilder.Uri, methodConfig);
         }
 
         private MethodConfig? ResolveMethodConfig(IMethod method)
@@ -268,16 +433,13 @@ namespace Grpc.Net.Client
 
         private void ValidateChannelCredentials()
         {
-            if (IsSecure != null)
+            if (IsSecure && Address.Scheme == Uri.UriSchemeHttp)
             {
-                if (IsSecure.Value && Address.Scheme == Uri.UriSchemeHttp)
-                {
-                    throw new InvalidOperationException($"Channel is configured with secure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
-                }
-                if (!IsSecure.Value && Address.Scheme == Uri.UriSchemeHttps)
-                {
-                    throw new InvalidOperationException($"Channel is configured with insecure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
-                }
+                throw new InvalidOperationException($"Channel is configured with secure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
+            }
+            if (!IsSecure && Address.Scheme == Uri.UriSchemeHttps)
+            {
+                throw new InvalidOperationException($"Channel is configured with insecure channel credentials and can't use a HttpClient with a '{Address.Scheme}' scheme.");
             }
         }
 
@@ -346,11 +508,6 @@ namespace Grpc.Net.Client
                 throw new ArgumentNullException(nameof(channelOptions));
             }
 
-            if (string.IsNullOrEmpty(address.Host))
-            {
-                throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
-            }
-
             if (channelOptions.HttpClient != null && channelOptions.HttpHandler != null)
             {
                 throw new ArgumentException($"{nameof(GrpcChannelOptions.HttpClient)} and {nameof(GrpcChannelOptions.HttpHandler)} have been configured. " +
@@ -359,6 +516,69 @@ namespace Grpc.Net.Client
 
             return new GrpcChannel(address, channelOptions);
         }
+
+#if SUPPORT_LOAD_BALANCING
+        /// <summary>
+        /// Allows explicitly requesting channel to connect without starting an RPC.
+        /// Returned task completes once <see cref="State"/> Ready was seen.
+        /// There is no need to call this explicitly unless your use case requires that.
+        /// Starting an RPC on a new channel will request connection implicitly.
+        /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns></returns>
+        public Task ConnectAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateHttpHandlerSupportsConnectivity();
+            return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets current connectivity state of this channel.
+        /// After the channel has been shutdown, <see cref="ConnectivityState.Shutdown"/> is returned.
+        /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public ConnectivityState State
+        {
+            get
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+                return ConnectionManager.State;
+            }
+        }
+
+        /// <summary>
+        /// Wait for channel's state to change. The task completes when <see cref="State"/> becomes
+        /// different from <paramref name="lastObservedState"/>.
+        /// <para>
+        /// This API is only supported when the channel is configured with a
+        /// <see cref="SocketsHttpHandler"/> HTTP transport.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        /// <param name="lastObservedState">The last observed state. The task completes when <see cref="State"/> becomes different from this value.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
+        {
+            ValidateHttpHandlerSupportsConnectivity();
+            return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
+        }
+#endif
 
         /// <summary>
         /// Releases the resources used by the <see cref="GrpcChannel"/> class.
@@ -390,6 +610,9 @@ namespace Grpc.Net.Client
             {
                 HttpInvoker.Dispose();
             }
+#if SUPPORT_LOAD_BALANCING
+            ConnectionManager.Dispose();
+#endif
             Disposed = true;
         }
 
@@ -417,13 +640,35 @@ namespace Grpc.Net.Client
 
         internal int GetRandomNumber(int minValue, int maxValue)
         {
-            CompatibilityHelpers.Assert(_random != null);
+            CompatibilityHelpers.Assert(RandomGenerator != null);
 
             lock (_lock)
             {
-                return _random.Next(minValue, maxValue);
+                return RandomGenerator.Next(minValue, maxValue);
             }
         }
+
+#if SUPPORT_LOAD_BALANCING
+        private class SubChannelTransportFactory : ISubchannelTransportFactory
+        {
+            private readonly GrpcChannel _channel;
+
+            public SubChannelTransportFactory(GrpcChannel channel)
+            {
+                _channel = channel;
+            }
+
+            public ISubchannelTransport Create(Subchannel subchannel)
+            {
+                if (_channel.HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+                {
+                    return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5), _channel.LoggerFactory);
+                }
+
+                return new PassiveSubchannelTransport(subchannel);
+            }
+        }
+#endif
 
         private struct MethodKey : IEquatable<MethodKey>
         {

@@ -122,7 +122,8 @@ namespace Grpc.Net.Client
         public IList<ICompressionProvider>? CompressionProviders { get; set; }
 
         /// <summary>
-        /// Gets or sets the logger factory used by the channel.
+        /// Gets or sets the logger factory used by the channel. If no value is specified then the channel
+        /// attempts to resolve an <see cref="ILoggerFactory"/> from the <see cref="ServiceProvider"/>.
         /// </summary>
         public ILoggerFactory? LoggerFactory { get; set; }
 
@@ -189,6 +190,30 @@ namespace Grpc.Net.Client
         /// </para>
         /// </summary>
         public ServiceConfig? ServiceConfig { get; set; }
+
+#if SUPPORT_LOAD_BALANCING
+        /// <summary>
+        /// Gets or sets a value indicating whether resolving a service config from the <see cref="Balancer.Resolver"/>
+        /// is disabled.
+        /// The default value is <c>false</c>.
+        /// <para>
+        /// A hint is provided to the resolver that it shouldn't fetch a service config.
+        /// If a service config is returned by then resolver then it is ignored.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public bool DisableResolverServiceConfig { get; set; }
+#endif
+
+        /// <summary>
+        /// Gets or sets the <see cref="IServiceProvider"/> the channel uses to resolve types.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public IServiceProvider? ServiceProvider { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
