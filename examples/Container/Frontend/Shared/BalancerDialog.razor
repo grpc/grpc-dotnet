@@ -1,0 +1,72 @@
+﻿@inject BalancerConfiguration Configuration
+
+<span class="balancer-setting" @onclick="ShowDialog">
+    <span class="oi oi-cog" aria-hidden="true"></span>
+</span>
+
+@if (dialogVisible)
+{
+    <EditForm Model="model" OnSubmit="Save">
+        <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8)" aria-modal="true" role="dialog" @onclick="Cancel">
+            <div class="modal-dialog" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Configure load balancing</h4>
+                        <button type="button" class="close" @onclick="Cancel">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <InputRadioGroup @bind-Value="model.LoadBalancerName">
+                            <div class="form-check">
+                                <InputRadio class="form-check-input" id="round_robin" Value="LoadBalancerName.RoundRobin" />
+                                <label class="form-check-label" for="round_robin">Round-robin</label>
+                            </div>
+                            <div class="form-check">
+                                <InputRadio class="form-check-input" id="pick_first" Value="LoadBalancerName.PickFirst" />
+                                <label class="form-check-label" for="pick_first">Pick first</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="Cancel">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private BalancerDialogModel model = default!;
+
+    private bool dialogVisible;
+
+    public void ShowDialog()
+    {
+        model = new BalancerDialogModel();
+        model.LoadBalancerName = Configuration.LoadBalancerPolicyName;
+
+        dialogVisible = true;
+        StateHasChanged();
+    }
+
+    public void Save()
+    {
+        Configuration.Update(model.LoadBalancerName);
+
+        dialogVisible = false;
+        StateHasChanged();
+    }
+
+    public void Cancel()
+    {
+        dialogVisible = false;
+        StateHasChanged();
+    }
+
+    private class BalancerDialogModel
+    {
+        public LoadBalancerName LoadBalancerName { get; set; }
+    }
+}

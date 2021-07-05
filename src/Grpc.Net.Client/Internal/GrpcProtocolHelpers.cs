@@ -417,12 +417,12 @@ namespace Grpc.Net.Client.Internal
             return StatusCode.Internal;
         }
 
-        public static Status CreateStatusFromException(string summary, Exception ex)
+        public static Status CreateStatusFromException(string summary, Exception ex, StatusCode? statusCode = null)
         {
             var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
-            var statusCode = ResolveRpcExceptionStatusCode(ex);
+            statusCode ??= ResolveRpcExceptionStatusCode(ex);
 
-            return new Status(statusCode, summary + " " + exceptionMessage, ex);
+            return new Status(statusCode.GetValueOrDefault(), summary + " " + exceptionMessage, ex);
         }
     }
 }

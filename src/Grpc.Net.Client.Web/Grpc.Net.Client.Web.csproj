@@ -11,7 +11,9 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
+    <Compile Include="..\Shared\HttpRequestHelpers.cs" Link="Internal\HttpRequestHelpers.cs" />
     <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\TrailingHeadersHelpers.cs" />
+    <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">

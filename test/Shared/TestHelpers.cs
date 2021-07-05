@@ -39,7 +39,7 @@ namespace Grpc.Tests.Shared
             {
                 if (i > 0)
                 {
-                    await Task.Delay((i + 1) * 10);
+                    await Task.Delay((i + 1) * (i + 1) * 10);
                 }
 
                 if (assert())

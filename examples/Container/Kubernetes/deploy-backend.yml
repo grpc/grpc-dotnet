@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: grpc-dotnet-container
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      service: backend
+  template:
+    metadata:
+      labels:
+        app: weather-forecast
+        service: backend
+    spec:
+      containers:
+        - name: backend
+          image: docker.io/grpc-dotnet/container-backend:latest
+          imagePullPolicy: Never
+          resources:
+            limits:
+              cpu: "1"
+              memory: "200Mi"
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://+:80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app: grpc-dotnet-container
+    service: backend
+spec:
+  clusterIP: None # Headless service
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    service: backend

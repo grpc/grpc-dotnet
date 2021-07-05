@@ -176,7 +176,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
         private HttpContent CreatePushUnaryContent(TRequest request, GrpcCall<TRequest, TResponse> call)
         {
-            return !Channel.IsWinHttp
+            return Channel.HttpHandlerType != HttpHandlerType.WinHttpHandler
                 ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
                 : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, call);
 

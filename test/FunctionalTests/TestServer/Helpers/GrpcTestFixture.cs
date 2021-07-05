@@ -32,7 +32,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Tests.FunctionalTests.Helpers
 {
-    public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception exception);
+    public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception? exception);
 
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {

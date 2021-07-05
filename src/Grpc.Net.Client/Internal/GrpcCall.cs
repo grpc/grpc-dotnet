@@ -32,6 +32,9 @@ using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Configuration;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
+#if SUPPORT_LOAD_BALANCING
+using Grpc.Net.Client.Balancer.Internal;
+#endif
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;
@@ -123,7 +126,7 @@ namespace Grpc.Net.Client.Internal
             // WinHttp currently doesn't support streaming request data so a length needs to be specified.
             // This may change in a future version of Windows. When that happens an OS build version check
             // can be added here to avoid WinHttpUnaryContent.
-            return !Channel.IsWinHttp
+            return Channel.HttpHandlerType != HttpHandlerType.WinHttpHandler
                 ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
                 : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, this);
 
@@ -510,7 +513,7 @@ namespace Grpc.Net.Client.Internal
                                 GrpcProtocolHelpers.GetGrpcEncoding(HttpResponse),
                                 singleMessage: true,
                                 _callCts.Token).ConfigureAwait(false);
-                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.IsWinHttp);
+                            status = GrpcProtocolHelpers.GetResponseStatus(HttpResponse, Channel.OperatingSystem.IsBrowser, Channel.HttpHandlerType == HttpHandlerType.WinHttpHandler);
 
                             if (message == null)
                             {
@@ -837,6 +840,13 @@ namespace Grpc.Net.Client.Internal
             {
                 headers.TryAddWithoutValidation(GrpcProtocolConstants.TimeoutHeader, GrpcProtocolHelpers.EncodeTimeout(timeout.Value.Ticks / TimeSpan.TicksPerMillisecond));
             }
+
+#if SUPPORT_LOAD_BALANCING
+            if (Options.IsWaitForReady)
+            {
+                message.SetOption(BalancerHttpHandler.WaitForReadyKey, true);
+            }
+#endif
 
             return message;
         }

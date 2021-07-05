@@ -13,6 +13,10 @@
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="$(SystemDiagnosticsDiagnosticSourcePackageVersion)" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
@@ -22,6 +26,7 @@
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
     <Compile Include="..\Shared\HttpHandlerFactory.cs" Link="Internal\Http\HttpHandlerFactory.cs" />
     <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\Http\TelemetryHeaderHandler.cs" />
+    <Compile Include="..\Shared\HttpRequestHelpers.cs" Link="Internal\Http\HttpRequestHelpers.cs" />
     <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\Http\TrailingHeadersHelpers.cs" />
     <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />

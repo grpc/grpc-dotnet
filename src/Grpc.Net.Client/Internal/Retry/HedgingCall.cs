@@ -85,12 +85,28 @@ namespace Grpc.Net.Client.Internal.Retry
             HttpResponseMessage? httpResponse = null;
             try
             {
-                call.CancellationToken.ThrowIfCancellationRequested();
+                if (call._httpResponseTask == null)
+                {
+                    // There is no response task if there was a preemptive cancel.
+                    CompatibilityHelpers.Assert(call.CancellationToken.IsCancellationRequested, "Request should have been made if call is not preemptively cancelled.");
+                    call.CancellationToken.ThrowIfCancellationRequested();
+                }
 
-                CompatibilityHelpers.Assert(call._httpResponseTask != null, "Request should have been made if call is not preemptively cancelled.");
-                httpResponse = await call._httpResponseTask.ConfigureAwait(false);
-
+                httpResponse = await call._httpResponseTask!.ConfigureAwait(false);
                 responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
+            }
+            catch (RpcException ex)
+            {
+                // A "drop" result from the load balancer should immediately stop the call,
+                // including ignoring the retry policy.
+                var dropValue = ex.Trailers.GetValue(GrpcProtocolConstants.DropRequestTrailer);
+                if (dropValue != null && bool.TryParse(dropValue, out var isDrop) && isDrop)
+                {
+                    CommitCall(call, CommitReason.Drop);
+                    return;
+                }
+
+                call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
             }
             catch (Exception ex)
             {
