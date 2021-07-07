@@ -34,7 +34,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ClientStreams_CreateWithClientFactory_InterceptorCalled()
         {
-            async Task<HelloReply> UnaryTelemetryHeader(IAsyncStreamReader<HelloRequest> request, ServerCallContext context)
+            async Task<HelloReply> ClientStreamingMethod(IAsyncStreamReader<HelloRequest> request, ServerCallContext context)
             {
                 while (await request.MoveNext())
                 {
@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 return new HelloReply();
             }
-            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<HelloRequest, HelloReply>(ClientStreamingMethod);
 
             var invokeCount = 0;
             var serviceCollection = new ServiceCollection();
