@@ -21,6 +21,7 @@
     <Compile Include="..\Shared\TestHelpers.cs" Link="Infrastructure\TestHelpers.cs" />
     <Compile Include="..\Shared\TestResolver.cs" Link="Infrastructure\Balancer\TestResolver.cs" />
     <Compile Include="..\Shared\TestResolverFactory.cs" Link="Infrastructure\Balancer\TestResolverFactory.cs" />
+    <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
   </ItemGroup>
 
   <ItemGroup>
