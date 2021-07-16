@@ -84,6 +84,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ClientFactory_CallCredentials_RoundtripToken()
         {
+            // Arrange
             string? authorization = null;
             Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
             {
@@ -129,10 +130,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
 
+            // Act
             var call = client.UnaryCall(new HelloRequest { Name = "world" });
 
             await call.ResponseAsync.DefaultTimeout();
 
+            // Assert
             Assert.AreEqual("Bearer token!", authorization);
         }
     }
