@@ -65,9 +65,9 @@ namespace Grpc.Net.Client.Configuration
         /// Gets or sets the hedging delay.
         /// The first call will be sent immediately, but the subsequent
         /// hedged call will be sent at intervals of the specified delay.
-        /// Set this to 0 or <c>null</c> to immediately send all hedged calls.
+        /// Set this to 0 to immediately send all hedged calls.
         /// </summary>
-        public TimeSpan? HedgingDelay
+        public TimeSpan HedgingDelay
         {
             get => ConvertHelpers.ConvertDurationText(GetValue<string>(HedgingDelayPropertyName));
             set => SetValue(HedgingDelayPropertyName, ConvertHelpers.ToDurationText(value));
