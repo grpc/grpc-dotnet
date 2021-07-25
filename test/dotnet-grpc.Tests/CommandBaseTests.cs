@@ -279,7 +279,6 @@ namespace Grpc.Dotnet.Cli.Tests
                 new object[] { "../ProjectWithReference/Proto/a.proto", "../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
                 new object[] { "../ProjectWithReference/Proto/a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
                 new object[] { "./../ProjectWithReference/Proto/a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
-
             };
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -647,14 +646,6 @@ namespace Grpc.Dotnet.Cli.Tests
                 .Single(a => a.Name == "Grpc.Net.ClientFactory")
                 .Version;
             Assert.AreEqual(clientFactoryVersion, clientFactoryReference!.GetMetadataValue("Version"));
-        }
-
-        private static string NormalizePath(string path)
-        {
-            // change all path separators to backslash
-            path = path.Replace('/', '\\');
-            // remove leading dot with backslash
-            return path.StartsWith(".\\") ? path.Substring(2) : path;
         }
     }
 }
