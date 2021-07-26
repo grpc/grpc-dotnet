@@ -39,9 +39,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class HedgingTests : FunctionalTestBase
     {
+        [TestCase(null)]
         [TestCase(0)]
         [TestCase(20)]
-        public async Task Unary_ExceedAttempts_Failure(int hedgingDelay)
+        public async Task Unary_ExceedAttempts_Failure(int? hedgingDelay)
         {
             Task<DataMessage> UnaryFailure(DataMessage request, ServerCallContext context)
             {
@@ -57,7 +58,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryFailure);
 
-            var channel = CreateChannel(serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(maxAttempts: 5, hedgingDelay: TimeSpan.FromMilliseconds(hedgingDelay)));
+            var delay = (hedgingDelay == null)
+                ? (TimeSpan?)null
+                : TimeSpan.FromMilliseconds(hedgingDelay.Value);
+            var channel = CreateChannel(serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(maxAttempts: 5, hedgingDelay: delay));
 
             var client = TestClientFactory.Create(channel, method);
 
