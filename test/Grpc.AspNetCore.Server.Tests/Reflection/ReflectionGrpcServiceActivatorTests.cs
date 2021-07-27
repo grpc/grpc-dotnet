@@ -42,6 +42,56 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         [Test]
         public async Task Create_ConfiguredGrpcEndpoint_EndpointReturnedFromReflectionService()
         {
+            // Arrange and act
+            TestServerStreamWriter<ServerReflectionResponse> writer = await ConfigureReflectionServerAndCallAsync(builder =>
+            {
+                builder.MapGrpcService<GreeterService>();
+            });
+
+            // Assert
+            Assert.AreEqual(1, writer.Responses.Count);
+            Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
+
+            var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
+            Assert.AreEqual("greet.Greeter", serviceResponse.Name);
+        }
+
+        [Test]
+        public async Task Create_ConfiguredGrpcEndpointWithMultipleInheritenceLevel_EndpointReturnedFromReflectionService()
+        {
+            // Arrange and act
+            TestServerStreamWriter<ServerReflectionResponse> writer = await ConfigureReflectionServerAndCallAsync(builder =>
+            {
+                builder.MapGrpcService<InheritGreeterService>();
+            });
+
+            // Assert
+            Assert.AreEqual(1, writer.Responses.Count);
+            Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
+
+            var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
+            Assert.AreEqual("greet.Greeter", serviceResponse.Name);
+        }
+
+        [Test]
+        public async Task Create_ConfiguredGrpcEndpointWithBaseType_EndpointReturnedFromReflectionService()
+        {
+            // Arrange and act
+            TestServerStreamWriter<ServerReflectionResponse> writer = await ConfigureReflectionServerAndCallAsync(builder =>
+            {
+                builder.MapGrpcService<GreeterServiceWithBaseType>();
+            });
+
+            // Assert
+            Assert.AreEqual(1, writer.Responses.Count);
+            Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
+
+            var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
+            Assert.AreEqual("greet.ThirdGreeterWithBaseType", serviceResponse.Name);
+        }
+
+        private static async Task<TestServerStreamWriter<ServerReflectionResponse>> ConfigureReflectionServerAndCallAsync(Action<IEndpointRouteBuilder> action)
+        {
             // Arrange
             var endpointRouteBuilder = new TestEndpointRouteBuilder();
 
@@ -56,7 +106,8 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
             endpointRouteBuilder.ServiceProvider = serviceProvider;
-            endpointRouteBuilder.MapGrpcService<GreeterService>();
+
+            action(endpointRouteBuilder);
 
             // Act
             var service = serviceProvider.GetRequiredService<ReflectionServiceImpl>();
@@ -73,12 +124,16 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
             await service.ServerReflectionInfo(reader, writer, context);
 
-            // Assert
-            Assert.AreEqual(1, writer.Responses.Count);
-            Assert.AreEqual(1, writer.Responses[0].ListServicesResponse.Service.Count);
+            return writer;
+        }
 
-            var serviceResponse = writer.Responses[0].ListServicesResponse.Service[0];
-            Assert.AreEqual("greet.Greeter", serviceResponse.Name);
+        private class InheritGreeterService : GreeterService
+        {
+        }
+
+        private class GreeterServiceWithBaseType : ThirdGreeterWithBaseType.ThirdGreeterWithBaseTypeBase
+        {
+
         }
 
         private class GreeterService : Greeter.GreeterBase
@@ -121,6 +176,21 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             {
                 throw new NotImplementedException();
             }
+        }
+    }
+}
+
+namespace Greet
+{
+    public class ThirdGreeterBaseType
+    {
+
+    }
+
+    public static partial class ThirdGreeterWithBaseType
+    {
+        public partial class ThirdGreeterWithBaseTypeBase : ThirdGreeterBaseType
+        {
         }
     }
 }
