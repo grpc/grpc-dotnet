@@ -101,7 +101,7 @@ namespace Grpc.Net.Client.Internal
             {
                 throw new InvalidOperationException("Hedging policy max attempts must be greater than 1.");
             }
-            if (!(h.HedgingDelay >= TimeSpan.Zero))
+            if (h.HedgingDelay != null && h.HedgingDelay < TimeSpan.Zero)
             {
                 throw new InvalidOperationException("Hedging policy delay must be equal or greater than zero.");
             }
