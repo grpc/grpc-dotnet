@@ -76,7 +76,7 @@ namespace Grpc.Tests.Shared
             var hedgingPolicy = new HedgingPolicy
             {
                 MaxAttempts = maxAttempts ?? 5,
-                HedgingDelay = hedgingDelay ?? TimeSpan.Zero
+                HedgingDelay = hedgingDelay
             };
 
             if (nonFatalStatusCodes != null)
