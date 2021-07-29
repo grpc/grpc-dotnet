@@ -267,4 +267,4 @@ The retrier example shows how to configure a client to use gRPC retries to retry
 
 ##### Scenarios:
 
-* Configure [gRPC retires](https://docs.microsoft.com/aspnet/core/grpc/retries)
+* Configure [gRPC retries](https://docs.microsoft.com/aspnet/core/grpc/retries)
