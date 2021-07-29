@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Grpc.AspNetCore.Server;
+using Grpc.Core;
 using Grpc.Reflection;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -63,10 +64,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                 foreach (var serviceType in serviceTypes)
                 {
-                    var baseType = GetServiceBaseType(serviceType);
-                    var definitionType = baseType?.DeclaringType;
-
-                    var descriptorPropertyInfo = definitionType?.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
+                    var descriptorPropertyInfo = GetDescriptorProperty(serviceType);
                     if (descriptorPropertyInfo != null)
                     {
                         if (descriptorPropertyInfo.GetValue(null) is Google.Protobuf.Reflection.ServiceDescriptor serviceDescriptor)
@@ -83,6 +81,59 @@ namespace Microsoft.Extensions.DependencyInjection
             });
 
             return services;
+        }
+
+        private static PropertyInfo? GetDescriptorProperty(Type serviceType)
+        {
+            // Prefer finding the descriptor property using attribute on the generated service
+            var descriptorPropertyInfo = GetDescriptorPropertyUsingAttribute(serviceType);
+
+            if (descriptorPropertyInfo == null)
+            {
+                // Fallback to searching for descriptor property using known type hierarchy that Grpc.Tools generates
+                descriptorPropertyInfo = GetDescriptorPropertyFallback(serviceType);
+            }
+
+            return descriptorPropertyInfo;
+        }
+
+        private static PropertyInfo? GetDescriptorPropertyUsingAttribute(Type serviceType)
+        {
+            Type? currentServiceType = serviceType;
+            BindServiceMethodAttribute? bindServiceMethod;
+            do
+            {
+                // Search through base types for bind service attribute.
+                bindServiceMethod = currentServiceType.GetCustomAttribute<BindServiceMethodAttribute>();
+                if (bindServiceMethod != null)
+                {
+                    // Descriptor property will be public and static and return ServiceDescriptor.
+                    return bindServiceMethod.BindType.GetProperty(
+                        "Descriptor",
+                        BindingFlags.Public | BindingFlags.Static,
+                        binder: null,
+                        typeof(Google.Protobuf.Reflection.ServiceDescriptor),
+                        Type.EmptyTypes,
+                        Array.Empty<ParameterModifier>());
+                }
+            } while ((currentServiceType = currentServiceType.BaseType) != null);
+
+            return null;
+        }
+
+        private static PropertyInfo? GetDescriptorPropertyFallback(Type serviceType)
+        {
+            // Search for the generated service base class
+            var baseType = GetServiceBaseType(serviceType);
+            var definitionType = baseType?.DeclaringType;
+
+            return definitionType?.GetProperty(
+                "Descriptor",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                typeof(Google.Protobuf.Reflection.ServiceDescriptor),
+                Type.EmptyTypes,
+                Array.Empty<ParameterModifier>());
         }
 
         private static Type? GetServiceBaseType(Type serviceImplementation)
