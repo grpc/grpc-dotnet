@@ -41,6 +41,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 
         // Set the last value encountered for debugging purposes
         public long? LastValue { get; internal set; }
+        public int CheckCount { get; internal set; }
 
         public void Dispose()
         {

@@ -70,14 +70,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                     {
                         if (subscription.CounterName == Convert.ToString(name))
                         {
+                            subscription.CheckCount++;
                             var currentValue = Convert.ToInt64(value);
-
-                            // For debugging. Printed in message if subscription fails.
-                            subscription.LastValue = currentValue;
 
                             if (subscription.ExpectedValue == currentValue)
                             {
-                                _logger.LogDebug($"{subscription.CounterName} current value {currentValue} matched expected {subscription.ExpectedValue}.");
+                                _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} matched expected {subscription.ExpectedValue}.");
 
                                 subscription.SetMatched();
                                 subscription.Dispose();
@@ -86,9 +84,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                             {
                                 if (!subscription.IsMatched)
                                 {
-                                    _logger.LogDebug($"{subscription.CounterName} current value {currentValue} doesn't match expected {subscription.ExpectedValue}.");
+                                    if (subscription.LastValue != currentValue || subscription.CheckCount % 1000 == 0)
+                                    {
+                                        _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} doesn't match expected {subscription.ExpectedValue}.");
+                                    }
                                 }
                             }
+
+                            // For debugging. Printed in message if subscription fails.
+                            subscription.LastValue = currentValue;
                         }
                     }
                 }
