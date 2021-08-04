@@ -18,7 +18,10 @@ ensure_dir() {
 # main
 
 # resolve SDK version
-sdk_version=$(jq -r .sdk.version $global_json_path)
+#sdk_version=$(jq -r .sdk.version $global_json_path)
+
+# TODO(JamesNK): Temporarily override global.json while using preview version
+sdk_version="6.0.100-rc.1.21380.19"
 
 # download dotnet-install.sh
 ensure_dir $OBJDIR
