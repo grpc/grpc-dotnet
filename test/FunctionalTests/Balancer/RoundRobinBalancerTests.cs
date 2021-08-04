@@ -160,8 +160,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             endpoint.Dispose();
 
             await Task.WhenAll(
-                BalancerHelpers.WaitForChannelStateAsync(channel1, ConnectivityState.Connecting),
-                BalancerHelpers.WaitForChannelStateAsync(channel2, ConnectivityState.Connecting)).DefaultTimeout();
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Connecting, channelId: 1),
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Connecting, channelId: 2)).DefaultTimeout();
 
             Logger.LogInformation("Restarting");
             using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
