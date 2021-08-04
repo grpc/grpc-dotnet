@@ -37,7 +37,7 @@ test_projects=( $( ls test/**/*Tests.csproj ) )
 for test_project in "${test_projects[@]}"
 do
     # https://github.com/microsoft/vstest/issues/2080#issuecomment-539879345
-    dotnet test $test_project -c Release -v n --no-build -d --blame < /dev/null
+    dotnet test $test_project -c Release -v n --no-build < /dev/null
 done
 
 echo "Tests finished"
