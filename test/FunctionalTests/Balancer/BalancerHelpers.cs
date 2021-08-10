@@ -147,19 +147,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             return channel;
         }
 
-        public static async Task WaitForChannelStateAsync(GrpcChannel channel, ConnectivityState state)
+        public static async Task WaitForChannelStateAsync(ILogger logger, GrpcChannel channel, ConnectivityState state, int channelId = 1)
         {
-            ConnectivityState currentState = channel.State;
-            if (currentState == state)
-            {
-                return;
-            }
+            logger.LogInformation($"{channelId}: Waiting for channel state '{state}'.");
 
-            do
+            var currentState = channel.State;
+
+            while (currentState != state)
             {
+                logger.LogInformation($"{channelId}: Current channel state '{currentState}' doesn't match expected state '{state}'.");
+
                 await channel.WaitForStateChangedAsync(currentState).DefaultTimeout();
                 currentState = channel.State;
-            } while (currentState != state);
+            }
+
+            logger.LogInformation($"{channelId}: Current channel state '{currentState}' matches expected state '{state}'.");
         }
 
         public static T? GetInnerLoadBalancer<T>(GrpcChannel channel) where T : LoadBalancer

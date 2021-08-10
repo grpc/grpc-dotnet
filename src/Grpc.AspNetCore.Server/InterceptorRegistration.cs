@@ -30,14 +30,14 @@ namespace Grpc.AspNetCore.Server
     /// </summary>
     public class InterceptorRegistration
     {
-#if NET5_0
+#if NET5_0_OR_GREATER
         internal const DynamicallyAccessedMemberTypes InterceptorAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods;
 #endif
 
         internal object[] _args;
 
         internal InterceptorRegistration(
-#if NET5_0
+#if NET5_0_OR_GREATER
             [DynamicallyAccessedMembers(InterceptorAccessibility)]
 #endif
             Type type, object[] arguments)
@@ -65,7 +65,7 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Get the type of the interceptor.
         /// </summary>
-#if NET5_0
+#if NET5_0_OR_GREATER
         [DynamicallyAccessedMembers(InterceptorAccessibility)]
 #endif
         public Type Type { get; }

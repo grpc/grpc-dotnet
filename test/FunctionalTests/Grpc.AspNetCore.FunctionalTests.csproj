@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
-    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0'">
     <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
@@ -24,6 +23,11 @@
     <Compile Include="..\Shared\CallbackInterceptor.cs" Link="Infrastructure\CallbackInterceptor.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Required for QUIC & HTTP/3 in .NET 6 - https://github.com/dotnet/runtime/pull/55332 -->
+    <RuntimeHostConfigurationOption Include="System.Net.SocketsHttpHandler.Http3Support" Value="true" />
+  </ItemGroup>
+  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
@@ -48,6 +52,9 @@
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreApp31PackageVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net5.0'">
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreApp5PackageVersion)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net6.0'">
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
   </ItemGroup>
 

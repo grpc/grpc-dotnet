@@ -2,7 +2,8 @@
 (
     [bool]$use_tls = $false,
     [bool]$use_winhttp = $false,
-    [string]$framework = "net5.0",
+    [bool]$use_http3 = $false,
+    [string]$framework = "net6.0",
     [string]$grpc_web_mode = "None",
     [int]$server_port = 50052
 )
@@ -36,6 +37,7 @@ $allTests =
 Write-Host "Running $($allTests.Count) tests" -ForegroundColor Cyan
 Write-Host "Use TLS: $use_tls" -ForegroundColor Cyan
 Write-Host "Use WinHttp: $use_winhttp" -ForegroundColor Cyan
+Write-Host "Use HTTP/3: $use_http3" -ForegroundColor Cyan
 Write-Host "Framework: $framework" -ForegroundColor Cyan
 Write-Host "gRPC-Web mode: $grpc_web_mode" -ForegroundColor Cyan
 Write-Host
@@ -44,7 +46,7 @@ foreach ($test in $allTests)
 {
   Write-Host "Running $test" -ForegroundColor Cyan
 
-  dotnet run --framework $framework --use_tls $use_tls --server_host localhost --server_port $server_port --client_type httpclient --test_case $test --use_winhttp $use_winhttp --grpc_web_mode $grpc_web_mode
+  dotnet run --framework $framework --use_tls $use_tls --server_host localhost --server_port $server_port --client_type httpclient --test_case $test --use_winhttp $use_winhttp --grpc_web_mode $grpc_web_mode --use_http3 $use_http3
 
   Write-Host
 }

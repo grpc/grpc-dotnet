@@ -890,7 +890,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             return data;
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         [Test]
         public Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
         {
@@ -907,10 +907,22 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         {
             var streamCount = 201;
             var count = 0;
+            var contexts = new (AsyncDuplexStreamingCall<DataMessage, DataMessage> Call, string Id, bool ReceivedOnServer)[streamCount];
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             async Task WaitForAllStreams(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
             {
+                var callId = context.RequestHeaders.GetValue("call-id");
+
+                for (var i = 0; i < contexts.Length; i++)
+                {
+                    if (contexts[i].Id == callId)
+                    {
+                        contexts[i].ReceivedOnServer = true;
+                    }
+                }
+                Logger.LogInformation($"Received {callId}");
+
                 Interlocked.Increment(ref count);
 
                 if (writeResponseHeaders)
@@ -933,14 +945,19 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = TestClientFactory.Create(channel, method);
 
-            var calls = new AsyncDuplexStreamingCall<DataMessage, DataMessage>[streamCount];
             try
             {
                 // Act
-                for (var i = 0; i < calls.Length; i++)
+                for (var i = 0; i < contexts.Length; i++)
                 {
-                    var call = client.DuplexStreamingCall();
-                    calls[i] = call;
+                    var callId = (i + 1).ToString();
+                    Logger.LogInformation($"Sending {callId}");
+
+                    var call = client.DuplexStreamingCall(new CallOptions(headers: new Metadata
+                    {
+                        new Metadata.Entry("call-id", callId)
+                    }));
+                    contexts[i] = (call, callId, false);
 
                     if (writeResponseHeaders)
                     {
@@ -949,17 +966,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
 
                 // Assert
-                await Task.WhenAll(calls.Select(c => c.ResponseHeadersAsync)).DefaultTimeout();
+                await Task.WhenAll(contexts.Select(c => c.Call.ResponseHeadersAsync)).DefaultTimeout();
             }
             catch (Exception ex)
             {
-                throw new Exception($"Received {count} of {streamCount} on the server.", ex);
+                var callIdsNotOnServer = new List<string>();
+                foreach (var context in contexts)
+                {
+                    if (!context.ReceivedOnServer)
+                    {
+                        callIdsNotOnServer.Add(context.Id);
+                    }
+                }
+
+                throw new Exception($"Received {count} of {streamCount} on the server. Call IDs not received by server: {string.Join(", ", callIdsNotOnServer)}", ex);
             }
             finally
             {
-                for (var i = 0; i < calls.Length; i++)
+                Logger.LogInformation("Test over. Disposing calls.");
+                for (var i = 0; i < contexts.Length; i++)
                 {
-                    calls[i].Dispose();
+                    contexts[i].Call.Dispose();
                 }
             }
         }

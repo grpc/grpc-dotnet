@@ -145,7 +145,7 @@ namespace Grpc.Net.Client.Internal
                 {
                     try
                     {
-#if NET5_0
+#if NET5_0_OR_GREATER
                         _responseStream = await _httpResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #else
                         _responseStream = await _httpResponse.Content.ReadAsStreamAsync().ConfigureAwait(false);

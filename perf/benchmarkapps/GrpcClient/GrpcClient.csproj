@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <DefineConstants Condition="'$(EnableGrpcWeb)' == 'true'">$(DefineConstants);GRPC_WEB</DefineConstants>
     <!-- Enable server GC to more closely simulate a microservice app making calls -->
@@ -9,6 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Required for QUIC & HTTP/3 in .NET 6 - https://github.com/dotnet/runtime/pull/55332 -->
+    <RuntimeHostConfigurationOption Include="System.Net.SocketsHttpHandler.Http3Support" Value="true" />
+
     <Protobuf Include="..\Shared\benchmark_service.proto" GrpcServices="Client" Link="Protos\benchmark_service.proto" />
     <Protobuf Include="..\Shared\messages.proto" GrpcServices="Client" Link="Protos\messages.proto" />
     

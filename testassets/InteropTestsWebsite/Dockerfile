@@ -1,11 +1,11 @@
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
 WORKDIR /app
 
 # Copy everything
 COPY . ./
 RUN dotnet --info
 RUN dotnet restore testassets/InteropTestsWebsite
-RUN dotnet publish testassets/InteropTestsWebsite -c Release -o out
+RUN dotnet publish testassets/InteropTestsWebsite --framework net5.0 -c Release -o out -p:LatestFramework=true
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:5.0

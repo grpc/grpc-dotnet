@@ -322,7 +322,7 @@ namespace Grpc.Net.Client.Balancer
         {
             lock (Lock)
             {
-                return string.Join(", ", _addresses);
+                return $"Id: {Id}, Addresses: {string.Join(", ", _addresses)}, State: {State}";
             }
         }
 

@@ -21,6 +21,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
@@ -133,15 +134,16 @@ namespace Grpc.Net.Client.Internal
                 return new Status(statusCode, "Bad gRPC response. HTTP status code: " + (int)httpResponse.StatusCode);
             }
 
-            if (httpResponse.Content?.Headers.ContentType == null)
+            // Don't access Headers.ContentType property because it is not threadsafe.
+            var contentType = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Content?.Headers, "Content-Type");
+            if (contentType == null)
             {
                 return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");
             }
 
-            var grpcEncoding = httpResponse.Content.Headers.ContentType;
-            if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, grpcEncoding?.MediaType))
+            if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, contentType))
             {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + grpcEncoding);
+                return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + contentType);
             }
 
             // Call is still in progress

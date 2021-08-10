@@ -199,7 +199,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Assert
-            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>()!.Trailers;
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(expectedTrailerValue, responseTrailers[expectedTrailerName].ToString());
@@ -221,7 +221,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Assert
-            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>()!.Trailers;
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
@@ -266,7 +266,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Assert
-            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>()!.Trailers;
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.Internal.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
@@ -290,7 +290,7 @@ namespace Grpc.AspNetCore.Server.Tests
             httpContext.Response.ConsolidateTrailers(serverCallContext);
 
             // Assert
-            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>().Trailers;
+            var responseTrailers = httpContext.Features.Get<IHttpResponseTrailersFeature>()!.Trailers;
 
             Assert.AreEqual(2, responseTrailers.Count);
             Assert.AreEqual(StatusCode.OK.ToString("D"), responseTrailers[GrpcProtocolConstants.StatusTrailer]);
@@ -631,6 +631,7 @@ namespace Grpc.AspNetCore.Server.Tests
 
             var httpResetFeature = new TestHttpResetFeature();
             var httpContext = new DefaultHttpContext();
+            httpContext.Request.Protocol = "HTTP/2";
             httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "200m";
             httpContext.Features.Set<IHttpResponseBodyFeature>(new TestBlockingHttpResponseCompletionFeature(syncPoint));
             httpContext.Features.Set<IHttpResetFeature>(httpResetFeature);
@@ -657,7 +658,7 @@ namespace Grpc.AspNetCore.Server.Tests
             syncPoint.Continue();
             await methodTask.DefaultTimeout();
 
-            Assert.AreEqual(GrpcProtocolConstants.ResetStreamNoError, httpResetFeature.ErrorCode);
+            Assert.AreEqual(GrpcProtocolConstants.Http2ResetStreamNoError, httpResetFeature.ErrorCode);
 
             Assert.IsTrue(serverCallContext.DeadlineManager!.IsCallComplete);
         }

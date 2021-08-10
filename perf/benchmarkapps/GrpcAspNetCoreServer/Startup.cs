@@ -21,7 +21,7 @@ using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Testing;
-#if NET5_0 || NET6_0
+#if NET5_0_OR_GREATER
 using Microsoft.AspNetCore.Authentication.Certificate;
 #endif
 using Microsoft.AspNetCore.Builder;
@@ -47,7 +47,7 @@ namespace GrpcAspNetCoreServer
         {
             services.AddGrpc(o =>
             {
-#if NET5_0 || NET6_0
+#if NET5_0_OR_GREATER
                 // Small performance benefit to not add catch-all routes to handle UNIMPLEMENTED for unknown services
                 o.IgnoreUnknownServices = true;
 #endif
@@ -60,7 +60,7 @@ namespace GrpcAspNetCoreServer
             services.AddSingleton<BenchmarkServiceImpl>();
             services.AddControllers();
 
-#if NET5_0 || NET6_0
+#if NET5_0_OR_GREATER
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {
@@ -83,7 +83,7 @@ namespace GrpcAspNetCoreServer
 
             app.UseRouting();
 
-#if NET5_0 || NET6_0
+#if NET5_0_OR_GREATER
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {
@@ -139,7 +139,7 @@ namespace GrpcAspNetCoreServer
 
         private void ConfigureAuthorization(IEndpointConventionBuilder builder)
         {
-#if NET5_0 || NET6_0
+#if NET5_0_OR_GREATER
             bool.TryParse(_config["enableCertAuth"], out var enableCertAuth);
             if (enableCertAuth)
             {

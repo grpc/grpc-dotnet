@@ -18,7 +18,10 @@ ensure_dir() {
 # main
 
 # resolve SDK version
-sdk_version=$(jq -r .sdk.version $global_json_path)
+#sdk_version=$(jq -r .sdk.version $global_json_path)
+
+# TODO(JamesNK): Temporarily override global.json while using preview version
+sdk_version="6.0.100-rc.1.21380.19"
 
 # download dotnet-install.sh
 ensure_dir $OBJDIR
@@ -29,6 +32,9 @@ chmod +x $install_script_path
 
 # Install .NET Core 3.x SDK to run 3.x test targets
 $install_script_path -v 3.1.300 -i $dotnet_install_path
+
+# Install .NET 5 SDK to run 5.0 test targets
+$install_script_path -v 5.0.302 -i $dotnet_install_path
 
 # Install .NET version specified by global.json
 $install_script_path -v $sdk_version -i $dotnet_install_path

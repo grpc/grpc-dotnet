@@ -27,7 +27,7 @@ namespace Grpc.Shared
     {
         public static HttpMessageHandler CreatePrimaryHandler()
         {
-#if NET5_0
+#if NET5_0_OR_GREATER
             // If we're in .NET 5 and SocketsHttpHandler is supported (it's not in Blazor WebAssembly)
             // then create SocketsHttpHandler with EnableMultipleHttp2Connections set to true. That will
             // allow a gRPC channel to create new connections if the maximum allow concurrency is exceeded.

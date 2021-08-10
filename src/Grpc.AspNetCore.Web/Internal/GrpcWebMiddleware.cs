@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.Web.Internal
             var mode = GetGrpcWebMode(httpContext);
             if (mode != ServerGrpcWebMode.None)
             {
-                Log.DetectedGrpcWebRequest(_logger, httpContext.Request.ContentType);
+                Log.DetectedGrpcWebRequest(_logger, httpContext.Request.ContentType!);
 
                 var metadata = httpContext.GetEndpoint()?.Metadata.GetMetadata<IGrpcWebEnabledMetadata>();
                 if (metadata?.GrpcWebEnabled ?? _options.DefaultEnabled)
@@ -66,7 +66,7 @@ namespace Grpc.AspNetCore.Web.Internal
 
             // Modifying the request is required to stop Grpc.AspNetCore.Server from rejecting it
             httpContext.Request.Protocol = GrpcWebProtocolConstants.Http2Protocol;
-            httpContext.Request.ContentType = ResolveContentType(GrpcWebProtocolConstants.GrpcContentType, httpContext.Request.ContentType);
+            httpContext.Request.ContentType = ResolveContentType(GrpcWebProtocolConstants.GrpcContentType, httpContext.Request.ContentType!);
 
             // Update response content type back to gRPC-Web
             httpContext.Response.OnStarting(() =>
@@ -75,7 +75,7 @@ namespace Grpc.AspNetCore.Web.Internal
                 // delay when making HTTP/1.1 calls.
                 httpContext.Request.Protocol = initialProtocol;
 
-                if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcContentType, httpContext.Response.ContentType))
+                if (CommonGrpcProtocolHelpers.IsContentType(GrpcWebProtocolConstants.GrpcContentType, httpContext.Response.ContentType!))
                 {
                     var contentType = mode == ServerGrpcWebMode.GrpcWeb
                         ? GrpcWebProtocolConstants.GrpcWebContentType

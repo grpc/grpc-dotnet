@@ -5,7 +5,7 @@
     <PackageTags>gRPC RPC HTTP/2 aspnetcore</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
-    <TargetFrameworks>netcoreapp3.0;net5.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.0;net5.0;net6.0</TargetFrameworks>
 
     <!-- Don't include empty DLL or PDB in metapackage -->
     <IncludeBuildOutput>false</IncludeBuildOutput>

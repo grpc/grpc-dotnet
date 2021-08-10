@@ -237,7 +237,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Logger.LogInformation($"All gRPC calls on server");
 
-            await BalancerHelpers.WaitForChannelStateAsync(channel, ConnectivityState.Ready).DefaultTimeout();
+            await BalancerHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Ready).DefaultTimeout();
 
             var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
             var subchannel = balancer._subchannel!;
@@ -342,8 +342,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             endpoint.Dispose();
 
             await Task.WhenAll(
-                BalancerHelpers.WaitForChannelStateAsync(channel1, ConnectivityState.Idle),
-                BalancerHelpers.WaitForChannelStateAsync(channel2, ConnectivityState.Idle)).DefaultTimeout();
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Idle, channelId: 1),
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Idle, channelId: 2)).DefaultTimeout();
 
             Logger.LogInformation("Restarting");
             using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));

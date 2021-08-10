@@ -438,14 +438,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             // Act
             var call1Task = MakeCall(Fixture, channel, request, sp1);
-            await sp1.WaitForSyncPoint();
+            await sp1.WaitForSyncPoint().DefaultTimeout();
 
             var call2Task = MakeCall(Fixture, channel, request, sp2);
-            await sp2.WaitForSyncPoint();
+            await sp2.WaitForSyncPoint().DefaultTimeout();
 
             // Will exceed channel buffer limit and won't retry
             var call3Task = MakeCall(Fixture, channel, request, sp3);
-            await sp3.WaitForSyncPoint();
+            await sp3.WaitForSyncPoint().DefaultTimeout();
 
             // Assert
             Assert.AreEqual(194, channel.CurrentRetryBufferSize);

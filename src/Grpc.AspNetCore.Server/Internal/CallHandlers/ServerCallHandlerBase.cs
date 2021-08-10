@@ -54,7 +54,11 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
                 return ProcessInvalidContentTypeRequest(httpContext, error);
             }
 
-            if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol))
+            if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol)
+#if NET6_0_OR_GREATER
+                && !GrpcProtocolConstants.IsHttp3(httpContext.Request.Protocol)
+#endif
+                )
             {
                 return ProcessNonHttp2Request(httpContext);
             }

@@ -35,7 +35,7 @@ namespace Grpc.AspNetCore.Server
         /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
         public void Add<
-#if NET5_0
+#if NET5_0_OR_GREATER
             [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
 #endif
             TInterceptor>(params object[] args) where TInterceptor : Interceptor
@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.Server
         /// <param name="interceptorType">The interceptor type.</param>
         /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
         public void Add(
-#if NET5_0
+#if NET5_0_OR_GREATER
             [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
 #endif
             Type interceptorType, params object[] args)

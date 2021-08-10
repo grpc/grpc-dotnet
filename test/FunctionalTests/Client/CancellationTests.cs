@@ -253,7 +253,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingCall);
 
-            var channel = CreateChannel(useHandler: true);
+            var channel = CreateChannel();
 
             var client = TestClientFactory.Create(channel, method);
 
