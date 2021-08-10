@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . ./
 RUN dotnet --info
 RUN dotnet restore testassets/InteropTestsWebsite
-RUN dotnet publish testassets/InteropTestsWebsite -c Release -o out -p:LatestFramework=true
+RUN dotnet publish testassets/InteropTestsWebsite --framework net5.0 -c Release -o out -p:LatestFramework=true
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:5.0
