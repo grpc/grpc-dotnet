@@ -57,6 +57,7 @@ namespace Grpc.Shared.TestAssets
         public string? ServiceAccountKeyFile { get; set; }
         public string? GrpcWebMode { get; set; }
         public bool UseWinHttp { get; set; }
+        public bool UseHttp3 { get; set; }
     }
 
     public class InteropClient
@@ -132,6 +133,14 @@ namespace Grpc.Shared.TestAssets
                     HttpVersion = new Version(1, 1)
                 };
             }
+            if (options.UseHttp3)
+            {
+#if NET6_0_OR_GREATER
+                httpMessageHandler = new Http3DelegatingHandler(httpMessageHandler);
+#else
+                throw new Exception("HTTP/3 requires .NET 6 or later.");
+#endif
+            }
 
             var channel = GrpcChannel.ForAddress($"{scheme}://{options.ServerHost}:{options.ServerPort}", new GrpcChannelOptions
             {
@@ -142,6 +151,25 @@ namespace Grpc.Shared.TestAssets
 
             return new GrpcChannelWrapper(channel);
         }
+
+#if NET6_0_OR_GREATER
+        private class Http3DelegatingHandler : DelegatingHandler
+        {
+            private static readonly Version Http3Version = new Version(3, 0);
+
+            public Http3DelegatingHandler(HttpMessageHandler innerHandler)
+            {
+                InnerHandler = innerHandler;
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                request.Version = Http3Version;
+                request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                return base.SendAsync(request, cancellationToken);
+            }
+        }
+#endif
 
         private static WinHttpHandler CreateWinHttpHandler()
         {
