@@ -105,19 +105,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 })
                 .UseContentRoot(Directory.GetCurrentDirectory());
 
-#if NET6_0_OR_GREATER
-#pragma warning disable CA1416 // Validate platform compatibility
-            if (RequireHttp3Attribute.IsSupported(out _))
-            {
-                builder = builder.UseQuic(options =>
-                     {
-                         options.IdleTimeout = TimeSpan.FromSeconds(60);
-                         options.Alpn = "h3";
-                     });
-            }
-#pragma warning restore CA1416 // Validate platform compatibility
-#endif
-
             _host = builder.Build();
 
             var t = Task.Run(() => _host.Start());

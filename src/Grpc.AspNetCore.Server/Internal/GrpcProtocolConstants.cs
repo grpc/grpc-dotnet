@@ -71,7 +71,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal const string IdentityGrpcEncoding = "identity";
         internal const int Http2ResetStreamNoError = 0;
-        internal const int Http3ResetStreamNoError = 0x100;
 
         internal static readonly HashSet<string> FilteredHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {

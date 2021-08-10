@@ -60,16 +60,6 @@ namespace GrpcAspNetCoreServer
                     webBuilder.UseConfiguration(config);
                     webBuilder.UseStartup<Startup>();
 
-#if NET6_0
-#pragma warning disable CA1416 // Validate platform compatibility
-                    webBuilder.UseQuic(options =>
-                    {
-                        options.IdleTimeout = TimeSpan.FromSeconds(60);
-                        options.Alpn = "h3";
-                    });
-#pragma warning restore CA1416 // Validate platform compatibility
-#endif
-
                     webBuilder.ConfigureKestrel((context, options) =>
                     {
                         var endPoint = config.CreateIPEndPoint();
