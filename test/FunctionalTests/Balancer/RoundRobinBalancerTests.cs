@@ -19,7 +19,9 @@
 #if SUPPORT_LOAD_BALANCING
 #if NET5_0_OR_GREATER
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -62,24 +64,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             await channel.ConnectAsync().DefaultTimeout();
 
-            Subchannel? subchannel = null;
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                if (picker?._subchannels.Count == 1)
-                {
-                    subchannel = picker?._subchannels[0];
-                    return true;
-                }
-                return false;
-            }, "Wait for all subchannels to be connected.").DefaultTimeout();
+            await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout();
+            
+            var subchannel = (await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout()).Single();
 
             // Act
             endpoint.Dispose();
 
             // Assert
             await TestHelpers.AssertIsTrueRetryAsync(
-                () => subchannel!.State == ConnectivityState.TransientFailure,
+                () => subchannel.State == ConnectivityState.TransientFailure,
                 "Wait for subchannel to fail.").DefaultTimeout();
         }
 
@@ -166,8 +160,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             endpoint.Dispose();
 
             await Task.WhenAll(
-                BalancerHelpers.WaitForChannelStateAsync(channel1, ConnectivityState.Connecting),
-                BalancerHelpers.WaitForChannelStateAsync(channel2, ConnectivityState.Connecting)).DefaultTimeout();
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Connecting, channelId: 1),
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Connecting, channelId: 2)).DefaultTimeout();
 
             Logger.LogInformation("Restarting");
             using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
@@ -204,11 +198,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count == 2;
-            }, "Wait for all subconnections to be connected.").DefaultTimeout();
+            await WaitForSubChannelsToBeReady(channel, 2).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -259,11 +249,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count == 2;
-            }, "Wait for all subconnections to be connected.").DefaultTimeout();
+            await WaitForSubChannelsToBeReady(channel, 2).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -284,11 +270,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", reply1.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
 
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count == 1;
-            }, "Wait for all subconnections to be connected.").DefaultTimeout();
+            await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout();
         }
 
         [Test]
@@ -327,11 +309,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count == 2;
-            }, "Wait for all subconnections to be connected.").DefaultTimeout();
+            await WaitForSubChannelsToBeReady(channel, 2).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -348,11 +326,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             syncPoint.Continue();
 
+            await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout();
+        }
+
+        private async Task<Subchannel[]> WaitForSubChannelsToBeReady(GrpcChannel channel, int expectedCount)
+        {
+            Logger.LogInformation($"Waiting for subchannel ready count: {expectedCount}");
+
+            Subchannel[]? subChannelsCopy = null;
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
                 var picker = channel.ConnectionManager._picker as RoundRobinPicker;
-                return picker?._subchannels.Count == 1;
-            }, "Wait for all subconnections to be connected.").DefaultTimeout();
+                subChannelsCopy = picker?._subchannels.ToArray() ?? Array.Empty<Subchannel>();
+                Logger.LogInformation($"Current subchannel ready count: {subChannelsCopy.Length}");
+                for (var i = 0; i < subChannelsCopy.Length; i++)
+                {
+                    Logger.LogInformation($"Ready subchannel: {subChannelsCopy[i]}");
+                }
+
+                return subChannelsCopy.Length == expectedCount;
+            }, "Wait for all subconnections to be connected.");
+
+            Logger.LogInformation($"Finished waiting for subchannel ready.");
+
+            Debug.Assert(subChannelsCopy != null);
+            return subChannelsCopy;
         }
     }
 }

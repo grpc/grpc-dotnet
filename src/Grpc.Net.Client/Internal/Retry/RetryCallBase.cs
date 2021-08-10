@@ -248,9 +248,9 @@ namespace Grpc.Net.Client.Internal.Retry
             // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#pushback
             if (httpResponse != null)
             {
-                if (httpResponse.Headers.TryGetValues(GrpcProtocolConstants.RetryPushbackHeader, out var values))
+                var headerValue = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.RetryPushbackHeader);
+                if (headerValue != null)
                 {
-                    var headerValue = values.Single();
                     Log.RetryPushbackReceived(Logger, headerValue);
 
                     // A non-integer value means the server wants retries to stop.

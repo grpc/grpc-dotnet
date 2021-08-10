@@ -793,7 +793,7 @@ namespace Grpc.Net.Client.Internal
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _grpcMethodInfo.CallUri);
             message.Version = GrpcProtocolConstants.Http2Version;
-#if NET5_0
+#if NET5_0_OR_GREATER
             message.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 #endif
 

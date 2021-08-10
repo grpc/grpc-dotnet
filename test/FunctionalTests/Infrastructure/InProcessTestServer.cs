@@ -19,10 +19,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -87,7 +90,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
         {
             _urls = new Dictionary<TestServerEndpointName, string>();
 
-            _host = new WebHostBuilder()
+            var builder = new WebHostBuilder()
                 .ConfigureLogging(builder => builder
                     .SetMinimumLevel(LogLevel.Trace)
                     .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
@@ -100,8 +103,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 {
                     _configureKestrel(options, _urls);
                 })
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .Build();
+                .UseContentRoot(Directory.GetCurrentDirectory());
+
+            _host = builder.Build();
 
             var t = Task.Run(() => _host.Start());
             _logger.LogInformation("Starting test server...");

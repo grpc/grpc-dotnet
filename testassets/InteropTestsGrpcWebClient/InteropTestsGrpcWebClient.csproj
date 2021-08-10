@@ -17,8 +17,8 @@
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
 
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="$(MicrosoftAspNetCoreAppPackageVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="$(MicrosoftAspNetCoreApp5PackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="$(MicrosoftAspNetCoreApp5PackageVersion)" PrivateAssets="all" />
 
     <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
 

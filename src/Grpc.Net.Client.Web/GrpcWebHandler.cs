@@ -142,8 +142,10 @@ namespace Grpc.Net.Client.Web
                 // uses what the browser has negotiated.
                 request.Version = HttpVersion;
             }
-#if NET5_0
-            else if (request.RequestUri?.Scheme == Uri.UriSchemeHttps)
+#if NET5_0_OR_GREATER
+            else if (request.RequestUri?.Scheme == Uri.UriSchemeHttps
+                && request.VersionPolicy == HttpVersionPolicy.RequestVersionOrHigher
+                && request.Version == System.Net.HttpVersion.Version20)
             {
                 // If no explicit HttpVersion is set and the request is using TLS then default to HTTP/1.1.
                 // HTTP/1.1 together with HttpVersionPolicy.RequestVersionOrHigher it will be compatible

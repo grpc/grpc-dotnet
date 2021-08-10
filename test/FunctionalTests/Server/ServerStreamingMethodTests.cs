@@ -25,6 +25,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Server
@@ -78,7 +79,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         [Test]
         public async Task WriteResponseHeadersAsyncCore_FlushesHeadersToClient()
         {
+            async Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                await context.WriteResponseHeadersAsync(null);
+
+                await SayHellosCore(Logger, request, responseStream);
+            }
+
             // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(SayHellosSendHeadersFirst);
+
             var requestMessage = new HelloRequest
             {
                 Name = "World"
@@ -87,7 +97,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var requestStream = new MemoryStream();
             MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHellosSendHeadersFirst");
+            var httpRequest = GrpcHttpHelper.Create(method.FullName);
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
@@ -96,20 +106,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             response.AssertIsSuccessfulGrpcRequest();
 
+            Logger.LogInformation("Headers received. Starting to read stream");
+
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = PipeReader.Create(responseStream);
 
             for (var i = 0; i < 3; i++)
             {
+                Logger.LogInformation($"Reading message {i}.");
+
                 var greetingTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
 
                 // The headers are already sent
                 // All responses are streamed
+                Logger.LogInformation($"Message task completed: {greetingTask.IsCompleted}");
                 Assert.False(greetingTask.IsCompleted);
 
-                var greeting = await greetingTask.DefaultTimeout();
+                var greeting = (await greetingTask.DefaultTimeout())!;
 
-                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
+                Logger.LogInformation($"Received message {i}: {greeting.Message}");
+
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
             var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
@@ -169,6 +186,28 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             Assert.IsNull(await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout());
 
             response.AssertTrailerStatus();
+        }
+
+        public static async Task SayHellosCore(ILogger logger, HelloRequest request, IServerStreamWriter<HelloReply> responseStream)
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                // Gotta look busy
+                logger.LogInformation("Delaying");
+                await Task.Delay(1000);
+
+                logger.LogInformation("Sending message");
+
+                var message = $"How are you {request.Name}? {i}";
+                await responseStream.WriteAsync(new HelloReply { Message = message });
+            }
+
+            // Gotta look busy
+            logger.LogInformation("Delaying");
+            await Task.Delay(1000);
+
+            logger.LogInformation("Sending message");
+            await responseStream.WriteAsync(new HelloReply { Message = $"Goodbye {request.Name}!" });
         }
     }
 }

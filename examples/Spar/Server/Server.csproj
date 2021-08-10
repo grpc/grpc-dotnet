@@ -12,7 +12,7 @@
 
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="$(MicrosoftAspNetCoreApp5PackageVersion)" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

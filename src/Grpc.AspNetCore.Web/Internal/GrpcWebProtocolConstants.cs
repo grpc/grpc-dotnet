@@ -26,7 +26,7 @@ namespace Grpc.AspNetCore.Web.Internal
         internal const string GrpcWebContentType = "application/grpc-web";
         internal const string GrpcWebTextContentType = "application/grpc-web-text";
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         internal static readonly string Http2Protocol = HttpProtocol.Http2;
 #else
         internal const string Http2Protocol = "HTTP/2";

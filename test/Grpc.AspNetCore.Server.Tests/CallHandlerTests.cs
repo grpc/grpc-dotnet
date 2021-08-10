@@ -62,7 +62,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(hasRequestBodyDataRate, httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>().MinDataRate != null);
+            Assert.AreEqual(hasRequestBodyDataRate, httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>()?.MinDataRate != null);
         }
 
         [TestCase(MethodType.Unary, true)]
@@ -79,7 +79,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(hasMaxRequestBodySize, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
+            Assert.AreEqual(hasMaxRequestBodySize, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>()?.MaxRequestBodySize != null);
         }
 
         [Test]
@@ -96,7 +96,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(true, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>().MaxRequestBodySize != null);
+            Assert.AreEqual(true, httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>()?.MaxRequestBodySize != null);
             Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "UnableToDisableMaxRequestBodySizeLimit"));
         }
 
@@ -157,7 +157,7 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Request protocol of 'HTTP/1.1' is not supported.", log!.Message);
         }
 
-#if !NET5_0
+#if !NET5_0_OR_GREATER
         // .NET Core 3.0 + IIS returned HTTP/2.0 as the protocol
         [Test]
         public async Task ProtocolValidation_IISHttp2Protocol_Success()
@@ -190,7 +190,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await call.HandleCallAsync(httpContext).DefaultTimeout();
 
             // Assert
-            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>();
+            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()!;
             Assert.AreEqual(ex, serverCallContext.ServerCallContext.Status.DebugException);
         }
 
@@ -213,7 +213,7 @@ namespace Grpc.AspNetCore.Server.Tests
             await handleCallTask;
 
             // Assert
-            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>();
+            var serverCallContext = httpContext.Features.Get<IServerCallContextFeature>()!;
             Assert.AreEqual(StatusCode.DeadlineExceeded, serverCallContext.ServerCallContext.Status.StatusCode);
 
             Assert.IsFalse(isHandleCallTaskCompleteDuringDeadline);

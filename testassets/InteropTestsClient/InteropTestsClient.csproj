@@ -2,9 +2,14 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net5.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net6.0;net5.0;net472</TargetFrameworks>
     <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net5.0</TargetFrameworks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Required for QUIC & HTTP/3 in .NET 6 - https://github.com/dotnet/runtime/pull/55332 -->
+    <RuntimeHostConfigurationOption Include="System.Net.SocketsHttpHandler.Http3Support" Value="true" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\Shared\Assert.cs" Link="Assert.cs" />

@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.Builder
     /// </summary>
     public static class GrpcEndpointRouteBuilderExtensions
     {
-#if NET5_0
+#if NET5_0_OR_GREATER
         private const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
 #endif
 
@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.Builder
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
         /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
         public static GrpcServiceEndpointConventionBuilder MapGrpcService<
-#if NET5_0
+#if NET5_0_OR_GREATER
             [DynamicallyAccessedMembers(ServiceAccessibility)]
 #endif
             TService>(this IEndpointRouteBuilder builder) where TService : class

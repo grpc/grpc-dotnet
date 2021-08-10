@@ -44,6 +44,7 @@ namespace InteropTestsClient
             rootCommand.AddOption(new Option<string>(new string[] { "--service_account_key_file", nameof(ClientOptions.ServiceAccountKeyFile) }));
             rootCommand.AddOption(new Option<string>(new string[] { "--grpc_web_mode", nameof(ClientOptions.GrpcWebMode) }));
             rootCommand.AddOption(new Option<bool>(new string[] { "--use_winhttp", nameof(ClientOptions.UseWinHttp) }));
+            rootCommand.AddOption(new Option<bool>(new string[] { "--use_http3", nameof(ClientOptions.UseHttp3) }));
 
             rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
             {
@@ -52,6 +53,7 @@ namespace InteropTestsClient
                 Console.WriteLine("Runtime: " + runtimeVersion);
                 Console.WriteLine("Use TLS: " + options.UseTls);
                 Console.WriteLine("Use WinHttp: " + options.UseWinHttp);
+                Console.WriteLine("Use HTTP/3: " + options.UseHttp3);
                 Console.WriteLine("Use GrpcWebMode: " + options.GrpcWebMode);
                 Console.WriteLine("Use Test CA: " + options.UseTestCa);
                 Console.WriteLine("Client type: " + options.ClientType);

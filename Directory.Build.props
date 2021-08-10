@@ -18,7 +18,7 @@
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591</WarningsNotAsErrors>
 
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <LangVersion>9.0</LangVersion>
+    <LangVersion>10.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

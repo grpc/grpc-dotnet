@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual("Failed to deserialize response message.", call.GetStatus().Detail);
         }
 
-#if NET5_0
+#if NET5_0_OR_GREATER
         [Test]
         public async Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
         {

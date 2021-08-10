@@ -57,7 +57,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         [TestCase(TestServerEndpointName.Http2, "2.0", true)]
         [TestCase(TestServerEndpointName.Http2, "1.1", false)]
         [TestCase(TestServerEndpointName.Http2, null, true)]
-#if NET5_0
+#if NET5_0_OR_GREATER
         // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
         // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
         [TestCase(TestServerEndpointName.Http1WithTls, "2.0", false)]
@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         [TestCase(TestServerEndpointName.Http1WithTls, "1.1", true)]
         [TestCase(TestServerEndpointName.Http1WithTls, null, true)]
         [TestCase(TestServerEndpointName.Http2WithTls, "2.0", true)]
-#if NET5_0
+#if NET5_0_OR_GREATER
         // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
         // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
         [TestCase(TestServerEndpointName.Http2WithTls, "1.1", true)]
@@ -75,8 +75,19 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         [TestCase(TestServerEndpointName.Http2WithTls, "1.1", false)]
 #endif
         [TestCase(TestServerEndpointName.Http2WithTls, null, true)]
+#if NET6_0_OR_GREATER
+        [TestCase(TestServerEndpointName.Http3WithTls, null, true)]
+#endif
         public async Task SendValidRequest_WithConnectionOptions(TestServerEndpointName endpointName, string? version, bool success)
         {
+#if NET6_0_OR_GREATER
+            if (endpointName == TestServerEndpointName.Http3WithTls &&
+                !RequireHttp3Attribute.IsSupported(out var message))
+            {
+                Assert.Ignore(message);
+            }
+#endif
+
             SetExpectedErrorsFilter(writeContext =>
             {
                 return !success;

@@ -461,14 +461,29 @@ namespace Grpc.AspNetCore.Server.Internal
                 await completionFeature.CompleteAsync();
             }
 
+#if NET6_0_OR_GREATER
+            // With HTTP/3 we don't want to abort the write side of the stream.
+            // That will create a race between the completed response and the abort
+            // reaching the client.
+            // Instead we just want to abort the read side of the stream.
+            // Kestrel will do this automatically if there is unread request content.
+            if (GrpcProtocolConstants.IsHttp3(HttpContext.Request.Protocol))
+            {
+                return;
+            }
+#endif
+
             // HttpResetFeature should always be set on context,
             // but in case it isn't, fall back to HttpContext.Abort.
             // Abort will send error code INTERNAL_ERROR instead of NO_ERROR.
             var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
             if (resetFeature != null)
             {
-                GrpcServerLog.ResettingResponse(Logger, GrpcProtocolConstants.ResetStreamNoError);
-                resetFeature.Reset(GrpcProtocolConstants.ResetStreamNoError);
+                // HTTP/3 has different error codes
+                var errorCode = GrpcProtocolConstants.Http2ResetStreamNoError;
+
+                GrpcServerLog.ResettingResponse(Logger, errorCode);
+                resetFeature.Reset(errorCode);
             }
             else
             {
