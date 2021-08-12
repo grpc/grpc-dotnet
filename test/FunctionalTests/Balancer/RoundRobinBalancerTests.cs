@@ -266,11 +266,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             endpoint1.Dispose();
 
+            var subChannels = (await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout()).Single();
+            Assert.AreEqual(50052, subChannels.CurrentAddress?.Port);
+
             reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
             Assert.AreEqual("Balancer", reply1.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
-
-            await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout();
         }
 
         [Test]

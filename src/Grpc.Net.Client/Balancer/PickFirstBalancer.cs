@@ -170,33 +170,33 @@ namespace Grpc.Net.Client.Balancer
         {
             _subchannel?.RequestConnection();
         }
+    }
 
-        private class PickFirstPicker : SubchannelPicker
+    internal class PickFirstPicker : SubchannelPicker
+    {
+        internal Subchannel Subchannel { get; }
+
+        public PickFirstPicker(Subchannel subchannel)
         {
-            protected Subchannel Subchannel { get; }
-
-            public PickFirstPicker(Subchannel subchannel)
-            {
-                Subchannel = subchannel;
-            }
-
-            public override PickResult Pick(PickContext context)
-            {
-                return PickResult.ForSubchannel(Subchannel);
-            }
+            Subchannel = subchannel;
         }
 
-        private class RequestConnectionPicker : PickFirstPicker
+        public override PickResult Pick(PickContext context)
         {
-            public RequestConnectionPicker(Subchannel subchannel) : base(subchannel)
-            {
-            }
+            return PickResult.ForSubchannel(Subchannel);
+        }
+    }
 
-            public override PickResult Pick(PickContext context)
-            {
-                Subchannel.RequestConnection();
-                return base.Pick(context);
-            }
+    internal class RequestConnectionPicker : PickFirstPicker
+    {
+        public RequestConnectionPicker(Subchannel subchannel) : base(subchannel)
+        {
+        }
+
+        public override PickResult Pick(PickContext context)
+        {
+            Subchannel.RequestConnection();
+            return base.Pick(context);
         }
     }
 
