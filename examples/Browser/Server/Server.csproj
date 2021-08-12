@@ -22,13 +22,13 @@
     <Message Importance="high" Text="Restoring dependencies using 'npm'. This may take several minutes..." />
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
      <!-- Include source map for debugging (for other source map options see https://webpack.js.org/configuration/devtool/ ) -->
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npx webpack --debug --devtool inline-source-map scripts/index.js" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npx webpack --debug --devtool inline-source-map Scripts/index.js" />
   </Target>
 
   <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
     <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
-    <Exec WorkingDirectory="$(SpaRoot)" Command="npx webpack scripts/index.js" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npx webpack Scripts/index.js" />
 
     <!-- Include the newly-built files in the publish output -->
     <ItemGroup>
