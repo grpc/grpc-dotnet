@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -260,7 +261,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation($"Remove endpoint");
             endpoint1.Dispose();
 
-            await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 0, "Active streams removed.").DefaultTimeout();
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                Logger.LogInformation($"Current active stream endpoints: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
+                return activeStreams.Count == 0;
+            }, "Active streams removed.", Logger).DefaultTimeout();
 
             var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
             Assert.AreEqual("Balancer", reply.Message);
