@@ -51,7 +51,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         public void Disconnect()
         {
             _currentEndPoint = null;
-            _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
+            _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
 
         public
@@ -67,9 +67,9 @@ namespace Grpc.Net.Client.Balancer.Internal
 
             var currentEndPoint = _subchannel._addresses[0];
 
-            _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
+            _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Passively connecting.");
             _currentEndPoint = currentEndPoint;
-            _subchannel.UpdateConnectivityState(ConnectivityState.Ready);
+            _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
 #if !NETSTANDARD2_0
             return new ValueTask<bool>(true);

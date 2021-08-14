@@ -84,7 +84,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
                 _currentEndPoint = null;
             }
-            _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
+            _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
 
         public async ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
@@ -105,7 +105,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 Socket socket;
 
                 socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                _subchannel.UpdateConnectivityState(ConnectivityState.Connecting);
+                _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Connecting to socket.");
 
                 try
                 {
@@ -122,7 +122,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                         _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
                     }
 
-                    _subchannel.UpdateConnectivityState(ConnectivityState.Ready);
+                    _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Successfully connected to socket.");
                     return true;
                 }
                 catch (Exception ex)
@@ -160,6 +160,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     CompatibilityHelpers.Assert(_initialSocketEndPoint != null);
 
                     var closeSocket = false;
+                    Exception? sendException = null;
                     try
                     {
                         // Check the socket is still valid by doing a zero byte send.
@@ -172,6 +173,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     catch (Exception ex)
                     {
                         closeSocket = true;
+                        sendException = ex;
                         SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketEndPoint, ex);
                     }
 
@@ -188,7 +190,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                                 _lastEndPointIndex = 0;
                             }
                         }
-                        _subchannel.UpdateConnectivityState(ConnectivityState.Idle);
+                        _subchannel.UpdateConnectivityState(ConnectivityState.Idle, new Status(StatusCode.Unavailable, "Lost connection to socket.", sendException));
                     }
                 }
             }
