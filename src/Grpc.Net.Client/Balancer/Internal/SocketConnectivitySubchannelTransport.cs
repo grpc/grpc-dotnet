@@ -312,25 +312,25 @@ namespace Grpc.Net.Client.Balancer.Internal
             LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to '{Address}'.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _connectedSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Debug, new EventId(1, "ConnectedSocket"), "Connected to socket '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Connected to socket '{Address}'.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorConnectingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(1, "ErrorConnectingSocket"), "Error connecting to socket '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Error connecting to socket '{Address}'.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _checkingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "CheckingSocket"), "Checking socket '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Checking socket '{Address}'.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorCheckingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(1, "ErrorCheckingSocket"), "Error checking socket '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Error checking socket '{Address}'.");
 
         private static readonly Action<ILogger, Exception?> _errorSocketTimer =
             LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorSocketTimer"), "Unexpected error in check socket timer.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _creatingStream =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "CreatingStream"), "Creating stream for '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(6, "CreatingStream"), "Creating stream for '{Address}'.");
 
         private static readonly Action<ILogger, DnsEndPoint, Exception?> _disposingStream =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "DisposingStream"), "Disposing stream for '{Address}'.");
+            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(7, "DisposingStream"), "Disposing stream for '{Address}'.");
 
         public static void ConnectingSocket(ILogger logger, DnsEndPoint address)
         {

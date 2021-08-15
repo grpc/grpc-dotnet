@@ -206,7 +206,7 @@ namespace Grpc.Net.Client.Balancer
             LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Trace, new EventId(1, "ProcessingSubchannelStateChanged"), "Processing subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
 
         private static readonly Action<ILogger, int, Exception?> _ignoredSubchannelStateChange =
-            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "IgnoredSubchannelStateChange"), "Ignored state change because of unknown subchannel id '{SubchannelId}'.");
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(2, "IgnoredSubchannelStateChange"), "Ignored state change because of unknown subchannel id '{SubchannelId}'.");
 
         public static void ProcessingSubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state, Status status)
         {
