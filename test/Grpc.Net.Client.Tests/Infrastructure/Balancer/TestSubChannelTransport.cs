@@ -50,7 +50,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
         public void UpdateState(ConnectivityState state, Status? status = null)
         {
             _state = state;
-            Subchannel.UpdateConnectivityState(_state, status);
+            Subchannel.UpdateConnectivityState(_state, status ?? Status.DefaultSuccess);
         }
 
         public void Dispose()
@@ -69,7 +69,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
         public void Disconnect()
         {
             CurrentEndPoint = null;
-            Subchannel.UpdateConnectivityState(ConnectivityState.Idle);
+            Subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
 
         public async
@@ -83,7 +83,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
             var newState = await (_onTryConnect?.Invoke(cancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
             CurrentEndPoint = Subchannel._addresses[0];
-            Subchannel.UpdateConnectivityState(newState);
+            Subchannel.UpdateConnectivityState(newState, Status.DefaultSuccess);
 
             _connectTcs.TrySetResult(null);
 

@@ -100,16 +100,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             var client = new EchoService.EchoServiceClient(channel);
 
             // Act
-            var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync.DefaultTimeout();
+            var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync;
 
             // Assert
             if (success)
             {
-                Assert.AreEqual("test", (await call).Message);
+                Assert.AreEqual("test", (await call.DefaultTimeout()).Message);
             }
             else
             {
-                await ExceptionAssert.ThrowsAsync<RpcException>(async () => await call);
+                await ExceptionAssert.ThrowsAsync<RpcException>(async () => await call).DefaultTimeout();
             }
         }
     }

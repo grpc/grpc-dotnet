@@ -156,12 +156,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", (await reply2Task).Message);
             Assert.AreEqual("127.0.0.1:50051", host);
 
+            var waitForConnectingTask = Task.WhenAll(
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Connecting, channelId: 1),
+                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Connecting, channelId: 2));
+
             Logger.LogInformation("Ending " + endpoint.Address);
             endpoint.Dispose();
 
-            await Task.WhenAll(
-                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Connecting, channelId: 1),
-                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Connecting, channelId: 2)).DefaultTimeout();
+            await waitForConnectingTask.DefaultTimeout();
 
             Logger.LogInformation("Restarting");
             using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
@@ -266,11 +268,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             endpoint1.Dispose();
 
+            var subChannels = (await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout()).Single();
+            Assert.AreEqual(50052, subChannels.CurrentAddress?.Port);
+
             reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
             Assert.AreEqual("Balancer", reply1.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
-
-            await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout();
         }
 
         [Test]
