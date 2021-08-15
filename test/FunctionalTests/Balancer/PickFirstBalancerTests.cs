@@ -21,6 +21,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -135,6 +137,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Logger.LogInformation("Ending " + endpoint1.Address);
             endpoint1.Dispose();
+
+            await WaitForSubChannelToBeReady(channel, expectedPort: null).DefaultTimeout();
 
             reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
             Assert.AreEqual("Balancer", reply.Message);
@@ -257,7 +261,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation($"Remove endpoint");
             endpoint1.Dispose();
 
-            await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 0, "Active streams removed.").DefaultTimeout();
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                Logger.LogInformation($"Current active stream endpoints: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
+                return activeStreams.Count == 0;
+            }, "Active streams removed.", Logger).DefaultTimeout();
 
             var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
             Assert.AreEqual("Balancer", reply.Message);
@@ -354,6 +362,31 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", (await reply1Task).Message);
             Assert.AreEqual("Balancer", (await reply2Task).Message);
             Assert.AreEqual("127.0.0.1:50051", host);
+        }
+
+        private async Task<Subchannel> WaitForSubChannelToBeReady(GrpcChannel channel, int? expectedPort)
+        {
+            Logger.LogInformation($"Waiting for subchannel port: {expectedPort?.ToString() ?? "(null)"}");
+
+            Subchannel? subChannel = null;
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                var picker = channel.ConnectionManager._picker as PickFirstPicker;
+                if (picker == null)
+                {
+                    throw new Exception("Expected PickFirstPicker");
+                }
+
+                subChannel = picker.Subchannel;
+                Logger.LogInformation($"Current subchannel: {subChannel}");
+
+                return subChannel.CurrentAddress?.Port == expectedPort;
+            }, "Wait for all subconnections to be connected.");
+
+            Logger.LogInformation($"Finished waiting for subchannel ready.");
+
+            Debug.Assert(subChannel != null);
+            return subChannel;
         }
     }
 }

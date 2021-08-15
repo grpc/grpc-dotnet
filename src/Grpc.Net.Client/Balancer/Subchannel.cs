@@ -188,7 +188,7 @@ namespace Grpc.Net.Client.Balancer
                         SubchannelLog.ConnectionRequested(_logger, Id);
 
                         // Only start connecting underlying transport if in an idle state.
-                        UpdateConnectivityState(ConnectivityState.Connecting);
+                        UpdateConnectivityState(ConnectivityState.Connecting, "Connection requested.");
                         break;
                     case ConnectivityState.Connecting:
                     case ConnectivityState.Ready:
@@ -277,11 +277,16 @@ namespace Grpc.Net.Client.Balancer
             {
                 SubchannelLog.ConnectError(_logger, Id, ex);
 
-                UpdateConnectivityState(ConnectivityState.TransientFailure);
+                UpdateConnectivityState(ConnectivityState.TransientFailure, "Error connecting to subchannel.");
             }
         }
 
-        internal bool UpdateConnectivityState(ConnectivityState state, Status? status = null)
+        internal bool UpdateConnectivityState(ConnectivityState state, string successDetail)
+        {
+            return UpdateConnectivityState(state, new Status(StatusCode.OK, successDetail));
+        }
+        
+        internal bool UpdateConnectivityState(ConnectivityState state, Status status)
         {
             lock (Lock)
             {
@@ -299,13 +304,13 @@ namespace Grpc.Net.Client.Balancer
             }
             
             // Notify channel outside of lock to avoid deadlocks.
-            _manager.OnSubchannelStateChange(this, state, status ?? Status.DefaultSuccess);
+            _manager.OnSubchannelStateChange(this, state, status);
             return true;
         }
 
         internal void RaiseStateChanged(ConnectivityState state, Status status)
         {
-            SubchannelLog.SubchannelStateChanged(_logger, Id, state);
+            SubchannelLog.SubchannelStateChanged(_logger, Id, state, status);
 
             if (_stateChangedRegistrations.Count > 0)
             {
@@ -322,7 +327,7 @@ namespace Grpc.Net.Client.Balancer
         {
             lock (Lock)
             {
-                return $"Id: {Id}, Addresses: {string.Join(", ", _addresses)}, State: {State}";
+                return $"Id: {Id}, Addresses: {string.Join(", ", _addresses)}, State: {State}, Current address: {CurrentAddress}";
             }
         }
 
@@ -345,7 +350,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public void Dispose()
         {
-            UpdateConnectivityState(ConnectivityState.Shutdown);
+            UpdateConnectivityState(ConnectivityState.Shutdown, "Subchannel disposed.");
             _stateChangedRegistrations.Clear();
             Transport.Dispose();
             _connectCts?.Cancel();
@@ -384,8 +389,8 @@ namespace Grpc.Net.Client.Balancer
         private static readonly Action<ILogger, int, Exception?> _connectError =
             LoggerMessage.Define<int>(LogLevel.Error, new EventId(1, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
 
-        private static readonly Action<ILogger, int, ConnectivityState, Exception?> _subchannelStateChanged =
-            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(1, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}.");
+        private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
+            LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(1, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
 
         public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<DnsEndPoint> addresses)
         {
@@ -441,9 +446,9 @@ namespace Grpc.Net.Client.Balancer
             _connectError(logger, subchannelId, ex);
         }
 
-        public static void SubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state)
+        public static void SubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state, Status status)
         {
-            _subchannelStateChanged(logger, subchannelId, state, null);
+            _subchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
         }
     }
 }
