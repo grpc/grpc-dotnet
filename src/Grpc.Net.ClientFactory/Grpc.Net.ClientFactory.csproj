@@ -14,6 +14,7 @@
     <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\TelemetryHeaderHandler.cs" />
     <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
+    <Compile Include="..\Shared\HttpRequestHelpers.cs" Link="Internal\Http\HttpRequestHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>
