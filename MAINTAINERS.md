@@ -9,9 +9,11 @@ for general contribution guidelines.
 
 ## Maintainers (in alphabetical order)
 - [apolcyn](https://github.com/apolcyn), Google LLC
+- [captainsafia](https://github.com/captainsafia), Microsoft Corporation
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
-- [JunTaoLuo](https://github.com/JunTaoLuo), Microsoft Corporation
+- [rafikiassumaniMSFT](https://github.com/rafikiassumaniMSFT), Microsoft Corporation
 
 ## Emeritus Maintainers (in alphabetical order)
+- [JunTaoLuo](https://github.com/JunTaoLuo)
