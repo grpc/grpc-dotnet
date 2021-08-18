@@ -124,6 +124,9 @@ namespace GrpcAspNetCoreServer
 
         private static void ConfigureListenOptions(ListenOptions listenOptions, IConfigurationRoot config, System.Net.IPEndPoint endPoint)
         {
+            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+            var certPath = Path.Combine(basePath!, "Certs", "server1.pfx");
+
             var protocol = config["protocol"] ?? "";
             bool.TryParse(config["enableCertAuth"], out var enableCertAuth);
 
@@ -134,7 +137,7 @@ namespace GrpcAspNetCoreServer
             {
                 listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
 
-                listenOptions.UseHttps(httpsOptions =>
+                listenOptions.UseHttps(certPath, "1111", httpsOptions =>
                 {
                     if (enableCertAuth)
                     {
@@ -148,7 +151,7 @@ namespace GrpcAspNetCoreServer
             {
                 listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
 
-                listenOptions.UseHttps(httpsOptions =>
+                listenOptions.UseHttps(certPath, "1111", httpsOptions =>
                 {
                     if (enableCertAuth)
                     {
