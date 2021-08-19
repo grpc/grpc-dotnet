@@ -363,34 +363,34 @@ namespace Grpc.Net.Client.Balancer
             LoggerMessage.Define<int, string>(LogLevel.Debug, new EventId(1, "SubchannelCreated"), "Subchannel id '{SubchannelId}' created with addresses: {Addresses}");
 
         private static readonly Action<ILogger, int, Exception?> _addressesUpdatedWhileConnecting =
-            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(1, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(2, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
 
         private static readonly Action<ILogger, int, DnsEndPoint, Exception?> _connectedAddressNotInUpdatedAddresses =
-            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(1, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
+            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(3, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
 
         private static readonly Action<ILogger, int, Exception?> _connectionRequested =
-            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(4, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
 
         private static readonly Action<ILogger, int, ConnectivityState, Exception?> _connectionRequestedInNonIdleState =
-            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(1, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
+            LoggerMessage.Define<int, ConnectivityState>(LogLevel.Debug, new EventId(5, "ConnectionRequestedInNonIdleState"), "Subchannel id '{SubchannelId}' connection requested in non-idle state of {State}.");
 
         private static readonly Action<ILogger, int, Exception?> _connectingTransport =
-            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(6, "ConnectingTransport"), "Subchannel id '{SubchannelId}' connecting to transport.");
 
         private static readonly Action<ILogger, int, TimeSpan, Exception?> _startingConnectBackoff =
-            LoggerMessage.Define<int, TimeSpan>(LogLevel.Trace, new EventId(1, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
+            LoggerMessage.Define<int, TimeSpan>(LogLevel.Trace, new EventId(7, "StartingConnectBackoff"), "Subchannel id '{SubchannelId}' starting connect backoff of {BackoffDuration}.");
 
         private static readonly Action<ILogger, int, Exception?> _connectBackoffInterrupted =
-            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(8, "ConnectBackoffInterrupted"), "Subchannel id '{SubchannelId}' connect backoff interrupted.");
 
         private static readonly Action<ILogger, int, Exception?> _connectCanceled =
-            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(1, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
 
         private static readonly Action<ILogger, int, Exception?> _connectError =
-            LoggerMessage.Define<int>(LogLevel.Error, new EventId(1, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
+            LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
 
         private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
-            LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(1, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
+            LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
 
         public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<DnsEndPoint> addresses)
         {
