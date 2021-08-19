@@ -206,16 +206,16 @@ namespace Grpc.Net.Client.Balancer
             LoggerMessage.Define<TimeSpan, TimeSpan>(LogLevel.Debug, new EventId(1, "StartingRateLimitDelay"), "Starting rate limit delay of {DelayDuration}. DNS resolution rate limit is once every {RateLimitDuration}.");
 
         private static readonly Action<ILogger, Uri, Exception?> _startingDnsQuery =
-            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(1, "StartingDnsQuery"), "Starting DNS query to get hosts from '{DnsAddress}'.");
+            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "StartingDnsQuery"), "Starting DNS query to get hosts from '{DnsAddress}'.");
 
         private static readonly Action<ILogger, int, Uri, string, Exception?> _receivedDnsResults =
-            LoggerMessage.Define<int, Uri, string>(LogLevel.Debug, new EventId(1, "ReceivedDnsResults"), "Received {ResultCount} DNS results from '{DnsAddress}'. Results: {DnsResults}");
+            LoggerMessage.Define<int, Uri, string>(LogLevel.Debug, new EventId(3, "ReceivedDnsResults"), "Received {ResultCount} DNS results from '{DnsAddress}'. Results: {DnsResults}");
 
         private static readonly Action<ILogger, Uri, Exception?> _errorQueryingDns =
-            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(1, "ErrorQueryingDns"), "Error querying DNS hosts for '{DnsAddress}'.");
+            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(4, "ErrorQueryingDns"), "Error querying DNS hosts for '{DnsAddress}'.");
 
         private static readonly Action<ILogger, Exception?> _errorFromRefreshInterval =
-            LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorFromRefreshIntervalTimer"), "Error from refresh interval timer.");
+            LoggerMessage.Define(LogLevel.Error, new EventId(5, "ErrorFromRefreshIntervalTimer"), "Error from refresh interval timer.");
 
         public static void StartingRateLimitDelay(ILogger logger, TimeSpan delayDuration, TimeSpan rateLimitDuration)
         {

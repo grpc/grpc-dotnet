@@ -475,43 +475,43 @@ namespace Grpc.Net.Client.Balancer.Internal
             LoggerMessage.Define(LogLevel.Trace, new EventId(1, "ResolverRefreshRequested"), "Resolver refresh requested.");
 
         private static readonly Action<ILogger, Exception?> _resolverRefreshIgnored =
-            LoggerMessage.Define(LogLevel.Trace, new EventId(1, "ResolverRefreshIgnored"), "Resolver refresh ignored because resolve is already in progress.");
+            LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResolverRefreshIgnored"), "Resolver refresh ignored because resolve is already in progress.");
 
         private static readonly Action<ILogger, Exception?> _resolverRefreshError =
-            LoggerMessage.Define(LogLevel.Error, new EventId(1, "ResolverRefreshError"), "Error refreshing resolver.");
+            LoggerMessage.Define(LogLevel.Error, new EventId(3, "ResolverRefreshError"), "Error refreshing resolver.");
 
         private static readonly Action<ILogger, string, Exception?> _resolverUnsupportedLoadBalancingConfig =
-            LoggerMessage.Define<string>(LogLevel.Warning, new EventId(1, "ResolverUnsupportedLoadBalancingConfig"), "Service config returned by the resolver contains unsupported load balancer policies: {LoadBalancingConfigs}. Load balancer unchanged.");
+            LoggerMessage.Define<string>(LogLevel.Warning, new EventId(4, "ResolverUnsupportedLoadBalancingConfig"), "Service config returned by the resolver contains unsupported load balancer policies: {LoadBalancingConfigs}. Load balancer unchanged.");
 
         private static readonly Action<ILogger, Exception?> _resolverServiceConfigNotUsed =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(1, "ResolverServiceConfigNotUsed"), "Service config returned by the resolver not used.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(5, "ResolverServiceConfigNotUsed"), "Service config returned by the resolver not used.");
 
         private static readonly Action<ILogger, ConnectivityState, Exception?> _channelStateUpdated =
-            LoggerMessage.Define<ConnectivityState>(LogLevel.Debug, new EventId(1, "ChannelStateUpdated"), "Channel state updated to {State}.");
+            LoggerMessage.Define<ConnectivityState>(LogLevel.Debug, new EventId(6, "ChannelStateUpdated"), "Channel state updated to {State}.");
 
         private static readonly Action<ILogger, Exception?> _channelPickerUpdated =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(1, "ChannelPickerUpdated"), "Channel picker updated.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(7, "ChannelPickerUpdated"), "Channel picker updated.");
 
         private static readonly Action<ILogger, Exception?> _pickStarted =
-            LoggerMessage.Define(LogLevel.Trace, new EventId(1, "PickStarted"), "Pick started.");
+            LoggerMessage.Define(LogLevel.Trace, new EventId(8, "PickStarted"), "Pick started.");
 
         private static readonly Action<ILogger, int, DnsEndPoint, Exception?> _pickResultSuccessful =
-            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(1, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
+            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(9, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
 
         private static readonly Action<ILogger, int, Exception?> _pickResultSubchannelNoCurrentAddress =
-            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(1, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
 
         private static readonly Action<ILogger, Exception?> _pickResultQueued =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(1, "PickResultQueued"), "Picked queued.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(11, "PickResultQueued"), "Picked queued.");
 
         private static readonly Action<ILogger, Status, Exception?> _pickResultFailure =
-            LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(1, "PickResultFailure"), "Picked failure with status: {Status}");
+            LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(12, "PickResultFailure"), "Picked failure with status: {Status}");
 
         private static readonly Action<ILogger, Status, Exception?> _pickResultFailureWithWaitForReady =
-            LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(1, "PickResultFailureWithWaitForReady"), "Picked failure with status: {Status}. Retrying because wait for ready is enabled.");
+            LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(13, "PickResultFailureWithWaitForReady"), "Picked failure with status: {Status}. Retrying because wait for ready is enabled.");
 
         private static readonly Action<ILogger, Exception?> _pickWaiting =
-            LoggerMessage.Define(LogLevel.Trace, new EventId(1, "PickWaiting"), "Waiting for a new picker.");
+            LoggerMessage.Define(LogLevel.Trace, new EventId(14, "PickWaiting"), "Waiting for a new picker.");
 
         public static void ResolverRefreshRequested(ILogger logger)
         {
