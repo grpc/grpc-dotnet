@@ -288,6 +288,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 return false;
             });
 
+            using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
+
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
 
             var requestMessage = new HelloRequest

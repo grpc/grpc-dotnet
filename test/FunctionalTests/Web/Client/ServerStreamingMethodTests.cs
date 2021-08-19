@@ -132,7 +132,33 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
         [Test]
         public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException()
         {
+            var serverAbortedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
+            {
+                var httpContext = context.GetHttpContext();
+                httpContext.RequestAborted.Register(() => serverAbortedTcs.SetResult(null));
+
+                for (var i = 0; i < request.MessageCount; i++)
+                {
+                    await responseStream.WriteAsync(new ServerStreamingEchoResponse
+                    {
+                        Message = request.Message
+                    });
+
+                    try
+                    {
+                        await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                }
+            }
+
             // Arrage
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<ServerStreamingEchoRequest, ServerStreamingEchoResponse>(ServerStreamingEcho);
+
             var httpClient = CreateGrpcWebClient();
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
@@ -141,15 +167,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             });
 
             var cts = new CancellationTokenSource();
-            var client = new EchoService.EchoServiceClient(channel);
+
+            var client = TestClientFactory.Create(channel, method);
 
             // Act
-            var call = client.ServerStreamingEcho(new ServerStreamingEchoRequest
+            var call = client.ServerStreamingCall(new ServerStreamingEchoRequest
             {
                 Message = "test",
                 MessageCount = 2,
                 MessageInterval = TimeSpan.FromMilliseconds(100).ToDuration()
-            }, cancellationToken: cts.Token);
+            }, new CallOptions(cancellationToken: cts.Token));
 
             // Assert
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
@@ -168,6 +195,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             await Task.Delay(50);
 
             AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'.");
+
+            // HTTP/1.1 doesn't appear to send the cancellation to the server.
+            // This might be because the server has finished reading the response body
+            // and doesn't have a way to get the notification.
+            if (EndpointName != TestServerEndpointName.Http1)
+            {
+                // Verify the abort reached the server.
+                await serverAbortedTcs.Task.DefaultTimeout();
+            }
         }
     }
 }
