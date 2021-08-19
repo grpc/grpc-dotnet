@@ -39,7 +39,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _manager = manager;
 
 #if NET5_0_OR_GREATER
-            var socketsHttpHandler = (SocketsHttpHandler?)HttpHandlerFactory.GetHttpHandlerType(innerHandler, "System.Net.Http.SocketsHttpHandler");
+            var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
             if (socketsHttpHandler != null)
             {
                 socketsHttpHandler.ConnectCallback = OnConnect;
