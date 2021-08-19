@@ -49,12 +49,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     if (bytes.Count >= nextFailure)
                     {
                         nextFailure = nextFailure * 2;
+                        Logger.LogInformation($"Server failing at {bytes.Count}. Next failure at {nextFailure}.");
                         throw new RpcException(new Status(StatusCode.Unavailable, ""));
                     }
 
+                    Logger.LogInformation($"Server received {bytes.Count}.");
                     bytes.Add(message.Data[0]);
                 }
 
+                Logger.LogInformation("Server returning response.");
                 return new DataMessage
                 {
                     Data = ByteString.CopyFrom(bytes.ToArray())
@@ -65,6 +68,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 return true;
             });
+
+            using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
 
             // Arrange
             var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithReadFailures);
@@ -79,12 +84,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 sentData.Add((byte)i);
 
+                Logger.LogInformation($"Client writing message {i}.");
                 await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[] { (byte)i }) }).DefaultTimeout();
                 await Task.Delay(1);
             }
 
+            Logger.LogInformation("Client completing request stream.");
             await call.RequestStream.CompleteAsync().DefaultTimeout();
 
+            Logger.LogInformation("Client waiting for response.");
             var result = await call.ResponseAsync.DefaultTimeout();
 
             // Assert
@@ -204,10 +212,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         public async Task Unary_DeadlineExceedDuringBackoff_Failure()
         {
             var callCount = 0;
-            Task<DataMessage> UnaryFailure(DataMessage request, ServerCallContext context)
+            Task<DataMessage> UnaryFailureWithPushback(DataMessage request, ServerCallContext context)
             {
                 callCount++;
 
+                Logger.LogInformation($"Server sending pushback for call {callCount}.");
                 return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.Unavailable, ""), new Metadata
                 {
                     new Metadata.Entry("grpc-retry-pushback-ms", TimeSpan.FromSeconds(10).TotalMilliseconds.ToString())
@@ -215,7 +224,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
 
             // Arrange
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryFailure);
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryFailureWithPushback, nameof(UnaryFailureWithPushback));
 
             var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig(
                 initialBackoff: TimeSpan.FromSeconds(10),
@@ -357,6 +366,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 Interlocked.Increment(ref callCount);
                 return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.Unavailable, "")));
             }
+
+            using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
 
             // Arrange
             var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryFailure);

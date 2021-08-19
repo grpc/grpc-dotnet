@@ -350,6 +350,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 return false;
             });
 
+            using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
+
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task<DataComplete> ClientStreamedData(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
             {
@@ -851,9 +853,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.DuplexStreamingCall();
 
-            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) });
+            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) }).DefaultTimeout();
 
-            await call.ResponseStream.MoveNext();
+            await call.ResponseStream.MoveNext().DefaultTimeout();
 
             var cts = new CancellationTokenSource();
             var task = call.ResponseStream.MoveNext(cts.Token);
@@ -861,11 +863,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             cts.Cancel();
 
             // Assert
-            var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(() => task);
+            var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(() => task).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
             Assert.AreEqual("Call canceled by the client.", clientEx.Status.Detail);
 
-            var serverEx = await ExceptionAssert.ThrowsAsync<Exception>(() => tcs.Task);
+            var serverEx = await ExceptionAssert.ThrowsAsync<Exception>(() => tcs.Task).DefaultTimeout();
             if (serverEx is IOException)
             {
                 // Cool
