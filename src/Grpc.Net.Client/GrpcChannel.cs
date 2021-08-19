@@ -223,7 +223,7 @@ namespace Grpc.Net.Client
                     : HttpHandlerType.Custom;
             }
 
-            return HttpHandlerFactory.CalculateHandlerType(channelOptions.HttpHandler);
+            return HttpRequestHelpers.CalculateHandlerType(channelOptions.HttpHandler);
         }
 
 #if SUPPORT_LOAD_BALANCING
