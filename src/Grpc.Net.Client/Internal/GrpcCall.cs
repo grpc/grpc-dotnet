@@ -415,11 +415,6 @@ namespace Grpc.Net.Client.Internal
             {
                 var (diagnosticSourceEnabled, activity) = InitializeCall(request, timeout);
 
-                if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
-                {
-                    await ReadCredentials(request).ConfigureAwait(false);
-                }
-
                 // Unset variable to check that FinishCall is called in every code path
                 bool finished;
 
@@ -427,6 +422,13 @@ namespace Grpc.Net.Client.Internal
 
                 try
                 {
+                    // User supplied call credentials could error and so must be run
+                    // inside try/catch to handle errors.
+                    if (Options.Credentials != null || Channel.CallCredentials?.Count > 0)
+                    {
+                        await ReadCredentials(request).ConfigureAwait(false);
+                    }
+
                     // Fail early if deadline has already been exceeded
                     _callCts.Token.ThrowIfCancellationRequested();
 

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.Tracing;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -26,7 +25,7 @@ namespace Grpc.Tests.Shared
     public sealed class HttpEventSourceListener : EventListener
     {
         private readonly StringBuilder _messageBuilder = new StringBuilder();
-        private readonly ILogger _logger;
+        private readonly ILogger? _logger;
         private readonly object _lock = new object();
         private bool _disposed;
 
@@ -43,7 +42,13 @@ namespace Grpc.Tests.Shared
             if (eventSource.Name.Contains("System.Net.Quic") ||
                 eventSource.Name.Contains("System.Net.Http"))
             {
-                EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
+                lock (_lock)
+                {
+                    if (!_disposed)
+                    {
+                        EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
+                    }
+                }
             }
         }
 
@@ -72,7 +77,10 @@ namespace Grpc.Tests.Shared
             {
                 if (!_disposed)
                 {
-                    _logger.LogDebug(message);
+                    // EventListener base constructor subscribes to events.
+                    // It is possible to start getting events before the
+                    // super constructor is run and logger is assigned.
+                    _logger?.LogDebug(message);
                 }
             }
         }
@@ -90,7 +98,7 @@ namespace Grpc.Tests.Shared
             {
                 if (!_disposed)
                 {
-                    _logger.LogDebug($"Stopping {nameof(HttpEventSourceListener)}.");
+                    _logger?.LogDebug($"Stopping {nameof(HttpEventSourceListener)}.");
                     _disposed = true;
                 }
             }

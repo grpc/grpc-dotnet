@@ -28,6 +28,8 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
@@ -36,6 +38,37 @@ namespace Grpc.Net.Client.Tests
     [TestFixture]
     public class CallCredentialTests
     {
+        [Test]
+        public async Task CallCredentialsWithHttps_WhenAsyncAuthInterceptorThrow_ShouldThrow()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
+
+            // Act
+            var expectedException = new Exception("Some AsyncAuthInterceptor Exception");
+
+            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
+            {
+                return Task.FromException(expectedException);
+            });
+
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreSame(expectedException, ex.Status.DebugException);
+        }
+
         [Test]
         public async Task CallCredentialsWithHttps_MetadataOnRequest()
         {
