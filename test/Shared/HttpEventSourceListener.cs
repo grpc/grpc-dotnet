@@ -88,8 +88,11 @@ namespace Grpc.Tests.Shared
 
             lock (_lock)
             {
-                _logger.LogDebug($"Stopping {nameof(HttpEventSourceListener)}.");
-                _disposed = true;
+                if (!_disposed)
+                {
+                    _logger.LogDebug($"Stopping {nameof(HttpEventSourceListener)}.");
+                    _disposed = true;
+                }
             }
         }
     }
