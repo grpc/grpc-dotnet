@@ -89,9 +89,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 methodWrapper.SyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
                 currentSyncPoint.Continue();
 
-                var greeting = await greetingTask.DefaultTimeout();
+                var greeting = (await greetingTask.DefaultTimeout())!;
 
-                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
@@ -163,11 +163,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 methodWrapper.SyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
                 currentSyncPoint.Continue();
 
-                var greeting = await greetingTask.DefaultTimeout();
+                var greeting = (await greetingTask.DefaultTimeout())!;
 
-                Logger.LogInformation($"Received message {i}: {greeting!.Message}");
+                Logger.LogInformation($"Received message {i}: {greeting.Message}");
 
-                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
@@ -228,9 +228,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             for (var i = 0; i < 3; i++)
             {
-                var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
+                var greeting = (await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout())!;
 
-                Assert.AreEqual($"How are you World? {i}", greeting!.Message);
+                Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
             var goodbye = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
