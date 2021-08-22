@@ -289,7 +289,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var client = TestClientFactory.Create(channel, method);
 
             // Act
-            var call = client.DuplexStreamingCall(new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(300)));
+            var call = client.DuplexStreamingCall(new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(500)));
 
             // Assert
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();

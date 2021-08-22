@@ -26,6 +26,7 @@ using FunctionalTestsWebsite.Services;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Server
@@ -37,6 +38,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         public async Task MultipleMessagesFromOneClient_SuccessResponses()
         {
             // Arrange
+            using var httpEventSource = new HttpEventSourceListener(LoggerFactory);
+
             var ms = new MemoryStream();
             MessageHelpers.WriteMessage(ms, new ChatMessage
             {
@@ -56,20 +59,24 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
 
+            Logger.LogInformation("Client sending message");
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
             await requestStream.FlushAsync().DefaultTimeout();
 
+            Logger.LogInformation("Client waiting for response");
             var response = await responseTask.DefaultTimeout();
             response.AssertIsSuccessfulGrpcRequest();
 
             var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
             var pipeReader = PipeReader.Create(responseStream);
 
+            Logger.LogInformation("Client reading message");
             var message1Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
             var message1 = await message1Task.DefaultTimeout();
             Assert.AreEqual("John", message1!.Name);
             Assert.AreEqual("Hello Jill", message1.Message);
 
+            Logger.LogInformation("Client starting reading message");
             var message2Task = MessageHelpers.AssertReadStreamMessageAsync<ChatMessage>(pipeReader);
             Assert.IsFalse(message2Task.IsCompleted, "Server is waiting for messages from client");
 
@@ -80,9 +87,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 Message = "Hello John"
             });
 
+            Logger.LogInformation("Client sending message");
             await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
             await requestStream.FlushAsync().DefaultTimeout();
 
+            Logger.LogInformation("Client waiting for reading message");
             var message2 = await message2Task.DefaultTimeout();
             Assert.AreEqual("Jill", message2!.Name);
             Assert.AreEqual("Hello John", message2.Message);
