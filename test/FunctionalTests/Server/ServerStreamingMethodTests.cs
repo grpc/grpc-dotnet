@@ -94,10 +94,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
+            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
             methodWrapper.SyncPoint.Continue();
 
-            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
@@ -170,10 +171,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 Assert.AreEqual($"How are you World? {i}", greeting.Message);
             }
 
+            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
             methodWrapper.SyncPoint.Continue();
 
-            var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
             Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
