@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -51,7 +52,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private readonly ILogger _logger;
         private readonly Subchannel _subchannel;
         private readonly TimeSpan _socketPingInterval;
-        internal readonly List<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> _activeStreams;
+        private readonly List<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> _activeStreams;
         private readonly Timer _socketConnectedTimer;
 
         private int _lastEndPointIndex;
@@ -72,6 +73,15 @@ namespace Grpc.Net.Client.Balancer.Internal
         public object Lock => _subchannel.Lock;
         public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
         public bool HasStream { get; }
+
+        // For testing. Take a copy under lock for thread-safety.
+        internal IReadOnlyList<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> GetActiveStreams()
+        {
+            lock (Lock)
+            {
+                return _activeStreams.ToList();
+            }
+        }
 
         public void Disconnect()
         {
