@@ -27,10 +27,13 @@ namespace Grpc.Tests.Shared
     {
         private readonly StringBuilder _messageBuilder = new StringBuilder();
         private readonly ILogger _logger;
+        private readonly object _lock = new object();
+        private bool _disposed;
 
         public HttpEventSourceListener(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger(nameof(HttpEventSourceListener));
+            _logger.LogDebug($"Starting {nameof(HttpEventSourceListener)}.");
         }
 
         protected override void OnEventSourceCreated(EventSource eventSource)
@@ -62,12 +65,35 @@ namespace Grpc.Tests.Shared
                 _messageBuilder.Clear();
             }
 
-            _logger.LogDebug(message);
+            // We don't know the state of the logger after dispose.
+            // Ensure that any messages written in the background aren't
+            // logged after the listener has been disposed in the test.
+            lock (_lock)
+            {
+                if (!_disposed)
+                {
+                    _logger.LogDebug(message);
+                }
+            }
         }
 
         public override string ToString()
         {
             return _messageBuilder.ToString();
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            lock (_lock)
+            {
+                if (!_disposed)
+                {
+                    _logger.LogDebug($"Stopping {nameof(HttpEventSourceListener)}.");
+                    _disposed = true;
+                }
+            }
         }
     }
 }
