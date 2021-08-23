@@ -246,7 +246,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
             var subchannel = balancer._subchannel!;
             var transport = (SocketConnectivitySubchannelTransport)subchannel.Transport;
-            var activeStreams = transport._activeStreams;
+            var activeStreams = transport.GetActiveStreams();
 
             // Assert
             Assert.AreEqual(2, activeStreams.Count);
@@ -263,6 +263,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
+                activeStreams = transport.GetActiveStreams();
                 Logger.LogInformation($"Current active stream endpoints: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
                 return activeStreams.Count == 0;
             }, "Active streams removed.", Logger).DefaultTimeout();
@@ -271,6 +272,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", reply.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
 
+            activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(1, activeStreams.Count);
             Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
         }

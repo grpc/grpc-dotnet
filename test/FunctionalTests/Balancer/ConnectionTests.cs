@@ -110,12 +110,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
             var subchannel = balancer._subchannel!;
             var transport = (SocketConnectivitySubchannelTransport)subchannel.Transport;
-            var activeStreams = transport._activeStreams;
+            var activeStreams = transport.GetActiveStreams();
 
             // Assert
             Assert.AreEqual(HttpHandlerType.SocketsHttpHandler, channel.HttpHandlerType);
 
-            await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 10, "Wait for connections to start.");
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                activeStreams = transport.GetActiveStreams();
+                return activeStreams.Count == 10;
+            }, "Wait for connections to start.");
             foreach (var t in activeStreams)
             {
                 Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.EndPoint);
@@ -134,7 +138,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation($"Done sending gRPC calls");
 
             // Assert
-            await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 11, "Wait for connections to start.");
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                activeStreams = transport.GetActiveStreams();
+                return activeStreams.Count == 11;
+            }, "Wait for connections to start.");
             Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams.Last().EndPoint);
 
             tcs.SetResult(null);
@@ -149,7 +157,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             // There are still be 10 HTTP/1.1 connections because they aren't immediately removed
             // when the server is shutdown and connectivity is lost.
-            await TestHelpers.AssertIsTrueRetryAsync(() => activeStreams.Count == 10, "Wait for HTTP/2 connection to end.");
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                activeStreams = transport.GetActiveStreams();
+                return activeStreams.Count == 10;
+            }, "Wait for HTTP/2 connection to end.");
 
             grpcWebHandler.HttpVersion = new Version(1, 1);
 
@@ -160,6 +172,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
 
             // Removed by failed call.
+            activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(0, activeStreams.Count);
             Assert.AreEqual(ConnectivityState.Idle, channel.State);
 
@@ -168,6 +181,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", reply.Message);
             Assert.AreEqual("127.0.0.1:50052", host);
 
+            activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(1, activeStreams.Count);
             Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
         }
