@@ -95,11 +95,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+            Assert.False(goodbyeTask.IsCompleted);
 
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
             methodWrapper.SyncPoint.Continue();
 
-            Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
@@ -172,11 +172,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             var goodbyeTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+            Assert.False(goodbyeTask.IsCompleted);
 
             await methodWrapper.SyncPoint.WaitForSyncPoint().DefaultTimeout();
             methodWrapper.SyncPoint.Continue();
 
-            Assert.False(goodbyeTask.IsCompleted);
             Assert.AreEqual("Goodbye World!", (await goodbyeTask.DefaultTimeout())!.Message);
 
             var finishedTask = MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
