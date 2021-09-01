@@ -193,18 +193,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.DuplexData();
 
-            await ExceptionAssert.ThrowsAsync<Exception>(async () =>
+            await TestHelpers.AssertIsTrueRetryAsync(async () =>
             {
-                await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+                try
                 {
-                    Data = ByteString.CopyFrom(CreateTestData(1024 * 64))
-                }).DefaultTimeout();
-
-                await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+                    await call.RequestStream.WriteAsync(new UnimplementeDataMessage
+                    {
+                        Data = ByteString.CopyFrom(CreateTestData(1024 * 64))
+                    }).DefaultTimeout();
+                    return false;
+                }
+                catch
                 {
-                    Data = ByteString.CopyFrom(CreateTestData(1024 * 64))
-                }).DefaultTimeout();
-            });
+                    return true;
+                }
+            }, "Write until error.", Logger);
 
             await call.ResponseHeadersAsync.DefaultTimeout();
 
