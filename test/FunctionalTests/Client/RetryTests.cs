@@ -356,6 +356,59 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             tcs.SetResult(new DataMessage());
         }
 
+        [Test]
+        public async Task ServerStreaming_CancellatonTokenSpecified_TokenUnregisteredAndResourcesReleased()
+        {
+            Task FakeServerStreamCall(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                return Task.CompletedTask;
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(FakeServerStreamCall);
+
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig(retryableStatusCodes: new List<StatusCode> { StatusCode.DeadlineExceeded });
+            var channel = CreateChannel(serviceConfig: serviceConfig);
+
+            var references = new List<WeakReference>();
+
+            // Checking that token register calls don't build up on CTS and create a memory leak.
+            var cts = new CancellationTokenSource();
+
+            // Act
+            await MakeCallsAsync(channel, method, references, cts.Token).DefaultTimeout();
+
+            // There is a race when cleaning up cancellation token registry.
+            // Retry a few times to ensure GC is run after unregister.
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                for (var i = 0; i < references.Count; i++)
+                {
+                    if (references[i].IsAlive)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }, "Assert that retry call resources are released.");
+        }
+
+        private static async Task MakeCallsAsync(GrpcChannel channel, Method<DataMessage, DataMessage> method, List<WeakReference> references, CancellationToken cancellationToken)
+        {
+            var client = TestClientFactory.Create(channel, method);
+            for (int i = 0; i < 10; i++)
+            {
+                var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cancellationToken));
+                references.Add(new WeakReference(call.ResponseStream));
+
+                Assert.IsFalse(await call.ResponseStream.MoveNext());
+            }
+        }
+
         [TestCase(1)]
         [TestCase(20)]
         public async Task Unary_AttemptsGreaterThanDefaultClientLimit_LimitedAttemptsMade(int hedgingDelay)
