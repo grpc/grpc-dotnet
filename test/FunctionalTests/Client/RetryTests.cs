@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -376,8 +377,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var cts = new CancellationTokenSource();
 
             // Act
+            // Send calls in a different method so there is no chance that a stack reference
+            // to a gRPC call is still alive after calls are complete.
             await MakeCallsAsync(channel, method, references, cts.Token).DefaultTimeout();
 
+            // Assert
             // There is a race when cleaning up cancellation token registry.
             // Retry a few times to ensure GC is run after unregister.
             await TestHelpers.AssertIsTrueRetryAsync(() =>
@@ -397,6 +401,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }, "Assert that retry call resources are released.");
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static async Task MakeCallsAsync(GrpcChannel channel, Method<DataMessage, DataMessage> method, List<WeakReference> references, CancellationToken cancellationToken)
         {
             var client = TestClientFactory.Create(channel, method);
