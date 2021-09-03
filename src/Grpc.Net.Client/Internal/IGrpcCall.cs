@@ -45,5 +45,7 @@ namespace Grpc.Net.Client.Internal
         void StartDuplexStreaming();
 
         Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state);
+
+        bool Disposed { get; }
     }
 }

@@ -43,7 +43,9 @@ namespace Grpc.Net.Client.Internal.Retry
         private readonly TaskCompletionSource<IGrpcCall<TRequest, TResponse>> _commitedCallTcs;
         private RetryCallBaseClientStreamReader<TRequest, TResponse>? _retryBaseClientStreamReader;
         private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
-        private CancellationTokenRegistration? _ctsRegistration;
+
+        // Internal for unit testing.
+        internal CancellationTokenRegistration? _ctsRegistration;
 
         protected object Lock { get; } = new object();
         protected ILogger Logger { get; }
@@ -52,7 +54,6 @@ namespace Grpc.Net.Client.Internal.Retry
         protected int MaxRetryAttempts { get; }
         protected CancellationTokenSource CancellationTokenSource { get; }
         protected TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>? NewActiveCallTcs { get; set; }
-        protected bool Disposed { get; private set; }
 
         public GrpcChannel Channel { get; }
         public Task<IGrpcCall<TRequest, TResponse>> CommitedCallTask => _commitedCallTcs.Task;
@@ -60,6 +61,7 @@ namespace Grpc.Net.Client.Internal.Retry
         public IClientStreamWriter<TRequest>? ClientStreamWriter => _retryBaseClientStreamWriter ??= new RetryCallBaseClientStreamWriter<TRequest, TResponse>(this);
         public WriteOptions? ClientStreamWriteOptions { get; internal set; }
         public bool ClientStreamComplete { get; set; }
+        public bool Disposed { get; private set; }
 
         protected int AttemptCount { get; private set; }
         protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
@@ -345,6 +347,16 @@ namespace Grpc.Net.Client.Internal.Retry
 
                     NewActiveCallTcs?.SetResult(null);
                     _commitedCallTcs.SetResult(call);
+
+                    // If the commited call has finished and cleaned up then it is safe for
+                    // the wrapping retry call to clean up. This is required to unregister
+                    // from the cancellation token and avoid a memory leak.
+                    //
+                    // A commited call that has already cleaned up is likely a StatusGrpcCall.
+                    if (call.Disposed)
+                    {
+                        Cleanup();
+                    }
                 }
             }
         }
@@ -406,16 +418,22 @@ namespace Grpc.Net.Client.Internal.Retry
 
             if (disposing)
             {
-                _ctsRegistration?.Dispose();
-                CancellationTokenSource.Cancel();
-
                 if (CommitedCallTask.IsCompletedSuccessfully())
                 {
                     CommitedCallTask.Result.Dispose();
                 }
 
-                ClearRetryBuffer();
+                Cleanup();
             }
+        }
+
+        protected void Cleanup()
+        {
+            _ctsRegistration?.Dispose();
+            _ctsRegistration = null;
+            CancellationTokenSource.Cancel();
+
+            ClearRetryBuffer();
         }
 
         internal bool TryAddToRetryBuffer(ReadOnlyMemory<byte> message)

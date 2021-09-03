@@ -199,6 +199,13 @@ namespace Grpc.Net.Client.Internal.Retry
                     }
                 }
             }
+
+            if (CommitedCallTask.IsCompletedSuccessfully() && CommitedCallTask.Result == call)
+            {
+                // Wait until the commited call is finished and then clean up hedging call.
+                await call.CallTask.ConfigureAwait(false);
+                Cleanup();
+            }
         }
 
         protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
