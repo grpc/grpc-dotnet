@@ -331,6 +331,7 @@ namespace Grpc.Net.Client.Tests.Retry
 
             // Act
             hedgingCall.StartUnary(new HelloRequest());
+            Assert.IsNotNull(hedgingCall._ctsRegistration);
 
             // Assert
             await TestHelpers.AssertIsTrueRetryAsync(() => hedgingCall._activeCalls.Count == 0, "Wait for all calls to fail.").DefaultTimeout();
@@ -340,6 +341,37 @@ namespace Grpc.Net.Client.Tests.Retry
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => hedgingCall.GetResponseAsync()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual("Call canceled by the client.", ex.Status.Detail);
+            Assert.IsNull(hedgingCall._ctsRegistration);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_CancellationTokenSuccess_CleanedUp()
+        {
+            // Arrange
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                await tcs.Task;
+
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var cts = new CancellationTokenSource();
+            var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromSeconds(10));
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+            var hedgingCall = new HedgingCall<HelloRequest, HelloReply>(CreateHedgingPolicy(serviceConfig.MethodConfigs[0].HedgingPolicy), invoker.Channel, ClientTestHelpers.ServiceMethod, new CallOptions(cancellationToken: cts.Token));
+
+            // Act
+            hedgingCall.StartUnary(new HelloRequest());
+            Assert.IsNotNull(hedgingCall._ctsRegistration);
+            tcs.SetResult(null);
+
+            // Assert
+            await hedgingCall.GetResponseAsync().DefaultTimeout();
+
+            // There is a race between unregistering and GetResponseAsync returning.
+            await TestHelpers.AssertIsTrueRetryAsync(() => hedgingCall._ctsRegistration == null, "Hedge call CTS unregistered.");
         }
 
         [Test]

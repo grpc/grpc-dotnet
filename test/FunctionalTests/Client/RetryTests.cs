@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -354,6 +355,63 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             AssertHasLog(LogLevel.Debug, "CallCommited", "Call commited. Reason: Canceled");
 
             tcs.SetResult(new DataMessage());
+        }
+
+        [Test]
+        public async Task ServerStreaming_CancellatonTokenSpecified_TokenUnregisteredAndResourcesReleased()
+        {
+            Task FakeServerStreamCall(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                return Task.CompletedTask;
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(FakeServerStreamCall);
+
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig(retryableStatusCodes: new List<StatusCode> { StatusCode.DeadlineExceeded });
+            var channel = CreateChannel(serviceConfig: serviceConfig);
+
+            var references = new List<WeakReference>();
+
+            // Checking that token register calls don't build up on CTS and create a memory leak.
+            var cts = new CancellationTokenSource();
+
+            // Act
+            // Send calls in a different method so there is no chance that a stack reference
+            // to a gRPC call is still alive after calls are complete.
+            await MakeCallsAsync(channel, method, references, cts.Token).DefaultTimeout();
+
+            // Assert
+            // There is a race when cleaning up cancellation token registry.
+            // Retry a few times to ensure GC is run after unregister.
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                for (var i = 0; i < references.Count; i++)
+                {
+                    if (references[i].IsAlive)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }, "Assert that retry call resources are released.");
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static async Task MakeCallsAsync(GrpcChannel channel, Method<DataMessage, DataMessage> method, List<WeakReference> references, CancellationToken cancellationToken)
+        {
+            var client = TestClientFactory.Create(channel, method);
+            for (int i = 0; i < 10; i++)
+            {
+                var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cancellationToken));
+                references.Add(new WeakReference(call.ResponseStream));
+
+                Assert.IsFalse(await call.ResponseStream.MoveNext());
+            }
         }
 
         [TestCase(1)]

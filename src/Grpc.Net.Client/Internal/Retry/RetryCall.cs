@@ -245,6 +245,16 @@ namespace Grpc.Net.Client.Internal.Retry
             }
             finally
             {
+                if (CommitedCallTask.IsCompletedSuccessfully())
+                {
+                    if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
+                    {
+                        // Wait until the commited call is finished and then clean up retry call.
+                        await call.CallTask.ConfigureAwait(false);
+                        Cleanup();
+                    }
+                }
+
                 Log.StoppingRetryWorker(Logger);
             }
         }
