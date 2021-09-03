@@ -51,13 +51,13 @@ namespace Grpc.Net.Client.Internal
         private readonly CancellationTokenSource _callCts;
         private readonly TaskCompletionSource<HttpResponseMessage> _httpResponseTcs;
         private readonly TaskCompletionSource<Status> _callTcs;
-        private readonly DateTime _deadline;
         private readonly GrpcMethodInfo _grpcMethodInfo;
         private readonly int _attemptCount;
 
         internal Task<HttpResponseMessage> HttpResponseTask => _httpResponseTcs.Task;
         private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
+        private DateTime _deadline;
         private CancellationTokenRegistration? _ctsRegistration;
 
         public bool Disposed { get; private set; }
@@ -727,8 +727,31 @@ namespace Grpc.Net.Client.Internal
 
         private bool FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status? status)
         {
-            if (status!.Value.StatusCode != StatusCode.OK)
+            CompatibilityHelpers.Assert(status != null);
+
+            if (status.Value.StatusCode != StatusCode.OK)
             {
+                if (status.Value.StatusCode == StatusCode.DeadlineExceeded)
+                {
+                    // Usually a deadline will be triggered via the deadline timer. However,
+                    // if the client and server are on the same machine it is possible for the
+                    // client to get the response before the timer triggers. In that situation
+                    // treat a returned DEADLINE_EXCEEDED status as the client exceeding deadline
+                    // To ensure that the deadline counter isn't incremented twice in a race
+                    // between the timer and status, lock and use _deadline to check whether
+                    // the client has processed that it has exceeded or not.
+                    lock (this)
+                    {
+                        if (_deadline != DateTime.MaxValue)
+                        {
+                            GrpcCallLog.DeadlineExceeded(Logger);
+                            GrpcEventSource.Log.CallDeadlineExceeded();
+
+                            _deadline = DateTime.MaxValue;
+                        }
+                    }
+                }
+
                 GrpcCallLog.GrpcStatusError(Logger, status.Value.StatusCode, status.Value.Detail);
                 GrpcEventSource.Log.CallFailed(status.Value.StatusCode);
             }
@@ -887,20 +910,30 @@ namespace Grpc.Net.Client.Internal
             // the response has not been finished or canceled
             if (!_callCts.IsCancellationRequested && !ResponseFinished)
             {
-                var remaining = _deadline - Channel.Clock.UtcNow;
-                if (remaining <= TimeSpan.Zero)
+                TimeSpan remaining;
+                lock (this)
                 {
-                    DeadlineExceeded();
-                }
-                else
-                {
-                    // Deadline has not been reached because timer maximum due time was smaller than deadline.
-                    // Reschedule DeadlineExceeded again until deadline has been exceeded.
-                    GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
+                    // If _deadline is MaxValue then the DEADLINE_EXCEEDED status has
+                    // already been received by the client and the timer can stop.
+                    if (_deadline == DateTime.MaxValue)
+                    {
+                        return;
+                    }
 
-                    var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
-                    _deadlineTimer!.Change(dueTime, Timeout.Infinite);
+                    remaining = _deadline - Channel.Clock.UtcNow;
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        DeadlineExceeded();
+                        return;
+                    }
                 }
+
+                // Deadline has not been reached because timer maximum due time was smaller than deadline.
+                // Reschedule DeadlineExceeded again until deadline has been exceeded.
+                GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
+
+                var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
+                _deadlineTimer!.Change(dueTime, Timeout.Infinite);
             }
         }
 

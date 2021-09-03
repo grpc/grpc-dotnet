@@ -51,6 +51,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task UnaryMethod_SuccessfulCall_PollingCountersUpdatedCorrectly()
         {
+            using var httpEventSource = new HttpEventSourceListener(LoggerFactory);
+
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             async Task<HelloReply> UnarySuccess(HelloRequest request, ServerCallContext context)
@@ -259,10 +261,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             SyncPoint? syncPoint = null;
             async Task<HelloReply> UnaryCancel(HelloRequest request, ServerCallContext context)
             {
+                var tcs = new TaskCompletionSource<HelloReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+                context.CancellationToken.Register(() => tcs.SetCanceled());
+
                 Logger.LogInformation("On server.");
                 await syncPoint!.WaitToContinue().DefaultTimeout();
 
-                return new HelloReply();
+                return await tcs.Task;
             }
 
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCancel);
@@ -459,7 +464,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         private TestEventListener CreateEnableListener(EventSource eventSource)
         {
-            var listener = new TestEventListener(-1, LoggerFactory);
+            var listener = new TestEventListener(-1, LoggerFactory, eventSource);
             listener.EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All, EnableCountersArgs);
             return listener;
         }
