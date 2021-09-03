@@ -152,11 +152,14 @@ namespace Grpc.Net.Client.Internal.Retry
 
                     CancellationTokenSource.Token.ThrowIfCancellationRequested();
 
-                    // Check to see the response returned from the server makes the call commited
-                    // Null status code indicates the headers were valid and a "Response-Headers" response
-                    // was received from the server.
+                    // Check to see the response returned from the server makes the call commited.
+                    // 1. Null status code indicates the headers were valid and a "Response-Headers" response
+                    //    was received from the server.
+                    // 2. An OK response status at this point means a streaming call completed without
+                    //    sending any messages to the client.
+                    //
                     // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
-                    if (responseStatus == null)
+                    if (responseStatus == null || responseStatus.GetValueOrDefault().StatusCode == StatusCode.OK)
                     {
                         // Headers were returned. We're commited.
                         CommitCall(currentCall, CommitReason.ResponseHeadersReceived);

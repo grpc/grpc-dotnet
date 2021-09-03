@@ -397,6 +397,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     }
                 }
 
+                // Resources for past calls were successfully GCed.
                 return true;
             }, "Assert that retry call resources are released.");
         }
