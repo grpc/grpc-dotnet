@@ -736,7 +736,7 @@ namespace Grpc.Net.Client.Internal
                     // Usually a deadline will be triggered via the deadline timer. However,
                     // if the client and server are on the same machine it is possible for the
                     // client to get the response before the timer triggers. In that situation
-                    // treat a returned DEADLINE_EXCEEDED status as the client exceeding deadline
+                    // treat a returned DEADLINE_EXCEEDED status as the client exceeding deadline.
                     // To ensure that the deadline counter isn't incremented twice in a race
                     // between the timer and status, lock and use _deadline to check whether
                     // the client has processed that it has exceeded or not.
