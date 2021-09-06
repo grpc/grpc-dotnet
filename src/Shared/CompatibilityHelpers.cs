@@ -40,5 +40,14 @@ namespace Grpc.Shared
             return task.IsCompletedSuccessfully;
         }
 #endif
+
+        public static int IndexOf(string s, char value, StringComparison comparisonType)
+        {
+#if NETSTANDARD2_0
+            return s.IndexOf(value);
+#else
+            return s.IndexOf(value, comparisonType);
+#endif
+        }
     }
 }

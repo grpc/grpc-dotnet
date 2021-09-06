@@ -20,6 +20,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Quic;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -28,6 +29,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
@@ -490,6 +492,104 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("Deadline timer triggered but 00:00:00.2000000 remaining before deadline exceeded. Deadline timer rescheduled.", write.Message);
         }
 
+#if !NET472
+        [Test]
+        public async Task AsyncUnaryCall_ServerResetsCancelCodeBeforeDeadline_CancelStatus()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var serviceProvider = services.BuildServiceProvider();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            {
+                return Task.FromException<HttpResponseMessage>(new Http2StreamException("The HTTP/2 server reset the stream. HTTP/2 error code 'CANCEL' (0x8)."));
+            });
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                systemClock: testSystemClock,
+                loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
+
+            // Act
+            var responseTask = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(1)), new HelloRequest()).ResponseAsync;
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_Http2ServerResetsCancelCodeAfterDeadline_DeadlineStatus()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var serviceProvider = services.BuildServiceProvider();
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                await syncPoint.WaitToContinue();
+                throw new Http2StreamException("The HTTP/2 server reset the stream. HTTP/2 error code 'CANCEL' (0x8).");
+            });
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                systemClock: testSystemClock,
+                loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
+            var deadline = invoker.Channel.Clock.UtcNow.AddSeconds(1);
+
+            // Act
+            var responseTask = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: deadline), new HelloRequest()).ResponseAsync;
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            testSystemClock.UtcNow = deadline;
+            syncPoint.Continue();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+        }
+
+#if NET6_0_OR_GREATER
+        [Test]
+        public async Task AsyncUnaryCall_Http3ServerResetsCancelCodeAfterDeadline_DeadlineStatus()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var serviceProvider = services.BuildServiceProvider();
+
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                await syncPoint.WaitToContinue();
+                throw new QuicStreamAbortedException("Stream aborted by peer (268).");
+            });
+            var testSystemClock = new TestSystemClock(DateTime.UtcNow);
+            var invoker = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                systemClock: testSystemClock,
+                loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
+            var deadline = invoker.Channel.Clock.UtcNow.AddSeconds(1);
+
+            // Act
+            var responseTask = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: deadline), new HelloRequest()).ResponseAsync;
+
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            testSystemClock.UtcNow = deadline;
+            syncPoint.Continue();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+        }
+#endif
+#endif
+
         private class TestSystemClock : ISystemClock
         {
             public TestSystemClock(DateTime utcNow)
@@ -498,6 +598,26 @@ namespace Grpc.Net.Client.Tests
             }
 
             public DateTime UtcNow { get; set; }
+        }
+    }
+}
+
+namespace System.Net.Http
+{
+    public class Http2StreamException : Exception
+    {
+        public Http2StreamException(string message) : base(message)
+        {
+        }
+    }
+}
+
+namespace System.Net.Quic
+{
+    public class QuicStreamAbortedException : Exception
+    {
+        public QuicStreamAbortedException(string message) : base(message)
+        {
         }
     }
 }
