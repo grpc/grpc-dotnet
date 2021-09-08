@@ -86,7 +86,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Server
                 return false;
             });
 
-
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, $"{nameof(WaitUntilDeadline)}-{throwErrorOnCancellation}");
 
             var grpcWebClient = CreateGrpcWebClient();
