@@ -2,13 +2,13 @@
   <PropertyGroup>
 
     <!-- package version of grpc-dotnet -->
-    <GrpcDotnetVersion>2.38.0-dev</GrpcDotnetVersion>
+    <GrpcDotnetVersion>2.41.0-dev</GrpcDotnetVersion>
     
     <!-- assembly version of grpc-dotnet -->
     <GrpcDotnetAssemblyVersion>2.0.0.0</GrpcDotnetAssemblyVersion>
 
     <!-- file version of all grpc-dotnet -->
-    <GrpcDotnetAssemblyFileVersion>2.38.0.0</GrpcDotnetAssemblyFileVersion>
+    <GrpcDotnetAssemblyFileVersion>2.41.0.0</GrpcDotnetAssemblyFileVersion>
 
   </PropertyGroup>
 </Project>
