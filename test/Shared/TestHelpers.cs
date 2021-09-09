@@ -32,7 +32,12 @@ namespace Grpc.Tests.Shared
             return resolvedPath;
         }
 
-        public static async Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null)
+        public static Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null)
+        {
+            return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger);
+        }
+
+        public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null)
         {
             const int Retries = 10;
 
@@ -45,7 +50,7 @@ namespace Grpc.Tests.Shared
                     await Task.Delay((i + 1) * (i + 1) * 10);
                 }
 
-                if (assert())
+                if (await assert())
                 {
                     logger?.LogInformation("End: " + message);
                     return;

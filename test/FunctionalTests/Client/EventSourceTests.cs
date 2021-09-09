@@ -208,7 +208,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 // Act - Start call
                 var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-                var channel = CreateChannel();
+                using var channel = CreateChannel();
                 channel.Clock = clock;
                 channel.DisableClientDeadline = true;
 
@@ -256,12 +256,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task UnaryMethod_CancelCall_PollingCountersUpdatedCorrectly()
         {
+            SyncPoint? syncPoint = null;
+            async Task<HelloReply> UnaryCancel(HelloRequest request, ServerCallContext context)
+            {
+                Logger.LogInformation("On server.");
+                await syncPoint!.WaitToContinue().DefaultTimeout();
+
+                return new HelloReply();
+            }
+
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCancel);
+
+            using var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
             // Loop to ensure test is resilent across multiple runs
             for (var i = 1; i < 3; i++)
             {
                 Logger.LogInformation($"Iteration {i}");
 
-                var syncPoint = new SyncPoint();
+                syncPoint = new SyncPoint();
                 var cts = new CancellationTokenSource();
 
                 // Ignore errors
@@ -270,26 +285,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 });
 
-                async Task<HelloReply> UnaryCancel(HelloRequest request, ServerCallContext context)
-                {
-                    Logger.LogInformation("On server.");
-                    await syncPoint.WaitToContinue().DefaultTimeout();
-
-                    return new HelloReply();
-                }
-
                 // Arrange
                 var clock = new TestSystemClock(DateTime.UtcNow);
                 using var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
                 using var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
 
                 // Act - Start call
-                var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCancel);
-
-                var channel = CreateChannel();
-
-                var client = TestClientFactory.Create(channel, method);
-
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(cancellationToken: cts.Token));
 
                 // Assert - Call in progress
