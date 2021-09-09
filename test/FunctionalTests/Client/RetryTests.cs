@@ -81,7 +81,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.ClientStreamingCall();
 
-            for (var i = 0; i < 20; i++)
+            for (var i = 0; i < 15; i++)
             {
                 sentData.Add((byte)i);
 
