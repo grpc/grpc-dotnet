@@ -22,6 +22,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Grpc.Core;
 using Grpc.Net.Compression;
 
@@ -87,13 +89,23 @@ namespace Grpc.Net.Client.Internal
 
         static GrpcProtocolConstants()
         {
+            UserAgentHeader = "User-Agent";
+            UserAgentHeaderValue = GetUserAgentString();
+            TEHeader = "TE";
+            TEHeaderValue = "trailers";
+
+            DefaultMessageAcceptEncodingValue = GetMessageAcceptEncoding(DefaultCompressionProviders);
+        }
+
+        private static string GetUserAgentString()
+        {
             var userAgent = "grpc-dotnet";
 
             // Use the assembly file version in the user agent.
             // We are not using `AssemblyInformationalVersionAttribute` because Source Link appends
             // the git hash to it, and sending a long user agent has perf implications.
-            var assemblyVersion = typeof(GrpcProtocolConstants)
-                .Assembly
+            var assembly = typeof(GrpcProtocolConstants).Assembly;
+            var assemblyVersion = assembly
                 .GetCustomAttributes<AssemblyFileVersionAttribute>()
                 .FirstOrDefault();
 
@@ -106,12 +118,29 @@ namespace Grpc.Net.Client.Internal
                 userAgent += "/" + assemblyVersion.Version;
             }
 
-            UserAgentHeader = "User-Agent";
-            UserAgentHeaderValue = userAgent;
-            TEHeader = "TE";
-            TEHeaderValue = "trailers";
+            // (.NET 5.0.7;
+            userAgent += $"({RuntimeInformation.FrameworkDescription}; ";
+            // CLR 5.0.0;
+            userAgent += $"CLR {Environment.Version}; ";
 
-            DefaultMessageAcceptEncodingValue = GetMessageAcceptEncoding(DefaultCompressionProviders);
+            // .NETCoreApp,Version=v6.0; 
+            var targetFramework = assembly
+                .GetCustomAttributes<TargetFrameworkAttribute>()
+                .FirstOrDefault()?
+                .FrameworkName;
+            if (!string.IsNullOrEmpty(targetFramework))
+            {
+                userAgent += $"{targetFramework}; ";
+            }
+
+            // debian.10-x64)
+#if NET5_0_OR_GREATER
+            userAgent = $"{RuntimeInformation.RuntimeIdentifier})";
+#else
+            userAgent = $"{RuntimeInformation.OSDescription}";
+#endif
+
+            return userAgent;
         }
     }
 }
