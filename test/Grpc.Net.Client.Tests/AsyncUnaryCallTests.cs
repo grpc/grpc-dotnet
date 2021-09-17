@@ -85,10 +85,6 @@ namespace Grpc.Net.Client.Tests
             // Sending a long user agent with each call has performance implications.
             Assert.IsFalse(grpcVersion.Product!.Version!.Contains('+'));
             Assert.IsTrue(grpcVersion.Product!.Version!.Length <= 10);
-
-            var runtimeIdentifier = httpRequestMessage.Headers.UserAgent.Last()?.Comment;
-            Assert.IsNotEmpty(runtimeIdentifier); // Should be set
-            Assert.IsTrue(runtimeIdentifier!.Contains(RuntimeInformation.FrameworkDescription));
         }
 
         [Test]
