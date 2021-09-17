@@ -129,14 +129,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     HttpResponseMessage? httpResponse = null;
                     try
                     {
-                        if (currentCall._httpResponseTask == null)
-                        {
-                            // There is no response task if there was a preemptive cancel.
-                            CompatibilityHelpers.Assert(currentCall.CancellationToken.IsCancellationRequested, "Request should have been made if call is not preemptively cancelled.");
-                            currentCall.CancellationToken.ThrowIfCancellationRequested();
-                        }
-
-                        httpResponse = await currentCall._httpResponseTask!.ConfigureAwait(false);
+                        httpResponse = await currentCall.HttpResponseTask.ConfigureAwait(false);
                         responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
                     }
                     catch (RpcException ex)

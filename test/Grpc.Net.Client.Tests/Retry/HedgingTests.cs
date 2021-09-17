@@ -32,6 +32,9 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Retry
@@ -279,6 +282,15 @@ namespace Grpc.Net.Client.Tests.Retry
         public async Task AsyncUnaryCall_ExceedDeadlineWithActiveCalls_Failure()
         {
             // Arrange
+            var testSink = new TestSink();
+            var services = new ServiceCollection();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+            var provider = services.BuildServiceProvider();
+
             var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var callCount = 0;
@@ -288,7 +300,7 @@ namespace Grpc.Net.Client.Tests.Retry
                 return tcs.Task;
             });
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromMilliseconds(200));
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
 
             // Act
             var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(100)), new HelloRequest { Name = "World" });
@@ -298,6 +310,9 @@ namespace Grpc.Net.Client.Tests.Retry
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
             Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
+            Assert.AreEqual("Call commited. Reason: DeadlineExceeded", write.State.ToString());
         }
 
         [Test]

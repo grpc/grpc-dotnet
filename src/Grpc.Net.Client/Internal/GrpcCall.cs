@@ -49,12 +49,13 @@ namespace Grpc.Net.Client.Internal
         internal const string ErrorStartingCallMessage = "Error starting gRPC call.";
 
         private readonly CancellationTokenSource _callCts;
+        private readonly TaskCompletionSource<HttpResponseMessage> _httpResponseTcs;
         private readonly TaskCompletionSource<Status> _callTcs;
         private readonly DateTime _deadline;
         private readonly GrpcMethodInfo _grpcMethodInfo;
         private readonly int _attemptCount;
 
-        internal Task<HttpResponseMessage>? _httpResponseTask;
+        internal Task<HttpResponseMessage> HttpResponseTask => _httpResponseTcs.Task;
         private Task<Metadata>? _responseHeadersTask;
         private Timer? _deadlineTimer;
         private CancellationTokenRegistration? _ctsRegistration;
@@ -76,6 +77,7 @@ namespace Grpc.Net.Client.Internal
             ValidateDeadline(options.Deadline);
 
             _callCts = new CancellationTokenSource();
+            _httpResponseTcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             // Run the callTcs continuation immediately to keep the same context. Required for Activity.
             _callTcs = new TaskCompletionSource<Status>();
             Method = method;
@@ -289,11 +291,9 @@ namespace Grpc.Net.Client.Internal
 
         private async Task<Metadata> GetResponseHeadersCoreAsync()
         {
-            CompatibilityHelpers.Assert(_httpResponseTask != null);
-
             try
             {
-                var httpResponse = await _httpResponseTask.ConfigureAwait(false);
+                var httpResponse = await HttpResponseTask.ConfigureAwait(false);
 
                 // Check if the headers have a status. If they do then wait for the overall call task
                 // to complete before returning headers. This means that if the call failed with a
@@ -386,6 +386,9 @@ namespace Grpc.Net.Client.Internal
                 // Cancellation will also cause reader/writer to throw if used afterwards.
                 _callCts.Cancel();
 
+                // Ensure any logic that is waiting on the HttpResponse is unstuck.
+                _httpResponseTcs.TrySetCanceled();
+
                 // Cancellation token won't send RST_STREAM if HttpClient.SendAsync is complete.
                 // Dispose HttpResponseMessage to send RST_STREAM to server for in-progress calls.
                 HttpResponse?.Dispose();
@@ -436,11 +439,12 @@ namespace Grpc.Net.Client.Internal
                     {
                         // If a HttpClient has been specified then we need to call it with ResponseHeadersRead
                         // so that the response message is available for streaming
-                        _httpResponseTask = (Channel.HttpInvoker is HttpClient httpClient)
+                        var httpResponseTask = (Channel.HttpInvoker is HttpClient httpClient)
                             ? httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _callCts.Token)
                             : Channel.HttpInvoker.SendAsync(request, _callCts.Token);
 
-                        HttpResponse = await _httpResponseTask.ConfigureAwait(false);
+                        HttpResponse = await httpResponseTask.ConfigureAwait(false);
+                        _httpResponseTcs.TrySetResult(HttpResponse);
                     }
                     catch (Exception ex)
                     {
@@ -578,6 +582,7 @@ namespace Grpc.Net.Client.Internal
                     ResolveException(ErrorStartingCallMessage, ex, out status, out var resolvedException);
 
                     finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
+                    _httpResponseTcs.TrySetException(resolvedException);
                     _responseTcs?.TrySetException(resolvedException);
 
                     Cleanup(status.Value);

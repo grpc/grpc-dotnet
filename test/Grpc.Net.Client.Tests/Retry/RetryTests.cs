@@ -31,7 +31,9 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests.Retry
@@ -100,6 +102,96 @@ namespace Grpc.Net.Client.Tests.Retry
 
             var trailers = call.GetTrailers();
             Assert.AreEqual("Value!", trailers.GetValue("custom-trailer"));
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_AuthInteceptor_Success()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var services = new ServiceCollection();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+            var provider = services.BuildServiceProvider();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+            var credentialsSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var credentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+            {
+                await credentialsSyncPoint.WaitToContinue();
+                metadata.Add("Authorization", $"Bearer TEST");
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+
+            await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
+            credentialsSyncPoint.Continue();
+
+            // Assert
+            Assert.AreEqual("Hello world", (await call.ResponseAsync.DefaultTimeout()).Message);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
+            Assert.AreEqual("Call commited. Reason: ResponseHeadersReceived", write.State.ToString());
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_AuthInteceptorDispose_Error()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var services = new ServiceCollection();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+            var provider = services.BuildServiceProvider();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            });
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+            var credentialsSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var credentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+            {
+                await credentialsSyncPoint.WaitToContinue();
+                metadata.Add("Authorization", $"Bearer TEST");
+            });
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+            var responseTask = call.ResponseAsync;
+            var responseHeadersTask = call.ResponseHeadersAsync;
+
+            await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
+            call.Dispose();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+            var write = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
+            Assert.AreEqual("Call commited. Reason: Canceled", write.State.ToString());
         }
 
         [Test]
