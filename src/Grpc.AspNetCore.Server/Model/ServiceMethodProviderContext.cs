@@ -31,9 +31,9 @@ namespace Grpc.AspNetCore.Server.Model
     /// <typeparam name="TService">Service type for the context.</typeparam>
     public class ServiceMethodProviderContext<TService> where TService : class
     {
-        private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
+        private readonly IGrpcCallHandlerFactory<TService> _serverCallHandlerFactory;
 
-        internal ServiceMethodProviderContext(ServerCallHandlerFactory<TService> serverCallHandlerFactory)
+        internal ServiceMethodProviderContext(IGrpcCallHandlerFactory<TService> serverCallHandlerFactory)
         {
             Methods = new List<MethodModel>();
             _serverCallHandlerFactory = serverCallHandlerFactory;
@@ -54,7 +54,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateUnary<TRequest, TResponse>(method, invoker);
-            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler);
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateServerStreaming<TRequest, TResponse>(method, invoker);
-            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateClientStreaming<TRequest, TResponse>(method, invoker);
-            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler);
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace Grpc.AspNetCore.Server.Model
             where TResponse : class
         {
             var callHandler = _serverCallHandlerFactory.CreateDuplexStreaming<TRequest, TResponse>(method, invoker);
-            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler.HandleCallAsync);
+            AddMethod(method, RoutePatternFactory.Parse(method.FullName), metadata, callHandler);
         }
 
         /// <summary>

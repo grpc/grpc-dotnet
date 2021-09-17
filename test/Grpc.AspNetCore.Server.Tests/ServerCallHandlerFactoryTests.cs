@@ -134,7 +134,7 @@ namespace Grpc.AspNetCore.Server.Tests
             services.AddLogging();
             var serviceProvider = services.BuildServiceProvider();
 
-            return serviceProvider.GetRequiredService<ServerCallHandlerFactory<object>>();
+            return (ServerCallHandlerFactory<object>)serviceProvider.GetRequiredService<IGrpcCallHandlerFactory<object>>();
         }
     }
 }

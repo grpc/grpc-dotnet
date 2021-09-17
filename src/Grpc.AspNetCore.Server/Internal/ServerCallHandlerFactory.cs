@@ -32,7 +32,7 @@ namespace Grpc.AspNetCore.Server.Internal
     /// <summary>
     /// Creates server call handlers. Provides a place to get services that call handlers will use.
     /// </summary>
-    internal partial class ServerCallHandlerFactory<TService> where TService : class
+    internal partial class ServerCallHandlerFactory<TService> : IGrpcCallHandlerFactory<TService> where TService : class
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly IGrpcServiceActivator<TService> _serviceActivator;
@@ -57,44 +57,48 @@ namespace Grpc.AspNetCore.Server.Internal
             return MethodOptions.Create(new[] { _globalOptions, _serviceOptions });
         }
 
-        public UnaryServerCallHandler<TService, TRequest, TResponse> CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
+        public RequestDelegate CreateUnary<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
             var options = CreateMethodOptions();
             var methodInvoker = new UnaryServerMethodInvoker<TService, TRequest, TResponse>(invoker, method, options, _serviceActivator);
 
-            return new UnaryServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            var handler = new UnaryServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            return handler.HandleCallAsync;
         }
 
-        public ClientStreamingServerCallHandler<TService, TRequest, TResponse> CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public RequestDelegate CreateClientStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
             var options = CreateMethodOptions();
             var methodInvoker = new ClientStreamingServerMethodInvoker<TService, TRequest, TResponse>(invoker, method, options, _serviceActivator);
 
-            return new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            var handler = new ClientStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            return handler.HandleCallAsync;
         }
 
-        public DuplexStreamingServerCallHandler<TService, TRequest, TResponse> CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public RequestDelegate CreateDuplexStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
             var options = CreateMethodOptions();
             var methodInvoker = new DuplexStreamingServerMethodInvoker<TService, TRequest, TResponse>(invoker, method, options, _serviceActivator);
 
-            return new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            var handler = new DuplexStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            return handler.HandleCallAsync;
         }
 
-        public ServerStreamingServerCallHandler<TService, TRequest, TResponse> CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
+        public RequestDelegate CreateServerStreaming<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TService, TRequest, TResponse> invoker)
             where TRequest : class
             where TResponse : class
         {
             var options = CreateMethodOptions();
             var methodInvoker = new ServerStreamingServerMethodInvoker<TService, TRequest, TResponse>(invoker, method, options, _serviceActivator);
 
-            return new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            var handler = new ServerStreamingServerCallHandler<TService, TRequest, TResponse>(methodInvoker, _loggerFactory);
+            return handler.HandleCallAsync;
         }
 
         public RequestDelegate CreateUnimplementedMethod()

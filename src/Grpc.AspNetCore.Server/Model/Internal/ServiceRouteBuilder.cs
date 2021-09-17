@@ -34,13 +34,13 @@ namespace Grpc.AspNetCore.Server.Model.Internal
     internal class ServiceRouteBuilder<TService> where TService : class
     {
         private readonly IEnumerable<IServiceMethodProvider<TService>> _serviceMethodProviders;
-        private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
+        private readonly IGrpcCallHandlerFactory<TService> _serverCallHandlerFactory;
         private readonly ServiceMethodsRegistry _serviceMethodsRegistry;
         private readonly ILogger _logger;
 
         public ServiceRouteBuilder(
             IEnumerable<IServiceMethodProvider<TService>> serviceMethodProviders,
-            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+            IGrpcCallHandlerFactory<TService> serverCallHandlerFactory,
             ServiceMethodsRegistry serviceMethodsRegistry,
             ILoggerFactory loggerFactory)
         {
@@ -103,7 +103,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         internal static void CreateUnimplementedEndpoints(
             IEndpointRouteBuilder endpointRouteBuilder,
             ServiceMethodsRegistry serviceMethodsRegistry,
-            ServerCallHandlerFactory<TService> serverCallHandlerFactory,
+            IGrpcCallHandlerFactory<TService> serverCallHandlerFactory,
             List<MethodModel> serviceMethods,
             List<IEndpointConventionBuilder> endpointConventionBuilders)
         {
