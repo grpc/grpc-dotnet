@@ -26,6 +26,8 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class UserAgentGenerator
     {
+        internal static bool IsMono { get; } = Type.GetType("Mono.Runtime") != null;
+
         internal static string GetUserAgentString()
         {
             var assembly = typeof(GrpcProtocolConstants).Assembly;
@@ -42,7 +44,7 @@ namespace Grpc.Net.Client.Internal
             
             return GetUserAgentString(
                 processArch: RuntimeInformation.ProcessArchitecture,
-                runtimeVersion: IsMono() ? null : Environment.Version, 
+                runtimeVersion: IsMono ? null : Environment.Version, 
                 assemblyVersion: assemblyVersion,
                 // RuntimeInformation.FrameworkDescription is only supported for
                 // .NET Framework 4.7.1 and above. If targetting net461 or earlier,
@@ -51,10 +53,7 @@ namespace Grpc.Net.Client.Internal
                 runtimeInformation: RuntimeInformation.FrameworkDescription,
                 frameworkName: frameworkName,
                 operatingSystem: GetOS());
-
-            bool IsMono() => Type.GetType ("Mono.Runtime") != null;
         }
-
 
         // Factored out for testing
         internal static string GetUserAgentString(Architecture processArch, Version? runtimeVersion, string? assemblyVersion, string? runtimeInformation, string? frameworkName, string? operatingSystem)
@@ -74,9 +73,9 @@ namespace Grpc.Net.Client.Internal
             // x64)
             userAgent += $"{GetProcessArch(processArch)})";
 
-            string GetRuntimeVersion(Version? runtimeVersion) => runtimeVersion != null ? $"CLR {runtimeVersion}; " : string.Empty;
+            static string GetRuntimeVersion(Version? runtimeVersion) => runtimeVersion != null ? $"CLR {runtimeVersion}; " : string.Empty;
 
-            string GetProcessArch(Architecture processArch) => processArch.ToString().ToLowerInvariant();
+            static string GetProcessArch(Architecture processArch) => processArch.ToString().ToLowerInvariant();
 
             return userAgent;
         }
