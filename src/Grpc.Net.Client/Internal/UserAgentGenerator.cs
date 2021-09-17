@@ -1,0 +1,163 @@
+#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+
+namespace Grpc.Net.Client.Internal
+{
+    internal static class UserAgentGenerator
+    {
+        internal static bool IsMono { get; } = Type.GetType("Mono.Runtime") != null;
+
+        internal static string GetUserAgentString()
+        {
+            var assembly = typeof(GrpcProtocolConstants).Assembly;
+
+            var assemblyVersion = assembly
+                .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault()?
+                .InformationalVersion;
+
+            var frameworkName = assembly
+                .GetCustomAttributes<TargetFrameworkAttribute>()
+                .FirstOrDefault()?
+                .FrameworkName;
+            
+            return GetUserAgentString(
+                processArch: RuntimeInformation.ProcessArchitecture,
+                runtimeVersion: IsMono ? null : Environment.Version, 
+                assemblyVersion: assemblyVersion,
+                // RuntimeInformation.FrameworkDescription is only supported for
+                // .NET Framework 4.7.1 and above. If targetting net461 or earlier,
+                // the framework description will need to be resolved manually
+                // using reflection.
+                runtimeInformation: RuntimeInformation.FrameworkDescription,
+                frameworkName: frameworkName,
+                operatingSystem: GetOS());
+        }
+
+        // Factored out for testing
+        internal static string GetUserAgentString(Architecture processArch, Version? runtimeVersion, string? assemblyVersion, string? runtimeInformation, string? frameworkName, string? operatingSystem)
+        {
+            var userAgent = "grpc-dotnet";
+
+            // /2.41.0-dev
+            userAgent += $"{GetGrpcDotNetVersion(assemblyVersion)} ";
+            // (.NET 5.0.7;
+            userAgent += $"({GetFrameworkDescription(runtimeInformation)}";
+            // CLR 5.0.0;
+            userAgent += GetRuntimeVersion(runtimeVersion);
+            // net6.0;
+            userAgent += GetFrameworkName(frameworkName);
+            // windows  
+            userAgent += $"{operatingSystem} ";
+            // x64)
+            userAgent += $"{GetProcessArch(processArch)})";
+
+            static string GetRuntimeVersion(Version? runtimeVersion) => runtimeVersion != null ? $"CLR {runtimeVersion}; " : string.Empty;
+
+            static string GetProcessArch(Architecture processArch) => processArch.ToString().ToLowerInvariant();
+
+            return userAgent;
+        }
+
+        private static string GetGrpcDotNetVersion(string? assemblyVersion)
+        {
+            // Assembly file version attribute should always be present,
+            // but in case it isn't then don't include version in user-agent.
+            if (!string.IsNullOrEmpty(assemblyVersion))
+            {
+                // Strip the git hash if there is one
+                int plusIndex = assemblyVersion!.IndexOf("+", StringComparison.Ordinal);
+                if (plusIndex != -1)
+                {
+                    assemblyVersion = assemblyVersion.Substring(0, plusIndex);
+                }
+                // /2.41.0-dev
+                return $"/{assemblyVersion}";
+            }
+
+            return string.Empty;
+        }
+
+        private static string GetOS()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "windows";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return "osx";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return "linux";
+            }
+            else
+            {
+                return string.Empty;
+            }
+        }
+
+        // Maps ".NETCoreApp,Version=v6.0;" to "net6.0"
+        private static string GetFrameworkName(string? frameworkName)
+        {
+            if (string.IsNullOrEmpty(frameworkName))
+            {
+                return string.Empty;
+            }
+
+            var splitFramework = frameworkName!.Split(',');
+            var version = Version.Parse(splitFramework[1].Substring("Version=v".Length));
+            var name = splitFramework[0] switch {
+                ".NETCoreApp" when version.Major < 5 => $"netcoreapp{version.ToString(2)}",
+                ".NETCoreApp" when version.Major >= 5 => $"net{version.ToString(2)}",
+#if !NETSTANDARD2_0
+                ".NETFramework" => $"net{version.ToString().Replace(".", string.Empty, StringComparison.OrdinalIgnoreCase)}",
+#else
+                ".NETFramework" => $"net{version.ToString().Replace(".", string.Empty)}",
+#endif
+                ".NETStandard" => $"netstandard{version.ToString(2)}",
+                _ => frameworkName
+            };
+
+            return $"{name}; ";
+        }
+
+        private static string GetFrameworkDescription(string? frameworkDescription)
+        {
+            if (!string.IsNullOrEmpty(frameworkDescription))
+            {
+                // FrameworkDescription is typically represented as {FrameworkName} {VersionString}
+                // where VersionString is optional and variable.
+                var splitFrameworkDescription = frameworkDescription!.Split(' ');
+                if (splitFrameworkDescription.Length == 1)
+                {
+                    return $"{splitFrameworkDescription[0]}; ";
+                }
+                return $"{splitFrameworkDescription[0]} {splitFrameworkDescription[1]}; ";
+            }
+            return string.Empty;
+        }
+    }
+}

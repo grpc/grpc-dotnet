@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -76,14 +77,14 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("identity,gzip", httpRequestMessage.Headers.GetValues(GrpcProtocolConstants.MessageAcceptEncodingHeader).Single());
             Assert.AreEqual(null, requestContentLength);
 
-            var userAgent = httpRequestMessage.Headers.UserAgent.Single()!;
-            Assert.AreEqual("grpc-dotnet", userAgent.Product?.Name);
-            Assert.IsTrue(!string.IsNullOrEmpty(userAgent.Product?.Version));
+            var grpcVersion = httpRequestMessage.Headers.UserAgent.First();
+            Assert.AreEqual("grpc-dotnet", grpcVersion.Product?.Name);
+            Assert.IsTrue(!string.IsNullOrEmpty(grpcVersion.Product?.Version));
 
             // Santity check that the user agent doesn't have the git hash in it and isn't too long.
             // Sending a long user agent with each call has performance implications.
-            Assert.IsFalse(userAgent.Product!.Version!.Contains('+'));
-            Assert.IsTrue(userAgent.Product!.Version!.Length <= 10);
+            Assert.IsFalse(grpcVersion.Product!.Version!.Contains('+'));
+            Assert.IsTrue(grpcVersion.Product!.Version!.Length <= 10);
         }
 
         [Test]
