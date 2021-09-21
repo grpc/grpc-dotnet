@@ -114,14 +114,14 @@ namespace Grpc.Net.Client.Internal.Retry
                         currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
                         startCallFunc(currentCall);
 
+                        SetNewActiveCallUnsynchronized(currentCall);
+
                         if (CommitedCallTask.IsCompletedSuccessfully())
                         {
                             // Call has already been commited. This could happen if written messages exceed
                             // buffer limits, which causes the call to immediately become commited and to clear buffers.
                             return;
                         }
-
-                        SetNewActiveCallUnsynchronized(currentCall);
                     }
 
                     Status? responseStatus;

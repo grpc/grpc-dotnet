@@ -81,6 +81,13 @@ namespace Grpc.Net.Client.Internal.Retry
                     startCallFunc(call);
 
                     SetNewActiveCallUnsynchronized(call);
+
+                    if (CommitedCallTask.IsCompletedSuccessfully())
+                    {
+                        // Call has already been commited. This could happen if written messages exceed
+                        // buffer limits, which causes the call to immediately become commited and to clear buffers.
+                        return;
+                    }
                 }
 
                 Status? responseStatus;
@@ -109,18 +116,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
                 }
 
-                if (CancellationTokenSource.IsCancellationRequested)
-                {
-                    if (IsDeadlineExceeded())
-                    {
-                        CommitCall(CreateStatusCall(new Status(StatusCode.DeadlineExceeded, string.Empty)), CommitReason.DeadlineExceeded);
-                    }
-                    else
-                    {
-                        CommitCall(CreateStatusCall(new Status(StatusCode.Cancelled, string.Empty)), CommitReason.Canceled);
-                    }
-                    return;
-                }
+                CancellationTokenSource.Token.ThrowIfCancellationRequested();
 
                 // Check to see the response returned from the server makes the call commited
                 // Null status code indicates the headers were valid and a "Response-Headers" response
@@ -202,6 +198,10 @@ namespace Grpc.Net.Client.Internal.Retry
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                HandleUnexpectedError(ex);
             }
             finally
             {

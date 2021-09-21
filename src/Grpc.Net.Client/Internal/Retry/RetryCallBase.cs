@@ -370,8 +370,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
         protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
         {
-            Debug.Assert(!CommitedCallTask.IsCompletedSuccessfully());
-            Debug.Assert(Monitor.IsEntered(Lock));
+            Debug.Assert(Monitor.IsEntered(Lock), "Should be called with lock.");
 
             if (NewActiveCallTcs != null)
             {
