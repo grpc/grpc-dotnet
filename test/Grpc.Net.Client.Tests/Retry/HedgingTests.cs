@@ -294,10 +294,13 @@ namespace Grpc.Net.Client.Tests.Retry
             var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var callCount = 0;
-            var httpClient = ClientTestHelpers.CreateTestClient(request =>
+            var httpClient = ClientTestHelpers.CreateTestClient(async (request, ct) =>
             {
+                // Ensure SendAsync call doesn't hang upon cancellation by gRPC client.
+                using var registration = ct.Register(() => tcs.TrySetCanceled());
+
                 Interlocked.Increment(ref callCount);
-                return tcs.Task;
+                return await tcs.Task;
             });
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromMilliseconds(200));
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);

@@ -134,27 +134,46 @@ namespace Grpc.Net.Client.Internal.Retry
                     {
                         RetryAttemptCallSuccess();
                     }
+                    return;
                 }
-                else
+
+                lock (Lock)
                 {
                     var status = responseStatus.Value;
-
-                    var retryPushbackMS = GetRetryPushback(httpResponse);
-
-                    if (retryPushbackMS < 0)
+                    if (IsDeadlineExceeded())
                     {
-                        RetryAttemptCallFailure();
+                        // Deadline has been exceeded so immediately commit call.
+                        CommitCall(call, CommitReason.DeadlineExceeded);
                     }
-                    else if (_hedgingPolicy.NonFatalStatusCodes.Contains(status.StatusCode))
+                    else if (!_hedgingPolicy.NonFatalStatusCodes.Contains(status.StatusCode))
                     {
-                        // Needs to happen before interrupt.
+                        CommitCall(call, CommitReason.FatalStatusCode);
+                    }
+                    else if (_activeCalls.Count == 1 && AttemptCount >= MaxRetryAttempts)
+                    {
+                        // This is the last active call and no more will be made.
+                        CommitCall(call, CommitReason.ExceededAttemptCount);
+                    }
+                    else
+                    {
+                        // Call failed but it didn't exceed deadline, have a fatal status code
+                        // and there are remaining attempts available. Is a chance it will be retried.
+                        //
+                        // Increment call failure out. Needs to happen before checking throttling.
                         RetryAttemptCallFailure();
 
-                        // No need to interrupt if we started with no delay and all calls
-                        // have already been made when hedging starting.
-                        if (_delayInterruptTcs != null)
+                        if (_activeCalls.Count == 1 && IsRetryThrottlingActive())
                         {
-                            lock (Lock)
+                            // This is the last active call and throttling is active.
+                            CommitCall(call, CommitReason.Throttled);
+                        }
+                        else
+                        {
+                            var retryPushbackMS = GetRetryPushback(httpResponse);
+
+                            // No need to interrupt if we started with no delay and all calls
+                            // have already been made when hedging starting.
+                            if (_delayInterruptTcs != null)
                             {
                                 if (retryPushbackMS >= 0)
                                 {
@@ -162,39 +181,14 @@ namespace Grpc.Net.Client.Internal.Retry
                                 }
                                 _delayInterruptTcs.TrySetResult(null);
                             }
-                        }
-                    }
-                    else
-                    {
-                        CommitCall(call, CommitReason.FatalStatusCode);
-                    }
-                }
 
-                lock (Lock)
-                {
-                    if (IsDeadlineExceeded())
-                    {
-                        // Deadline has been exceeded so immediately commit call.
-                        CommitCall(call, CommitReason.DeadlineExceeded);
-                    }
-                    else if (_activeCalls.Count == 1 && AttemptCount >= MaxRetryAttempts)
-                    {
-                        // This is the last active call and no more will be made.
-                        CommitCall(call, CommitReason.ExceededAttemptCount);
-                    }
-                    else if (_activeCalls.Count == 1 && IsRetryThrottlingActive())
-                    {
-                        // This is the last active call and throttling is active.
-                        CommitCall(call, CommitReason.Throttled);
-                    }
-                    else
-                    {
-                        // Call isn't used and can be cancelled.
-                        // Note that the call could have already been removed and disposed if the
-                        // hedging call has been finalized or disposed.
-                        if (_activeCalls.Remove(call))
-                        {
-                            call.Dispose();
+                            // Call isn't used and can be cancelled.
+                            // Note that the call could have already been removed and disposed if the
+                            // hedging call has been finalized or disposed.
+                            if (_activeCalls.Remove(call))
+                            {
+                                call.Dispose();
+                            }
                         }
                     }
                 }
