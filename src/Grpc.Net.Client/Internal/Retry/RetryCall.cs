@@ -114,14 +114,14 @@ namespace Grpc.Net.Client.Internal.Retry
                         currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
                         startCallFunc(currentCall);
 
+                        SetNewActiveCallUnsynchronized(currentCall);
+
                         if (CommitedCallTask.IsCompletedSuccessfully())
                         {
                             // Call has already been commited. This could happen if written messages exceed
                             // buffer limits, which causes the call to immediately become commited and to clear buffers.
                             return;
                         }
-
-                        SetNewActiveCallUnsynchronized(currentCall);
                     }
 
                     Status? responseStatus;
@@ -129,14 +129,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     HttpResponseMessage? httpResponse = null;
                     try
                     {
-                        if (currentCall._httpResponseTask == null)
-                        {
-                            // There is no response task if there was a preemptive cancel.
-                            CompatibilityHelpers.Assert(currentCall.CancellationToken.IsCancellationRequested, "Request should have been made if call is not preemptively cancelled.");
-                            currentCall.CancellationToken.ThrowIfCancellationRequested();
-                        }
-
-                        httpResponse = await currentCall._httpResponseTask!.ConfigureAwait(false);
+                        httpResponse = await currentCall.HttpResponseTask.ConfigureAwait(false);
                         responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
                     }
                     catch (RpcException ex)

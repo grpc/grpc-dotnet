@@ -40,11 +40,7 @@ namespace Grpc.Net.Client.Tests
             // Arrange
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
-
+                var reply = new HelloReply { Message = "Hello world" };
                 var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
                 var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
                 response.Headers.Server.Add(new ProductInfoHeaderValue("TestName", "1.0"));
@@ -69,6 +65,74 @@ namespace Grpc.Net.Client.Tests
             var header = responseHeaders1.Get("binary-bin");
             Assert.AreEqual(true, header.IsBinary);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("Hello world"), header.ValueBytes);
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_AuthInterceptorSuccess_ResponseHeadersPopulated()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var credentialsSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var credentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+            {
+                await credentialsSyncPoint.WaitToContinue();
+                metadata.Add("Authorization", $"Bearer TEST");
+            });
+
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var responseHeadersTask = call.ResponseHeadersAsync;
+
+            await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
+            credentialsSyncPoint.Continue();
+
+            var responseHeaders = await responseHeadersTask.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("ABC", responseHeaders.GetValue("custom"));
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_AuthInterceptorDispose_ResponseHeadersError()
+        {
+            // Arrange
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                var response = ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+                response.Headers.Add("custom", "ABC");
+                return response;
+            });
+            var credentialsSyncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var credentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+            {
+                await credentialsSyncPoint.WaitToContinue();
+                metadata.Add("Authorization", $"Bearer TEST");
+            });
+
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: options => options.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials));
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+            var responseHeadersTask = call.ResponseHeadersAsync;
+
+            await credentialsSyncPoint.WaitForSyncPoint().DefaultTimeout();
+
+            call.Dispose();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
         }
 
         [Test]

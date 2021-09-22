@@ -60,151 +60,151 @@ namespace Grpc.Net.Client.Internal.Retry
 
         private async Task StartCall(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
         {
-            GrpcCall<TRequest, TResponse> call;
-            lock (Lock)
-            {
-                if (CommitedCallTask.IsCompletedSuccessfully())
-                {
-                    // Call has already been commited. This could happen if written messages exceed
-                    // buffer limits, which causes the call to immediately become commited and to clear buffers.
-                    return;
-                }
+            GrpcCall<TRequest, TResponse>? call = null;
 
-                OnStartingAttempt();
-
-                call = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
-                _activeCalls.Add(call);
-
-                startCallFunc(call);
-
-                SetNewActiveCallUnsynchronized(call);
-            }
-
-            Status? responseStatus;
-
-            HttpResponseMessage? httpResponse = null;
             try
             {
-                if (call._httpResponseTask == null)
+                lock (Lock)
                 {
-                    // There is no response task if there was a preemptive cancel.
-                    CompatibilityHelpers.Assert(call.CancellationToken.IsCancellationRequested, "Request should have been made if call is not preemptively cancelled.");
-                    call.CancellationToken.ThrowIfCancellationRequested();
+                    if (CommitedCallTask.IsCompletedSuccessfully())
+                    {
+                        // Call has already been commited. This could happen if written messages exceed
+                        // buffer limits, which causes the call to immediately become commited and to clear buffers.
+                        return;
+                    }
+
+                    OnStartingAttempt();
+
+                    call = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
+                    _activeCalls.Add(call);
+
+                    startCallFunc(call);
+
+                    SetNewActiveCallUnsynchronized(call);
+
+                    if (CommitedCallTask.IsCompletedSuccessfully())
+                    {
+                        // Call has already been commited. This could happen if written messages exceed
+                        // buffer limits, which causes the call to immediately become commited and to clear buffers.
+                        return;
+                    }
                 }
 
-                httpResponse = await call._httpResponseTask!.ConfigureAwait(false);
-                responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
-            }
-            catch (RpcException ex)
-            {
-                // A "drop" result from the load balancer should immediately stop the call,
-                // including ignoring the retry policy.
-                var dropValue = ex.Trailers.GetValue(GrpcProtocolConstants.DropRequestTrailer);
-                if (dropValue != null && bool.TryParse(dropValue, out var isDrop) && isDrop)
+                Status? responseStatus;
+
+                HttpResponseMessage? httpResponse = null;
+                try
                 {
-                    CommitCall(call, CommitReason.Drop);
+                    httpResponse = await call.HttpResponseTask.ConfigureAwait(false);
+                    responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
+                }
+                catch (RpcException ex)
+                {
+                    // A "drop" result from the load balancer should immediately stop the call,
+                    // including ignoring the retry policy.
+                    var dropValue = ex.Trailers.GetValue(GrpcProtocolConstants.DropRequestTrailer);
+                    if (dropValue != null && bool.TryParse(dropValue, out var isDrop) && isDrop)
+                    {
+                        CommitCall(call, CommitReason.Drop);
+                        return;
+                    }
+
+                    call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
+                }
+                catch (Exception ex)
+                {
+                    call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
+                }
+
+                CancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                // Check to see the response returned from the server makes the call commited
+                // Null status code indicates the headers were valid and a "Response-Headers" response
+                // was received from the server.
+                // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
+                if (responseStatus == null)
+                {
+                    // Headers were returned. We're commited.
+                    CommitCall(call, CommitReason.ResponseHeadersReceived);
+
+                    // Wait until the call has finished and then check its status code
+                    // to update retry throttling tokens.
+                    var status = await call.CallTask.ConfigureAwait(false);
+                    if (status.StatusCode == StatusCode.OK)
+                    {
+                        RetryAttemptCallSuccess();
+                    }
                     return;
                 }
 
-                call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
-            }
-            catch (Exception ex)
-            {
-                call.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
-            }
-
-            if (CancellationTokenSource.IsCancellationRequested)
-            {
-                CommitCall(call, CommitReason.Canceled);
-                return;
-            }
-
-            // Check to see the response returned from the server makes the call commited
-            // Null status code indicates the headers were valid and a "Response-Headers" response
-            // was received from the server.
-            // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
-            if (responseStatus == null)
-            {
-                // Headers were returned. We're commited.
-                CommitCall(call, CommitReason.ResponseHeadersReceived);
-
-                // Wait until the call has finished and then check its status code
-                // to update retry throttling tokens.
-                var status = await call.CallTask.ConfigureAwait(false);
-                if (status.StatusCode == StatusCode.OK)
+                lock (Lock)
                 {
-                    RetryAttemptCallSuccess();
-                }
-            }
-            else
-            {
-                var status = responseStatus.Value;
-
-                var retryPushbackMS = GetRetryPushback(httpResponse);
-
-                if (retryPushbackMS < 0)
-                {
-                    RetryAttemptCallFailure();
-                }
-                else if (_hedgingPolicy.NonFatalStatusCodes.Contains(status.StatusCode))
-                {
-                    // Needs to happen before interrupt.
-                    RetryAttemptCallFailure();
-
-                    // No need to interrupt if we started with no delay and all calls
-                    // have already been made when hedging starting.
-                    if (_delayInterruptTcs != null)
+                    var status = responseStatus.Value;
+                    if (IsDeadlineExceeded())
                     {
-                        lock (Lock)
+                        // Deadline has been exceeded so immediately commit call.
+                        CommitCall(call, CommitReason.DeadlineExceeded);
+                    }
+                    else if (!_hedgingPolicy.NonFatalStatusCodes.Contains(status.StatusCode))
+                    {
+                        CommitCall(call, CommitReason.FatalStatusCode);
+                    }
+                    else if (_activeCalls.Count == 1 && AttemptCount >= MaxRetryAttempts)
+                    {
+                        // This is the last active call and no more will be made.
+                        CommitCall(call, CommitReason.ExceededAttemptCount);
+                    }
+                    else
+                    {
+                        // Call failed but it didn't exceed deadline, have a fatal status code
+                        // and there are remaining attempts available. Is a chance it will be retried.
+                        //
+                        // Increment call failure out. Needs to happen before checking throttling.
+                        RetryAttemptCallFailure();
+
+                        if (_activeCalls.Count == 1 && IsRetryThrottlingActive())
                         {
-                            if (retryPushbackMS >= 0)
+                            // This is the last active call and throttling is active.
+                            CommitCall(call, CommitReason.Throttled);
+                        }
+                        else
+                        {
+                            var retryPushbackMS = GetRetryPushback(httpResponse);
+
+                            // No need to interrupt if we started with no delay and all calls
+                            // have already been made when hedging starting.
+                            if (_delayInterruptTcs != null)
                             {
-                                _pushbackDelay = TimeSpan.FromMilliseconds(retryPushbackMS.GetValueOrDefault());
+                                if (retryPushbackMS >= 0)
+                                {
+                                    _pushbackDelay = TimeSpan.FromMilliseconds(retryPushbackMS.GetValueOrDefault());
+                                }
+                                _delayInterruptTcs.TrySetResult(null);
                             }
-                            _delayInterruptTcs.TrySetResult(null);
+
+                            // Call isn't used and can be cancelled.
+                            // Note that the call could have already been removed and disposed if the
+                            // hedging call has been finalized or disposed.
+                            if (_activeCalls.Remove(call))
+                            {
+                                call.Dispose();
+                            }
                         }
                     }
                 }
-                else
-                {
-                    CommitCall(call, CommitReason.FatalStatusCode);
-                }
             }
-
-            lock (Lock)
+            catch (Exception ex)
             {
-                if (IsDeadlineExceeded())
-                {
-                    // Deadline has been exceeded so immediately commit call.
-                    CommitCall(call, CommitReason.DeadlineExceeded);
-                }
-                else if (_activeCalls.Count == 1 && AttemptCount >= MaxRetryAttempts)
-                {
-                    // This is the last active call and no more will be made.
-                    CommitCall(call, CommitReason.ExceededAttemptCount);
-                }
-                else if (_activeCalls.Count == 1 && IsRetryThrottlingActive())
-                {
-                    // This is the last active call and throttling is active.
-                    CommitCall(call, CommitReason.Throttled);
-                }
-                else
-                {
-                    // Call isn't used and can be cancelled.
-                    // Note that the call could have already been removed and disposed if the
-                    // hedging call has been finalized or disposed.
-                    if (_activeCalls.Remove(call))
-                    {
-                        call.Dispose();
-                    }
-                }
+                HandleUnexpectedError(ex);
             }
-
-            if (CommitedCallTask.IsCompletedSuccessfully() && CommitedCallTask.Result == call)
+            finally
             {
-                // Wait until the commited call is finished and then clean up hedging call.
-                await call.CallTask.ConfigureAwait(false);
-                Cleanup();
+                if (CommitedCallTask.IsCompletedSuccessfully() && CommitedCallTask.Result == call)
+                {
+                    // Wait until the commited call is finished and then clean up hedging call.
+                    await call.CallTask.ConfigureAwait(false);
+                    Cleanup();
+                }
             }
         }
 
@@ -275,7 +275,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
                     if (IsDeadlineExceeded())
                     {
-                        CommitCall(new StatusGrpcCall<TRequest, TResponse>(new Status(StatusCode.DeadlineExceeded, string.Empty)), CommitReason.DeadlineExceeded);
+                        CommitCall(CreateStatusCall(new Status(StatusCode.DeadlineExceeded, string.Empty)), CommitReason.DeadlineExceeded);
                         break;
                     }
                     else
