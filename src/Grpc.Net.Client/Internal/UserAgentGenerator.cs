@@ -28,6 +28,18 @@ namespace Grpc.Net.Client.Internal
     {
         internal static bool IsMono { get; } = Type.GetType("Mono.Runtime") != null;
 
+        /// <summary>
+        /// Generates a user agent string to be transported in headers.
+        /// <example>
+        ///   grpc-dotnet/2.41.0-dev (.NET 6.0.0-preview.7.21377.19; CLR 6.0.0; net6.0; osx; x64)
+        ///   grpc-dotnet/2.41.0-dev (Mono 6.12.0.140; CLR 4.0.30319; netstandard2.0; osx; x64)
+        ///   grpc-dotnet/2.41.0-dev (.NET 6.0.0-rc.1.21380.1; CLR 6.0.0; net6.0; linux; arm64)
+        ///   grpc-dotnet/2.41.0-dev (.NET 5.0.8; CLR 5.0.8; net5.0; linux; arm64)
+        ///   grpc-dotnet/2.41.0-dev (.NET Core; CLR 3.1.4; netstandard2.1; linux; arm64)
+        ///   grpc-dotnet/2.41.0-dev (.NET Framework; CLR 4.0.30319.42000; netstandard2.0; windows; x86)
+        ///   grpc-dotnet/2.41.0-dev (.NET 6.0.0-rc.1.21380.1; CLR 6.0.0; net6.0; windows; x64)
+        /// </example>
+        /// </summary>
         internal static string GetUserAgentString()
         {
             var assembly = typeof(GrpcProtocolConstants).Assembly;
@@ -44,7 +56,7 @@ namespace Grpc.Net.Client.Internal
             
             return GetUserAgentString(
                 processArch: RuntimeInformation.ProcessArchitecture,
-                runtimeVersion: IsMono ? null : Environment.Version, 
+                runtimeVersion: IsMono ? GetMonoRuntimeVersion(assembly) : Environment.Version, 
                 assemblyVersion: assemblyVersion,
                 // RuntimeInformation.FrameworkDescription is only supported for
                 // .NET Framework 4.7.1 and above. If targetting net461 or earlier,
@@ -53,6 +65,8 @@ namespace Grpc.Net.Client.Internal
                 runtimeInformation: RuntimeInformation.FrameworkDescription,
                 frameworkName: frameworkName,
                 operatingSystem: GetOS());
+
+            static Version GetMonoRuntimeVersion(Assembly assembly) => Version.Parse(assembly.ImageRuntimeVersion.Substring(1));
         }
 
         // Factored out for testing
@@ -69,7 +83,7 @@ namespace Grpc.Net.Client.Internal
             // net6.0;
             userAgent += GetFrameworkName(frameworkName);
             // windows  
-            userAgent += $"{operatingSystem} ";
+            userAgent += $"{operatingSystem}";
             // x64)
             userAgent += $"{GetProcessArch(processArch)})";
 
@@ -103,15 +117,15 @@ namespace Grpc.Net.Client.Internal
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return "windows";
+                return "windows; ";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                return "osx";
+                return "osx; ";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return "linux";
+                return "linux; ";
             }
             else
             {
