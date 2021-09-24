@@ -51,6 +51,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task UnaryMethod_SuccessfulCall_PollingCountersUpdatedCorrectly()
         {
+            using var httpEventSource = new HttpEventSourceListener(LoggerFactory);
+
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             async Task<HelloReply> UnarySuccess(HelloRequest request, ServerCallContext context)
@@ -201,7 +203,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
 
                 // Arrange
-                var clock = new TestSystemClock(DateTime.UtcNow);
                 var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
                 var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
 
@@ -209,13 +210,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
                 using var channel = CreateChannel();
-                channel.Clock = clock;
+                // Force client to handle deadline status from call
                 channel.DisableClientDeadline = true;
 
                 var client = TestClientFactory.Create(channel, method);
 
                 // Need a high deadline to avoid flakiness. No way to disable server deadline timer.
-                var deadline = clock.UtcNow.AddMilliseconds(500);
+                var deadline = DateTime.UtcNow.AddMilliseconds(500);
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: deadline));
 
                 // Assert - Call in progress
@@ -259,10 +260,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             SyncPoint? syncPoint = null;
             async Task<HelloReply> UnaryCancel(HelloRequest request, ServerCallContext context)
             {
+                var tcs = new TaskCompletionSource<HelloReply>(TaskCreationOptions.RunContinuationsAsynchronously);
+                context.CancellationToken.Register(() => tcs.SetCanceled());
+
                 Logger.LogInformation("On server.");
                 await syncPoint!.WaitToContinue().DefaultTimeout();
 
-                return new HelloReply();
+                return await tcs.Task;
             }
 
             var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCancel);
@@ -459,7 +463,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         private TestEventListener CreateEnableListener(EventSource eventSource)
         {
-            var listener = new TestEventListener(-1, LoggerFactory);
+            var listener = new TestEventListener(-1, LoggerFactory, eventSource);
             listener.EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All, EnableCountersArgs);
             return listener;
         }
