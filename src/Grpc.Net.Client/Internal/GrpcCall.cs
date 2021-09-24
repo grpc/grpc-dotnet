@@ -725,13 +725,11 @@ namespace Grpc.Net.Client.Internal
             return (diagnosticSourceEnabled, activity);
         }
 
-        private bool FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status? status)
+        private bool FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status status)
         {
-            CompatibilityHelpers.Assert(status != null);
-
-            if (status.Value.StatusCode != StatusCode.OK)
+            if (status.StatusCode != StatusCode.OK)
             {
-                if (status.Value.StatusCode == StatusCode.DeadlineExceeded)
+                if (status.StatusCode == StatusCode.DeadlineExceeded)
                 {
                     // Usually a deadline will be triggered via the deadline timer. However,
                     // if the client and server are on the same machine it is possible for the
@@ -742,7 +740,7 @@ namespace Grpc.Net.Client.Internal
                     // the client has processed that it has exceeded or not.
                     lock (this)
                     {
-                        if (_deadline != DateTime.MaxValue)
+                        if (_deadline <= Channel.Clock.UtcNow)
                         {
                             GrpcCallLog.DeadlineExceeded(Logger);
                             GrpcEventSource.Log.CallDeadlineExceeded();
@@ -752,8 +750,8 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 
-                GrpcCallLog.GrpcStatusError(Logger, status.Value.StatusCode, status.Value.Detail);
-                GrpcEventSource.Log.CallFailed(status.Value.StatusCode);
+                GrpcCallLog.GrpcStatusError(Logger, status.StatusCode, status.Detail);
+                GrpcEventSource.Log.CallFailed(status.StatusCode);
             }
             GrpcCallLog.FinishedCall(Logger);
             GrpcEventSource.Log.CallStop();
@@ -761,7 +759,7 @@ namespace Grpc.Net.Client.Internal
             // Activity needs to be stopped in the same execution context it was started
             if (activity != null)
             {
-                var statusText = status.Value.StatusCode.ToString("D");
+                var statusText = status.StatusCode.ToString("D");
                 if (statusText != null)
                 {
                     activity.AddTag(GrpcDiagnostics.GrpcStatusCodeTagName, statusText);

@@ -203,7 +203,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
 
                 // Arrange
-                var clock = new TestSystemClock(DateTime.UtcNow);
                 var clientEventListener = CreateEnableListener(Grpc.Net.Client.Internal.GrpcEventSource.Log);
                 var serverEventListener = CreateEnableListener(Grpc.AspNetCore.Server.Internal.GrpcEventSource.Log);
 
@@ -211,13 +210,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
                 using var channel = CreateChannel();
-                channel.Clock = clock;
+                // Force client to handle deadline status from call
                 channel.DisableClientDeadline = true;
 
                 var client = TestClientFactory.Create(channel, method);
 
                 // Need a high deadline to avoid flakiness. No way to disable server deadline timer.
-                var deadline = clock.UtcNow.AddMilliseconds(500);
+                var deadline = DateTime.UtcNow.AddMilliseconds(500);
                 var call = client.UnaryCall(new HelloRequest(), new CallOptions(deadline: deadline));
 
                 // Assert - Call in progress
