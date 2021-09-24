@@ -650,7 +650,7 @@ namespace Grpc.Net.Client.Internal
                 // The server could exceed the deadline and return a CANCELLED status before the
                 // client's deadline timer is triggered. When CANCELLED is received check the
                 // deadline against the clock and change status to DEADLINE_EXCEEDED if required.
-                var deadlineExceeded = s.StatusCode == StatusCode.Cancelled && _deadline != DateTime.MaxValue && _deadline - Channel.Clock.UtcNow <= TimeSpan.Zero;
+                var deadlineExceeded = s.StatusCode == StatusCode.Cancelled && IsDeadlineExceeded();
                 if (deadlineExceeded)
                 {
                     s = new Status(StatusCode.DeadlineExceeded, s.Detail, s.DebugException);
@@ -769,7 +769,7 @@ namespace Grpc.Net.Client.Internal
                     // the client has processed that it has exceeded or not.
                     lock (this)
                     {
-                        if (_deadline <= Channel.Clock.UtcNow)
+                        if (IsDeadlineExceeded())
                         {
                             GrpcCallLog.DeadlineExceeded(Logger);
                             GrpcEventSource.Log.CallDeadlineExceeded();
@@ -810,6 +810,11 @@ namespace Grpc.Net.Client.Internal
             }
 
             return true;
+        }
+
+        private bool IsDeadlineExceeded()
+        {
+            return _deadline <= Channel.Clock.UtcNow;
         }
 
         private async Task ReadCredentials(HttpRequestMessage request)

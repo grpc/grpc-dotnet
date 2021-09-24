@@ -510,6 +510,7 @@ namespace Grpc.Net.Client.Internal
 
             static StatusCode MapHttp2ErrorCodeToStatus(long protocolError)
             {
+                // Mapping from error codes to gRPC status codes is from the gRPC spec.
                 return protocolError switch
                 {
                     (long)Http2ErrorCode.NO_ERROR => StatusCode.Internal,
@@ -533,6 +534,7 @@ namespace Grpc.Net.Client.Internal
 #if NET6_0_OR_GREATER
             static StatusCode MapHttp3ErrorCodeToStatus(long protocolError)
             {
+                // Mapping from error codes to gRPC status codes is from the gRPC spec.
                 return protocolError switch
                 {
                     (long)Http3ErrorCode.H3_NO_ERROR => StatusCode.Internal,
