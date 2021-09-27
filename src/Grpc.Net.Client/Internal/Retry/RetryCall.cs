@@ -181,8 +181,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         return;
                     }
 
-                    Status status = responseStatus.Value;
-
+                    var status = responseStatus.Value;
                     var retryPushbackMS = GetRetryPushback(httpResponse);
 
                     // Failures only count towards retry throttling if they have a known, retriable status.
