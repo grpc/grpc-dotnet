@@ -30,6 +30,8 @@
     <Compile Include="..\Shared\TrailingHeadersHelpers.cs" Link="Internal\Http\TrailingHeadersHelpers.cs" />
     <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
+    <Compile Include="..\Shared\Http2ErrorCode.cs" Link="Internal\Http2ErrorCode.cs" />
+    <Compile Include="..\Shared\Http3ErrorCode.cs" Link="Internal\Http3ErrorCode.cs" />
   </ItemGroup>
 
   <ItemGroup>

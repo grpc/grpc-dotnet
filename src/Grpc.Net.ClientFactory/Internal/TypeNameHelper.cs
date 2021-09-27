@@ -19,6 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Grpc.Shared;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
@@ -143,11 +144,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 }
             }
 
-#if NETSTANDARD2_0
-            var genericPartIndex = type.Name.IndexOf('`');
-#else
-            var genericPartIndex = type.Name.IndexOf('`', StringComparison.Ordinal);
-#endif
+            var genericPartIndex = CompatibilityHelpers.IndexOf(type.Name, '`', StringComparison.Ordinal);
 
             if (genericPartIndex <= 0)
             {

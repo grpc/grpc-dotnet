@@ -22,6 +22,8 @@ using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Streaming;
 
@@ -57,6 +59,44 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.IsFalse(Logs.Any(l => l.EventId.Name == "DeadlineTimerRescheduled"));
 
             tcs.SetResult(new DataMessage());
+        }
+
+        [Test]
+        public async Task Unary_ServerResetCancellationStatus_DeadlineStatus()
+        {
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            async Task<DataMessage> UnaryTimeout(DataMessage request, ServerCallContext context)
+            {
+                var httpContext = context.GetHttpContext();
+                var resetFeature = httpContext.Features.Get<IHttpResetFeature>()!;
+
+                await tcs.Task;
+
+                var cancelErrorCode = (httpContext.Request.Protocol == "HTTP/2") ? 0x8 : 0x10c;
+                resetFeature.Reset(cancelErrorCode);
+
+                return new DataMessage();
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryTimeout);
+
+            var channel = CreateChannel();
+            channel.DisableClientDeadline = true;
+
+            var client = TestClientFactory.Create(channel, method);
+            var deadline = TimeSpan.FromMilliseconds(300);
+
+            // Act
+            var call = client.UnaryCall(new DataMessage(), new CallOptions(deadline: DateTime.UtcNow.Add(deadline)));
+
+            await Task.Delay(deadline);
+            tcs.SetResult(null);
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+            Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         }
     }
 }
