@@ -448,11 +448,7 @@ namespace Grpc.Net.Client.Internal
                     }
                     catch (Exception ex)
                     {
-                        // Don't log OperationCanceledException if deadline has exceeded
-                        // or the call has been canceled.
-                        if (ex is OperationCanceledException &&
-                            _callTcs.Task.IsCompletedSuccessfully() &&
-                            (_callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded || _callTcs.Task.Result.StatusCode == StatusCode.Cancelled))
+                        if (IsCancellationOrDeadlineException(ex))
                         {
                             throw;
                         }
@@ -594,6 +590,28 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
+        private bool IsCancellationOrDeadlineException(Exception ex)
+        {
+            // Don't log OperationCanceledException if deadline has exceeded
+            // or the call has been canceled.
+            if (ex is OperationCanceledException &&
+                _callTcs.Task.IsCompletedSuccessfully() &&
+                (_callTcs.Task.Result.StatusCode == StatusCode.DeadlineExceeded || _callTcs.Task.Result.StatusCode == StatusCode.Cancelled))
+            {
+                return true;
+            }
+
+            // Exception may specify RST_STREAM or abort code that resolves to cancellation.
+            // If protocol error is cancellation and deadline has been exceeded then that
+            // means the server canceled and the local deadline timer hasn't triggered.
+            if (GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Resolve the specified exception to an end-user exception that will be thrown from the client.
         /// The resolved exception is normally a RpcException. Returns true when the resolved exception is changed.
@@ -627,8 +645,19 @@ namespace Grpc.Net.Client.Internal
             }
             else
             {
-                status = GrpcProtocolHelpers.CreateStatusFromException(summary, ex);
-                resolvedException = CreateRpcException(status.Value);
+                var s = GrpcProtocolHelpers.CreateStatusFromException(summary, ex);
+
+                // The server could exceed the deadline and return a CANCELLED status before the
+                // client's deadline timer is triggered. When CANCELLED is received check the
+                // deadline against the clock and change status to DEADLINE_EXCEEDED if required.
+                var deadlineExceeded = s.StatusCode == StatusCode.Cancelled && IsDeadlineExceeded();
+                if (deadlineExceeded)
+                {
+                    s = new Status(StatusCode.DeadlineExceeded, s.Detail, s.DebugException);
+                }
+
+                status = s;
+                resolvedException = CreateRpcException(s);
                 return true;
             }
 
@@ -740,7 +769,7 @@ namespace Grpc.Net.Client.Internal
                     // the client has processed that it has exceeded or not.
                     lock (this)
                     {
-                        if (_deadline <= Channel.Clock.UtcNow)
+                        if (IsDeadlineExceeded())
                         {
                             GrpcCallLog.DeadlineExceeded(Logger);
                             GrpcEventSource.Log.CallDeadlineExceeded();
@@ -781,6 +810,11 @@ namespace Grpc.Net.Client.Internal
             }
 
             return true;
+        }
+
+        private bool IsDeadlineExceeded()
+        {
+            return _deadline <= Channel.Clock.UtcNow;
         }
 
         private async Task ReadCredentials(HttpRequestMessage request)

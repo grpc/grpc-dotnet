@@ -620,7 +620,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             await Task.Delay(100);
 
             var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Unavailable, clientException.StatusCode);
+            Assert.AreEqual(StatusCode.Internal, clientException.StatusCode);
         }
 
         [TestCase(true)]
@@ -766,7 +766,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             await Task.Delay(100);
 
             var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Unavailable, clientException.StatusCode);
+            Assert.AreEqual(StatusCode.Internal, clientException.StatusCode);
         }
 
         [Test]
