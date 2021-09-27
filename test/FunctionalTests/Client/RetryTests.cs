@@ -205,8 +205,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.IsFalse(Logs.Any(l => l.EventId.Name == "DeadlineTimerRescheduled"));
 
             AssertHasLog(LogLevel.Debug, "CallCommited", "Call commited. Reason: DeadlineExceeded");
-
-            tcs.SetResult(new DataMessage());
         }
 
         [Test]
@@ -397,6 +395,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     }
                 }
 
+                // Resources for past calls were successfully GCed.
                 return true;
             }, "Assert that retry call resources are released.");
         }
