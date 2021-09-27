@@ -787,12 +787,47 @@ namespace Grpc.Net.Client.Tests.Retry
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
 
             // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.ServerStreaming), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.Unary), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
             await call.ResponseAsync.DefaultTimeout();
 
             // Assert
             var log = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
             Assert.AreEqual("Call commited. Reason: ResponseHeadersReceived", log.State.ToString());
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_NoMessagesSuccess_Failure()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var services = new ServiceCollection();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+            var provider = services.BuildServiceProvider();
+
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                var content = request.Content!;
+                await content.CopyToAsync(new MemoryStream());
+
+                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.OK);
+            });
+            var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: provider.GetRequiredService<ILoggerFactory>(), serviceConfig: serviceConfig);
+
+            // Act
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.GetServiceMethod(MethodType.Unary), string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);
+            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+
+            var log = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
+            Assert.AreEqual("Call commited. Reason: FatalStatusCode", log.State.ToString());
         }
 
         [Test]

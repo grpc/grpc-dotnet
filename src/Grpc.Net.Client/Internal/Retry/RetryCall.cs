@@ -159,7 +159,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     //    sending any messages to the client.
                     //
                     // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
-                    if (responseStatus == null || responseStatus.GetValueOrDefault().StatusCode == StatusCode.OK)
+                    if (responseStatus == null)
                     {
                         // Headers were returned. We're commited.
                         CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
@@ -173,6 +173,15 @@ namespace Grpc.Net.Client.Internal.Retry
                         // Commited so exit retry loop.
                         return;
                     }
+                    else if (IsSuccessfulStreamingCall(responseStatus.GetValueOrDefault(), currentCall))
+                    {
+                        // Headers were returned. We're commited.
+                        CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
+                        RetryAttemptCallSuccess();
+
+                        // Commited so exit retry loop.
+                        return;
+                    }
 
                     if (CommitedCallTask.IsCompletedSuccessfully())
                     {
@@ -181,7 +190,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         return;
                     }
 
-                    var status = responseStatus.Value;
+                    var status = responseStatus.GetValueOrDefault();
                     var retryPushbackMS = GetRetryPushback(httpResponse);
 
                     // Failures only count towards retry throttling if they have a known, retriable status.
@@ -252,6 +261,16 @@ namespace Grpc.Net.Client.Internal.Retry
 
                 Log.StoppingRetryWorker(Logger);
             }
+        }
+
+        private static bool IsSuccessfulStreamingCall(Status responseStatus, GrpcCall<TRequest, TResponse> call)
+        {
+            if (responseStatus.StatusCode != StatusCode.OK)
+            {
+                return false;
+            }
+
+            return call.Method.Type == MethodType.ServerStreaming || call.Method.Type == MethodType.DuplexStreaming;
         }
 
         protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
