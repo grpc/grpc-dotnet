@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -184,6 +185,57 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(1, activeStreams.Count);
             Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+        }
+
+        [Test]
+        public async Task Client_CallCredentials_WithLoadBalancing_RoundtripToken()
+        {
+            // Arrange
+            string? authorization = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                authorization = context.RequestHeaders.GetValue("authorization");
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+            var credentials = CallCredentials.FromInterceptor((context, metadata) =>
+            {
+                metadata.Add("Authorization", $"Bearer TEST");
+                return Task.CompletedTask;
+            });
+            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+            using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true);
+
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
+            {
+                new DnsEndPoint(endpoint1.Address.Host, endpoint1.Address.Port),
+                new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
+            }));
+            var socketsHttpHandler = new SocketsHttpHandler
+            {
+                EnableMultipleHttp2Connections = true,
+                SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                {
+                    EnabledSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                    RemoteCertificateValidationCallback = (_, __, ___, ____) => true
+                }
+            };
+            var channel = GrpcChannel.ForAddress("static:///localhost", new GrpcChannelOptions
+            {
+                LoggerFactory = LoggerFactory,
+                ServiceProvider = services.BuildServiceProvider(),
+                Credentials = ChannelCredentials.Create(new SslCredentials(), credentials),
+                HttpHandler = socketsHttpHandler
+            });
+
+            var client = TestClientFactory.Create(channel, endpoint1.Method);
+
+            // Act
+            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Bearer TEST", authorization);
+            Assert.AreEqual("Balancer", reply.Message);
         }
 
         private class RequestVersionHandler : DelegatingHandler
