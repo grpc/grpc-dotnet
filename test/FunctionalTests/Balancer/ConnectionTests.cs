@@ -231,7 +231,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
             // Act
-            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.TimeoutAfter(TimeSpan.FromSeconds(20));
+            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Bearer TEST", authorization);
