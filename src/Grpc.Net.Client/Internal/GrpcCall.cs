@@ -822,7 +822,7 @@ namespace Grpc.Net.Client.Internal
             // In C-Core the call credential auth metadata is only applied if the channel is secure
             // The equivalent in grpc-dotnet is only applying metadata if HttpClient is using TLS
             // HttpClient scheme will be HTTP if it is using H2C (HTTP2 without TLS)
-            if (Channel.Address.Scheme == Uri.UriSchemeHttps)
+            if (Channel.IsSecure)
             {
                 var configurator = new DefaultCallCredentialsConfigurator();
 
