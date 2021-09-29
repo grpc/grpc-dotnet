@@ -1044,18 +1044,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 await call.RequestStream.WriteAsync(new HelloRequest { Name = i.ToString() }).DefaultTimeout();
                 await call.ResponseStream.MoveNext().DefaultTimeout();
-                await call.RequestStream.CompleteAsync();
 
+                // No DefaultTimeout on CompleteAsync because we want dispose to happen as close as possible afterwards.
+                await call.RequestStream.CompleteAsync();
                 call.Dispose();
 
                 // Wait for server method to start exiting
                 await tcs.Task.DefaultTimeout();
 
                 // Assert
-                var lastLogs = Logs.Skip(lastLogCount).ToList();
 
+                // Only test the logs for the last iteration.
+                var lastLogs = Logs.Skip(lastLogCount).ToList();
                 var sentEndStreamCount = lastLogs.Count(l =>
                 {
+                    // This is HTTP/2 specific. If this test is run with HTTP/3 then this check will need to be updated.
                     if (l.EventId.Name == "Http2FrameReceived" &&
                         l.State is IEnumerable<KeyValuePair<string, object>> state)
                     {
