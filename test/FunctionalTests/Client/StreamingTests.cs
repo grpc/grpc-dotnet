@@ -1019,6 +1019,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     // gRPC and Kestrel over whether gRPC finishes using PipeReader first, or Kestrel reads
                     // the RST_STREAM and makes PipeReader throw.
                 }
+                catch (InvalidOperationException ex) when (ex.Message == "Can't read messages after the request is complete.")
+                {
+                    // The server receives END_STREAM = true and then RST_STREAM. There is a race between
+                    // gRPC and Kestrel over whether gRPC finishes using PipeReader first, or Kestrel reads
+                    // the RST_STREAM and makes PipeReader throw.
+                }
                 finally
                 {
                     tcs.SetResult(null);
