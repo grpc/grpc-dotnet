@@ -1000,7 +1000,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         [TestCase(2)]
         [TestCase(20)]
-        public async Task DuplexStreaming_CompleteThenDisposeMultipleCalls_Success(int iterations)
+        public async Task DuplexStreaming_CompleteThenDisposeMultipleCalls_EndStreamSentToServer(int iterations)
         {
             TaskCompletionSource<object?> tcs = null!;
 
