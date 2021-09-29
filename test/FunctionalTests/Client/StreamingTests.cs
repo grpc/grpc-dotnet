@@ -26,6 +26,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -996,5 +997,83 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
         }
 #endif
+
+        [TestCase(2)]
+        [TestCase(20)]
+        public async Task DuplexStreaming_CompleteThenDisposeMultipleCalls_Success(int iterations)
+        {
+            TaskCompletionSource<object?> tcs = null!;
+
+            async Task DuplexStreamingReadUntilEnd(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+            {
+                try
+                {
+                    await foreach (var message in requestStream.ReadAllAsync())
+                    {
+                        await responseStream.WriteAsync(new HelloReply { Message = message.Name });
+                    }
+                }
+                catch (IOException ex) when (ex.Message == "The client reset the request stream.")
+                {
+                    // The server receives END_STREAM = true and then RST_STREAM. There is a race between
+                    // gRPC and Kestrel over whether gRPC finishes using PipeReader first, or Kestrel reads
+                    // the RST_STREAM and makes PipeReader throw.
+                }
+                finally
+                {
+                    tcs.SetResult(null);
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddDuplexStreamingMethod<HelloRequest, HelloReply>(DuplexStreamingReadUntilEnd);
+
+            var channel = CreateChannel();
+
+            var client = TestClientFactory.Create(channel, method);
+
+            var lastLogCount = 0;
+            for (var i = 0; i < iterations; i++)
+            {
+                Logger.LogInformation($"Iteration {i}");
+
+                tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                // Act
+                var call = client.DuplexStreamingCall();
+
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = i.ToString() }).DefaultTimeout();
+                await call.ResponseStream.MoveNext().DefaultTimeout();
+                await call.RequestStream.CompleteAsync();
+
+                call.Dispose();
+
+                // Wait for server method to start exiting
+                await tcs.Task.DefaultTimeout();
+
+                // Assert
+                var lastLogs = Logs.Skip(lastLogCount).ToList();
+
+                var sentEndStreamCount = lastLogs.Count(l =>
+                {
+                    if (l.EventId.Name == "Http2FrameReceived" &&
+                        l.State is IEnumerable<KeyValuePair<string, object>> state)
+                    {
+                        var frameType = state.Single(s => s.Key == "type").Value.ToString();
+                        var flags = state.Single(s => s.Key == "flags").Value.ToString();
+
+                        if (frameType == "DATA" && flags == "END_STREAM")
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+                Assert.IsTrue(sentEndStreamCount == 1, "Client should have sent final data frame with END_STREAM.");
+
+                lastLogCount = Logs.Count;
+            }
+        }
     }
 }
