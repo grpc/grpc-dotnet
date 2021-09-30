@@ -22,7 +22,7 @@ using Grpc.Core.Interceptors;
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
-    /// Representation of a registration of the interceptor in the client pipeline.
+    /// Representation of a registration of an <see cref="Interceptor"/> in the client pipeline.
     /// </summary>
     public class InterceptorRegistration
     {
