@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.12.1</BenchmarkDotNetPackageVersion>
-    <GoogleProtobufPackageVersion>3.15.8</GoogleProtobufPackageVersion>
+    <GoogleProtobufPackageVersion>3.18.0</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.39.0-pre1</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.40.0</GrpcPackageVersion>
     <MicrosoftAspNetCoreAppPackageVersion>6.0.0-rc.1.21367.4</MicrosoftAspNetCoreAppPackageVersion>
