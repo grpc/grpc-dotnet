@@ -16,21 +16,15 @@
 
 #endregion
 
+using System;
+using System.Collections.Concurrent;
+using System.Net.Http;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
-using Grpc.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
