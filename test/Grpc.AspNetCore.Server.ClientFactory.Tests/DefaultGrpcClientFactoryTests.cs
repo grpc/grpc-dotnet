@@ -81,7 +81,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     o.Address = baseAddress;
                 })
                 .EnableCallContextPropagation()
-                .AddInterceptor(() => new CallbackInterceptor(o => options = o))
+                .AddInterceptor(InterceptorLifetime.Channel, () => new CallbackInterceptor(o => options = o))
                 .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -129,7 +129,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     o.Address = baseAddress;
                 })
                 .EnableCallContextPropagation()
-                .AddInterceptor(() => new CallbackInterceptor(o => options = o))
+                .AddInterceptor(InterceptorLifetime.Channel, () => new CallbackInterceptor(o => options = o))
                 .ConfigurePrimaryHttpMessageHandler(() => handler);
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);

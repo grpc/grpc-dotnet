@@ -297,8 +297,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
             {
-                var lifetimeTrackingCallInvoker = (LifetimeTrackingCallInvoker)callInvoker;
-                CallInvoker = (HttpClientCallInvoker)lifetimeTrackingCallInvoker.InnerInvoker;
+                CallInvoker = (HttpClientCallInvoker)callInvoker;
             }
 
             public new HttpClientCallInvoker CallInvoker { get; }
