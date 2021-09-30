@@ -15,6 +15,7 @@
     <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
     <Compile Include="..\Shared\HttpRequestHelpers.cs" Link="Internal\Http\HttpRequestHelpers.cs" />
+    <Compile Include="..\Shared\NonCapturingTimer.cs" Link="Internal\NonCapturingTimer.cs" />
   </ItemGroup>
 
   <ItemGroup>

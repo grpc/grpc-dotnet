@@ -17,7 +17,11 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
@@ -29,20 +33,14 @@ namespace Grpc.Net.ClientFactory.Internal
         private readonly IServiceProvider _serviceProvider;
         private readonly GrpcCallInvokerFactory _callInvokerFactory;
         private readonly IOptionsMonitor<GrpcClientFactoryOptions> _grpcClientFactoryOptionsMonitor;
-        private readonly IOptionsMonitor<HttpClientFactoryOptions> _httpClientFactoryOptionsMonitor;
-        private readonly IHttpMessageHandlerFactory _messageHandlerFactory;
 
         public DefaultGrpcClientFactory(IServiceProvider serviceProvider,
             GrpcCallInvokerFactory callInvokerFactory,
-            IOptionsMonitor<GrpcClientFactoryOptions> grpcClientFactoryOptionsMonitor,
-            IOptionsMonitor<HttpClientFactoryOptions> httpClientFactoryOptionsMonitor,
-            IHttpMessageHandlerFactory messageHandlerFactory)
+            IOptionsMonitor<GrpcClientFactoryOptions> grpcClientFactoryOptionsMonitor)
         {
             _serviceProvider = serviceProvider;
             _callInvokerFactory = callInvokerFactory;
             _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;
-            _httpClientFactoryOptionsMonitor = httpClientFactoryOptionsMonitor;
-            _messageHandlerFactory = messageHandlerFactory;
         }
 
         public override TClient CreateClient<TClient>(string name) where TClient : class
@@ -53,19 +51,26 @@ namespace Grpc.Net.ClientFactory.Internal
                 throw new InvalidOperationException($"No gRPC client configured with name '{name}'.");
             }
 
-            var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
-            if (httpClientFactoryOptions.HttpClientActions.Count > 0)
-            {
-                throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
-            }
+            var callInvoker = _callInvokerFactory.CreateInvoker(name, typeof(TClient));
 
             var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
-            var httpHandler = _messageHandlerFactory.CreateHandler(name);
-            var callInvoker = _callInvokerFactory.CreateCallInvoker(httpHandler, name, typeof(TClient), clientFactoryOptions);
+
+            var resolvedCallInvoker = GrpcClientFactoryOptions.BuildInterceptors(
+                callInvoker,
+                _serviceProvider,
+                clientFactoryOptions,
+                InterceptorLifetime.Client);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (clientFactoryOptions.Interceptors.Count != 0)
+            {
+                resolvedCallInvoker = resolvedCallInvoker.Intercept(clientFactoryOptions.Interceptors.ToArray());
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
 
             if (clientFactoryOptions.Creator != null)
             {
-                var c = clientFactoryOptions.Creator(callInvoker);
+                var c = clientFactoryOptions.Creator(resolvedCallInvoker);
                 if (c is TClient client)
                 {
                     return client;
@@ -79,7 +84,7 @@ namespace Grpc.Net.ClientFactory.Internal
             }
             else
             {
-                return defaultClientActivator.CreateClient(callInvoker);
+                return defaultClientActivator.CreateClient(resolvedCallInvoker);
             }
         }
     }

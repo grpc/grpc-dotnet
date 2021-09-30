@@ -42,11 +42,88 @@ namespace Grpc.Net.ClientFactory
         /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
+        [Obsolete("Interceptors is obsolete and will be removed in a future release. Use InterceptorRegistrations instead.")]
         public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IList<InterceptorRegistration> InterceptorRegistrations { get; } = new List<InterceptorRegistration>();
 
         /// <summary>
         /// Gets or sets a delegate that will override how a client is created.
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
+
+        internal static CallInvoker BuildInterceptors(
+            CallInvoker callInvoker,
+            IServiceProvider serviceProvider,
+            GrpcClientFactoryOptions clientFactoryOptions,
+            InterceptorLifetime lifetime)
+        {
+            CallInvoker resolvedCallInvoker;
+            if (clientFactoryOptions.InterceptorRegistrations.Count == 0)
+            {
+                resolvedCallInvoker = callInvoker;
+            }
+            else
+            {
+                var channelInterceptors = new List<Interceptor>();
+                for (var i = 0; i < clientFactoryOptions.InterceptorRegistrations.Count; i++)
+                {
+                    var registration = clientFactoryOptions.InterceptorRegistrations[i];
+                    if (registration.Lifetime == lifetime)
+                    {
+                        channelInterceptors.Add(registration.Creator(serviceProvider));
+                    }
+                }
+
+                resolvedCallInvoker = callInvoker.Intercept(channelInterceptors.ToArray());
+            }
+
+            return resolvedCallInvoker;
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public class InterceptorRegistration
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="lifetime"></param>
+        /// <param name="creator"></param>
+        public InterceptorRegistration(InterceptorLifetime lifetime, Func<IServiceProvider, Interceptor> creator)
+        {
+            Lifetime = lifetime;
+            Creator = creator;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public InterceptorLifetime Lifetime { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public Func<IServiceProvider, Interceptor> Creator { get; }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum InterceptorLifetime
+    {
+        /// <summary>
+        /// 
+        /// </summary>
+        Channel,
+        /// <summary>
+        /// 
+        /// </summary>
+        Client
     }
 }

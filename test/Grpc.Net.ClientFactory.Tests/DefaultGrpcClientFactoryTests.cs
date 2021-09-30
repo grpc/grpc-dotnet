@@ -297,7 +297,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
             {
-                CallInvoker = (HttpClientCallInvoker)callInvoker;
+                var lifetimeTrackingCallInvoker = (LifetimeTrackingCallInvoker)callInvoker;
+                CallInvoker = (HttpClientCallInvoker)lifetimeTrackingCallInvoker.InnerInvoker;
             }
 
             public new HttpClientCallInvoker CallInvoker { get; }
@@ -343,11 +344,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
         private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
         {
-            return new DefaultGrpcClientFactory(serviceProvider,
+            return new DefaultGrpcClientFactory(
+                serviceProvider,
                 serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>(),
-                serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>());
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
         }
     }
 }

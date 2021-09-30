@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
@@ -330,6 +331,92 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
             // Assert
             Assert.AreEqual("The System.Object instance returned by the configured client creator is not compatible with Greet.Greeter+GreeterClient.", ex.Message);
+        }
+
+        [TestCase(InterceptorLifetime.Client, 2)]
+        [TestCase(InterceptorLifetime.Channel, 1)]
+        public async Task AddInterceptor_InterceptorLifetime_InterceptorCreatedCountCorrect(InterceptorLifetime lifetime, int callCount)
+        {
+            // Arrange
+            var testHttpMessageHandler = new TestHttpMessageHandler();
+
+            var interceptorCreatedCount = 0;
+            var services = new ServiceCollection();
+            services.AddTransient<CallbackInterceptor>(s =>
+            {
+                interceptorCreatedCount++;
+                return new CallbackInterceptor(o => { });
+            });
+
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddInterceptor<CallbackInterceptor>(lifetime)
+                .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+
+            var client1 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            await client1.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+            var client2 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            await client2.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(callCount, interceptorCreatedCount);
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        public async Task AddInterceptor_ClientLifetimeInScope_InterceptorCreatedCountCorrect(int scopes)
+        {
+            // Arrange
+            var testHttpMessageHandler = new TestHttpMessageHandler();
+
+            var interceptorCreatedCount = 0;
+            var services = new ServiceCollection();
+            services.AddScoped<CallbackInterceptor>(s =>
+            {
+                interceptorCreatedCount++;
+                return new CallbackInterceptor(o => { });
+            });
+
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddInterceptor<CallbackInterceptor>()
+                .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            for (var i = 0; i < scopes; i++)
+            {
+                await MakeCallsInScope(serviceProvider);
+            }
+
+            // Assert
+            Assert.AreEqual(scopes, interceptorCreatedCount);
+
+            static async Task MakeCallsInScope(ServiceProvider rootServiceProvider)
+            {
+                var scope = rootServiceProvider.CreateScope();
+
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+
+                var client1 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+                await client1.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                var client2 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+                await client2.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+            }
         }
 
         private class DerivedGreeterClient : Greeter.GreeterClient

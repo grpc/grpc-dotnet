@@ -47,12 +47,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.TryAddSingleton<ContextPropagationInterceptor>();
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddTransient<IConfigureOptions<GrpcClientFactoryOptions>>(services =>
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                return new ConfigureNamedOptions<GrpcClientFactoryOptions>(builder.Name, options =>
-                {
-                    options.Interceptors.Add(services.GetRequiredService<ContextPropagationInterceptor>());
-                });
+                options.InterceptorRegistrations.Add(new InterceptorRegistration(
+                    InterceptorLifetime.Channel,
+                    s => s.GetRequiredService<ContextPropagationInterceptor>()));
             });
 
             return builder;
