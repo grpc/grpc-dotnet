@@ -42,11 +42,11 @@ namespace Grpc.Net.ClientFactory
         /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
-        [Obsolete("Interceptors is obsolete and will be removed in a future release. Use InterceptorRegistrations instead.")]
+        [Obsolete("Interceptors collection is obsolete and will be removed in a future release. Use InterceptorRegistrations collection instead.")]
         public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
 
         /// <summary>
-        /// 
+        /// Gets a list of <see cref="InterceptorRegistration"/> instances used to configure a gRPC client pipeline.
         /// </summary>
         public IList<InterceptorRegistration> InterceptorRegistrations { get; } = new List<InterceptorRegistration>();
 
@@ -83,47 +83,5 @@ namespace Grpc.Net.ClientFactory
 
             return resolvedCallInvoker;
         }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class InterceptorRegistration
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="lifetime"></param>
-        /// <param name="creator"></param>
-        public InterceptorRegistration(InterceptorLifetime lifetime, Func<IServiceProvider, Interceptor> creator)
-        {
-            Lifetime = lifetime;
-            Creator = creator;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public InterceptorLifetime Lifetime { get; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public Func<IServiceProvider, Interceptor> Creator { get; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum InterceptorLifetime
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        Channel,
-        /// <summary>
-        /// 
-        /// </summary>
-        Client
     }
 }

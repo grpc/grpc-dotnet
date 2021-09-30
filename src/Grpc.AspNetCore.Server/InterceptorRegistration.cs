@@ -26,7 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Grpc.AspNetCore.Server
 {
     /// <summary>
-    /// Representation of a registration of the interceptor in the pipeline.
+    /// Representation of a registration of the interceptor in the server pipeline.
     /// </summary>
     public class InterceptorRegistration
     {
