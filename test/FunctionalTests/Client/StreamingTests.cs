@@ -26,7 +26,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
-using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
