@@ -28,7 +28,7 @@ namespace Grpc.AspNetCore.Server
         /// Creates a new instance of <see cref="GrpcActivatorHandle{T}"/>.
         /// </summary>
         /// <param name="instance">The activated instance.</param>
-        /// <param name="created">A value indicating whether the instanced was created by the activator.</param>
+        /// <param name="created">A value indicating whether the instance was created by the activator.</param>
         /// <param name="state">State related to the instance.</param>
         public GrpcActivatorHandle(T instance, bool created, object? state)
         {

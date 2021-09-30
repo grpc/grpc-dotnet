@@ -391,7 +391,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = new Uri("http://localhost");
                 })
-                .AddInterceptor<CallbackInterceptor>()
+                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
                 .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -417,6 +417,79 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 var client2 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
                 await client2.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
             }
+        }
+
+        [Test]
+        public async Task AddInterceptorGeneric_ScopedLifetime_CreatedOncePerScope()
+        {
+            // Arrange
+            var i = 0;
+            var channelInterceptorCreatedCount = 0;
+
+            var services = new ServiceCollection();
+            services.AddScoped<List<int>>();
+            services.AddScoped<CallbackInterceptor>(s =>
+            {
+                var increment = ++i;
+                return new CallbackInterceptor(o =>
+                {
+                    var list = s.GetRequiredService<List<int>>();
+                    list.Add(increment * list.Count);
+                });
+            });
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddInterceptor(() =>
+                {
+                    channelInterceptorCreatedCount++;
+                    return new CallbackInterceptor(o => { });
+                })
+                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var list = scope.ServiceProvider.GetRequiredService<List<int>>();
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response);
+                Assert.AreEqual(3, list.Count);
+                Assert.AreEqual(0, list[0]);
+                Assert.AreEqual(1, list[1]);
+                Assert.AreEqual(2, list[2]);
+            }
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var list = scope.ServiceProvider.GetRequiredService<List<int>>();
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response);
+                Assert.AreEqual(3, list.Count);
+                Assert.AreEqual(0, list[0]);
+                Assert.AreEqual(2, list[1]);
+                Assert.AreEqual(4, list[2]);
+            }
+
+            // Only one channel and its interceptor is created for multiple scopes.
+            Assert.AreEqual(1, channelInterceptorCreatedCount);
         }
 
         private class DerivedGreeterClient : Greeter.GreeterClient
