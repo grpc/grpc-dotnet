@@ -97,7 +97,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, Func<IServiceProvider, Interceptor> configureInvoker)
         {
-            return builder.AddInterceptor(InterceptorLifetime.Client, configureInvoker);
+            return builder.AddInterceptor(InterceptorLifetime.Channel, configureInvoker);
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, Func<Interceptor> configureInvoker)
         {
-            return builder.AddInterceptor(InterceptorLifetime.Client, configureInvoker);
+            return builder.AddInterceptor(InterceptorLifetime.Channel, configureInvoker);
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IHttpClientBuilder AddInterceptor<TInterceptor>(this IHttpClientBuilder builder)
             where TInterceptor : Interceptor
         {
-            return builder.AddInterceptor<TInterceptor>(InterceptorLifetime.Client);
+            return builder.AddInterceptor<TInterceptor>(InterceptorLifetime.Channel);
         }
 
         /// <summary>

@@ -26,12 +26,12 @@ namespace Grpc.Net.ClientFactory
     public enum InterceptorLifetime
     {
         /// <summary>
-        /// Specifies that the <see cref="Interceptor"/> will be resolved every time a client instance is created.
-        /// </summary>
-        Client,
-        /// <summary>
         /// Specifies that a single instance of the <see cref="Interceptor"/> will be resolved for each channel.
         /// </summary>
-        Channel
+        Channel,
+        /// <summary>
+        /// Specifies that the <see cref="Interceptor"/> will be resolved every time a client instance is created.
+        /// </summary>
+        Client
     }
 }
