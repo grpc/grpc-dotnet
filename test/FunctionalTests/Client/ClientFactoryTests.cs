@@ -16,16 +16,12 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Security;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -59,9 +55,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 })
                 .ConfigurePrimaryHttpMessageHandler(() =>
                 {
-                    return new HttpClientHandler
+                    return new SocketsHttpHandler
                     {
-                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        SslOptions = new SslClientAuthenticationOptions
+                        {
+                            RemoteCertificateValidationCallback = (____, ___, __, _) => true
+                        }
                     };
                 });
             var services = serviceCollection.BuildServiceProvider();
