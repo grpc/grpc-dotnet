@@ -31,7 +31,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETFramework,Version=v4.6.1",
@@ -44,7 +44,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETCoreApp,Version=v2.2",
@@ -57,7 +57,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
@@ -70,7 +70,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1-dev+5325faf",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
@@ -83,7 +83,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
@@ -92,11 +92,24 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public void HandlesNoOperatingSystem()
+        {
+            var userAgent = UserAgentGenerator.GetUserAgentString(
+                processArch: Architecture.X64,
+                clrVersion: Version.Parse("5.0.7"),
+                assemblyVersion: string.Empty,
+                runtimeInformation: ".NET 5.0.7",
+                frameworkName: ".NETStandard,Version=v2.0",
+                operatingSystem: string.Empty);
+            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; netstandard2.0; x64)", userAgent);
+        }
+
+        [Test]
         public void HandlesNoTargetFramework()
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: string.Empty,
@@ -109,7 +122,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.Arm64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: string.Empty,
                 frameworkName: string.Empty,
@@ -122,7 +135,7 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("v4.0.30319".Substring(1)),
+                clrVersion: Version.Parse("v4.0.30319".Substring(1)),
                 assemblyVersion: string.Empty,
                 runtimeInformation: "Mono 6.12.0.140 (2020-02/51d876a041e Thu Apr 29 10:44:55 EDT 2021)",
                 frameworkName: string.Empty,

@@ -56,7 +56,7 @@ namespace Grpc.Net.Client.Internal
             
             return GetUserAgentString(
                 processArch: RuntimeInformation.ProcessArchitecture,
-                runtimeVersion: IsMono ? GetMonoRuntimeVersion(assembly) : Environment.Version, 
+                clrVersion: Environment.Version,
                 assemblyVersion: assemblyVersion,
                 // RuntimeInformation.FrameworkDescription is only supported for
                 // .NET Framework 4.7.1 and above. If targetting net461 or earlier,
@@ -65,12 +65,10 @@ namespace Grpc.Net.Client.Internal
                 runtimeInformation: RuntimeInformation.FrameworkDescription,
                 frameworkName: frameworkName,
                 operatingSystem: GetOS());
-
-            static Version GetMonoRuntimeVersion(Assembly assembly) => Version.Parse(assembly.ImageRuntimeVersion.Substring(1));
         }
 
         // Factored out for testing
-        internal static string GetUserAgentString(Architecture processArch, Version? runtimeVersion, string? assemblyVersion, string? runtimeInformation, string? frameworkName, string? operatingSystem)
+        internal static string GetUserAgentString(Architecture processArch, Version? clrVersion, string? assemblyVersion, string? runtimeInformation, string? frameworkName, string? operatingSystem)
         {
             var userAgent = "grpc-dotnet";
 
@@ -79,7 +77,7 @@ namespace Grpc.Net.Client.Internal
             // (.NET 5.0.7;
             userAgent += $"({GetFrameworkDescription(runtimeInformation)}";
             // CLR 5.0.0;
-            userAgent += GetRuntimeVersion(runtimeVersion);
+            userAgent += GetclrVersion(clrVersion);
             // net6.0;
             userAgent += GetFrameworkName(frameworkName);
             // windows  
@@ -87,7 +85,7 @@ namespace Grpc.Net.Client.Internal
             // x64)
             userAgent += $"{GetProcessArch(processArch)})";
 
-            static string GetRuntimeVersion(Version? runtimeVersion) => runtimeVersion != null ? $"CLR {runtimeVersion}; " : string.Empty;
+            static string GetclrVersion(Version? clrVersion) => clrVersion != null ? $"CLR {clrVersion}; " : string.Empty;
 
             static string GetProcessArch(Architecture processArch) => processArch.ToString().ToLowerInvariant();
 
