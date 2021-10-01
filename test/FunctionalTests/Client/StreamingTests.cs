@@ -694,7 +694,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task ClientStreaming_ReadAfterMethodCancelled_Error(bool readBeforeExit)
+        public async Task ClientStreaming_ReadAfterMethodCancelled_False(bool readBeforeExit)
         {
             SetExpectedErrorsFilter(writeContext =>
             {
@@ -759,8 +759,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             syncPoint.Continue();
 
             var readTask = await readTcs.Task.DefaultTimeout();
-            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
-            Assert.AreEqual("Can't read messages after the request is complete.", serverException.Message);
+            await readTask;
 
             // Ensure the server abort reaches the client
             await Task.Delay(100);
