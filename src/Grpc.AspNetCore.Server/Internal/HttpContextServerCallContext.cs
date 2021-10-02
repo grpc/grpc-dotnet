@@ -175,6 +175,8 @@ namespace Grpc.AspNetCore.Server.Internal
         {
             if (ex is RpcException rpcException)
             {
+                // RpcException is thrown by client code to modify the status returned from the server.
+                // Log the status and detail. Don't log the exception to reduce log verbosity.
                 GrpcServerLog.RpcConnectionError(Logger, rpcException.StatusCode, rpcException.Status.Detail);
 
                 // There are two sources of metadata entries on the server-side:
