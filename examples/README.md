@@ -268,3 +268,12 @@ The retrier example shows how to configure a client to use gRPC retries to retry
 ##### Scenarios:
 
 * Configure [gRPC retries](https://docs.microsoft.com/aspnet/core/grpc/retries)
+
+## [Container](./Container)
+
+The container example shows how to create a gRPC Kubernetes app. There are two containers in the example: a Blazor Server frontend, and a gRPC server backend with multiple replicas. The frontend uses gRPC client-side load balancing to call backend instances.
+
+##### Scenarios:
+
+* [Kubernetes](https://kubernetes.io/)
+* Configure [gRPC client-side load balancing](https://docs.microsoft.com/aspnet/core/grpc/loadbalancing)
