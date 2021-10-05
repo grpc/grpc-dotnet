@@ -112,7 +112,7 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected void AssertHasLogRpcConnectionError(StatusCode statusCode, string detail)
         {
-            AssertHasLog(LogLevel.Information, "RpcConnectionError", $"Error status code '{statusCode}' raised.", e => GetRpcExceptionDetail(e) == detail);
+            AssertHasLog(LogLevel.Information, "RpcConnectionError", $"Error status code '{statusCode}' with detail '{detail}' raised.");
         }
 
         protected void AssertHasLog(LogLevel logLevel, string name, string message, Func<Exception, bool>? exceptionMatch = null)
