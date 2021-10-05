@@ -10,6 +10,9 @@
     <!-- Uncomment line below to automatically compile .proto files in the project directory -->
     <!-- <EnableDefaultProtoBufItems>true</EnableDefaultProtoBufItems> -->
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
+
+    <!-- Turn on preview features so we can use Http3. Can be removed in .NET 7 -->
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>
