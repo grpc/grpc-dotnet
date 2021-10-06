@@ -225,7 +225,9 @@ namespace Grpc.Net.Client.Internal
             Channel.FinishActiveCall(this);
 
             _ctsRegistration?.Dispose();
-            _deadlineTimer?.Dispose();
+            var deadlineTimer = _deadlineTimer;
+            _deadlineTimer = null;
+            deadlineTimer?.Dispose();
             HttpResponse?.Dispose();
             ClientStreamReader?.Dispose();
             ClientStreamWriter?.Dispose();
@@ -965,7 +967,7 @@ namespace Grpc.Net.Client.Internal
                 GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
 
                 var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
-                _deadlineTimer!.Change(dueTime, Timeout.Infinite);
+                _deadlineTimer?.Change(dueTime, Timeout.Infinite);
             }
         }
 
