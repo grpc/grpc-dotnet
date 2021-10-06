@@ -579,9 +579,13 @@ namespace Grpc.Net.Client.Internal
 
                     finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                     _httpResponseTcs.TrySetException(resolvedException);
-                    _responseTcs?.TrySetException(resolvedException);
 
                     Cleanup(status.Value);
+
+                    // Update response TCS after overall call status is resolved. This is required so that
+                    // the call is completed at the time someone catches the error from ResponseAsync.
+                    // call.GetStatus() will error if the call isn't complete.
+                    _responseTcs?.TrySetException(resolvedException);
                 }
 
                 // Verify that FinishCall is called in every code path of this method.
