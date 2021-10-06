@@ -53,6 +53,20 @@ namespace Grpc.AspNetCore.FunctionalTests.Web
 
         protected HttpClient CreateGrpcWebClient()
         {
+            var grpcWebHandler = CreateGrpcWebHandlerCore();
+
+            return Fixture.CreateClient(EndpointName, grpcWebHandler);
+        }
+
+        protected (HttpMessageHandler handler, Uri address) CreateGrpcWebHandler()
+        {
+            var grpcWebHandler = CreateGrpcWebHandlerCore();
+
+            return Fixture.CreateHandler(EndpointName, grpcWebHandler);
+        }
+
+        private GrpcWebHandler? CreateGrpcWebHandlerCore()
+        {
             Version protocol;
 
             if (EndpointName == TestServerEndpointName.Http1)
@@ -80,7 +94,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web
                 };
             }
 
-            return Fixture.CreateClient(EndpointName, grpcWebHandler);
+            return grpcWebHandler;
         }
 
         protected GrpcChannel CreateGrpcWebChannel()

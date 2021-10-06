@@ -42,11 +42,49 @@ namespace Grpc.Net.ClientFactory
         /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
+        [Obsolete("Interceptors collection is obsolete and will be removed in a future release. Use InterceptorRegistrations collection instead.")]
         public IList<Interceptor> Interceptors { get; } = new List<Interceptor>();
+
+        /// <summary>
+        /// Gets a list of <see cref="InterceptorRegistration"/> instances used to configure a gRPC client pipeline.
+        /// </summary>
+        public IList<InterceptorRegistration> InterceptorRegistrations { get; } = new List<InterceptorRegistration>();
 
         /// <summary>
         /// Gets or sets a delegate that will override how a client is created.
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
+
+        internal static CallInvoker BuildInterceptors(
+            CallInvoker callInvoker,
+            IServiceProvider serviceProvider,
+            GrpcClientFactoryOptions clientFactoryOptions,
+            InterceptorScope scope)
+        {
+            CallInvoker resolvedCallInvoker;
+            if (clientFactoryOptions.InterceptorRegistrations.Count == 0)
+            {
+                resolvedCallInvoker = callInvoker;
+            }
+            else
+            {
+                List<Interceptor>? channelInterceptors = null;
+                for (var i = 0; i < clientFactoryOptions.InterceptorRegistrations.Count; i++)
+                {
+                    var registration = clientFactoryOptions.InterceptorRegistrations[i];
+                    if (registration.Scope == scope)
+                    {
+                        channelInterceptors ??= new List<Interceptor>();
+                        channelInterceptors.Add(registration.Creator(serviceProvider));
+                    }
+                }
+
+                resolvedCallInvoker = channelInterceptors != null
+                    ? callInvoker.Intercept(channelInterceptors.ToArray())
+                    : callInvoker;
+            }
+
+            return resolvedCallInvoker;
+        }
     }
 }

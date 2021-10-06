@@ -293,7 +293,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(name));
             }
 
-            services.TryAddSingleton<GrpcClientFactory, DefaultGrpcClientFactory>();
+            // Transient so that IServiceProvider injected into constructor is for the current scope.
+            services.TryAddTransient<GrpcClientFactory, DefaultGrpcClientFactory>();
 
             services.TryAddSingleton<GrpcCallInvokerFactory>();
             services.TryAddSingleton<DefaultClientActivator<TClient>>();

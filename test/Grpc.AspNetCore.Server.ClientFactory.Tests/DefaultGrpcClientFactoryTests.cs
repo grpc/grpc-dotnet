@@ -332,11 +332,10 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
         private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
         {
-            return new DefaultGrpcClientFactory(serviceProvider,
+            return new DefaultGrpcClientFactory(
+                serviceProvider,
                 serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>(),
-                serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>());
+                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
         }
     }
 }
