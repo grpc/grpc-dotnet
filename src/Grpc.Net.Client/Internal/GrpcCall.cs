@@ -583,8 +583,8 @@ namespace Grpc.Net.Client.Internal
                     Cleanup(status.Value);
 
                     // Update response TCS after overall call status is resolved. This is required so that
-                    // the call is completed at the time someone catches the error from ResponseAsync.
-                    // call.GetStatus() will error if the call isn't complete.
+                    // the call is completed before an error is thrown from ResponseAsync. If it happens
+                    // afterwards then there is a chance GetStatus() will error because the call isn't complete.
                     _responseTcs?.TrySetException(resolvedException);
                 }
 
