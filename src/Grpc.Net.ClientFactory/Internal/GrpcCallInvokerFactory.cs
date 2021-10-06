@@ -16,21 +16,37 @@
 
 #endregion
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
-using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Net.Http;
+using Grpc.Core;
+using Grpc.Net.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
+    internal record struct EntryKey(string Name, Type Type);
+
     internal class GrpcCallInvokerFactory
     {
         private readonly ILoggerFactory _loggerFactory;
+        private readonly IOptionsMonitor<GrpcClientFactoryOptions> _grpcClientFactoryOptionsMonitor;
+        private readonly IOptionsMonitor<HttpClientFactoryOptions> _httpClientFactoryOptionsMonitor;
+        private readonly IHttpMessageHandlerFactory _messageHandlerFactory;
 
-        public GrpcCallInvokerFactory(ILoggerFactory loggerFactory)
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ConcurrentDictionary<EntryKey, CallInvoker> _activeChannels;
+        private readonly Func<EntryKey, CallInvoker> _invokerFactory;
+
+        public GrpcCallInvokerFactory(
+            IServiceScopeFactory scopeFactory,
+            ILoggerFactory loggerFactory,
+            IOptionsMonitor<GrpcClientFactoryOptions> grpcClientFactoryOptionsMonitor,
+            IOptionsMonitor<HttpClientFactoryOptions> httpClientFactoryOptionsMonitor,
+            IHttpMessageHandlerFactory messageHandlerFactory)
         {
             if (loggerFactory == null)
             {
@@ -38,42 +54,77 @@ namespace Grpc.Net.ClientFactory.Internal
             }
 
             _loggerFactory = loggerFactory;
+            _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;
+            _httpClientFactoryOptionsMonitor = httpClientFactoryOptionsMonitor;
+            _messageHandlerFactory = messageHandlerFactory;
+
+            _scopeFactory = scopeFactory;
+            _activeChannels = new ConcurrentDictionary<EntryKey, CallInvoker>();
+            _invokerFactory = CreateInvoker;
         }
 
-        public CallInvoker CreateCallInvoker(HttpMessageHandler httpHandler, string name, Type type, GrpcClientFactoryOptions clientFactoryOptions)
+        public CallInvoker CreateInvoker(string name, Type type)
         {
-            if (httpHandler == null)
-            {
-                throw new ArgumentNullException(nameof(httpHandler));
-            }
+            return _activeChannels.GetOrAdd(new EntryKey(name, type), _invokerFactory);
+        }
+        
+        private CallInvoker CreateInvoker(EntryKey key)
+        {
+            var (name, type) = (key.Name, key.Type);
+            var scope = _scopeFactory.CreateScope();
+            var services = scope.ServiceProvider;
 
-            var channelOptions = new GrpcChannelOptions();
-            channelOptions.HttpHandler = httpHandler;
-            channelOptions.LoggerFactory = _loggerFactory;
-
-            if (clientFactoryOptions.ChannelOptionsActions.Count > 0)
+            try
             {
-                foreach (var applyOptions in clientFactoryOptions.ChannelOptionsActions)
+                var httpClientFactoryOptions = _httpClientFactoryOptionsMonitor.Get(name);
+                if (httpClientFactoryOptions.HttpClientActions.Count > 0)
                 {
-                    applyOptions(channelOptions);
+                    throw new InvalidOperationException($"The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name '{name}'.");
                 }
-            }
 
-            var address = clientFactoryOptions.Address;
-            if (address == null)
+                var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
+                var httpHandler = _messageHandlerFactory.CreateHandler(name); if (httpHandler == null)
+                {
+                    throw new ArgumentNullException(nameof(httpHandler));
+                }
+
+                var channelOptions = new GrpcChannelOptions();
+                channelOptions.HttpHandler = httpHandler;
+                channelOptions.LoggerFactory = _loggerFactory;
+                channelOptions.ServiceProvider = services;
+
+                if (clientFactoryOptions.ChannelOptionsActions.Count > 0)
+                {
+                    foreach (var applyOptions in clientFactoryOptions.ChannelOptionsActions)
+                    {
+                        applyOptions(channelOptions);
+                    }
+                }
+
+                var address = clientFactoryOptions.Address;
+                if (address == null)
+                {
+                    throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{type.Name}>(o => o.Address = new Uri(""https://localhost:5001""))");
+                }
+
+                var channel = GrpcChannel.ForAddress(address, channelOptions);
+
+                var httpClientCallInvoker = channel.CreateCallInvoker();
+
+                var resolvedCallInvoker = GrpcClientFactoryOptions.BuildInterceptors(
+                    httpClientCallInvoker,
+                    services,
+                    clientFactoryOptions,
+                    InterceptorScope.Channel);
+
+                return resolvedCallInvoker;
+            }
+            catch
             {
-                throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{type.Name}>(o => o.Address = new Uri(""https://localhost:5001""))");
+                // If something fails while creating the handler, dispose the services.
+                scope?.Dispose();
+                throw;
             }
-
-            var channel = GrpcChannel.ForAddress(address, channelOptions);
-
-            var httpClientCallInvoker = channel.CreateCallInvoker();
-
-            var resolvedCallInvoker = clientFactoryOptions.Interceptors.Count == 0
-                ? httpClientCallInvoker
-                : httpClientCallInvoker.Intercept(clientFactoryOptions.Interceptors.ToArray());
-
-            return resolvedCallInvoker;
         }
     }
 }

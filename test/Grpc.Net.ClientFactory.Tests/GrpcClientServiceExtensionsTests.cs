@@ -132,7 +132,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             services
                 .AddGrpcClient<Greeter.GreeterClient>(options =>
                 {
+#pragma warning disable CS0618 // Type or member is obsolete
                     options.Interceptors.Add(new CallbackInterceptor(o => { }));
+#pragma warning restore CS0618 // Type or member is obsolete
                 })
                 .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
@@ -145,7 +147,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
 
                 // Assert
                 Assert.AreEqual("http://contoso", options.Address!.OriginalString);
+#pragma warning disable CS0618 // Type or member is obsolete
                 Assert.AreEqual(1, options.Interceptors.Count);
+#pragma warning restore CS0618 // Type or member is obsolete
             }
         }
 
