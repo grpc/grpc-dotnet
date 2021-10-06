@@ -91,23 +91,24 @@ namespace Microsoft.Extensions.DependencyInjection
 
         /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
+        /// The interceptor scope is <see cref="InterceptorScope.Channel"/>.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <param name="configureInvoker">A delegate that is used to create an <see cref="Interceptor"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, Func<IServiceProvider, Interceptor> configureInvoker)
         {
-            return builder.AddInterceptor(InterceptorLifetime.Channel, configureInvoker);
+            return builder.AddInterceptor(InterceptorScope.Channel, configureInvoker);
         }
 
         /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
-        /// <param name="lifetime">The lifetime of the interceptor.</param>
+        /// <param name="scope">The scope of the interceptor.</param>
         /// <param name="configureInvoker">A delegate that is used to create an <see cref="Interceptor"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
-        public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorLifetime lifetime, Func<IServiceProvider, Interceptor> configureInvoker)
+        public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorScope scope, Func<IServiceProvider, Interceptor> configureInvoker)
         {
             if (builder == null)
             {
@@ -123,7 +124,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.InterceptorRegistrations.Add(new InterceptorRegistration(lifetime, configureInvoker));
+                options.InterceptorRegistrations.Add(new InterceptorRegistration(scope, configureInvoker));
             });
 
             return builder;
@@ -131,23 +132,24 @@ namespace Microsoft.Extensions.DependencyInjection
 
         /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
+        /// The interceptor scope is <see cref="InterceptorScope.Channel"/>.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <param name="configureInvoker">A delegate that is used to create an <see cref="Interceptor"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
         public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, Func<Interceptor> configureInvoker)
         {
-            return builder.AddInterceptor(InterceptorLifetime.Channel, configureInvoker);
+            return builder.AddInterceptor(InterceptorScope.Channel, configureInvoker);
         }
 
         /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
-        /// <param name="lifetime">The lifetime of the interceptor.</param>
+        /// <param name="scope">The scope of the interceptor.</param>
         /// <param name="configureInvoker">A delegate that is used to create an <see cref="Interceptor"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
-        public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorLifetime lifetime, Func<Interceptor> configureInvoker)
+        public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorScope scope, Func<Interceptor> configureInvoker)
         {
             if (builder == null)
             {
@@ -163,7 +165,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.InterceptorRegistrations.Add(new InterceptorRegistration(lifetime, s => configureInvoker()));
+                options.InterceptorRegistrations.Add(new InterceptorRegistration(scope, s => configureInvoker()));
             });
 
             return builder;
@@ -171,6 +173,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
         /// <summary>
         /// Adds an additional interceptor from the dependency injection container for a gRPC client.
+        /// The interceptor scope is <see cref="InterceptorScope.Channel"/>.
         /// </summary>
         /// <typeparam name="TInterceptor">The type of the <see cref="Interceptor"/>.</typeparam>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
@@ -178,17 +181,17 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IHttpClientBuilder AddInterceptor<TInterceptor>(this IHttpClientBuilder builder)
             where TInterceptor : Interceptor
         {
-            return builder.AddInterceptor<TInterceptor>(InterceptorLifetime.Channel);
+            return builder.AddInterceptor<TInterceptor>(InterceptorScope.Channel);
         }
 
         /// <summary>
         /// Adds an additional interceptor from the dependency injection container for a gRPC client.
         /// </summary>
         /// <typeparam name="TInterceptor">The type of the <see cref="Interceptor"/>.</typeparam>
-        /// <param name="lifetime">The lifetime of the interceptor.</param>
+        /// <param name="scope">The scope of the interceptor.</param>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
-        public static IHttpClientBuilder AddInterceptor<TInterceptor>(this IHttpClientBuilder builder, InterceptorLifetime lifetime)
+        public static IHttpClientBuilder AddInterceptor<TInterceptor>(this IHttpClientBuilder builder, InterceptorScope scope)
             where TInterceptor : Interceptor
         {
             if (builder == null)
@@ -198,7 +201,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.AddInterceptor(lifetime, serviceProvider =>
+            builder.AddInterceptor(scope, serviceProvider =>
             {
                 return serviceProvider.GetRequiredService<TInterceptor>();
             });

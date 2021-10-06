@@ -115,7 +115,7 @@ namespace Grpc.Net.ClientFactory.Internal
                     httpClientCallInvoker,
                     services,
                     clientFactoryOptions,
-                    InterceptorLifetime.Channel);
+                    InterceptorScope.Channel);
 
                 return resolvedCallInvoker;
             }

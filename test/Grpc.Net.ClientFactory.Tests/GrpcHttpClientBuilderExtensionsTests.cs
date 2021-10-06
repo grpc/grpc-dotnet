@@ -333,9 +333,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             Assert.AreEqual("The System.Object instance returned by the configured client creator is not compatible with Greet.Greeter+GreeterClient.", ex.Message);
         }
 
-        [TestCase(InterceptorLifetime.Client, 2)]
-        [TestCase(InterceptorLifetime.Channel, 1)]
-        public async Task AddInterceptor_InterceptorLifetime_InterceptorCreatedCountCorrect(InterceptorLifetime lifetime, int callCount)
+        [TestCase(InterceptorScope.Client, 2)]
+        [TestCase(InterceptorScope.Channel, 1)]
+        public async Task AddInterceptor_InterceptorLifetime_InterceptorCreatedCountCorrect(InterceptorScope scope, int callCount)
         {
             // Arrange
             var testHttpMessageHandler = new TestHttpMessageHandler();
@@ -353,7 +353,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = new Uri("http://localhost");
                 })
-                .AddInterceptor<CallbackInterceptor>(lifetime)
+                .AddInterceptor<CallbackInterceptor>(scope)
                 .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -391,7 +391,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = new Uri("http://localhost");
                 })
-                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorScope.Client)
                 .ConfigurePrimaryHttpMessageHandler(() => testHttpMessageHandler);
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
@@ -447,9 +447,9 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                     channelInterceptorCreatedCount++;
                     return new CallbackInterceptor(o => { });
                 })
-                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
-                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
-                .AddInterceptor<CallbackInterceptor>(InterceptorLifetime.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorScope.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorScope.Client)
+                .AddInterceptor<CallbackInterceptor>(InterceptorScope.Client)
                 .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);

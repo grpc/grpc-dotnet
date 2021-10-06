@@ -59,7 +59,7 @@ namespace Grpc.Net.ClientFactory.Internal
                 callInvoker,
                 _serviceProvider,
                 clientFactoryOptions,
-                InterceptorLifetime.Client);
+                InterceptorScope.Client);
 
 #pragma warning disable CS0618 // Type or member is obsolete
             if (clientFactoryOptions.Interceptors.Count != 0)

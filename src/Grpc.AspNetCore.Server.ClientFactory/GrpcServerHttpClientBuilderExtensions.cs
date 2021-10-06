@@ -50,7 +50,7 @@ namespace Microsoft.Extensions.DependencyInjection
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
                 options.InterceptorRegistrations.Add(new InterceptorRegistration(
-                    InterceptorLifetime.Channel,
+                    InterceptorScope.Channel,
                     s => s.GetRequiredService<ContextPropagationInterceptor>()));
             });
 

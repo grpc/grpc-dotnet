@@ -59,7 +59,7 @@ namespace Grpc.Net.ClientFactory
             CallInvoker callInvoker,
             IServiceProvider serviceProvider,
             GrpcClientFactoryOptions clientFactoryOptions,
-            InterceptorLifetime lifetime)
+            InterceptorScope scope)
         {
             CallInvoker resolvedCallInvoker;
             if (clientFactoryOptions.InterceptorRegistrations.Count == 0)
@@ -68,17 +68,20 @@ namespace Grpc.Net.ClientFactory
             }
             else
             {
-                var channelInterceptors = new List<Interceptor>();
+                List<Interceptor>? channelInterceptors = null;
                 for (var i = 0; i < clientFactoryOptions.InterceptorRegistrations.Count; i++)
                 {
                     var registration = clientFactoryOptions.InterceptorRegistrations[i];
-                    if (registration.Lifetime == lifetime)
+                    if (registration.Scope == scope)
                     {
+                        channelInterceptors ??= new List<Interceptor>();
                         channelInterceptors.Add(registration.Creator(serviceProvider));
                     }
                 }
 
-                resolvedCallInvoker = callInvoker.Intercept(channelInterceptors.ToArray());
+                resolvedCallInvoker = channelInterceptors != null
+                    ? callInvoker.Intercept(channelInterceptors.ToArray())
+                    : callInvoker;
             }
 
             return resolvedCallInvoker;

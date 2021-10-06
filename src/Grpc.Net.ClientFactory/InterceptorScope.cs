@@ -21,12 +21,12 @@ using Grpc.Core.Interceptors;
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
-    /// Specifies the lifetime of an <see cref="Interceptor"/> for a client.
+    /// Specifies the scope of an <see cref="Interceptor"/>.
     /// </summary>
-    public enum InterceptorLifetime
+    public enum InterceptorScope
     {
         /// <summary>
-        /// Specifies that a single instance of the <see cref="Interceptor"/> will be resolved for each channel.
+        /// Specifies that the <see cref="Interceptor"/> will be resolved when a channel is created.
         /// </summary>
         Channel,
         /// <summary>

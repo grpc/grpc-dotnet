@@ -29,18 +29,18 @@ namespace Grpc.Net.ClientFactory
         /// <summary>
         /// Initializes a new instance of the <see cref="InterceptorRegistration"/> class.
         /// </summary>
-        /// <param name="lifetime">The lifetime of the interceptor.</param>
+        /// <param name="scope">The scope of the interceptor.</param>
         /// <param name="creator">A delegate that is used to create an <see cref="Interceptor"/>.</param>
-        public InterceptorRegistration(InterceptorLifetime lifetime, Func<IServiceProvider, Interceptor> creator)
+        public InterceptorRegistration(InterceptorScope scope, Func<IServiceProvider, Interceptor> creator)
         {
-            Lifetime = lifetime;
+            Scope = scope;
             Creator = creator;
         }
 
         /// <summary>
-        /// Gets the lifetime of the interceptor.
+        /// Gets the scope of the interceptor.
         /// </summary>
-        public InterceptorLifetime Lifetime { get; }
+        public InterceptorScope Scope { get; }
 
         /// <summary>
         /// Gets a delegate that is used to create an <see cref="Interceptor"/>.
