@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace FunctionalTestsWebsite
@@ -124,6 +125,20 @@ namespace FunctionalTestsWebsite
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app)
         {
+            var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Startup));
+            app.Use(async (context, next) =>
+            {
+                // Allow a call to specify a deadline, without enabling deadline timer on server.
+                if (context.Request.Headers.TryGetValue("remove-deadline", out var value) &&
+                    bool.TryParse(value.ToString(), out var remove) && remove)
+                {
+                    logger.LogInformation("Removing grpc-timeout header.");
+                    context.Request.Headers.Remove("grpc-timeout");
+                }
+
+                await next();
+            });
+
             app.UseRouting();
 
             app.UseAuthorization();
