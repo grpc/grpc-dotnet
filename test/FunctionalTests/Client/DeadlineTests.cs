@@ -17,13 +17,13 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Streaming;
 
@@ -64,13 +64,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task Unary_ServerResetCancellationStatus_DeadlineStatus()
         {
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<object?> tcs = null!;
             async Task<DataMessage> UnaryTimeout(DataMessage request, ServerCallContext context)
             {
                 var httpContext = context.GetHttpContext();
                 var resetFeature = httpContext.Features.Get<IHttpResetFeature>()!;
 
                 await tcs.Task;
+
+                // Reset needs to arrive in client after it has exceeded deadline.
+                // Delay can be imprecise. Wait extra time to ensure client has exceeded deadline.
+                await Task.Delay(50);
 
                 var cancelErrorCode = (httpContext.Request.Protocol == "HTTP/2") ? 0x8 : 0x10c;
                 resetFeature.Reset(cancelErrorCode);
@@ -87,16 +91,74 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var client = TestClientFactory.Create(channel, method);
             var deadline = TimeSpan.FromMilliseconds(300);
 
-            // Act
-            var call = client.UnaryCall(new DataMessage(), new CallOptions(deadline: DateTime.UtcNow.Add(deadline)));
+            for (var i = 0; i < 5; i++)
+            {
+                tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await Task.Delay(deadline);
-            tcs.SetResult(null);
+                // Act
+                var headers = new Metadata
+                {
+                    { "remove-deadline", "true" }
+                };
+                var call = client.UnaryCall(new DataMessage(), new CallOptions(headers: headers, deadline: DateTime.UtcNow.Add(deadline)));
 
-            // Assert
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
-            Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+                await Task.Delay(deadline);
+                tcs.SetResult(null);
+
+                // Assert
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+                Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+                Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+            }
+        }
+
+        [Test]
+        public async Task AsyncUnaryCall_ExceedDeadlineWithActiveCalls_Failure()//(int i)
+        {
+            TaskCompletionSource<object?> tcs = null!;
+            async Task ServerStreamingTimeout(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            {
+                var httpContext = context.GetHttpContext();
+                var resetFeature = httpContext.Features.Get<IHttpResetFeature>()!;
+
+                await tcs.Task;
+
+                // Reset needs to arrive in client after it has exceeded deadline.
+                // Delay can be imprecise. Wait extra time to ensure client has exceeded deadline.
+                await Task.Delay(50);
+
+                var cancelErrorCode = (httpContext.Request.Protocol == "HTTP/2") ? 0x8 : 0x10c;
+                resetFeature.Reset(cancelErrorCode);
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingTimeout);
+
+            var channel = CreateChannel();
+            channel.DisableClientDeadline = true;
+
+            var client = TestClientFactory.Create(channel, method);
+            var deadline = TimeSpan.FromMilliseconds(300);
+
+            for (var i = 0; i < 5; i++)
+            {
+                tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                // Act
+                var headers = new Metadata
+                {
+                    { "remove-deadline", "true" }
+                };
+                var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(headers: headers, deadline: DateTime.UtcNow.Add(deadline)));
+
+                await Task.Delay(deadline);
+                tcs.SetResult(null);
+
+                // Assert
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+                Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+                Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+            }
         }
     }
 }
