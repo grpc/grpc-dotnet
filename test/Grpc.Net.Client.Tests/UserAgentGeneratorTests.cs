@@ -31,12 +31,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETFramework,Version=v4.6.1",
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; net461; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; net461; osx; x64)", userAgent);
         }
 
         [Test]
@@ -44,12 +44,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETCoreApp,Version=v2.2",
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; netcoreapp2.2; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; netcoreapp2.2; osx; x64)", userAgent);
         }
 
         [Test]
@@ -57,12 +57,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet/2.4.1 (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx; x64)", userAgent);
         }
 
         [Test]
@@ -70,12 +70,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: "2.4.1-dev+5325faf",
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet/2.4.1-dev (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet/2.4.1-dev (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx; x64)", userAgent);
         }
 
         [Test]
@@ -83,12 +83,25 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: ".NETStandard,Version=v2.0",
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; netstandard2.0; osx; x64)", userAgent);
+        }
+
+        [Test]
+        public void HandlesNoOperatingSystem()
+        {
+            var userAgent = UserAgentGenerator.GetUserAgentString(
+                processArch: Architecture.X64,
+                clrVersion: Version.Parse("5.0.7"),
+                assemblyVersion: string.Empty,
+                runtimeInformation: ".NET 5.0.7",
+                frameworkName: ".NETStandard,Version=v2.0",
+                operatingSystem: string.Empty);
+            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; netstandard2.0; x64)", userAgent);
         }
 
         [Test]
@@ -96,12 +109,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: ".NET 5.0.7",
                 frameworkName: string.Empty,
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet (.NET 5.0.7; CLR 5.0.7; osx; x64)", userAgent);
         }
 
         [Test]
@@ -109,12 +122,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.Arm64,
-                runtimeVersion: Version.Parse("5.0.7"),
+                clrVersion: Version.Parse("5.0.7"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: string.Empty,
                 frameworkName: string.Empty,
-                operatingSystem: "windows");
-            Assert.AreEqual($"grpc-dotnet (CLR 5.0.7; windows arm64)", userAgent);
+                operatingSystem: "windows; ");
+            Assert.AreEqual($"grpc-dotnet (CLR 5.0.7; windows; arm64)", userAgent);
         }
 
         [Test]
@@ -122,12 +135,12 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                runtimeVersion: null,
+                clrVersion: Version.Parse("v4.0.30319".Substring(1)),
                 assemblyVersion: string.Empty,
                 runtimeInformation: "Mono 6.12.0.140 (2020-02/51d876a041e Thu Apr 29 10:44:55 EDT 2021)",
                 frameworkName: string.Empty,
-                operatingSystem: "osx");
-            Assert.AreEqual($"grpc-dotnet (Mono 6.12.0.140; osx x64)", userAgent);
+                operatingSystem: "osx; ");
+            Assert.AreEqual($"grpc-dotnet (Mono 6.12.0.140; CLR 4.0.30319; osx; x64)", userAgent);
             
         }
     }
