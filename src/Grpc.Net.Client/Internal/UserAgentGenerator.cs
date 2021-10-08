@@ -77,7 +77,7 @@ namespace Grpc.Net.Client.Internal
             // (.NET 5.0.7;
             userAgent += $"({GetFrameworkDescription(runtimeInformation)}";
             // CLR 5.0.0;
-            userAgent += GetclrVersion(clrVersion);
+            userAgent += GetClrVersion(clrVersion);
             // net6.0;
             userAgent += GetFrameworkName(frameworkName);
             // windows  
@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Internal
             // x64)
             userAgent += $"{GetProcessArch(processArch)})";
 
-            static string GetclrVersion(Version? clrVersion) => clrVersion != null ? $"CLR {clrVersion}; " : string.Empty;
+            static string GetClrVersion(Version? clrVersion) => clrVersion != null ? $"CLR {clrVersion}; " : string.Empty;
 
             static string GetProcessArch(Architecture processArch) => processArch.ToString().ToLowerInvariant();
 
