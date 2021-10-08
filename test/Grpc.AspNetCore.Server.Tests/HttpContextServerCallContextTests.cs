@@ -658,7 +658,7 @@ namespace Grpc.AspNetCore.Server.Tests
             syncPoint.Continue();
             await methodTask.DefaultTimeout();
 
-            Assert.AreEqual(GrpcProtocolConstants.Http2ResetStreamNoError, httpResetFeature.ErrorCode);
+            Assert.AreEqual(GrpcProtocolConstants.Http2ResetStreamCancel, httpResetFeature.ErrorCode);
 
             Assert.IsTrue(serverCallContext.DeadlineManager!.IsCallComplete);
         }

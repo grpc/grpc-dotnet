@@ -611,7 +611,7 @@ namespace Grpc.Net.Client.Internal
             // Exception may specify RST_STREAM or abort code that resolves to cancellation.
             // If protocol error is cancellation and deadline has been exceeded then that
             // means the server canceled and the local deadline timer hasn't triggered.
-            if (GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+            if (HttpExceptionResolver.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
             {
                 return true;
             }

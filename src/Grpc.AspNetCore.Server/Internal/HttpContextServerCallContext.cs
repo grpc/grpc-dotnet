@@ -455,34 +455,26 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _status = status;
 
-            // Immediately send remaining response content and trailers
-            // If feature is null then reset/abort will still end request, but response won't have trailers
-            var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
-            if (completionFeature != null)
-            {
-                await completionFeature.CompleteAsync();
-            }
+            var protocol = HttpContext.Request.Protocol;
 
-#if NET6_0_OR_GREATER
-            // With HTTP/3 we don't want to abort the write side of the stream.
-            // That will create a race between the completed response and the abort
-            // reaching the client.
-            // Instead we just want to abort the read side of the stream.
-            // Kestrel will do this automatically if there is unread request content.
-            if (GrpcProtocolConstants.IsHttp3(HttpContext.Request.Protocol))
+            if (ShouldCompleteOnDeadline(protocol))
             {
-                return;
+                // Immediately send remaining response content and trailers
+                // If feature is null then reset/abort will still end request, but response won't have trailers
+                var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
+                if (completionFeature != null)
+                {
+                    await completionFeature.CompleteAsync();
+                }
             }
-#endif
 
             // HttpResetFeature should always be set on context,
             // but in case it isn't, fall back to HttpContext.Abort.
-            // Abort will send error code INTERNAL_ERROR instead of NO_ERROR.
+            // Abort will send error code INTERNAL_ERROR.
             var resetFeature = HttpContext.Features.Get<IHttpResetFeature>();
             if (resetFeature != null)
             {
-                // HTTP/3 has different error codes
-                var errorCode = GrpcProtocolConstants.Http2ResetStreamNoError;
+                var errorCode = GrpcProtocolConstants.GetCancelErrorCode(HttpContext.Request.Protocol);
 
                 GrpcServerLog.ResettingResponse(Logger, errorCode);
                 resetFeature.Reset(errorCode);
@@ -492,6 +484,20 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Note that some clients will fail with error code INTERNAL_ERROR.
                 GrpcServerLog.AbortingResponse(Logger);
                 HttpContext.Abort();
+            }
+
+            static bool ShouldCompleteOnDeadline(string protocol)
+            {
+#if NET6_0_OR_GREATER
+                if (GrpcProtocolConstants.IsHttp3(protocol))
+                {
+                    return false;
+                }
+#endif
+
+                // HTTP/1.1 doesn't have an error code to sent when aborting a request.
+                // Instead complete the request and send deadline in trailers.
+                return true;
             }
         }
 
