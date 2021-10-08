@@ -983,8 +983,7 @@ namespace Grpc.Net.Client.Internal
                         GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
 
                         var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
-                        _deadlineTimer?.Change(dueTime, Timeout.Infinite);
-
+                        _deadlineTimer.Change(dueTime, Timeout.Infinite);
                     }
                 }
             }
