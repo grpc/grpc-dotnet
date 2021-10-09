@@ -455,17 +455,12 @@ namespace Grpc.AspNetCore.Server.Internal
 
             _status = status;
 
-            var protocol = HttpContext.Request.Protocol;
-
-            if (ShouldCompleteOnDeadline(protocol))
+            // Immediately send remaining response content and trailers
+            // If feature is null then reset/abort will still end request, but response won't have trailers
+            var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
+            if (completionFeature != null)
             {
-                // Immediately send remaining response content and trailers
-                // If feature is null then reset/abort will still end request, but response won't have trailers
-                var completionFeature = HttpContext.Features.Get<IHttpResponseBodyFeature>();
-                if (completionFeature != null)
-                {
-                    await completionFeature.CompleteAsync();
-                }
+                await completionFeature.CompleteAsync();
             }
 
             // HttpResetFeature should always be set on context,
@@ -484,20 +479,6 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Note that some clients will fail with error code INTERNAL_ERROR.
                 GrpcServerLog.AbortingResponse(Logger);
                 HttpContext.Abort();
-            }
-
-            static bool ShouldCompleteOnDeadline(string protocol)
-            {
-#if NET6_0_OR_GREATER
-                if (GrpcProtocolConstants.IsHttp3(protocol))
-                {
-                    return false;
-                }
-#endif
-
-                // HTTP/1.1 doesn't have an error code to sent when aborting a request.
-                // Instead complete the request and send deadline in trailers.
-                return true;
             }
         }
 

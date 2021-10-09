@@ -659,13 +659,13 @@ namespace Grpc.AspNetCore.Server.Tests
 
             // Wait until CompleteAsync is called
             // That means we're inside the deadline method and the lock has been taken
-            await syncPoint.WaitForSyncPoint();
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
 
             // Act
             var methodTask = method(serverCallContext);
 
             // Assert
-            if (await Task.WhenAny(methodTask, Task.Delay(TimeSpan.FromSeconds(0.2))) == methodTask)
+            if (await Task.WhenAny(methodTask, Task.Delay(TimeSpan.FromSeconds(0.2))).DefaultTimeout() == methodTask)
             {
                 Assert.Fail($"{methodName} did not wait on lock taken by deadline cancellation.");
             }
