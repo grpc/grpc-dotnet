@@ -130,7 +130,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
                 response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
             }
-            catch (Exception ex) when (HttpExceptionResolver.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+            catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
             {
                 // Ignore exception from deadline abort
             }
@@ -248,7 +248,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 response.AssertIsSuccessfulGrpcRequest();
                 response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
             }
-            catch (Exception ex) when (HttpExceptionResolver.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+            catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
             {
                 // Ignore exception from deadline abort
             }
@@ -354,7 +354,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 Assert.AreNotEqual(0, messageCount);
                 response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
             }
-            catch (Exception ex) when (HttpExceptionResolver.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+            catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
             {
                 // Ignore exception from deadline abort
             }
