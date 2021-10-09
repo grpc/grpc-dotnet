@@ -26,8 +26,6 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
-using Grpc.Net.Client.Web;
-using Grpc.Shared;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
