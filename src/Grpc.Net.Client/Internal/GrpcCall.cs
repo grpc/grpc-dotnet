@@ -225,7 +225,18 @@ namespace Grpc.Net.Client.Internal
             Channel.FinishActiveCall(this);
 
             _ctsRegistration?.Dispose();
-            _deadlineTimer?.Dispose();
+
+            if (_deadlineTimer != null)
+            {
+                lock (this)
+                {
+                    // Timer callback can call Timer.Change so dispose deadline timer in a lock
+                    // and set to null to indicate to the callback that it has been disposed.
+                    _deadlineTimer?.Dispose();
+                    _deadlineTimer = null;
+                }
+            }
+
             HttpResponse?.Dispose();
             ClientStreamReader?.Dispose();
             ClientStreamWriter?.Dispose();
@@ -657,10 +668,15 @@ namespace Grpc.Net.Client.Internal
                 // The server could exceed the deadline and return a CANCELLED status before the
                 // client's deadline timer is triggered. When CANCELLED is received check the
                 // deadline against the clock and change status to DEADLINE_EXCEEDED if required.
-                var deadlineExceeded = s.StatusCode == StatusCode.Cancelled && IsDeadlineExceeded();
-                if (deadlineExceeded)
+                if (s.StatusCode == StatusCode.Cancelled)
                 {
-                    s = new Status(StatusCode.DeadlineExceeded, s.Detail, s.DebugException);
+                    lock (this)
+                    {
+                        if (IsDeadlineExceededUnsynchronized())
+                        {
+                            s = new Status(StatusCode.DeadlineExceeded, s.Detail, s.DebugException);
+                        }
+                    }
                 }
 
                 status = s;
@@ -776,7 +792,7 @@ namespace Grpc.Net.Client.Internal
                     // the client has processed that it has exceeded or not.
                     lock (this)
                     {
-                        if (IsDeadlineExceeded())
+                        if (IsDeadlineExceededUnsynchronized())
                         {
                             GrpcCallLog.DeadlineExceeded(Logger);
                             GrpcEventSource.Log.CallDeadlineExceeded();
@@ -819,8 +835,9 @@ namespace Grpc.Net.Client.Internal
             return true;
         }
 
-        private bool IsDeadlineExceeded()
+        private bool IsDeadlineExceededUnsynchronized()
         {
+            Debug.Assert(Monitor.IsEntered(this), "Check deadline in a lock. Updating a DateTime isn't guaranteed to be atomic. Avoid struct tearing.");
             return _deadline <= Channel.Clock.UtcNow;
         }
 
@@ -965,14 +982,17 @@ namespace Grpc.Net.Client.Internal
                         DeadlineExceeded();
                         return;
                     }
+
+                    if (_deadlineTimer != null)
+                    {
+                        // Deadline has not been reached because timer maximum due time was smaller than deadline.
+                        // Reschedule DeadlineExceeded again until deadline has been exceeded.
+                        GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
+
+                        var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
+                        _deadlineTimer.Change(dueTime, Timeout.Infinite);
+                    }
                 }
-
-                // Deadline has not been reached because timer maximum due time was smaller than deadline.
-                // Reschedule DeadlineExceeded again until deadline has been exceeded.
-                GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
-
-                var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
-                _deadlineTimer!.Change(dueTime, Timeout.Infinite);
             }
         }
 
