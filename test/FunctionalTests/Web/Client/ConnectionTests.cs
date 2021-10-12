@@ -100,7 +100,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             var client = new EchoService.EchoServiceClient(channel);
 
             // Act
-            var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync;
+            var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync.DefaultTimeout();
 
             // Assert
             if (success)

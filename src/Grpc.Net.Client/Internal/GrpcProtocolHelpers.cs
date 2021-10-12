@@ -476,7 +476,7 @@ namespace Grpc.Net.Client.Internal
             {
                 statusCode = StatusCode.Unavailable;
             }
-            
+
             return statusCode ?? StatusCode.Internal;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
