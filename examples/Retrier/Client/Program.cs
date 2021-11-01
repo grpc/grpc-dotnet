@@ -79,11 +79,11 @@ namespace Client
                 Names = { MethodName.Default },
                 RetryPolicy = new RetryPolicy
                 {
-                    MaxAttempts = 10,
+                    MaxAttempts = 5,
                     InitialBackoff = TimeSpan.FromSeconds(0.5),
                     MaxBackoff = TimeSpan.FromSeconds(0.5),
                     BackoffMultiplier = 1,
-                    RetryableStatusCodes = { StatusCode.Unavailable }
+                    RetryableStatusCodes = { StatusCode.Internal }
                 }
             };
 
