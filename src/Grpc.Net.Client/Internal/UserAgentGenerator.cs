@@ -26,8 +26,6 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class UserAgentGenerator
     {
-        internal static bool IsMono { get; } = Type.GetType("Mono.Runtime") != null;
-
         /// <summary>
         /// Generates a user agent string to be transported in headers.
         /// <example>

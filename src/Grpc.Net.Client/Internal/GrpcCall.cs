@@ -762,7 +762,7 @@ namespace Grpc.Net.Client.Internal
 
                 if (diagnosticSourceEnabled)
                 {
-                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStartKey, new { Request = request });
+                    WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStartKey, new { Request = request });
                 }
             }
 
@@ -826,13 +826,29 @@ namespace Grpc.Net.Client.Internal
                         activity.SetEndTime(DateTime.UtcNow);
                     }
 
-                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStopKey, new { Request = request, Response = HttpResponse });
+                    WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStopKey, new { Request = request, Response = HttpResponse });
                 }
 
                 activity.Stop();
             }
 
             return true;
+        }
+
+#if NET5_0_OR_GREATER
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
+            Justification = "The values being passed into Write have the commonly used properties being preserved with DynamicDependency.")]
+#endif
+        private static void WriteDiagnosticEvent<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+#endif
+            TValue>(
+            DiagnosticSource diagnosticSource,
+            string name,
+            TValue value)
+        {
+            diagnosticSource.Write(name, value);
         }
 
         private bool IsDeadlineExceededUnsynchronized()
