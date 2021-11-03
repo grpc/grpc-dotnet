@@ -32,7 +32,7 @@ namespace Server
             const double deliveryChance = 0.5;
             if (_random.NextDouble() > deliveryChance)
             {
-                throw new RpcException(new Status(StatusCode.Internal, $"- {request.Name}"));
+                throw new RpcException(new Status(StatusCode.Unavailable, $"- {request.Name}"));
             }
 
             return Task.FromResult(new Response
