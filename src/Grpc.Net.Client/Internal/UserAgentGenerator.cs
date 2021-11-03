@@ -26,8 +26,6 @@ namespace Grpc.Net.Client.Internal
 {
     internal static class UserAgentGenerator
     {
-        internal static bool IsMono { get; } = Type.GetType("Mono.Runtime") != null;
-
         /// <summary>
         /// Generates a user agent string to be transported in headers.
         /// <example>
@@ -53,7 +51,7 @@ namespace Grpc.Net.Client.Internal
                 .GetCustomAttributes<TargetFrameworkAttribute>()
                 .FirstOrDefault()?
                 .FrameworkName;
-            
+
             return GetUserAgentString(
                 processArch: RuntimeInformation.ProcessArchitecture,
                 clrVersion: Environment.Version,
@@ -80,7 +78,7 @@ namespace Grpc.Net.Client.Internal
             userAgent += GetClrVersion(clrVersion);
             // net6.0;
             userAgent += GetFrameworkName(frameworkName);
-            // windows  
+            // windows
             userAgent += $"{operatingSystem}";
             // x64)
             userAgent += $"{GetProcessArch(processArch)})";

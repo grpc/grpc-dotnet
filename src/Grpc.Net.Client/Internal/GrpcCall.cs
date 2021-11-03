@@ -260,7 +260,7 @@ namespace Grpc.Net.Client.Internal
             var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
             return CreateRpcException(status);
         }
-        
+
         private void FinishResponseAndCleanUp(Status status)
         {
             ResponseFinished = true;
@@ -316,7 +316,7 @@ namespace Grpc.Net.Client.Internal
                 }
 
                 var metadata = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
-                
+
                 // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exposed-retry-metadata
                 if (_attemptCount > 1)
                 {
@@ -413,7 +413,7 @@ namespace Grpc.Net.Client.Internal
 
         internal IDisposable? StartScope()
         {
-            // Only return a scope if the logger is enabled to log 
+            // Only return a scope if the logger is enabled to log
             // in at least Critical level for performance
             if (Logger.IsEnabled(LogLevel.Critical))
             {
@@ -648,7 +648,7 @@ namespace Grpc.Net.Client.Internal
             else if (ex is RpcException rpcException)
             {
                 status = rpcException.Status;
-                
+
                 // If trailers have been set, and the RpcException isn't using them, then
                 // create new RpcException with trailers. Want to try and avoid this as
                 // the exact stack location will be lost.
@@ -722,6 +722,9 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
+#if NET6_0
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "OK to trim EventSource")]
+#endif
         private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request, TimeSpan? timeout)
         {
             GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri!);
@@ -777,6 +780,9 @@ namespace Grpc.Net.Client.Internal
             return (diagnosticSourceEnabled, activity);
         }
 
+#if NET6_0
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "OK to trim EventSource")]
+#endif
         private bool FinishCall(HttpRequestMessage request, bool diagnosticSourceEnabled, Activity? activity, Status status)
         {
             if (status.StatusCode != StatusCode.OK)
@@ -820,7 +826,7 @@ namespace Grpc.Net.Client.Internal
                 if (diagnosticSourceEnabled)
                 {
                     // Stop sets the end time if it was unset, but we want it set before we issue the write
-                    // so we do it now.   
+                    // so we do it now.
                     if (activity.Duration == TimeSpan.Zero)
                     {
                         activity.SetEndTime(DateTime.UtcNow);
