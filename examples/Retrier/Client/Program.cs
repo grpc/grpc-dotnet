@@ -79,7 +79,7 @@ namespace Client
                 Names = { MethodName.Default },
                 RetryPolicy = new RetryPolicy
                 {
-                    MaxAttempts = 10,
+                    MaxAttempts = 5,
                     InitialBackoff = TimeSpan.FromSeconds(0.5),
                     MaxBackoff = TimeSpan.FromSeconds(0.5),
                     BackoffMultiplier = 1,
@@ -87,7 +87,7 @@ namespace Client
                 }
             };
 
-            return GrpcChannel.ForAddress("http://localhost:5000", new GrpcChannelOptions
+            return GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
             {
                 ServiceConfig = new ServiceConfig { MethodConfigs = { methodConfig } }
             });
