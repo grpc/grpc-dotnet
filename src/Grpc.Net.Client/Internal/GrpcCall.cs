@@ -1092,7 +1092,7 @@ namespace Grpc.Net.Client.Internal
 #if NET5_0_OR_GREATER
             // Common properties. Properties not in this list could be trimmed.
             [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
-            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]            
+            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
             [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
             [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
             [DynamicDependency(nameof(HttpResponseMessage.StatusCode), typeof(HttpResponseMessage))]
