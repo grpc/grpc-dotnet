@@ -358,7 +358,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task<DataComplete> ClientStreamedData(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
             {
-                context.CancellationToken.Register(() => tcs.SetResult(null));
+                Logger.LogInformation("Server started");
+                context.CancellationToken.Register(() =>
+                {
+                    Logger.LogInformation("Server completed TCS");
+                    tcs.SetResult(null);
+                });
 
                 var total = 0L;
                 await foreach (var message in requestStream.ReadAllAsync())
@@ -383,7 +388,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataComplete>(ClientStreamedData, "ClientStreamedDataTimeout");
 
             var httpClient = Fixture.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(0.3);
+            httpClient.Timeout = TimeSpan.FromSeconds(0.5);
 
             var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
             {
@@ -401,8 +406,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Act
             var call = client.ClientStreamingCall();
 
+            Logger.LogInformation("Client writing message");
             await call.RequestStream.WriteAsync(dataMessage).DefaultTimeout();
 
+            Logger.LogInformation("Client waiting for TCS to complete");
             await tcs.Task.DefaultTimeout();
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(dataMessage)).DefaultTimeout();

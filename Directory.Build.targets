@@ -17,6 +17,9 @@
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
 
     <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
+
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->

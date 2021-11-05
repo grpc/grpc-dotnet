@@ -762,7 +762,7 @@ namespace Grpc.Net.Client.Internal
 
                 if (diagnosticSourceEnabled)
                 {
-                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStartKey, new { Request = request });
+                    WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStartKey, new ActivityStartData(request));
                 }
             }
 
@@ -826,7 +826,7 @@ namespace Grpc.Net.Client.Internal
                         activity.SetEndTime(DateTime.UtcNow);
                     }
 
-                    GrpcDiagnostics.DiagnosticListener.Write(GrpcDiagnostics.ActivityStopKey, new { Request = request, Response = HttpResponse });
+                    WriteDiagnosticEvent(GrpcDiagnostics.DiagnosticListener, GrpcDiagnostics.ActivityStopKey, new ActivityStopData(HttpResponse, request));
                 }
 
                 activity.Stop();
@@ -1050,6 +1050,63 @@ namespace Grpc.Net.Client.Internal
         public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
         {
             return ClientStreamWriter!.WriteAsync(writeFunc, state);
+        }
+
+#if NET5_0_OR_GREATER
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
+            Justification = "The values being passed into Write have the commonly used properties being preserved with DynamicDependency.")]
+#endif
+        private static void WriteDiagnosticEvent<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
+#endif
+            TValue>(
+            DiagnosticSource diagnosticSource,
+            string name,
+            TValue value)
+        {
+            diagnosticSource.Write(name, value);
+        }
+
+        private sealed class ActivityStartData
+        {
+#if NET5_0_OR_GREATER
+            // Common properties. Properties not in this list could be trimmed.
+            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+#endif
+            internal ActivityStartData(HttpRequestMessage request)
+            {
+                Request = request;
+            }
+
+            public HttpRequestMessage Request { get; }
+
+            public override string ToString() => $"{{ {nameof(Request)} = {Request} }}";
+        }
+
+        private sealed class ActivityStopData
+        {
+#if NET5_0_OR_GREATER
+            // Common properties. Properties not in this list could be trimmed.
+            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+            [DynamicDependency(nameof(HttpResponseMessage.StatusCode), typeof(HttpResponseMessage))]
+#endif
+            internal ActivityStopData(HttpResponseMessage? response, HttpRequestMessage request)
+            {
+                Response = response;
+                Request = request;
+            }
+
+            public HttpResponseMessage? Response { get; }
+            public HttpRequestMessage Request { get; }
+
+            public override string ToString() => $"{{ {nameof(Response)} = {Response}, {nameof(Request)} = {Request} }}";
         }
     }
 }

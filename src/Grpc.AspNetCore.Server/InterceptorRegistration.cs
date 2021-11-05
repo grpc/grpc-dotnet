@@ -78,6 +78,10 @@ namespace Grpc.AspNetCore.Server
         private IGrpcInterceptorActivator? _interceptorActivator;
         private ObjectFactory? _factory;
 
+#if NET5_0_OR_GREATER
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
+            Justification = "Type parameter members are preserved with DynamicallyAccessedMembers on InterceptorRegistration.Type property.")]
+#endif
         internal IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
         {
             // Not thread safe. Side effect is resolving the service twice.
