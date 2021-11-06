@@ -4,6 +4,11 @@
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <PublishTrimmed>true</PublishTrimmed>
+
+    <!-- IL2104: Other assemblies have warnings -->
+    <!-- IL2026: RequiresUnreferencedCode warning. OK to suppress as no warnings of this type from gRPC -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL2026</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);IL2104;IL2026</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

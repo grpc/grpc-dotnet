@@ -17,7 +17,7 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using Grpc.AspNetCore.Server.Model.Internal;
+using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Server.Model
 {
@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Model
     /// </remarks>
     public interface IServiceMethodProvider<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(ProviderServiceBinder<TService>.ServiceAccessibility)]
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
         TService> where TService : class
     {

@@ -16,18 +16,19 @@
 
 #endregion
 
-using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Model;
-using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal class ServerStreamingServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+    internal class ServerStreamingServerCallHandler<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class

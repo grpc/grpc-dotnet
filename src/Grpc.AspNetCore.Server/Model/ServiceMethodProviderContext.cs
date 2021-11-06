@@ -17,6 +17,7 @@
 #endregion
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model.Internal;
 using Grpc.Core;
@@ -29,7 +30,11 @@ namespace Grpc.AspNetCore.Server.Model
     /// A context for <see cref="IServiceMethodProvider{TService}"/>.
     /// </summary>
     /// <typeparam name="TService">Service type for the context.</typeparam>
-    public class ServiceMethodProviderContext<TService> where TService : class
+    public class ServiceMethodProviderContext<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService> where TService : class
     {
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
 

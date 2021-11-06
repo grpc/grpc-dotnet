@@ -29,7 +29,7 @@ namespace Grpc.AspNetCore.Server
     /// <typeparam name="TGrpcService">The service type.</typeparam>
     public interface IGrpcServiceActivator<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(DefaultGrpcServiceActivator<TGrpcService>.ServiceAccessibility)]
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
         TGrpcService> where TGrpcService : class
     {

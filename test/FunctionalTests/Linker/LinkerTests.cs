@@ -103,7 +103,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
             var process = new DotNetProcess();
             try
             {
-                process.Start($"publish {resolvedPath} -r {GetRuntimeIdentifier()} -c Release -o {outputPath}");
+                process.Start($"publish {resolvedPath} -r {GetRuntimeIdentifier()} -c Release -o {outputPath} --self-contained");
                 await process.WaitForExitAsync().TimeoutAfter(Timeout);
             }
             catch (Exception ex)
