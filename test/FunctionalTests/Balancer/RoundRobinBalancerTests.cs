@@ -306,8 +306,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             });
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new BalancerAddress(new DnsEndPoint(endpoint1.Address.Host, endpoint1.Address.Port)),
-                new BalancerAddress(new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port))
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port),
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             });
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
@@ -324,7 +324,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new BalancerAddress(new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port))
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             });
 
             syncPoint.Continue();
