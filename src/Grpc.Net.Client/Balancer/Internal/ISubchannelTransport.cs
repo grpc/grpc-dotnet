@@ -33,7 +33,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     internal interface ISubchannelTransport : IDisposable
     {
         void OnRequestComplete(CompletionContext context);
-        DnsEndPoint? CurrentEndPoint { get; }
+        BalancerAddress? CurrentAddress { get; }
 
 #if NET5_0_OR_GREATER
         ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken);

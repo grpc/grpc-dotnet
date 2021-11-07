@@ -43,7 +43,7 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class Subchannel : IDisposable
     {
-        internal readonly List<DnsEndPoint> _addresses;
+        internal readonly List<BalancerAddress> _addresses;
         internal readonly object Lock;
         internal ISubchannelTransport Transport { get; set; } = default!;
         internal int Id { get; }
@@ -58,7 +58,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets the current connected address.
         /// </summary>
-        public DnsEndPoint? CurrentAddress => Transport.CurrentEndPoint;
+        public BalancerAddress? CurrentAddress => Transport.CurrentAddress;
 
         /// <summary>
         /// Gets the connectivity state.
@@ -70,7 +70,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public BalancerAttributes Attributes { get; }
 
-        internal Subchannel(ConnectionManager manager, IReadOnlyList<DnsEndPoint> addresses)
+        internal Subchannel(ConnectionManager manager, IReadOnlyList<BalancerAddress> addresses)
         {
             Lock = new object();
             _logger = manager.LoggerFactory.CreateLogger(GetType());
@@ -128,12 +128,12 @@ namespace Grpc.Net.Client.Balancer
         /// </para>
         /// </summary>
         /// <param name="addresses"></param>
-        public void UpdateAddresses(IReadOnlyList<DnsEndPoint> addresses)
+        public void UpdateAddresses(IReadOnlyList<BalancerAddress> addresses)
         {
             var requireReconnect = false;
             lock (Lock)
             {
-                if (_addresses.SequenceEqual(addresses))
+                if (_addresses.SequenceEqual(addresses, BalancerAddressEqualityComparer.Instance))
                 {
                     // Don't do anything if new addresses match existing addresses.
                     return;
@@ -157,7 +157,7 @@ namespace Grpc.Net.Client.Balancer
                         if (currentAddress != null && !_addresses.Contains(currentAddress))
                         {
                             requireReconnect = true;
-                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
+                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress.EndPoint);
                         }
                         break;
                     case ConnectivityState.Shutdown:
@@ -335,7 +335,7 @@ namespace Grpc.Net.Client.Balancer
         /// Returns the addresses that this subchannel is bound to.
         /// </summary>
         /// <returns>The addresses that this subchannel is bound to.</returns>
-        public IReadOnlyList<DnsEndPoint> GetAddresses()
+        public IReadOnlyList<BalancerAddress> GetAddresses()
         {
             lock (Lock)
             {
@@ -392,11 +392,11 @@ namespace Grpc.Net.Client.Balancer
         private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
             LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
 
-        public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<DnsEndPoint> addresses)
+        public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<BalancerAddress> addresses)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                var addressesText = string.Join(", ", addresses.Select(a => a.Host + ":" + a.Port));
+                var addressesText = string.Join(", ", addresses.Select(a => a.EndPoint.Host + ":" + a.EndPoint.Port));
                 _subchannelCreated(logger, subchannelId, addressesText, null);
             }
         }

@@ -36,7 +36,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
 
         public Subchannel Subchannel { get; }
 
-        public DnsEndPoint? CurrentEndPoint { get; private set; }
+        public BalancerAddress? CurrentAddress { get; private set; }
 
         public Task TryConnectTask => _connectTcs.Task;
 
@@ -68,7 +68,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
 
         public void Disconnect()
         {
-            CurrentEndPoint = null;
+            CurrentAddress = null;
             Subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
 
@@ -82,7 +82,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
         {
             var newState = await (_onTryConnect?.Invoke(cancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
-            CurrentEndPoint = Subchannel._addresses[0];
+            CurrentAddress = Subchannel._addresses[0];
             Subchannel.UpdateConnectivityState(newState, Status.DefaultSuccess);
 
             _connectTcs.TrySetResult(null);

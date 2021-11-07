@@ -39,9 +39,9 @@ namespace Grpc.Tests.Shared
             _onRefreshAsync = onRefreshAsync;
         }
 
-        public void UpdateEndPoints(List<DnsEndPoint> endPoints, ServiceConfig? serviceConfig = null)
+        public void UpdateAddresses(List<BalancerAddress> addresses, ServiceConfig? serviceConfig = null)
         {
-            UpdateResult(ResolverResult.ForResult(endPoints, serviceConfig));
+            UpdateResult(ResolverResult.ForResult(addresses, serviceConfig));
         }
 
         public void UpdateError(Status status)
@@ -62,7 +62,7 @@ namespace Grpc.Tests.Shared
 
         public override Task RefreshAsync(CancellationToken cancellationToken)
         {
-            _listener?.Invoke(_result ?? ResolverResult.ForResult(Array.Empty<DnsEndPoint>(), serviceConfig: null));
+            _listener?.Invoke(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null));
             return _onRefreshAsync?.Invoke() ?? Task.CompletedTask;
         }
 

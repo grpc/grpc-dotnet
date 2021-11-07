@@ -45,9 +45,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -78,9 +78,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var resolver = new TestResolver(() => tcs.Task);
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -137,7 +137,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var resolver = new TestResolver(() => tcs.Task);
-            var result = ResolverResult.ForResult(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) }, resolvedServiceConfig);
+            var result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 80) }, resolvedServiceConfig);
             resolver.UpdateResult(result);
 
             var createdCount = 0;
@@ -190,7 +190,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var resolver = new TestResolver(() => tcs.Task);
-            var result = ResolverResult.ForResult(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) }, serviceConfig: null);
+            var result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 80) }, serviceConfig: null);
             resolver.UpdateResult(result);
 
             TestLoadBalancer? firstLoadBalancer = null;
@@ -253,13 +253,13 @@ namespace Grpc.Net.Client.Tests.Balancer
             syncPoint!.Continue();
 
             var pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(80, pick.Address.Port);
+            Assert.AreEqual(80, pick.Address.EndPoint.Port);
 
             // Create new SyncPoint so new load balancer is waiting to connect
             syncPoint = new SyncPoint(runContinuationsAsynchronously: false);
 
             result = ResolverResult.ForResult(
-                new List<DnsEndPoint> { new DnsEndPoint("localhost", 81) },
+                new List<BalancerAddress> { new BalancerAddress("localhost", 81) },
                 serviceConfig: new ServiceConfig
                 {
                     LoadBalancingConfigs = { new LoadBalancingConfig("custom") }
@@ -271,7 +271,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             // Old address is still used because new load balancer is connecting
             pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(80, pick.Address.Port);
+            Assert.AreEqual(80, pick.Address.EndPoint.Port);
 
             Assert.IsFalse(firstLoadBalancer!.Disposed);
 
@@ -279,7 +279,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             // New address is used
             pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(81, pick.Address.Port);
+            Assert.AreEqual(81, pick.Address.EndPoint.Port);
 
             Assert.IsTrue(firstLoadBalancer!.Disposed);
 
@@ -294,8 +294,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(
-                new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) },
+            resolver.UpdateAddresses(
+                new List<BalancerAddress> { new BalancerAddress("localhost", 80) },
                 new ServiceConfig
                 {
                     LoadBalancingConfigs = { new RoundRobinConfig() }
@@ -345,8 +345,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(
-                new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) },
+            resolver.UpdateAddresses(
+                new List<BalancerAddress> { new BalancerAddress("localhost", 80) },
                 new ServiceConfig
                 {
                     LoadBalancingConfigs = { new LoadBalancingConfig("unknown!") }

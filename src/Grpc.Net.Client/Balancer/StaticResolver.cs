@@ -34,7 +34,7 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     internal sealed class StaticResolver : Resolver
     {
-        private readonly List<DnsEndPoint> _addresses;
+        private readonly List<BalancerAddress> _addresses;
         private Action<ResolverResult>? _listener;
         private bool _disposed;
 
@@ -42,7 +42,7 @@ namespace Grpc.Net.Client.Balancer
         /// Initializes a new instance of the <see cref="StaticResolver"/> class with the specified addresses.
         /// </summary>
         /// <param name="addresses">The resolved addresses.</param>
-        public StaticResolver(IEnumerable<DnsEndPoint> addresses)
+        public StaticResolver(IEnumerable<BalancerAddress> addresses)
         {
             _addresses = addresses.ToList();
         }
@@ -95,7 +95,7 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class StaticResolverFactory : ResolverFactory
     {
-        private readonly Func<Uri, IEnumerable<DnsEndPoint>> _addressesCallback;
+        private readonly Func<Uri, IEnumerable<BalancerAddress>> _addressesCallback;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StaticResolverFactory"/> class with a callback
@@ -104,7 +104,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="addressesCallback">
         /// A callback that returns a collection of addresses for a target <see cref="Uri"/>.
         /// </param>
-        public StaticResolverFactory(Func<Uri, IEnumerable<DnsEndPoint>> addressesCallback)
+        public StaticResolverFactory(Func<Uri, IEnumerable<BalancerAddress>> addressesCallback)
         {
             _addressesCallback = addressesCallback;
         }
