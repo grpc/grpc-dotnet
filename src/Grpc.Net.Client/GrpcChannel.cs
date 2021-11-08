@@ -131,7 +131,7 @@ namespace Grpc.Net.Client
             // Even with just one address we still want to use the load balancing infrastructure. This enables
             // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
             var resolver = IsHttpOrHttpsAddress()
-                ? new StaticResolver(new[] { new DnsEndPoint(Address.Host, Address.Port) })
+                ? new StaticResolver(new[] { new BalancerAddress(Address.Host, Address.Port) })
                 : CreateResolver(channelOptions);
 
             ConnectionManager = new ConnectionManager(

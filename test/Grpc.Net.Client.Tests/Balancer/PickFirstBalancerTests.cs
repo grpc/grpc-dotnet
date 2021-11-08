@@ -51,9 +51,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -76,16 +76,16 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 81) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 81) });
 
             var newSubchannels = channel.ConnectionManager.GetSubchannels();
             CollectionAssert.AreEqual(subchannels, newSubchannels);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
         }
 
@@ -97,7 +97,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
             var transportFactory = new TestSubchannelTransportFactory();
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -120,7 +120,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
             // Wait for TryConnect to be called so state is connected
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
@@ -146,9 +146,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
@@ -172,7 +172,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
             Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
 
             resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
@@ -193,9 +193,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             SyncPoint syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
@@ -240,7 +240,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
         }
 
@@ -252,9 +252,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportConnectCount = 0;
@@ -284,7 +284,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
             var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
@@ -305,7 +305,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
             var transportConnectCount = 0;
             var transportFactory = new TestSubchannelTransportFactory((s, c) =>
@@ -350,7 +350,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
             var transportConnectCount = 0;
             var transportFactory = new TestSubchannelTransportFactory((s, c) =>
@@ -387,8 +387,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             await stateChangedTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, channel.State);
             Assert.AreEqual(2, transportConnectCount);
-            Assert.AreEqual("localhost", pick.Address.Host);
-            Assert.AreEqual(80, pick.Address.Port);
+            Assert.AreEqual("localhost", pick.Address.EndPoint.Host);
+            Assert.AreEqual(80, pick.Address.EndPoint.Port);
         }
 
         [Test]
@@ -405,7 +405,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
             ILogger? logger = null;
 
@@ -467,7 +467,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint> { new DnsEndPoint("localhost", 80) });
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
             ILogger? logger = null;
 

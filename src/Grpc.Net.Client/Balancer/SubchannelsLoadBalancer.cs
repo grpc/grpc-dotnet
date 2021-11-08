@@ -80,12 +80,12 @@ namespace Grpc.Net.Client.Balancer
             }
         }
 
-        private int? FindSubchannelByAddress(List<AddressSubchannel> addressSubchannels, DnsEndPoint endPoint)
+        private int? FindSubchannelByAddress(List<AddressSubchannel> addressSubchannels, BalancerAddress address)
         {
             for (var i = 0; i < addressSubchannels.Count; i++)
             {
                 var s = addressSubchannels[i];
-                if (Equals(s.Address, endPoint))
+                if (Equals(s.Address, address))
                 {
                     return i;
                 }
@@ -297,7 +297,7 @@ namespace Grpc.Net.Client.Balancer
         /// <returns>A subchannel picker.</returns>
         protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
-        private record AddressSubchannel(Subchannel Subchannel, DnsEndPoint Address);
+        private record AddressSubchannel(Subchannel Subchannel, BalancerAddress Address);
     }
 
     internal static class SubchannelsLoadBalancerLog

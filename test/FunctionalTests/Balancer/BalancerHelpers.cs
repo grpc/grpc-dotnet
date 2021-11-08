@@ -111,8 +111,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null, bool? connect = null)
         {
             var resolver = new TestResolver();
-            var e = endpoints.Select(i => new DnsEndPoint(i.Host, i.Port)).ToList();
-            resolver.UpdateEndPoints(e);
+            var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
+            resolver.UpdateAddresses(e);
 
             return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect);
         }

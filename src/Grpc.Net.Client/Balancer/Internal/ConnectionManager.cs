@@ -290,7 +290,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public async
 #if !NETSTANDARD2_0
-            ValueTask<(Subchannel Subchannel, DnsEndPoint Address, Action<CompletionContext> OnComplete)>
+            ValueTask<(Subchannel Subchannel, BalancerAddress Address, Action<CompletionContext> OnComplete)>
 #else
             Task<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
 #endif
@@ -316,7 +316,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                         if (address != null)
                         {
-                            ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address);
+                            ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address.EndPoint);
                             return (subchannel, address, result.Complete);
                         }
                         else

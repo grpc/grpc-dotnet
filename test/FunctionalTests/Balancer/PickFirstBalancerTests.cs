@@ -382,7 +382,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 subChannel = picker.Subchannel;
                 Logger.LogInformation($"Current subchannel: {subChannel}");
 
-                return subChannel.CurrentAddress?.Port == expectedPort;
+                return subChannel.CurrentAddress?.EndPoint.Port == expectedPort;
             }, "Wait for all subconnections to be connected.");
 
             Logger.LogInformation($"Finished waiting for subchannel ready.");

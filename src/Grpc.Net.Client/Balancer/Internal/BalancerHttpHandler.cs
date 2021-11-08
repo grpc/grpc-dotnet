@@ -77,15 +77,16 @@ namespace Grpc.Net.Client.Balancer.Internal
             var pickContext = new PickContext { Request = request };
             var result = await _manager.PickAsync(pickContext, waitForReady, cancellationToken).ConfigureAwait(false);
             var address = result.Address!;
+            var addressEndpoint = address.EndPoint;
 
             // Update request host if required.
             if (!request.RequestUri.IsAbsoluteUri ||
-                request.RequestUri.Host != address.Host ||
-                request.RequestUri.Port != address.Port)
+                request.RequestUri.Host != addressEndpoint.Host ||
+                request.RequestUri.Port != addressEndpoint.Port)
             {
                 var uriBuilder = new UriBuilder(request.RequestUri);
-                uriBuilder.Host = address.Host;
-                uriBuilder.Port = address.Port;
+                uriBuilder.Host = addressEndpoint.Host;
+                uriBuilder.Port = addressEndpoint.Port;
                 request.RequestUri = uriBuilder.Uri;
             }
 

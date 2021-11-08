@@ -54,9 +54,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
@@ -74,12 +74,12 @@ namespace Grpc.Net.Client.Tests.Balancer
             var result1 = await pickTask1.DefaultTimeout();
 
             // Assert
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.Address!);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.Address!.EndPoint);
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80),
-                new DnsEndPoint("localhost", 81)
+                new BalancerAddress("localhost", 80),
+                new BalancerAddress("localhost", 81)
             });
 
             for (var i = 0; i < transportFactory.Transports.Count; i++)
@@ -94,13 +94,13 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             Assert.IsFalse(pickTask2.IsCompleted);
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 82)
+                new BalancerAddress("localhost", 82)
             });
 
             var result2 = await pickTask2.DefaultTimeout();
-            Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!);
+            Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!.EndPoint);
         }
 
         [Test]
@@ -113,9 +113,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
@@ -262,7 +262,7 @@ namespace Grpc.Net.Client.Tests.Balancer
         }
 
         [Test]
-        public async Task UpdateEndPoints_ConnectIsInProgress_InProgressConnectIsCanceledAndRestarted()
+        public async Task UpdateAddresses_ConnectIsInProgress_InProgressConnectIsCanceledAndRestarted()
         {
             // Arrange
             var services = new ServiceCollection();
@@ -272,9 +272,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             var testLogger = loggerFactory.CreateLogger(GetType());
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var connectAddressesChannel = System.Threading.Channels.Channel.CreateUnbounded<DnsEndPoint>();
@@ -288,7 +288,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 var connectAddress = s.GetAddresses().Single();
                 testLogger.LogInformation("Writing connect address " + connectAddress);
 
-                await connectAddressesChannel.Writer.WriteAsync(connectAddress);
+                await connectAddressesChannel.Writer.WriteAsync(connectAddress.EndPoint);
                 await syncPoint.WaitToContinue();
 
                 c.ThrowIfCancellationRequested();
@@ -304,16 +304,16 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(80, connectAddress1.Port);
 
             // Endpoints are unchanged so continue connecting...
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
             Assert.IsFalse(syncPoint.WaitToContinue().IsCompleted);
 
             // Endpoints change so cancellation + reconnect triggered
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 81)
+                new BalancerAddress("localhost", 81)
             });
 
             await syncPoint.WaitToContinue().DefaultTimeout();

@@ -5,6 +5,9 @@
     <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net5.0</TargetFrameworks>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
+
+    <!-- Turn on preview features so we can use Http3. Can be removed in .NET 7 -->
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>
