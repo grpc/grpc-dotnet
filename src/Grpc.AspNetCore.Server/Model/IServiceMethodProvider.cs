@@ -16,6 +16,9 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using Grpc.AspNetCore.Server.Internal;
+
 namespace Grpc.AspNetCore.Server.Model
 {
     /// <summary>
@@ -28,7 +31,11 @@ namespace Grpc.AspNetCore.Server.Model
     /// <see cref="IServiceMethodProvider{TService}"/> instances are invoked in the order they are registered.
     /// </para>
     /// </remarks>
-    public interface IServiceMethodProvider<TService> where TService : class
+    public interface IServiceMethodProvider<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService> where TService : class
     {
         /// <summary>
         /// Called to execute the provider.

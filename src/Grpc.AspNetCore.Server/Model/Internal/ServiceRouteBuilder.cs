@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
@@ -31,7 +32,11 @@ using Log = Grpc.AspNetCore.Server.Model.Internal.ServiceRouteBuilderLog;
 
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
-    internal class ServiceRouteBuilder<TService> where TService : class
+    internal class ServiceRouteBuilder<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService> where TService : class
     {
         private readonly IEnumerable<IServiceMethodProvider<TService>> _serviceMethodProviders;
         private readonly ServerCallHandlerFactory<TService> _serverCallHandlerFactory;
