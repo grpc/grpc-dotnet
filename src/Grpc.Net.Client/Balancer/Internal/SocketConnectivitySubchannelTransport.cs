@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private Socket? _initialSocket;
         private DnsEndPoint? _initialSocketEndPoint;
         private bool _disposed;
-        private DnsEndPoint? _currentEndPoint;
+        private BalancerAddress? _currentAddress;
 
         public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, ILoggerFactory loggerFactory)
         {
@@ -71,7 +71,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
 
         public object Lock => _subchannel.Lock;
-        public DnsEndPoint? CurrentEndPoint => _currentEndPoint;
+        public BalancerAddress? CurrentAddress => _currentAddress;
         public bool HasStream { get; }
 
         // For testing. Take a copy under lock for thread-safety.
@@ -92,14 +92,14 @@ namespace Grpc.Net.Client.Balancer.Internal
                 _initialSocketEndPoint = null;
                 _lastEndPointIndex = 0;
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
-                _currentEndPoint = null;
+                _currentAddress = null;
             }
             _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
 
         public async ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
         {
-            Debug.Assert(CurrentEndPoint == null);
+            Debug.Assert(CurrentAddress == null);
 
             // Addresses could change while connecting. Make a copy of the subchannel's addresses.
             var addresses = _subchannel.GetAddresses();
@@ -110,7 +110,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             for (var i = 0; i < addresses.Count; i++)
             {
                 var currentIndex = (i + _lastEndPointIndex) % addresses.Count;
-                var currentEndPoint = addresses[currentIndex];
+                var currentAddress = addresses[currentIndex];
 
                 Socket socket;
 
@@ -119,16 +119,16 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                 try
                 {
-                    SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, currentEndPoint);
-                    await socket.ConnectAsync(currentEndPoint, cancellationToken).ConfigureAwait(false);
-                    SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, currentEndPoint);
+                    SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, currentAddress.EndPoint);
+                    await socket.ConnectAsync(currentAddress.EndPoint, cancellationToken).ConfigureAwait(false);
+                    SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, currentAddress.EndPoint);
 
                     lock (Lock)
                     {
-                        _currentEndPoint = currentEndPoint;
+                        _currentAddress = currentAddress;
                         _lastEndPointIndex = currentIndex;
                         _initialSocket = socket;
-                        _initialSocketEndPoint = currentEndPoint;
+                        _initialSocketEndPoint = currentAddress.EndPoint;
                         _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
                     }
 
@@ -137,7 +137,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 }
                 catch (Exception ex)
                 {
-                    SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, currentEndPoint, ex);
+                    SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, currentAddress.EndPoint, ex);
 
                     if (firstConnectionError == null)
                     {
@@ -196,7 +196,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                                 _initialSocket.Dispose();
                                 _initialSocket = null;
                                 _initialSocketEndPoint = null;
-                                _currentEndPoint = null;
+                                _currentAddress = null;
                                 _lastEndPointIndex = 0;
                             }
                         }

@@ -79,9 +79,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.IsFalse(responseTask.IsCompleted);
             Assert.IsNull(authority);
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 81)
+                new BalancerAddress("localhost", 81)
             });
 
             await responseTask.DefaultTimeout();

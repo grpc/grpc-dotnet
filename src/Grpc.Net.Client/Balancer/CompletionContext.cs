@@ -32,9 +32,9 @@ namespace Grpc.Net.Client.Balancer
     public sealed class CompletionContext
     {
         /// <summary>
-        /// Gets or sets the <see cref="DnsEndPoint"/> a call was made with. Required.
+        /// Gets or sets the <see cref="BalancerAddress"/> a call was made with. Required.
         /// </summary>
-        public DnsEndPoint? Address { get; set; }
+        public BalancerAddress? Address { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Exception"/> thrown when making the call.

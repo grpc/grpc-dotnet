@@ -146,7 +146,7 @@ namespace Grpc.Net.Client.Balancer
                 DnsResolverLog.ReceivedDnsResults(_logger, addresses.Length, _address, addresses);
 
                 var resolvedPort = _address.Port == -1 ? 80 : _address.Port;
-                var endpoints = addresses.Select(a => new DnsEndPoint(a.ToString(), resolvedPort)).ToArray();
+                var endpoints = addresses.Select(a => new BalancerAddress(a.ToString(), resolvedPort)).ToArray();
                 var resolverResult = ResolverResult.ForResult(endpoints, serviceConfig: null);
                 _listener(resolverResult);
             }

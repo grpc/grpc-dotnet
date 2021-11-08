@@ -36,7 +36,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         /// <param name="addresses">A collection of addresses.</param>
         [DebuggerStepThrough]
-        public SubchannelOptions(IReadOnlyList<DnsEndPoint> addresses)
+        public SubchannelOptions(IReadOnlyList<BalancerAddress> addresses)
         {
             Addresses = addresses;
         }
@@ -44,7 +44,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets a collection of addresses.
         /// </summary>
-        public IReadOnlyList<DnsEndPoint> Addresses { get; }
+        public IReadOnlyList<BalancerAddress> Addresses { get; }
     }
 }
 #endif

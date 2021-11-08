@@ -76,8 +76,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
             {
-                new DnsEndPoint(endpoint1.Address.Host, endpoint1.Address.Port),
-                new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port),
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             }));
 
             var socketsHttpHandler = new SocketsHttpHandler
@@ -208,8 +208,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
             {
-                new DnsEndPoint(endpoint1.Address.Host, endpoint1.Address.Port),
-                new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port),
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             }));
             var socketsHttpHandler = new SocketsHttpHandler
             {

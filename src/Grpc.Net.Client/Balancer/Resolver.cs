@@ -99,7 +99,7 @@ namespace Grpc.Net.Client.Balancer
         private BalancerAttributes? _attributes;
 
         [DebuggerStepThrough]
-        private ResolverResult(Status status, IReadOnlyList<DnsEndPoint>? addresses, ServiceConfig? serviceConfig)
+        private ResolverResult(Status status, IReadOnlyList<BalancerAddress>? addresses, ServiceConfig? serviceConfig)
         {
             Status = status;
             Addresses = addresses;
@@ -114,7 +114,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets a collection of resolved addresses.
         /// </summary>
-        public IReadOnlyList<DnsEndPoint>? Addresses { get; }
+        public IReadOnlyList<BalancerAddress>? Addresses { get; }
 
         /// <summary>
         /// Gets an optional service config.
@@ -149,7 +149,7 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="serviceConfig">An optional service config.</param>
         /// <returns>A resolver result.</returns>
         [DebuggerStepThrough]
-        public static ResolverResult ForResult(IReadOnlyList<DnsEndPoint> addresses, ServiceConfig? serviceConfig)
+        public static ResolverResult ForResult(IReadOnlyList<BalancerAddress> addresses, ServiceConfig? serviceConfig)
         {
             return new ResolverResult(Status.DefaultSuccess, addresses, serviceConfig);
         }

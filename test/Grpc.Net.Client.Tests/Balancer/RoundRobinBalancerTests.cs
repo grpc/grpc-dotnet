@@ -48,9 +48,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
@@ -75,15 +75,15 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
             // Wait for TryConnect to be called so state is connected
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 81)
+                new BalancerAddress("localhost", 81)
             });
             Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
 
@@ -92,7 +92,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, newSubchannels.Count);
 
             Assert.AreEqual(1, newSubchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), newSubchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 81), newSubchannels[0]._addresses[0].EndPoint);
 
             await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
@@ -106,9 +106,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
@@ -133,7 +133,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
             // Wait for TryConnect to be called so state is connected
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
@@ -159,9 +159,9 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddNUnitLogger();
 
             var resolver = new TestResolver();
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
@@ -186,7 +186,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
@@ -215,9 +215,9 @@ namespace Grpc.Net.Client.Tests.Balancer
                 await syncPoint.WaitToContinue().DefaultTimeout();
                 syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
             });
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint("localhost", 80)
+                new BalancerAddress("localhost", 80)
             });
 
             var connectState = ConnectivityState.Ready;
@@ -247,7 +247,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(1, subchannels.Count);
 
             Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0]);
+            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);

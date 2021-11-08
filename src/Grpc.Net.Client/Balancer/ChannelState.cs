@@ -34,7 +34,7 @@ namespace Grpc.Net.Client.Balancer
     public sealed class ChannelState
     {
         [DebuggerStepThrough]
-        internal ChannelState(Status status, IReadOnlyList<DnsEndPoint>? addresses, LoadBalancingConfig? loadBalancingConfig, BalancerAttributes attributes)
+        internal ChannelState(Status status, IReadOnlyList<BalancerAddress>? addresses, LoadBalancingConfig? loadBalancingConfig, BalancerAttributes attributes)
         {
             Addresses = addresses;
             LoadBalancingConfig = loadBalancingConfig;
@@ -45,7 +45,7 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Gets a collection of addresses. Will be <c>null</c> if <see cref="Status"/> has a non-OK value.
         /// </summary>
-        public IReadOnlyList<DnsEndPoint>? Addresses { get; }
+        public IReadOnlyList<BalancerAddress>? Addresses { get; }
 
         /// <summary>
         /// Gets an optional load balancing config.

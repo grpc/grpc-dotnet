@@ -269,7 +269,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             endpoint1.Dispose();
 
             var subChannels = (await WaitForSubChannelsToBeReady(channel, 1).DefaultTimeout()).Single();
-            Assert.AreEqual(50052, subChannels.CurrentAddress?.Port);
+            Assert.AreEqual(50052, subChannels.CurrentAddress?.EndPoint.Port);
 
             reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
             Assert.AreEqual("Balancer", reply1.Message);
@@ -304,10 +304,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 await syncPoint.WaitToContinue().DefaultTimeout();
                 syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
             });
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint(endpoint1.Address.Host, endpoint1.Address.Port),
-                new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port),
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             });
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
@@ -322,9 +322,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             await waitForRefreshTask.DefaultTimeout();
 
-            resolver.UpdateEndPoints(new List<DnsEndPoint>
+            resolver.UpdateAddresses(new List<BalancerAddress>
             {
-                new DnsEndPoint(endpoint2.Address.Host, endpoint2.Address.Port)
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
             });
 
             syncPoint.Continue();
