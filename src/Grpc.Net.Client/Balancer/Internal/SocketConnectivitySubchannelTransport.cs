@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private Socket? _initialSocket;
         private DnsEndPoint? _initialSocketEndPoint;
         private bool _disposed;
-        private BalancerAddress? _currentEndPoint;
+        private BalancerAddress? _currentAddress;
 
         public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, ILoggerFactory loggerFactory)
         {
@@ -71,7 +71,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
 
         public object Lock => _subchannel.Lock;
-        public BalancerAddress? CurrentAddress => _currentEndPoint;
+        public BalancerAddress? CurrentAddress => _currentAddress;
         public bool HasStream { get; }
 
         // For testing. Take a copy under lock for thread-safety.
@@ -92,7 +92,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 _initialSocketEndPoint = null;
                 _lastEndPointIndex = 0;
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
-                _currentEndPoint = null;
+                _currentAddress = null;
             }
             _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
         }
@@ -125,7 +125,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                     lock (Lock)
                     {
-                        _currentEndPoint = currentAddress;
+                        _currentAddress = currentAddress;
                         _lastEndPointIndex = currentIndex;
                         _initialSocket = socket;
                         _initialSocketEndPoint = currentAddress.EndPoint;
@@ -196,7 +196,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                                 _initialSocket.Dispose();
                                 _initialSocket = null;
                                 _initialSocketEndPoint = null;
-                                _currentEndPoint = null;
+                                _currentAddress = null;
                                 _lastEndPointIndex = 0;
                             }
                         }
