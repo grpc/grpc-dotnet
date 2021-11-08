@@ -18,6 +18,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Shared.Server;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.AspNetCore.Server.Model.Internal.BinderServiceMethodProviderLog;
@@ -26,7 +27,7 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 {
     internal class BinderServiceMethodProvider<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(ProviderServiceBinder<TService>.ServiceAccessibility)]
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
         TService> : IServiceMethodProvider<TService> where TService : class
     {

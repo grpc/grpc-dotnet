@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared.Server;
@@ -24,7 +25,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal class ClientStreamingServerCallHandler<TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+    internal class ClientStreamingServerCallHandler<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
         where TRequest : class
         where TResponse : class
         where TService : class

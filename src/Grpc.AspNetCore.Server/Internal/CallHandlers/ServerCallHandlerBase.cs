@@ -17,8 +17,8 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
@@ -29,7 +29,11 @@ using Microsoft.Net.Http.Headers;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers
 {
-    internal abstract class ServerCallHandlerBase<TService, TRequest, TResponse>
+    internal abstract class ServerCallHandlerBase<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TService, TRequest, TResponse>
         where TService : class
         where TRequest : class
         where TResponse : class

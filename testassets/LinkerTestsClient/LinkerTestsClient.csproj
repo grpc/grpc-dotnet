@@ -1,29 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>Link</TrimMode>
+
+    <!-- IL2104: Other assemblies have warnings. All of ASP.NET needs annotations. Revisit in .NET 7 -->
+    <!-- IL2026: RequiresUnreferencedCode warning. OK to suppress as no warnings of this type from gRPC -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL2026</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);IL2104;IL2026</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <Protobuf Include="..\Proto\greet.proto" GrpcServices="Client" Link="Protos\greet.proto" />
     <Protobuf Include="..\Proto\unimplemented.proto" GrpcServices="Client" Link="Protos\unimplemented.proto" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
+    
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
-  <Target Name="EnsureAllAssembliesAreLinked" BeforeTargets="PrepareForILLink">
-    <ItemGroup>
-      <ManagedAssemblyToLink>
-        <TrimMode>link</TrimMode>
-      </ManagedAssemblyToLink>
-      <TrimmerRootAssembly Include="$(TargetName)" />
-    </ItemGroup>
-  </Target>
-  
 </Project>

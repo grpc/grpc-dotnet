@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 
@@ -27,15 +28,10 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 {
     internal class ProviderServiceBinder<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(ServiceAccessibility)]
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
         TService> : ServiceBinderBase where TService : class
     {
-#if NET5_0_OR_GREATER
-        // Non-public methods is required by GetMethod overload that has a BindingFlags argument.
-        internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
-#endif
-
         private readonly ServiceMethodProviderContext<TService> _context;
         private readonly Type _declaringType;
 

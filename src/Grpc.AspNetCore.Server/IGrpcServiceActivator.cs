@@ -17,7 +17,9 @@
 #endregion
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Server
 {
@@ -25,7 +27,11 @@ namespace Grpc.AspNetCore.Server
     /// A <typeparamref name="TGrpcService"/> activator abstraction.
     /// </summary>
     /// <typeparam name="TGrpcService">The service type.</typeparam>
-    public interface IGrpcServiceActivator<TGrpcService> where TGrpcService : class
+    public interface IGrpcServiceActivator<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+        TGrpcService> where TGrpcService : class
     {
         /// <summary>
         /// Creates a service.

@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
@@ -127,5 +128,9 @@ namespace Grpc.AspNetCore.Server.Internal
             return Http2ResetStreamCancel;
 #endif
         }
+
+#if NET5_0_OR_GREATER
+        internal const DynamicallyAccessedMemberTypes ServiceAccessibility = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
+#endif
     }
 }
