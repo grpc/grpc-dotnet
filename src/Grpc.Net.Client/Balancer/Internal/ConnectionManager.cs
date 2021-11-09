@@ -35,6 +35,8 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
     internal class ConnectionManager : IDisposable, IChannelControlHelper
     {
+        private static readonly ServiceConfig DefaultServiceConfig = new ServiceConfig();
+
         private readonly SemaphoreSlim _nextPickerLock;
         private readonly object _lock;
         internal readonly Resolver _resolver;
@@ -50,6 +52,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private Task? _resolveTask;
         private TaskCompletionSource<SubchannelPicker> _nextPickerTcs;
         private int _currentSubchannelId;
+        private ServiceConfig? _previousServiceConfig;
 
         internal ConnectionManager(
             Resolver resolver,
@@ -148,30 +151,65 @@ namespace Grpc.Net.Client.Balancer.Internal
                 throw new InvalidOperationException($"Load balancer not configured.");
             }
 
+            var channelStatus = result.Status;
+
             // https://github.com/grpc/proposal/blob/master/A21-service-config-error-handling.md
-            // 1. Only use resolved service config if not disabled.
-            // 2. Only use resolved service config if valid. This includes having a factory for one of the load balancing configs.
+            // Additionally, only use resolved service config if not disabled.
             LoadBalancingConfig? loadBalancingConfig = null;
-            if (result.ServiceConfig != null)
+            if (!DisableResolverServiceConfig)
             {
-                if (!DisableResolverServiceConfig)
+                ServiceConfig? workingServiceConfig = null;
+                if (result.ServiceConfig == null)
                 {
-                    if (result.ServiceConfig.LoadBalancingConfigs.Count > 0)
+                    // Step 4 and 5
+                    if (result.ServiceConfigStatus == null)
                     {
-                        if (!ChildHandlerLoadBalancer.TryGetValidServiceConfigFactory(result.ServiceConfig.LoadBalancingConfigs, LoadBalancerFactories, out loadBalancingConfig, out var _))
+                        // Step 5: Use default service config if none is provided.
+                        _previousServiceConfig = DefaultServiceConfig;
+                        workingServiceConfig = DefaultServiceConfig;
+                    }
+                    else
+                    {
+                        // Step 4
+                        if (_previousServiceConfig == null)
                         {
-                            ConnectionManagerLog.ResolverUnsupportedLoadBalancingConfig(Logger, result.ServiceConfig.LoadBalancingConfigs);
+                            // Step 4.ii: If no config was provided or set previously, then treat resolution as a failure.
+                            channelStatus = result.ServiceConfigStatus.GetValueOrDefault();
+                        }
+                        else
+                        {
+                            // Step 4.i: Continue using previous service config if it was set and a new one is not provided.
+                            workingServiceConfig = _previousServiceConfig;
+                            ConnectionManagerLog.ResolverServiceConfigFallback(Logger, result.ServiceConfigStatus.GetValueOrDefault());
                         }
                     }
                 }
                 else
+                {
+                    // Step 3: Use provided service config if it is set.
+                    workingServiceConfig = result.ServiceConfig;
+                    _previousServiceConfig = result.ServiceConfig;
+                }
+
+
+                if (workingServiceConfig?.LoadBalancingConfigs.Count > 0)
+                {
+                    if (!ChildHandlerLoadBalancer.TryGetValidServiceConfigFactory(workingServiceConfig.LoadBalancingConfigs, LoadBalancerFactories, out loadBalancingConfig, out var _))
+                    {
+                        ConnectionManagerLog.ResolverUnsupportedLoadBalancingConfig(Logger, workingServiceConfig.LoadBalancingConfigs);
+                    }
+                }
+            }
+            else
+            {
+                if (result.ServiceConfig != null)
                 {
                     ConnectionManagerLog.ResolverServiceConfigNotUsed(Logger);
                 }
             }
 
             var state = new ChannelState(
-                result.Status,
+                channelStatus,
                 result.Addresses,
                 loadBalancingConfig,
                 BalancerAttributes.Empty);
@@ -513,6 +551,9 @@ namespace Grpc.Net.Client.Balancer.Internal
         private static readonly Action<ILogger, Exception?> _pickWaiting =
             LoggerMessage.Define(LogLevel.Trace, new EventId(14, "PickWaiting"), "Waiting for a new picker.");
 
+        private static readonly Action<ILogger, Status, Exception?> _resolverServiceConfigFallback =
+            LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(15, "ResolverServiceConfigFallback"), "Falling back to previously loaded service config. Resolver failure when retreiving or parsing service config with status: {Status}");
+
         public static void ResolverRefreshRequested(ILogger logger)
         {
             _resolverRefreshRequested(logger, null);
@@ -585,6 +626,11 @@ namespace Grpc.Net.Client.Balancer.Internal
         public static void PickWaiting(ILogger logger)
         {
             _pickWaiting(logger, null);
+        }
+
+        public static void ResolverServiceConfigFallback(ILogger logger, Status status)
+        {
+            _resolverServiceConfigFallback(logger, status, null);
         }
     }
 }

@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Balancer
                 throw new InvalidOperationException("Resolver hasn't been started.");
             }
 
-            _listener(ResolverResult.ForResult(_addresses, serviceConfig: null));
+            _listener(ResolverResult.ForResult(_addresses));
             return Task.CompletedTask;
         }
 
