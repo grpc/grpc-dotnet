@@ -18,6 +18,7 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -123,6 +124,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5)));
+            services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
             var serviceConfig = new ServiceConfig();
             if (loadBalancingConfig != null)
@@ -162,6 +164,45 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             }
 
             logger.LogInformation($"{channelId}: Current channel state '{currentState}' matches expected state '{state}'.");
+        }
+
+        public static async Task<Subchannel[]> WaitForSubChannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
+        {
+            if (getPickerSubchannels == null)
+            {
+                getPickerSubchannels = (picker) =>
+                {
+                    return picker switch
+                    {
+                        RoundRobinPicker roundRobinPicker => roundRobinPicker._subchannels.ToArray(),
+                        PickFirstPicker pickFirstPicker => new[] { pickFirstPicker.Subchannel },
+                        EmptyPicker emptyPicker => Array.Empty<Subchannel>(),
+                        null => Array.Empty<Subchannel>(),
+                        _ => throw new Exception("Unexpected picker type: " + picker.GetType().FullName)
+                    };
+                };
+            }
+
+            logger.LogInformation($"Waiting for subchannel ready count: {expectedCount}");
+
+            Subchannel[]? subChannelsCopy = null;
+            await TestHelpers.AssertIsTrueRetryAsync(() =>
+            {
+                var picker = channel.ConnectionManager._picker;
+                subChannelsCopy = getPickerSubchannels(picker);
+                logger.LogInformation($"Current subchannel ready count: {subChannelsCopy.Length}");
+                for (var i = 0; i < subChannelsCopy.Length; i++)
+                {
+                    logger.LogInformation($"Ready subchannel: {subChannelsCopy[i]}");
+                }
+
+                return subChannelsCopy.Length == expectedCount;
+            }, "Wait for all subconnections to be connected.");
+
+            logger.LogInformation($"Finished waiting for subchannel ready.");
+
+            Debug.Assert(subChannelsCopy != null);
+            return subChannelsCopy;
         }
 
         public static T? GetInnerLoadBalancer<T>(GrpcChannel channel) where T : LoadBalancer
