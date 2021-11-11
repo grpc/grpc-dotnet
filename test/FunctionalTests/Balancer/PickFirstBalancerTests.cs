@@ -17,8 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-#if NET5_0_OR_GREATER
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -138,7 +136,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation("Ending " + endpoint1.Address);
             endpoint1.Dispose();
 
-            await WaitForSubChannelToBeReady(channel, expectedPort: null).DefaultTimeout();
+            var subchannel = (await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, expectedCount: 1).DefaultTimeout()).Single();
+            Assert.AreEqual(null, subchannel.CurrentAddress?.EndPoint.Port);
 
             reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
             Assert.AreEqual("Balancer", reply.Message);
@@ -365,33 +364,6 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", (await reply2Task).Message);
             Assert.AreEqual("127.0.0.1:50051", host);
         }
-
-        private async Task<Subchannel> WaitForSubChannelToBeReady(GrpcChannel channel, int? expectedPort)
-        {
-            Logger.LogInformation($"Waiting for subchannel port: {expectedPort?.ToString() ?? "(null)"}");
-
-            Subchannel? subChannel = null;
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var picker = channel.ConnectionManager._picker as PickFirstPicker;
-                if (picker == null)
-                {
-                    throw new Exception("Expected PickFirstPicker");
-                }
-
-                subChannel = picker.Subchannel;
-                Logger.LogInformation($"Current subchannel: {subChannel}");
-
-                return subChannel.CurrentAddress?.EndPoint.Port == expectedPort;
-            }, "Wait for all subconnections to be connected.");
-
-            Logger.LogInformation($"Finished waiting for subchannel ready.");
-
-            Debug.Assert(subChannel != null);
-            return subChannel;
-        }
     }
 }
-
-#endif
 #endif
