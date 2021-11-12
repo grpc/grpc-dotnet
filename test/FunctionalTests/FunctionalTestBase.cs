@@ -138,6 +138,11 @@ namespace Grpc.AspNetCore.FunctionalTests
             });
         }
 
+        protected bool HasLogException(Func<Exception, bool> exceptionMatch)
+        {
+            return Logs.Any(x => x.Exception != null && exceptionMatch(x.Exception));
+        }
+
         protected void SetExpectedErrorsFilter(Func<LogRecord, bool> expectedErrorsFilter)
         {
             _testContext!.Scope.ExpectedErrorsFilter = expectedErrorsFilter;
