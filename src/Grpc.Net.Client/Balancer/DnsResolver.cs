@@ -65,7 +65,8 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="refreshInterval">An interval for automatically refreshing the DNS hostname.</param>
         public DnsResolver(Uri address, ILoggerFactory loggerFactory, TimeSpan refreshInterval)
         {
-            _address = address;
+            var addressParsed = "dns://" + address.AbsolutePath.TrimStart('/');
+            _address = new Uri(addressParsed);
             _refreshInterval = refreshInterval;
             _cts = new CancellationTokenSource();
             _logger = loggerFactory.CreateLogger<DnsResolver>();
@@ -120,6 +121,8 @@ namespace Grpc.Net.Client.Balancer
         {
             CompatibilityHelpers.Assert(_listener != null);
 
+            var dnsAddress = _address.ToString().TrimStart('/');
+            var lookupAddress = _address.Host;
             try
             {
                 var elapsedTimeSinceLastRefresh = SystemClock.UtcNow - _lastResolveStart;
@@ -133,15 +136,14 @@ namespace Grpc.Net.Client.Balancer
 
                 _lastResolveStart = SystemClock.UtcNow;
 
-                var dnsAddress = _address.AbsolutePath.TrimStart('/');
 
-                if (string.IsNullOrEmpty(dnsAddress))
+                if (string.IsNullOrEmpty(lookupAddress))
                 {
-                    throw new InvalidOperationException($"Resolver address '{_address}' doesn't have a path.");
+                    throw new InvalidOperationException($"Resolver address provided is not valid. Please use dns:/// for DNS provider.");
                 }
+                DnsResolverLog.StartingDnsQuery(_logger, lookupAddress);
 
-                DnsResolverLog.StartingDnsQuery(_logger, _address);
-                var addresses = await Dns.GetHostAddressesAsync(dnsAddress).ConfigureAwait(false);
+                var addresses = await Dns.GetHostAddressesAsync(lookupAddress).ConfigureAwait(false);
 
                 DnsResolverLog.ReceivedDnsResults(_logger, addresses.Length, _address, addresses);
 
@@ -152,9 +154,9 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (Exception ex)
             {
-                var message = $"Error getting DNS hosts for address '{_address}'.";
+                var message = $"Error getting DNS hosts for address '{lookupAddress}'.";
 
-                DnsResolverLog.ErrorQueryingDns(_logger, _address, ex);
+                DnsResolverLog.ErrorQueryingDns(_logger, lookupAddress, ex);
                 _listener(ResolverResult.ForFailure(GrpcProtocolHelpers.CreateStatusFromException(message, ex, StatusCode.Unavailable)));
             }
         }
@@ -205,14 +207,14 @@ namespace Grpc.Net.Client.Balancer
         private static readonly Action<ILogger, TimeSpan, TimeSpan, Exception?> _startingRateLimitDelay =
             LoggerMessage.Define<TimeSpan, TimeSpan>(LogLevel.Debug, new EventId(1, "StartingRateLimitDelay"), "Starting rate limit delay of {DelayDuration}. DNS resolution rate limit is once every {RateLimitDuration}.");
 
-        private static readonly Action<ILogger, Uri, Exception?> _startingDnsQuery =
-            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "StartingDnsQuery"), "Starting DNS query to get hosts from '{DnsAddress}'.");
+        private static readonly Action<ILogger, string, Exception?> _startingDnsQuery =
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "StartingDnsQuery"), "Starting DNS query to get hosts from '{DnsAddress}'.");
 
         private static readonly Action<ILogger, int, Uri, string, Exception?> _receivedDnsResults =
             LoggerMessage.Define<int, Uri, string>(LogLevel.Debug, new EventId(3, "ReceivedDnsResults"), "Received {ResultCount} DNS results from '{DnsAddress}'. Results: {DnsResults}");
 
-        private static readonly Action<ILogger, Uri, Exception?> _errorQueryingDns =
-            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(4, "ErrorQueryingDns"), "Error querying DNS hosts for '{DnsAddress}'.");
+        private static readonly Action<ILogger, string, Exception?> _errorQueryingDns =
+            LoggerMessage.Define<string>(LogLevel.Error, new EventId(4, "ErrorQueryingDns"), "Error querying DNS hosts for '{DnsAddress}'.");
 
         private static readonly Action<ILogger, Exception?> _errorFromRefreshInterval =
             LoggerMessage.Define(LogLevel.Error, new EventId(5, "ErrorFromRefreshIntervalTimer"), "Error from refresh interval timer.");
@@ -222,7 +224,7 @@ namespace Grpc.Net.Client.Balancer
             _startingRateLimitDelay(logger, delayDuration, rateLimitDuration, null);
         }
 
-        public static void StartingDnsQuery(ILogger logger, Uri dnsAddress)
+        public static void StartingDnsQuery(ILogger logger, string dnsAddress)
         {
             _startingDnsQuery(logger, dnsAddress, null);
         }
@@ -235,7 +237,7 @@ namespace Grpc.Net.Client.Balancer
             }
         }
 
-        public static void ErrorQueryingDns(ILogger logger, Uri dnsAddress, Exception ex)
+        public static void ErrorQueryingDns(ILogger logger, string dnsAddress, Exception ex)
         {
             _errorQueryingDns(logger, dnsAddress, ex);
         }

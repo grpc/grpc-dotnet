@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 
 using System;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -51,6 +52,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.NotNull(result);
             Assert.Greater(result!.Addresses!.Count, 0);
         }
+
 
         [Test]
         public async Task Start_IntervalSet_MultipleCallbacks()
@@ -88,8 +90,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             // Arrange
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.State.ToString() == "Error querying DNS hosts for 'dns://localhost/'." &&
-                    writeContext.Exception!.Message == "Resolver address 'dns://localhost/' doesn't have a path.")
+                if (writeContext.State.ToString() == "Error querying DNS hosts for ''." &&
+                    writeContext.Exception!.Message == "Resolver address provided is not valid. Please use dns:/// for DNS provider.")
                 {
                     return true;
                 }
@@ -112,8 +114,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.NotNull(result);
             Assert.Null(result!.Addresses);
             Assert.AreEqual(StatusCode.Unavailable, result!.Status.StatusCode);
-            Assert.AreEqual("Error getting DNS hosts for address 'dns://localhost/'. InvalidOperationException: Resolver address 'dns://localhost/' doesn't have a path.", result!.Status.Detail);
-            Assert.AreEqual("Resolver address 'dns://localhost/' doesn't have a path.", result!.Status.DebugException.Message);
+            Assert.AreEqual("Error getting DNS hosts for address ''. InvalidOperationException: Resolver address provided is not valid. Please use dns:/// for DNS provider.", result!.Status.Detail);
+            Assert.AreEqual("Resolver address provided is not valid. Please use dns:/// for DNS provider.", result!.Status.DebugException.Message);
         }
 
         [Test]
@@ -153,7 +155,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         {
             SetExpectedErrorsFilter(writeContext =>
             {
-                if (writeContext.State.ToString() == "Error querying DNS hosts for 'dns:///localhost'." &&
+                if (writeContext.State.ToString() == "Error querying DNS hosts for 'localhost'." &&
                     writeContext.Exception!.Message == "A task was canceled.")
                 {
                     return true;
@@ -188,10 +190,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.NotNull(result);
             Assert.Null(result!.Addresses);
             Assert.AreEqual(StatusCode.Unavailable, result!.Status.StatusCode);
-            Assert.AreEqual("Error getting DNS hosts for address 'dns:///localhost'. TaskCanceledException: A task was canceled.", result!.Status.Detail);
+            Assert.AreEqual("Error getting DNS hosts for address 'localhost'. TaskCanceledException: A task was canceled.", result!.Status.Detail);
             Assert.AreEqual("A task was canceled.", result!.Status.DebugException.Message);
         }
 
+        [Test]
+        public async Task DNS_Port_Works()
+        {
+            ResolverResult? result = null;
+            var dnsResolver = new DnsResolver(new Uri("dns:///localhost:8080"), LoggerFactory, Timeout.InfiniteTimeSpan);
+            dnsResolver.Start(r =>
+            {
+                result = r;
+            });
+
+            // Act
+            await dnsResolver.RefreshAsync(CancellationToken.None);
+            Assert.False(HasLogException((ex) =>
+            {
+                return ex is SocketException;
+            }));
+        }
         private class TestSystemClock : ISystemClock
         {
             public TestSystemClock(DateTime utcNow)
