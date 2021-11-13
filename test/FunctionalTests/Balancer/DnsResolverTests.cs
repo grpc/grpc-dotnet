@@ -33,23 +33,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
     public class DnsResolverTests : FunctionalTestBase
     {
         [Test]
-        public async Task RefreshAsync_HasStarted_HasResult()
+        public async Task Refresh_HasStarted_HasResult()
         {
             // Arranged
-            ResolverResult? result = null;
+            var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var dnsResolver = new DnsResolver(new Uri("dns:///localhost"), LoggerFactory, Timeout.InfiniteTimeSpan);
             dnsResolver.Start(r =>
             {
-                result = r;
+                tcs.SetResult(r);
             });
 
             // Act
-            await dnsResolver.RefreshAsync(CancellationToken.None);
+            dnsResolver.Refresh();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Greater(result!.Addresses!.Count, 0);
+            var result = await tcs.Task.DefaultTimeout();
+            Assert.Greater(result.Addresses!.Count, 0);
         }
 
         [Test]
@@ -97,55 +97,50 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 return false;
             });
 
-            ResolverResult? result = null;
-
+            var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             var dnsResolver = new DnsResolver(new Uri("dns://localhost"), LoggerFactory, Timeout.InfiniteTimeSpan);
             dnsResolver.Start(r =>
             {
-                result = r;
+                tcs.SetResult(r);
             });
 
             // Act
-            await dnsResolver.RefreshAsync(CancellationToken.None);
+            dnsResolver.Refresh();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Null(result!.Addresses);
-            Assert.AreEqual(StatusCode.Unavailable, result!.Status.StatusCode);
-            Assert.AreEqual("Error getting DNS hosts for address 'dns://localhost/'. InvalidOperationException: Resolver address 'dns://localhost/' doesn't have a path.", result!.Status.Detail);
-            Assert.AreEqual("Resolver address 'dns://localhost/' doesn't have a path.", result!.Status.DebugException.Message);
+            var result = await tcs.Task.DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.Unavailable, result.Status.StatusCode);
+            Assert.AreEqual("Error getting DNS hosts for address 'dns://localhost/'. InvalidOperationException: Resolver address 'dns://localhost/' doesn't have a path.", result.Status.Detail);
+            Assert.AreEqual("Resolver address 'dns://localhost/' doesn't have a path.", result.Status.DebugException.Message);
         }
 
         [Test]
         public async Task RefreshAsync_MultipleCalls_HitRateLimit()
         {
             // Arrange
-            ResolverResult? result = null;
-
+            var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             var dnsResolver = new DnsResolver(new Uri("dns:///localhost"), LoggerFactory, Timeout.InfiniteTimeSpan);
             dnsResolver.Start(r =>
             {
-                result = r;
+                tcs.SetResult(r);
             });
 
             // Act
-            await dnsResolver.RefreshAsync(CancellationToken.None).DefaultTimeout();
+            dnsResolver.Refresh();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Greater(result!.Addresses!.Count, 0);
+            var result = await tcs.Task.DefaultTimeout();
+            Assert.Greater(result.Addresses!.Count, 0);
 
-            var refreshTask1 = dnsResolver.RefreshAsync(CancellationToken.None);
+            tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            dnsResolver.Refresh();
 
-            var completedTask = await Task.WhenAny(refreshTask1, Task.Delay(TimeSpan.FromSeconds(0.5))).DefaultTimeout();
-            if (completedTask == refreshTask1)
+            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(0.5))).DefaultTimeout();
+            if (completedTask == tcs.Task)
             {
                 Assert.Fail("Expected refresh to be delayed.");
             }
-
-            // Refresh is already in progress so existing task is returned.
-            var refreshTask2 = dnsResolver.RefreshAsync(CancellationToken.None);
-            Assert.AreSame(refreshTask1, refreshTask2);
         }
 
         [Test]
@@ -163,33 +158,30 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             });
 
             // Arrange
-            ResolverResult? result = null;
-
+            var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             var cts = new CancellationTokenSource();
             var dnsResolver = new DnsResolver(new Uri("dns:///localhost"), LoggerFactory, Timeout.InfiniteTimeSpan);
             dnsResolver.Start(r =>
             {
-                result = r;
+                tcs.SetResult(r);
             });
 
             // Act
-            await dnsResolver.RefreshAsync(cts.Token).DefaultTimeout();
+            dnsResolver.Refresh();
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Greater(result!.Addresses!.Count, 0);
+            var result = await tcs.Task.DefaultTimeout();
+            Assert.Greater(result.Addresses!.Count, 0);
 
-            var refreshTask = dnsResolver.RefreshAsync(cts.Token);
+            tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            dnsResolver.Refresh();
 
-            cts.Cancel();
+            dnsResolver.Dispose();
 
-            await refreshTask.DefaultTimeout();
-
-            Assert.NotNull(result);
-            Assert.Null(result!.Addresses);
-            Assert.AreEqual(StatusCode.Unavailable, result!.Status.StatusCode);
-            Assert.AreEqual("Error getting DNS hosts for address 'dns:///localhost'. TaskCanceledException: A task was canceled.", result!.Status.Detail);
-            Assert.AreEqual("A task was canceled.", result!.Status.DebugException.Message);
+            result = await tcs.Task.DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unavailable, result.Status.StatusCode);
+            Assert.AreEqual("Error getting DNS hosts for address 'dns:///localhost'. TaskCanceledException: A task was canceled.", result.Status.Detail);
+            Assert.AreEqual("A task was canceled.", result.Status.DebugException.Message);
         }
 
         private class TestSystemClock : ISystemClock

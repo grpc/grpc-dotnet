@@ -25,6 +25,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
+using Grpc.Net.Client.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
 {
@@ -38,7 +40,7 @@ namespace Grpc.Net.Client.Balancer
     /// </para>
     /// <para>
     /// A <see cref="Resolver"/> doesn't need to automatically re-resolve on failure. Instead, the callback
-    /// is responsible for eventually invoking <see cref="RefreshAsync(CancellationToken)"/>.
+    /// is responsible for eventually invoking <see cref="Refresh()"/>.
     /// </para>
     /// <para>
     /// Note: Experimental API that can change or be removed without any prior notice.
@@ -46,6 +48,33 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public abstract class Resolver : IDisposable
     {
+        private Task _resolveTask = Task.CompletedTask;
+        private Action<ResolverResult>? _listener;
+        private bool _disposed;
+
+        private readonly object _lock = new object();
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private readonly ILogger _logger;
+
+        /// <summary>
+        /// Gets the listener.
+        /// </summary>
+        protected Action<ResolverResult> Listener => _listener!;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Resolver"/>.
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory.</param>
+        protected Resolver(ILoggerFactory loggerFactory)
+        {
+            if (loggerFactory == null)
+            {
+                throw new ArgumentNullException(nameof(loggerFactory));
+            }
+
+            _logger = loggerFactory.CreateLogger<Resolver>();
+        }
+
         /// <summary>
         /// Starts listening to resolver for results with the specified callback. Can only be called once.
         /// <para>
@@ -54,18 +83,96 @@ namespace Grpc.Net.Client.Balancer
         /// </para>
         /// </summary>
         /// <param name="listener">The callback used to receive updates on the target.</param>
-        public abstract void Start(Action<ResolverResult> listener);
+        public void Start(Action<ResolverResult> listener)
+        {
+            if (listener == null)
+            {
+                throw new ArgumentNullException(nameof(listener));
+            }
+
+            if (_listener != null)
+            {
+                throw new InvalidOperationException("Resolver has already been started.");
+            }
+
+            _listener = (result) =>
+            {
+                Log.ResolverResult(_logger, result.Status.StatusCode, result.Addresses?.Count ?? 0);
+                listener(result);
+            };
+
+            OnStarted();
+        }
 
         /// <summary>
-        /// Refresh resolution. Updated results are passed to the callback.
-        /// Can only be called after <see cref="Start(Action{ResolverResult})"/>.
+        /// Executes after the resolver starts.
+        /// </summary>
+        protected virtual void OnStarted()
+        {
+        }
+
+        /// <summary>
+        /// Refresh resolution. Can only be called after <see cref="Start(Action{ResolverResult})"/>.
+        /// <para>
+        /// This is only a hint. Implementation takes it as a signal but may not start resolution.
+        /// </para>
+        /// </summary>
+        public void Refresh()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(DnsResolver));
+            }
+            if (_listener == null)
+            {
+                throw new InvalidOperationException("Resolver hasn't been started.");
+            }
+
+            lock (_lock)
+            {
+                Log.ResolverRefreshRequested(_logger);
+
+                if (_resolveTask.IsCompleted)
+                {
+                    _resolveTask = ResolveNowAsync(_cts.Token);
+                }
+                else
+                {
+                    Log.ResolverRefreshIgnored(_logger);
+                }
+            }
+        }
+
+        private async Task ResolveNowAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await ResolveAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Ignore cancellation.
+            }
+            catch (Exception ex)
+            {
+                Log.ResolverRefreshError(_logger, ex);
+
+                var status = GrpcProtocolHelpers.CreateStatusFromException("Error refreshing resolver.", ex);
+                Listener(ResolverResult.ForFailure(status));
+            }
+        }
+
+        /// <summary>
+        /// Resolve the target <see cref="Uri"/>. Updated results are passed to the callback
+        /// registered by <see cref="Start(Action{ResolverResult})"/>. Can only be called
+        /// after the resolver has started.
         /// <para>
         /// This is only a hint. Implementation takes it as a signal but may not start resolution.
         /// </para>
         /// </summary>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A task.</returns>
-        public abstract Task RefreshAsync(CancellationToken cancellationToken);
+        protected abstract Task ResolveAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="LoadBalancer"/> and optionally releases
@@ -76,6 +183,7 @@ namespace Grpc.Net.Client.Balancer
         /// </param>
         protected virtual void Dispose(bool disposing)
         {
+            _cts.Cancel();
         }
 
         /// <summary>
@@ -85,6 +193,43 @@ namespace Grpc.Net.Client.Balancer
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+
+            _disposed = true;
+        }
+
+        internal static class Log
+        {
+            private static readonly Action<ILogger, Exception?> _resolverRefreshRequested =
+                LoggerMessage.Define(LogLevel.Trace, new EventId(1, "ResolverRefreshRequested"), "Resolver refresh requested.");
+
+            private static readonly Action<ILogger, Exception?> _resolverRefreshIgnored =
+                LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResolverRefreshIgnored"), "Resolver refresh ignored because resolve is already in progress.");
+
+            private static readonly Action<ILogger, Exception?> _resolverRefreshError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(3, "ResolverRefreshError"), "Error refreshing resolver.");
+
+            private static readonly Action<ILogger, StatusCode, int, Exception?> _resolverResult =
+                LoggerMessage.Define<StatusCode, int>(LogLevel.Trace, new EventId(4, "ResolverResult"), "Resolver result with status code '{StatusCode}' and {AddressCount} addresses.");
+
+            public static void ResolverRefreshRequested(ILogger logger)
+            {
+                _resolverRefreshRequested(logger, null);
+            }
+
+            public static void ResolverRefreshIgnored(ILogger logger)
+            {
+                _resolverRefreshIgnored(logger, null);
+            }
+
+            public static void ResolverRefreshError(ILogger logger, Exception ex)
+            {
+                _resolverRefreshError(logger, ex);
+            }
+
+            public static void ResolverResult(ILogger logger, StatusCode statusCode, int addressCount)
+            {
+                _resolverResult(logger, statusCode, addressCount, null);
+            }
         }
     }
 

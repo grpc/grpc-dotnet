@@ -25,6 +25,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -95,7 +96,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             using (DiagnosticListener.AllListeners.Subscribe(allSubscription))
 #endif
             {
-                await client.UnaryCall(new HelloRequest());
+                await client.UnaryCall(new HelloRequest()).ResponseAsync.DefaultTimeout();
             }
 
             // Assert
