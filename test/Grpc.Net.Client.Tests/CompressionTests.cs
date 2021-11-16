@@ -197,7 +197,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             // Assert
-            var response = await call.ResponseAsync;
+            var response = await call.ResponseAsync.DefaultTimeout();
             Assert.IsNotNull(response);
             Assert.AreEqual("Hello world", response.Message);
         }

@@ -254,6 +254,9 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             tcs.SetResult(null);
 
+            // Ensure that channel has processed results
+            await resolver.HasResolvedTask.DefaultTimeout();
+
             var subchannels = channel.ConnectionManager.GetSubchannels();
             Assert.AreEqual(1, subchannels.Count);
             Assert.AreEqual(ConnectivityState.Connecting, subchannels[0].State);

@@ -206,7 +206,7 @@ namespace Grpc.Net.Client.Tests
             var client = new Greeter.GreeterClient(channel);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest()));
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("HttpHandler", ex.Status.DebugException.Message);
@@ -803,18 +803,17 @@ namespace Grpc.Net.Client.Tests
 
             public override Resolver Create(ResolverOptions options)
             {
-                return new ChannelTestResolver();
+                return new ChannelTestResolver(options.LoggerFactory);
             }
         }
 
         public class ChannelTestResolver : Resolver
         {
-            public override Task RefreshAsync(CancellationToken cancellationToken)
+            public ChannelTestResolver(ILoggerFactory loggerFactory) : base(loggerFactory)
             {
-                throw new NotImplementedException();
             }
 
-            public override void Start(Action<ResolverResult> listener)
+            protected override Task ResolveAsync(CancellationToken cancellationToken)
             {
                 throw new NotImplementedException();
             }
