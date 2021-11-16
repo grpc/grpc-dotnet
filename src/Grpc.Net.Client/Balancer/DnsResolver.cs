@@ -44,14 +44,9 @@ namespace Grpc.Net.Client.Balancer
 
         private readonly Uri _address;
         private readonly TimeSpan _refreshInterval;
-        private readonly ILogger<DnsResolver> _logger;
-        private readonly CancellationTokenSource _cts;
-        private readonly object _lock = new object();
+        private readonly ILogger _logger;
 
         private Timer? _timer;
-        private Action<ResolverResult>? _listener;
-        private bool _disposed;
-        private Task _refreshTask;
         private DateTime _lastResolveStart;
 
         // Internal for testing.
@@ -63,28 +58,16 @@ namespace Grpc.Net.Client.Balancer
         /// <param name="address">The target <see cref="Uri"/>.</param>
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="refreshInterval">An interval for automatically refreshing the DNS hostname.</param>
-        public DnsResolver(Uri address, ILoggerFactory loggerFactory, TimeSpan refreshInterval)
+        public DnsResolver(Uri address, ILoggerFactory loggerFactory, TimeSpan refreshInterval) : base(loggerFactory)
         {
             _address = address;
             _refreshInterval = refreshInterval;
-            _cts = new CancellationTokenSource();
             _logger = loggerFactory.CreateLogger<DnsResolver>();
-            _refreshTask = Task.CompletedTask;
         }
 
-        /// <inheritdoc />
-        public override void Start(Action<ResolverResult> listener)
+        protected override void OnStarted()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DnsResolver));
-            }
-            if (_listener != null)
-            {
-                throw new InvalidOperationException("Resolver has already been started.");
-            }
-
-            _listener = listener;
+            base.OnStarted();
 
             if (_refreshInterval != Timeout.InfiniteTimeSpan)
             {
@@ -94,32 +77,8 @@ namespace Grpc.Net.Client.Balancer
         }
 
         /// <inheritdoc />
-        public override Task RefreshAsync(CancellationToken cancellationToken)
+        protected override async Task ResolveAsync(CancellationToken cancellationToken)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DnsResolver));
-            }
-            if (_listener == null)
-            {
-                throw new InvalidOperationException("Resolver hasn't been started.");
-            }
-
-            lock (_lock)
-            {
-                if (_refreshTask.IsCompleted)
-                {
-                    _refreshTask = RefreshCoreAsync(cancellationToken);
-                }
-            }
-
-            return _refreshTask;
-        }
-
-        private async Task RefreshCoreAsync(CancellationToken cancellationToken)
-        {
-            CompatibilityHelpers.Assert(_listener != null);
-
             try
             {
                 var elapsedTimeSinceLastRefresh = SystemClock.UtcNow - _lastResolveStart;
@@ -148,14 +107,14 @@ namespace Grpc.Net.Client.Balancer
                 var resolvedPort = _address.Port == -1 ? 80 : _address.Port;
                 var endpoints = addresses.Select(a => new BalancerAddress(a.ToString(), resolvedPort)).ToArray();
                 var resolverResult = ResolverResult.ForResult(endpoints);
-                _listener(resolverResult);
+                Listener(resolverResult);
             }
             catch (Exception ex)
             {
                 var message = $"Error getting DNS hosts for address '{_address}'.";
 
                 DnsResolverLog.ErrorQueryingDns(_logger, _address, ex);
-                _listener(ResolverResult.ForFailure(GrpcProtocolHelpers.CreateStatusFromException(message, ex, StatusCode.Unavailable)));
+                Listener(ResolverResult.ForFailure(GrpcProtocolHelpers.CreateStatusFromException(message, ex, StatusCode.Unavailable)));
             }
         }
 
@@ -165,33 +124,13 @@ namespace Grpc.Net.Client.Balancer
             base.Dispose(disposing);
 
             _timer?.Dispose();
-            _cts.Cancel();
-            _listener = null;
-            _disposed = true;
         }
 
-        private async void OnTimerCallback(object? state)
+        private void OnTimerCallback(object? state)
         {
             try
             {
-                var awaitRefresh = false;
-                lock (_lock)
-                {
-                    if (_refreshTask.IsCompleted)
-                    {
-                        _refreshTask = RefreshCoreAsync(_cts.Token);
-                        awaitRefresh = true;
-                    }
-                }
-
-                if (awaitRefresh)
-                {
-                    await _refreshTask.ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Don't log cancellation.
+                Refresh();
             }
             catch (Exception ex)
             {

@@ -177,8 +177,21 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation("Ending " + endpoint1.Address);
             endpoint1.Dispose();
 
-            var subchannel = (await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, expectedCount: 1).DefaultTimeout()).Single();
-            Assert.AreEqual(null, subchannel.CurrentAddress?.EndPoint.Port);
+            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, expectedCount: 1,
+                getPickerSubchannels: picker=>
+                {
+                    // We want a subchannel that has no current address
+                    if (picker is PickFirstPicker pickFirstPicker)
+                    {
+                        var currentAddress = pickFirstPicker.Subchannel.CurrentAddress;
+                        Logger.LogInformation($"Got {nameof(PickFirstPicker)} with subchannel current address: {currentAddress?.ToString() ?? "null"}");
+                        if (currentAddress == null)
+                        {
+                            return new[] { pickFirstPicker.Subchannel };
+                        }
+                    }
+                    return Array.Empty<Subchannel>();
+                }).DefaultTimeout();
 
             reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
             Assert.AreEqual("Balancer", reply.Message);

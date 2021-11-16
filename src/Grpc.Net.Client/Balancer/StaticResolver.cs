@@ -23,6 +23,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
 {
@@ -35,54 +36,28 @@ namespace Grpc.Net.Client.Balancer
     internal sealed class StaticResolver : Resolver
     {
         private readonly List<BalancerAddress> _addresses;
-        private Action<ResolverResult>? _listener;
-        private bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StaticResolver"/> class with the specified addresses.
         /// </summary>
         /// <param name="addresses">The resolved addresses.</param>
-        public StaticResolver(IEnumerable<BalancerAddress> addresses)
+        /// <param name="loggerFactory">The logger factory.</param>
+        public StaticResolver(IEnumerable<BalancerAddress> addresses, ILoggerFactory loggerFactory)
+            : base(loggerFactory)
         {
             _addresses = addresses.ToList();
         }
 
-        /// <inheritdoc />
-        public override Task RefreshAsync(CancellationToken cancellationToken)
+        protected override void OnStarted()
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DnsResolver));
-            }
-            if (_listener == null)
-            {
-                throw new InvalidOperationException("Resolver hasn't been started.");
-            }
+            // Send addresses to listener once. They will never change.
+            Listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
+        }
 
-            _listener(ResolverResult.ForResult(_addresses));
+        /// <inheritdoc />
+        protected override Task ResolveAsync(CancellationToken cancellationToken)
+        {
             return Task.CompletedTask;
-        }
-
-        /// <inheritdoc />
-        public override void Start(Action<ResolverResult> listener)
-        {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(DnsResolver));
-            }
-            if (_listener != null)
-            {
-                throw new InvalidOperationException("Resolver has already been started.");
-            }
-
-            _listener = listener;
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            _disposed = true;
         }
     }
 
@@ -115,7 +90,7 @@ namespace Grpc.Net.Client.Balancer
         /// <inheritdoc />
         public override Resolver Create(ResolverOptions options)
         {
-            return new StaticResolver(_addressesCallback(options.Address));
+            return new StaticResolver(_addressesCallback(options.Address), options.LoggerFactory);
         }
     }
 }

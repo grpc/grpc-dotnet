@@ -111,7 +111,8 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(winHttpHandler, "https://localhost");
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "Hello world" });
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
+                ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "Hello world" }).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
@@ -142,7 +143,8 @@ namespace Grpc.Net.Client.Tests
             var invoker = HttpClientCallInvokerFactory.Create(handler, "http://localhost");
 
             // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" });
+            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(
+                ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Hello world", rs.Message);
