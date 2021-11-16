@@ -797,21 +797,51 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual("No address resolver configured for the scheme 'test'.", ex.Message);
         }
 
+        [TestCase(false, 80)]
+        [TestCase(true, 443)]
+        public void Resolver_DefaultPort_MatchesSecure(bool isSecure, int expectedPort)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+            services.AddSingleton<ISubchannelTransportFactory, TestSubchannelTransportFactory>();
+
+            var handler = new TestHttpMessageHandler();
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = isSecure ? ChannelCredentials.SecureSsl : ChannelCredentials.Insecure,
+                ServiceProvider = services.BuildServiceProvider(),
+                HttpHandler = handler
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+            // Assert
+            Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager._resolver);
+
+            var resolver = (ChannelTestResolver)channel.ConnectionManager._resolver;
+            Assert.AreEqual(expectedPort, resolver.Options.DefaultPort);
+        }
+
         public class ChannelTestResolverFactory : ResolverFactory
         {
             public override string Name => "test";
 
             public override Resolver Create(ResolverOptions options)
             {
-                return new ChannelTestResolver(options.LoggerFactory);
+                return new ChannelTestResolver(options);
             }
         }
 
         public class ChannelTestResolver : Resolver
         {
-            public ChannelTestResolver(ILoggerFactory loggerFactory) : base(loggerFactory)
+            public ChannelTestResolver(ResolverOptions options) : base(options.LoggerFactory)
             {
+                Options = options;
             }
+
+            public ResolverOptions Options { get; }
 
             protected override Task ResolveAsync(CancellationToken cancellationToken)
             {

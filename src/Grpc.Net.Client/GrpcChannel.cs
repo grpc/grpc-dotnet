@@ -55,6 +55,8 @@ namespace Grpc.Net.Client
         private readonly ConcurrentDictionary<IMethod, GrpcMethodInfo> _methodInfoCache;
         private readonly Func<IMethod, GrpcMethodInfo> _createMethodInfoFunc;
         private readonly Dictionary<MethodKey, MethodConfig>? _serviceConfigMethods;
+        private readonly bool _isSecure;
+        private readonly List<CallCredentials>? _callCredentials;
         // Internal for testing
         internal readonly HashSet<IDisposable> ActiveCalls;
 
@@ -69,8 +71,8 @@ namespace Grpc.Net.Client
         internal ILoggerFactory LoggerFactory { get; }
         internal ILogger Logger { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
-        internal bool IsSecure { get; }
-        internal List<CallCredentials>? CallCredentials { get; }
+        internal bool IsSecure => _isSecure;
+        internal List<CallCredentials>? CallCredentials => _callCredentials;
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
         internal string MessageAcceptEncoding { get; }
         internal bool Disposed { get; private set; }
@@ -118,6 +120,9 @@ namespace Grpc.Net.Client
             HttpHandlerType = CalculateHandlerType(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
+            var resolverFactory = GetResolverFactory(channelOptions);
+            ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
+
             SubchannelTransportFactory = ResolveService<ISubchannelTransportFactory>(channelOptions.ServiceProvider, new SubChannelTransportFactory(this));
 
             if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
@@ -125,14 +130,8 @@ namespace Grpc.Net.Client
                 ValidateHttpHandlerSupportsConnectivity();
             }
 
-            // Special case http and https schemes. These schemes don't use a dynamic resolver. An http/https
-            // address is always just one address and that is enabled using the static resolver.
-            //
-            // Even with just one address we still want to use the load balancing infrastructure. This enables
-            // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
-            var resolver = IsHttpOrHttpsAddress()
-                ? new StaticResolver(new[] { new BalancerAddress(Address.Host, Address.Port) }, LoggerFactory)
-                : CreateResolver(channelOptions);
+            var defaultPort = IsSecure ? 443 : 80;
+            var resolver = resolverFactory.Create(new ResolverOptions(Address, defaultPort, channelOptions.DisableResolverServiceConfig, LoggerFactory));
 
             ConnectionManager = new ConnectionManager(
                 resolver,
@@ -149,6 +148,7 @@ namespace Grpc.Net.Client
             {
                 throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
             }
+            ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
 #endif
 
             HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -169,13 +169,25 @@ namespace Grpc.Net.Client
                 _serviceConfigMethods = CreateServiceConfigMethods(serviceConfig);
             }
 
+            // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of an authority.
+            // Only log about a path being present if HTTP or HTTPS.
+            if (!string.IsNullOrEmpty(Address.PathAndQuery) &&
+                Address.PathAndQuery != "/" &&
+                (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp))
+            {
+                Log.AddressPathUnused(Logger, Address.OriginalString);
+            }
+        }
+
+        private void ResolveCredentials(GrpcChannelOptions channelOptions, out bool isSecure, out List<CallCredentials>? callCredentials)
+        {
             if (channelOptions.Credentials != null)
             {
                 var configurator = new DefaultChannelCredentialsConfigurator();
                 channelOptions.Credentials.InternalPopulateConfiguration(configurator, null);
 
-                IsSecure = configurator.IsSecure ?? false;
-                CallCredentials = configurator.CallCredentials;
+                isSecure = configurator.IsSecure ?? false;
+                callCredentials = configurator.CallCredentials;
 
                 ValidateChannelCredentials();
             }
@@ -183,11 +195,11 @@ namespace Grpc.Net.Client
             {
                 if (Address.Scheme == Uri.UriSchemeHttp)
                 {
-                    IsSecure = false;
+                    isSecure = false;
                 }
                 else if (Address.Scheme == Uri.UriSchemeHttps)
                 {
-                    IsSecure = true;
+                    isSecure = true;
                 }
                 else
                 {
@@ -196,15 +208,7 @@ namespace Grpc.Net.Client
                         "To call TLS endpoints, set credentials to 'new SslCredentials()'. " +
                         "To call non-TLS endpoints, set credentials to 'ChannelCredentials.Insecure'.");
                 }
-            }
-
-            // Non-HTTP addresses (e.g. dns:///custom-hostname) usually specify a path instead of an authority.
-            // Only log about a path being present if HTTP or HTTPS.
-            if (!string.IsNullOrEmpty(Address.PathAndQuery) &&
-                Address.PathAndQuery != "/" &&
-                (Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp))
-            {
-                Log.AddressPathUnused(Logger, Address.OriginalString);
+                callCredentials = null;
             }
         }
 
@@ -227,6 +231,32 @@ namespace Grpc.Net.Client
         }
 
 #if SUPPORT_LOAD_BALANCING
+        private ResolverFactory GetResolverFactory(GrpcChannelOptions options)
+        {
+            // Special case http and https schemes. These schemes don't use a dynamic resolver. An http/https
+            // address is always just one address and that is enabled using the static resolver.
+            //
+            // Even with just one address we still want to use the load balancing infrastructure. This enables
+            // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
+            if (IsHttpOrHttpsAddress())
+            {
+                return new StaticResolverFactory(uri => new[] { new BalancerAddress(Address.Host, Address.Port) });
+            }
+
+            var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
+            factories = factories.Union(ResolverFactory.KnownLoadResolverFactories);
+
+            foreach (var factory in factories)
+            {
+                if (string.Equals(factory.Name, Address.Scheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    return factory;
+                }
+            }
+
+            throw new InvalidOperationException($"No address resolver configured for the scheme '{Address.Scheme}'.");
+        }
+
         private void ValidateHttpHandlerSupportsConnectivity()
         {
             if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
@@ -248,22 +278,6 @@ namespace Grpc.Net.Client
                 $"The underlying HTTP transport must be a {nameof(SocketsHttpHandler)} with no " +
                 $"{nameof(SocketsHttpHandler)}.{nameof(SocketsHttpHandler.ConnectCallback)} configured. " +
                 $"The HTTP transport must be configured on the channel using {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.HttpHandler)}.");
-        }
-
-        private Resolver CreateResolver(GrpcChannelOptions options)
-        {
-            var factories = ResolveService<IEnumerable<ResolverFactory>>(options.ServiceProvider, Array.Empty<ResolverFactory>());
-            factories = factories.Union(ResolverFactory.KnownLoadResolverFactories);
-
-            foreach (var factory in factories)
-            {
-                if (string.Equals(factory.Name, Address.Scheme, StringComparison.OrdinalIgnoreCase))
-                {
-                    return factory.Create(new ResolverOptions(Address, options.DisableResolverServiceConfig, LoggerFactory));
-                }
-            }
-
-            throw new InvalidOperationException($"No address resolver configured for the scheme '{Address.Scheme}'.");
         }
 
         private LoadBalancerFactory[] ResolveLoadBalancerFactories(IServiceProvider? serviceProvider)
