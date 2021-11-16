@@ -33,9 +33,10 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
         /// </summary>
-        internal ResolverOptions(Uri address, bool disableServiceConfig, ILoggerFactory loggerFactory)
+        internal ResolverOptions(Uri address, int defaultPort, bool disableServiceConfig, ILoggerFactory loggerFactory)
         {
             Address = address;
+            DefaultPort = defaultPort;
             DisableServiceConfig = disableServiceConfig;
             LoggerFactory = loggerFactory;
         }
@@ -44,6 +45,11 @@ namespace Grpc.Net.Client.Balancer
         /// Gets the address.
         /// </summary>
         public Uri Address { get; }
+
+        /// <summary>
+        /// Gets the default port. This port is used when the resolver address doesn't specify a port.
+        /// </summary>
+        public int DefaultPort { get; }
 
         /// <summary>
         /// Gets a flag indicating whether the resolver should disable resolving a service config.
