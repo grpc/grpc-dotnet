@@ -16,8 +16,10 @@
 
 #endregion
 
+using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Threading;
 using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -81,5 +83,66 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert 2
             Assert.AreEqual("Hello world", response2.Message);
         }
+
+#if NET6_0
+        [Test]
+        [RequireHttp3]
+        public async Task ClientFactory_Http3_Success()
+        {
+            // Arrange
+            Task<HelloReply> UnaryCall(HelloRequest request, ServerCallContext context)
+            {
+                return Task.FromResult(new HelloReply { Message = $"Hello {request.Name}" });
+            }
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCall);
+
+            var serviceCollection = new ServiceCollection();
+            serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
+            serviceCollection
+                .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
+                {
+                    options.Address = Fixture.GetUrl(TestServerEndpointName.Http3WithTls);
+                })
+                .ConfigureGrpcClientCreator(invoker =>
+                {
+                    return TestClientFactory.Create(invoker, method);
+                })
+                .AddHttpMessageHandler(() => new Http3Handler())
+                .ConfigurePrimaryHttpMessageHandler(() =>
+                {
+                    return new SocketsHttpHandler
+                    {
+                        SslOptions = new SslClientAuthenticationOptions
+                        {
+                            RemoteCertificateValidationCallback = (____, ___, __, _) => true
+                        }
+                    };
+                });
+            var services = serviceCollection.BuildServiceProvider();
+
+            // Act
+            var client1 = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
+            var call1 = client1.UnaryCall(new HelloRequest { Name = "world" });
+            var response1 = await call1.ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Hello world", response1.Message);
+        }
+
+        private class Http3Handler : DelegatingHandler
+        {
+            public Http3Handler() { }
+            public Http3Handler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                request.Version = HttpVersion.Version30;
+                request.VersionPolicy = HttpVersionPolicy.RequestVersionExact;
+
+                return base.SendAsync(request, cancellationToken);
+            }
+        }
+#endif
     }
 }
