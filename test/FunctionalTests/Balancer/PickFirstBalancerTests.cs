@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite;
 using Google.Protobuf;
@@ -100,6 +101,46 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Assert.AreEqual("Balancer", reply.Message);
             Assert.AreEqual("127.0.0.1:50051", host);
+        }
+
+        [Test]
+        public async Task UnaryCall_SingleAddressFailure_RpcError()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
+
+            var client = TestClientFactory.Create(channel, endpoint.Method);
+
+            // Act
+            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Balancer", reply.Message);
+            Assert.AreEqual("127.0.0.1:50051", host);
+
+            Logger.LogInformation("Ending " + endpoint.Address);
+            endpoint.Dispose();
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+            Assert.IsInstanceOf(typeof(SocketException), ex.Status.DebugException);
         }
 
         [Test]

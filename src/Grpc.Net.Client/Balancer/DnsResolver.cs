@@ -147,7 +147,7 @@ namespace Grpc.Net.Client.Balancer
 
                 var resolvedPort = _address.Port == -1 ? 80 : _address.Port;
                 var endpoints = addresses.Select(a => new BalancerAddress(a.ToString(), resolvedPort)).ToArray();
-                var resolverResult = ResolverResult.ForResult(endpoints, serviceConfig: null);
+                var resolverResult = ResolverResult.ForResult(endpoints);
                 _listener(resolverResult);
             }
             catch (Exception ex)
