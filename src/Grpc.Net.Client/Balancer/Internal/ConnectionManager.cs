@@ -517,9 +517,9 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private static readonly Action<ILogger, Exception?> _pickWaiting =
             LoggerMessage.Define(LogLevel.Trace, new EventId(11, "PickWaiting"), "Waiting for a new picker.");
+
         private static readonly Action<ILogger, Status, Exception?> _resolverServiceConfigFallback =
             LoggerMessage.Define<Status>(LogLevel.Debug, new EventId(12, "ResolverServiceConfigFallback"), "Falling back to previously loaded service config. Resolver failure when retreiving or parsing service config with status: {Status}");
-
 
         public static void ResolverUnsupportedLoadBalancingConfig(ILogger logger, IList<LoadBalancingConfig> loadBalancingConfigs)
         {

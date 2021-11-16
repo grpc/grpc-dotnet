@@ -59,12 +59,7 @@ namespace Grpc.Tests.Shared
             Listener?.Invoke(result);
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            _listener = null;
-        }
-
-        public override Task RefreshAsync(CancellationToken cancellationToken)
+        protected override async Task ResolveAsync(CancellationToken cancellationToken)
         {
             if (_onRefreshAsync != null)
             {
@@ -73,12 +68,6 @@ namespace Grpc.Tests.Shared
 
             Listener(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null, serviceConfigStatus: null));
             _hasResolvedTcs.TrySetResult(null);
-
-        }
-
-        public override void Start(Action<ResolverResult> listener)
-        {
-            _listener = listener;
         }
     }
 }

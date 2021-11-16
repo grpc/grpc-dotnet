@@ -51,7 +51,7 @@ namespace Grpc.Net.Client.Balancer
         protected override void OnStarted()
         {
             // Send addresses to listener once. They will never change.
-            Listener(ResolverResult.ForResult(_addresses, serviceConfig: null));
+            Listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
         }
 
         /// <inheritdoc />
