@@ -179,14 +179,17 @@ namespace Grpc.Dotnet.Cli.Commands
                 throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorReferenceDoesNotExist, file));
             }
 
-            if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(i.UnevaluatedInclude, file, StringComparison.OrdinalIgnoreCase)))
+            var normalizedFile = NormalizePath(file);
+            var normalizedAdditionalImportDirs = string.Join(';', additionalImportDirs.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(NormalizePath));
+
+            if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(NormalizePath(i.UnevaluatedInclude), normalizedFile, StringComparison.OrdinalIgnoreCase)))
             {
                 if (!string.Equals(Path.GetExtension(file), ".proto", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.LogWarning(CoreStrings.LogWarningReferenceNotProto, file);
                 }
 
-                var newItem = Project.AddItem(ProtobufElement, file).Single();
+                var newItem = Project.AddItem(ProtobufElement, normalizedFile).Single();
 
                 if (services != Services.Both)
                 {
@@ -198,9 +201,9 @@ namespace Grpc.Dotnet.Cli.Commands
                     newItem.Xml.AddMetadata(AccessElement, access.ToString(), expressAsAttribute: true);
                 }
 
-                if (!string.IsNullOrEmpty(additionalImportDirs))
+                if (!string.IsNullOrEmpty(normalizedAdditionalImportDirs))
                 {
-                    newItem.Xml.AddMetadata(AdditionalImportDirsElement, additionalImportDirs, expressAsAttribute: true);
+                    newItem.Xml.AddMetadata(AdditionalImportDirsElement, normalizedAdditionalImportDirs, expressAsAttribute: true);
                 }
 
                 if (!string.IsNullOrEmpty(url))
@@ -211,7 +214,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 // If file is outside of the project, display the file under Protos/ directory
                 if (!Path.GetFullPath(resolvedPath).StartsWith(Project.DirectoryPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    newItem.Xml.AddMetadata(LinkElement, Path.Combine(ProtosFolder, Path.GetFileName(file)!), expressAsAttribute: true);
+                    newItem.Xml.AddMetadata(LinkElement, $"{ProtosFolder}\\{Path.GetFileName(file)}", expressAsAttribute: true);
                 }
             }
         }
@@ -446,6 +449,15 @@ namespace Grpc.Dotnet.Cli.Commands
             {
                 return algorithm.ComputeHash(stream);
             }
+        }
+
+        private string NormalizePath(string path)
+        {
+            path = !Path.IsPathRooted(path)
+                ? Path.GetRelativePath(Project.DirectoryPath, Path.GetFullPath(Path.Combine(Project.DirectoryPath, path)))
+                : Path.GetFullPath(path);
+
+            return path.Replace('/', '\\');
         }
     }
 }
