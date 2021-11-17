@@ -21,6 +21,7 @@ using System.CommandLine.IO;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
@@ -142,87 +143,30 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.Throws<CLIToolException>(() => commandBase.AddProtobufReference(Services.Both, string.Empty, Access.Public, "NonExistentFile", string.Empty));
         }
 
-        [Test]
-        public void AddProtobufReference_AddsRelativeReference()
+        static object[] ReferenceCases()
         {
-            // Arrange
-            var commandBase = new CommandBase(
-                new TestConsole(),
-                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+            var cases = new List<object>
+            {
+                new object[] {"Proto/a.proto", "Proto\\a.proto", ""},
+                new object[] {"./Proto/a.proto", "Proto\\a.proto", ""},
+                new object[] {"../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"},
+                new object[] {"./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"},
+            };
 
-            var referencePath = Path.Combine("Proto", "a.proto");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                cases.Add(new object[] {"Proto\\a.proto", "Proto\\a.proto", ""});
+                cases.Add(new object[] {".\\Proto/a.proto", "Proto\\a.proto", ""});
+                cases.Add(new object[] {"..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"});
+                cases.Add(new object[] {".\\..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"});
+            }
 
-            // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(1, protoRefs.Count);
-            var protoRef = protoRefs.Single();
-            Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
-            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
+            return cases.ToArray();
         }
-
+        
         [Test]
-        public void AddProtobufReference_AddsAbsoluteReference()
-        {
-            // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
-            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto");
-
-            // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(1, protoRefs.Count);
-            var protoRef = protoRefs.Single();
-            Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
-            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
-        }
-
-        [Test]
-        public void AddProtobufReference_DoesNotOverwriteReference()
-        {
-            // Arrange
-            var commandBase = new CommandBase(new TestConsole(), new Project());
-            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto");
-
-            // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
-            commandBase.AddProtobufReference(Services.Client, "ImportDir2", Access.Public, referencePath, SourceUrl + ".proto");
-            commandBase.Project.ReevaluateIfNecessary();
-
-            // Assert
-            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(1, protoRefs.Count);
-            var protoRef = protoRefs.Single();
-            Assert.AreEqual(referencePath, protoRef.UnevaluatedInclude);
-            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
-            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
-            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
-            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
-        }
-
-        static object[] ProtosOutsideProject =
-        {
-            new object[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "ProjectWithReference", "Proto", "a.proto") },
-            new object[] { Path.Combine("..", "ProjectWithReference", "Proto", "a.proto") },
-        };
-
-        [Test]
-        [TestCaseSource("ProtosOutsideProject")]
-        public void AddProtobufReference_AddsLinkElementIfFileOutsideProject(string reference)
+        [TestCaseSource(nameof(ReferenceCases))]
+        public void AddProtobufReference_AddsRelativeReference(string path, string normalizedPath, string link)
         {
             // Arrange
             var commandBase = new CommandBase(
@@ -230,19 +174,199 @@ namespace Grpc.Dotnet.Cli.Tests
                 CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             // Act
-            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, reference, SourceUrl);
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, path, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
             var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
             var protoRef = protoRefs.Single();
-            Assert.AreEqual(reference, protoRef.UnevaluatedInclude);
+            Assert.AreEqual(normalizedPath, protoRef.UnevaluatedInclude);
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
             Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
-            Assert.AreEqual(Path.Combine(CommandBase.ProtosFolder, "a.proto"), protoRef.GetMetadataValue(CommandBase.LinkElement));
+            Assert.AreEqual(link, protoRef.GetMetadataValue(CommandBase.LinkElement));
+        }
+
+        [Test]
+        [TestCaseSource(nameof(ReferenceCases))]
+        public void AddProtobufReference_AddsAbsoluteReference(string path, string normalizedPath, string link)
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(), 
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+            
+            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", path);
+            var normalizedReferencePath = Path.GetFullPath(
+                    Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "TestAssets",
+                        "EmptyProject",
+                        normalizedPath.Replace('\\', Path.DirectorySeparatorChar)))
+                .Replace('/', '\\');
+
+            // Act
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(normalizedReferencePath, protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual(link, protoRef.GetMetadataValue(CommandBase.LinkElement));
+        }
+
+        static object[] AdditionalImportDirsCases()
+        {
+            var cases = new List<object>
+            {
+                new object[] {"ImportDir", "ImportDir"},
+                new object[] {"ImportDir;./ImportDir2", "ImportDir;ImportDir2"},
+                new object[] {"../ImportDir;./../ImportDir2", "../ImportDir;../ImportDir2"},
+                new object[] {"ImportDir;;ImportDir2;", "ImportDir;ImportDir2"},
+            };
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                cases.Add(new object[] {".\\ImportDir;ImportDir2", "ImportDir;ImportDir2"});
+                cases.Add(new object[] {"../ImportDir;..\\ImportDir2", "..\\ImportDir;..\\ImportDir2"});
+                cases.Add(new object[] {"./../ImportDir;.\\..\\ImportDir2", "..\\ImportDir;..\\ImportDir2"});
+            }
+
+            return cases.ToArray();
+        }
+
+        [Test]
+        [TestCaseSource(nameof(AdditionalImportDirsCases))]
+        public void AddProtobufReference_AdditionalImportDirs(string additionalImportDir, string normalizedAdditionalImportDir)
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+
+            const string proto = "Proto/a.proto";
+            
+            // Act
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, proto, SourceUrl);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(proto.Replace('/', '\\'), protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
+        }
+
+        static object[] DoesNotOverwriteCases()
+        {
+            var cases = new List<object>
+            {
+                new object[] { "Proto/a.proto", "Proto/a.proto", "Proto\\a.proto" },
+                new object[] { "./Proto/a.proto", "Proto/a.proto", "Proto\\a.proto" },
+                new object[] { "../ProjectWithReference/Proto/a.proto", "../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
+                new object[] { "../ProjectWithReference/Proto/a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
+                new object[] { "./../ProjectWithReference/Proto/a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" },
+            };
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                cases.Add(new object[] { "Proto/a.proto", "Proto\\a.proto", "Proto\\a.proto" });
+                cases.Add(new object[] { ".\\..\\ProjectWithReference\\Proto\\a.proto", "../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" });
+                cases.Add(new object[] { ".\\..\\ProjectWithReference\\Proto\\a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" });
+            }
+            
+            return cases.ToArray();
+        }
+        
+        [Test]
+        [TestCaseSource(nameof(DoesNotOverwriteCases))]
+        public void AddProtobufReference_DoesNotOverwriteReference(string path, string altPath, string normalizedPath)
+        {
+            // Arrange
+            var commandBase = new CommandBase(new TestConsole(), new Project());
+            var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", path);
+            var altReferencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", altPath);
+            var normalizedReferencePath = Path.GetFullPath(
+                    Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "TestAssets",
+                        "EmptyProject",
+                        normalizedPath.Replace('\\', '/')))
+                .Replace('/', '\\');
+
+            // Act
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, referencePath, SourceUrl);
+            commandBase.AddProtobufReference(Services.Client, "ImportDir2", Access.Public, altReferencePath, SourceUrl + ".proto");
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(normalizedReferencePath, protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+        }
+
+        static object[] ProtosOutsideProject()
+        {
+            var cases = new List<object>
+            {
+                Case(Directory.GetCurrentDirectory(), "TestAssets", "ProjectWithReference", "Proto", "a.proto"),
+                Case("..", "ProjectWithReference", "Proto", "a.proto")
+            };
+
+            return cases.ToArray();
+
+            static object Case(params string[] segments)
+            {
+                var path = Path.Combine(segments);
+                return new object[]
+                {
+                    path,
+                    path.Replace('/', '\\')
+                };
+            }
+        }
+
+        [Test]
+        [TestCaseSource(nameof(ProtosOutsideProject))]
+        public void AddProtobufReference_AddsLinkElementIfFileOutsideProject(string path, string normalizedPath)
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+
+            // Act
+            commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, path, SourceUrl);
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(normalizedPath, protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.AreEqual($"{CommandBase.ProtosFolder}\\a.proto", protoRef.GetMetadataValue(CommandBase.LinkElement));
         }
 
         [Test]

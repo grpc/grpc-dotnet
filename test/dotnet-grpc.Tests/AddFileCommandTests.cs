@@ -53,8 +53,8 @@ namespace Grpc.Dotnet.Cli.Tests
 
             var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(2, protoRefs.Count);
-            Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == Path.Combine("Proto", "a.proto")));
-            Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == Path.Combine("Proto", "b.proto")));
+            Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\a.proto"));
+            Assert.NotNull(protoRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Proto\\b.proto"));
             foreach (var protoRef in protoRefs)
             {
                 Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));

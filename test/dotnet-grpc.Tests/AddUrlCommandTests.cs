@@ -55,7 +55,7 @@ namespace Grpc.Dotnet.Cli.Tests
             var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
             Assert.AreEqual(1, protoRefs.Count);
             var protoRef = protoRefs.Single();
-            Assert.AreEqual(Path.Combine("Proto", "c.proto"), protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Proto\\c.proto", protoRef.UnevaluatedInclude);
             Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
             Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
             Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
