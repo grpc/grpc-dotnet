@@ -16,11 +16,7 @@
 
 #endregion
 
-using System.Net.Http;
 using Grpc.Core;
-using Grpc.Net.Client;
-using Grpc.Net.Client.Internal;
-using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {

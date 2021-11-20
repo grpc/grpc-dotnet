@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Server

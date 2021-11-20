@@ -16,23 +16,15 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;

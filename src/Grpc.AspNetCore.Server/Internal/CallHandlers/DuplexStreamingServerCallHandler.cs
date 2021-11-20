@@ -16,14 +16,9 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
-using Grpc.AspNetCore.Server.Model;
-using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal.CallHandlers

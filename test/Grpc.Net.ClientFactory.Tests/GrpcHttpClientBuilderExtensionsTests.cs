@@ -16,15 +16,9 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;

@@ -16,10 +16,6 @@
 
 #endregion
 
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Tests.Infrastructure;
@@ -27,10 +23,8 @@ using Grpc.Net.Client.Configuration;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 using Microsoft.Extensions.Logging.Testing;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;

@@ -16,11 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.HealthChecks;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;

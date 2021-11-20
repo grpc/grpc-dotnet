@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.Server;
-using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal

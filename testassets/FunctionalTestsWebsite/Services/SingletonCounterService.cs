@@ -16,11 +16,8 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using SingletonCount;
 
 namespace FunctionalTestsWebsite.Services

@@ -16,15 +16,11 @@
 
 #endregion
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
-using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;

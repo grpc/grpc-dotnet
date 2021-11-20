@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal

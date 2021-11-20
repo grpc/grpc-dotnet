@@ -16,9 +16,7 @@
 
 #endregion
 
-using System.IO;
 using System.Net;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using Nested;

@@ -16,14 +16,7 @@
 
 #endregion
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Runtime.InteropServices;
 using Grpc.Net.Client.Internal;
 using NUnit.Framework;

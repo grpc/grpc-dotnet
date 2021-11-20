@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.IO;
 
 namespace Grpc.Dotnet.Cli.Tests
 {

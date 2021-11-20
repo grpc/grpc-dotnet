@@ -16,18 +16,8 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Greet;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Model;
-using Grpc.AspNetCore.Server.Model.Internal;
-using Grpc.AspNetCore.Server.Tests.TestObjects;
-using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests

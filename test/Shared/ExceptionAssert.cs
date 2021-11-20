@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Grpc.Tests.Shared

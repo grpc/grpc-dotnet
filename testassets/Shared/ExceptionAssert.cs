@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 
 namespace Grpc.Shared.TestAssets
 {

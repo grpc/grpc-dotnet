@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
 using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Microbenchmarks.Internal
 {

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace InteropTestsGrpcWebClient

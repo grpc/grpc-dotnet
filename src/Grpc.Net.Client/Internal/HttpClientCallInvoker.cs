@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Retry;
 
 namespace Grpc.Net.Client.Internal

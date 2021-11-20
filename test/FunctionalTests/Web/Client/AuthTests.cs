@@ -16,15 +16,9 @@
 
 #endregion
 
-using System;
-using System.Diagnostics.Tracing;
-using System.Text;
-using System.Threading.Tasks;
 using Authorize;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
-using Grpc.Gateway.Testing;
-using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;

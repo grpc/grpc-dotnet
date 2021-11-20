@@ -16,16 +16,11 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Grpc.Core.Utils;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;

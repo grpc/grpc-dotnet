@@ -18,7 +18,6 @@
 
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Internal
 {

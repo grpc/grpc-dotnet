@@ -18,9 +18,6 @@
 
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;

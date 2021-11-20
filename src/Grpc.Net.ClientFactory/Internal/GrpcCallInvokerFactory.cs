@@ -16,9 +16,7 @@
 
 #endregion
 
-using System;
 using System.Collections.Concurrent;
-using System.Net.Http;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;

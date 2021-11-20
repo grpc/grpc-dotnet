@@ -16,15 +16,9 @@
 
 #endregion
 
-using System;
 using System.Buffers.Binary;
-using System.Globalization;
-using System.IO;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Web.Internal
 {

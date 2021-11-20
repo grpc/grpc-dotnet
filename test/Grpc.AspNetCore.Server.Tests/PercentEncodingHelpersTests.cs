@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
 using Grpc.AspNetCore.Server.Internal;
 using NUnit.Framework;
 

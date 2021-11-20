@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.CommandLine;
 using System.Globalization;
 

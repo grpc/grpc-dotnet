@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 
 namespace Grpc.AspNetCore.Server.Internal
 {

@@ -16,18 +16,11 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Greet;
 using Grpc.Core;
-using Grpc.Net.Client.Configuration;
 using Grpc.Net.Compression;
 
 namespace Grpc.Tests.Shared

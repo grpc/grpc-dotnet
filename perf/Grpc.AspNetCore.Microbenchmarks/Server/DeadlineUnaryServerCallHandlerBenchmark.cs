@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;

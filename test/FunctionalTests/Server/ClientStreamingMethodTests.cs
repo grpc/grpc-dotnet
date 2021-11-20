@@ -16,14 +16,7 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Count;
-using FunctionalTestsWebsite.Infrastructure;
-using FunctionalTestsWebsite.Services;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;

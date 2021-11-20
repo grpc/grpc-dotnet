@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Model;

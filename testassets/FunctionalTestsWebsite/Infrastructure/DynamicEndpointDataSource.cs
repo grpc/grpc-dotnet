@@ -16,10 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using System.Threading;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Primitives;
 
 namespace FunctionalTestsWebsite.Infrastructure

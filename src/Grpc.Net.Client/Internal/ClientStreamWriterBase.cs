@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;

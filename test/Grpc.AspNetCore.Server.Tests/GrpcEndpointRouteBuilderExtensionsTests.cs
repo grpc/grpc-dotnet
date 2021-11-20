@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
 using Greet;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;

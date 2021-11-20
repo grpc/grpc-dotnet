@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {

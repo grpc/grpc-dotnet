@@ -16,20 +16,12 @@
 
 #endregion
 
-using System;
-using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Testing;
 #if NET5_0_OR_GREATER
 using Microsoft.AspNetCore.Authentication.Certificate;
 #endif
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 
 namespace GrpcAspNetCoreServer

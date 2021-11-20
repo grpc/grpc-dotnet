@@ -16,16 +16,10 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.IO;
-using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
-using Grpc.Shared;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 

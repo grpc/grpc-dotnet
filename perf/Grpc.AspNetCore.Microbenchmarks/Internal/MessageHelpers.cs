@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.IO;
 using System.IO.Pipelines;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;

@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using Microsoft.Extensions.Logging;
 
 namespace InteropTestsGrpcWebClient.Infrastructure
 {

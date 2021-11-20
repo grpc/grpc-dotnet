@@ -16,13 +16,9 @@
 
 #endregion
 
-using System.Collections.Generic;
 using System.CommandLine.IO;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;

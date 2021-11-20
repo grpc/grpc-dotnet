@@ -17,7 +17,6 @@
 #endregion
 
 using System.CommandLine;
-using System.IO;
 using Grpc.Dotnet.Cli.Properties;
 
 namespace Grpc.Dotnet.Cli.Options

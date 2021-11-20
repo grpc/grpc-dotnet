@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Chat;
 using Grpc.Core;
 
