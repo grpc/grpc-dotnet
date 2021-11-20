@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Microsoft.AspNetCore.Builder
 {
     /// <summary>

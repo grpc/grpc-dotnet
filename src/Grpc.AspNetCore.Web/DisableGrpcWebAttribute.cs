@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.AspNetCore.Web
 {
     /// <summary>

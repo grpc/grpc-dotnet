@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
     /// <summary>

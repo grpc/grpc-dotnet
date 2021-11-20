@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.Net.Client.Internal
 {
     internal interface ISystemClock
