@@ -19,6 +19,12 @@
 // Skip running load running tests in debug configuration
 #if !DEBUG
 
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
+using Grpc.Tests.Shared;
+using NUnit.Framework;
+
 namespace Grpc.AspNetCore.FunctionalTests.Linker
 {
     [TestFixture]
