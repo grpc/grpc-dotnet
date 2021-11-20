@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace InteropTestsGrpcWebClient.Infrastructure
 {
     public class PageLoggerFactory : ILoggerFactory

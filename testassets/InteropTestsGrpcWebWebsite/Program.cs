@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace InteropTestsClientGrpcWeb
 {
     public class Program

@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.Shared.TestAssets
 {
     public static class ExceptionAssert

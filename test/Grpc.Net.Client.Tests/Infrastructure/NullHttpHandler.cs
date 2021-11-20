@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.Net.Client.Tests.Infrastructure
 {
     public class NullHttpHandler : HttpMessageHandler
