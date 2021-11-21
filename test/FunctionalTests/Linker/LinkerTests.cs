@@ -87,7 +87,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
             }
         }
 
-        private void EnsureDeleted(string path)
+        private static void EnsureDeleted(string path)
         {
             if (Directory.Exists(path))
             {
