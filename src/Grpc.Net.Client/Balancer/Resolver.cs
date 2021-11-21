@@ -48,7 +48,8 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public abstract class Resolver : IDisposable
     {
-        private Task _resolveTask = Task.CompletedTask;
+        // Internal for testing
+        internal Task _resolveTask = Task.CompletedTask;
         private Action<ResolverResult>? _listener;
         private bool _disposed;
 
