@@ -16,18 +16,10 @@
 
 #endregion
 
-using System;
-using System.IO;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
 using Common;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace GrpcAspNetCoreServer
 {

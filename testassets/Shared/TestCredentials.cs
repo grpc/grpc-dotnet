@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.IO;
 using System.Reflection;
 using Grpc.Core;
 

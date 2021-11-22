@@ -16,11 +16,9 @@
 
 #endregion
 
-using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
-using System.Threading.Tasks;
 using Grpc.Shared.TestAssets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

@@ -16,12 +16,10 @@
 
 #endregion
 
-using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Pipelines;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
 namespace Grpc.AspNetCore.Web.Internal

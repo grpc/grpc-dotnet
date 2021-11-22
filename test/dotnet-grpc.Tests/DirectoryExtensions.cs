@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.IO;
-
 namespace Grpc.Dotnet.Cli.Tests
 {
     public static class DirectoryExtensions

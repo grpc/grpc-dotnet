@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Net.Http.Headers;
 
 namespace Grpc.Net.Client.Web.Internal

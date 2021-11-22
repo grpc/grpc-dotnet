@@ -16,12 +16,8 @@
 
 #endregion
 
-using System;
 using System.Buffers;
 using System.Buffers.Text;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Web.Internal
 {

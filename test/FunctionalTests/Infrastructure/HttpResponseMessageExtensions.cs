@@ -16,13 +16,8 @@
 
 #endregion
 
-using System;
-using System.IO.Pipelines;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;

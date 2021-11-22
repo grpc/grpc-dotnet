@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
-
 namespace Grpc.Shared.TestAssets
 {
     public static class ExceptionAssert

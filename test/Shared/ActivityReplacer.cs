@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
 
 namespace Grpc.Tests.Shared

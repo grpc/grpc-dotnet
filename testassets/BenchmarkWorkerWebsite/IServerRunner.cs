@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Grpc.Testing;
 
 namespace BenchmarkWorkerWebsite

@@ -18,7 +18,6 @@
 
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal

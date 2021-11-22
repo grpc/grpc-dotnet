@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
-
 namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
     internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService> where TGrpcService : class, new()

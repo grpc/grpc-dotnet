@@ -16,24 +16,15 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Mime;
-using System.Threading.Tasks;
 using Any;
-using FunctionalTestsWebsite.Infrastructure;
-using FunctionalTestsWebsite.Services;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;

@@ -16,14 +16,10 @@
 
 #endregion
 
-using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Gateway.Testing;
-using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 

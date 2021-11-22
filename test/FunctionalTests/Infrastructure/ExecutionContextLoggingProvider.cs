@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure

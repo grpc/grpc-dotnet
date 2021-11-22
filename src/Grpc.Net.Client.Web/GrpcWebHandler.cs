@@ -16,13 +16,6 @@
 
 #endregion
 
-using System;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Net.Client.Web.Internal;
 using Grpc.Shared;
 

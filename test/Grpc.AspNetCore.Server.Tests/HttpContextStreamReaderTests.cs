@@ -17,9 +17,6 @@
 #endregion
 
 using System.IO.Pipelines;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Model

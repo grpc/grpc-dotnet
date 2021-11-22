@@ -16,12 +16,9 @@
 
 #endregion
 
-using System;
 using System.Buffers;
 using System.Buffers.Text;
 using System.IO.Pipelines;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Grpc.AspNetCore.Web.Internal
 {

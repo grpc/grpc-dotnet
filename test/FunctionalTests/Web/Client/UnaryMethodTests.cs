@@ -16,11 +16,9 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Gateway.Testing;
 using Grpc.Net.Client;
-using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 

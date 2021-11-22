@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Chat;
 using Grpc.Core;

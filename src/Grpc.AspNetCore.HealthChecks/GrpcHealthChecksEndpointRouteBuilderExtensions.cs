@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.HealthCheck;
 using Microsoft.AspNetCore.Routing;
 

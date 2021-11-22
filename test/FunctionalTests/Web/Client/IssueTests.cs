@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
-using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;

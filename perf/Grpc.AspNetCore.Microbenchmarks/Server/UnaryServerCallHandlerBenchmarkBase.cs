@@ -16,12 +16,8 @@
 
 #endregion
 
-using System;
 using System.Buffers;
-using System.Collections.Generic;
-using System.IO;
 using System.IO.Pipelines;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Chat;
 using Google.Protobuf;
@@ -29,7 +25,6 @@ using Grpc.AspNetCore.Microbenchmarks.Internal;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Internal.CallHandlers;
-using Grpc.AspNetCore.Server.Model;
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Shared.Server;

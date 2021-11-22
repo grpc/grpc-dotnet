@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-
 namespace Grpc.AspNetCore.Server.Internal
 {
     internal class SystemClock : ISystemClock

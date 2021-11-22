@@ -17,7 +17,6 @@
 #endregion
 
 using System.Buffers;
-using System.Linq;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using NUnit.Framework;

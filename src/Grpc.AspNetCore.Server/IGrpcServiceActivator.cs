@@ -16,9 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 
 namespace Grpc.AspNetCore.Server

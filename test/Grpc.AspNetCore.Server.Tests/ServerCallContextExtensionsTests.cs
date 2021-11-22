@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading;
 using Grpc.Core;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;

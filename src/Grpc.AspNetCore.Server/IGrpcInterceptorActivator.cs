@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 
 namespace Grpc.AspNetCore.Server

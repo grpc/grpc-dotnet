@@ -16,9 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Greet;
 using Grpc.AspNetCore.Microbenchmarks.Internal;

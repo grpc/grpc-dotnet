@@ -16,20 +16,11 @@
 
 #endregion
 
-using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
-using Grpc.Net.Client.Configuration;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 #if SUPPORT_LOAD_BALANCING

@@ -16,12 +16,10 @@
 
 #endregion
 
-using System;
 using System.Buffers.Binary;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
-using Grpc.Tests.Shared;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests

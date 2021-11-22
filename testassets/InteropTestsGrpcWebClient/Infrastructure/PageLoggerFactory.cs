@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using Microsoft.Extensions.Logging;
-
 namespace InteropTestsGrpcWebClient.Infrastructure
 {
     public class PageLoggerFactory : ILoggerFactory

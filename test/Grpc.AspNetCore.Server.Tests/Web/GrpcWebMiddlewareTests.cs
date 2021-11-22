@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Web;
 using Grpc.AspNetCore.Web.Internal;

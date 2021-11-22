@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading;
-using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Internal.Retry

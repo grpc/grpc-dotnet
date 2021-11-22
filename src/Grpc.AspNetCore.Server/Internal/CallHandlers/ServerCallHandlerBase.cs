@@ -16,9 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;

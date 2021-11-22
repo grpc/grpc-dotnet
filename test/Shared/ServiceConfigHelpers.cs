@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
 

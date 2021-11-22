@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Diagnostics.Tracing;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;

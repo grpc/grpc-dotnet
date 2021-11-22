@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.AspNetCore.Web;
 
 namespace Microsoft.AspNetCore.Builder
