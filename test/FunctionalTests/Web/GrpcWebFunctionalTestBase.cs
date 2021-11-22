@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Net.Http;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Buffers;
 using System.Text;
 using Grpc.AspNetCore.Web.Internal;

@@ -16,9 +16,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using Grpc.Core;
-
 namespace Grpc.AspNetCore.Server.Model.Internal
 {
     /// <summary>

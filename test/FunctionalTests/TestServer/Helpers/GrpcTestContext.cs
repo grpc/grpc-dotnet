@@ -16,9 +16,7 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Tests.FunctionalTests.Helpers

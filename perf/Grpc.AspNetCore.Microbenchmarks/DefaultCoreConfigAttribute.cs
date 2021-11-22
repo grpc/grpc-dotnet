@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using BenchmarkDotNet.Configs;
 
 namespace Grpc.AspNetCore.Microbenchmarks

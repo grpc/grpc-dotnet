@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;
 using Moq;

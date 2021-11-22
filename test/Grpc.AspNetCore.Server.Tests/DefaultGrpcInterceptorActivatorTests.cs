@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core.Interceptors;
 using Grpc.Tests.Shared;

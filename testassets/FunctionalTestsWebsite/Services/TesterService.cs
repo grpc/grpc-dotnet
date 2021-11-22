@@ -16,16 +16,7 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Google.Protobuf;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
-using Streaming;
 using Test;
 
 namespace FunctionalTestsWebsite.Services

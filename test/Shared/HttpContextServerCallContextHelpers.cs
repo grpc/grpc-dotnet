@@ -16,11 +16,9 @@
 
 #endregion
 
-using System.Collections.Generic;
 using System.IO.Compression;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
-using Grpc.AspNetCore.Server.Model;
 using Grpc.Net.Compression;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;

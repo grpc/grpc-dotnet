@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Net.Http;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;

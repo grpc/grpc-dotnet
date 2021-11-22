@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using FunctionalTestsWebsite;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;

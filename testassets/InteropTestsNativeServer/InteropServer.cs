@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using CommandLine;
 using Grpc.Core;
 using Grpc.Core.Logging;

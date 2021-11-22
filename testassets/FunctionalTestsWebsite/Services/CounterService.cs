@@ -16,13 +16,10 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
 using Count;
 using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 
 namespace FunctionalTestsWebsite.Services
 {

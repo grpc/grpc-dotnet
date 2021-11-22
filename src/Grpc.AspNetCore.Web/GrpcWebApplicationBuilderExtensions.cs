@@ -16,10 +16,7 @@
 
 #endregion
 
-using System;
-using Grpc.AspNetCore.Web;
 using Grpc.AspNetCore.Web.Internal;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.Builder

@@ -16,11 +16,7 @@
 
 #endregion
 
-using System.IO;
 using System.IO.Pipelines;
-using System.Net.Http;
-using System.Threading.Tasks;
-using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;

@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.Net.Client.Configuration;
 
 namespace Grpc.Net.Client.Internal.Configuration

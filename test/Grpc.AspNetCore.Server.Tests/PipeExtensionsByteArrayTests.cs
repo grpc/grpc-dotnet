@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using NUnit.Framework;

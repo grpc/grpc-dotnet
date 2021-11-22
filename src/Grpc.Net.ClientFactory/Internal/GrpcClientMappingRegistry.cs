@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 
 namespace Grpc.Net.ClientFactory.Internal
 {

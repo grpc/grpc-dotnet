@@ -16,12 +16,8 @@
 
 #endregion
 
-using System.IO;
 using System.Net;
-using System.Net.Http;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 #if NET5_0_OR_GREATER
 

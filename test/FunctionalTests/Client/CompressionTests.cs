@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Linq;
-using System.Threading.Tasks;
 using Compression;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.AspNetCore.Server.Internal;

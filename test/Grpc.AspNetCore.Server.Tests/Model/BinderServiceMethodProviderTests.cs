@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.IO;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;

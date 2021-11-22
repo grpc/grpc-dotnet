@@ -16,15 +16,8 @@
 
 #endregion
 
-using Grpc.Core;
 using Grpc.Shared;
-using System;
-using System.Buffers;
-using System.IO;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
 
 #if NETSTANDARD2_0
 using ValueTask = System.Threading.Tasks.Task;

@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using Grpc.AspNetCore.Server;
 using Grpc.Core.Interceptors;
 using NUnit.Framework;
 

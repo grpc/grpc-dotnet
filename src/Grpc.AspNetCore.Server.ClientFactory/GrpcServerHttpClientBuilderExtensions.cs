@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.AspNetCore.ClientFactory;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;

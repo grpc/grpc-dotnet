@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
 using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute;
 using Grpc.Shared.Server;

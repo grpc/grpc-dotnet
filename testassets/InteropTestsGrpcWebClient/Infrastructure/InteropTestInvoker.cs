@@ -16,12 +16,7 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Grpc.Shared.TestAssets;
-using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace InteropTestsGrpcWebClient.Infrastructure

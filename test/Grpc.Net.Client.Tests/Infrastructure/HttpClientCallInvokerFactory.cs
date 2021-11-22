@@ -16,8 +16,6 @@
 
 #endregion
 
-using System;
-using System.Net.Http;
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Internal;
 using Microsoft.Extensions.Logging;

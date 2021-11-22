@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.IO;
 using System.IO.Compression;
 
 namespace Grpc.Net.Compression

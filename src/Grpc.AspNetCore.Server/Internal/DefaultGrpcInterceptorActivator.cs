@@ -16,9 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 

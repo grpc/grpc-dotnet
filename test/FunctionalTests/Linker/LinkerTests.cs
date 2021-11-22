@@ -16,18 +16,14 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Linq;
+// Skip running load running tests in debug configuration
+#if !DEBUG
+
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
-
-// Skip running load running tests in debug configuration
-#if !DEBUG
 
 namespace Grpc.AspNetCore.FunctionalTests.Linker
 {

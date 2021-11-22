@@ -16,11 +16,9 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Grpc.Testing;
 using Grpc.Core;
 using Google.Protobuf;
-using System;
 
 class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 {

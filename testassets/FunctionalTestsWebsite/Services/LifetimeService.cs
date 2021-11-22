@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using FunctionalTestsWebsite.Infrastructure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;

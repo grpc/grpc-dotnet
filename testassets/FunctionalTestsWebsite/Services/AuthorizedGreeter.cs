@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Linq;
-using System.Threading.Tasks;
 using Authorize;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

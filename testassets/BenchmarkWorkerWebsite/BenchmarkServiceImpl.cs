@@ -16,7 +16,6 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Shared.TestAssets;

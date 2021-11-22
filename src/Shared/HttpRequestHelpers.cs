@@ -17,7 +17,6 @@
 #endregion
 
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Http;
 
 namespace Grpc.Shared
 {

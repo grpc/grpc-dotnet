@@ -16,16 +16,10 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Shared;

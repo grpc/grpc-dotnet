@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Shared;
 

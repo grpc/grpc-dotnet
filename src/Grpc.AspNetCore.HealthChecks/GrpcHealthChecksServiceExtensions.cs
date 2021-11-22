@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using Grpc.AspNetCore.HealthChecks;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.DependencyInjection.Extensions;
