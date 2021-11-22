@@ -140,7 +140,24 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 () => client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync).DefaultTimeout();
 
             Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
-            Assert.IsInstanceOf(typeof(SocketException), ex.Status.DebugException);
+
+            // Sometimes SocketException is wrapped by HttpRequestException.
+            Assert.IsTrue(HasExceptionInStack<SocketException>(ex.Status.DebugException), $"Unexpected exception: {ex.Status.DebugException}");
+
+            static bool HasExceptionInStack<T>(Exception? ex)
+            {
+                while (ex != null)
+                {
+                    if (ex is T)
+                    {
+                        return true;
+                    }
+
+                    ex = ex.InnerException;
+                }
+
+                return false;
+            }
         }
 
         [Test]
