@@ -107,7 +107,12 @@ namespace Grpc.Net.Client.Balancer
                 }
 
                 DnsResolverLog.StartingDnsQuery(_logger, _dnsAddress);
-                var addresses = await Dns.GetHostAddressesAsync(_dnsAddress).ConfigureAwait(false);
+                var addresses =
+#if NET6_0_OR_GREATER                    
+                    await Dns.GetHostAddressesAsync(_dnsAddress, cancellationToken).ConfigureAwait(false);
+#else
+                    await Dns.GetHostAddressesAsync(_dnsAddress).ConfigureAwait(false);
+#endif
 
                 DnsResolverLog.ReceivedDnsResults(_logger, addresses.Length, _dnsAddress, addresses);
 

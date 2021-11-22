@@ -135,11 +135,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
 
         private class TestAsyncStreamReader : IAsyncStreamReader<ServerReflectionRequest>
         {
-            // IAsyncStreamReader<T> should declare Current as nullable
-            // Suppress warning when overriding interface definition
-#pragma warning disable CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
-            public ServerReflectionRequest? Current { get; set; }
-#pragma warning restore CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
+            public ServerReflectionRequest Current { get; set; } = default!;
             private bool _hasNext = true;
 
             public void Dispose()

@@ -680,7 +680,7 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
         }
 
-        private async Task WaitForStateAsync(GrpcChannel channel, ConnectivityState state)
+        private static async Task WaitForStateAsync(GrpcChannel channel, ConnectivityState state)
         {
             while (true)
             {

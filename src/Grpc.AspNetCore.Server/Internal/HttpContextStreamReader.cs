@@ -33,11 +33,7 @@ namespace Grpc.AspNetCore.Server.Internal
             _deserializer = deserializer;
         }
 
-        // IAsyncStreamReader<T> should declare Current as nullable
-        // Suppress warning when overriding interface definition
-#pragma warning disable CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
-        public TRequest? Current { get; private set; }
-#pragma warning restore CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
+        public TRequest Current { get; private set; } = default!;
 
         public void Dispose() { }
 
@@ -74,7 +70,7 @@ namespace Grpc.AspNetCore.Server.Internal
             // Stream is complete
             if (request == null)
             {
-                Current = null;
+                Current = null!;
                 return false;
             }
 
