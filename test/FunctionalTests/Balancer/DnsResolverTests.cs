@@ -140,6 +140,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var result = await tcs.Task.DefaultTimeout();
             Assert.Greater(result.Addresses!.Count, 0);
 
+            // Wait for the internal resolve task to be completed before triggering refresh again
+            await dnsResolver._resolveTask.DefaultTimeout();
             tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             dnsResolver.Refresh();
 
@@ -179,6 +181,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var result = await tcs.Task.DefaultTimeout();
             Assert.Greater(result.Addresses!.Count, 0);
 
+            // Wait for the internal resolve task to be completed before triggering refresh again
+            await dnsResolver._resolveTask.DefaultTimeout();
             tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             dnsResolver.Refresh();
 

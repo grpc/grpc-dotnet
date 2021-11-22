@@ -99,7 +99,7 @@ namespace Grpc.Net.Client.Balancer
                 return true;
             }
 
-            value = default(TValue);
+            value = default;
             return false;
         }
 

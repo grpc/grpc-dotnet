@@ -50,11 +50,7 @@ namespace Grpc.Net.Client.Internal
             HttpResponseTcs = new TaskCompletionSource<(HttpResponseMessage, Status?)>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        // IAsyncStreamReader<T> should declare Current as nullable
-        // Suppress warning when overriding interface definition
-#pragma warning disable CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
-        public TResponse? Current { get; private set; }
-#pragma warning restore CS8613, CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member.
+        public TResponse Current { get; private set; } = default!;
 
         public void Dispose()
         {
@@ -156,12 +152,13 @@ namespace Grpc.Net.Client.Internal
 
                 CompatibilityHelpers.Assert(_grpcEncoding != null, "Encoding should have been calculated from response.");
 
-                Current = await _call.ReadMessageAsync(
+                var readMessage = await _call.ReadMessageAsync(
                     _responseStream,
                     _grpcEncoding,
                     singleMessage: false,
                     _call.CancellationToken).ConfigureAwait(false);
-                if (Current == null)
+
+                if (readMessage == null)
                 {
                     // No more content in response so report status to call.
                     // The call will handle finishing the response.
@@ -172,10 +169,12 @@ namespace Grpc.Net.Client.Internal
                         throw _call.CreateFailureStatusException(status);
                     }
 
+                    Current = null!;
                     return false;
                 }
 
                 GrpcEventSource.Log.MessageReceived();
+                Current = readMessage!;
                 return true;
             }
             catch (OperationCanceledException ex)

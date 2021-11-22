@@ -140,10 +140,8 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private static IEndpointConventionBuilder CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
         {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             // https://github.com/dotnet/aspnetcore/issues/24042
             var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcUnimplementedConstraint.Instance });
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
 
             endpointBuilder.Add(ep =>
