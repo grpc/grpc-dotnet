@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private int _lastEndPointIndex;
         private Socket? _initialSocket;
-        private BalancerAddress? _initialSocketEndPoint;
+        private BalancerAddress? _initialSocketAddress;
         private bool _disposed;
         private BalancerAddress? _currentAddress;
 
@@ -91,7 +91,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             {
                 _initialSocket?.Dispose();
                 _initialSocket = null;
-                _initialSocketEndPoint = null;
+                _initialSocketAddress = null;
                 _lastEndPointIndex = 0;
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
                 _currentAddress = null;
@@ -130,7 +130,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                         _currentAddress = currentAddress;
                         _lastEndPointIndex = currentIndex;
                         _initialSocket = socket;
-                        _initialSocketEndPoint = currentAddress;
+                        _initialSocketAddress = currentAddress;
                         _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
                     }
 
@@ -169,14 +169,14 @@ namespace Grpc.Net.Client.Balancer.Internal
                 var socket = _initialSocket;
                 if (socket != null)
                 {
-                    CompatibilityHelpers.Assert(_initialSocketEndPoint != null);
+                    CompatibilityHelpers.Assert(_initialSocketAddress != null);
 
                     var closeSocket = false;
                     Exception? sendException = null;
                     try
                     {
                         // Check the socket is still valid by doing a zero byte send.
-                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _initialSocketEndPoint);
+                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _initialSocketAddress);
                         await socket.SendAsync(Array.Empty<byte>(), SocketFlags.None).ConfigureAwait(false);
 
                         // Also poll socket to check if it can be read from.
@@ -186,7 +186,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         closeSocket = true;
                         sendException = ex;
-                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketEndPoint, ex);
+                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketAddress, ex);
                     }
 
                     if (closeSocket)
@@ -197,7 +197,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                             {
                                 _initialSocket.Dispose();
                                 _initialSocket = null;
-                                _initialSocketEndPoint = null;
+                                _initialSocketAddress = null;
                                 _currentAddress = null;
                                 _lastEndPointIndex = 0;
                             }
@@ -220,12 +220,12 @@ namespace Grpc.Net.Client.Balancer.Internal
             lock (Lock)
             {
                 if (_initialSocket != null &&
-                    _initialSocketEndPoint != null &&
-                    Equals(_initialSocketEndPoint, address))
+                    _initialSocketAddress != null &&
+                    Equals(_initialSocketAddress, address))
                 {
                     socket = _initialSocket;
                     _initialSocket = null;
-                    _initialSocketEndPoint = null;
+                    _initialSocketAddress = null;
                 }
             }
 
@@ -321,28 +321,28 @@ namespace Grpc.Net.Client.Balancer.Internal
     internal static class SocketConnectivitySubchannelTransportLog
     {
         private static readonly Action<ILogger, BalancerAddress, Exception?> _connectingSocket =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to {Address}.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _connectedSocket =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Connected to socket '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Connected to socket {Address}.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _errorConnectingSocket =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Error connecting to socket '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Error connecting to socket {Address}.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _checkingSocket =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Checking socket '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Checking socket {Address}.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _errorCheckingSocket =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Error checking socket '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Error checking socket {Address}.");
 
         private static readonly Action<ILogger, Exception?> _errorSocketTimer =
             LoggerMessage.Define(LogLevel.Error, new EventId(6, "ErrorSocketTimer"), "Unexpected error in check socket timer.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _creatingStream =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(7, "CreatingStream"), "Creating stream for '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(7, "CreatingStream"), "Creating stream for {Address}.");
 
         private static readonly Action<ILogger, BalancerAddress, Exception?> _disposingStream =
-            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Disposing stream for '{Address}'.");
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Disposing stream for {Address}.");
 
         public static void ConnectingSocket(ILogger logger, BalancerAddress address)
         {
