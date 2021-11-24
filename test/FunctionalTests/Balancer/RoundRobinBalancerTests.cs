@@ -154,9 +154,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", (await reply2Task).Message);
             Assert.AreEqual("127.0.0.1:50051", host);
 
+            var expectedStates = new[] { ConnectivityState.Connecting, ConnectivityState.TransientFailure };
             var waitForConnectingTask = Task.WhenAll(
-                BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Connecting, channelId: 1),
-                BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Connecting, channelId: 2));
+                BalancerHelpers.WaitForChannelStatesAsync(Logger, channel1, expectedStates, channelId: 1),
+                BalancerHelpers.WaitForChannelStatesAsync(Logger, channel2, expectedStates, channelId: 2));
 
             Logger.LogInformation("Ending " + endpoint.Address);
             endpoint.Dispose();
