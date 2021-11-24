@@ -47,4 +47,9 @@
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
   </ItemGroup>
 
+  <!-- Ensure TargetFrameworkVersion also has a value so VersionGreaterThanOrEquals doesn't break -->
+  <PropertyGroup Condition="'$(TargetFrameworkVersion)' == ''">
+    <TargetFrameworkVersion >v0.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  
 </Project>
