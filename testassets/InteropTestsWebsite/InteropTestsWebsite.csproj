@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net6.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net5.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net6.0</TargetFrameworks>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
 
