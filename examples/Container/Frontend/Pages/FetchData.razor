@@ -158,12 +158,12 @@ else
 
         return new MarkupString(html.ToString());
 
-        static string FormatAddress(DnsEndPoint a)
+        static string FormatAddress(BalancerAddress a)
         {
-            var value = $"http://{a.Host}";
-            if (a.Port != 80)
+            var value = $"http://{a.EndPoint.Host}";
+            if (a.EndPoint.Port != 80)
             {
-                value += ":" + a.Port;
+                value += ":" + a.EndPoint.Port;
             }
             return value;
         }
