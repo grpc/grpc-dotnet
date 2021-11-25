@@ -154,6 +154,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.AreEqual("Balancer", (await reply2Task).Message);
             Assert.AreEqual("127.0.0.1:50051", host);
 
+            // Wait for connecting or failure.
+            // Connecting is faster to wait for, but the status could change so quickly that wait for state change is not triggered.
+            // Use failure as backup status.
             var expectedStates = new[] { ConnectivityState.Connecting, ConnectivityState.TransientFailure };
             var waitForConnectingTask = Task.WhenAll(
                 BalancerHelpers.WaitForChannelStatesAsync(Logger, channel1, expectedStates, channelId: 1),
