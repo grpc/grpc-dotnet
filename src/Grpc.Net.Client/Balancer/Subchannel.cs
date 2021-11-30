@@ -157,7 +157,7 @@ namespace Grpc.Net.Client.Balancer
                         if (currentAddress != null && !_addresses.Contains(currentAddress))
                         {
                             requireReconnect = true;
-                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress.EndPoint);
+                            SubchannelLog.ConnectedAddressNotInUpdatedAddresses(_logger, Id, currentAddress);
                         }
                         break;
                     case ConnectivityState.Shutdown:
@@ -365,8 +365,8 @@ namespace Grpc.Net.Client.Balancer
         private static readonly Action<ILogger, int, Exception?> _addressesUpdatedWhileConnecting =
             LoggerMessage.Define<int>(LogLevel.Debug, new EventId(2, "AddressesUpdatedWhileConnecting"), "Subchannel id '{SubchannelId}' is connecting when its addresses are updated. Restarting connect.");
 
-        private static readonly Action<ILogger, int, DnsEndPoint, Exception?> _connectedAddressNotInUpdatedAddresses =
-            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(3, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
+        private static readonly Action<ILogger, int, BalancerAddress, Exception?> _connectedAddressNotInUpdatedAddresses =
+            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(3, "ConnectedAddressNotInUpdatedAddresses"), "Subchannel id '{SubchannelId}' current address '{CurrentAddress}' is not in the updated addresses.");
 
         private static readonly Action<ILogger, int, Exception?> _connectionRequested =
             LoggerMessage.Define<int>(LogLevel.Trace, new EventId(4, "ConnectionRequested"), "Subchannel id '{SubchannelId}' connection requested.");
@@ -406,7 +406,7 @@ namespace Grpc.Net.Client.Balancer
             _addressesUpdatedWhileConnecting(logger, subchannelId, null);
         }
 
-        public static void ConnectedAddressNotInUpdatedAddresses(ILogger logger, int subchannelId, DnsEndPoint currentAddress)
+        public static void ConnectedAddressNotInUpdatedAddresses(ILogger logger, int subchannelId, BalancerAddress currentAddress)
         {
             _connectedAddressNotInUpdatedAddresses(logger, subchannelId, currentAddress, null);
         }

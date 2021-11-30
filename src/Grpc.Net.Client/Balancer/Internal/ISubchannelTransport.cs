@@ -36,7 +36,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         BalancerAddress? CurrentAddress { get; }
 
 #if NET5_0_OR_GREATER
-        ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken);
+        ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
 #endif
 
 #if !NETSTANDARD2_0

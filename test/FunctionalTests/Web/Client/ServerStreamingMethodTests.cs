@@ -131,11 +131,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             var serverAbortedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
             {
+                Logger.LogInformation("Server call started");
+
                 var httpContext = context.GetHttpContext();
                 httpContext.RequestAborted.Register(() => serverAbortedTcs.SetResult(null));
 
                 for (var i = 0; i < request.MessageCount; i++)
                 {
+                    Logger.LogInformation($"Server writing message {i}");
                     await responseStream.WriteAsync(new ServerStreamingEchoResponse
                     {
                         Message = request.Message

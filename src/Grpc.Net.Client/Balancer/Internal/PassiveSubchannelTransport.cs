@@ -84,7 +84,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
 
 #if NET5_0_OR_GREATER
-        public ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
+        public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }

@@ -320,8 +320,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             // Assert
             Assert.AreEqual(2, activeStreams.Count);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[0].EndPoint);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[1].EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[0].Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[1].Address.EndPoint);
 
             tcs.SetResult(null);
 
@@ -334,7 +334,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             await TestHelpers.AssertIsTrueRetryAsync(() =>
             {
                 activeStreams = transport.GetActiveStreams();
-                Logger.LogInformation($"Current active stream endpoints: {string.Join(", ", activeStreams.Select(s => s.EndPoint))}");
+                Logger.LogInformation($"Current active stream addresses: {string.Join(", ", activeStreams.Select(s => s.Address))}");
                 return activeStreams.Count == 0;
             }, "Active streams removed.", Logger).DefaultTimeout();
 
@@ -344,7 +344,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(1, activeStreams.Count);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
         }
 
         [Test]
