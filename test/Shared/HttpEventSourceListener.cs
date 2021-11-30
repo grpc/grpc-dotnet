@@ -73,7 +73,11 @@ namespace Grpc.Tests.Shared
                 _messageBuilder.Append(" - ");
                 _messageBuilder.Append(eventData.EventName);
                 _messageBuilder.Append(" : ");
+#if !NET472
                 _messageBuilder.AppendJoin(',', eventData.Payload!);
+#else
+                _messageBuilder.Append(string.Join(",", eventData.Payload!.ToArray()));
+#endif
                 _messageBuilder.Append(" ->");
                 message = _messageBuilder.ToString();
                 _messageBuilder.Clear();
