@@ -18,6 +18,7 @@
     <Compile Include="..\Shared\IChannelWrapper.cs" Link="IChannelWrapper.cs" />
     <Compile Include="..\Shared\InteropClient.cs" Link="InteropClient.cs" />
     <Compile Include="..\Shared\TestCredentials.cs" Link="TestCredentials.cs" />
+    <Compile Include="..\..\test\Shared\HttpEventSourceListener.cs" Link="HttpEventSourceListener.cs" />
 
     <Protobuf Include="..\Proto\echo.proto" GrpcServices="Client" Link="Protos\echo.proto" />
     <Protobuf Include="..\Proto\grpc\testing\test.proto" GrpcServices="Client" Link="Protos\test.proto" />

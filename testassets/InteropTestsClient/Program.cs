@@ -20,6 +20,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Reflection;
 using Grpc.Shared.TestAssets;
+using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -66,8 +67,11 @@ namespace InteropTestsClient
                 });
 
                 using var serviceProvider = services.BuildServiceProvider();
+                var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-                var interopClient = new InteropClient(options, serviceProvider.GetRequiredService<ILoggerFactory>());
+                using var httpEventListener = new HttpEventSourceListener(loggerFactory);
+
+                var interopClient = new InteropClient(options, loggerFactory);
                 await interopClient.Run();
             });
 
