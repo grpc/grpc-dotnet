@@ -123,7 +123,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             }, "Wait for connections to start.");
             foreach (var t in activeStreams)
             {
-                Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.EndPoint);
+                Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), t.Address.EndPoint);
             }
 
             // Act
@@ -144,7 +144,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 activeStreams = transport.GetActiveStreams();
                 return activeStreams.Count == 11;
             }, "Wait for connections to start.");
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams.Last().EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams.Last().Address.EndPoint);
 
             tcs.SetResult(null);
 
@@ -184,7 +184,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             activeStreams = transport.GetActiveStreams();
             Assert.AreEqual(1, activeStreams.Count);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
         }
 
         [Test]

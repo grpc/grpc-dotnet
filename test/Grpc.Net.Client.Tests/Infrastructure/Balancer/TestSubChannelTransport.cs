@@ -57,7 +57,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
         {
         }
 
-        public ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
+        public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
         {
             return new ValueTask<Stream>(new MemoryStream());
         }

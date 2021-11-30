@@ -49,15 +49,17 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// </summary>
     internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
     {
+        internal record struct ActiveStream(BalancerAddress Address, Socket Socket, Stream? Stream);
+
         private readonly ILogger _logger;
         private readonly Subchannel _subchannel;
         private readonly TimeSpan _socketPingInterval;
-        private readonly List<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> _activeStreams;
+        private readonly List<ActiveStream> _activeStreams;
         private readonly Timer _socketConnectedTimer;
 
         private int _lastEndPointIndex;
         private Socket? _initialSocket;
-        private DnsEndPoint? _initialSocketEndPoint;
+        private BalancerAddress? _initialSocketAddress;
         private bool _disposed;
         private BalancerAddress? _currentAddress;
 
@@ -66,7 +68,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _logger = loggerFactory.CreateLogger<SocketConnectivitySubchannelTransport>();
             _subchannel = subchannel;
             _socketPingInterval = socketPingInterval;
-            _activeStreams = new List<(DnsEndPoint, Socket, Stream?)>();
+            _activeStreams = new List<ActiveStream>();
             _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
@@ -75,7 +77,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         public bool HasStream { get; }
 
         // For testing. Take a copy under lock for thread-safety.
-        internal IReadOnlyList<(DnsEndPoint EndPoint, Socket Socket, Stream? Stream)> GetActiveStreams()
+        internal IReadOnlyList<ActiveStream> GetActiveStreams()
         {
             lock (Lock)
             {
@@ -89,7 +91,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             {
                 _initialSocket?.Dispose();
                 _initialSocket = null;
-                _initialSocketEndPoint = null;
+                _initialSocketAddress = null;
                 _lastEndPointIndex = 0;
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
                 _currentAddress = null;
@@ -119,16 +121,16 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                 try
                 {
-                    SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, currentAddress.EndPoint);
+                    SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, currentAddress);
                     await socket.ConnectAsync(currentAddress.EndPoint, cancellationToken).ConfigureAwait(false);
-                    SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, currentAddress.EndPoint);
+                    SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, currentAddress);
 
                     lock (Lock)
                     {
                         _currentAddress = currentAddress;
                         _lastEndPointIndex = currentIndex;
                         _initialSocket = socket;
-                        _initialSocketEndPoint = currentAddress.EndPoint;
+                        _initialSocketAddress = currentAddress;
                         _socketConnectedTimer.Change(_socketPingInterval, _socketPingInterval);
                     }
 
@@ -137,7 +139,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 }
                 catch (Exception ex)
                 {
-                    SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, currentAddress.EndPoint, ex);
+                    SocketConnectivitySubchannelTransportLog.ErrorConnectingSocket(_logger, currentAddress, ex);
 
                     if (firstConnectionError == null)
                     {
@@ -167,14 +169,14 @@ namespace Grpc.Net.Client.Balancer.Internal
                 var socket = _initialSocket;
                 if (socket != null)
                 {
-                    CompatibilityHelpers.Assert(_initialSocketEndPoint != null);
+                    CompatibilityHelpers.Assert(_initialSocketAddress != null);
 
                     var closeSocket = false;
                     Exception? sendException = null;
                     try
                     {
                         // Check the socket is still valid by doing a zero byte send.
-                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _initialSocketEndPoint);
+                        SocketConnectivitySubchannelTransportLog.CheckingSocket(_logger, _initialSocketAddress);
                         await socket.SendAsync(Array.Empty<byte>(), SocketFlags.None).ConfigureAwait(false);
 
                         // Also poll socket to check if it can be read from.
@@ -184,7 +186,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         closeSocket = true;
                         sendException = ex;
-                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketEndPoint, ex);
+                        SocketConnectivitySubchannelTransportLog.ErrorCheckingSocket(_logger, _initialSocketAddress, ex);
                     }
 
                     if (closeSocket)
@@ -195,7 +197,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                             {
                                 _initialSocket.Dispose();
                                 _initialSocket = null;
-                                _initialSocketEndPoint = null;
+                                _initialSocketAddress = null;
                                 _currentAddress = null;
                                 _lastEndPointIndex = 0;
                             }
@@ -210,20 +212,20 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        public async ValueTask<Stream> GetStreamAsync(DnsEndPoint endPoint, CancellationToken cancellationToken)
+        public async ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
         {
-            SocketConnectivitySubchannelTransportLog.CreatingStream(_logger, endPoint);
+            SocketConnectivitySubchannelTransportLog.CreatingStream(_logger, address);
 
             Socket? socket = null;
             lock (Lock)
             {
                 if (_initialSocket != null &&
-                    _initialSocketEndPoint != null &&
-                    Equals(_initialSocketEndPoint, endPoint))
+                    _initialSocketAddress != null &&
+                    Equals(_initialSocketAddress, address))
                 {
                     socket = _initialSocket;
                     _initialSocket = null;
-                    _initialSocketEndPoint = null;
+                    _initialSocketAddress = null;
                 }
             }
 
@@ -242,7 +244,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             if (socket == null)
             {
                 socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                await socket.ConnectAsync(endPoint, cancellationToken).ConfigureAwait(false);
+                await socket.ConnectAsync(address.EndPoint, cancellationToken).ConfigureAwait(false);
             }
 
             var networkStream = new NetworkStream(socket, ownsSocket: true);
@@ -252,7 +254,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
             lock (Lock)
             {
-                _activeStreams.Add((endPoint, socket, stream));
+                _activeStreams.Add(new ActiveStream(address, socket, stream));
             }
 
             return stream;
@@ -282,7 +284,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     if (t.Stream == streamWrapper)
                     {
                         _activeStreams.RemoveAt(i);
-                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, t.EndPoint);
+                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, t.Address);
 
                         // If the last active streams is removed then there is no active connection.
                         disconnect = _activeStreams.Count == 0;
@@ -318,51 +320,51 @@ namespace Grpc.Net.Client.Balancer.Internal
 
     internal static class SocketConnectivitySubchannelTransportLog
     {
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _connectingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _connectingSocket =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(1, "ConnectingSocket"), "Connecting socket to {Address}.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _connectedSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Connected to socket '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _connectedSocket =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Connected to socket {Address}.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorConnectingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Error connecting to socket '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _errorConnectingSocket =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Error connecting to socket {Address}.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _checkingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Checking socket '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _checkingSocket =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Checking socket {Address}.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _errorCheckingSocket =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Error checking socket '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _errorCheckingSocket =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Error checking socket {Address}.");
 
         private static readonly Action<ILogger, Exception?> _errorSocketTimer =
-            LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorSocketTimer"), "Unexpected error in check socket timer.");
+            LoggerMessage.Define(LogLevel.Error, new EventId(6, "ErrorSocketTimer"), "Unexpected error in check socket timer.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _creatingStream =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(6, "CreatingStream"), "Creating stream for '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _creatingStream =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(7, "CreatingStream"), "Creating stream for {Address}.");
 
-        private static readonly Action<ILogger, DnsEndPoint, Exception?> _disposingStream =
-            LoggerMessage.Define<DnsEndPoint>(LogLevel.Trace, new EventId(7, "DisposingStream"), "Disposing stream for '{Address}'.");
+        private static readonly Action<ILogger, BalancerAddress, Exception?> _disposingStream =
+            LoggerMessage.Define<BalancerAddress>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Disposing stream for {Address}.");
 
-        public static void ConnectingSocket(ILogger logger, DnsEndPoint address)
+        public static void ConnectingSocket(ILogger logger, BalancerAddress address)
         {
             _connectingSocket(logger, address, null);
         }
 
-        public static void ConnectedSocket(ILogger logger, DnsEndPoint address)
+        public static void ConnectedSocket(ILogger logger, BalancerAddress address)
         {
             _connectedSocket(logger, address, null);
         }
 
-        public static void ErrorConnectingSocket(ILogger logger, DnsEndPoint address, Exception ex)
+        public static void ErrorConnectingSocket(ILogger logger, BalancerAddress address, Exception ex)
         {
             _errorConnectingSocket(logger, address, ex);
         }
 
-        public static void CheckingSocket(ILogger logger, DnsEndPoint address)
+        public static void CheckingSocket(ILogger logger, BalancerAddress address)
         {
             _checkingSocket(logger, address, null);
         }
 
-        public static void ErrorCheckingSocket(ILogger logger, DnsEndPoint address, Exception ex)
+        public static void ErrorCheckingSocket(ILogger logger, BalancerAddress address, Exception ex)
         {
             _errorCheckingSocket(logger, address, ex);
         }
@@ -372,12 +374,12 @@ namespace Grpc.Net.Client.Balancer.Internal
             _errorSocketTimer(logger, ex);
         }
 
-        public static void CreatingStream(ILogger logger, DnsEndPoint address)
+        public static void CreatingStream(ILogger logger, BalancerAddress address)
         {
             _creatingStream(logger, address, null);
         }
 
-        public static void DisposingStream(ILogger logger, DnsEndPoint address)
+        public static void DisposingStream(ILogger logger, BalancerAddress address)
         {
             _disposingStream(logger, address, null);
         }

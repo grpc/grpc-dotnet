@@ -18,6 +18,7 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -30,6 +31,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     {
         internal const string WaitForReadyKey = "WaitForReady";
         internal const string SubchannelKey = "Subchannel";
+        internal const string CurrentAddressKey = "CurrentAddress";
 
         private readonly ConnectionManager _manager;
 
@@ -52,10 +54,15 @@ namespace Grpc.Net.Client.Balancer.Internal
         {
             if (!context.InitialRequestMessage.TryGetOption<Subchannel>(SubchannelKey, out var subchannel))
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException($"Unable to get subchannel from {nameof(HttpRequestMessage)}.");
+            }
+            if (!context.InitialRequestMessage.TryGetOption<BalancerAddress>(CurrentAddressKey, out var currentAddress))
+            {
+                throw new InvalidOperationException($"Unable to get current address from {nameof(HttpRequestMessage)}.");
             }
 
-            return await subchannel.Transport.GetStreamAsync(context.DnsEndPoint, cancellationToken).ConfigureAwait(false);
+            Debug.Assert(context.DnsEndPoint.Equals(currentAddress.EndPoint), "Context endpoint should equal address endpoint.");
+            return await subchannel.Transport.GetStreamAsync(currentAddress, cancellationToken).ConfigureAwait(false);
         }
 #endif
 
@@ -76,7 +83,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             await _manager.ConnectAsync(waitForReady: false, cancellationToken).ConfigureAwait(false);
             var pickContext = new PickContext { Request = request };
             var result = await _manager.PickAsync(pickContext, waitForReady, cancellationToken).ConfigureAwait(false);
-            var address = result.Address!;
+            var address = result.Address;
             var addressEndpoint = address.EndPoint;
 
             // Update request host if required.
@@ -94,6 +101,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             // Set sub-connection onto request.
             // Will be used to get a stream in SocketsHttpHandler.ConnectCallback.
             request.SetOption(SubchannelKey, result.Subchannel);
+            request.SetOption(CurrentAddressKey, address);
 #endif
 
             try

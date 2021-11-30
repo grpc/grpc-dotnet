@@ -302,13 +302,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        public async
-#if !NETSTANDARD2_0
-            ValueTask<(Subchannel Subchannel, BalancerAddress Address, Action<CompletionContext> OnComplete)>
-#else
-            Task<(Subchannel Subchannel, DnsEndPoint Address, Action<CompleteContext> OnComplete)>
-#endif
-            PickAsync(PickContext context, bool waitForReady, CancellationToken cancellationToken)
+        public async ValueTask<(Subchannel Subchannel, BalancerAddress Address, Action<CompletionContext> OnComplete)> PickAsync(PickContext context, bool waitForReady, CancellationToken cancellationToken)
         {
             SubchannelPicker? previousPicker = null;
 
@@ -330,7 +324,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
                         if (address != null)
                         {
-                            ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address.EndPoint);
+                            ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address);
                             return (subchannel, address, result.Complete);
                         }
                         else
@@ -500,8 +494,8 @@ namespace Grpc.Net.Client.Balancer.Internal
         private static readonly Action<ILogger, Exception?> _pickStarted =
             LoggerMessage.Define(LogLevel.Trace, new EventId(5, "PickStarted"), "Pick started.");
 
-        private static readonly Action<ILogger, int, DnsEndPoint, Exception?> _pickResultSuccessful =
-            LoggerMessage.Define<int, DnsEndPoint>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
+        private static readonly Action<ILogger, int, BalancerAddress, Exception?> _pickResultSuccessful =
+            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(6, "PickResultSuccessful"), "Successfully picked subchannel id '{SubchannelId}' with address {CurrentAddress}.");
 
         private static readonly Action<ILogger, int, Exception?> _pickResultSubchannelNoCurrentAddress =
             LoggerMessage.Define<int>(LogLevel.Debug, new EventId(7, "PickResultSubchannelNoCurrentAddress"), "Picked subchannel id '{SubchannelId}' doesn't have a current address.");
@@ -550,7 +544,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _pickStarted(logger, null);
         }
 
-        public static void PickResultSuccessful(ILogger logger, int subchannelId, DnsEndPoint currentAddress)
+        public static void PickResultSuccessful(ILogger logger, int subchannelId, BalancerAddress currentAddress)
         {
             _pickResultSuccessful(logger, subchannelId, currentAddress, null);
         }
