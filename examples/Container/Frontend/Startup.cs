@@ -96,7 +96,7 @@ namespace Frontend
             services.AddSingleton<BalancerConfiguration>();
             services.AddSingleton<ResolverFactory>(s =>
             {
-                var inner = new DnsResolverFactory(TimeSpan.FromSeconds(20));
+                var inner = new DnsResolverFactory(refreshInterval: TimeSpan.FromSeconds(20));
                 return new ConfigurableResolverFactory(inner, s.GetRequiredService<BalancerConfiguration>());
             });
             services.AddSingleton<LoadBalancerFactory>(s =>

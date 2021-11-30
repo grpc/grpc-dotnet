@@ -103,7 +103,7 @@ namespace Frontend.Balancer
 
                     // DNS results change order between refreshes.
                     // Explicitly order by host to keep result order consistent.
-                    var orderedAddresses = result.Addresses!.OrderBy(a => a.Host).ToList();
+                    var orderedAddresses = result.Addresses!.OrderBy(a => a.EndPoint.Host).ToList();
                     listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
                 }
                 else

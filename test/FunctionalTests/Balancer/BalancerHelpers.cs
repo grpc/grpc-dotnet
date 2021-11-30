@@ -149,21 +149,27 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             return channel;
         }
 
-        public static async Task WaitForChannelStateAsync(ILogger logger, GrpcChannel channel, ConnectivityState state, int channelId = 1)
+        public static Task WaitForChannelStateAsync(ILogger logger, GrpcChannel channel, ConnectivityState state, int channelId = 1)
         {
-            logger.LogInformation($"{channelId}: Waiting for channel state '{state}'.");
+            return WaitForChannelStatesAsync(logger, channel, new[] { state }, channelId);
+        }
+
+        public static async Task WaitForChannelStatesAsync(ILogger logger, GrpcChannel channel, ConnectivityState[] states, int channelId = 1)
+        {
+            var statesText = string.Join(", ", states.Select(s => $"'{s}'"));
+            logger.LogInformation($"Channel id {channelId}: Waiting for channel states {statesText}.");
 
             var currentState = channel.State;
 
-            while (currentState != state)
+            while (!states.Contains(currentState))
             {
-                logger.LogInformation($"{channelId}: Current channel state '{currentState}' doesn't match expected state '{state}'.");
+                logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' doesn't match expected states {statesText}.");
 
                 await channel.WaitForStateChangedAsync(currentState).DefaultTimeout();
                 currentState = channel.State;
             }
 
-            logger.LogInformation($"{channelId}: Current channel state '{currentState}' matches expected state '{state}'.");
+            logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' matches expected states {statesText}.");
         }
 
         public static async Task<Subchannel[]> WaitForSubChannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
