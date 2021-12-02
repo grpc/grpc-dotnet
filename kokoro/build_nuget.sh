@@ -41,4 +41,5 @@ build/expand_dev_version.sh
 (cd src/Grpc.AspNetCore.Server.Reflection && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/Grpc.AspNetCore && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/Grpc.AspNetCore.Web && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.AspNetCore.HealthChecks && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/dotnet-grpc && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
