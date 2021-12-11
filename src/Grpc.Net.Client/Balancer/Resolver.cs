@@ -173,7 +173,10 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A task.</returns>
-        protected abstract Task ResolveAsync(CancellationToken cancellationToken);
+        protected virtual Task ResolveAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
 
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="LoadBalancer"/> and optionally releases

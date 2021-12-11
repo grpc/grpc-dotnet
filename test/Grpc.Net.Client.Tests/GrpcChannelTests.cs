@@ -836,11 +836,6 @@ namespace Grpc.Net.Client.Tests
             }
 
             public ResolverOptions Options { get; }
-
-            protected override Task ResolveAsync(CancellationToken cancellationToken)
-            {
-                throw new NotImplementedException();
-            }
         }
 #endif
 
