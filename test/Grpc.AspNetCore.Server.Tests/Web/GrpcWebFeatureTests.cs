@@ -33,7 +33,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             var httpContext = new DefaultHttpContext();
 
             // Act
-            var feature = new GrpcWebFeature(ServerGrpcWebMode.GrpcWeb, httpContext);
+            var feature = CreateFeature(httpContext);
 
             // Assert
             Assert.AreEqual(feature, httpContext.Features.Get<IHttpResponseBodyFeature>());
@@ -48,7 +48,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             // Arrange
             var httpContext = new DefaultHttpContext();
             var responseBodyFeature = httpContext.Features.Get<IHttpResponseBodyFeature>();
-            var feature = new GrpcWebFeature(ServerGrpcWebMode.GrpcWeb, httpContext);
+            var feature = CreateFeature(httpContext);
 
             // Act
             feature.DetachFromContext(httpContext);
@@ -58,6 +58,13 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             Assert.AreEqual(null, httpContext.Features.Get<IRequestBodyPipeFeature>());
             Assert.AreEqual(null, httpContext.Features.Get<IHttpResponseTrailersFeature>());
             Assert.AreEqual(null, httpContext.Features.Get<IHttpResetFeature>());
+        }
+
+        private static GrpcWebFeature CreateFeature(DefaultHttpContext httpContext)
+        {
+            return new GrpcWebFeature(
+                new ServerGrpcWebContext(ServerGrpcWebMode.GrpcWeb, ServerGrpcWebMode.GrpcWeb),
+                httpContext);
         }
     }
 }
