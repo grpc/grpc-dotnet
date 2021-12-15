@@ -53,12 +53,6 @@ namespace Grpc.Net.Client.Balancer
             // Send addresses to listener once. They will never change.
             Listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
         }
-
-        /// <inheritdoc />
-        protected override Task ResolveAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
     }
 
     /// <summary>
