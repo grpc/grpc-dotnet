@@ -114,6 +114,14 @@ namespace Grpc.Net.Client.Web
         {
             request.Content = new GrpcWebRequestContent(request.Content!, GrpcWebMode);
 
+            // https://github.com/grpc/grpc/blob/f8a5022a2629e0929eb30e0583af66f0c220791b/doc/PROTOCOL-WEB.md
+            // The client library should indicate to the server via the "Accept" header that the response stream
+            // needs to be text encoded e.g. when XHR is used or due to security policies with XHR.
+            if (GrpcWebMode == GrpcWebMode.GrpcWebText)
+            {
+                request.Headers.TryAddWithoutValidation("Accept", GrpcWebProtocolConstants.GrpcWebTextContentType);
+            }
+
             if (OperatingSystem.IsBrowser)
             {
                 FixBrowserUserAgent(request);
