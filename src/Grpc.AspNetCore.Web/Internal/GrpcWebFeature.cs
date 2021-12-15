@@ -34,7 +34,7 @@ namespace Grpc.AspNetCore.Web.Internal
         private readonly IHttpResponseTrailersFeature? _initialTrailersFeature;
         private bool _isComplete;
 
-        public GrpcWebFeature(ServerGrpcWebMode grpcWebMode, HttpContext httpContext)
+        public GrpcWebFeature(ServerGrpcWebContext grcpWebContext, HttpContext httpContext)
         {
             // Capture existing features. We'll use these internally, and restore them onto the context
             // once the middleware has finished executing.
@@ -52,14 +52,20 @@ namespace Grpc.AspNetCore.Web.Internal
             var innerWriter = _initialResponseFeature.Writer ?? httpContext.Response.BodyWriter;
 
             Trailers = new HeaderDictionary();
-            if (grpcWebMode == ServerGrpcWebMode.GrpcWebText)
+            if (grcpWebContext.Request == ServerGrpcWebMode.GrpcWebText)
             {
                 Reader = new Base64PipeReader(innerReader);
-                Writer = new Base64PipeWriter(innerWriter);
             }
             else
             {
                 Reader = innerReader;
+            }
+            if (grcpWebContext.Response == ServerGrpcWebMode.GrpcWebText)
+            {
+                Writer = new Base64PipeWriter(innerWriter);
+            }
+            else
+            {
                 Writer = innerWriter;
             }
 

@@ -83,6 +83,33 @@ namespace Grpc.Net.Client.Web.Tests
         }
 
         [Test]
+        public async Task GrpcWebMode_GrpcWebText_AcceptHeaderAdded()
+        {
+            // Arrange
+            var request = new HttpRequestMessage
+            {
+                Version = GrpcWebProtocolConstants.Http2Version,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+                {
+                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+                }
+            };
+            var testHttpHandler = new TestHttpHandler();
+            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText)
+            {
+                InnerHandler = testHttpHandler
+            };
+            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+            // Act
+            await messageInvoker.SendAsync(request, CancellationToken.None);
+
+            // Assert
+            Assert.IsTrue(testHttpHandler.Request!.Headers.TryGetValues("Accept", out var values));
+            Assert.AreEqual(GrpcWebProtocolConstants.GrpcWebTextContentType, values!.Single());
+        }
+
+        [Test]
         public async Task SendAsync_GrpcCall_ResponseStreamingPropertySet()
         {
             // Arrange
