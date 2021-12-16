@@ -26,8 +26,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
   </ItemGroup>
 	
-	
-
   <ItemGroup>
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
