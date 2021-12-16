@@ -20,6 +20,19 @@
   <ItemGroup>
     <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
     <ProjectReference Include="..\Grpc.Net.Client\Grpc.Net.Client.csproj" PrivateAssets="None" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' OR '$(TargetFramework)' == 'netstandard2.1'">
+	<PackageReference Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsPackageVersion)" />
+  </ItemGroup>
+	
+  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+	 <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
+  </ItemGroup>
+	
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+	<PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+  </ItemGroup>
+	
+
 </Project>
