@@ -468,7 +468,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                     StateWatcher watcher = (StateWatcher)s!;
                     if (_stateWatchers.Remove(watcher))
                     {
-                        watcher.Tcs.SetCanceled();
+                        watcher.Tcs.SetCanceled(cancellationToken);
                     }
                 }
             }

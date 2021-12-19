@@ -77,7 +77,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Client
         protected async Task InvokeSayHelloAsync(CallOptions options)
         {
             var response = await _client!.SayHelloAsync(new HelloRequest { Name = _content }, options).ResponseAsync;
-            
+
             if (response.Message != _content)
             {
                 throw new InvalidOperationException("Unexpected result.");

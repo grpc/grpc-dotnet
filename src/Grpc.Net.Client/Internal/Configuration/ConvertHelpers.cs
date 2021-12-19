@@ -88,7 +88,7 @@ namespace Grpc.Net.Client.Internal.Configuration
             // Note that this is precise down to ticks. Fractions that are smaller than ticks will be lost.
             // This shouldn't matter because timers on Windows and Linux only have millisecond precision.
             if (text.Length > 0 && text[text.Length - 1] == 's' &&
-                decimal.TryParse(text.Substring(0, text.Length - 1), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var seconds))
+                decimal.TryParse(text.AsSpan(0, text.Length - 1), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var seconds))
             {
                 try
                 {

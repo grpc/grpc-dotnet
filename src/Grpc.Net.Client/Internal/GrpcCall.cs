@@ -251,7 +251,7 @@ namespace Grpc.Net.Client.Internal
             var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
             return CreateRpcException(status);
         }
-        
+
         private void FinishResponseAndCleanUp(Status status)
         {
             ResponseFinished = true;
@@ -307,7 +307,7 @@ namespace Grpc.Net.Client.Internal
                 }
 
                 var metadata = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
-                
+
                 // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exposed-retry-metadata
                 if (_attemptCount > 1)
                 {
@@ -639,7 +639,7 @@ namespace Grpc.Net.Client.Internal
             else if (ex is RpcException rpcException)
             {
                 status = rpcException.Status;
-                
+
                 // If trailers have been set, and the RpcException isn't using them, then
                 // create new RpcException with trailers. Want to try and avoid this as
                 // the exact stack location will be lost.

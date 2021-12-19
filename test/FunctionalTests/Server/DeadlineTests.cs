@@ -199,7 +199,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
                 {
                     // nom nom nom
                 }
-                
+
                 return new HelloReply();
             }
 
@@ -247,7 +247,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             }
 
             Assert.True(HasLog(LogLevel.Debug, "DeadlineExceeded", "Request with timeout of 00:00:00.2000000 has exceeded its deadline."));
-            
+
             await TestHelpers.AssertIsTrueRetryAsync(
                 () => HasLog(LogLevel.Trace, "DeadlineStopped", "Request deadline stopped."),
                 "Missing deadline stopped log.").DefaultTimeout();

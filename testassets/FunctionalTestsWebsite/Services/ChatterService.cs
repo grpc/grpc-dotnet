@@ -23,7 +23,7 @@ namespace FunctionalTestsWebsite.Services
 {
     public class ChatterService : Chatter.ChatterBase
     {
-        private static HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
+        private static readonly HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
 
         public override Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
         {

@@ -30,7 +30,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class EventSourceTests : FunctionalTestBase
     {
-        private static Dictionary<string, string?> EnableCountersArgs =
+        private static readonly Dictionary<string, string?> EnableCountersArgs =
             new Dictionary<string, string?>
             {
                 ["EventCounterIntervalSec"] = "0.001"
@@ -155,7 +155,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync.DefaultTimeout()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
-            Assert.AreEqual("Exception was thrown by handler. Exception: Error! Exception: Nested error!", ex.Status.Detail);                
+            Assert.AreEqual("Exception was thrown by handler. Exception: Error! Exception: Nested error!", ex.Status.Detail);
 
             // Assert - Call complete
             await AssertCounters("Server call in complete", serverEventListener, new Dictionary<string, long>

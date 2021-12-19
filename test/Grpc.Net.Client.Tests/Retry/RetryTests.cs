@@ -610,7 +610,7 @@ namespace Grpc.Net.Client.Tests.Retry
             {
                 Message = "Hello world 1"
             }).DefaultTimeout()).DefaultTimeout();
-            await streamContent.AddDataAndWait(new byte[0]);
+            await streamContent.AddDataAndWait(Array.Empty<byte>());
 
             var result = await resultTask.DefaultTimeout();
             Assert.AreEqual("Hello world 1", result.Message);

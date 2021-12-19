@@ -324,7 +324,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)]out ReadOnlySequence<byte>? message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)] out ReadOnlySequence<byte>? message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
@@ -392,7 +392,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, [NotNullWhen(true)] out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {

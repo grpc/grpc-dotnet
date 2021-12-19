@@ -22,6 +22,7 @@ using Google.Protobuf;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using System;
 
 namespace Grpc.Tests.Shared
 {
@@ -111,7 +112,7 @@ namespace Grpc.Tests.Shared
             }
 
             await ResponseUtils.WriteHeaderAsync(ms, data.Length, compress, CancellationToken.None);
-            await ms.WriteAsync(data, 0, data.Length);
+            await ms.WriteAsync(data);
         }
 
         public static async Task<byte[]> GetResponseDataAsync<TResponse>(TResponse response) where TResponse : IMessage<TResponse>

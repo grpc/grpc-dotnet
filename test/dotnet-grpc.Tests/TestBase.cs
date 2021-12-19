@@ -25,7 +25,7 @@ namespace Grpc.Dotnet.Cli.Tests
 {
     public class TestBase
     {
-        internal static readonly string SourceUrl = "https://contoso.com/greet.proto";
+        internal const string SourceUrl = "https://contoso.com/greet.proto";
 
         [OneTimeSetUp]
         public void OneTimeInitialize()

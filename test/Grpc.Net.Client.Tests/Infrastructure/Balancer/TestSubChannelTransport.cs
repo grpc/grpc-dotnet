@@ -31,7 +31,15 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
     internal class TestSubchannelTransport : ISubchannelTransport
     {
         private ConnectivityState _state = ConnectivityState.Idle;
-        private TaskCompletionSource<object?> _connectTcs;
+
+/* Unmerged change from project 'Grpc.Net.Client.Tests(net6.0)'
+Before:
+        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
+After:
+        private readonly TaskCompletionSource<object?> _connectTcs;
+        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
+*/
+        private readonly TaskCompletionSource<object?> _connectTcs;
         private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
 
         public Subchannel Subchannel { get; }

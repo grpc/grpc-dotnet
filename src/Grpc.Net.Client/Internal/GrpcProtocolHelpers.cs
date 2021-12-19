@@ -255,7 +255,7 @@ namespace Grpc.Net.Client.Internal
             return new AuthInterceptorContext(serviceUrl, method.Name);
         }
 
-        internal async static Task ReadCredentialMetadata(
+        internal static async Task ReadCredentialMetadata(
             DefaultCallCredentialsConfigurator configurator,
             GrpcChannel channel,
             HttpRequestMessage message,
@@ -380,7 +380,7 @@ namespace Grpc.Net.Client.Internal
             return status.Value;
         }
 
-        public static bool TryGetStatusCore(HttpHeaders headers, [NotNullWhen(true)]out Status? status)
+        public static bool TryGetStatusCore(HttpHeaders headers, [NotNullWhen(true)] out Status? status)
         {
             var grpcStatus = GetHeaderValue(headers, GrpcProtocolConstants.StatusTrailer);
 

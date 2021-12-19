@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.Server.Tests
         {
             public GrpcInterceptor() { }
 
-            public bool Disposed { get; private set; } = false;
+            public bool Disposed { get; private set; }
             public void Dispose() => Disposed = true;
         }
 
@@ -45,7 +45,7 @@ namespace Grpc.AspNetCore.Server.Tests
             }
 
             public int X { get; }
-            public bool Disposed { get; private set; } = false;
+            public bool Disposed { get; private set; }
             public void Dispose() => Disposed = true;
         }
 
@@ -59,20 +59,20 @@ namespace Grpc.AspNetCore.Server.Tests
 
             public int X { get; }
             public Mutex Mutex { get; }
-            public bool Disposed { get; private set; } = false;
+            public bool Disposed { get; private set; }
 
             public void Dispose() => Disposed = true;
         }
 
         public class DisposableGrpcInterceptor : Interceptor, IDisposable
         {
-            public bool Disposed { get; private set; } = false;
+            public bool Disposed { get; private set; }
             public void Dispose() => Disposed = true;
         }
 
         public class AsyncDisposableGrpcInterceptor : DisposableGrpcInterceptor, IAsyncDisposable
         {
-            public bool AsyncDisposed { get; private set; } = false;
+            public bool AsyncDisposed { get; private set; }
             public ValueTask DisposeAsync()
             {
                 AsyncDisposed = true;

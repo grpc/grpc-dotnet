@@ -26,7 +26,7 @@ namespace Grpc.AspNetCore.Server.Internal
         private static readonly Task<int> TaskOfZero = Task.FromResult(0);
 
         private Task<int>? _lastReadTask;
-        private ReadOnlySequence<byte> _readOnlySequence;
+        private readonly ReadOnlySequence<byte> _readOnlySequence;
         private SequencePosition _position;
 
         public ReadOnlySequenceStream(ReadOnlySequence<byte> readOnlySequence)

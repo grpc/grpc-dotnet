@@ -43,17 +43,17 @@ namespace GrpcClient
         private static List<List<double>> _latencyPerConnection = null!;
         private static int _callsStarted;
         private static double _maxLatency;
-        private static Stopwatch _workTimer = new Stopwatch();
+        private static readonly Stopwatch _workTimer = new Stopwatch();
         private static volatile bool _warmingUp;
         private static volatile bool _stopped;
-        private static SemaphoreSlim _lock = new SemaphoreSlim(1);
+        private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
         private static List<(double sum, int count)> _latencyAverage = null!;
         private static int _totalRequests;
         private static ClientOptions _options = null!;
         private static ILoggerFactory? _loggerFactory;
         private static SslCredentials? _credentials;
-        private static StringBuilder _errorStringBuilder = new StringBuilder();
-        private static CancellationTokenSource _cts = new CancellationTokenSource();
+        private static readonly StringBuilder _errorStringBuilder = new StringBuilder();
+        private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         public static async Task<int> Main(string[] args)
         {

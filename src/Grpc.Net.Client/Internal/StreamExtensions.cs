@@ -237,7 +237,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, int length, [NotNullWhen(true)]out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, int length, [NotNullWhen(true)] out ReadOnlySequence<byte>? result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -287,7 +287,7 @@ namespace Grpc.Net.Client
             try
             {
                 GrpcCallLog.SendingMessage(call.Logger);
-                
+
                 // Serialize message first. Need to know size to prefix the length in the header
                 serializer(message, serializationContext);
 
