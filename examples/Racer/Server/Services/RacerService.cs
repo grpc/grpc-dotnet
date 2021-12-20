@@ -18,6 +18,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -29,7 +30,7 @@ namespace Server
     {
         public override async Task ReadySetGo(IAsyncStreamReader<RaceMessage> requestStream, IServerStreamWriter<RaceMessage> responseStream, ServerCallContext context)
         {
-            var raceDuration = TimeSpan.Parse(context.RequestHeaders.Single(h => h.Key == "race-duration").Value);
+            var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration"), CultureInfo.InvariantCulture);
 
             // Read incoming messages in a background task
             RaceMessage? lastMessageReceived = null;
