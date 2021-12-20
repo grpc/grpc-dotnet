@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Greet;
@@ -261,7 +262,8 @@ namespace Grpc.Net.Client.Tests
                 var requestStream = new WrappedClientStreamWriter<TRequest>(response.RequestStream,
                     message => { counter++; return message; }, null);
                 var responseAsync = response.ResponseAsync.ContinueWith(
-                    unaryResponse => (TResponse)(object)counter.ToString()  // Cast to object first is needed to satisfy the type-checker
+                    unaryResponse => (TResponse)(object)counter.ToString(CultureInfo.InvariantCulture),  // Cast to object first is needed to satisfy the type-checker,
+                    TaskScheduler.Default
                 );
                 return new AsyncClientStreamingCall<TRequest, TResponse>(requestStream, responseAsync, response.ResponseHeadersAsync, response.GetStatus, response.GetTrailers, response.Dispose);
             }
@@ -282,7 +284,7 @@ namespace Grpc.Net.Client.Tests
             {
                 if (onResponseStreamEnd != null)
                 {
-                    return writer.CompleteAsync().ContinueWith(x => onResponseStreamEnd());
+                    return writer.CompleteAsync().ContinueWith(x => onResponseStreamEnd(), TaskScheduler.Default);
                 }
                 return writer.CompleteAsync();
             }

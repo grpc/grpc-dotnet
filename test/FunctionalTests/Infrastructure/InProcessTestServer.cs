@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -129,13 +130,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
             var builder = new StringBuilder();
             foreach (var log in logs)
             {
-                builder.AppendLine($"{log.Timestamp:O} {log.LoggerName} {log.LogLevel}: {log.Formatter(log.State, log.Exception)}");
+                var s = $"{log.Timestamp:O} {log.LoggerName} {log.LogLevel}: {log.Formatter(log.State, log.Exception)}";
+                builder.AppendLine(s);
                 if (log.Exception != null)
                 {
                     var message = log.Exception.ToString();
                     foreach (var line in message.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
                     {
-                        builder.AppendLine($"| {line}");
+                        s = $"| {line}";
+                        builder.AppendLine(s);
                     }
                 }
             }

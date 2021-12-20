@@ -19,6 +19,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
@@ -170,7 +171,7 @@ namespace GrpcClient
                 var text = "Exception from test: " + ex.Message;
                 Log(text);
                 _errorStringBuilder.AppendLine();
-                _errorStringBuilder.Append($"[{DateTime.Now:hh:mm:ss.fff}] {text}");
+                _errorStringBuilder.Append(CultureInfo.InvariantCulture, $"[{DateTime.Now:hh:mm:ss.fff}] {text}");
             }
         }
 
@@ -463,7 +464,7 @@ namespace GrpcClient
 
         private static void Log(string message)
         {
-            var time = DateTime.Now.ToString("hh:mm:ss.fff");
+            var time = DateTime.Now.ToString("hh:mm:ss.fff", CultureInfo.InvariantCulture);
             Console.WriteLine($"[{time}] {message}");
         }
 

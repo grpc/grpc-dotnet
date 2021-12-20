@@ -20,6 +20,7 @@ using BenchmarkDotNet.Configs;
 
 namespace Grpc.AspNetCore.Microbenchmarks
 {
+    [AttributeUsage(AttributeTargets.Assembly)]
     public class DefaultCoreConfigAttribute : Attribute, IConfigSource
     {
         public IConfig Config => new DefaultCoreConfig();

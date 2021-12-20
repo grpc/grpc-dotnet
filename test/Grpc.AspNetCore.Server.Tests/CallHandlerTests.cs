@@ -264,7 +264,7 @@ namespace Grpc.AspNetCore.Server.Tests
                             new TestGrpcServiceActivator<TestService>()),
                         loggerFactory ?? NullLoggerFactory.Instance);
                 default:
-                    throw new ArgumentException();
+                    throw new ArgumentException("Unexpected method type: " + methodType);
             }
         }
     }

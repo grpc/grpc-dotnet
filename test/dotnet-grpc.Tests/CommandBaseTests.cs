@@ -17,6 +17,7 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Grpc.Dotnet.Cli.Commands;
@@ -476,7 +477,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Assert
             Assert.Contains(Path.Combine("Proto", "a.proto"), references);
             Assert.Contains(Path.Combine("Proto", "b.proto"), references);
-            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
         [Test]
@@ -493,10 +494,17 @@ namespace Grpc.Dotnet.Cli.Tests
             // Assert
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
-            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
-        [TestCaseSource("DirectoryPaths")]
+        private static readonly object[] DirectoryPaths =
+        {
+            new object[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") },
+            new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.DirectorySeparatorChar) },
+            new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.AltDirectorySeparatorChar) },
+        };
+
+        [TestCaseSource(nameof(DirectoryPaths))]
         public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
         {
             // Arrange

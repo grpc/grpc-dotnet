@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using Google.Protobuf;
 using Greet;
@@ -364,7 +365,7 @@ namespace Grpc.Net.Client.Tests.Retry
                 Interlocked.Increment(ref callCount);
 
                 await request.Content!.CopyToAsync(new MemoryStream());
-                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: hedgeDelay.TotalMilliseconds.ToString());
+                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: hedgeDelay.TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
             });
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(maxAttempts: 2, hedgingDelay: hedgeDelay);
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
@@ -440,7 +441,7 @@ namespace Grpc.Net.Client.Tests.Retry
                 Interlocked.Increment(ref callCount);
 
                 await request.Content!.CopyToAsync(new MemoryStream());
-                string? hedgingPushback = hedgingDelay.TotalMilliseconds.ToString();
+                var hedgingPushback = hedgingDelay.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
                 if (callCount == 1)
                 {
                     hedgingPushback = "0";

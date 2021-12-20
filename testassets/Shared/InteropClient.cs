@@ -882,8 +882,8 @@ namespace Grpc.Shared.TestAssets
         // Consider providing ca file in a different format and removing method
         private byte[]? GetBytesFromPem(string pemString, string section)
         {
-            var header = string.Format("-----BEGIN {0}-----", section);
-            var footer = string.Format("-----END {0}-----", section);
+            var header = $"-----BEGIN {section}-----";
+            var footer = $"-----END {section}-----";
 
             var start = pemString.IndexOf(header, StringComparison.Ordinal);
             if (start == -1)

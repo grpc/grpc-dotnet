@@ -136,7 +136,11 @@ namespace Grpc.Net.Client.Internal
             }
 
             var splitFramework = frameworkName!.Split(',');
+#if !NETSTANDARD2_0
             var version = Version.Parse(splitFramework[1].AsSpan("Version=v".Length));
+#else
+            var version = Version.Parse(splitFramework[1].Substring("Version=v".Length));
+#endif
             var name = splitFramework[0] switch
             {
                 ".NETCoreApp" when version.Major < 5 => $"netcoreapp{version.ToString(2)}",
