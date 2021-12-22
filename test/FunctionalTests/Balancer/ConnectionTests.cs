@@ -144,7 +144,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 activeStreams = transport.GetActiveStreams();
                 return activeStreams.Count == 11;
             }, "Wait for connections to start.");
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams.Last().Address.EndPoint);
+            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[activeStreams.Count - 1].Address.EndPoint);
 
             tcs.SetResult(null);
 

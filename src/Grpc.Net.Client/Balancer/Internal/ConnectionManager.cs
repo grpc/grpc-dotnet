@@ -451,29 +451,30 @@ namespace Grpc.Net.Client.Balancer.Internal
                 }
             }
 
-            return WaitForStateChangedAsyncCore(watcher, cancellationToken);
+            return WaitForStateChangedAsyncCore(watcher);
         }
 
-        private async Task WaitForStateChangedAsyncCore(StateWatcher watcher, CancellationToken cancellationToken)
+        private async Task WaitForStateChangedAsyncCore(StateWatcher watcher)
         {
-            using (cancellationToken.Register(OnCancellation, watcher))
+            using (watcher.CancellationToken.Register(OnCancellation, watcher))
             {
                 await watcher.Tcs.Task.ConfigureAwait(false);
             }
+        }
 
-            void OnCancellation(object? s)
+        private void OnCancellation(object? s)
+        {
+            lock (_lock)
             {
-                lock (_lock)
+                StateWatcher watcher = (StateWatcher)s!;
+                if (_stateWatchers.Remove(watcher))
                 {
-                    StateWatcher watcher = (StateWatcher)s!;
-                    if (_stateWatchers.Remove(watcher))
-                    {
-                        watcher.Tcs.SetCanceled();
-                    }
+                    watcher.Tcs.SetCanceled(watcher.CancellationToken);
                 }
             }
         }
 
+        // Don't use a record struct here. This type is cast to object and a struct will box.
         private record StateWatcher(CancellationToken CancellationToken, ConnectivityState? WaitForState, TaskCompletionSource<object?> Tcs);
     }
 

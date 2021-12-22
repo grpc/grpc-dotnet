@@ -167,7 +167,7 @@ namespace Grpc.AspNetCore.Server.Tests.Web
             buffer = w.GetMemory(initialData2.Length);
             initialData2.CopyTo(buffer);
             w.Advance(initialData2.Length);
-            
+
             w.Complete();
 
             // Assert

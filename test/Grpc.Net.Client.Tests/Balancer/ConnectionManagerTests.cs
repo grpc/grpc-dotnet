@@ -60,7 +60,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, new LoadBalancerFactory[0]);
+            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
             clientChannel.ConfigureBalancer(c => new RoundRobinBalancer(c, loggerFactory));
 
             // Act
@@ -119,7 +119,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, new LoadBalancerFactory[0]);
+            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
             clientChannel.ConfigureBalancer(c => new DropLoadBalancer(c));
 
             // Act
@@ -288,13 +288,13 @@ namespace Grpc.Net.Client.Tests.Balancer
                 var connectAddress = s.GetAddresses().Single();
                 testLogger.LogInformation("Writing connect address " + connectAddress);
 
-                await connectAddressesChannel.Writer.WriteAsync(connectAddress.EndPoint);
+                await connectAddressesChannel.Writer.WriteAsync(connectAddress.EndPoint, c);
                 await syncPoint.WaitToContinue();
 
                 c.ThrowIfCancellationRequested();
                 return ConnectivityState.Ready;
             });
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, new LoadBalancerFactory[0]);
+            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
             clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
 
             // Act
@@ -361,7 +361,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
         private class DropLoadBalancerFactory : LoadBalancerFactory
         {
-            private Func<IChannelControlHelper, DropLoadBalancer> _loadBalancerFunc;
+            private readonly Func<IChannelControlHelper, DropLoadBalancer> _loadBalancerFunc;
 
             public DropLoadBalancerFactory(Func<IChannelControlHelper, DropLoadBalancer> loadBalancerFunc)
             {

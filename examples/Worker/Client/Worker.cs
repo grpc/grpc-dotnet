@@ -44,7 +44,8 @@ namespace Client
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting client streaming call at: {time}", DateTimeOffset.Now);
-            _clientStreamingCall = _counterClient.AccumulateCount();
+            // Don't pass cancellation token to the call. The call is completed in StopAsync when service stops.
+            _clientStreamingCall = _counterClient.AccumulateCount(cancellationToken: CancellationToken.None);
 
             await base.StartAsync(cancellationToken);
         }

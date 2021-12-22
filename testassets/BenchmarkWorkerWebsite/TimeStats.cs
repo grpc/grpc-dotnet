@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 
 namespace BenchmarkWorkerWebsite
 {
@@ -69,7 +70,7 @@ namespace BenchmarkWorkerWebsite
 
             public override string ToString()
             {
-                return string.Format("[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
+                return string.Format(CultureInfo.InvariantCulture, "[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
             }
         }
     }

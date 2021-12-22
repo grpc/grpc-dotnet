@@ -25,7 +25,7 @@ namespace GrpcAspNetCoreServer.Controllers
     public class BenchmarkController : Controller
     {
         [HttpPost("unary")]
-        public SimpleResponse Post([FromBody]SimpleRequest request)
+        public SimpleResponse Post([FromBody] SimpleRequest request)
         {
             return BenchmarkServiceImpl.CreateResponse(request);
         }

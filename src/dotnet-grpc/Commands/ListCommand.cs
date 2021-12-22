@@ -70,7 +70,7 @@ namespace Grpc.Dotnet.Cli.Commands
                 return;
             }
 
-            var table = new TableView<ProjectItem> { Items = protobufElements};
+            var table = new TableView<ProjectItem> { Items = protobufElements };
 
             // Required columns (always displayed)
             table.AddColumn(r => r.UnevaluatedInclude, CoreStrings.TableColumnProtobufReference);

@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Internal
                 .GetCustomAttributes<TargetFrameworkAttribute>()
                 .FirstOrDefault()?
                 .FrameworkName;
-            
+
             return GetUserAgentString(
                 processArch: RuntimeInformation.ProcessArchitecture,
                 clrVersion: Environment.Version,
@@ -136,8 +136,13 @@ namespace Grpc.Net.Client.Internal
             }
 
             var splitFramework = frameworkName!.Split(',');
+#if !NETSTANDARD2_0
+            var version = Version.Parse(splitFramework[1].AsSpan("Version=v".Length));
+#else
             var version = Version.Parse(splitFramework[1].Substring("Version=v".Length));
-            var name = splitFramework[0] switch {
+#endif
+            var name = splitFramework[0] switch
+            {
                 ".NETCoreApp" when version.Major < 5 => $"netcoreapp{version.ToString(2)}",
                 ".NETCoreApp" when version.Major >= 5 => $"net{version.ToString(2)}",
 #if !NETSTANDARD2_0

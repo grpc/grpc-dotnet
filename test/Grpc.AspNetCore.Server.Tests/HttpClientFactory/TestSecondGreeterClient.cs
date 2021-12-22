@@ -24,7 +24,7 @@ namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
 {
     internal class TestSecondGreeterClient : SecondGreeterClient
     {
-        private CallInvoker _callInvoker;
+        private readonly CallInvoker _callInvoker;
 
         public TestSecondGreeterClient(CallInvoker callInvoker) : base(callInvoker)
         {

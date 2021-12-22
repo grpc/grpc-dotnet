@@ -134,13 +134,13 @@ namespace Grpc.Net.Client.Tests
         {
             var userAgent = UserAgentGenerator.GetUserAgentString(
                 processArch: Architecture.X64,
-                clrVersion: Version.Parse("v4.0.30319".Substring(1)),
+                clrVersion: Version.Parse("4.0.30319"),
                 assemblyVersion: string.Empty,
                 runtimeInformation: "Mono 6.12.0.140 (2020-02/51d876a041e Thu Apr 29 10:44:55 EDT 2021)",
                 frameworkName: string.Empty,
                 operatingSystem: "osx; ");
             Assert.AreEqual($"grpc-dotnet (Mono 6.12.0.140; CLR 4.0.30319; osx; x64)", userAgent);
-            
+
         }
     }
 }

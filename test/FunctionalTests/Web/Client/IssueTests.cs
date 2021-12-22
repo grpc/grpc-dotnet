@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
@@ -63,7 +64,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             request.SearchTerm = string.Empty;
             for (var i = 0; i < 4096; i++)
             {
-                request.Carriers.Add(i.ToString());
+                request.Carriers.Add(i.ToString(CultureInfo.InvariantCulture));
             }
 
             try

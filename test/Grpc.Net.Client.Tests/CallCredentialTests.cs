@@ -142,15 +142,18 @@ namespace Grpc.Net.Client.Tests
             });
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-            var first = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) => {
+            var first = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+            {
                 metadata.Add("first_authorization", "FIRST_SECRET_TOKEN");
                 return Task.CompletedTask;
             }));
-            var second = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) => {
+            var second = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+            {
                 metadata.Add("second_authorization", "SECOND_SECRET_TOKEN");
                 return Task.CompletedTask;
             }));
-            var third = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) => {
+            var third = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+            {
                 metadata.Add("third_authorization", "THIRD_SECRET_TOKEN");
                 return Task.CompletedTask;
             }));

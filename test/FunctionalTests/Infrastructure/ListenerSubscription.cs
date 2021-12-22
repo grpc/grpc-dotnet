@@ -22,7 +22,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
     public class ListenerSubscription : IDisposable
     {
         private readonly TestEventListener _testEventListener;
-        private TaskCompletionSource<object?> _tcs;
+        private readonly TaskCompletionSource<object?> _tcs;
 
         public ListenerSubscription(TestEventListener testEventListener, string counterName, long expectedValue)
         {

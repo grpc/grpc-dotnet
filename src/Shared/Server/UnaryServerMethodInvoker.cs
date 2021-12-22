@@ -166,7 +166,7 @@ namespace Grpc.Shared.Server
         {
             await releaseTask;
             ex.Throw();
-            
+
             // Should never reach here
             return null;
         }

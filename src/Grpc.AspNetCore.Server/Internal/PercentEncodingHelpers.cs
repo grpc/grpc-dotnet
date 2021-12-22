@@ -73,7 +73,7 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             // Encode
-            return string.Create((int) encodedLength, value, Encode);
+            return string.Create((int)encodedLength, value, Encode);
 
             static void Encode(Span<char> span, string s)
             {
@@ -86,7 +86,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     if (current > AsciiMaxValue)
                     {
                         // Leave a character for possible low surrogate
-                        const int MaxCount = MaxUnicodeCharsReallocate -1;
+                        const int MaxCount = MaxUnicodeCharsReallocate - 1;
 
                         // Get additional unicode characters
                         var unicodeCharCount = GetCountOfNonAsciiUtf16CodeUnits(s, i, MaxCount);

@@ -29,7 +29,7 @@ namespace Grpc.Net.Client.Internal.Retry
         private readonly ILogger<ChannelRetryThrottling> _logger;
 
         private double _tokenCount;
-        private double _tokenThreshold;
+        private readonly double _tokenThreshold;
         private bool _isRetryThrottlingActive;
 
         public ChannelRetryThrottling(int maxTokens, double tokenRatio, ILoggerFactory loggerFactory)

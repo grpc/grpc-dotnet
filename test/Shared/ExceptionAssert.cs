@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using NUnit.Framework;
 
 namespace Grpc.Tests.Shared
@@ -52,7 +53,7 @@ namespace Grpc.Tests.Shared
             }
             catch (Exception ex)
             {
-                throw new Exception(string.Format("Exception of type {0} expected; got exception of type {1}.", typeof(TException).Name, ex.GetType().Name), ex);
+                throw new Exception($"Exception of type {typeof(TException).Name} expected; got exception of type {ex.GetType().Name}.", ex);
             }
 
             throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");

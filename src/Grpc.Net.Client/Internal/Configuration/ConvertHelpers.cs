@@ -87,23 +87,29 @@ namespace Grpc.Net.Client.Internal.Configuration
             //
             // Note that this is precise down to ticks. Fractions that are smaller than ticks will be lost.
             // This shouldn't matter because timers on Windows and Linux only have millisecond precision.
-            if (text.Length > 0 && text[text.Length - 1] == 's' &&
-                decimal.TryParse(text.Substring(0, text.Length - 1), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var seconds))
+            if (text.Length > 0 && text[text.Length - 1] == 's')
             {
-                try
+#if NET5_0_OR_GREATER
+                var decimalText = text.AsSpan(0, text.Length - 1);
+#else
+                var decimalText = text.Substring(0, text.Length - 1);
+#endif
+
+                if (decimal.TryParse(decimalText, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var seconds))
                 {
-                    var ticks = (long)(seconds * TimeSpan.TicksPerSecond);
-                    return TimeSpan.FromTicks(ticks);
-                }
-                catch (Exception ex)
-                {
-                    throw new FormatException($"'{text}' isn't a valid duration.", ex);
+                    try
+                    {
+                        var ticks = (long)(seconds * TimeSpan.TicksPerSecond);
+                        return TimeSpan.FromTicks(ticks);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new FormatException($"'{text}' isn't a valid duration.", ex);
+                    }
                 }
             }
-            else
-            {
-                throw new FormatException($"'{text}' isn't a valid duration.");
-            }
+
+            throw new FormatException($"'{text}' isn't a valid duration.");
         }
 
         public static string? ToDurationText(TimeSpan? value)

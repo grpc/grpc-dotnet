@@ -172,7 +172,7 @@ namespace Grpc.AspNetCore.ClientFactory
             return new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host, options);
         }
 
-        private bool TryGetServerCallContext([NotNullWhen(true)]out ServerCallContext? serverCallContext, [NotNullWhen(false)]out string? errorMessage)
+        private bool TryGetServerCallContext([NotNullWhen(true)] out ServerCallContext? serverCallContext, [NotNullWhen(false)] out string? errorMessage)
         {
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)

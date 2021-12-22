@@ -100,7 +100,7 @@ namespace GrpcAspNetCoreServer
                 ConfigureAuthorization(endpoints.MapGrpcService<BenchmarkServiceImpl>());
 
                 ConfigureAuthorization(endpoints.MapControllers());
-                
+
                 ConfigureAuthorization(endpoints.MapGet("/", context =>
                 {
                     return context.Response.WriteAsync("Benchmark Server");

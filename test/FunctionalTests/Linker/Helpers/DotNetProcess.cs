@@ -113,7 +113,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker.Helpers
             {
                 // Ignore error
             }
-            
+
             Process.Dispose();
         }
     }

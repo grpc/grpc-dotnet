@@ -246,7 +246,7 @@ namespace Grpc.AspNetCore.Server.Tests
                         new ServerStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
                             async (service, request, writer, context) =>
                             {
-                                await(handlerAction?.Invoke() ?? Task.CompletedTask);
+                                await (handlerAction?.Invoke() ?? Task.CompletedTask);
                             },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
@@ -257,14 +257,14 @@ namespace Grpc.AspNetCore.Server.Tests
                         new DuplexStreamingServerMethodInvoker<TestService, TestMessage, TestMessage>(
                             async (service, reader, writer, context) =>
                             {
-                                await(handlerAction?.Invoke() ?? Task.CompletedTask);
+                                await (handlerAction?.Invoke() ?? Task.CompletedTask);
                             },
                             method,
                             HttpContextServerCallContextHelper.CreateMethodOptions(),
                             new TestGrpcServiceActivator<TestService>()),
                         loggerFactory ?? NullLoggerFactory.Instance);
                 default:
-                    throw new ArgumentException();
+                    throw new ArgumentException("Unexpected method type: " + methodType);
             }
         }
     }
