@@ -277,3 +277,12 @@ The container example shows how to create a gRPC Kubernetes app. There are two c
 
 * [Kubernetes](https://kubernetes.io/)
 * Configure [gRPC client-side load balancing](https://docs.microsoft.com/aspnet/core/grpc/loadbalancing)
+
+## [Uploader](./Uploader)
+
+The uploader shows how to upload a file in chunks using a client streaming gRPC method.
+
+##### Scenarios:
+
+* Client streaming call
+* Binary payload
