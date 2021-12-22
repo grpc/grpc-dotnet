@@ -17,6 +17,7 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Grpc.Dotnet.Cli.Commands;
@@ -151,15 +152,15 @@ namespace Grpc.Dotnet.Cli.Tests
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                cases.Add(new object[] {"Proto\\a.proto", "Proto\\a.proto", ""});
-                cases.Add(new object[] {".\\Proto/a.proto", "Proto\\a.proto", ""});
-                cases.Add(new object[] {"..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"});
-                cases.Add(new object[] {".\\..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto"});
+                cases.Add(new object[] { "Proto\\a.proto", "Proto\\a.proto", "" });
+                cases.Add(new object[] { ".\\Proto/a.proto", "Proto\\a.proto", "" });
+                cases.Add(new object[] { "..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto" });
+                cases.Add(new object[] { ".\\..\\ProjectWithReference\\Proto\\a.proto", "..\\ProjectWithReference\\Proto\\a.proto", "Protos\\a.proto" });
             }
 
             return cases.ToArray();
         }
-        
+
         [Test]
         [TestCaseSource(nameof(ReferenceCases))]
         public void AddProtobufReference_AddsRelativeReference(string path, string normalizedPath, string link)
@@ -191,9 +192,9 @@ namespace Grpc.Dotnet.Cli.Tests
         {
             // Arrange
             var commandBase = new CommandBase(
-                new TestConsole(), 
+                new TestConsole(),
                 CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
-            
+
             var referencePath = Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", path);
             var normalizedReferencePath = Path.GetFullPath(
                     Path.Combine(
@@ -231,9 +232,9 @@ namespace Grpc.Dotnet.Cli.Tests
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                cases.Add(new object[] {".\\ImportDir;ImportDir2", "ImportDir;ImportDir2"});
-                cases.Add(new object[] {"../ImportDir;..\\ImportDir2", "..\\ImportDir;..\\ImportDir2"});
-                cases.Add(new object[] {"./../ImportDir;.\\..\\ImportDir2", "..\\ImportDir;..\\ImportDir2"});
+                cases.Add(new object[] { ".\\ImportDir;ImportDir2", "ImportDir;ImportDir2" });
+                cases.Add(new object[] { "../ImportDir;..\\ImportDir2", "..\\ImportDir;..\\ImportDir2" });
+                cases.Add(new object[] { "./../ImportDir;.\\..\\ImportDir2", "..\\ImportDir;..\\ImportDir2" });
             }
 
             return cases.ToArray();
@@ -249,7 +250,7 @@ namespace Grpc.Dotnet.Cli.Tests
                 CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
 
             const string proto = "Proto/a.proto";
-            
+
             // Act
             commandBase.AddProtobufReference(Services.Server, "ImportDir", Access.Internal, proto, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
@@ -283,10 +284,10 @@ namespace Grpc.Dotnet.Cli.Tests
                 cases.Add(new object[] { ".\\..\\ProjectWithReference\\Proto\\a.proto", "../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" });
                 cases.Add(new object[] { ".\\..\\ProjectWithReference\\Proto\\a.proto", "./../ProjectWithReference/Proto/a.proto", "..\\ProjectWithReference\\Proto\\a.proto" });
             }
-            
+
             return cases.ToArray();
         }
-        
+
         [Test]
         [TestCaseSource(nameof(DoesNotOverwriteCases))]
         public void AddProtobufReference_DoesNotOverwriteReference(string path, string altPath, string normalizedPath)
@@ -476,7 +477,7 @@ namespace Grpc.Dotnet.Cli.Tests
             // Assert
             Assert.Contains(Path.Combine("Proto", "a.proto"), references);
             Assert.Contains(Path.Combine("Proto", "b.proto"), references);
-            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
         [Test]
@@ -493,17 +494,17 @@ namespace Grpc.Dotnet.Cli.Tests
             // Assert
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "a.proto"), references);
             Assert.Contains(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto", "b.proto"), references);
-            Assert.AreEqual($"Warning: {string.Format(CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual($"Warning: {string.Format(CultureInfo.InvariantCulture, CoreStrings.LogWarningNoReferenceResolved, invalidReference, SourceUrl)}", testConsole.Out.ToString()!.TrimEnd());
         }
 
-        static object[] DirectoryPaths =
+        private static readonly object[] DirectoryPaths =
         {
             new object[] { Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") },
             new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.DirectorySeparatorChar) },
             new object[] { Path.Combine(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "Proto") + Path.AltDirectorySeparatorChar) },
         };
 
-        [TestCaseSource("DirectoryPaths")]
+        [TestCaseSource(nameof(DirectoryPaths))]
         public async Task DownloadFileAsync_DirectoryAsDestination_Throws(string destination)
         {
             // Arrange

@@ -19,6 +19,7 @@
 
 namespace Grpc.AspNetCore.Server.Tests.TestObjects
 {
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class CustomAttribute : Attribute
     {
         public CustomAttribute(string value)

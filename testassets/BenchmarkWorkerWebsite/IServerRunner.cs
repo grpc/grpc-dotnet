@@ -27,7 +27,7 @@ namespace BenchmarkWorkerWebsite
         /// Port on which the server is listening.
         /// </summary>
         int BoundPort { get; }
-        
+
         /// <summary>
         /// Gets server stats.
         /// </summary>
@@ -40,5 +40,5 @@ namespace BenchmarkWorkerWebsite
         /// <returns>Task that finishes when server has shutdown.</returns>
         Task StopAsync();
     }
-        
+
 }

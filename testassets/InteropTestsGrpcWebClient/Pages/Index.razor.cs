@@ -56,7 +56,7 @@ namespace InteropTestsGrpcWebClient.Pages
             _interopTestInvoker = new InteropTestInvoker(new PageLoggerFactory(AddMessage), _testCases);
 
             var objRef = DotNetObjectReference.Create(_interopTestInvoker);
-            _ = JSRuntime.InvokeAsync<string>("initialTestHelper", objRef);
+            _ = JSRuntime.InvokeAsync<string>("initialTestHelper", objRef).AsTask();
 
             return base.OnInitializedAsync();
         }

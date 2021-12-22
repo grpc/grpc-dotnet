@@ -43,7 +43,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
                 Assert.IsNotNull(command.Project);
                 Assert.AreEqual("test.csproj", Path.GetFileName(command.Project.FullPath));
-                
+
                 command.List();
 
                 // Assert

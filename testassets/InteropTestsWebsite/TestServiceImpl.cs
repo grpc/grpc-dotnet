@@ -107,13 +107,15 @@ namespace Grpc.Testing
                 echoInitialList.Add(new Metadata.Entry("grpc-internal-encoding-request", "gzip"));
             }
 
-            if (echoInitialList.Any()) {
+            if (echoInitialList.Any())
+            {
                 var entry = echoInitialList.Single();
                 await context.WriteResponseHeadersAsync(new Metadata { entry });
             }
 
             var echoTrailingList = context.RequestHeaders.Where((entry) => entry.Key == "x-grpc-test-echo-trailing-bin").ToList();
-            if (echoTrailingList.Any()) {
+            if (echoTrailingList.Any())
+            {
                 context.ResponseTrailers.Add(echoTrailingList.Single());
             }
         }

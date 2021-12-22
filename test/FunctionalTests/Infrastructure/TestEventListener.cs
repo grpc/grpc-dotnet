@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics.Tracing;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
@@ -71,10 +72,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 {
                     foreach (var subscription in subscriptions)
                     {
-                        if (subscription.CounterName == Convert.ToString(name))
+                        if (subscription.CounterName == Convert.ToString(name, CultureInfo.InvariantCulture))
                         {
                             subscription.CheckCount++;
-                            var currentValue = Convert.ToInt64(value);
+                            var currentValue = Convert.ToInt64(value, CultureInfo.InvariantCulture);
 
                             if (subscription.ExpectedValue == currentValue)
                             {

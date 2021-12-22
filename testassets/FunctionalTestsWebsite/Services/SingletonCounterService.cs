@@ -25,7 +25,7 @@ namespace FunctionalTestsWebsite.Services
     public class SingletonCounterService : Counter.CounterBase, IDisposable
     {
         private readonly ILogger _logger;
-        private int _count = 0;
+        private int _count;
 
         public SingletonCounterService(ILoggerFactory loggerFactory)
         {

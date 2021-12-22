@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Net;
 using Greet;
 using Grpc.Core;
@@ -315,7 +316,7 @@ namespace Grpc.Net.Client.Tests.Retry
                 Interlocked.Increment(ref callCount);
 
                 await request.Content!.CopyToAsync(new MemoryStream());
-                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString());
+                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
             });
             var cts = new CancellationTokenSource();
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromSeconds(10));
@@ -377,7 +378,7 @@ namespace Grpc.Net.Client.Tests.Retry
                 Interlocked.Increment(ref callCount);
 
                 await request.Content!.CopyToAsync(new MemoryStream());
-                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString());
+                return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
             });
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromSeconds(10));
             var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);

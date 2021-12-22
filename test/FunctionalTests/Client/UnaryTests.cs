@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
@@ -137,7 +138,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 // Act
                 for (var i = 0; i < calls.Length; i++)
                 {
-                    var call = client.UnaryCall(new HelloRequest { Name = (i + 1).ToString() });
+                    var call = client.UnaryCall(new HelloRequest { Name = (i + 1).ToString(CultureInfo.InvariantCulture) });
                     calls[i] = call;
 
                     if (writeResponseHeaders)

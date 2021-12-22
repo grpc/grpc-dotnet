@@ -124,7 +124,7 @@ namespace Grpc.AspNetCore.Web.Internal
             _currentDecodedBuffer = ReadOnlySequence<byte>.Empty;
         }
 
-        public async override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
         {
             // ReadAsync needs to handle some common situations:
             // 1. Base64 requires are least 4 bytes to decode content. If less than 4 bytes are returned

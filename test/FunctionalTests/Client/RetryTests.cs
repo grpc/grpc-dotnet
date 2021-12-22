@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -213,7 +214,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 Logger.LogInformation($"Server sending pushback for call {callCount}.");
                 return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.Unavailable, ""), new Metadata
                 {
-                    new Metadata.Entry("grpc-retry-pushback-ms", TimeSpan.FromSeconds(10).TotalMilliseconds.ToString())
+                    new Metadata.Entry("grpc-retry-pushback-ms", TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture))
                 }));
             }
 
@@ -250,7 +251,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 return Task.FromException(new RpcException(new Status(StatusCode.Unavailable, ""), new Metadata
                 {
-                    new Metadata.Entry("grpc-retry-pushback-ms", TimeSpan.FromSeconds(10).TotalMilliseconds.ToString())
+                    new Metadata.Entry("grpc-retry-pushback-ms", TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture))
                 }));
             }
 

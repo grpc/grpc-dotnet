@@ -71,7 +71,7 @@ namespace InteropTestsNativeWebsite
             {
                 server.Ports.Add(host, options.Port, ServerCredentials.Insecure);
             }
-            Console.WriteLine("Running server on " + string.Format("{0}:{1}", host, port));
+            Console.WriteLine($"Running server on {host}:{port}");
             server.Start();
 
             server.ShutdownTask.Wait();

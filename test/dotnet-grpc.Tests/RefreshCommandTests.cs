@@ -17,6 +17,7 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.Globalization;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Properties;
 using NUnit.Framework;
@@ -40,10 +41,10 @@ namespace Grpc.Dotnet.Cli.Tests
             // Act
             Directory.SetCurrentDirectory(tempDir);
             var command = new RefreshCommand(testConsole, CreateClient());
-            await command.RefreshAsync(dryRun, new string[0]);
+            await command.RefreshAsync(dryRun, Array.Empty<string>());
 
             // Assert
-            Assert.AreEqual(string.Format(CoreStrings.LogDownload, "Proto/a.proto", SourceUrl), testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, CoreStrings.LogDownload, "Proto/a.proto", SourceUrl), testConsole.Out.ToString()!.TrimEnd());
             Assert.AreEqual(dryRun, string.IsNullOrEmpty(File.ReadAllText(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto"))));
 
             // Cleanup

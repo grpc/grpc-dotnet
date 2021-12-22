@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -955,7 +956,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 // Act
                 for (var i = 0; i < contexts.Length; i++)
                 {
-                    var callId = (i + 1).ToString();
+                    var callId = (i + 1).ToString(CultureInfo.InvariantCulture);
                     Logger.LogInformation($"Sending {callId}");
 
                     var call = client.DuplexStreamingCall(new CallOptions(headers: new Metadata

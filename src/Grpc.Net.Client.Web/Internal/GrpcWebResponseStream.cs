@@ -205,7 +205,7 @@ namespace Grpc.Net.Client.Web.Internal
             var startIndex = -1;
             for (var i = 0; i < span.Length; i++)
             {
-                if (!char.IsWhiteSpace((char) span[i]))
+                if (!char.IsWhiteSpace((char)span[i]))
                 {
                     startIndex = i;
                     break;
@@ -220,7 +220,7 @@ namespace Grpc.Net.Client.Web.Internal
             var endIndex = span.Length - 1;
             for (var i = endIndex; i >= startIndex; i--)
             {
-                if (!char.IsWhiteSpace((char) span[i]))
+                if (!char.IsWhiteSpace((char)span[i]))
                 {
                     endIndex = i;
                     break;

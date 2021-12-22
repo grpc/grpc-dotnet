@@ -44,7 +44,7 @@ namespace Grpc.AspNetCore.Server.Internal
         }
     }
 
-    internal class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService: class
+    internal class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService : class
     {
         private readonly GrpcServiceOptions _options;
 

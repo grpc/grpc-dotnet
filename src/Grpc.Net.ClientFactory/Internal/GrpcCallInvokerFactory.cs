@@ -65,7 +65,7 @@ namespace Grpc.Net.ClientFactory.Internal
         {
             return _activeChannels.GetOrAdd(new EntryKey(name, type), _invokerFactory);
         }
-        
+
         private CallInvoker CreateInvoker(EntryKey key)
         {
             var (name, type) = (key.Name, key.Type);

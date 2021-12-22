@@ -28,9 +28,9 @@ namespace Grpc.Net.Client.Web.Internal
     internal class OperatingSystem : IOperatingSystem
     {
         public static readonly OperatingSystem Instance = new OperatingSystem();
-        
+
         public bool IsBrowser { get; }
-                
+
         private OperatingSystem()
         {
             IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));

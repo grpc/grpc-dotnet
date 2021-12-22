@@ -502,7 +502,11 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 Invoked = true;
 
                 // Get stream from request content so gRPC client serializes request message
+#if NET5_0_OR_GREATER
+                _ = await request.Content!.ReadAsStreamAsync(cancellationToken);
+#else
                 _ = await request.Content!.ReadAsStreamAsync();
+#endif
 
                 var reply = new HelloReply { Message = "Hello world" };
                 var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();

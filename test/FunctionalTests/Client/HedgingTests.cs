@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -231,7 +232,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.DeadlineExceeded, ""), new Metadata
                 {
-                    new Metadata.Entry(GrpcProtocolConstants.RetryPushbackHeader, TimeSpan.FromSeconds(10).TotalMilliseconds.ToString())
+                    new Metadata.Entry(GrpcProtocolConstants.RetryPushbackHeader, TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture))
                 }));
             }
 
@@ -269,7 +270,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                 return Task.FromException(new RpcException(new Status(StatusCode.DeadlineExceeded, ""), new Metadata
                 {
-                    new Metadata.Entry(GrpcProtocolConstants.RetryPushbackHeader, TimeSpan.FromSeconds(10).TotalMilliseconds.ToString())
+                    new Metadata.Entry(GrpcProtocolConstants.RetryPushbackHeader, TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture))
                 }));
             }
 

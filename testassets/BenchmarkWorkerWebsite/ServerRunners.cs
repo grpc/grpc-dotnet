@@ -18,9 +18,9 @@
 
 using Grpc.Core;
 using Grpc.Core.Utils;
+using Grpc.Shared.TestAssets;
 using Grpc.Testing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Grpc.Shared.TestAssets;
 
 namespace BenchmarkWorkerWebsite
 {

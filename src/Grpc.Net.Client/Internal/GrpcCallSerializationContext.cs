@@ -119,7 +119,7 @@ namespace Grpc.Net.Client.Internal
                 {
                     return compressionProvider;
                 }
-                
+
                 throw new InvalidOperationException($"Could not find compression provider for '{_call.RequestGrpcEncoding}'.");
             }
 
