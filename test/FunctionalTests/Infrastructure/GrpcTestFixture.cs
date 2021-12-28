@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Net.Sockets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +26,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 {
     public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
     {
+        private readonly string _socketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
         private readonly InProcessTestServer _server;
 
         public GrpcTestFixture(
@@ -86,6 +88,19 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                         listenOptions.UseHttps(certPath, "1111");
                     });
 
+#if NET5_0_OR_GREATER
+                    if (File.Exists(_socketPath))
+                    {
+                        File.Delete(_socketPath);
+                    }
+
+                    urls[TestServerEndpointName.UnixDomainSocket] = _socketPath;
+                    options.ListenUnixSocket(_socketPath, listenOptions =>
+                    {
+                        listenOptions.Protocols = HttpProtocols.Http2;
+                    });
+#endif
+
 #if NET6_0_OR_GREATER
                     if (RequireHttp3Attribute.IsSupported(out _))
                     {
@@ -145,6 +160,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 RemoteCertificateValidationCallback = (_, __, ___, ____) => true
             };
 
+#if NET5_0_OR_GREATER
+            if (endpointName == TestServerEndpointName.UnixDomainSocket)
+            {
+                var udsEndPoint = new UnixDomainSocketEndPoint(_server.GetUrl(endpointName.Value));
+                var connectionFactory = new UnixDomainSocketConnectionFactory(udsEndPoint);
+
+                socketsHttpHandler.ConnectCallback = connectionFactory.ConnectAsync;
+            }
+#endif
+
             HttpClient client;
             HttpMessageHandler handler;
             if (messageHandler != null)
@@ -175,9 +200,22 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 #endif
             }
-            client.BaseAddress = new Uri(_server.GetUrl(endpointName.Value));
+
+            client.BaseAddress = CalculateBaseAddress(endpointName.Value);
 
             return (client, handler);
+        }
+
+        private Uri CalculateBaseAddress(TestServerEndpointName endpointName)
+        {
+#if NET5_0_OR_GREATER
+            if (endpointName == TestServerEndpointName.UnixDomainSocket)
+            {
+                return new Uri("http://localhost");
+            }
+#endif
+
+            return new Uri(_server.GetUrl(endpointName));
         }
 
         public Uri GetUrl(TestServerEndpointName endpointName)
@@ -192,6 +230,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 case TestServerEndpointName.Http3WithTls:
 #endif
                     return new Uri(_server.GetUrl(endpointName));
+#if NET5_0_OR_GREATER
+                case TestServerEndpointName.UnixDomainSocket:
+                    return new Uri("http://localhost");
+#endif
                 default:
                     throw new ArgumentException("Unexpected value: " + endpointName, nameof(endpointName));
             }
