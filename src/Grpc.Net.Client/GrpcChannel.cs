@@ -339,7 +339,7 @@ namespace Grpc.Net.Client
 #endif
 
 #if SUPPORT_LOAD_BALANCING
-            handler = new BalancerHttpHandler(handler, ConnectionManager);
+            handler = new BalancerHttpHandler(handler, HttpHandlerType, ConnectionManager);
 #endif
 
             // Use HttpMessageInvoker instead of HttpClient because it is faster
