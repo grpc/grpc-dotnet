@@ -60,7 +60,29 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 #endif
         }
 
-#if NET6_0
+#if NET5_0_OR_GREATER
+        [Test]
+        public async Task UnixDomainSockets()
+        {
+            // Arrange
+            var http = Fixture.CreateHandler(TestServerEndpointName.UnixDomainSocket);
+
+            var channel = GrpcChannel.ForAddress(http.address, new GrpcChannelOptions
+            {
+                LoggerFactory = LoggerFactory,
+                HttpHandler = http.handler
+            });
+
+            var client = new Greeter.GreeterClient(channel);
+
+            // Act
+            var response = await client.SayHelloAsync(new HelloRequest { Name = "John" }).ResponseAsync.DefaultTimeout();
+
+            Assert.AreEqual("Hello John", response.Message);
+        }
+#endif
+
+#if NET6_0_OR_GREATER
         [Test]
         [RequireHttp3]
         public async Task Http3()

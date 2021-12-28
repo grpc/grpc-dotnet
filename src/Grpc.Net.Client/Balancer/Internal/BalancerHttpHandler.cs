@@ -35,16 +35,19 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private readonly ConnectionManager _manager;
 
-        public BalancerHttpHandler(HttpMessageHandler innerHandler, ConnectionManager manager)
+        public BalancerHttpHandler(HttpMessageHandler innerHandler, GrpcChannel channel, ConnectionManager manager)
             : base(innerHandler)
         {
             _manager = manager;
 
 #if NET5_0_OR_GREATER
-            var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
-            if (socketsHttpHandler != null)
+            if (channel.HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
             {
-                socketsHttpHandler.ConnectCallback = OnConnect;
+                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
+                if (socketsHttpHandler != null)
+                {
+                    socketsHttpHandler.ConnectCallback = OnConnect;
+                }
             }
 #endif
         }
