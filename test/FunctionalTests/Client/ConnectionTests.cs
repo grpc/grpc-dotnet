@@ -99,7 +99,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 #endif
 
 #if NET6_0_OR_GREATER
-                [Test]
+        [Test]
         [RequireHttp3]
         public async Task Http3()
         {
