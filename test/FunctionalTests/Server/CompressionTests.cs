@@ -430,11 +430,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             AssertHasLogRpcConnectionError(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         }
 
-        [TestCase("gzip")]
+        [TestCase("gzip", true)]
 #if NET6_0_OR_GREATER
-        [TestCase("deflate")]
+        [TestCase("deflate", false)]
 #endif
-        public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string algorithmName)
+        public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string algorithmName, bool algorithmSupportedByServer)
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -456,19 +456,26 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-            // The overall encoding is gzip but the actual response does not use compression
-            Assert.AreEqual(algorithmName, response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            if (algorithmSupportedByServer)
+            {
+                // The overall encoding is gzip but the actual response does not use compression
+                Assert.AreEqual(algorithmName, response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            }
+            else
+            {
+                Assert.IsFalse(response.Headers.Contains(GrpcProtocolConstants.MessageEncodingHeader));
+            }
 
             var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
             Assert.AreEqual("Hello World", responseMessage.Message);
             response.AssertTrailerStatus();
         }
 
-        [TestCase("gzip")]
+        [TestCase("gzip", true)]
 #if NET6_0_OR_GREATER
-        [TestCase("deflate")]
+        [TestCase("deflate", false)]
 #endif
-        public async Task SendUncompressedMessageToServiceWithCompression_ResponseCompressed(string algorithmName)
+        public async Task SendUncompressedMessageToServiceWithCompression_ResponseCompressed(string algorithmName, bool algorithmSupportedByServer)
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -488,9 +495,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.AreEqual(algorithmName, response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            if (algorithmSupportedByServer)
+            {
+                Assert.AreEqual(algorithmName, response.Headers.GetValues(GrpcProtocolConstants.MessageEncodingHeader).Single());
+            }
+            else
+            {
+                Assert.IsFalse(response.Headers.Contains(GrpcProtocolConstants.MessageEncodingHeader));
+            }
 
-            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout(), algorithmName);
+            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(
+                await response.Content.ReadAsByteArrayAsync().DefaultTimeout(),
+                compressionEncoding: algorithmSupportedByServer ? algorithmName : null);
             Assert.AreEqual("Hello World", responseMessage.Message);
             response.AssertTrailerStatus();
         }
