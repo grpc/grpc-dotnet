@@ -39,7 +39,9 @@ namespace Grpc.AspNetCore.Server.Internal
             if (options._compressionProviders == null || options._compressionProviders.Count == 0)
             {
                 options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
-                // deflate is not supported. .NET's DeflateStream does not support RFC1950 - https://github.com/dotnet/corefx/issues/7570
+#if NET6_0_OR_GREATER
+                options.CompressionProviders.Add(new DeflateCompressionProvider(CompressionLevel.Fastest));
+#endif
             }
         }
     }

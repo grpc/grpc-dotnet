@@ -52,7 +52,9 @@ namespace Grpc.Net.Client.Internal
         internal static readonly Dictionary<string, ICompressionProvider> DefaultCompressionProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal)
         {
             ["gzip"] = new GzipCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
-            // deflate is not supported. .NET's DeflateStream does not support RFC1950 - https://github.com/dotnet/corefx/issues/7570
+#if NET6_0_OR_GREATER
+            ["deflate"] = new DeflateCompressionProvider(System.IO.Compression.CompressionLevel.Fastest),
+#endif
         };
 
         internal const int MessageDelimiterSize = 4; // how many bytes it takes to encode "Message-Length"

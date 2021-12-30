@@ -29,6 +29,14 @@ namespace Grpc.Tests.Shared
 {
     internal static class MessageHelpers
     {
+        private static readonly List<ICompressionProvider> DefaultProviders = new List<ICompressionProvider>
+            {
+                new GzipCompressionProvider(CompressionLevel.Fastest),
+#if NET6_0_OR_GREATER
+                new DeflateCompressionProvider(CompressionLevel.Fastest),
+#endif
+            };
+
         public static Marshaller<TMessage> GetMarshaller<TMessage>(MessageParser<TMessage> parser) where TMessage : IMessage<TMessage> =>
             Marshallers.Create<TMessage>(r => r.ToByteArray(), data => parser.ParseFrom(data));
 
@@ -50,10 +58,7 @@ namespace Grpc.Tests.Shared
 
         public static async Task<T> AssertReadMessageAsync<T>(Stream stream, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
-            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
-            {
-                new GzipCompressionProvider(CompressionLevel.Fastest)
-            };
+            compressionProviders = compressionProviders ?? DefaultProviders;
 
             var pipeReader = PipeReader.Create(stream);
 
@@ -79,10 +84,7 @@ namespace Grpc.Tests.Shared
 
         public static async Task<T?> AssertReadStreamMessageAsync<T>(PipeReader pipeReader, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null) where T : class, IMessage, new()
         {
-            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
-            {
-                new GzipCompressionProvider(CompressionLevel.Fastest)
-            };
+            compressionProviders = compressionProviders ?? DefaultProviders;
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Headers[GrpcProtocolConstants.MessageEncodingHeader] = compressionEncoding;
@@ -99,10 +101,7 @@ namespace Grpc.Tests.Shared
 
         public static void WriteMessage<T>(Stream stream, T message, string? compressionEncoding = null, List<ICompressionProvider>? compressionProviders = null, Func<PipeWriter, PipeWriter>? pipeWriterWrapper = null) where T : class, IMessage
         {
-            compressionProviders = compressionProviders ?? new List<ICompressionProvider>
-            {
-                new GzipCompressionProvider(CompressionLevel.Fastest)
-            };
+            compressionProviders = compressionProviders ?? DefaultProviders;
 
             var pipeWriter = PipeWriter.Create(stream);
 
