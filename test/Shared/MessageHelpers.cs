@@ -123,20 +123,6 @@ namespace Grpc.Tests.Shared
             stream.Seek(0, SeekOrigin.Begin);
         }
 
-        private static Dictionary<string, ICompressionProvider> ResolveProviders(List<ICompressionProvider> compressionProviders)
-        {
-            var resolvedProviders = new Dictionary<string, ICompressionProvider>(StringComparer.Ordinal);
-            foreach (var compressionProvider in compressionProviders)
-            {
-                if (!resolvedProviders.ContainsKey(compressionProvider.EncodingName))
-                {
-                    resolvedProviders.Add(compressionProvider.EncodingName, compressionProvider);
-                }
-            }
-
-            return resolvedProviders;
-        }
-
         private static T Deserialize<T>(DeserializationContext context) where T : class, IMessage, new()
         {
             var data = context.PayloadAsNewBuffer();

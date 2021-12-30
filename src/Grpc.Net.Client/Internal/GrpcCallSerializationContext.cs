@@ -295,15 +295,6 @@ namespace Grpc.Net.Client.Internal
             return output.GetBuffer().AsSpan(0, (int)output.Length);
         }
 
-        private sealed class NonDisposableMemoryStream : MemoryStream
-        {
-            protected override void Dispose(bool disposing)
-            {
-                // Ignore dispose from wrapping compression stream.
-                // If MemoryStream is disposed then Length isn't available.
-            }
-        }
-
         public void Advance(int count)
         {
             if (_buffer != null)

@@ -25,7 +25,7 @@ namespace Grpc.Net.Compression
     /// <summary>
     /// Deflate compression provider.
     /// </summary>
-    public class DeflateCompressionProvider : ICompressionProvider
+    public sealed class DeflateCompressionProvider : ICompressionProvider
     {
         private readonly CompressionLevel _defaultCompressionLevel;
 

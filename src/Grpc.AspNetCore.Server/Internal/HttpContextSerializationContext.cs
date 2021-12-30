@@ -23,6 +23,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -223,15 +224,6 @@ namespace Grpc.AspNetCore.Server.Internal
             }
 
             return output.GetBuffer().AsSpan(0, (int)output.Length);
-        }
-
-        private sealed class NonDisposableMemoryStream : MemoryStream
-        {
-            protected override void Dispose(bool disposing)
-            {
-                // Ignore dispose from wrapping compression stream.
-                // If MemoryStream is disposed then Length isn't available.
-            }
         }
     }
 }
