@@ -160,7 +160,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        public async Task Unary_DeadlineInBetweenReadAsyncCalls_ExceededWithoutReschedule()
+        public async Task Unary_DeadlineInBetweenReadAsyncCalls_DeadlineExceededStatus()
         {
             Task<DataMessage> Unary(DataMessage request, ServerCallContext context)
             {
@@ -298,12 +298,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                         cancellationToken.Register(() => tcs.SetResult(null));
                         await tcs.Task;
 
+                        // Wait a little longer to give time for HttpResponseMessage dispose to complete.
                         await Task.Delay(50);
 
                         // Still try to read data from canceled request.
-                        var readCount = await _stream.ReadAsync(buffer, cancellationToken);
-
-                        return readCount;
+                        return await _stream.ReadAsync(buffer, cancellationToken);
                     }
                 }
             }
