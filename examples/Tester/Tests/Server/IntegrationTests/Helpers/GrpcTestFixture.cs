@@ -24,7 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.Server.IntegrationTests.Helpers
 {
     public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception? exception);
 

@@ -26,17 +26,16 @@ namespace Server
 {
     public class TesterService : Tester.TesterBase
     {
-        private readonly ILogger _logger;
+        private readonly IGreeter _greeter;
 
-        public TesterService(ILoggerFactory loggerFactory)
+        public TesterService(IGreeter greeter)
         {
-            _logger = loggerFactory.CreateLogger<TesterService>();
+            _greeter = greeter;
         }
 
         public override Task<HelloReply> SayHelloUnary(HelloRequest request, ServerCallContext context)
         {
-            _logger.LogInformation($"Sending hello to {request.Name}");
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            return Task.FromResult(new HelloReply { Message = _greeter.Greet(request.Name) });
         }
 
         public override async Task SayHelloServerStreaming(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
@@ -44,9 +43,7 @@ namespace Server
             var i = 0;
             while (!context.CancellationToken.IsCancellationRequested)
             {
-                var message = $"How are you {request.Name}? {++i}";
-                _logger.LogInformation($"Sending greeting {message}.");
-
+                var message = _greeter.Greet($"{request.Name} {++i}");
                 await responseStream.WriteAsync(new HelloReply { Message = message });
 
                 // Gotta look busy
@@ -63,14 +60,14 @@ namespace Server
                 names.Add(message.Name);
             }
 
-            return new HelloReply { Message = "Hello " + string.Join(", ", names) };
+            return new HelloReply { Message = _greeter.Greet(string.Join(", ", names)) };
         }
 
         public override async Task SayHelloBidirectionalStreaming(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
         {
             await foreach (var message in requestStream.ReadAllAsync())
             {
-                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
+                await responseStream.WriteAsync(new HelloReply { Message = _greeter.Greet(message.Name) });
             }
         }
     }
