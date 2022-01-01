@@ -21,6 +21,7 @@ using Grpc.Core;
 using Moq;
 using NUnit.Framework;
 using Test;
+using Tests.Client.Helpers;
 
 namespace Tests.Client
 {
@@ -35,7 +36,7 @@ namespace Tests.Client
             var mockClient = new Mock<Tester.TesterClient>();
             mockClient
                 .Setup(m => m.SayHelloUnaryAsync(It.IsAny<HelloRequest>(), null, null, CancellationToken.None))
-                .Returns(CreateAsyncUnaryCall(new HelloReply { Message = "Test message" }));
+                .Returns(CallHelpers.CreateAsyncUnaryCall(new HelloReply { Message = "Test message" }));
 
             var worker = new Worker(mockClient.Object, mockRepository.Object);
 
@@ -54,7 +55,7 @@ namespace Tests.Client
             var mockClient = new Mock<Tester.TesterClient>();
             mockClient
                 .Setup(m => m.SayHelloUnaryAsync(It.IsAny<HelloRequest>(), null, null, CancellationToken.None))
-                .Returns(CreateAsyncUnaryCall<HelloReply>(StatusCode.InvalidArgument));
+                .Returns(CallHelpers.CreateAsyncUnaryCall<HelloReply>(StatusCode.InvalidArgument));
 
             var worker = new Worker(mockClient.Object, mockRepository.Object);
 
@@ -68,27 +69,6 @@ namespace Tests.Client
             {
                 Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             }
-        }
-
-        private AsyncUnaryCall<TResponse> CreateAsyncUnaryCall<TResponse>(TResponse response)
-        {
-            return new AsyncUnaryCall<TResponse>(
-                Task.FromResult(response),
-                Task.FromResult(new Metadata()),
-                () => Status.DefaultSuccess,
-                () => new Metadata(),
-                () => { });
-        }
-
-        private AsyncUnaryCall<TResponse> CreateAsyncUnaryCall<TResponse>(StatusCode statusCode)
-        {
-            var status = new Status(statusCode, string.Empty);
-            return new AsyncUnaryCall<TResponse>(
-                Task.FromException<TResponse>(new RpcException(status)),
-                Task.FromResult(new Metadata()),
-                () => status,
-                () => new Metadata(),
-                () => { });
         }
     }
 }
