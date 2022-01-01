@@ -6,10 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-		<ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
 
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Grpc.Net.ClientFactory" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>
-  
+
 </Project>
