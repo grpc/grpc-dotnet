@@ -278,7 +278,7 @@ namespace Grpc.Net.Client.Internal
 
             GrpcCallLog.CompressingMessage(_call.Logger, _compressionProvider.EncodingName);
 
-            var output = new MemoryStream();
+            var output = new NonDisposableMemoryStream();
 
             // Compression stream must be disposed before its content is read.
             // GZipStream writes final Adler32 at the end of the stream on dispose.

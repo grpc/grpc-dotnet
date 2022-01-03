@@ -23,6 +23,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -213,7 +214,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             GrpcServerLog.CompressingMessage(_serverCallContext.Logger, _compressionProvider.EncodingName);
 
-            var output = new MemoryStream();
+            var output = new NonDisposableMemoryStream();
 
             // Compression stream must be disposed before its content is read.
             // GZipStream writes final Adler32 at the end of the stream on dispose.

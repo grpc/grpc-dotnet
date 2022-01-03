@@ -16,22 +16,24 @@
 
 #endregion
 
+#if NET6_0_OR_GREATER
+using System.IO;
 using System.IO.Compression;
 
 namespace Grpc.Net.Compression
 {
     /// <summary>
-    /// GZIP compression provider.
+    /// Deflate compression provider.
     /// </summary>
-    public sealed class GzipCompressionProvider : ICompressionProvider
+    public sealed class DeflateCompressionProvider : ICompressionProvider
     {
         private readonly CompressionLevel _defaultCompressionLevel;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
+        /// Initializes a new instance of the <see cref="DeflateCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
         /// </summary>
         /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
-        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
+        public DeflateCompressionProvider(CompressionLevel defaultCompressionLevel)
         {
             _defaultCompressionLevel = defaultCompressionLevel;
         }
@@ -39,7 +41,7 @@ namespace Grpc.Net.Compression
         /// <summary>
         /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
         /// </summary>
-        public string EncodingName => "gzip";
+        public string EncodingName => "deflate";
 
         /// <summary>
         /// Create a new compression stream.
@@ -49,7 +51,12 @@ namespace Grpc.Net.Compression
         /// <returns>A stream used to compress data.</returns>
         public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
         {
-            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
+            // As described in RFC 2616, the deflate content-coding is actually
+            // the "zlib" format (RFC 1950) in combination with the "deflate"
+            // compression algrithm (RFC 1951).  So while potentially
+            // counterintuitive based on naming, this needs to use ZLibStream
+            // rather than DeflateStream.
+            return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
         }
 
         /// <summary>
@@ -59,7 +66,13 @@ namespace Grpc.Net.Compression
         /// <returns>A stream used to decompress data.</returns>
         public Stream CreateDecompressionStream(Stream stream)
         {
-            return new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
+            // As described in RFC 2616, the deflate content-coding is actually
+            // the "zlib" format (RFC 1950) in combination with the "deflate"
+            // compression algrithm (RFC 1951).  So while potentially
+            // counterintuitive based on naming, this needs to use ZLibStream
+            // rather than DeflateStream.
+            return new ZLibStream(stream, CompressionMode.Decompress);
         }
     }
 }
+#endif
