@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />
+    <Compile Include="..\Shared\NonDisposableMemoryStream.cs" Link="Internal\NonDisposableMemoryStream.cs" />
     <Compile Include="..\Shared\DefaultDeserializationContext.cs" Link="Internal\DefaultDeserializationContext.cs" />
     <Compile Include="..\Shared\Server\BindMethodFinder.cs" Link="Model\Internal\BindMethodFinder.cs" />
     <Compile Include="..\Shared\Server\ClientStreamingServerMethodInvoker.cs" Link="Model\Internal\ClientStreamingServerMethodInvoker.cs" />
