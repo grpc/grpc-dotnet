@@ -109,7 +109,7 @@ namespace Grpc.Net.Client
                         buffer = ArrayPool<byte>.Shared.Rent(length);
                     }
 
-                    await ReadMessageContent(responseStream, buffer, length, cancellationToken).ConfigureAwait(false);
+                    await ReadMessageContentAsync(responseStream, buffer, length, cancellationToken).ConfigureAwait(false);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -160,6 +160,16 @@ namespace Grpc.Net.Client
 
                 GrpcCallLog.ReceivedMessage(call.Logger);
                 return message;
+            }
+            catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+            {
+                // When a deadline expires there can be a race between cancellation and Stream.ReadAsync.
+                // If ReadAsync is called after the response is disposed then ReadAsync throws ObjectDisposedException.
+                // https://github.com/dotnet/runtime/blob/dfbae37e91c4744822018dde10cbd414c661c0b8/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/Http2Stream.cs#L1479-L1482
+                //
+                // If ObjectDisposedException is caught and cancellation has happened then rethrow as an OCE.
+                // This makes gRPC client correctly report a DeadlineExceeded status.
+                throw new OperationCanceledException();
             }
             catch (Exception ex) when (!(ex is OperationCanceledException && cancellationToken.IsCancellationRequested))
             {
@@ -216,7 +226,7 @@ namespace Grpc.Net.Client
             return (int)length;
         }
 
-        private static async Task ReadMessageContent(Stream responseStream, Memory<byte> messageData, int length, CancellationToken cancellationToken)
+        private static async Task ReadMessageContentAsync(Stream responseStream, Memory<byte> messageData, int length, CancellationToken cancellationToken)
         {
             // Read message content until content length is reached
             var received = 0;
