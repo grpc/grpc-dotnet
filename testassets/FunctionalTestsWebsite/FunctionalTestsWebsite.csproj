@@ -29,6 +29,8 @@
     <Protobuf Include="..\Proto\echo.proto" Link="Protos\echo.proto" />
     <Protobuf Include="..\Proto\issue.proto" Link="Protos\issue.proto" />
     <Protobuf Include="..\Proto\test.proto" Link="Protos\test.proto" />
+
+	<Compile Include="..\..\test\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
   </ItemGroup>
   
 </Project>

@@ -16,12 +16,14 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.Server.Model;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
@@ -130,6 +132,33 @@ namespace FunctionalTestsWebsite
                 }
 
                 await next();
+            });
+
+            app.Use(async (context, next) =>
+            {
+                // Allow a call to specify activity tags are returned as trailers.
+                if (context.Request.Headers.TryGetValue("return-tags-trailers", out var value) &&
+                    bool.TryParse(value.ToString(), out var remove) && remove)
+                {
+                    logger.LogInformation("Replacing activity.");
+
+                    // Replace the activity to check that tags are added to the host activity.
+                    using (new ActivityReplacer("GrpcFunctionalTests"))
+                    {
+                        await next();
+                    }
+
+                    logger.LogInformation("Adding tags to trailers.");
+
+                    foreach (var tag in Activity.Current!.Tags)
+                    {
+                        context.Response.AppendTrailer(tag.Key, tag.Value);
+                    }
+                }
+                else
+                {
+                    await next();
+                }
             });
 
             app.UseRouting();
