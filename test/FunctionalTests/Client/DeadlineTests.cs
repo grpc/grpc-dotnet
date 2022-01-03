@@ -16,8 +16,10 @@
 
 #endregion
 
+using System.Net;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http.Features;
 using NUnit.Framework;
@@ -154,6 +156,155 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
                 Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
                 Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+            }
+        }
+
+        [Test]
+        public async Task Unary_DeadlineInBetweenReadAsyncCalls_DeadlineExceededStatus()
+        {
+            Task<DataMessage> Unary(DataMessage request, ServerCallContext context)
+            {
+                return Task.FromResult(new DataMessage());
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(Unary);
+
+            var http = Fixture.CreateHandler(TestServerEndpointName.Http2);
+
+            var channel = GrpcChannel.ForAddress(http.address, new GrpcChannelOptions
+            {
+                LoggerFactory = LoggerFactory,
+                HttpHandler = new PauseHttpHandler { InnerHandler = http.handler }
+            });
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.UnaryCall(new DataMessage(), new CallOptions(deadline: DateTime.UtcNow.AddMilliseconds(200)));
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+            Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+        }
+
+        private class PauseHttpHandler : DelegatingHandler
+        {
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                var response = await base.SendAsync(request, cancellationToken);
+
+                var newHttpContent = new PauseHttpContent(response.Content);
+                newHttpContent.Headers.ContentType = response.Content.Headers.ContentType;
+
+                response.Content = newHttpContent;
+
+                return response;
+            }
+
+            private class PauseHttpContent : HttpContent
+            {
+                private readonly HttpContent _inner;
+                private Stream? _innerStream;
+
+                public PauseHttpContent(HttpContent inner)
+                {
+                    _inner = inner;
+                }
+
+                protected override async Task<Stream> CreateContentReadStreamAsync()
+                {
+                    var stream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+
+                    return new PauseStream(stream);
+                }
+
+                protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+                {
+                    _innerStream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+
+                    _innerStream = new PauseStream(_innerStream);
+
+                    await _innerStream.CopyToAsync(stream).ConfigureAwait(false);
+                }
+
+                protected override bool TryComputeLength(out long length)
+                {
+                    length = 0;
+                    return false;
+                }
+
+                protected override void Dispose(bool disposing)
+                {
+                    if (disposing)
+                    {
+                        // This is important. Disposing original response content will cancel the gRPC call.
+                        _inner.Dispose();
+                        _innerStream?.Dispose();
+                    }
+
+                    base.Dispose(disposing);
+                }
+
+                private class PauseStream : Stream
+                {
+                    private Stream _stream;
+
+                    public PauseStream(Stream stream)
+                    {
+                        _stream = stream;
+                    }
+
+                    public override bool CanRead => _stream.CanRead;
+                    public override bool CanSeek => _stream.CanSeek;
+                    public override bool CanWrite => _stream.CanWrite;
+                    public override long Length => _stream.Length;
+                    public override long Position
+                    {
+                        get => _stream.Position;
+                        set => _stream.Position = value;
+                    }
+
+                    public override void Flush()
+                    {
+                        _stream.Flush();
+                    }
+
+                    public override int Read(byte[] buffer, int offset, int count)
+                    {
+                        return _stream.Read(buffer, offset, count);
+                    }
+
+                    public override long Seek(long offset, SeekOrigin origin)
+                    {
+                        return _stream.Seek(offset, origin);
+                    }
+
+                    public override void SetLength(long value)
+                    {
+                        _stream.SetLength(value);
+                    }
+
+                    public override void Write(byte[] buffer, int offset, int count)
+                    {
+                        _stream.Write(buffer, offset, count);
+                    }
+
+                    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+                    {
+                        // Wait for call to be canceled.
+                        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        cancellationToken.Register(() => tcs.SetResult(null));
+                        await tcs.Task;
+
+                        // Wait a little longer to give time for HttpResponseMessage dispose to complete.
+                        await Task.Delay(50);
+
+                        // Still try to read data from canceled request.
+                        return await _stream.ReadAsync(buffer, cancellationToken);
+                    }
+                }
             }
         }
     }
