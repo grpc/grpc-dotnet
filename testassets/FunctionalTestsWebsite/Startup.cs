@@ -136,7 +136,7 @@ namespace FunctionalTestsWebsite
 
             app.Use(async (context, next) =>
             {
-                // Allow a call to specify a activity tags are returned as trailers.
+                // Allow a call to specify activity tags are returned as trailers.
                 if (context.Request.Headers.TryGetValue("return-tags-trailers", out var value) &&
                     bool.TryParse(value.ToString(), out var remove) && remove)
                 {
