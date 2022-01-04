@@ -48,7 +48,6 @@ namespace Tests.Server.IntegrationTests.Helpers
             var builder = new HostBuilder()
                 .ConfigureServices(services =>
                 {
-                    initialConfigureServices?.Invoke(services);
                     services.AddSingleton<ILoggerFactory>(LoggerFactory);
                 })
                 .ConfigureWebHostDefaults(webHost =>
@@ -56,6 +55,11 @@ namespace Tests.Server.IntegrationTests.Helpers
                     webHost
                         .UseTestServer()
                         .UseStartup<TStartup>();
+
+                    if (initialConfigureServices != null)
+                    {
+                        webHost.ConfigureServices(initialConfigureServices);
+                    }
                 });
             _host = builder.Start();
             _server = _host.GetTestServer();

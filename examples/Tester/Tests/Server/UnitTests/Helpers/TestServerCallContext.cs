@@ -30,6 +30,7 @@ namespace Tests.Server.UnitTests.Helpers
         private readonly CancellationToken _cancellationToken;
         private readonly Metadata _responseTrailers;
         private readonly AuthContext _authContext;
+        private readonly Dictionary<object, object> _userState;
         private WriteOptions? _writeOptions;
         
         public Metadata? ResponseHeaders { get; private set; }
@@ -40,6 +41,7 @@ namespace Tests.Server.UnitTests.Helpers
             _cancellationToken = cancellationToken;
             _responseTrailers = new Metadata();
             _authContext = new AuthContext(string.Empty, new Dictionary<string, List<AuthProperty>>());
+            _userState = new Dictionary<object, object>();
         }
 
         protected override string MethodCore => "MethodName";
@@ -68,6 +70,8 @@ namespace Tests.Server.UnitTests.Helpers
             ResponseHeaders = responseHeaders;
             return Task.CompletedTask;
         }
+
+        protected override IDictionary<object, object> UserStateCore => _userState;
 
         public static TestServerCallContext Create(Metadata? requestHeaders = null, CancellationToken cancellationToken = default)
         {
