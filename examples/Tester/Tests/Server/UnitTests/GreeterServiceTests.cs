@@ -20,26 +20,29 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using NUnit.Framework;
 using Server;
 using Test;
-using Tests.UnitTests.Helpers;
+using Tests.Server.UnitTests.Helpers;
 
-namespace Tests.UnitTests
+namespace Tests.Server.UnitTests
 {
     [TestFixture]
-    public class GreeterServiceTests
+    public class WorkerTests
     {
         [Test]
         public async Task SayHelloUnaryTest()
         {
             // Arrange
-            var service = new TesterService(NullLoggerFactory.Instance);
+            var mockGreeter = CreateGreeterMock();
+            var service = new TesterService(mockGreeter.Object);
 
             // Act
             var response = await service.SayHelloUnary(new HelloRequest { Name = "Joe" }, TestServerCallContext.Create());
 
             // Assert
+            mockGreeter.Verify(v => v.Greet("Joe"));
             Assert.AreEqual("Hello Joe", response.Message);
         }
 
@@ -47,7 +50,7 @@ namespace Tests.UnitTests
         public async Task SayHelloServerStreamingTest()
         {
             // Arrange
-            var service = new TesterService(NullLoggerFactory.Instance);
+            var service = new TesterService(CreateGreeterMock().Object);
 
             var cts = new CancellationTokenSource();
             var callContext = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -72,14 +75,14 @@ namespace Tests.UnitTests
 
             Assert.GreaterOrEqual(allMessages.Count, 1);
 
-            Assert.AreEqual("How are you Joe? 1", allMessages[0].Message);
+            Assert.AreEqual("Hello Joe 1", allMessages[0].Message);
         }
 
         [Test]
         public async Task SayHelloClientStreamingTest()
         {
             // Arrange
-            var service = new TesterService(NullLoggerFactory.Instance);
+            var service = new TesterService(CreateGreeterMock().Object);
 
             var callContext = TestServerCallContext.Create();
             var requestStream = new TestAsyncStreamReader<HelloRequest>(callContext);
@@ -101,7 +104,7 @@ namespace Tests.UnitTests
         public async Task SayHelloBidirectionStreamingTest()
         {
             // Arrange
-            var service = new TesterService(NullLoggerFactory.Instance);
+            var service = new TesterService(CreateGreeterMock().Object);
 
             var callContext = TestServerCallContext.Create();
             var requestStream = new TestAsyncStreamReader<HelloRequest>(callContext);
@@ -126,6 +129,13 @@ namespace Tests.UnitTests
             responseStream.Complete();
 
             Assert.IsNull(await responseStream.ReadNextAsync());
+        }
+
+        private static Mock<IGreeter> CreateGreeterMock()
+        {
+            var mockGreeter = new Mock<IGreeter>();
+            mockGreeter.Setup(m => m.Greet(It.IsAny<string>())).Returns((string s) => $"Hello {s}");
+            return mockGreeter;
         }
     }
 }

@@ -19,7 +19,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.Server.IntegrationTests.Helpers
 {
     internal class ForwardingLoggerProvider : ILoggerProvider
     {

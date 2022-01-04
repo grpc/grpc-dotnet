@@ -16,61 +16,63 @@
 
 #endregion
 
-using System.Threading.Tasks;
-using Test;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
+using Test;
 
 namespace Server
 {
     public class TesterService : Tester.TesterBase
     {
-        private readonly ILogger _logger;
+        private readonly IGreeter _greeter;
 
-        public TesterService(ILoggerFactory loggerFactory)
+        public TesterService(IGreeter greeter)
         {
-            _logger = loggerFactory.CreateLogger<TesterService>();
+            _greeter = greeter;
         }
 
-        public override Task<HelloReply> SayHelloUnary(HelloRequest request, ServerCallContext context)
+        public override Task<HelloReply> SayHelloUnary(HelloRequest request,
+            ServerCallContext context)
         {
-            _logger.LogInformation($"Sending hello to {request.Name}");
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            var message = _greeter.Greet(request.Name);
+            return Task.FromResult(new HelloReply { Message = message });
         }
 
-        public override async Task SayHelloServerStreaming(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        public override async Task SayHelloServerStreaming(HelloRequest request,
+            IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
         {
             var i = 0;
             while (!context.CancellationToken.IsCancellationRequested)
             {
-                var message = $"How are you {request.Name}? {++i}";
-                _logger.LogInformation($"Sending greeting {message}.");
-
+                var message = _greeter.Greet($"{request.Name} {++i}");
                 await responseStream.WriteAsync(new HelloReply { Message = message });
 
-                // Gotta look busy
                 await Task.Delay(1000);
             }
         }
 
-        public override async Task<HelloReply> SayHelloClientStreaming(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
+        public override async Task<HelloReply> SayHelloClientStreaming(
+            IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
         {
             var names = new List<string>();
 
-            await foreach (var message in requestStream.ReadAllAsync())
+            await foreach (var request in requestStream.ReadAllAsync())
             {
-                names.Add(message.Name);
+                names.Add(request.Name);
             }
 
-            return new HelloReply { Message = "Hello " + string.Join(", ", names) };
+            var message = _greeter.Greet(string.Join(", ", names));
+            return new HelloReply { Message = message };
         }
 
-        public override async Task SayHelloBidirectionalStreaming(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        public override async Task SayHelloBidirectionalStreaming(
+            IAsyncStreamReader<HelloRequest> requestStream,
+            IServerStreamWriter<HelloReply> responseStream,
+            ServerCallContext context)
         {
-            await foreach (var message in requestStream.ReadAllAsync())
+            await foreach (var request in requestStream.ReadAllAsync())
             {
-                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
+                await responseStream.WriteAsync(
+                    new HelloReply { Message = _greeter.Greet(request.Name) });
             }
         }
     }

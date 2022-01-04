@@ -16,34 +16,22 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Server
 {
-    public class Startup
+    public class Greeter : IGreeter
     {
-        public void ConfigureServices(IServiceCollection services)
+        private readonly ILogger<Greeter> _logger;
+
+        public Greeter(ILoggerFactory loggerFactory)
         {
-            services.AddGrpc();
-            services.AddSingleton<IGreeter, Greeter>();
+            _logger = loggerFactory.CreateLogger<Greeter>();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public string Greet(string name)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseRouting();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapGrpcService<TesterService>();
-            });
+            _logger.LogInformation($"Creating greeting to {name}");
+            return $"Hello {name}";
         }
     }
 }
