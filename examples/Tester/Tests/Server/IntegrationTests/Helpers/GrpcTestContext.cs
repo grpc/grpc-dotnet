@@ -21,7 +21,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.Server.IntegrationTests.Helpers
 {
     internal class GrpcTestContext<TStartup> : IDisposable where TStartup : class
     {

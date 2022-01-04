@@ -16,21 +16,21 @@
 
 #endregion
 
-using System;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using Tests.FunctionalTests.Helpers;
+using Server;
+using Tests.Server.IntegrationTests.Helpers;
 
-namespace Tests.FunctionalTests
+namespace Tests.Server.IntegrationTests
 {
-    public class FunctionalTestBase
+    public class IntegrationTestBase
     {
         private GrpcChannel? _channel;
         private IDisposable? _testContext;
 
-        protected GrpcTestFixture<Server.Startup> Fixture { get; private set; } = default!;
+        protected GrpcTestFixture<Startup> Fixture { get; private set; } = default!;
 
         protected ILoggerFactory LoggerFactory => Fixture.LoggerFactory;
 
@@ -52,7 +52,7 @@ namespace Tests.FunctionalTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            Fixture = new GrpcTestFixture<Server.Startup>(ConfigureServices);
+            Fixture = new GrpcTestFixture<Startup>(ConfigureServices);
         }
 
         [OneTimeTearDown]

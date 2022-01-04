@@ -24,7 +24,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.Server.IntegrationTests.Helpers
 {
     public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception? exception);
 
@@ -48,7 +48,6 @@ namespace Tests.FunctionalTests.Helpers
             var builder = new HostBuilder()
                 .ConfigureServices(services =>
                 {
-                    initialConfigureServices?.Invoke(services);
                     services.AddSingleton<ILoggerFactory>(LoggerFactory);
                 })
                 .ConfigureWebHostDefaults(webHost =>
@@ -56,6 +55,11 @@ namespace Tests.FunctionalTests.Helpers
                     webHost
                         .UseTestServer()
                         .UseStartup<TStartup>();
+
+                    if (initialConfigureServices != null)
+                    {
+                        webHost.ConfigureServices(initialConfigureServices);
+                    }
                 });
             _host = builder.Start();
             _server = _host.GetTestServer();

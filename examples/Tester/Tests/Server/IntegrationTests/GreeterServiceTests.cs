@@ -23,10 +23,10 @@ using Grpc.Core;
 using NUnit.Framework;
 using Test;
 
-namespace Tests.FunctionalTests
+namespace Tests.Server.IntegrationTests
 {
     [TestFixture]
-    public class GreeterServiceTests : FunctionalTestBase
+    public class GreeterServiceTests : IntegrationTestBase
     {
         [Test]
         public async Task SayHelloUnaryTest()
