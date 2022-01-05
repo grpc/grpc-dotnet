@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Configuration;
@@ -42,7 +43,7 @@ namespace Frontend.Balancer
 
         public override Resolver Create(ResolverOptions options)
         {
-            return new ConfigurableResolver(_innerResolverFactory.Create(options), _balancerConfiguration);
+            return new ConfigurableResolver(options.LoggerFactory, _innerResolverFactory.Create(options), _balancerConfiguration);
         }
 
         private class ConfigurableResolver : Resolver
@@ -51,9 +52,9 @@ namespace Frontend.Balancer
             private readonly BalancerConfiguration _balancerConfiguration;
 
             private ResolverResult? _lastResult;
-            private Action<ResolverResult>? _listener;
 
-            public ConfigurableResolver(Resolver innerResolver, BalancerConfiguration balancerConfiguration)
+            public ConfigurableResolver(ILoggerFactory loggerFactory, Resolver innerResolver, BalancerConfiguration balancerConfiguration)
+                : base(loggerFactory)
             {
                 _innerResolver = innerResolver;
                 _balancerConfiguration = balancerConfiguration;
@@ -63,29 +64,29 @@ namespace Frontend.Balancer
             private void OnConfigurationUpdated(object? sender, EventArgs e)
             {
                 // Can't just call RefreshAsync and get new results because of rate limiting.
-                if (_listener != null && _lastResult != null)
+                if (Listener != null && _lastResult != null)
                 {
-                    RaiseResult(_listener, _lastResult);
+                    RaiseResult(_lastResult);
                 }
             }
 
-            public override Task RefreshAsync(CancellationToken cancellationToken)
+            protected override Task ResolveAsync(CancellationToken cancellationToken)
             {
-                return _innerResolver.RefreshAsync(cancellationToken);
+                _innerResolver.Refresh();
+                return Task.CompletedTask;
             }
 
-            public override void Start(Action<ResolverResult> listener)
+            protected override void OnStarted()
             {
-                _listener = listener;
                 _innerResolver.Start(result =>
                 {
                     _lastResult = result;
 
-                    RaiseResult(_listener, result);
+                    RaiseResult(result);
                 });
             }
 
-            private void RaiseResult(Action<ResolverResult> listener, ResolverResult result)
+            private void RaiseResult(ResolverResult result)
             {
                 if (result.Addresses != null)
                 {
@@ -103,12 +104,12 @@ namespace Frontend.Balancer
 
                     // DNS results change order between refreshes.
                     // Explicitly order by host to keep result order consistent.
-                    var orderedAddresses = result.Addresses!.OrderBy(a => a.EndPoint.Host).ToList();
-                    listener(ResolverResult.ForResult(orderedAddresses, serviceConfig));
+                    var orderedAddresses = result.Addresses.OrderBy(a => a.EndPoint.Host).ToList();
+                    Listener(ResolverResult.ForResult(orderedAddresses, serviceConfig, Status.DefaultSuccess));
                 }
                 else
                 {
-                    listener(ResolverResult.ForFailure(result.Status));
+                    Listener(ResolverResult.ForFailure(result.Status));
                 }
             }
         }

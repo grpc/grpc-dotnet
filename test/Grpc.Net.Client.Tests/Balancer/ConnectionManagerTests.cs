@@ -53,7 +53,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var serviceProvider = services.BuildServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-            var resolver = new TestResolver();
+            var resolver = new TestResolver(loggerFactory);
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
                 new BalancerAddress("localhost", 80)
@@ -112,7 +112,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var serviceProvider = services.BuildServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-            var resolver = new TestResolver();
+            var resolver = new TestResolver(loggerFactory);
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
                 new BalancerAddress("localhost", 80)
@@ -152,11 +152,9 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             var services = new ServiceCollection();
             services.AddNUnitLogger();
-
-            var resolver = new TestResolver();
+            services.AddSingleton<TestResolver>();
+            services.AddSingleton<ResolverFactory, TestResolverFactory>();
             DropLoadBalancer? loadBalancer = null;
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<LoadBalancerFactory>(new DropLoadBalancerFactory(c =>
             {
                 loadBalancer = new DropLoadBalancer(c);
@@ -216,11 +214,9 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             var services = new ServiceCollection();
             services.AddNUnitLogger();
-
-            var resolver = new TestResolver();
+            services.AddSingleton<TestResolver>();
+            services.AddSingleton<ResolverFactory, TestResolverFactory>();
             DropLoadBalancer? loadBalancer = null;
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<LoadBalancerFactory>(new DropLoadBalancerFactory(c =>
             {
                 loadBalancer = new DropLoadBalancer(c);
@@ -271,7 +267,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             var testLogger = loggerFactory.CreateLogger(GetType());
 
-            var resolver = new TestResolver();
+            var resolver = new TestResolver(loggerFactory);
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
                 new BalancerAddress("localhost", 80)
