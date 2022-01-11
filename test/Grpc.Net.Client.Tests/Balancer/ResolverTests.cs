@@ -81,7 +81,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var resolver = new TestResolver(() => tcs.Task);
+            var resolver = new TestResolver(NullLoggerFactory.Instance, () => tcs.Task);
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
                 new BalancerAddress("localhost", 80)
@@ -146,7 +146,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var resolver = new TestResolver(() => tcs.Task);
+            var resolver = new TestResolver(NullLoggerFactory.Instance, () => tcs.Task);
             var result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 80) }, resolvedServiceConfig, serviceConfigStatus: null);
             resolver.UpdateResult(result);
 
@@ -199,7 +199,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var resolver = new TestResolver(() => tcs.Task);
+            var resolver = new TestResolver(NullLoggerFactory.Instance, () => tcs.Task);
             var result = ResolverResult.ForResult(new List<BalancerAddress> { new BalancerAddress("localhost", 80) }, serviceConfig: null, serviceConfigStatus: null);
             resolver.UpdateResult(result);
 

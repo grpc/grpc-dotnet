@@ -301,7 +301,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
             syncPoint.Continue();
 
-            var resolver = new TestResolver(async () =>
+            var resolver = new TestResolver(LoggerFactory, async () =>
             {
                 await syncPoint.WaitToContinue().DefaultTimeout();
                 syncPoint = new SyncPoint(runContinuationsAsynchronously: true);

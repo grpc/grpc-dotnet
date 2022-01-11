@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Balancer
             for (var i = 0; i < addressSubchannels.Count; i++)
             {
                 var s = addressSubchannels[i];
-                if (Equals(s.Address, address))
+                if (Equals(s.Address.EndPoint, address.EndPoint))
                 {
                     return i;
                 }

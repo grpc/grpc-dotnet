@@ -52,16 +52,15 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var services = new ServiceCollection();
-
-            var resolver = new TestResolver();
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<TestResolver>();
+            services.AddSingleton<ResolverFactory, TestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+            var serviceProvider = services.BuildServiceProvider();
 
             var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
             {
                 o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
+                o.ServiceProvider = serviceProvider;
             });
 
             // Act
@@ -72,6 +71,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.IsFalse(responseTask.IsCompleted);
             Assert.IsNull(authority);
 
+            var resolver = serviceProvider.GetRequiredService<TestResolver>();
             resolver.UpdateAddresses(new List<BalancerAddress>
             {
                 new BalancerAddress("localhost", 81)
@@ -93,8 +93,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var services = new ServiceCollection();
-            var resolver = new TestResolver();
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<TestResolver>();
+            services.AddSingleton<ResolverFactory, TestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
 
             var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
@@ -125,8 +125,8 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var services = new ServiceCollection();
-            var resolver = new TestResolver();
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<TestResolver>();
+            services.AddSingleton<ResolverFactory, TestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
 
             var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>

@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.Tests.Shared
@@ -37,7 +38,11 @@ namespace Grpc.Tests.Shared
 
         public Task HasResolvedTask => _hasResolvedTcs.Task;
 
-        public TestResolver(Func<Task>? onRefreshAsync = null) : base(NullLoggerFactory.Instance)
+        public TestResolver(ILoggerFactory loggerFactory) : this(loggerFactory, null)
+        {
+        }
+
+        public TestResolver(ILoggerFactory? loggerFactory = null, Func<Task>? onRefreshAsync = null) : base(loggerFactory ?? NullLoggerFactory.Instance)
         {
             _onRefreshAsync = onRefreshAsync;
             _hasResolvedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
