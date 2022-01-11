@@ -165,8 +165,8 @@ namespace Grpc.Net.Client.Balancer
                     default:
                         throw new ArgumentOutOfRangeException("state", _state, "Unexpected state.");
                 }
-
             }
+
             if (requireReconnect)
             {
                 _connectCts?.Cancel();

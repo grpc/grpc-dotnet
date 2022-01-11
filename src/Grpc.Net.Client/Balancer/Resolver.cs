@@ -98,7 +98,7 @@ namespace Grpc.Net.Client.Balancer
 
             _listener = (result) =>
             {
-                Log.ResolverResult(_logger, result.Status.StatusCode, result.Addresses?.Count ?? 0);
+                Log.ResolverResult(_logger, GetType(), result.Status.StatusCode, result.Addresses?.Count ?? 0);
                 listener(result);
             };
 
@@ -131,7 +131,7 @@ namespace Grpc.Net.Client.Balancer
 
             lock (_lock)
             {
-                Log.ResolverRefreshRequested(_logger);
+                Log.ResolverRefreshRequested(_logger, GetType());
 
                 if (_resolveTask.IsCompleted)
                 {
@@ -139,7 +139,7 @@ namespace Grpc.Net.Client.Balancer
                 }
                 else
                 {
-                    Log.ResolverRefreshIgnored(_logger);
+                    Log.ResolverRefreshIgnored(_logger, GetType());
                 }
             }
         }
@@ -156,7 +156,7 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (Exception ex)
             {
-                Log.ResolverRefreshError(_logger, ex);
+                Log.ResolverRefreshError(_logger, GetType(), ex);
 
                 var status = GrpcProtocolHelpers.CreateStatusFromException("Error refreshing resolver.", ex);
                 Listener(ResolverResult.ForFailure(status));
@@ -203,36 +203,36 @@ namespace Grpc.Net.Client.Balancer
 
         internal static class Log
         {
-            private static readonly Action<ILogger, Exception?> _resolverRefreshRequested =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(1, "ResolverRefreshRequested"), "Resolver refresh requested.");
+            private static readonly Action<ILogger, string, Exception?> _resolverRefreshRequested =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(1, "ResolverRefreshRequested"), "{ResolveType} refresh requested.");
 
-            private static readonly Action<ILogger, Exception?> _resolverRefreshIgnored =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(2, "ResolverRefreshIgnored"), "Resolver refresh ignored because resolve is already in progress.");
+            private static readonly Action<ILogger, string, Exception?> _resolverRefreshIgnored =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "ResolverRefreshIgnored"), "{ResolveType} refresh ignored because resolve is already in progress.");
 
-            private static readonly Action<ILogger, Exception?> _resolverRefreshError =
-                LoggerMessage.Define(LogLevel.Error, new EventId(3, "ResolverRefreshError"), "Error refreshing resolver.");
+            private static readonly Action<ILogger, string, Exception?> _resolverRefreshError =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ResolverRefreshError"), "Error refreshing {ResolveType}.");
 
-            private static readonly Action<ILogger, StatusCode, int, Exception?> _resolverResult =
-                LoggerMessage.Define<StatusCode, int>(LogLevel.Trace, new EventId(4, "ResolverResult"), "Resolver result with status code '{StatusCode}' and {AddressCount} addresses.");
+            private static readonly Action<ILogger, string, StatusCode, int, Exception?> _resolverResult =
+                LoggerMessage.Define<string, StatusCode, int>(LogLevel.Trace, new EventId(4, "ResolverResult"), "{ResolveType} result with status code '{StatusCode}' and {AddressCount} addresses.");
 
-            public static void ResolverRefreshRequested(ILogger logger)
+            public static void ResolverRefreshRequested(ILogger logger, Type resolverType)
             {
-                _resolverRefreshRequested(logger, null);
+                _resolverRefreshRequested(logger, resolverType.Name, null);
             }
 
-            public static void ResolverRefreshIgnored(ILogger logger)
+            public static void ResolverRefreshIgnored(ILogger logger, Type resolverType)
             {
-                _resolverRefreshIgnored(logger, null);
+                _resolverRefreshIgnored(logger, resolverType.Name, null);
             }
 
-            public static void ResolverRefreshError(ILogger logger, Exception ex)
+            public static void ResolverRefreshError(ILogger logger, Type resolverType, Exception ex)
             {
-                _resolverRefreshError(logger, ex);
+                _resolverRefreshError(logger, resolverType.Name, ex);
             }
 
-            public static void ResolverResult(ILogger logger, StatusCode statusCode, int addressCount)
+            public static void ResolverResult(ILogger logger, Type resolverType, StatusCode statusCode, int addressCount)
             {
-                _resolverResult(logger, statusCode, addressCount, null);
+                _resolverResult(logger, resolverType.Name, statusCode, addressCount, null);
             }
         }
     }
