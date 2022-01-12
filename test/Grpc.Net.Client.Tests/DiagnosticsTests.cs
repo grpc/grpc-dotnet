@@ -97,6 +97,9 @@ namespace Grpc.Net.Client.Tests
             Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[1].Key);
             Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
             Assert.AreEqual(responseMessage, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
+
+            Type_Should_Not_Be_GenericType(result[0].Value!.GetType());
+            Type_Should_Not_Be_GenericType(result[1].Value!.GetType());
         }
 
         [Test]
@@ -141,6 +144,21 @@ namespace Grpc.Net.Client.Tests
             var type = dataitem.GetType();
             T itemvalue = (T)type.GetProperty(itemkey)!.GetValue(dataitem, null)!;
             return itemvalue;
+        }
+
+        private static void Type_Should_Not_Be_GenericType(Type datatype)
+        {
+            Assert.IsFalse(datatype.IsGenericType);
+
+            if (datatype.BaseType != null)
+            {
+                Type_Should_Not_Be_GenericType(datatype.BaseType);
+            }
+
+            if (datatype.DeclaringType != null)
+            {
+                Type_Should_Not_Be_GenericType(datatype.DeclaringType);
+            }
         }
 
         internal class ActionObserver<T> : IObserver<T>
@@ -204,7 +222,7 @@ namespace Grpc.Net.Client.Tests
 
             private readonly List<T> _output;
             private readonly Predicate<T>? _filter;
-            private readonly string? _name;  // for debugging 
+            private readonly string? _name;  // for debugging
             #endregion
         }
     }
