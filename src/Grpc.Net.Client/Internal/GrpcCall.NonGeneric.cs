@@ -182,5 +182,46 @@ namespace Grpc.Net.Client.Internal
                     return StatusCode.Unknown;
             }
         }
+
+        protected internal sealed class ActivityStartData
+        {
+#if NET5_0_OR_GREATER
+            // Common properties. Properties not in this list could be trimmed.
+            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+#endif
+            internal ActivityStartData(HttpRequestMessage request)
+            {
+                Request = request;
+            }
+
+            public HttpRequestMessage Request { get; }
+
+            public override string ToString() => $"{{ {nameof(Request)} = {Request} }}";
+        }
+
+        protected internal sealed class ActivityStopData
+        {
+#if NET5_0_OR_GREATER
+            // Common properties. Properties not in this list could be trimmed.
+            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+            [DynamicDependency(nameof(HttpResponseMessage.StatusCode), typeof(HttpResponseMessage))]
+#endif
+            internal ActivityStopData(HttpResponseMessage? response, HttpRequestMessage request)
+            {
+                Response = response;
+                Request = request;
+            }
+
+            public HttpResponseMessage? Response { get; }
+            public HttpRequestMessage Request { get; }
+
+            public override string ToString() => $"{{ {nameof(Response)} = {Response}, {nameof(Request)} = {Request} }}";
+        }
     }
 }
