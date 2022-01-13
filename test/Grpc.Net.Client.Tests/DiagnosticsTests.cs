@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using Google.Protobuf;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -83,23 +84,59 @@ namespace Grpc.Net.Client.Tests
 
             var result = new List<KeyValuePair<string, object?>>();
 
+            var dataMessageMarshaller = new Marshaller<DataMessage>(m => m.ToByteArray(), data => DataMessage.Parser.ParseFrom(data));
+            var dataMessageMethod = ClientTestHelpers.GetServiceMethod<DataMessage, DataMessage>(
+                MethodType.DuplexStreaming,
+                dataMessageMarshaller,
+                dataMessageMarshaller);
+
             // Act
+            HttpRequestMessage? requestMessage1 = null;
+            HttpResponseMessage? responseMessage1 = null;
+            HttpRequestMessage? requestMessage2 = null;
+            HttpResponseMessage? responseMessage2 = null;
+
             using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object?>>(result)))
             {
-                var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-                c.Dispose();
+                var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+                c1.Dispose();
+
+                requestMessage1 = requestMessage;
+                responseMessage1 = responseMessage;
+
+                var c2 = invoker.AsyncDuplexStreamingCall<DataMessage, DataMessage>(dataMessageMethod, string.Empty, new CallOptions());
+                c2.Dispose();
+
+                requestMessage2 = requestMessage;
+                responseMessage2 = responseMessage;
             }
 
             // Assert
-            Assert.AreEqual(2, result.Count);
-            Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[0].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value!, "Request"));
-            Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[1].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
-            Assert.AreEqual(responseMessage, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
+            Assert.AreEqual(4, result.Count);
 
-            Type_Should_Not_Be_GenericType(result[0].Value!.GetType());
-            Type_Should_Not_Be_GenericType(result[1].Value!.GetType());
+            // First call
+            Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[0].Key);
+            Assert.AreEqual(requestMessage1, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value!, "Request"));
+            Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[1].Key);
+            Assert.AreEqual(requestMessage1, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
+            Assert.AreEqual(responseMessage1, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
+
+            // Second call
+            Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[2].Key);
+            Assert.AreEqual(requestMessage2, GetValueFromAnonymousType<HttpRequestMessage>(result[2].Value!, "Request"));
+            Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[3].Key);
+            Assert.AreEqual(requestMessage2, GetValueFromAnonymousType<HttpRequestMessage>(result[3].Value!, "Request"));
+            Assert.AreEqual(responseMessage2, GetValueFromAnonymousType<HttpResponseMessage>(result[3].Value!, "Response"));
+
+            // Check types are expected
+            Assert.AreEqual(typeof(GrpcCall.ActivityStartData), result[0].Value!.GetType());
+            Assert.AreEqual(typeof(GrpcCall.ActivityStopData), result[1].Value!.GetType());
+            Assert.AreEqual(result[0].Value!.GetType(), result[2].Value!.GetType());
+            Assert.AreEqual(result[1].Value!.GetType(), result[3].Value!.GetType());
+
+            // Check values are unique for each call
+            Assert.AreNotEqual(result[0].Value, result[2].Value);
+            Assert.AreNotEqual(result[1].Value, result[3].Value);
         }
 
         [Test]
@@ -144,21 +181,6 @@ namespace Grpc.Net.Client.Tests
             var type = dataitem.GetType();
             T itemvalue = (T)type.GetProperty(itemkey)!.GetValue(dataitem, null)!;
             return itemvalue;
-        }
-
-        private static void Type_Should_Not_Be_GenericType(Type datatype)
-        {
-            Assert.IsFalse(datatype.IsGenericType);
-
-            if (datatype.BaseType != null)
-            {
-                Type_Should_Not_Be_GenericType(datatype.BaseType);
-            }
-
-            if (datatype.DeclaringType != null)
-            {
-                Type_Should_Not_Be_GenericType(datatype.DeclaringType);
-            }
         }
 
         internal class ActionObserver<T> : IObserver<T>
