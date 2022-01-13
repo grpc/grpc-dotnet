@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using Google.Protobuf;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -83,20 +84,59 @@ namespace Grpc.Net.Client.Tests
 
             var result = new List<KeyValuePair<string, object?>>();
 
+            var dataMessageMarshaller = new Marshaller<DataMessage>(m => m.ToByteArray(), data => DataMessage.Parser.ParseFrom(data));
+            var dataMessageMethod = ClientTestHelpers.GetServiceMethod<DataMessage, DataMessage>(
+                MethodType.DuplexStreaming,
+                dataMessageMarshaller,
+                dataMessageMarshaller);
+
             // Act
+            HttpRequestMessage? requestMessage1 = null;
+            HttpResponseMessage? responseMessage1 = null;
+            HttpRequestMessage? requestMessage2 = null;
+            HttpResponseMessage? responseMessage2 = null;
+
             using (GrpcDiagnostics.DiagnosticListener.Subscribe(new ObserverToList<KeyValuePair<string, object?>>(result)))
             {
-                var c = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
-                c.Dispose();
+                var c1 = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions());
+                c1.Dispose();
+
+                requestMessage1 = requestMessage;
+                responseMessage1 = responseMessage;
+
+                var c2 = invoker.AsyncDuplexStreamingCall<DataMessage, DataMessage>(dataMessageMethod, string.Empty, new CallOptions());
+                c2.Dispose();
+
+                requestMessage2 = requestMessage;
+                responseMessage2 = responseMessage;
             }
 
             // Assert
-            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual(4, result.Count);
+
+            // First call
             Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[0].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value!, "Request"));
+            Assert.AreEqual(requestMessage1, GetValueFromAnonymousType<HttpRequestMessage>(result[0].Value!, "Request"));
             Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[1].Key);
-            Assert.AreEqual(requestMessage, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
-            Assert.AreEqual(responseMessage, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
+            Assert.AreEqual(requestMessage1, GetValueFromAnonymousType<HttpRequestMessage>(result[1].Value!, "Request"));
+            Assert.AreEqual(responseMessage1, GetValueFromAnonymousType<HttpResponseMessage>(result[1].Value!, "Response"));
+
+            // Second call
+            Assert.AreEqual(GrpcDiagnostics.ActivityStartKey, result[2].Key);
+            Assert.AreEqual(requestMessage2, GetValueFromAnonymousType<HttpRequestMessage>(result[2].Value!, "Request"));
+            Assert.AreEqual(GrpcDiagnostics.ActivityStopKey, result[3].Key);
+            Assert.AreEqual(requestMessage2, GetValueFromAnonymousType<HttpRequestMessage>(result[3].Value!, "Request"));
+            Assert.AreEqual(responseMessage2, GetValueFromAnonymousType<HttpResponseMessage>(result[3].Value!, "Response"));
+
+            // Check types are expected
+            Assert.AreEqual(typeof(GrpcCall.ActivityStartData), result[0].Value!.GetType());
+            Assert.AreEqual(typeof(GrpcCall.ActivityStopData), result[1].Value!.GetType());
+            Assert.AreEqual(result[0].Value!.GetType(), result[2].Value!.GetType());
+            Assert.AreEqual(result[1].Value!.GetType(), result[3].Value!.GetType());
+
+            // Check values are unique for each call
+            Assert.AreNotEqual(result[0].Value, result[2].Value);
+            Assert.AreNotEqual(result[1].Value, result[3].Value);
         }
 
         [Test]
@@ -204,7 +244,7 @@ namespace Grpc.Net.Client.Tests
 
             private readonly List<T> _output;
             private readonly Predicate<T>? _filter;
-            private readonly string? _name;  // for debugging 
+            private readonly string? _name;  // for debugging
             #endregion
         }
     }

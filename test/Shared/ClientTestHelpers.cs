@@ -38,6 +38,11 @@ namespace Grpc.Tests.Shared
             return new Method<HelloRequest, HelloReply>(methodType ?? MethodType.Unary, "ServiceName", "MethodName", requestMarshaller ?? HelloRequestMarshaller, HelloReplyMarshaller);
         }
 
+        public static Method<TRequest, TResponse> GetServiceMethod<TRequest, TResponse>(MethodType methodType, Marshaller<TRequest> requestMarshaller, Marshaller<TResponse> responseMarshaller)
+        {
+            return new Method<TRequest, TResponse>(methodType, "ServiceName", "MethodName", requestMarshaller, responseMarshaller);
+        }
+
         public static TestHttpMessageHandler CreateTestMessageHandler(HelloReply reply)
         {
             return TestHttpMessageHandler.Create(async r =>
