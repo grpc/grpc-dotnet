@@ -194,7 +194,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Logger.LogInformation("Ending " + endpoint1.Address);
             endpoint1.Dispose();
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, expectedCount: 1,
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, expectedCount: 1,
                 getPickerSubchannels: picker=>
                 {
                     // We want a subchannel that has no current address

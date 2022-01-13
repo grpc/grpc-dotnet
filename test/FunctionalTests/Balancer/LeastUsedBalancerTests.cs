@@ -67,7 +67,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new LoadBalancingConfig("least_used"), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(
                 Logger,
                 channel,
                 expectedCount: 2,
