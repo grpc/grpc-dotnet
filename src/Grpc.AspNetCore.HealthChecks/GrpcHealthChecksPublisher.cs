@@ -19,24 +19,31 @@
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks
 {
     internal class GrpcHealthChecksPublisher : IHealthCheckPublisher
     {
         private readonly HealthServiceImpl _healthService;
+        private readonly GrpcHealthChecksOptions _options;
 
-        public GrpcHealthChecksPublisher(HealthServiceImpl healthService)
+        public GrpcHealthChecksPublisher(HealthServiceImpl healthService, IOptions<GrpcHealthChecksOptions> options)
         {
             _healthService = healthService;
+            _options = options.Value;
         }
 
         public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
         {
             foreach (var entry in report.Entries)
             {
-                var status = entry.Value.Status;
+                if (_options.Filter != null && !_options.Filter(entry.Key, entry.Value))
+                {
+                    continue;
+                }
 
+                var status = entry.Value.Status;
                 _healthService.SetStatus(entry.Key, ResolveStatus(status));
             }
 

@@ -23,6 +23,7 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.Reflection
@@ -35,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService);
 
             HealthCheckResponse response;
 
@@ -64,12 +65,68 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
         }
 
-        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus)
+        [Test]
+        public async Task PublishAsync_CheckWithFilter_ChangingStatusBasedOnFilter()
+        {
+            // Arrange
+            var healthService = new HealthServiceImpl();
+            var publisher = CreatePublisher(
+                healthService,
+                new GrpcHealthChecksOptions
+                {
+                    Filter = (name, entry) =>
+                    {
+                        if (entry.Data.TryGetValue("include", out var value))
+                        {
+                            return (bool)value;
+                        }
+
+                        return true;
+                    }
+                });
+
+            HealthCheckResponse response;
+
+            // Act 1
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null));
+
+            // Assert 1
+            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+
+            // Act 2
+            var report = CreateSimpleHealthReport(HealthStatus.Healthy);
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Assert 2
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
+
+            // Act 3
+            report = CreateSimpleHealthReport(HealthStatus.Unhealthy, new Dictionary<string, object> { ["include"] = false });
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Act 3
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
+
+            // Act 4
+            report = CreateSimpleHealthReport(HealthStatus.Unhealthy);
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Act 4
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
+        }
+
+        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus, IReadOnlyDictionary<string, object>? data = null)
         {
             return new HealthReport(
                 new Dictionary<string, HealthReportEntry>
                 {
-                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: null)
+                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: data)
                 },
                 TimeSpan.Zero);
         }
@@ -79,7 +136,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService);
 
             // Act
             HealthCheckResponse response;
@@ -110,7 +167,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService);
             var responseStream = new TestServerStreamWriter<HealthCheckResponse>();
             var cts = new CancellationTokenSource();
             var serverCallContext = new TestServerCallContext(DateTime.MinValue, cts.Token);
@@ -153,6 +210,11 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             // Act 4
             await TestHelpers.AssertIsTrueRetryAsync(() => responseStream.Responses.Count == 3, "Unexpected response count.");
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, responseStream.Responses.Last().Status);
+        }
+
+        private static GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, GrpcHealthChecksOptions? options = null)
+        {
+            return new GrpcHealthChecksPublisher(healthService, Options.Create(options ?? new GrpcHealthChecksOptions()));
         }
     }
 }
