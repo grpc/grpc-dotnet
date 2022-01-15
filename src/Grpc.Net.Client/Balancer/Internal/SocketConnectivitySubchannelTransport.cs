@@ -103,6 +103,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private void DisconnectUnsynchronized()
         {
             Debug.Assert(Monitor.IsEntered(Lock));
+            Debug.Assert(!_disposed);
 
             _initialSocket?.Dispose();
             _initialSocket = null;
@@ -205,6 +206,11 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         lock (Lock)
                         {
+                            if (_disposed)
+                            {
+                                return;
+                            }
+
                             if (_initialSocket == socket)
                             {
                                 DisconnectUnsynchronized();
@@ -324,15 +330,17 @@ namespace Grpc.Net.Client.Balancer.Internal
         {
             lock (Lock)
             {
-                if (!_disposed)
+                if (_disposed)
                 {
-                    SocketConnectivitySubchannelTransportLog.DisposingTransport(_logger, _subchannel.Id);
-
-                    DisconnectUnsynchronized();
-
-                    _socketConnectedTimer.Dispose();
-                    _disposed = true;
+                    return;
                 }
+
+                SocketConnectivitySubchannelTransportLog.DisposingTransport(_logger, _subchannel.Id);
+
+                DisconnectUnsynchronized();
+
+                _socketConnectedTimer.Dispose();
+                _disposed = true;
             }
         }
 
