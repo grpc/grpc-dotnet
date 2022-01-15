@@ -68,8 +68,10 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
                 testServerStreamWriter,
                 new TestServerCallContext(DateTime.MaxValue, cts.Token));
 
+            // Act
             await hostedService.StartAsync(CancellationToken.None);
 
+            // Assert
             try
             {
                 await syncPoint.WaitForSyncPoint().DefaultTimeout();

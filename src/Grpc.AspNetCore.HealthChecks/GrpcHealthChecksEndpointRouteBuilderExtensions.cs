@@ -16,7 +16,6 @@
 
 #endregion
 
-using Grpc.AspNetCore.HealthChecks;
 using Grpc.HealthCheck;
 using Microsoft.AspNetCore.Routing;
 
@@ -34,23 +33,6 @@ namespace Microsoft.AspNetCore.Builder
         /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
         /// <returns>An <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
         public static GrpcServiceEndpointConventionBuilder MapGrpcHealthChecksService(this IEndpointRouteBuilder builder)
-        {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            return builder.MapGrpcService<HealthServiceImpl>();
-        }
-
-        /// <summary>
-        /// Maps incoming requests to the gRPC health checks service.
-        /// This service can be queried to discover the health of the server.
-        /// </summary>
-        /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <param name="options">A <see cref="GrpcHealthChecksOptions"/> used to configure the health checks.</param>
-        /// <returns>An <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static GrpcServiceEndpointConventionBuilder MapGrpcHealthChecksService(this IEndpointRouteBuilder builder, GrpcHealthChecksOptions options)
         {
             if (builder == null)
             {

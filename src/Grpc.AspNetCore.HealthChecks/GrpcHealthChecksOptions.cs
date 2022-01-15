@@ -21,7 +21,7 @@ namespace Grpc.AspNetCore.HealthChecks
     /// <summary>
     /// Contains options for the gRPC health checks service.
     /// </summary>
-    public class GrpcHealthChecksOptions
+    public sealed class GrpcHealthChecksOptions
     {
         /// <summary>
         /// Gets or sets a predicate that is used to filter the set of health results.

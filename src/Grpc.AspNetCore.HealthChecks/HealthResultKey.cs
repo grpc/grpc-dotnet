@@ -29,7 +29,7 @@ namespace Grpc.AspNetCore.HealthChecks
         /// Creates a new instance of <see cref="HealthResultKey"/>.
         /// </summary>
         /// <param name="name">The health check name.</param>
-        /// <param name="tags">Tags associated with the health check that generated the health result.</param>
+        /// <param name="tags">Tags associated with the health check.</param>
         public HealthResultKey(string name, IEnumerable<string> tags)
         {
             Name = name;
@@ -42,7 +42,7 @@ namespace Grpc.AspNetCore.HealthChecks
         public string Name { get; }
 
         /// <summary>
-        /// Gets the tags associated with the health check that generated the health result.
+        /// Gets the tags associated with the health check.
         /// </summary>
         public IEnumerable<string> Tags { get; }
     }

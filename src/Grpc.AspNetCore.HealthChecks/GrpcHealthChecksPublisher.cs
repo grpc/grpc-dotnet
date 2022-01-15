@@ -23,7 +23,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks
 {
-    internal class GrpcHealthChecksPublisher : IHealthCheckPublisher
+    internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
     {
         private readonly HealthServiceImpl _healthService;
         private readonly GrpcHealthChecksOptions _options;
