@@ -24,11 +24,15 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
     {
         public WriteOptions? WriteOptions { get; set; }
         public List<T> Responses { get; } = new List<T>();
+        public Func<T, Task>? OnWriteAsync { get; set; }
 
-        public Task WriteAsync(T message)
+        public async Task WriteAsync(T message)
         {
             Responses.Add(message);
-            return Task.CompletedTask;
+            if (OnWriteAsync != null)
+            {
+                await OnWriteAsync(message);
+            }
         }
     }
 }

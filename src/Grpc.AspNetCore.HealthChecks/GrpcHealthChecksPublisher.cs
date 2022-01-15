@@ -38,7 +38,7 @@ namespace Grpc.AspNetCore.HealthChecks
         {
             foreach (var entry in report.Entries)
             {
-                if (_options.Filter != null && !_options.Filter(entry.Key, entry.Value))
+                if (_options.Filter != null && !_options.Filter(new HealthResultKey(entry.Key, entry.Value.Tags)))
                 {
                     continue;
                 }

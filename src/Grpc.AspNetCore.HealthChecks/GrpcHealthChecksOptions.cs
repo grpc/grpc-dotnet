@@ -16,8 +16,6 @@
 
 #endregion
 
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
 namespace Grpc.AspNetCore.HealthChecks
 {
     /// <summary>
@@ -26,14 +24,14 @@ namespace Grpc.AspNetCore.HealthChecks
     public class GrpcHealthChecksOptions
     {
         /// <summary>
-        /// Gets or sets a predicate that is used to filter the set of health report entries.
-        /// Filtered out entries aren't reported by the gRPC health checks service.
+        /// Gets or sets a predicate that is used to filter the set of health results.
+        /// Filtered out results aren't reported by the gRPC health checks service.
         /// </summary>
         /// <remarks>
         /// If <see cref="Filter"/> is <c>null</c>, the gRPC health checks service will use all
-        /// health report entries - this is the default behavior. To use a subset of health report entries,
-        /// provide a function that filters the set of entries.
+        /// health results - this is the default behavior. To use a subset of health results,
+        /// provide a function that filters the set of result.
         /// </remarks>
-        public Func<string, HealthReportEntry, bool>? Filter { get; set; }
+        public Func<HealthResultKey, bool>? Filter { get; set; }
     }
 }

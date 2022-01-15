@@ -26,7 +26,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests.Reflection
+namespace Grpc.AspNetCore.Server.Tests.HealthChecks
 {
     [TestFixture]
     public class GrpcHealthChecksPublisherTests
@@ -74,11 +74,11 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
                 healthService,
                 new GrpcHealthChecksOptions
                 {
-                    Filter = (name, entry) =>
+                    Filter = key =>
                     {
-                        if (entry.Data.TryGetValue("include", out var value))
+                        if (key.Tags.Contains("exclude"))
                         {
-                            return (bool)value;
+                            return false;
                         }
 
                         return true;
@@ -103,7 +103,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
 
             // Act 3
-            report = CreateSimpleHealthReport(HealthStatus.Unhealthy, new Dictionary<string, object> { ["include"] = false });
+            report = CreateSimpleHealthReport(HealthStatus.Unhealthy, new [] { "exclude" });
             await publisher.PublishAsync(report, CancellationToken.None);
 
             response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
@@ -121,12 +121,12 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
         }
 
-        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus, IReadOnlyDictionary<string, object>? data = null)
+        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus, IEnumerable<string>? tags = null)
         {
             return new HealthReport(
                 new Dictionary<string, HealthReportEntry>
                 {
-                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: data)
+                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: null, tags: tags)
                 },
                 TimeSpan.Zero);
         }
