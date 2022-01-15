@@ -58,7 +58,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         private readonly Timer _socketConnectedTimer;
 
         private int _lastEndPointIndex;
-        private Socket? _initialSocket;
+        internal Socket? _initialSocket;
         private BalancerAddress? _initialSocketAddress;
         private bool _disposed;
         private BalancerAddress? _currentAddress;
@@ -89,17 +89,27 @@ namespace Grpc.Net.Client.Balancer.Internal
         {
             lock (Lock)
             {
-                _initialSocket?.Dispose();
-                _initialSocket = null;
-                _initialSocketAddress = null;
-                _lastEndPointIndex = 0;
-                if (!_disposed)
+                if (_disposed)
                 {
-                    _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
+                    return;
                 }
-                _currentAddress = null;
+
+                DisconnectUnsynchronized();
+                _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
             }
             _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
+        }
+
+        private void DisconnectUnsynchronized()
+        {
+            Debug.Assert(Monitor.IsEntered(Lock));
+            Debug.Assert(!_disposed);
+
+            _initialSocket?.Dispose();
+            _initialSocket = null;
+            _initialSocketAddress = null;
+            _lastEndPointIndex = 0;
+            _currentAddress = null;
         }
 
         public async ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
@@ -196,13 +206,14 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         lock (Lock)
                         {
+                            if (_disposed)
+                            {
+                                return;
+                            }
+
                             if (_initialSocket == socket)
                             {
-                                _initialSocket.Dispose();
-                                _initialSocket = null;
-                                _initialSocketAddress = null;
-                                _currentAddress = null;
-                                _lastEndPointIndex = 0;
+                                DisconnectUnsynchronized();
                             }
                         }
                         _subchannel.UpdateConnectivityState(ConnectivityState.Idle, new Status(StatusCode.Unavailable, "Lost connection to socket.", sendException));
@@ -278,32 +289,40 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private void OnStreamDisposed(Stream streamWrapper)
         {
-            var disconnect = false;
-            lock (Lock)
+            try
             {
-                for (var i = _activeStreams.Count - 1; i >= 0; i--)
+                var disconnect = false;
+                lock (Lock)
                 {
-                    var t = _activeStreams[i];
-                    if (t.Stream == streamWrapper)
+                    for (var i = _activeStreams.Count - 1; i >= 0; i--)
                     {
-                        _activeStreams.RemoveAt(i);
-                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, _subchannel.Id, t.Address);
+                        var t = _activeStreams[i];
+                        if (t.Stream == streamWrapper)
+                        {
+                            _activeStreams.RemoveAt(i);
+                            SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, _subchannel.Id, t.Address);
 
-                        // If the last active streams is removed then there is no active connection.
-                        disconnect = _activeStreams.Count == 0;
+                            // If the last active streams is removed then there is no active connection.
+                            disconnect = _activeStreams.Count == 0;
 
-                        break;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (disconnect)
+                if (disconnect)
+                {
+                    // What happens after disconnect depends if the load balancer requests a new connection.
+                    // For example:
+                    // - Pick first will go into an idle state.
+                    // - Round-robin will reconnect to get back to a ready state.
+                    Disconnect();
+                }
+            }
+            catch (Exception ex)
             {
-                // What happens after disconnect depends if the load balancer requests a new connection.
-                // For example:
-                // - Pick first will go into an idle state.
-                // - Round-robin will reconnect to get back to a ready state.
-                Disconnect();
+                // Don't throw error to Stream.Dispose() caller.
+                SocketConnectivitySubchannelTransportLog.ErrorOnDisposingStream(_logger, _subchannel.Id, ex);
             }
         }
 
@@ -311,12 +330,17 @@ namespace Grpc.Net.Client.Balancer.Internal
         {
             lock (Lock)
             {
-                if (!_disposed)
+                if (_disposed)
                 {
-                    SocketConnectivitySubchannelTransportLog.DisposingTransport(_logger, _subchannel.Id);
-                    _socketConnectedTimer.Dispose();
-                    _disposed = true;
+                    return;
                 }
+
+                SocketConnectivitySubchannelTransportLog.DisposingTransport(_logger, _subchannel.Id);
+
+                DisconnectUnsynchronized();
+
+                _socketConnectedTimer.Dispose();
+                _disposed = true;
             }
         }
 
@@ -353,6 +377,9 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         private static readonly Action<ILogger, int, Exception?> _disposingTransport =
             LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "DisposingTransport"), "Subchannel id '{SubchannelId}' disposing transport.");
+
+        private static readonly Action<ILogger, int, Exception> _errorOnDisposingStream =
+            LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ErrorOnDisposingStream"), "Subchannel id '{SubchannelId}' unexpected error when reacting to transport stream dispose.");
 
         public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
         {
@@ -397,6 +424,11 @@ namespace Grpc.Net.Client.Balancer.Internal
         public static void DisposingTransport(ILogger logger, int subchannelId)
         {
             _disposingTransport(logger, subchannelId, null);
+        }
+
+        public static void ErrorOnDisposingStream(ILogger logger, int subchannelId, Exception ex)
+        {
+            _errorOnDisposingStream(logger, subchannelId, ex);
         }
     }
 #endif

@@ -31,6 +31,7 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Configuration;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
@@ -64,7 +65,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             await channel.ConnectAsync().DefaultTimeout();
 
-            var subchannel = (await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout()).Single();
+            var subchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
             // Act
             endpoint.Dispose();
@@ -202,7 +203,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -253,7 +254,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -270,8 +271,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             endpoint1.Dispose();
 
-            var subChannels = (await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout()).Single();
-            Assert.AreEqual(50052, subChannels.CurrentAddress?.EndPoint.Port);
+            var subChannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+            Assert.AreEqual(50052, subChannel.CurrentAddress?.EndPoint.Port);
 
             reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
             Assert.AreEqual("Balancer", reply1.Message);
@@ -287,10 +288,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 return true;
             });
 
-            string? host = null;
             Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
             {
-                host = context.Host;
                 return Task.FromResult(new HelloReply { Message = request.Name });
             }
 
@@ -314,9 +313,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
-
-            var client = TestClientFactory.Create(channel, endpoint1.Method);
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
             var waitForRefreshTask = syncPoint.WaitForSyncPoint();
 
@@ -331,7 +328,127 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             syncPoint.Continue();
 
-            await BalancerHelpers.WaitForSubChannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout();
+            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout();
+        }
+
+        [Test]
+        public async Task Subchannel_ResolveRemovesSubchannelAfterRequest_SubchannelCleanedUp()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+            using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+
+            var resolver = new TestResolver(LoggerFactory);
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port)
+            });
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
+
+            var disposedSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+            var client = TestClientFactory.Create(channel, endpoint1.Method);
+
+            var reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer1" });
+            Assert.AreEqual("Balancer1", reply1.Message);
+            Assert.AreEqual("127.0.0.1:50051", host!);
+
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
+            });
+
+            var activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
+            Assert.AreEqual(1, activeStreams.Count);
+            Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
+            Assert.AreEqual(50051, activeStreams[0].Address.EndPoint.Port);
+
+            // Wait until connected to new endpoint
+            Subchannel? newSubchannel = null;
+            while (true)
+            {
+                newSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+                if (newSubchannel.CurrentAddress?.EndPoint.Equals(endpoint2.EndPoint) ?? false)
+                {
+                    break;
+                }
+            }
+
+            // Subchannel has a socket until a request is made.
+            Assert.IsNotNull(((SocketConnectivitySubchannelTransport)newSubchannel.Transport)._initialSocket);
+
+            endpoint1.Dispose();
+
+            var reply2 = await client.UnaryCall(new HelloRequest { Name = "Balancer2" });
+            Assert.AreEqual("Balancer2", reply2.Message);
+            Assert.AreEqual("127.0.0.1:50052", host!);
+
+            // Disposed subchannel stream removed when endpoint disposed.
+            activeStreams = ((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport).GetActiveStreams();
+            Assert.AreEqual(0, activeStreams.Count);
+            Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
+
+            // New subchannel stream created with request.
+            activeStreams = ((SocketConnectivitySubchannelTransport)newSubchannel.Transport).GetActiveStreams();
+            Assert.AreEqual(1, activeStreams.Count);
+            Assert.AreEqual("127.0.0.1", activeStreams[0].Address.EndPoint.Host);
+            Assert.AreEqual(50052, activeStreams[0].Address.EndPoint.Port);
+            Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
+        }
+
+        [Test]
+        public async Task Subchannel_ResolveRemovesSubchannel_SubchannelCleanedUp()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+            using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+
+            var resolver = new TestResolver(LoggerFactory);
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress(endpoint1.Address.Host, endpoint1.Address.Port)
+            });
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
+
+            var disposedSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+
+            Assert.IsNotNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
+
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress(endpoint2.Address.Host, endpoint2.Address.Port)
+            });
+
+            Assert.IsNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
         }
     }
 }
