@@ -76,6 +76,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             public Method<TRequest, TResponse> Method { get; }
             public Uri Address { get; }
             public ILoggerFactory LoggerFactory => _server.LoggerFactory;
+            public EndPoint EndPoint => new DnsEndPoint(Address.Host, Address.Port);
 
             public void Dispose()
             {
@@ -172,7 +173,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' matches expected states {statesText}.");
         }
 
-        public static async Task<Subchannel[]> WaitForSubChannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
+        public static async Task<Subchannel> WaitForSubchannelToBeReadyAsync(ILogger logger, GrpcChannel channel, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
+        {
+            var subChannel = (await WaitForSubchannelsToBeReadyAsync(logger, channel, 1)).Single();
+            return subChannel;
+        }
+
+        public static async Task<Subchannel[]> WaitForSubchannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
         {
             if (getPickerSubchannels == null)
             {
