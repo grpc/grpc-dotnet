@@ -23,7 +23,7 @@ namespace Grpc.AspNetCore.HealthChecks
     /// <summary>
     /// Represents the result of a single <see cref="IHealthCheck"/>.
     /// </summary>
-    public readonly struct HealthResult
+    public sealed class HealthResult
     {
         /// <summary>
         /// Creates a new instance of <see cref="HealthResult"/>.
