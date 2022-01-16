@@ -36,15 +36,27 @@ namespace Grpc.AspNetCore.HealthChecks
 
         public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
         {
-            foreach (var entry in report.Entries)
+            foreach (var registration in _options.Services)
             {
-                if (_options.Filter != null && !_options.Filter(new HealthResultKey(entry.Key, entry.Value.Tags)))
+                var filteredResults = report.Entries
+                    .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
+                    .Where(registration.Predicate);
+
+                var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
+                foreach (var result in filteredResults)
                 {
-                    continue;
+                    if (result.Status == HealthStatus.Unhealthy)
+                    {
+                        resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
+
+                        // No point continuing to check statuses.
+                        break;
+                    }
+                    
+                    resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
                 }
 
-                var status = entry.Value.Status;
-                _healthService.SetStatus(entry.Key, ResolveStatus(status));
+                _healthService.SetStatus(registration.Name, resolvedStatus);
             }
 
             return Task.CompletedTask;

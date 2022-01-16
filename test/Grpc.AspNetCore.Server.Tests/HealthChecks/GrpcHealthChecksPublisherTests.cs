@@ -72,17 +72,9 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             var healthService = new HealthServiceImpl();
             var publisher = CreatePublisher(
                 healthService,
-                new GrpcHealthChecksOptions
+                o =>
                 {
-                    Filter = key =>
-                    {
-                        if (key.Tags.Contains("exclude"))
-                        {
-                            return false;
-                        }
-
-                        return true;
-                    }
+                    o.Services.MapService("", result => !result.Tags.Contains("exclude"));
                 });
 
             HealthCheckResponse response;
@@ -94,7 +86,9 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
 
             // Act 2
-            var report = CreateSimpleHealthReport(HealthStatus.Healthy);
+            var report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Healthy),
+                new HealthResult("other", HealthStatus.Healthy, new[] { "exclude" }));
             await publisher.PublishAsync(report, CancellationToken.None);
 
             response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
@@ -103,7 +97,9 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
 
             // Act 3
-            report = CreateSimpleHealthReport(HealthStatus.Unhealthy, new [] { "exclude" });
+            report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Healthy),
+                new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
             await publisher.PublishAsync(report, CancellationToken.None);
 
             response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
@@ -112,7 +108,9 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
 
             // Act 4
-            report = CreateSimpleHealthReport(HealthStatus.Unhealthy);
+            report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Unhealthy),
+                new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
             await publisher.PublishAsync(report, CancellationToken.None);
 
             response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
@@ -121,14 +119,23 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
         }
 
+        private record struct HealthResult(string Name, HealthStatus Status, IEnumerable<string>? Tags = null);
+
         private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus, IEnumerable<string>? tags = null)
         {
-            return new HealthReport(
-                new Dictionary<string, HealthReportEntry>
-                {
-                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: null, tags: tags)
-                },
-                TimeSpan.Zero);
+            return CreateSimpleHealthReport(new HealthResult("", healthStatus, tags));
+        }
+
+        private static HealthReport CreateSimpleHealthReport(params HealthResult[] results)
+        {
+            var entries = new Dictionary<string, HealthReportEntry>();
+
+            foreach (var result in results)
+            {
+                entries[result.Name] = new HealthReportEntry(result.Status, "Description!", TimeSpan.Zero, exception: null, data: null, tags: result.Tags);
+            }
+
+            return new HealthReport(entries, TimeSpan.Zero);
         }
 
         [Test]
@@ -136,7 +143,12 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = CreatePublisher(healthService);
+            var publisher = CreatePublisher(healthService, o =>
+            {
+                o.Services.MapService(nameof(HealthStatus.Healthy), r => r.Name == nameof(HealthStatus.Healthy));
+                o.Services.MapService(nameof(HealthStatus.Degraded), r => r.Name == nameof(HealthStatus.Degraded));
+                o.Services.MapService(nameof(HealthStatus.Unhealthy), r => r.Name == nameof(HealthStatus.Unhealthy));
+            });
 
             // Act
             HealthCheckResponse response;
@@ -212,9 +224,12 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, responseStream.Responses.Last().Status);
         }
 
-        private static GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, GrpcHealthChecksOptions? options = null)
+        private static GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, Action<GrpcHealthChecksOptions>? configureOptions = null)
         {
-            return new GrpcHealthChecksPublisher(healthService, Options.Create(options ?? new GrpcHealthChecksOptions()));
+            var options = new GrpcHealthChecksOptions();
+            options.Services.MapService("", r => true);
+            configureOptions?.Invoke(options);
+            return new GrpcHealthChecksPublisher(healthService, Options.Create(options));
         }
     }
 }

@@ -61,9 +61,12 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(configure));
             }
 
+            var builder = AddGrpcHealthChecksCore(services);
+
+            // Run configure after default registration added so it can be overriden.
             services.Configure(configure);
 
-            return AddGrpcHealthChecksCore(services);
+            return builder;
         }
 
         private static IHealthChecksBuilder AddGrpcHealthChecksCore(IServiceCollection services)
@@ -72,6 +75,12 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddSingleton<HealthServiceImpl>();
 
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHealthCheckPublisher, GrpcHealthChecksPublisher>());
+
+            services.Configure<GrpcHealthChecksOptions>(options =>
+            {
+                // Add default registration that uses all results for default service: ""
+                options.Services.MapService(string.Empty, r => true);
+            });
 
             return services.AddHealthChecks();
         }

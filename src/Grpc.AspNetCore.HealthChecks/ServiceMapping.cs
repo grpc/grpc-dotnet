@@ -16,34 +16,32 @@
 
 #endregion
 
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
 namespace Grpc.AspNetCore.HealthChecks
 {
     /// <summary>
-    /// Represents the key for a result of a single <see cref="IHealthCheck"/>.
+    /// Represents the mapping of health check results to a service exposed by the gRPC health checks API.
     /// </summary>
-    public readonly struct HealthResultKey
+    public sealed class ServiceMapping
     {
         /// <summary>
-        /// Creates a new instance of <see cref="HealthResultKey"/>.
+        /// Creates a new instance of <see cref="ServiceMapping"/>.
         /// </summary>
-        /// <param name="name">The health check name.</param>
-        /// <param name="tags">Tags associated with the health check.</param>
-        public HealthResultKey(string name, IEnumerable<string> tags)
+        /// <param name="name">The service name.</param>
+        /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+        public ServiceMapping(string name, Func<HealthResult, bool> predicate)
         {
             Name = name;
-            Tags = tags;
+            Predicate = predicate;
         }
 
         /// <summary>
-        /// Gets the health check name.
+        /// Gets the service name.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Gets the tags associated with the health check.
+        /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.
         /// </summary>
-        public IEnumerable<string> Tags { get; }
+        public Func<HealthResult, bool> Predicate { get; }
     }
 }

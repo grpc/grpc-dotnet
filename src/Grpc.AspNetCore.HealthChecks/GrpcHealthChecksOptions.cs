@@ -24,14 +24,8 @@ namespace Grpc.AspNetCore.HealthChecks
     public sealed class GrpcHealthChecksOptions
     {
         /// <summary>
-        /// Gets or sets a predicate that is used to filter the set of health results.
-        /// Filtered out results aren't reported by the gRPC health checks service.
+        /// Gets a collection of service mappings used to map health results to gRPC health checks services.
         /// </summary>
-        /// <remarks>
-        /// If <see cref="Filter"/> is <c>null</c>, the gRPC health checks service will use all
-        /// health results - this is the default behavior. To use a subset of health results,
-        /// provide a function that filters the set of result.
-        /// </remarks>
-        public Func<HealthResultKey, bool>? Filter { get; set; }
+        public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
     }
 }

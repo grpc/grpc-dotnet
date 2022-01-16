@@ -124,15 +124,7 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
             services
                 .AddGrpcHealthChecks(o =>
                 {
-                    o.Filter = key =>
-                    {
-                        if (key.Tags.Contains("exclude"))
-                        {
-                            return false;
-                        }
-
-                        return true;
-                    };
+                    o.Services.MapService("", result => !result.Tags.Contains("exclude"));
                 })
                 .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
                 .AddAsyncCheck("filtered", () => Task.FromResult(healthCheckResult), new string[] { "exclude" });
@@ -188,6 +180,71 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks
                 await CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.NotServing);
 
                 await ExceptionAssert.ThrowsAsync<RpcException>(() => CheckForStatusAsync(service: "filtered", HealthCheckResponse.Types.ServingStatus.ServiceUnknown));
+            }
+            finally
+            {
+                await hostedService.StopAsync(CancellationToken.None);
+            }
+        }
+
+        [Test]
+        public async Task HealthService_RemoveDefault_DefaultNotFound()
+        {
+            // Arrange
+            var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services
+                .AddGrpcHealthChecks(o =>
+                {
+                    o.Services.Clear();
+                    o.Services.MapService("new", result => true);
+                })
+                .AddAsyncCheck("", () => Task.FromResult(healthCheckResult));
+            services.Configure<HealthCheckPublisherOptions>(o =>
+            {
+                o.Delay = TimeSpan.FromSeconds(1);
+                o.Period = TimeSpan.FromSeconds(1);
+            });
+
+            HealthReport? report = null;
+            var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            var testPublisher = new TestHealthCheckPublisher();
+            testPublisher.OnHealthReport = async r =>
+            {
+                report = r;
+                await syncPoint.WaitToContinue();
+            };
+            services.AddSingleton<IHealthCheckPublisher>(testPublisher);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            var healthService = serviceProvider.GetRequiredService<HealthServiceImpl>();
+            var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+            async Task CheckForStatusAsync(string service, HealthCheckResponse.Types.ServingStatus status)
+            {
+                var context = new TestServerCallContext(DateTime.MaxValue, CancellationToken.None);
+
+                var result = await healthService!.Check(new HealthCheckRequest() { Service = service }, context);
+
+                Assert.AreEqual(status, result.Status);
+            }
+
+            // Act
+            await hostedService.StartAsync(CancellationToken.None);
+
+            // Assert
+            try
+            {
+                await syncPoint.WaitForSyncPoint().DefaultTimeout();
+                Assert.AreEqual(HealthStatus.Healthy, report!.Status);
+                syncPoint.Continue();
+
+                await ExceptionAssert.ThrowsAsync<RpcException>(() => CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.ServiceUnknown));
+                
+                await CheckForStatusAsync(service: "new", HealthCheckResponse.Types.ServingStatus.Serving);
             }
             finally
             {
