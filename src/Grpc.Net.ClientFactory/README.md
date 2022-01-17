@@ -1,6 +1,6 @@
 # Grpc.Net.ClientFactory
 
-gRPC integration with `HttpClientFactory` offers a centralized way to create gRPC clients. It can be used as an alternative to [configuring stand-alone gRPC client instances](xref:grpc/client).
+gRPC integration with `HttpClientFactory` offers a centralized way to create gRPC clients. It can be used as an alternative to [configuring stand-alone gRPC client instances](https://docs.microsoft.com/aspnet/core/grpc/client).
 
 The factory offers the following benefits:
 
