@@ -16,23 +16,16 @@
 
 #endregion
 
-using Grpc.Core;
-
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.AspNetCore.HealthChecks
 {
-    public class TestServerStreamWriter<T> : IServerStreamWriter<T>
+    /// <summary>
+    /// Contains options for the gRPC health checks service.
+    /// </summary>
+    public sealed class GrpcHealthChecksOptions
     {
-        public WriteOptions? WriteOptions { get; set; }
-        public List<T> Responses { get; } = new List<T>();
-        public Func<T, Task>? OnWriteAsync { get; set; }
-
-        public async Task WriteAsync(T message)
-        {
-            Responses.Add(message);
-            if (OnWriteAsync != null)
-            {
-                await OnWriteAsync(message);
-            }
-        }
+        /// <summary>
+        /// Gets a collection of service mappings used to map health results to gRPC health checks services.
+        /// </summary>
+        public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
     }
 }

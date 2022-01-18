@@ -19,36 +19,47 @@
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace Grpc.AspNetCore.HealthChecks
 {
-    internal class GrpcHealthChecksPublisher : IHealthCheckPublisher
+    internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
     {
         private readonly HealthServiceImpl _healthService;
+        private readonly GrpcHealthChecksOptions _options;
 
-        public GrpcHealthChecksPublisher(HealthServiceImpl healthService)
+        public GrpcHealthChecksPublisher(HealthServiceImpl healthService, IOptions<GrpcHealthChecksOptions> options)
         {
             _healthService = healthService;
+            _options = options.Value;
         }
 
         public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
         {
-            foreach (var entry in report.Entries)
+            foreach (var registration in _options.Services)
             {
-                var status = entry.Value.Status;
+                var filteredResults = report.Entries
+                    .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
+                    .Where(registration.Predicate);
 
-                _healthService.SetStatus(entry.Key, ResolveStatus(status));
+                var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
+                foreach (var result in filteredResults)
+                {
+                    if (result.Status == HealthStatus.Unhealthy)
+                    {
+                        resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
+
+                        // No point continuing to check statuses.
+                        break;
+                    }
+                    
+                    resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+                }
+
+                _healthService.SetStatus(registration.Name, resolvedStatus);
             }
 
             return Task.CompletedTask;
         }
-
-        private static HealthCheckResponse.Types.ServingStatus ResolveStatus(HealthStatus status)
-        {
-            return status == HealthStatus.Unhealthy
-                ? HealthCheckResponse.Types.ServingStatus.NotServing
-                : HealthCheckResponse.Types.ServingStatus.Serving;
-        }
     }
-
 }
