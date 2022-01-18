@@ -61,13 +61,5 @@ namespace Grpc.AspNetCore.HealthChecks
 
             return Task.CompletedTask;
         }
-
-        private static HealthCheckResponse.Types.ServingStatus ResolveStatus(HealthStatus status)
-        {
-            return status == HealthStatus.Unhealthy
-                ? HealthCheckResponse.Types.ServingStatus.NotServing
-                : HealthCheckResponse.Types.ServingStatus.Serving;
-        }
     }
-
 }
