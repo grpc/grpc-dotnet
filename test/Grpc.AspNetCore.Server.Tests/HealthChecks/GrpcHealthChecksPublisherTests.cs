@@ -23,9 +23,10 @@ using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests.Reflection
+namespace Grpc.AspNetCore.Server.Tests.HealthChecks
 {
     [TestFixture]
     public class GrpcHealthChecksPublisherTests
@@ -35,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService);
 
             HealthCheckResponse response;
 
@@ -64,14 +65,77 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
         }
 
-        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus)
+        [Test]
+        public async Task PublishAsync_CheckWithFilter_ChangingStatusBasedOnFilter()
         {
-            return new HealthReport(
-                new Dictionary<string, HealthReportEntry>
+            // Arrange
+            var healthService = new HealthServiceImpl();
+            var publisher = CreatePublisher(
+                healthService,
+                o =>
                 {
-                    [""] = new HealthReportEntry(healthStatus, "Description!", TimeSpan.Zero, exception: null, data: null)
-                },
-                TimeSpan.Zero);
+                    o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+                });
+
+            HealthCheckResponse response;
+
+            // Act 1
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null));
+
+            // Assert 1
+            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+
+            // Act 2
+            var report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Healthy),
+                new HealthResult("other", HealthStatus.Healthy, new[] { "exclude" }));
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Assert 2
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
+
+            // Act 3
+            report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Healthy),
+                new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Act 3
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
+
+            // Act 4
+            report = CreateSimpleHealthReport(
+                new HealthResult("", HealthStatus.Unhealthy),
+                new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
+            await publisher.PublishAsync(report, CancellationToken.None);
+
+            response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+
+            // Act 4
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
+        }
+
+        private record struct HealthResult(string Name, HealthStatus Status, IEnumerable<string>? Tags = null);
+
+        private static HealthReport CreateSimpleHealthReport(HealthStatus healthStatus, IEnumerable<string>? tags = null)
+        {
+            return CreateSimpleHealthReport(new HealthResult("", healthStatus, tags));
+        }
+
+        private static HealthReport CreateSimpleHealthReport(params HealthResult[] results)
+        {
+            var entries = new Dictionary<string, HealthReportEntry>();
+
+            foreach (var result in results)
+            {
+                entries[result.Name] = new HealthReportEntry(result.Status, "Description!", TimeSpan.Zero, exception: null, data: null, tags: result.Tags);
+            }
+
+            return new HealthReport(entries, TimeSpan.Zero);
         }
 
         [Test]
@@ -79,7 +143,12 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService, o =>
+            {
+                o.Services.MapService(nameof(HealthStatus.Healthy), r => r.Name == nameof(HealthStatus.Healthy));
+                o.Services.MapService(nameof(HealthStatus.Degraded), r => r.Name == nameof(HealthStatus.Degraded));
+                o.Services.MapService(nameof(HealthStatus.Unhealthy), r => r.Name == nameof(HealthStatus.Unhealthy));
+            });
 
             // Act
             HealthCheckResponse response;
@@ -110,7 +179,7 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
         {
             // Arrange
             var healthService = new HealthServiceImpl();
-            var publisher = new GrpcHealthChecksPublisher(healthService);
+            var publisher = CreatePublisher(healthService);
             var responseStream = new TestServerStreamWriter<HealthCheckResponse>();
             var cts = new CancellationTokenSource();
             var serverCallContext = new TestServerCallContext(DateTime.MinValue, cts.Token);
@@ -153,6 +222,14 @@ namespace Grpc.AspNetCore.Server.Tests.Reflection
             // Act 4
             await TestHelpers.AssertIsTrueRetryAsync(() => responseStream.Responses.Count == 3, "Unexpected response count.");
             Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, responseStream.Responses.Last().Status);
+        }
+
+        private static GrpcHealthChecksPublisher CreatePublisher(HealthServiceImpl healthService, Action<GrpcHealthChecksOptions>? configureOptions = null)
+        {
+            var options = new GrpcHealthChecksOptions();
+            options.Services.MapService("", r => true);
+            configureOptions?.Invoke(options);
+            return new GrpcHealthChecksPublisher(healthService, Options.Create(options));
         }
     }
 }

@@ -40,10 +40,47 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
+            return AddGrpcHealthChecksCore(services);
+        }
+
+        /// <summary>
+        /// Adds gRPC health check services to the specified <see cref="IServiceCollection" />.
+        /// </summary>
+        /// <param name="services">The <see cref="IServiceCollection"/> for adding services.</param>
+        /// <param name="configure">An <see cref="Action{GrpcHealthChecksOptions}"/> to configure the provided <see cref="GrpcHealthChecksOptions"/>.</param>
+        /// <returns>An instance of <see cref="IHealthChecksBuilder"/> from which health checks can be registered.</returns>
+        public static IHealthChecksBuilder AddGrpcHealthChecks(this IServiceCollection services, Action<GrpcHealthChecksOptions> configure)
+        {
+            if (services == null)
+            {
+                throw new ArgumentNullException(nameof(services));
+            }
+
+            if (configure == null)
+            {
+                throw new ArgumentNullException(nameof(configure));
+            }
+
+            var builder = AddGrpcHealthChecksCore(services);
+
+            // Run configure after default registration added so it can be overriden.
+            services.Configure(configure);
+
+            return builder;
+        }
+
+        private static IHealthChecksBuilder AddGrpcHealthChecksCore(IServiceCollection services)
+        {
             // HealthServiceImpl is designed to be a singleton
             services.TryAddSingleton<HealthServiceImpl>();
 
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHealthCheckPublisher, GrpcHealthChecksPublisher>());
+
+            services.Configure<GrpcHealthChecksOptions>(options =>
+            {
+                // Add default registration that uses all results for default service: ""
+                options.Services.MapService(string.Empty, r => true);
+            });
 
             return services.AddHealthChecks();
         }
