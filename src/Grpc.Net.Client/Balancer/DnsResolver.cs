@@ -37,7 +37,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    internal sealed class DnsResolver : Resolver
+    internal sealed class DnsResolver : AsyncResolver
     {
         // To prevent excessive re-resolution, we enforce a rate limit on DNS resolution requests.
         private static readonly TimeSpan MinimumDnsResolutionRate = TimeSpan.FromSeconds(15);

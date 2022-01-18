@@ -830,12 +830,22 @@ namespace Grpc.Net.Client.Tests
 
         public class ChannelTestResolver : Resolver
         {
-            public ChannelTestResolver(ResolverOptions options) : base(options.LoggerFactory)
+            public ChannelTestResolver(ResolverOptions options)
             {
                 Options = options;
             }
 
             public ResolverOptions Options { get; }
+
+            public override void Start(Action<ResolverResult> listener)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Refresh()
+            {
+                throw new NotImplementedException();
+            }
         }
 #endif
 
