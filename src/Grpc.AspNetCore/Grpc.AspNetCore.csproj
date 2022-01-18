@@ -6,6 +6,7 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <TargetFrameworks>netcoreapp3.0;net5.0;net6.0</TargetFrameworks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Don't include empty DLL or PDB in metapackage -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -13,6 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+
     <!-- Avoid NU5128 warning. TFM in dependencies group of the nuspec must match lib/ref content. -->
     <None Include="lib\**\*">
       <Pack>True</Pack>
