@@ -263,7 +263,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.OK, ex.StatusCode);
             Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
-            Assert.AreEqual(null, call.GetStatus().Detail);
+            Assert.AreEqual(string.Empty, call.GetStatus().Detail);
 
             Assert.AreEqual("Hello world", result.Message);
         }
