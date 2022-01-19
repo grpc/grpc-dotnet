@@ -71,8 +71,8 @@ namespace Grpc.Net.Client.Internal
         private static readonly Action<ILogger, Exception?> _receivedMessage =
             LoggerMessage.Define(LogLevel.Trace, new EventId(16, "ReceivedMessage"), "Received message.");
 
-        private static readonly Action<ILogger, Exception?> _errorReadingMessage =
-            LoggerMessage.Define(LogLevel.Error, new EventId(17, "ErrorReadingMessage"), "Error reading message.");
+        private static readonly Action<ILogger, Exception> _errorReadingMessage =
+            LoggerMessage.Define(LogLevel.Information, new EventId(17, "ErrorReadingMessage"), "Error reading message.");
 
         private static readonly Action<ILogger, Exception?> _sendingMessage =
             LoggerMessage.Define(LogLevel.Debug, new EventId(18, "SendingMessage"), "Sending message.");
@@ -80,8 +80,8 @@ namespace Grpc.Net.Client.Internal
         private static readonly Action<ILogger, Exception?> _messageSent =
             LoggerMessage.Define(LogLevel.Trace, new EventId(19, "MessageSent"), "Message sent.");
 
-        private static readonly Action<ILogger, Exception?> _errorSendingMessage =
-            LoggerMessage.Define(LogLevel.Error, new EventId(20, "ErrorSendingMessage"), "Error sending message.");
+        private static readonly Action<ILogger, Exception> _errorSendingMessage =
+            LoggerMessage.Define(LogLevel.Information, new EventId(20, "ErrorSendingMessage"), "Error sending message.");
 
         private static readonly Action<ILogger, Type, int, Exception?> _serializedMessage =
             LoggerMessage.Define<Type, int>(LogLevel.Trace, new EventId(21, "SerializedMessage"), "Serialized '{MessageType}' to {MessageLength} byte message.");
