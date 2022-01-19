@@ -113,7 +113,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             async Task SayHellosSendHeadersFirst(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
             {
-                await context.WriteResponseHeadersAsync(null);
+                await context.WriteResponseHeadersAsync(Metadata.Empty);
 
                 await methodWrapper.SayHellosAsync(request, responseStream);
             }

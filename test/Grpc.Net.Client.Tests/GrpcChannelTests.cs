@@ -185,7 +185,7 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest()));
 
             // Assert
-            Assert.AreEqual("HttpClient", ex.Status.DebugException.Message);
+            Assert.AreEqual("HttpClient", ex.Status.DebugException!.Message);
         }
 
         [Test]
@@ -203,7 +203,7 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await client.SayHelloAsync(new HelloRequest())).DefaultTimeout();
 
             // Assert
-            Assert.AreEqual("HttpHandler", ex.Status.DebugException.Message);
+            Assert.AreEqual("HttpHandler", ex.Status.DebugException!.Message);
         }
 
 #if NET472

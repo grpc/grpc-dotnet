@@ -27,7 +27,8 @@ namespace Grpc.Net.Client.Internal
 
         public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
         {
-            channelCredentials.InternalPopulateConfiguration(this, null);
+            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+            channelCredentials.InternalPopulateConfiguration(this, null!);
 
             if (callCredentials != null)
             {
@@ -42,7 +43,7 @@ namespace Grpc.Net.Client.Internal
 
         public override void SetInsecureCredentials(object state) => IsSecure = false;
 
-        public override void SetSslCredentials(object state, string rootCertificates, KeyCertificatePair keyCertificatePair, VerifyPeerCallback verifyPeerCallback)
+        public override void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback)
         {
             if (!string.IsNullOrEmpty(rootCertificates) ||
                 keyCertificatePair != null ||
