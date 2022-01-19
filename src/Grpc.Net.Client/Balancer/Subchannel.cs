@@ -387,7 +387,7 @@ namespace Grpc.Net.Client.Balancer
             LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
 
         private static readonly Action<ILogger, int, Exception?> _connectError =
-            LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
 
         private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
             LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
