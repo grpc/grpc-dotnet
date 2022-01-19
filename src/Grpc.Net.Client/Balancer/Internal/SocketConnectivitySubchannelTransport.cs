@@ -358,13 +358,13 @@ namespace Grpc.Net.Client.Balancer.Internal
             LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(2, "ConnectedSocket"), "Subchannel id '{SubchannelId}' connected to socket {Address}.");
 
         private static readonly Action<ILogger, int, BalancerAddress, Exception?> _errorConnectingSocket =
-            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Error, new EventId(3, "ErrorConnectingSocket"), "Subchannel id '{SubchannelId}' error connecting to socket {Address}.");
+            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(3, "ErrorConnectingSocket"), "Subchannel id '{SubchannelId}' error connecting to socket {Address}.");
 
         private static readonly Action<ILogger, int, BalancerAddress, Exception?> _checkingSocket =
             LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(4, "CheckingSocket"), "Subchannel id '{SubchannelId}' checking socket {Address}.");
 
         private static readonly Action<ILogger, int, BalancerAddress, Exception?> _errorCheckingSocket =
-            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Error, new EventId(5, "ErrorCheckingSocket"), "Subchannel id '{SubchannelId}' error checking socket {Address}.");
+            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Debug, new EventId(5, "ErrorCheckingSocket"), "Subchannel id '{SubchannelId}' error checking socket {Address}.");
 
         private static readonly Action<ILogger, int, Exception?> _errorSocketTimer =
             LoggerMessage.Define<int>(LogLevel.Error, new EventId(6, "ErrorSocketTimer"), "Subchannel id '{SubchannelId}' unexpected error in check socket timer.");

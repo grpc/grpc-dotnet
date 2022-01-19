@@ -41,17 +41,20 @@ namespace Grpc.Net.Client.Balancer
         /// Initializes a new instance of the <see cref="StaticResolver"/> class with the specified addresses.
         /// </summary>
         /// <param name="addresses">The resolved addresses.</param>
-        /// <param name="loggerFactory">The logger factory.</param>
-        public StaticResolver(IEnumerable<BalancerAddress> addresses, ILoggerFactory loggerFactory)
-            : base(loggerFactory)
+        public StaticResolver(IEnumerable<BalancerAddress> addresses)
         {
             _addresses = addresses.ToList();
         }
 
-        protected override void OnStarted()
+        public override void Start(Action<ResolverResult> listener)
         {
             // Send addresses to listener once. They will never change.
-            Listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
+            listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
+        }
+
+        public override void Refresh()
+        {
+            // no-op
         }
     }
 
@@ -84,7 +87,7 @@ namespace Grpc.Net.Client.Balancer
         /// <inheritdoc />
         public override Resolver Create(ResolverOptions options)
         {
-            return new StaticResolver(_addressesCallback(options.Address), options.LoggerFactory);
+            return new StaticResolver(_addressesCallback(options.Address));
         }
     }
 }
