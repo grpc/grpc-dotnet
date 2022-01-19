@@ -9,10 +9,6 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0'">
-    <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\Shared\ServiceConfigHelpers.cs" Link="Infrastructure\ServiceConfigHelpers.cs" />
     <Compile Include="..\Shared\ExceptionAssert.cs" Link="Infrastructure\ExceptionAssert.cs" />
