@@ -56,7 +56,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
 #if NET5_0_OR_GREATER
-            var debugException = ex.Status.DebugException;
+            var debugException = ex.Status.DebugException!;
             Assert.AreEqual("The SSL connection could not be established, see inner exception.", debugException.Message);
 #else
             Assert.AreEqual("Request protocol 'HTTP/1.1' is not supported.", ex.Status.Detail);

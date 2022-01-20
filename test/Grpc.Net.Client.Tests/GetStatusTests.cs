@@ -84,7 +84,7 @@ namespace Grpc.Net.Client.Tests
 
             var status = call.GetStatus();
             Assert.AreEqual(StatusCode.DataLoss, status.StatusCode);
-            Assert.AreEqual(null, status.Detail);
+            Assert.AreEqual(string.Empty, status.Detail);
         }
 
         [Test]

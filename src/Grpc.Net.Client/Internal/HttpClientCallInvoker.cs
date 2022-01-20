@@ -37,13 +37,13 @@ namespace Grpc.Net.Client.Internal
         /// Invokes a client streaming call asynchronously.
         /// In client streaming scenario, client sends a stream of requests and server responds with a single response.
         /// </summary>
-        public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
+        public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
         {
             var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartClientStreaming();
 
             return new AsyncClientStreamingCall<TRequest, TResponse>(
-                requestStream: call.ClientStreamWriter,
+                requestStream: call.ClientStreamWriter!,
                 responseAsync: call.GetResponseAsync(),
                 responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
@@ -57,14 +57,14 @@ namespace Grpc.Net.Client.Internal
         /// In duplex streaming scenario, client sends a stream of requests and server responds with a stream of responses.
         /// The response stream is completely independent and both side can be sending messages at the same time.
         /// </summary>
-        public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options)
+        public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
         {
             var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartDuplexStreaming();
 
             return new AsyncDuplexStreamingCall<TRequest, TResponse>(
-                requestStream: call.ClientStreamWriter,
-                responseStream: call.ClientStreamReader,
+                requestStream: call.ClientStreamWriter!,
+                responseStream: call.ClientStreamReader!,
                 responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
@@ -76,13 +76,13 @@ namespace Grpc.Net.Client.Internal
         /// Invokes a server streaming call asynchronously.
         /// In server streaming scenario, client sends on request and server responds with a stream of responses.
         /// </summary>
-        public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
+        public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
         {
             var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartServerStreaming(request);
 
             return new AsyncServerStreamingCall<TResponse>(
-                responseStream: call.ClientStreamReader,
+                responseStream: call.ClientStreamReader!,
                 responseHeadersAsync: Callbacks<TRequest, TResponse>.GetResponseHeadersAsync,
                 getStatusFunc: Callbacks<TRequest, TResponse>.GetStatus,
                 getTrailersFunc: Callbacks<TRequest, TResponse>.GetTrailers,
@@ -93,7 +93,7 @@ namespace Grpc.Net.Client.Internal
         /// <summary>
         /// Invokes a simple remote call asynchronously.
         /// </summary>
-        public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
+        public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
         {
             var call = CreateRootGrpcCall<TRequest, TResponse>(Channel, method, options);
             call.StartUnary(request);
@@ -110,7 +110,7 @@ namespace Grpc.Net.Client.Internal
         /// <summary>
         /// Invokes a simple remote call in a blocking fashion.
         /// </summary>
-        public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string host, CallOptions options, TRequest request)
+        public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
         {
             var call = AsyncUnaryCall(method, host, options, request);
             return call.ResponseAsync.GetAwaiter().GetResult();
