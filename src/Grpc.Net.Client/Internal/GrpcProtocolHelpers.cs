@@ -262,7 +262,8 @@ namespace Grpc.Net.Client.Internal
             IMethod method,
             CallCredentials credentials)
         {
-            credentials.InternalPopulateConfiguration(configurator, null);
+            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+            credentials.InternalPopulateConfiguration(configurator, null!);
 
             if (configurator.Interceptor != null)
             {
@@ -409,7 +410,7 @@ namespace Grpc.Net.Client.Internal
                 grpcMessage = Uri.UnescapeDataString(grpcMessage);
             }
 
-            status = new Status((StatusCode)statusValue, grpcMessage);
+            status = new Status((StatusCode)statusValue, grpcMessage ?? string.Empty);
             return true;
         }
 

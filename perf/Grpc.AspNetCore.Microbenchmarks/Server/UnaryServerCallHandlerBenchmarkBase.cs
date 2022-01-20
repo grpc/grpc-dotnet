@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
 
             var marshaller = CreateMarshaller();
 
-            var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName, nameof(TestService.SayHello), marshaller, marshaller);
+            var method = new Method<ChatMessage, ChatMessage>(MethodType.Unary, typeof(TestService).FullName!, nameof(TestService.SayHello), marshaller, marshaller);
             var result = Task.FromResult(message);
             _callHandler = new UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>(
                 new UnaryServerMethodInvoker<TestService, ChatMessage, ChatMessage>(

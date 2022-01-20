@@ -150,7 +150,7 @@ namespace Grpc.Net.Client.Tests
 
             // Assert
             Assert.AreEqual(StatusCode.Aborted, ex.StatusCode);
-            Assert.AreEqual(null, ex.Status.Detail);
+            Assert.AreEqual(string.Empty, ex.Status.Detail);
             Assert.AreEqual(0, ex.Trailers.Count);
 
             var log = testSink.Writes.Single(w => w.EventId.Name == "ErrorParsingTrailers");

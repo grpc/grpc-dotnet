@@ -67,13 +67,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var trailers = call.GetTrailers();
             Assert.AreEqual(2, trailers.Count);
             Assert.AreEqual("the value was empty", trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.AreEqual(2, ex.Trailers.Count);
             Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
         }
 
         [Test]
@@ -115,13 +115,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             var trailers = call.GetTrailers();
             Assert.GreaterOrEqual(trailers.Count, 2);
             Assert.AreEqual("the value was empty", trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
 
             Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
             Assert.AreEqual("Validation failed", ex.Status.Detail);
             Assert.GreaterOrEqual(ex.Trailers.Count, 2);
             Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")));
+            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
 
             AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
         }

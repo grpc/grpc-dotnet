@@ -58,7 +58,7 @@ namespace Grpc.Net.Client.Tests
 
             Assert.AreEqual("ABC", responseHeaders1.GetValue("custom"));
 
-            var header = responseHeaders1.Get("binary-bin");
+            var header = responseHeaders1.Get("binary-bin")!;
             Assert.AreEqual(true, header.IsBinary);
             CollectionAssert.AreEqual(Encoding.UTF8.GetBytes("Hello world"), header.ValueBytes);
         }

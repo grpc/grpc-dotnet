@@ -29,7 +29,8 @@ namespace Grpc.AspNetCore.Server.Internal
 {
     internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
     {
-        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
+        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null!, new Dictionary<string, List<AuthProperty>>());
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
@@ -72,7 +73,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override string HostCore => HttpContext.Request.Host.Value;
 
-        protected override string? PeerCore
+        protected override string PeerCore
         {
             get
             {
@@ -95,6 +96,10 @@ namespace Grpc.AspNetCore.Server.Internal
                                 _peer = "unknown:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
                                 break;
                         }
+                    }
+                    else
+                    {
+                        _peer = "unknown"; // Match Grpc.Core
                     }
                 }
 
@@ -295,7 +300,10 @@ namespace Grpc.AspNetCore.Server.Internal
             GrpcEventSource.Log.CallStop();
         }
 
+        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
         protected override WriteOptions? WriteOptionsCore { get; set; }
+#pragma warning restore CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
 
         protected override AuthContext AuthContextCore
         {
@@ -324,7 +332,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         internal bool HasBufferedMessage { get; set; }
 
-        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
+        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
         {
             // TODO(JunTaoLuo, JamesNK): Currently blocked on ContextPropagationToken implementation in Grpc.Core.Api
             // https://github.com/grpc/grpc-dotnet/issues/40
@@ -333,30 +341,32 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
         {
+            if (responseHeaders == null)
+            {
+                throw new ArgumentNullException(nameof(responseHeaders));
+            }
+
             // Headers can only be written once. Throw on subsequent call to write response header instead of silent no-op.
             if (HttpContext.Response.HasStarted)
             {
                 throw new InvalidOperationException("Response headers can only be sent once per call.");
             }
 
-            if (responseHeaders != null)
+            foreach (var entry in responseHeaders)
             {
-                foreach (var entry in responseHeaders)
+                if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
                 {
-                    if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
-                    {
-                        // grpc-internal-encoding-request is used in the server to set message compression
-                        // on a per-call bassis.
-                        // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
-                        // individual messages will not be written with compression.
-                        ResponseGrpcEncoding = entry.Value;
-                        HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
-                    }
-                    else
-                    {
-                        var encodedValue = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-                        HttpContext.Response.Headers.Append(entry.Key, encodedValue);
-                    }
+                    // grpc-internal-encoding-request is used in the server to set message compression
+                    // on a per-call bassis.
+                    // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
+                    // individual messages will not be written with compression.
+                    ResponseGrpcEncoding = entry.Value;
+                    HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
+                }
+                else
+                {
+                    var encodedValue = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
+                    HttpContext.Response.Headers.Append(entry.Key, encodedValue);
                 }
             }
 

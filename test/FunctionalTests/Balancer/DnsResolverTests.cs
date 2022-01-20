@@ -119,7 +119,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             Assert.AreEqual(StatusCode.Unavailable, result.Status.StatusCode);
             Assert.AreEqual("Error getting DNS hosts for address ''. InvalidOperationException: Resolver address 'dns://localhost/' is not valid. Please use dns:/// for DNS provider.", result!.Status.Detail);
-            Assert.AreEqual("Resolver address 'dns://localhost/' is not valid. Please use dns:/// for DNS provider.", result!.Status.DebugException.Message);
+            Assert.AreEqual("Resolver address 'dns://localhost/' is not valid. Please use dns:/// for DNS provider.", result!.Status.DebugException!.Message);
         }
 
         [Test]
@@ -191,7 +191,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             result = await tcs.Task.DefaultTimeout();
             Assert.AreEqual(StatusCode.Unavailable, result.Status.StatusCode);
             Assert.AreEqual("Error getting DNS hosts for address 'localhost'. TaskCanceledException: A task was canceled.", result.Status.Detail);
-            Assert.AreEqual("A task was canceled.", result.Status.DebugException.Message);
+            Assert.AreEqual("A task was canceled.", result.Status.DebugException!.Message);
         }
 
         [Test]

@@ -22,7 +22,10 @@ namespace Grpc.AspNetCore.Server.Tests.Infrastructure
 {
     public class TestServerStreamWriter<T> : IServerStreamWriter<T>
     {
+        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
         public WriteOptions? WriteOptions { get; set; }
+#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
         public List<T> Responses { get; } = new List<T>();
         public Func<T, Task>? OnWriteAsync { get; set; }
 

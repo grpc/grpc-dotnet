@@ -143,9 +143,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
         {
             static async Task<HelloReply> ReturnHeadersTwice(HelloRequest request, ServerCallContext context)
             {
-                await context.WriteResponseHeadersAsync(null).DefaultTimeout();
+                await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
 
-                await context.WriteResponseHeadersAsync(null).DefaultTimeout();
+                await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
 
                 return new HelloReply { Message = "Should never reach here" };
             }

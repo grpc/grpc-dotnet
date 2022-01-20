@@ -177,7 +177,8 @@ namespace Grpc.Net.Client
             if (channelOptions.Credentials != null)
             {
                 var configurator = new DefaultChannelCredentialsConfigurator();
-                channelOptions.Credentials.InternalPopulateConfiguration(configurator, null);
+                // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+                channelOptions.Credentials.InternalPopulateConfiguration(configurator, null!);
 
                 isSecure = configurator.IsSecure ?? false;
                 callCredentials = configurator.CallCredentials;

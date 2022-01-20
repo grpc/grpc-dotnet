@@ -94,7 +94,10 @@ namespace Grpc.Net.Client.Internal.Retry
         {
             private readonly Status _status;
 
+            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
             public WriteOptions? WriteOptions { get; set; }
+#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 
             public StatusClientStreamWriter(Status status)
             {

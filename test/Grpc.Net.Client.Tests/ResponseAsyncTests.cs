@@ -132,7 +132,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
             Assert.AreEqual("Error starting gRPC call. Exception: An error!", ex.Status.Detail);
-            Assert.AreEqual("An error!", ex.Status.DebugException.Message);
+            Assert.AreEqual("An error!", ex.Status.DebugException!.Message);
             Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         }
 
@@ -153,7 +153,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
             Assert.AreEqual("Error starting gRPC call. Exception: An error! Exception: Nested error!", ex.Status.Detail);
-            Assert.AreEqual("Nested error!", ex.Status.DebugException.InnerException!.Message);
+            Assert.AreEqual("Nested error!", ex.Status.DebugException!.InnerException!.Message);
             Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
         }
 

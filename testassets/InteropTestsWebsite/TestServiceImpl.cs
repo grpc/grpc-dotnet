@@ -47,9 +47,12 @@ namespace Grpc.Testing
 
             foreach (var responseParam in request.ResponseParameters)
             {
+                // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8601 // Possible null reference assignment.
                 responseStream.WriteOptions = !(responseParam.Compressed?.Value ?? false)
                     ? new WriteOptions(WriteFlags.NoCompress)
                     : null;
+#pragma warning restore CS8601 // Possible null reference assignment.
 
                 var response = new StreamingOutputCallResponse { Payload = CreateZerosPayload(responseParam.Size) };
                 await responseStream.WriteAsync(response);
