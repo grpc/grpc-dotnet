@@ -81,7 +81,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual("Hello world", response2.Message);
         }
 
-#if NET6_0
+#if NET6_0_OR_GREATER
         [Test]
         [RequireHttp3]
         public async Task ClientFactory_Http3_Success()
