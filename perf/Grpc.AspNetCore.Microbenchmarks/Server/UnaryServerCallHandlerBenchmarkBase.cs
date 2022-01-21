@@ -51,6 +51,8 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
         protected InterceptorCollection? Interceptors { get; set; }
         protected List<ICompressionProvider>? CompressionProviders { get; set; }
         protected string? ResponseCompressionAlgorithm { get; set; }
+        protected Grpc.AspNetCore.Server.Model.UnaryServerMethod<TestService, ChatMessage, ChatMessage>? Method { get; set; }
+        protected string ExpectedStatus { get; set; } = "0";
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -75,7 +77,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             var result = Task.FromResult(message);
             _callHandler = new UnaryServerCallHandler<TestService, ChatMessage, ChatMessage>(
                 new UnaryServerMethodInvoker<TestService, ChatMessage, ChatMessage>(
-                    (service, request, context) => result,
+                    Method ?? ((service, request, context) => result),
                     method,
                     HttpContextServerCallContextHelper.CreateMethodOptions(
                         compressionProviders: CompressionProviders,
@@ -135,7 +137,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             StringValues value;
             if (_trailers.TryGetValue("grpc-status", out value) || _headers.TryGetValue("grpc-status", out value))
             {
-                if (!value.Equals("0"))
+                if (!value.Equals(ExpectedStatus))
                 {
                     throw new InvalidOperationException("Unexpected grpc-status: " + Enum.Parse<StatusCode>(value));
                 }
