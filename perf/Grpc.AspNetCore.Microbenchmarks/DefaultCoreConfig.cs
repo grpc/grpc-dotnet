@@ -43,7 +43,7 @@ namespace Grpc.AspNetCore.Microbenchmarks
             AddValidator(JitOptimizationsValidator.FailOnError);
 
             AddJob(Job.Default
-                .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("netcoreapp3.1", null, ".NET Core 3.1")))
+                .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("net6.0", null, ".NET 6")))
                 .WithGcMode(new GcMode { Server = true })
                 .WithStrategy(RunStrategy.Throughput));
         }

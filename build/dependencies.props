@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <BenchmarkDotNetPackageVersion>0.12.1</BenchmarkDotNetPackageVersion>
+    <BenchmarkDotNetPackageVersion>0.13.1</BenchmarkDotNetPackageVersion>
     <GoogleProtobufPackageVersion>3.18.1</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.42.0-pre1</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.43.0</GrpcPackageVersion>
