@@ -138,7 +138,7 @@ namespace GrpcAspNetCoreServer
                     }
                 });
             }
-#if NET6_0
+#if NET6_0_OR_GREATER
             else if (protocol.Equals("h3", StringComparison.OrdinalIgnoreCase))
             {
                 listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
