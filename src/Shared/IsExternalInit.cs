@@ -16,14 +16,11 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Web.Internal
+namespace System.Runtime.CompilerServices
 {
-    internal readonly record struct ServerGrpcWebContext(ServerGrpcWebMode Request, ServerGrpcWebMode Response);
-
-    internal enum ServerGrpcWebMode
+#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
+    internal static class IsExternalInit
     {
-        None,
-        GrpcWeb,
-        GrpcWebText
     }
+#endif
 }
