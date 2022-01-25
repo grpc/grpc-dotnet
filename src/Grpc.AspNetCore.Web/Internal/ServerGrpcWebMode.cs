@@ -18,7 +18,7 @@
 
 namespace Grpc.AspNetCore.Web.Internal
 {
-    internal record struct ServerGrpcWebContext(ServerGrpcWebMode Request, ServerGrpcWebMode Response);
+    internal readonly record struct ServerGrpcWebContext(ServerGrpcWebMode Request, ServerGrpcWebMode Response);
 
     internal enum ServerGrpcWebMode
     {

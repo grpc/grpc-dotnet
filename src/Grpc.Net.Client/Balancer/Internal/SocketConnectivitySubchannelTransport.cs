@@ -49,7 +49,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// </summary>
     internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDisposable
     {
-        internal record struct ActiveStream(BalancerAddress Address, Socket Socket, Stream? Stream);
+        internal readonly record struct ActiveStream(BalancerAddress Address, Socket Socket, Stream? Stream);
 
         private readonly ILogger _logger;
         private readonly Subchannel _subchannel;

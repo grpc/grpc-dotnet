@@ -13,6 +13,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
 
+    <Compile Include="..\Shared\IsExternalInit.cs" Link="Internal\IsExternalInit.cs" />
     <Compile Include="..\Shared\HttpHandlerFactory.cs" Link="Internal\HttpHandlerFactory.cs" />
     <Compile Include="..\Shared\TelemetryHeaderHandler.cs" Link="Internal\TelemetryHeaderHandler.cs" />
     <Compile Include="..\Shared\CompatibilityHelpers.cs" Link="Internal\CompatibilityHelpers.cs" />

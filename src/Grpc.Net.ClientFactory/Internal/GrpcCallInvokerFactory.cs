@@ -26,7 +26,7 @@ using Microsoft.Extensions.Options;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
-    internal record struct EntryKey(string Name, Type Type);
+    internal readonly record struct EntryKey(string Name, Type Type);
 
     internal class GrpcCallInvokerFactory
     {

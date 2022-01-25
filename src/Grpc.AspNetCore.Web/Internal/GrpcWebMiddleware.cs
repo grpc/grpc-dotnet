@@ -113,24 +113,20 @@ namespace Grpc.AspNetCore.Web.Internal
 
         internal static ServerGrpcWebContext GetGrpcWebContext(HttpContext httpContext)
         {
-            var serverContext = new ServerGrpcWebContext();
-
-            if (TryGetWebMode(httpContext.Request.ContentType, out var requestMode))
+            if (!TryGetWebMode(httpContext.Request.ContentType, out var requestMode))
             {
-                serverContext.Request = requestMode;
-
-                if (TryGetWebMode(httpContext.Request.Headers["Accept"], out var responseMode))
-                {
-                    serverContext.Response = responseMode;
-                }
-                else
-                {
-                    // If there isn't a request 'accept' header then default to mode to 'application/grpc`.
-                    serverContext.Response = ServerGrpcWebMode.GrpcWeb;
-                }
+                return default;
             }
 
-            return serverContext;
+            if (TryGetWebMode(httpContext.Request.Headers["Accept"], out var responseMode))
+            {
+                return new ServerGrpcWebContext(requestMode, responseMode);
+            }
+            else
+            {
+                // If there isn't a request 'accept' header then default to mode to 'application/grpc`.
+                return new ServerGrpcWebContext(requestMode, ServerGrpcWebMode.GrpcWeb);
+            }
         }
 
         private static bool TryGetWebMode(string? contentType, out ServerGrpcWebMode mode)
