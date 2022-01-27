@@ -247,7 +247,6 @@ namespace Grpc.Net.Client.Balancer
             }
 
             addressSubchannel.UpdateKnownState(state.State);
-
             SubchannelsLoadBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State, state.Status);
 
             UpdateBalancingState(state.Status);

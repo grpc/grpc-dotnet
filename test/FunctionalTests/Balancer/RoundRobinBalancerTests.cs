@@ -232,22 +232,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             }
         }
 
-        private static IEnumerable<TestCaseData> AddBrowserConfs()
-        {
-            return Enumerable.Range(0, 1).Select(i => new TestCaseData(i));
-        }
-
-        [Test, TestCaseSource("AddBrowserConfs")]
-        //[Parallelizable(ParallelScope.All)]
-        public async Task UnaryCall_UnavailableAddress_FallbackToWorkingAddress(int j)
+        [Test]
+        public async Task UnaryCall_UnavailableAddress_FallbackToWorkingAddress()
         {
             // Ignore errors
             SetExpectedErrorsFilter(writeContext =>
             {
                 return true;
             });
-
-            Console.WriteLine(j);
 
             string? host = null;
             Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
