@@ -94,14 +94,14 @@ namespace Grpc.Net.Client.Balancer
             return null;
         }
 
-        private int? FindSubchannel(List<AddressSubchannel> addressSubchannels, Subchannel subchannel)
+        private AddressSubchannel? FindSubchannel(List<AddressSubchannel> addressSubchannels, Subchannel subchannel)
         {
             for (var i = 0; i < addressSubchannels.Count; i++)
             {
                 var s = addressSubchannels[i];
                 if (Equals(s.Subchannel, subchannel))
                 {
-                    return i;
+                    return s;
                 }
             }
 
@@ -150,7 +150,7 @@ namespace Grpc.Net.Client.Balancer
                     c.OnStateChanged(s => UpdateSubchannelState(c, s));
 
                     newSubchannels.Add(c);
-                    newOrCurrentSubConnection = new AddressSubchannel(c, address);
+                    newOrCurrentSubConnection = new AddressSubchannel(c, address, ConnectivityState.Idle);
                 }
 
                 allUpdatedSubchannels.Add(newOrCurrentSubConnection);
@@ -189,7 +189,7 @@ namespace Grpc.Net.Client.Balancer
             for (var i = 0; i < _addressSubchannels.Count; i++)
             {
                 var addressSubchannel = _addressSubchannels[i];
-                if (addressSubchannel.Subchannel.State == ConnectivityState.Ready)
+                if (addressSubchannel.KnownState == ConnectivityState.Ready)
                 {
                     readySubchannels.Add(addressSubchannel.Subchannel);
                 }
@@ -201,7 +201,7 @@ namespace Grpc.Net.Client.Balancer
                 var isConnecting = false;
                 foreach (var subchannel in _addressSubchannels)
                 {
-                    var state = subchannel.Subchannel.State;
+                    var state = subchannel.KnownState;
 
                     if (state == ConnectivityState.Connecting || state == ConnectivityState.Idle)
                     {
@@ -239,12 +239,14 @@ namespace Grpc.Net.Client.Balancer
 
         private void UpdateSubchannelState(Subchannel subchannel, SubchannelState state)
         {
-            var index = FindSubchannel(_addressSubchannels, subchannel);
-            if (index == null)
+            var addressSubchannel = FindSubchannel(_addressSubchannels, subchannel);
+            if (addressSubchannel == null)
             {
                 SubchannelsLoadBalancerLog.IgnoredSubchannelStateChange(_logger, subchannel.Id);
                 return;
             }
+
+            addressSubchannel.UpdateKnownState(state.State);
 
             SubchannelsLoadBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State, state.Status);
 
@@ -297,7 +299,27 @@ namespace Grpc.Net.Client.Balancer
         /// <returns>A subchannel picker.</returns>
         protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
-        private record AddressSubchannel(Subchannel Subchannel, BalancerAddress Address);
+        private class AddressSubchannel
+        {
+            public AddressSubchannel(Subchannel subchannel, BalancerAddress address, ConnectivityState knownState)
+            {
+                Subchannel = subchannel;
+                Address = address;
+                KnownState = knownState;
+            }
+
+            // Track connectivity state that has been updated to load balancer.
+            // This is used instead of state on subchannel because subchannel state
+            // can be updated at any time.
+            public ConnectivityState KnownState { get; private set; }
+            public Subchannel Subchannel { get; }
+            public BalancerAddress Address { get; }
+
+            public void UpdateKnownState(ConnectivityState knownState)
+            {
+                KnownState = knownState;
+            }
+        }
     }
 
     internal static class SubchannelsLoadBalancerLog
