@@ -150,7 +150,7 @@ namespace Grpc.Net.Client.Balancer
                     c.OnStateChanged(s => UpdateSubchannelState(c, s));
 
                     newSubchannels.Add(c);
-                    newOrCurrentSubConnection = new AddressSubchannel(c, address, ConnectivityState.Idle);
+                    newOrCurrentSubConnection = new AddressSubchannel(c, address);
                 }
 
                 allUpdatedSubchannels.Add(newOrCurrentSubConnection);
@@ -302,11 +302,11 @@ namespace Grpc.Net.Client.Balancer
         {
             private ConnectivityState _lastKnownState;
 
-            public AddressSubchannel(Subchannel subchannel, BalancerAddress address, ConnectivityState lastknownState)
+            public AddressSubchannel(Subchannel subchannel, BalancerAddress address)
             {
                 Subchannel = subchannel;
                 Address = address;
-                _lastKnownState = lastknownState;
+                _lastKnownState = ConnectivityState.Idle;
             }
 
             // Track connectivity state that has been updated to load balancer.
