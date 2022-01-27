@@ -48,6 +48,14 @@ namespace Grpc.Net.Client.Balancer
         internal ISubchannelTransport Transport { get; set; } = default!;
         internal int Id { get; }
 
+        /// <summary>
+        /// Connectivity state is internal rather than public because it can be updated by multiple threads while
+        /// a load balancer is building the picker.
+        /// Load balancers that care about multiple subchannels should track state by subscribing to
+        /// Subchannel.OnStateChanged and storing results.
+        /// </summary>
+        internal ConnectivityState State => _state;
+
         private readonly ConnectionManager _manager;
         private readonly ILogger _logger;
 
@@ -59,11 +67,6 @@ namespace Grpc.Net.Client.Balancer
         /// Gets the current connected address.
         /// </summary>
         public BalancerAddress? CurrentAddress => Transport.CurrentAddress;
-
-        /// <summary>
-        /// Gets the connectivity state.
-        /// </summary>
-        public ConnectivityState State => _state;
 
         /// <summary>
         /// Gets the metadata attributes.
@@ -327,7 +330,7 @@ namespace Grpc.Net.Client.Balancer
         {
             lock (Lock)
             {
-                return $"Id: {Id}, Addresses: {string.Join(", ", _addresses)}, State: {State}, Current address: {CurrentAddress}";
+                return $"Id: {Id}, Addresses: {string.Join(", ", _addresses)}, State: {_state}, Current address: {CurrentAddress}";
             }
         }
 
@@ -345,7 +348,7 @@ namespace Grpc.Net.Client.Balancer
 
         /// <summary>
         /// Disposes the <see cref="Subchannel"/>.
-        /// The subchannel <see cref="State"/> is updated to <see cref="ConnectivityState.Shutdown"/>.
+        /// The subchannel state is updated to <see cref="ConnectivityState.Shutdown"/>.
         /// After dispose the subchannel should no longer be returned by the latest <see cref="SubchannelPicker"/>.
         /// </summary>
         public void Dispose()
