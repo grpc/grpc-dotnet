@@ -47,8 +47,10 @@ namespace Grpc.Net.Client.Balancer
         internal readonly object Lock;
         internal ISubchannelTransport Transport { get; set; } = default!;
         internal int Id { get; }
+
         /// <summary>
-        /// Connectivity state is internal rather than public because it can be updated at any time.
+        /// Connectivity state is internal rather than public because it can be updated by multiple threads while
+        /// a load balancer is building the picker.
         /// Load balancers that care about multiple subchannels should track state by subscribing to
         /// Subchannel.OnStateChanged and storing results.
         /// </summary>

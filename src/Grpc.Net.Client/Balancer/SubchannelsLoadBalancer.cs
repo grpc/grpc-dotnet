@@ -189,7 +189,7 @@ namespace Grpc.Net.Client.Balancer
             for (var i = 0; i < _addressSubchannels.Count; i++)
             {
                 var addressSubchannel = _addressSubchannels[i];
-                if (addressSubchannel.KnownState == ConnectivityState.Ready)
+                if (addressSubchannel.LastKnownState == ConnectivityState.Ready)
                 {
                     readySubchannels.Add(addressSubchannel.Subchannel);
                 }
@@ -201,7 +201,7 @@ namespace Grpc.Net.Client.Balancer
                 var isConnecting = false;
                 foreach (var subchannel in _addressSubchannels)
                 {
-                    var state = subchannel.KnownState;
+                    var state = subchannel.LastKnownState;
 
                     if (state == ConnectivityState.Connecting || state == ConnectivityState.Idle)
                     {
@@ -300,23 +300,25 @@ namespace Grpc.Net.Client.Balancer
 
         private class AddressSubchannel
         {
-            public AddressSubchannel(Subchannel subchannel, BalancerAddress address, ConnectivityState knownState)
+            private ConnectivityState _lastKnownState;
+
+            public AddressSubchannel(Subchannel subchannel, BalancerAddress address, ConnectivityState lastknownState)
             {
                 Subchannel = subchannel;
                 Address = address;
-                KnownState = knownState;
+                _lastKnownState = lastknownState;
             }
 
             // Track connectivity state that has been updated to load balancer.
             // This is used instead of state on subchannel because subchannel state
-            // can be updated at any time.
-            public ConnectivityState KnownState { get; private set; }
+            // can be updated from other threads while load balancer is running.
+            public ConnectivityState LastKnownState => _lastKnownState;
             public Subchannel Subchannel { get; }
             public BalancerAddress Address { get; }
 
             public void UpdateKnownState(ConnectivityState knownState)
             {
-                KnownState = knownState;
+                _lastKnownState = knownState;
             }
         }
     }
