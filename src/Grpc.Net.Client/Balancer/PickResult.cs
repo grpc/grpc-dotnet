@@ -83,7 +83,7 @@ namespace Grpc.Net.Client.Balancer
         /// A result created with a <see cref="Balancer.Subchannel"/> won't necessarily be used by a gRPC call.
         /// The subchannel's state may change at the same time the picker is making a decision. That means the
         /// decision may be made with outdated information. For example, a picker may return a subchannel
-        /// with a <see cref="Subchannel.State"/> that is <see cref="ConnectivityState.Ready"/>, but
+        /// with a state that is <see cref="ConnectivityState.Ready"/>, but
         /// becomes <see cref="ConnectivityState.Idle"/> when the subchannel is about to be used. In that situation
         /// the gRPC call waits for the load balancer to react to the new state and create a new picker.
         /// </para>
