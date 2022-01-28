@@ -55,7 +55,7 @@ namespace Frontend.Balancer
         private void OnSubchannelStateChanged(Subchannel subchannel, SubchannelState s)
         {
             var i = _subchannels.FindIndex(s => s.Subchannel == subchannel);
-            if (i > 0)
+            if (i >= 0)
             {
                 if (s.State == ConnectivityState.Shutdown)
                 {
