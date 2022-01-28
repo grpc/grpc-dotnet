@@ -28,7 +28,7 @@ namespace Frontend.Balancer
     public class SubchannelReporter : IObservable<SubchannelReporterResult>
     {
         private readonly ObservableCollection<IObserver<SubchannelReporterResult>> _observers;
-        private SubchannelReporterResult _lastResult = new SubchannelReporterResult(ConnectivityState.Idle, new List<Subchannel>());
+        private SubchannelReporterResult _lastResult = new SubchannelReporterResult(ConnectivityState.Idle, new List<ReportedSubchannelState>());
 
         public SubchannelReporter()
         {
@@ -90,5 +90,5 @@ namespace Frontend.Balancer
         }
     }
 
-    public record SubchannelReporterResult(ConnectivityState State, List<Subchannel> Subchannels);
+    public record SubchannelReporterResult(ConnectivityState State, List<ReportedSubchannelState> Subchannels);
 }

@@ -72,7 +72,7 @@ else
                 @foreach (var subchannel in subchannels)
                 {
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>@FormatSubchannelAddresses(subchannel)</span>
+                        <span>@FormatSubchannelAddresses(subchannel.Subchannel)</span>
                         <span class="badge @GetStateClass(subchannel.State) badge-pill">@subchannel.State</span>
                     </li>
                 }
@@ -84,7 +84,7 @@ else
 
 @code {
     private IList<WeatherForecast>? forecasts;
-    private IList<Subchannel> subchannels = default!;
+    private IList<ReportedSubchannelState> subchannels = default!;
     private ConnectivityState connectionState;
     private IDisposable? subscription;
     private string? server;
