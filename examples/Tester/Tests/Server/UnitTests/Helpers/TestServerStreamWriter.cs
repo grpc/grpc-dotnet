@@ -22,6 +22,8 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Grpc.Core;
 
+// TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
 namespace Tests.Server.UnitTests.Helpers
 {
     public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
@@ -77,3 +79,4 @@ namespace Tests.Server.UnitTests.Helpers
         }
     }
 }
+#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).

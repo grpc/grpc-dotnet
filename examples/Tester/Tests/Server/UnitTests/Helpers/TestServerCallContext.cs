@@ -22,6 +22,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
+// TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
+#pragma warning disable CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
 namespace Tests.Server.UnitTests.Helpers
 {
     public class TestServerCallContext : ServerCallContext
@@ -55,7 +57,7 @@ namespace Tests.Server.UnitTests.Helpers
         protected override WriteOptions? WriteOptionsCore { get => _writeOptions; set { _writeOptions = value; } }
         protected override AuthContext AuthContextCore => _authContext;
 
-        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
+        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
         {
             throw new NotImplementedException();
         }
@@ -79,3 +81,4 @@ namespace Tests.Server.UnitTests.Helpers
         }
     }
 }
+#pragma warning restore CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).

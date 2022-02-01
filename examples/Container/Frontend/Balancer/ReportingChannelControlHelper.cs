@@ -22,11 +22,13 @@ using Grpc.Net.Client.Balancer;
 
 namespace Frontend.Balancer
 {
+    public record ReportedSubchannelState(Subchannel Subchannel, ConnectivityState State);
+
     public class ReportingChannelControlHelper : IChannelControlHelper
     {
         private readonly IChannelControlHelper _controller;
         private readonly SubchannelReporter _subchannelReporter;
-        private readonly List<Subchannel> _subchannels;
+        private readonly List<ReportedSubchannelState> _subchannels;
 
         private ConnectivityState _state;
 
@@ -35,7 +37,7 @@ namespace Frontend.Balancer
             SubchannelReporter subchannelReporter)
         {
             _controller = controller;
-            _subchannels = new List<Subchannel>();
+            _subchannels = new List<ReportedSubchannelState>();
             _subchannelReporter = subchannelReporter;
         }
 
@@ -43,7 +45,7 @@ namespace Frontend.Balancer
         {
             var subchannel = _controller.CreateSubchannel(options);
             subchannel.OnStateChanged(s => OnSubchannelStateChanged(subchannel, s));
-            _subchannels.Add(subchannel);
+            _subchannels.Add(new ReportedSubchannelState(subchannel, ConnectivityState.Idle));
 
             NotifySubscribers();
 
@@ -52,9 +54,17 @@ namespace Frontend.Balancer
 
         private void OnSubchannelStateChanged(Subchannel subchannel, SubchannelState s)
         {
-            if (s.State == ConnectivityState.Shutdown)
+            var i = _subchannels.FindIndex(s => s.Subchannel == subchannel);
+            if (i >= 0)
             {
-                _subchannels.Remove(subchannel);
+                if (s.State == ConnectivityState.Shutdown)
+                {
+                    _subchannels.RemoveAt(i);
+                }
+                else
+                {
+                    _subchannels[i] = new ReportedSubchannelState(subchannel, s.State);
+                }
             }
         }
 
