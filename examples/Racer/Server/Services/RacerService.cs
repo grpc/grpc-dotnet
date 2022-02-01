@@ -30,7 +30,7 @@ namespace Server
     {
         public override async Task ReadySetGo(IAsyncStreamReader<RaceMessage> requestStream, IServerStreamWriter<RaceMessage> responseStream, ServerCallContext context)
         {
-            var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration"), CultureInfo.InvariantCulture);
+            var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration")!, CultureInfo.InvariantCulture);
 
             // Read incoming messages in a background task
             RaceMessage? lastMessageReceived = null;
