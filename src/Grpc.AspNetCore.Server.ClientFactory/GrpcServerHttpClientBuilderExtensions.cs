@@ -30,8 +30,8 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class GrpcServerHttpClientBuilderExtensions
     {
         /// <summary>
-        /// Configures the server to propagate values from a call's <see cref="ServerCallContext"/>
-        /// onto the gRPC client.
+        /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
+        /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
@@ -57,8 +57,8 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Configures the server to propagate values from a call's <see cref="ServerCallContext"/>
-        /// onto the gRPC client.
+        /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
+        /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <param name="configureOptions">An <see cref="Action{GrpcContextPropagationOptions}"/> to configure the provided <see cref="GrpcContextPropagationOptions"/>.</param>
