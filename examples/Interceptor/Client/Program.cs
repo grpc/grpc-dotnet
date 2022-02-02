@@ -30,7 +30,7 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+            using var channel = GrpcChannel.ForAddress("http://localhost:5001");
             var invoker = channel.Intercept(new ClientLoggerInterceptor());
 
             var client = new Greeter.GreeterClient(invoker);
@@ -97,11 +97,6 @@ namespace Client
         private static async Task BidirectionalCallExample(Greeter.GreeterClient client)
         {
             using var call = client.SayHellosToLotsOfBuddies();
-            for (var i = 0; i < 3; i++)
-            {
-                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i}" });
-            }
-
             var readTask = Task.Run(async () =>
             {
                 await foreach (var message in call.ResponseStream.ReadAllAsync())
@@ -109,6 +104,11 @@ namespace Client
                     Console.WriteLine("Greeting: " + message.Message);
                 }
             });
+
+            for (var i = 0; i < 3; i++)
+            {
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i}" });
+            }
 
             await call.RequestStream.CompleteAsync();
             await readTask;
