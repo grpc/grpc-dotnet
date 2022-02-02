@@ -56,13 +56,13 @@ namespace Server
 
         public override async Task<HelloReply> SayHelloToLotsOfBuddies(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
         {
-            var message = "Hello";
+            var names = new List<string>();
             await foreach (var request in requestStream.ReadAllAsync())
             {
-                message += $" {request.Name},";
+                names.Add(request.Name);
             }
 
-            message = message.Remove(message.Length - 1);
+            var message = $"Hello {string.Join(", ", names)}";
 
             _logger.LogInformation($"Sending greeting {message}.");
             return new HelloReply { Message = message };
