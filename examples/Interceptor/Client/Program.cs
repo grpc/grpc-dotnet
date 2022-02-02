@@ -86,7 +86,7 @@ namespace Client
             using var call = client.SayHelloToLotsOfBuddies();
             for (var i = 0; i < 3; i++)
             {
-                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i}" });
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i + 1}" });
             }
 
             await call.RequestStream.CompleteAsync();
@@ -107,7 +107,7 @@ namespace Client
 
             for (var i = 0; i < 3; i++)
             {
-                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i}" });
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i + 1}" });
             }
 
             await call.RequestStream.CompleteAsync();
