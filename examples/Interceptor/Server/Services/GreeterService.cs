@@ -53,5 +53,27 @@ namespace Server
                 await Task.Delay(1000);
             }
         }
+
+        public override async Task<HelloReply> SayHelloToLotsOfBuddies(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
+        {
+            var message = "Hello";
+            await foreach (var request in requestStream.ReadAllAsync())
+            {
+                message += $" {request.Name},";
+            }
+
+            message = message.Remove(message.Length - 1);
+
+            _logger.LogInformation($"Sending greeting {message}.");
+            return new HelloReply { Message = message };
+        }
+
+        public override async Task SayHellosToLotsOfBuddies(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        {
+            await foreach (var request in requestStream.ReadAllAsync())
+            {
+                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + request.Name });
+            }
+        }
     }
 }
