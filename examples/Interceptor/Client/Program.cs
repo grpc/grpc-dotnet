@@ -35,13 +35,25 @@ namespace Client
 
             var client = new Greeter.GreeterClient(invoker);
 
+            BlockingUnaryCallExample(client);
+
             await UnaryCallExample(client);
 
             await ServerStreamingCallExample(client);
 
+            await ClientStreamingCallExample(client);
+
+            await BidirectionalCallExample(client);
+
             Console.WriteLine("Shutting down");
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
+        }
+
+        private static void BlockingUnaryCallExample(Greeter.GreeterClient client)
+        {
+            var reply = client.SayHello(new HelloRequest { Name = "GreeterClient" });
+            Console.WriteLine("Greeting: " + reply.Message);
         }
 
         private static async Task UnaryCallExample(Greeter.GreeterClient client)
@@ -67,6 +79,39 @@ namespace Client
             {
                 Console.WriteLine("Stream cancelled.");
             }
+        }
+
+        private static async Task ClientStreamingCallExample(Greeter.GreeterClient client)
+        {
+            using var call = client.SayHelloToLotsOfBuddies();
+            for (var i = 0; i < 3; i++)
+            {
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i + 1}" });
+            }
+
+            await call.RequestStream.CompleteAsync();
+            var reply = await call;
+            Console.WriteLine("Greeting: " + reply.Message);
+        }
+
+        private static async Task BidirectionalCallExample(Greeter.GreeterClient client)
+        {
+            using var call = client.SayHellosToLotsOfBuddies();
+            var readTask = Task.Run(async () =>
+            {
+                await foreach (var message in call.ResponseStream.ReadAllAsync())
+                {
+                    Console.WriteLine("Greeting: " + message.Message);
+                }
+            });
+
+            for (var i = 0; i < 3; i++)
+            {
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = $"GreeterClient{i + 1}" });
+            }
+
+            await call.RequestStream.CompleteAsync();
+            await readTask;
         }
     }
 }
