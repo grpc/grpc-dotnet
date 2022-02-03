@@ -25,6 +25,17 @@ namespace Client
 {
     public class ClientLoggerInterceptor : Interceptor
     {
+        public override TResponse BlockingUnaryCall<TRequest, TResponse>(
+            TRequest request,
+            ClientInterceptorContext<TRequest, TResponse> context,
+            BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
+        {
+            LogCall(context.Method);
+            AddCallerMetadata(ref context);
+
+            return continuation(request, context);
+        }
+
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
             TRequest request,
             ClientInterceptorContext<TRequest, TResponse> context,
