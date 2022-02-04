@@ -19,7 +19,8 @@
 using Grpc.AspNetCore.ClientFactory;
 using Grpc.Core;
 using Grpc.Net.ClientFactory;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -42,16 +43,7 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(builder));
             }
 
-            ValidateGrpcClient(builder);
-
-            builder.Services.TryAddSingleton<ContextPropagationInterceptor>();
-            builder.Services.AddHttpContextAccessor();
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
-            {
-                options.InterceptorRegistrations.Add(new InterceptorRegistration(
-                    InterceptorScope.Channel,
-                    s => s.GetRequiredService<ContextPropagationInterceptor>()));
-            });
+            EnableCallContextPropagationCore(builder, new GrpcContextPropagationOptions());
 
             return builder;
         }
@@ -70,8 +62,34 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(builder));
             }
 
-            builder.Services.Configure(configureOptions);
-            return builder.EnableCallContextPropagation();
+            if (configureOptions == null)
+            {
+                throw new ArgumentNullException(nameof(configureOptions));
+            }
+
+            var options = new GrpcContextPropagationOptions();
+            configureOptions(options);
+            EnableCallContextPropagationCore(builder, options);
+
+            return builder;
+        }
+
+        private static void EnableCallContextPropagationCore(IHttpClientBuilder builder, GrpcContextPropagationOptions options)
+        {
+            ValidateGrpcClient(builder);
+
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, o =>
+            {
+                o.InterceptorRegistrations.Add(new InterceptorRegistration(
+                    InterceptorScope.Channel,
+                    s =>
+                    {
+                        var accessor = s.GetRequiredService<IHttpContextAccessor>();
+                        var logger = s.GetRequiredService<ILogger<ContextPropagationInterceptor>>();
+                        return new ContextPropagationInterceptor(options, accessor, logger);
+                    }));
+            });
         }
 
         private static void ValidateGrpcClient(IHttpClientBuilder builder)
