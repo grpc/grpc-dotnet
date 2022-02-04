@@ -237,6 +237,54 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public async Task CreateClient_MultipleConfiguration_ConfigurationAppliedPerClient()
+        {
+            // Arrange
+            var testSink = new TestSink();
+            var testProvider = new TestLoggerProvider(testSink);
+
+            var baseAddress = new Uri("http://localhost");
+
+            var services = new ServiceCollection();
+            services.AddLogging(o => o.AddProvider(testProvider).SetMinimumLevel(LogLevel.Debug));
+            services.AddOptions();
+            services.AddSingleton(CreateHttpContextAccessor(null));
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = baseAddress;
+                })
+                .EnableCallContextPropagation(o => o.SuppressContextNotFoundErrors = true)
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+            services
+                .AddGrpcClient<SecondGreeter.SecondGreeterClient>(o =>
+                {
+                    o.Address = baseAddress;
+                })
+                .EnableCallContextPropagation()
+                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+            var client1 = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+            var client2 = clientFactory.CreateClient<SecondGreeter.SecondGreeterClient>(nameof(SecondGreeter.SecondGreeterClient));
+
+            // Act 1
+            await client1.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync.DefaultTimeout();
+
+            // Assert 1
+            var log = testSink.Writes.Single(w => w.EventId.Name == "PropagateServerCallContextFailure");
+            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the current HttpContext.", log.Message);
+
+            // Act 2
+            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => client2.SayHelloAsync(new HelloRequest(), new CallOptions()).ResponseAsync).DefaultTimeout();
+
+            // Assert 2
+            Assert.AreEqual("Unable to propagate server context values to the call. Can't find the current HttpContext.", ex.Message);
+        }
+
+        [Test]
         public async Task CreateClient_NoServerCallContextOnHttpContext_ThrowError()
         {
             // Arrange
