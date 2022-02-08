@@ -68,13 +68,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (flush)
                 {
-                    serverCallContext.HasBufferedMessage = false;
                     await pipeWriter.FlushAsync();
-                }
-                else
-                {
-                    // Set flag so buffered message will be written at the end
-                    serverCallContext.HasBufferedMessage = true;
                 }
 
                 GrpcServerLog.MessageSent(serverCallContext.Logger);

@@ -330,8 +330,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
         protected override IDictionary<object, object> UserStateCore => HttpContext.Items!;
 
-        internal bool HasBufferedMessage { get; set; }
-
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)
         {
             // TODO(JunTaoLuo, JamesNK): Currently blocked on ContextPropagationToken implementation in Grpc.Core.Api
