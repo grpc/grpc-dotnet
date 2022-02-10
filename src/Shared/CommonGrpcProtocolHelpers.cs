@@ -33,7 +33,7 @@ namespace Grpc.Shared
         // - The timer is rescheduled to run in 0.5ms.
         // - The deadline callback is raised again and there is now 0.4ms until deadline.
         // - The timer is rescheduled to run in 0.4ms, etc.
-        private static readonly int TimerEpsilonMilliseconds = 7;
+        private static readonly int TimerEpsilonMilliseconds = 14;
 
         public static long GetTimerDueTime(TimeSpan timeout, long maxTimerDueTime)
         {
