@@ -81,7 +81,8 @@ namespace Grpc.Net.ClientFactory.Internal
                 }
 
                 var clientFactoryOptions = _grpcClientFactoryOptionsMonitor.Get(name);
-                var httpHandler = _messageHandlerFactory.CreateHandler(name); if (httpHandler == null)
+                var httpHandler = _messageHandlerFactory.CreateHandler(name);
+                if (httpHandler == null)
                 {
                     throw new ArgumentNullException(nameof(httpHandler));
                 }
