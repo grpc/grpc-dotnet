@@ -1,5 +1,7 @@
 // custom-environment.js
-const PuppeteerEnvironment = require('jest-environment-puppeteer');
+import { PuppeteerEnvironment } from 'jest-environment-puppeteer';
+import 'expect-puppeteer';
+
 const expect = require('expect-puppeteer');
 
 class CustomEnvironment extends PuppeteerEnvironment {
