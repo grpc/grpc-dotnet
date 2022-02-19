@@ -12,6 +12,10 @@ class CustomEnvironment extends PuppeteerEnvironment {
         var page = this.global.page;
         await page.goto('http:localhost:8081', { waitUntil: 'networkidle0' });
 
+        for (var property in expect) {
+            console.log(`${property}: ${expect[property]}`);
+        }
+
         // Wait for Blazor to finish loading
         await expect(page).toMatch('gRPC-Web interop tests');
 
