@@ -6,7 +6,7 @@
     "test": "jest test"
   },
   "dependencies": {
-    "puppeteer": "^13.3.2",
+    "puppeteer": "^11.0.0",
     "jest": "^27.5.1",
     "jest-puppeteer": "^6.1.0"
   }

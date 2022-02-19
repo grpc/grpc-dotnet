@@ -1,7 +1,5 @@
 // custom-environment.js
-import { PuppeteerEnvironment } from 'jest-environment-puppeteer';
-import 'expect-puppeteer';
-
+const PuppeteerEnvironment = require('jest-environment-puppeteer');
 const expect = require('expect-puppeteer');
 
 class CustomEnvironment extends PuppeteerEnvironment {
@@ -10,7 +8,6 @@ class CustomEnvironment extends PuppeteerEnvironment {
         await super.setup();
 
         console.log('Calling gRPC-Web client app');
-        console.log('Expect: ' + expect);
 
         var page = this.global.page;
         await page.goto('http:localhost:8081', { waitUntil: 'networkidle0' });
