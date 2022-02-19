@@ -1,4 +1,5 @@
-// custom-environment.js
+// For some reason the expect-puppeteer require is returning a module rather than the function.
+// Helper function unwraps the module and returns the inner function.
 function _interopDefault(ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 const PuppeteerEnvironment = require('jest-environment-puppeteer');
@@ -13,10 +14,6 @@ class CustomEnvironment extends PuppeteerEnvironment {
 
         var page = this.global.page;
         await page.goto('http:localhost:8081', { waitUntil: 'networkidle0' });
-
-        for (var property in expect) {
-            console.log(`${property}: ${expect[property]}`);
-        }
 
         // Wait for Blazor to finish loading
         await expect(page).toMatch('gRPC-Web interop tests');
