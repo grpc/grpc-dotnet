@@ -8,6 +8,7 @@ class CustomEnvironment extends PuppeteerEnvironment {
         await super.setup();
 
         console.log('Calling gRPC-Web client app');
+        console.log('Expect: ' + expect);
 
         var page = this.global.page;
         await page.goto('http:localhost:8081', { waitUntil: 'networkidle0' });
