@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server.Reflection\Grpc.AspNetCore.Server.Reflection.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
+
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+
+    <Compile Include="..\Shared\BenchmarkServiceImpl.cs" Link="Services\BenchmarkServiceImpl.cs" />
+    <Compile Include="..\Shared\ServiceProvidersMiddleware.cs" Link="Infrastructure\ServiceProvidersMiddleware.cs" />
+
+    <Protobuf Include="Protos\core\stats.proto" />
+    <Protobuf Include="Protos\testing\control.proto" />
+    <Protobuf Include="Protos\testing\payloads.proto" />
+    <Protobuf Include="Protos\testing\stats.proto" />
+    <Protobuf Include="Protos\testing\worker_service.proto" />
+    <Protobuf Include="Protos\testing\benchmark_service.proto" />
+    <Protobuf Include="Protos\testing\messages.proto" />
+
+    <None Include="..\Shared\Certs\*.*" LinkBase="Certs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

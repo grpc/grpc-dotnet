@@ -28,6 +28,7 @@
 
     <Compile Include="..\Shared\BenchmarkConfigurationHelpers.cs" Link="BenchmarkConfigurationHelpers.cs" />
     <Compile Include="..\Shared\BenchmarkServiceImpl.cs" Link="Services\BenchmarkServiceImpl.cs" />
+    <Compile Include="..\Shared\ServiceProvidersMiddleware.cs" Link="ServiceProvidersMiddleware.cs" />
 
     <Content Update="hosting.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
