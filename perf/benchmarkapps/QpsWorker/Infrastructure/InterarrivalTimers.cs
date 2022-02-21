@@ -16,6 +16,7 @@
 
 #endregion
 
+// Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
 namespace QpsWorker.Infrastructure
 {
     public interface IInterarrivalTimer
@@ -50,13 +51,13 @@ namespace QpsWorker.Infrastructure
     /// </summary>
     public class PoissonInterarrivalTimer : IInterarrivalTimer
     {
-        readonly ExponentialDistribution exponentialDistribution;
-        DateTime? lastEventTime;
+        private readonly ExponentialDistribution _exponentialDistribution;
+        private DateTime? _lastEventTime;
 
         public PoissonInterarrivalTimer(double offeredLoad)
         {
-            exponentialDistribution = new ExponentialDistribution(new Random(), offeredLoad);
-            lastEventTime = DateTime.UtcNow;
+            _exponentialDistribution = new ExponentialDistribution(new Random(), offeredLoad);
+            _lastEventTime = DateTime.UtcNow;
         }
 
         public void WaitForNext()
@@ -83,14 +84,14 @@ namespace QpsWorker.Infrastructure
 
         private TimeSpan GetNextWaitDuration()
         {
-            if (!lastEventTime.HasValue)
+            if (!_lastEventTime.HasValue)
             {
-                lastEventTime = DateTime.Now;
+                _lastEventTime = DateTime.Now;
             }
 
-            var origLastEventTime = lastEventTime.Value;
-            lastEventTime = origLastEventTime + TimeSpan.FromSeconds(exponentialDistribution.Next());
-            return lastEventTime.Value - origLastEventTime;
+            var origLastEventTime = _lastEventTime.Value;
+            _lastEventTime = origLastEventTime + TimeSpan.FromSeconds(_exponentialDistribution.Next());
+            return _lastEventTime.Value - origLastEventTime;
         }
 
         /// <summary>
@@ -98,22 +99,22 @@ namespace QpsWorker.Infrastructure
         /// </summary>
         private class ExponentialDistribution
         {
-            readonly Random random;
-            readonly double lambda;
-            readonly double lambdaReciprocal;
+            private readonly Random _random;
+            private readonly double _lambda;
+            private readonly double _lambdaReciprocal;
 
             public ExponentialDistribution(Random random, double lambda)
             {
-                this.random = random;
-                this.lambda = lambda;
-                lambdaReciprocal = 1.0 / lambda;
+                _random = random;
+                _lambda = lambda;
+                _lambdaReciprocal = 1.0 / lambda;
             }
 
             public double Next()
             {
-                double uniform = random.NextDouble();
+                double uniform = _random.NextDouble();
                 // Use 1.0-uni above to avoid NaN if uni is 0
-                return lambdaReciprocal * (-Math.Log(1.0 - uniform));
+                return _lambdaReciprocal * (-Math.Log(1.0 - uniform));
             }
         }
     }

@@ -20,6 +20,7 @@ using System.Diagnostics;
 using Grpc.Core.Utils;
 using Grpc.Testing;
 
+// Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
 namespace QpsWorker.Infrastructure
 {
     /// <summary>
@@ -27,33 +28,33 @@ namespace QpsWorker.Infrastructure
     /// </summary>
     public class Histogram
     {
-        private readonly object myLock = new object();
-        private readonly double multiplier;
-        private readonly double oneOnLogMultiplier;
-        private readonly double maxPossible;
-        private readonly uint[] buckets;
+        private readonly object _myLock = new object();
+        private readonly double _multiplier;
+        private readonly double _oneOnLogMultiplier;
+        private readonly double _maxPossible;
+        private readonly uint[] _buckets;
 
-        private int count;
-        private double sum;
-        private double sumOfSquares;
-        private double min;
-        private double max;
+        private int _count;
+        private double _sum;
+        private double _sumOfSquares;
+        private double _min;
+        private double _max;
 
         public Histogram(double resolution, double maxPossible)
         {
             GrpcPreconditions.CheckArgument(resolution > 0);
             GrpcPreconditions.CheckArgument(maxPossible > 0);
-            this.maxPossible = maxPossible;
-            multiplier = 1.0 + resolution;
-            oneOnLogMultiplier = 1.0 / Math.Log(1.0 + resolution);
-            buckets = new uint[FindBucket(maxPossible) + 1];
+            _maxPossible = maxPossible;
+            _multiplier = 1.0 + resolution;
+            _oneOnLogMultiplier = 1.0 / Math.Log(1.0 + resolution);
+            _buckets = new uint[FindBucket(maxPossible) + 1];
 
             ResetUnsafe();
         }
 
         public void AddObservation(double value)
         {
-            lock (myLock)
+            lock (_myLock)
             {
                 AddObservationUnsafe(value);
             }
@@ -64,7 +65,7 @@ namespace QpsWorker.Infrastructure
         /// </summary>
         public HistogramData GetSnapshot(bool reset = false)
         {
-            lock (myLock)
+            lock (_myLock)
             {
                 var histogramData = new HistogramData();
                 GetSnapshotUnsafe(histogramData, reset);
@@ -77,7 +78,7 @@ namespace QpsWorker.Infrastructure
         /// </summary>
         public void GetSnapshot(HistogramData mergeTo, bool reset)
         {
-            lock (myLock)
+            lock (_myLock)
             {
                 GetSnapshotUnsafe(mergeTo, reset);
             }
@@ -89,47 +90,47 @@ namespace QpsWorker.Infrastructure
         private int FindBucket(double value)
         {
             value = Math.Max(value, 1.0);
-            value = Math.Min(value, maxPossible);
-            return (int)(Math.Log(value) * oneOnLogMultiplier);
+            value = Math.Min(value, _maxPossible);
+            return (int)(Math.Log(value) * _oneOnLogMultiplier);
         }
 
         private void AddObservationUnsafe(double value)
         {
-            count++;
-            sum += value;
-            sumOfSquares += value * value;
-            min = Math.Min(min, value);
-            max = Math.Max(max, value);
+            _count++;
+            _sum += value;
+            _sumOfSquares += value * value;
+            _min = Math.Min(_min, value);
+            _max = Math.Max(_max, value);
 
-            buckets[FindBucket(value)]++;
+            _buckets[FindBucket(value)]++;
         }
 
         private void GetSnapshotUnsafe(HistogramData mergeTo, bool reset)
         {
-            GrpcPreconditions.CheckArgument(mergeTo.Bucket.Count == 0 || mergeTo.Bucket.Count == buckets.Length);
+            GrpcPreconditions.CheckArgument(mergeTo.Bucket.Count == 0 || mergeTo.Bucket.Count == _buckets.Length);
             if (mergeTo.Count == 0)
             {
-                mergeTo.MinSeen = min;
-                mergeTo.MaxSeen = max;
+                mergeTo.MinSeen = _min;
+                mergeTo.MaxSeen = _max;
             }
             else
             {
-                mergeTo.MinSeen = Math.Min(mergeTo.MinSeen, min);
-                mergeTo.MaxSeen = Math.Max(mergeTo.MaxSeen, max);
+                mergeTo.MinSeen = Math.Min(mergeTo.MinSeen, _min);
+                mergeTo.MaxSeen = Math.Max(mergeTo.MaxSeen, _max);
             }
-            mergeTo.Count += count;
-            mergeTo.Sum += sum;
-            mergeTo.SumOfSquares += sumOfSquares;
+            mergeTo.Count += _count;
+            mergeTo.Sum += _sum;
+            mergeTo.SumOfSquares += _sumOfSquares;
 
             if (mergeTo.Bucket.Count == 0)
             {
-                mergeTo.Bucket.AddRange(buckets);
+                mergeTo.Bucket.AddRange(_buckets);
             }
             else
             {
-                for (int i = 0; i < buckets.Length; i++)
+                for (int i = 0; i < _buckets.Length; i++)
                 {
-                    mergeTo.Bucket[i] += buckets[i];
+                    mergeTo.Bucket[i] += _buckets[i];
                 }
             }
 
@@ -141,14 +142,14 @@ namespace QpsWorker.Infrastructure
 
         private void ResetUnsafe()
         {
-            count = 0;
-            sum = 0;
-            sumOfSquares = 0;
-            min = double.PositiveInfinity;
-            max = double.NegativeInfinity;
-            for (int i = 0; i < buckets.Length; i++)
+            _count = 0;
+            _sum = 0;
+            _sumOfSquares = 0;
+            _min = double.PositiveInfinity;
+            _max = double.NegativeInfinity;
+            for (int i = 0; i < _buckets.Length; i++)
             {
-                buckets[i] = 0;
+                _buckets[i] = 0;
             }
         }
     }

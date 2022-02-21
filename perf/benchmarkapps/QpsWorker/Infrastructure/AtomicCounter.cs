@@ -16,25 +16,26 @@
 
 #endregion
 
+// Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
 namespace QpsWorker.Infrastructure
 {
     internal class AtomicCounter
     {
-        long counter = 0;
+        private long _counter = 0;
 
         public AtomicCounter(long initialCount = 0)
         {
-            counter = initialCount;
+            _counter = initialCount;
         }
 
         public long Increment()
         {
-            return Interlocked.Increment(ref counter);
+            return Interlocked.Increment(ref _counter);
         }
 
         public void IncrementIfNonzero(ref bool success)
         {
-            long origValue = counter;
+            long origValue = _counter;
             while (true)
             {
                 if (origValue == 0)
@@ -42,7 +43,7 @@ namespace QpsWorker.Infrastructure
                     success = false;
                     return;
                 }
-                long result = Interlocked.CompareExchange(ref counter, origValue + 1, origValue);
+                long result = Interlocked.CompareExchange(ref _counter, origValue + 1, origValue);
                 if (result == origValue)
                 {
                     success = true;
@@ -54,14 +55,14 @@ namespace QpsWorker.Infrastructure
 
         public long Decrement()
         {
-            return Interlocked.Decrement(ref counter);
+            return Interlocked.Decrement(ref _counter);
         }
 
         public long Count
         {
             get
             {
-                return Interlocked.Read(ref counter);
+                return Interlocked.Read(ref _counter);
             }
         }
     }

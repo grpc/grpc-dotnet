@@ -16,10 +16,7 @@
 
 #endregion
 
-using System.Diagnostics;
 using Grpc.Core;
-using Grpc.Core.Utils;
-using Grpc.Testing;
 
 namespace QpsWorker.Infrastructure
 {

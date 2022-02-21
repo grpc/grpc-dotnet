@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 
+// Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
 namespace QpsWorker.Infrastructure
 {
     /// <summary>
@@ -25,32 +26,32 @@ namespace QpsWorker.Infrastructure
     /// </summary>
     public class TimeStats
     {
-        readonly object myLock = new object();
-        DateTime lastWallClock;
-        TimeSpan lastUserTime;
-        TimeSpan lastPrivilegedTime;
+        private readonly object _myLock = new object();
+        private DateTime _lastWallClock;
+        private TimeSpan _lastUserTime;
+        private TimeSpan _lastPrivilegedTime;
 
         public TimeStats()
         {
-            lastWallClock = DateTime.UtcNow;
-            lastUserTime = Process.GetCurrentProcess().UserProcessorTime;
-            lastPrivilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
+            _lastWallClock = DateTime.UtcNow;
+            _lastUserTime = Process.GetCurrentProcess().UserProcessorTime;
+            _lastPrivilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
         }
 
         public Snapshot GetSnapshot(bool reset)
         {
-            lock (myLock)
+            lock (_myLock)
             {
                 var wallClock = DateTime.UtcNow;
                 var userTime = Process.GetCurrentProcess().UserProcessorTime;
                 var privilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
-                var snapshot = new Snapshot(wallClock - lastWallClock, userTime - lastUserTime, privilegedTime - lastPrivilegedTime);
+                var snapshot = new Snapshot(wallClock - _lastWallClock, userTime - _lastUserTime, privilegedTime - _lastPrivilegedTime);
 
                 if (reset)
                 {
-                    lastWallClock = wallClock;
-                    lastUserTime = userTime;
-                    lastPrivilegedTime = privilegedTime;
+                    _lastWallClock = wallClock;
+                    _lastUserTime = userTime;
+                    _lastPrivilegedTime = privilegedTime;
                 }
                 return snapshot;
             }

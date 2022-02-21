@@ -17,114 +17,14 @@ Example of running client using Grpc.Net.Client against Grpc.AspNetCore server:
 
 The `QpsWorker` runs in the [gRPC benchmark environment](https://grpc.io/docs/guides/benchmarking/). The worker hosts gRPC services which are used to start a benchmark server or client.
 
-`grpcui` can be used to test the worker. Specify `--LogLevel Debug` argument to enable server and client console logging.
+* `driver_port` - Port for the worker. Consistent with other drivers.
+* `LogLevel` - Logging level of the client and server runners. Optional. Defaults to no logging.
 
-### Start server
-
-`RunServer` method with request:
-
-```json
-[
-  {
-    "setup": {
-      "serverType": "ASYNC_SERVER",
-      "port": 5002,
-      "coreList": [],
-      "channelArgs": [],
-      "securityParams": {}
-    }
-  }
-]
+```cmd
+dotnet run -c Release -- --LogLevel Debug --driver_port 5000
 ```
 
-Or for generic server:
+To test a running worker:
 
-```json
-[
-  {
-    "setup": {
-      "serverType": "ASYNC_GENERIC_SERVER",
-      "securityParams": {},
-      "port": 5002,
-      "coreList": [],
-      "channelArgs": [],
-      "payloadConfig": {
-        "bytebufParams": {
-          "reqSize": 50,
-          "respSize": 50
-        }
-      }
-    }
-  }
-]
-```
-
-### Start client
-
-`RunClient` method with request:
-
-```json
-[
-  {
-    "setup": {
-      "serverTargets": [
-        "localhost:5002"
-      ],
-      "coreList": [],
-      "channelArgs": [],
-      "clientType": "ASYNC_CLIENT",
-      "securityParams": {},
-      "clientChannels": 20,
-      "rpcType": "UNARY",
-      "outstandingRpcsPerChannel": 50,
-      "histogramParams": {
-        "resolution": 50,
-        "maxPossible": 50
-      },
-      "loadParams": {
-        "closedLoop": {}
-      },
-      "payloadConfig": {
-        "simpleParams": {
-          "reqSize": 50,
-          "respSize": 50
-        }
-      }
-    }
-  }
-]
-```
-
-Or for generic server:
-
-```json
-[
-  {
-    "setup": {
-      "serverTargets": [
-        "localhost:5002"
-      ],
-      "clientType": "ASYNC_CLIENT",
-      "securityParams": {},
-      "outstandingRpcsPerChannel": 50,
-      "clientChannels": 20,
-      "rpcType": "STREAMING",
-      "loadParams": {
-        "closedLoop": {}
-      },
-      "payloadConfig": {
-        "bytebufParams": {
-          "reqSize": 50,
-          "respSize": 50
-        }
-      },
-      "histogramParams": {
-        "resolution": 50,
-        "maxPossible": 50
-      },
-      "coreList": [],
-      "channelArgs": []
-    }
-  }
-]
-```
+* `worker-start-server.ps1` starts a server.
+* `worker-start-client.ps1` starts a client.

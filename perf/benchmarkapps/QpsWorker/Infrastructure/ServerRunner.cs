@@ -18,13 +18,14 @@
 
 using Grpc.AspNetCore.Server.Model;
 using Grpc.Testing;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace QpsWorker.Infrastructure
 {
     public class ServerRunner
     {
-        public static async Task<ServerRunner> StartAsync(ILoggerFactory loggerFactory, ServerConfig config)
+        public static ServerRunner Start(ILoggerFactory loggerFactory, ServerConfig config)
         {
             var logger = loggerFactory.CreateLogger<ServerRunner>();
 
@@ -64,7 +65,8 @@ namespace QpsWorker.Infrastructure
                 throw new InvalidOperationException($"Unsupported ServerType: {config.ServerType}");
             }
 
-            await app.RunAsync();
+            // Don't wait for server to stop.
+            _ = app.RunAsync();
 
             logger.LogInformation("Server started.");
 
@@ -97,11 +99,12 @@ namespace QpsWorker.Infrastructure
                 var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
                 var certPath = Path.Combine(basePath!, "Certs", "server1.pfx");
 
-                kestrel.ListenAnyIP(config.Port, lister =>
+                kestrel.ListenAnyIP(config.Port, listenOptions =>
                 {
+                    listenOptions.Protocols = HttpProtocols.Http2;
                     if (config.SecurityParams != null)
                     {
-                        lister.UseHttps(certPath, "1111");
+                        listenOptions.UseHttps(certPath, "1111");
                     }
                 });
 

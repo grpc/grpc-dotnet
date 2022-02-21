@@ -43,7 +43,7 @@ namespace QpsWorker.Services
                 throw new InvalidOperationException();
             }
             var serverConfig = requestStream.Current.Setup;
-            var runner = await ServerRunner.StartAsync(_loggerFactory, serverConfig);
+            var runner = ServerRunner.Start(_loggerFactory, serverConfig);
             try
             {
                 await responseStream.WriteAsync(new ServerStatus
@@ -64,6 +64,7 @@ namespace QpsWorker.Services
             }
             finally
             {
+                _logger.LogInformation("Exiting RunServer.");
                 await runner.StopAsync();
             }
         }
@@ -94,6 +95,7 @@ namespace QpsWorker.Services
             }
             finally
             {
+                _logger.LogInformation("Exiting RunClient.");
                 await clientRunner.StopAsync();
             }
         }

@@ -17,15 +17,26 @@
 #endregion
 
 using Grpc.Shared;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using QpsWorker.Infrastructure;
 using QpsWorker.Services;
+
+var configRoot = ConfigHelpers.GetConfiguration();
+if (!int.TryParse(configRoot["driver_port"], out var port))
+{
+    throw new InvalidOperationException("driver_port argument not specified.");
+}
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddSimpleConsole().SetMinimumLevel(LogLevel.Debug);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(port, listenOptions => listenOptions.Protocols = HttpProtocols.Http2);
+});
 
 var services = builder.Services;
-services.AddGrpc();
+services.AddGrpc(o => o.EnableDetailedErrors = true);
 services.AddGrpcReflection();
 
 var app = builder.Build();
@@ -34,7 +45,6 @@ app.MapGrpcService<WorkerServiceImpl>();
 app.MapGrpcReflectionService();
 app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
 {
-    var configRoot = ConfigHelpers.GetConfiguration();
     if (Enum.TryParse<LogLevel>(configRoot["LogLevel"], out var logLevel))
     {
         app.Logger.LogInformation($"Client and server logging enabled with level '{logLevel}'");
