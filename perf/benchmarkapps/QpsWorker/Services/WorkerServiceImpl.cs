@@ -76,21 +76,26 @@ namespace QpsWorker.Services
             }
             var clientConfig = requestStream.Current.Setup;
             var clientRunner = ClientRunner.Start(_loggerFactory, clientConfig);
-
-            await responseStream.WriteAsync(new ClientStatus
+            try
             {
-                Stats = clientRunner.GetStats(false)
-            });
-
-            while (await requestStream.MoveNext())
-            {
-                var reset = requestStream.Current.Mark.Reset;
                 await responseStream.WriteAsync(new ClientStatus
                 {
-                    Stats = clientRunner.GetStats(reset)
+                    Stats = clientRunner.GetStats(false)
                 });
+
+                while (await requestStream.MoveNext())
+                {
+                    var reset = requestStream.Current.Mark.Reset;
+                    await responseStream.WriteAsync(new ClientStatus
+                    {
+                        Stats = clientRunner.GetStats(reset)
+                    });
+                }
             }
-            await clientRunner.StopAsync();
+            finally
+            {
+                await clientRunner.StopAsync();
+            }
         }
 
         public override Task<CoreResponse> CoreCount(CoreRequest request, ServerCallContext context)
