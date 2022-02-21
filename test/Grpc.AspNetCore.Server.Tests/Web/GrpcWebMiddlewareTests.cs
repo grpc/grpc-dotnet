@@ -101,6 +101,22 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
+        public void GetGrpcWebMode_NonPost_NotMatched()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            httpContext.Request.Method = HttpMethods.Options;
+            httpContext.Request.ContentType = GrpcWebProtocolConstants.GrpcWebContentType;
+
+            // Act
+            var grpcWebContext = GrpcWebMiddleware.GetGrpcWebContext(httpContext);
+
+            // Assert
+            Assert.AreEqual(ServerGrpcWebMode.None, grpcWebContext.Request);
+            Assert.AreEqual(ServerGrpcWebMode.None, grpcWebContext.Response);
+        }
+
+        [Test]
         public async Task Invoke_GrpcWebContentTypeAndNotEnabled_NotProcessed()
         {
             // Arrange

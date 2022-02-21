@@ -113,6 +113,11 @@ namespace Grpc.AspNetCore.Web.Internal
 
         internal static ServerGrpcWebContext GetGrpcWebContext(HttpContext httpContext)
         {
+            if (!HttpMethods.IsPost(httpContext.Request.Method))
+            {
+                return default;
+            }
+
             if (!TryGetWebMode(httpContext.Request.ContentType, out var requestMode))
             {
                 return default;
