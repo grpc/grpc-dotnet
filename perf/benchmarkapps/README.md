@@ -37,6 +37,28 @@ The `QpsWorker` runs in the [gRPC benchmark environment](https://grpc.io/docs/gu
 ]
 ```
 
+Or for generic server:
+
+```json
+[
+  {
+    "setup": {
+      "serverType": "ASYNC_GENERIC_SERVER",
+      "securityParams": {},
+      "port": 5002,
+      "coreList": [],
+      "channelArgs": [],
+      "payloadConfig": {
+        "bytebufParams": {
+          "reqSize": 50,
+          "respSize": 50
+        }
+      }
+    }
+  }
+]
+```
+
 ### Start client
 
 `RunClient` method with request:
@@ -68,6 +90,40 @@ The `QpsWorker` runs in the [gRPC benchmark environment](https://grpc.io/docs/gu
           "respSize": 50
         }
       }
+    }
+  }
+]
+```
+
+Or for generic server:
+
+```json
+[
+  {
+    "setup": {
+      "serverTargets": [
+        "localhost:5002"
+      ],
+      "clientType": "ASYNC_CLIENT",
+      "securityParams": {},
+      "outstandingRpcsPerChannel": 50,
+      "clientChannels": 20,
+      "rpcType": "STREAMING",
+      "loadParams": {
+        "closedLoop": {}
+      },
+      "payloadConfig": {
+        "bytebufParams": {
+          "reqSize": 50,
+          "respSize": 50
+        }
+      },
+      "histogramParams": {
+        "resolution": 50,
+        "maxPossible": 50
+      },
+      "coreList": [],
+      "channelArgs": []
     }
   }
 ]
