@@ -12,3 +12,63 @@ Example of running client using Grpc.Net.Client against Grpc.AspNetCore server:
 
 1. **Launch server:** dotnet run -c Release -p .\perf\benchmarkapps\GrpcAspNetCoreServer\ --protocol h2c
 2. **Launch client:** dotnet run -c Release -p .\perf\benchmarkapps\GrpcClient\ -- -u http://localhost:5000 -c 10 --streams 50 -s unary -p h2c --grpcClientType grpcnetclient
+
+## QpsWorker
+
+The `QpsWorker` runs in the [gRPC benchmark environment](https://grpc.io/docs/guides/benchmarking/). The worker hosts gRPC services which are used to start a benchmark server or client.
+
+`grpcui` can be used to test the worker. Specify `--LogLevel Debug` argument to enable server and client console logging.
+
+### Start server
+
+`RunServer` method with request:
+
+```json
+[
+  {
+    "setup": {
+      "serverType": "ASYNC_SERVER",
+      "port": 5002,
+      "coreList": [],
+      "channelArgs": [],
+      "securityParams": {}
+    }
+  }
+]
+```
+
+### Start client
+
+`RunClient` method with request:
+
+```json
+[
+  {
+    "setup": {
+      "serverTargets": [
+        "localhost:5002"
+      ],
+      "coreList": [],
+      "channelArgs": [],
+      "clientType": "ASYNC_CLIENT",
+      "securityParams": {},
+      "clientChannels": 20,
+      "rpcType": "UNARY",
+      "outstandingRpcsPerChannel": 50,
+      "histogramParams": {
+        "resolution": 50,
+        "maxPossible": 50
+      },
+      "loadParams": {
+        "closedLoop": {}
+      },
+      "payloadConfig": {
+        "simpleParams": {
+          "reqSize": 50,
+          "respSize": 50
+        }
+      }
+    }
+  }
+]
+```

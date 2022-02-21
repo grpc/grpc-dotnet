@@ -17,22 +17,27 @@
 #endregion
 
 using Grpc.Shared;
+using QpsWorker.Infrastructure;
 using QpsWorker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
-builder.Logging.AddSimpleConsole().SetMinimumLevel(LogLevel.Trace);
+builder.Logging.AddSimpleConsole().SetMinimumLevel(LogLevel.Debug);
 
 var services = builder.Services;
-
 services.AddGrpc();
 services.AddGrpcReflection();
 
 var app = builder.Build();
-
 app.UseMiddleware<ServiceProvidersMiddleware>();
-
 app.MapGrpcService<WorkerServiceImpl>();
 app.MapGrpcReflectionService();
-
+app.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStarted.Register(() =>
+{
+    var configRoot = ConfigHelpers.GetConfiguration();
+    if (Enum.TryParse<LogLevel>(configRoot["LogLevel"], out var logLevel))
+    {
+        app.Logger.LogInformation($"Client and server logging enabled with level '{logLevel}'");
+    }
+});
 app.Run();

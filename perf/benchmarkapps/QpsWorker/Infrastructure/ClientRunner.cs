@@ -23,6 +23,7 @@ using Grpc.Core;
 using Grpc.Core.Utils;
 using Grpc.Net.Client;
 using Grpc.Testing;
+using Microsoft.Extensions.Logging;
 
 namespace QpsWorker.Infrastructure
 {
@@ -68,10 +69,22 @@ namespace QpsWorker.Infrastructure
                 logger.LogWarning("ClientConfig.CoreList is not supported for C#. Ignoring the value");
             }
 
+            var configRoot = ConfigHelpers.GetConfiguration();
+
+            var clientLoggerFactory = LoggerFactory.Create(builder =>
+            {
+                if (Enum.TryParse<LogLevel>(configRoot["LogLevel"], out var logLevel) && logLevel != LogLevel.None)
+                {
+                    logger.LogInformation($"Console Logging enabled with level '{logLevel}'");
+                    builder.AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ").SetMinimumLevel(logLevel);
+                }
+            });
+
             var channels = CreateChannels(
                 config.ClientChannels,
                 config.ServerTargets,
-                config.SecurityParams);
+                config.SecurityParams,
+                clientLoggerFactory);
 
             return new ClientRunner(channels,
                 config.ClientType,
@@ -86,13 +99,14 @@ namespace QpsWorker.Infrastructure
         private static List<GrpcChannel> CreateChannels(
             int clientChannels,
             IEnumerable<string> serverTargets,
-            SecurityParams securityParams)
+            SecurityParams securityParams,
+            ILoggerFactory clientLoggerFactory)
         {
             GrpcPreconditions.CheckArgument(clientChannels > 0, "clientChannels needs to be at least 1.");
             GrpcPreconditions.CheckArgument(serverTargets.Count() > 0, "at least one serverTarget needs to be specified.");
 
             var result = new List<GrpcChannel>();
-            for (int i = 0; i < clientChannels; i++)
+            for (var i = 0; i < clientChannels; i++)
             {
                 var target = serverTargets.ElementAt(i % serverTargets.Count());
                 var prefix = (securityParams == null) ? "http://" : "https://";
@@ -106,7 +120,8 @@ namespace QpsWorker.Infrastructure
                             // Ignore TLS certificate errors.
                             RemoteCertificateValidationCallback = (_, __, ___, ____) => true
                         }
-                    }
+                    },
+                    LoggerFactory = clientLoggerFactory
                 });
                 result.Add(channel);
             }
@@ -130,7 +145,7 @@ namespace QpsWorker.Infrastructure
             _runnerTasks = new List<Task>();
             foreach (var channel in _channels)
             {
-                for (int i = 0; i < outstandingRpcsPerChannel; i++)
+                for (var i = 0; i < outstandingRpcsPerChannel; i++)
                 {
                     var timer = CreateTimer(loadParams, 1.0 / _channels.Count / outstandingRpcsPerChannel);
                     _runnerTasks.Add(RunClientAsync(channel, timer));

@@ -43,7 +43,7 @@ namespace QpsWorker.Infrastructure
                 logger.LogWarning("ServerConfig.CoreList is not supported for C#. Ignoring the value");
             }
 
-            var app = BuildApp(config);
+            var app = BuildApp(config, logger);
 
             if (config.ServerType == ServerType.AsyncServer)
             {
@@ -66,15 +66,14 @@ namespace QpsWorker.Infrastructure
 
             await app.RunAsync();
 
+            logger.LogInformation("Server started.");
+
             return new ServerRunner(logger, app);
         }
 
-        private static WebApplication BuildApp(ServerConfig config)
+        private static WebApplication BuildApp(ServerConfig config, ILogger logger)
         {
-            var configRoot = new ConfigurationBuilder()
-                .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-                .AddCommandLine(Environment.GetCommandLineArgs())
-                .Build();
+            var configRoot = ConfigHelpers.GetConfiguration();
 
             var builder = WebApplication.CreateBuilder();
             var services = builder.Services;
@@ -113,7 +112,7 @@ namespace QpsWorker.Infrastructure
             builder.Logging.ClearProviders();
             if (Enum.TryParse<LogLevel>(configRoot["LogLevel"], out var logLevel) && logLevel != LogLevel.None)
             {
-                Console.WriteLine($"Console Logging enabled with level '{logLevel}'");
+                logger.LogInformation($"Console Logging enabled with level '{logLevel}'");
                 builder.Logging.AddSimpleConsole(o => o.TimestampFormat = "ss.ffff ").SetMinimumLevel(logLevel);
             }
 
