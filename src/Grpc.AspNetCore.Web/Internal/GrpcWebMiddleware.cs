@@ -113,6 +113,13 @@ namespace Grpc.AspNetCore.Web.Internal
 
         internal static ServerGrpcWebContext GetGrpcWebContext(HttpContext httpContext)
         {
+            // gRPC requests are always POST.
+            if (!HttpMethods.IsPost(httpContext.Request.Method))
+            {
+                return default;
+            }
+
+            // Only run middleware for 'application/grpc-web' or 'application/grpc-web-text'.
             if (!TryGetWebMode(httpContext.Request.ContentType, out var requestMode))
             {
                 return default;
@@ -120,6 +127,8 @@ namespace Grpc.AspNetCore.Web.Internal
 
             if (TryGetWebMode(httpContext.Request.Headers["Accept"], out var responseMode))
             {
+                // gRPC-Web request and response types are typically the same.
+                // That means 'application/grpc-web-text' requests also have an 'accept' header value of 'application/grpc-web-text'.
                 return new ServerGrpcWebContext(requestMode, responseMode);
             }
             else
