@@ -80,30 +80,32 @@ namespace Grpc.AspNetCore.Server.Internal
                 // Follows the standard at https://github.com/grpc/grpc/blob/master/doc/naming.md
                 if (_peer == null)
                 {
-                    var connection = HttpContext.Connection;
-                    if (connection.RemoteIpAddress != null)
-                    {
-                        switch (connection.RemoteIpAddress.AddressFamily)
-                        {
-                            case AddressFamily.InterNetwork:
-                                _peer = "ipv4:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
-                                break;
-                            case AddressFamily.InterNetworkV6:
-                                _peer = "ipv6:[" + connection.RemoteIpAddress + "]:" + connection.RemotePort;
-                                break;
-                            default:
-                                // TODO(JamesNK) - Test what should be output when used with UDS and named pipes
-                                _peer = "unknown:" + connection.RemoteIpAddress + ":" + connection.RemotePort;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        _peer = "unknown"; // Match Grpc.Core
-                    }
+                    _peer = BuildPeer();
                 }
 
                 return _peer;
+            }
+        }
+
+        private string BuildPeer()
+        {
+            var connection = HttpContext.Connection;
+            if (connection.RemoteIpAddress != null)
+            {
+                switch (connection.RemoteIpAddress.AddressFamily)
+                {
+                    case AddressFamily.InterNetwork:
+                        return $"ipv4:{connection.RemoteIpAddress}:{connection.RemotePort}";
+                    case AddressFamily.InterNetworkV6:
+                        return $"ipv6:[{connection.RemoteIpAddress}]:{connection.RemotePort}";
+                    default:
+                        // TODO(JamesNK) - Test what should be output when used with UDS and named pipes
+                        return $"unknown:{connection.RemoteIpAddress}:{connection.RemotePort}";
+                }
+            }
+            else
+            {
+                return "unknown"; // Match Grpc.Core
             }
         }
 
