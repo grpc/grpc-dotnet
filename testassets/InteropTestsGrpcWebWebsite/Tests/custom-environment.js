@@ -1,9 +1,5 @@
-// For some reason the expect-puppeteer require is returning a module rather than the function.
-// Helper function unwraps the module and returns the inner function.
-function _interopDefault(ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-const PuppeteerEnvironment = require('jest-environment-puppeteer');
-const expect = _interopDefault(require('expect-puppeteer'));
+import PuppeteerEnvironment from 'jest-environment-puppeteer';
+import expect from 'expect-puppeteer';
 
 class CustomEnvironment extends PuppeteerEnvironment {
     // Load page and get test names to run
