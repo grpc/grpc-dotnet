@@ -70,10 +70,6 @@ After:
             return new ValueTask<Stream>(new MemoryStream());
         }
 
-        public void OnRequestComplete(CompletionContext context)
-        {
-        }
-
         public void Disconnect()
         {
             CurrentAddress = null;

@@ -61,20 +61,6 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         public ISubchannelCallTracker? SubchannelCallTracker { get; }
 
-        //internal void Complete(CompletionContext context)
-        //{
-        //    if (context == null)
-        //    {
-        //        throw new ArgumentNullException(nameof(context));
-        //    }
-        //    if (context.Address == null)
-        //    {
-        //        throw new ArgumentException($"Required {nameof(CompletionContext.Address)} value isn't set on the context.");
-        //    }
-
-        //    SubchannelCallTracker?.Complete(context);
-        //}
-
         /// <summary>
         /// Create a <see cref="PickResult"/> that provides a <see cref="Balancer.Subchannel"/> to gRPC calls.
         /// <para>
