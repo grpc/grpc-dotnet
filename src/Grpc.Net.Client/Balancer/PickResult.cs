@@ -57,7 +57,7 @@ namespace Grpc.Net.Client.Balancer
         public Status Status { get; }
 
         /// <summary>
-        /// The <see cref="Grpc.Core.Status"/> provided by <see cref="ForFailure(Status)"/> or <see cref="ForDrop(Status)"/>.
+        /// The optional <see cref="SubchannelCallTracker"/> provided by <see cref="ForSubchannel(Subchannel, ISubchannelCallTracker?)"/>.
         /// </summary>
         public ISubchannelCallTracker? SubchannelCallTracker { get; }
 
@@ -73,7 +73,7 @@ namespace Grpc.Net.Client.Balancer
         /// </para>
         /// </summary>
         /// <param name="subchannel">The picked subchannel.</param>
-        /// <param name="subchannelCallTracker">An optional interface to be notified of a call being completed.</param>
+        /// <param name="subchannelCallTracker">An optional interface to track the subchannel call.</param>
         /// <returns>The pick result.</returns>
         [DebuggerStepThrough]
         public static PickResult ForSubchannel(Subchannel subchannel, ISubchannelCallTracker? subchannelCallTracker = null)
