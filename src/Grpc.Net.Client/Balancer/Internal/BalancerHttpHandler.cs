@@ -106,14 +106,17 @@ namespace Grpc.Net.Client.Balancer.Internal
             request.SetOption(CurrentAddressKey, address);
 #endif
 
+            var responseMessageTask = base.SendAsync(request, cancellationToken);
+            result.SubchannelCallTracker?.Start();
+
             try
             {
-                var responseMessage = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-                
+                var responseMessage = await responseMessageTask.ConfigureAwait(false);
+
                 // TODO(JamesNK): This doesn't take into account long running streams.
                 // If there is response content then we need to wait until it is read to the end
                 // or the request is disposed.
-                result.OnComplete(new CompletionContext
+                result.SubchannelCallTracker?.Complete(new CompletionContext
                 {
                     Address = address
                 });
@@ -122,7 +125,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
             catch (Exception ex)
             {
-                result.OnComplete(new CompletionContext
+                result.SubchannelCallTracker?.Complete(new CompletionContext
                 {
                     Address = address,
                     Error = ex

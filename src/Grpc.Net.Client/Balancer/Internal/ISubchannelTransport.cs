@@ -32,7 +32,6 @@ namespace Grpc.Net.Client.Balancer.Internal
     /// </summary>
     internal interface ISubchannelTransport : IDisposable
     {
-        void OnRequestComplete(CompletionContext context);
         BalancerAddress? CurrentAddress { get; }
 
 #if NET5_0_OR_GREATER
