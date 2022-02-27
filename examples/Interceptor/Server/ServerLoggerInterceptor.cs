@@ -94,8 +94,8 @@ namespace Client
 
             void WriteMetadata(Metadata headers, string key)
             {
-                var headerValue = headers.SingleOrDefault(h => h.Key == key)?.Value;
-                _logger.LogWarning($"{key}: {headerValue ?? "(unknown)"}");
+                var headerValue = headers.GetValue(key) ?? "(unknown)";
+                _logger.LogWarning($"{key}: {headerValue}");
             }
         }
     }
