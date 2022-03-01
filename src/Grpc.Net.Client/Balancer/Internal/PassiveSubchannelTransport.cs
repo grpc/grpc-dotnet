@@ -44,10 +44,6 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public BalancerAddress? CurrentAddress => _currentAddress;
 
-        public void OnRequestComplete(CompletionContext context)
-        {
-        }
-
         public void Disconnect()
         {
             _currentAddress = null;

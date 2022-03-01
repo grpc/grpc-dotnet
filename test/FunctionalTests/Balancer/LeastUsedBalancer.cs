@@ -88,17 +88,32 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Debug.Assert(leastUsedSubchannel != null);
             Debug.Assert(leastUsedCounter != null);
 
-            leastUsedCounter.Increment();
-
-            return PickResult.ForSubchannel(leastUsedSubchannel, c =>
-            {
-                leastUsedCounter.Decrement();
-            });
+            return PickResult.ForSubchannel(leastUsedSubchannel, new LeastUsedSubchannelTracker(leastUsedCounter));
         }
 
         public override string ToString()
         {
             return string.Join(", ", _subchannels.Select(s => s.ToString()));
+        }
+
+        private sealed class LeastUsedSubchannelTracker : ISubchannelCallTracker
+        {
+            private readonly AtomicCounter _counter;
+
+            public LeastUsedSubchannelTracker(AtomicCounter counter)
+            {
+                _counter = counter;
+            }
+
+            public void Complete(CompletionContext context)
+            {
+                _counter.Decrement();
+            }
+
+            public void Start()
+            {
+                _counter.Increment();
+            }
         }
 
         private sealed class AtomicCounter
