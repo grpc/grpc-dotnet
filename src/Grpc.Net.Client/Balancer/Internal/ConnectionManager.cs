@@ -302,7 +302,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        public async ValueTask<(Subchannel Subchannel, BalancerAddress Address, Action<CompletionContext> OnComplete)> PickAsync(PickContext context, bool waitForReady, CancellationToken cancellationToken)
+        public async ValueTask<(Subchannel Subchannel, BalancerAddress Address, ISubchannelCallTracker? SubchannelCallTracker)> PickAsync(PickContext context, bool waitForReady, CancellationToken cancellationToken)
         {
             SubchannelPicker? previousPicker = null;
 
@@ -325,7 +325,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                         if (address != null)
                         {
                             ConnectionManagerLog.PickResultSuccessful(Logger, subchannel.Id, address);
-                            return (subchannel, address, result.Complete);
+                            return (subchannel, address, result.SubchannelCallTracker);
                         }
                         else
                         {

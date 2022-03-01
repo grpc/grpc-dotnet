@@ -343,10 +343,6 @@ namespace Grpc.Net.Client.Balancer.Internal
                 _disposed = true;
             }
         }
-
-        public void OnRequestComplete(CompletionContext context)
-        {
-        }
     }
 
     internal static class SocketConnectivitySubchannelTransportLog

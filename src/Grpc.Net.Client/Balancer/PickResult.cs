@@ -32,15 +32,13 @@ namespace Grpc.Net.Client.Balancer
     /// </summary>
     public sealed class PickResult
     {
-        private readonly Action<CompletionContext>? _onComplete;
-
         [DebuggerStepThrough]
-        private PickResult(PickResultType pickResultType, Subchannel? subchannel, Status status, Action<CompletionContext>? onComplete)
+        private PickResult(PickResultType pickResultType, Subchannel? subchannel, Status status, ISubchannelCallTracker? subchannelCallTracker)
         {
             Type = pickResultType;
             Subchannel = subchannel;
             Status = status;
-            _onComplete = onComplete;
+            SubchannelCallTracker = subchannelCallTracker;
         }
 
         /// <summary>
@@ -49,7 +47,7 @@ namespace Grpc.Net.Client.Balancer
         public PickResultType Type { get; }
 
         /// <summary>
-        /// The <see cref="Subchannel"/> provided by <see cref="ForSubchannel(Subchannel, Action{CompletionContext}?)"/>.
+        /// The <see cref="Subchannel"/> provided by <see cref="ForSubchannel(Subchannel, ISubchannelCallTracker?)"/>.
         /// </summary>
         public Subchannel? Subchannel { get; }
 
@@ -59,23 +57,9 @@ namespace Grpc.Net.Client.Balancer
         public Status Status { get; }
 
         /// <summary>
-        /// Called to notify the load balancer that a call is complete.
+        /// The optional <see cref="SubchannelCallTracker"/> provided by <see cref="ForSubchannel(Subchannel, ISubchannelCallTracker?)"/>.
         /// </summary>
-        /// <param name="context">The complete context.</param>
-        public void Complete(CompletionContext context)
-        {
-            if (context == null)
-            {
-                throw new ArgumentNullException(nameof(context));
-            }
-            if (context.Address == null)
-            {
-                throw new ArgumentException($"Required {nameof(CompletionContext.Address)} value isn't set on the context.");
-            }
-
-            _onComplete?.Invoke(context);
-            Subchannel?.Transport.OnRequestComplete(context);
-        }
+        public ISubchannelCallTracker? SubchannelCallTracker { get; }
 
         /// <summary>
         /// Create a <see cref="PickResult"/> that provides a <see cref="Balancer.Subchannel"/> to gRPC calls.
@@ -89,12 +73,12 @@ namespace Grpc.Net.Client.Balancer
         /// </para>
         /// </summary>
         /// <param name="subchannel">The picked subchannel.</param>
-        /// <param name="onComplete">An optional callback to be notified of a call being completed.</param>
+        /// <param name="subchannelCallTracker">An optional interface to track the subchannel call.</param>
         /// <returns>The pick result.</returns>
         [DebuggerStepThrough]
-        public static PickResult ForSubchannel(Subchannel subchannel, Action<CompletionContext>? onComplete = null)
+        public static PickResult ForSubchannel(Subchannel subchannel, ISubchannelCallTracker? subchannelCallTracker = null)
         {
-            return new PickResult(PickResultType.Complete, subchannel, Status.DefaultSuccess, onComplete);
+            return new PickResult(PickResultType.Complete, subchannel, Status.DefaultSuccess, subchannelCallTracker);
         }
 
         /// <summary>
@@ -111,7 +95,7 @@ namespace Grpc.Net.Client.Balancer
                 throw new ArgumentException("Error status code must not be OK.", nameof(status));
             }
 
-            return new PickResult(PickResultType.Fail, subchannel: null, status, onComplete: null);
+            return new PickResult(PickResultType.Fail, subchannel: null, status, subchannelCallTracker: null);
         }
 
         /// <summary>
@@ -128,7 +112,7 @@ namespace Grpc.Net.Client.Balancer
                 throw new ArgumentException("Error status code must not be OK.", nameof(status));
             }
 
-            return new PickResult(PickResultType.Drop, subchannel: null, status, onComplete: null);
+            return new PickResult(PickResultType.Drop, subchannel: null, status, subchannelCallTracker: null);
         }
 
         /// <summary>
@@ -138,7 +122,7 @@ namespace Grpc.Net.Client.Balancer
         [DebuggerStepThrough]
         public static PickResult ForQueue()
         {
-            return new PickResult(PickResultType.Queue, subchannel: null, Status.DefaultSuccess, onComplete: null);
+            return new PickResult(PickResultType.Queue, subchannel: null, Status.DefaultSuccess, subchannelCallTracker: null);
         }
     }
 
