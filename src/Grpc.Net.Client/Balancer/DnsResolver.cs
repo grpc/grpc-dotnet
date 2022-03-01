@@ -37,7 +37,7 @@ namespace Grpc.Net.Client.Balancer
     /// Note: Experimental API that can change or be removed without any prior notice.
     /// </para>
     /// </summary>
-    internal sealed class DnsResolver : AsyncResolver
+    internal sealed class DnsResolver : PollingResolver
     {
         // To prevent excessive re-resolution, we enforce a rate limit on DNS resolution requests.
         private static readonly TimeSpan MinimumDnsResolutionRate = TimeSpan.FromSeconds(15);
@@ -74,6 +74,7 @@ namespace Grpc.Net.Client.Balancer
             _logger = loggerFactory.CreateLogger<DnsResolver>();
         }
 
+        /// <inheritdoc />
         protected override void OnStarted()
         {
             base.OnStarted();
