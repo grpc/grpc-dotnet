@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.Balancer
     public interface ISubchannelCallTracker
     {
         /// <summary>
-        /// Called when a subchannel call is started after an load balance pick.
+        /// Called when a subchannel call is started after a load balance pick.
         /// </summary>
         void Start();
 
