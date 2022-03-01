@@ -841,11 +841,6 @@ namespace Grpc.Net.Client.Tests
             {
                 throw new NotImplementedException();
             }
-
-            public override void Refresh()
-            {
-                throw new NotImplementedException();
-            }
         }
 #endif
 
