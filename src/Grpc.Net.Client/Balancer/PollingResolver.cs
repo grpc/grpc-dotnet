@@ -30,6 +30,9 @@ namespace Grpc.Net.Client.Balancer
     /// resolve task at a time. Calling <see cref="Refresh()"/> on the resolver when a resolve task is already running has
     /// no effect.
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public abstract class PollingResolver : Resolver
     {
