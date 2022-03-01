@@ -129,9 +129,9 @@ namespace Grpc.AspNetCore.Server.Internal
             _errorExecutingServiceMethod(logger, serviceMethod, ex);
         }
 
-        public static void RpcConnectionError(ILogger logger, StatusCode statusCode, string detail)
+        public static void RpcConnectionError(ILogger logger, StatusCode statusCode, string detail, Exception? debugException)
         {
-            _rpcConnectionError(logger, statusCode, detail, null);
+            _rpcConnectionError(logger, statusCode, detail, debugException);
         }
 
         public static void EncodingNotInAcceptEncoding(ILogger logger, string grpcEncoding)
