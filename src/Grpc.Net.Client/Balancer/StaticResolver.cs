@@ -51,11 +51,6 @@ namespace Grpc.Net.Client.Balancer
             // Send addresses to listener once. They will never change.
             listener(ResolverResult.ForResult(_addresses, serviceConfig: null, serviceConfigStatus: null));
         }
-
-        public override void Refresh()
-        {
-            // no-op
-        }
     }
 
     /// <summary>

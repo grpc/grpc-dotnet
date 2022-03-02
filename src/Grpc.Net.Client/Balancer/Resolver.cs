@@ -60,11 +60,15 @@ namespace Grpc.Net.Client.Balancer
 
         /// <summary>
         /// Refresh resolution. Can only be called after <see cref="Start(Action{ResolverResult})"/>.
+        /// The default implementation is no-op.
         /// <para>
         /// This is only a hint. Implementation takes it as a signal but may not start resolution.
         /// </para>
         /// </summary>
-        public abstract void Refresh();
+        public virtual void Refresh()
+        {
+            // no-op
+        }
 
         /// <summary>
         /// Releases the unmanaged resources used by the <see cref="LoadBalancer"/> and optionally releases

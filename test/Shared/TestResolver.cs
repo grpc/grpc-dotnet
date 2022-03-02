@@ -30,7 +30,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Grpc.Tests.Shared
 {
-    internal class TestResolver : AsyncResolver
+    internal class TestResolver : PollingResolver
     {
         private readonly Func<Task>? _onRefreshAsync;
         private readonly TaskCompletionSource<object?> _hasResolvedTcs;
