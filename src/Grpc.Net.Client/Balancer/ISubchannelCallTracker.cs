@@ -22,6 +22,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// An interface for tracking subchannel calls.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public interface ISubchannelCallTracker
     {

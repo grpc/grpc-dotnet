@@ -24,14 +24,17 @@ using Microsoft.Extensions.Logging;
 namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
-    /// An abstract base type for <see cref="Resolver"/> implementations that use asynchronous logic to resolve the <see cref="Uri"/>.
+    /// An abstract base type for <see cref="Resolver"/> implementations that use asynchronous polling logic to resolve the <see cref="Uri"/>.
     /// <para>
-    /// <see cref="AsyncResolver"/> adds a virtual <see cref="ResolveAsync"/> method. The resolver runs one asynchronous
+    /// <see cref="PollingResolver"/> adds a virtual <see cref="ResolveAsync"/> method. The resolver runs one asynchronous
     /// resolve task at a time. Calling <see cref="Refresh()"/> on the resolver when a resolve task is already running has
     /// no effect.
     /// </para>
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
-    public abstract class AsyncResolver : Resolver
+    public abstract class PollingResolver : Resolver
     {
         // Internal for testing
         internal Task _resolveTask = Task.CompletedTask;
@@ -48,17 +51,17 @@ namespace Grpc.Net.Client.Balancer
         protected Action<ResolverResult> Listener => _listener!;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AsyncResolver"/>.
+        /// Initializes a new instance of the <see cref="PollingResolver"/>.
         /// </summary>
         /// <param name="loggerFactory">The logger factory.</param>
-        protected AsyncResolver(ILoggerFactory loggerFactory)
+        protected PollingResolver(ILoggerFactory loggerFactory)
         {
             if (loggerFactory == null)
             {
                 throw new ArgumentNullException(nameof(loggerFactory));
             }
 
-            _logger = loggerFactory.CreateLogger<AsyncResolver>();
+            _logger = loggerFactory.CreateLogger<PollingResolver>();
         }
 
         /// <summary>
@@ -100,7 +103,8 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Refresh resolution. Can only be called after <see cref="Start(Action{ResolverResult})"/>.
         /// <para>
-        /// This is only a hint. Implementation takes it as a signal but may not start resolution.
+        /// The resolver runs one asynchronous resolve task at a time. Calling <see cref="Refresh()"/> on the resolver when a
+        /// resolve task is already running has no effect.
         /// </para>
         /// </summary>
         public sealed override void Refresh()
@@ -152,9 +156,6 @@ namespace Grpc.Net.Client.Balancer
         /// Resolve the target <see cref="Uri"/>. Updated results are passed to the callback
         /// registered by <see cref="Start(Action{ResolverResult})"/>. Can only be called
         /// after the resolver has started.
-        /// <para>
-        /// This is only a hint. Implementation takes it as a signal but may not start resolution.
-        /// </para>
         /// </summary>
         /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A task.</returns>
