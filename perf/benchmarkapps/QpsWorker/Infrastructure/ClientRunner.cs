@@ -109,6 +109,9 @@ namespace QpsWorker.Infrastructure
             for (var i = 0; i < clientChannels; i++)
             {
                 var target = serverTargets.ElementAt(i % serverTargets.Count());
+
+                // Contents of "securityParams" (useTestCa and sslTargetHostOverride) are basically ignored.
+                // Instead the client just uses TLS and disable any certificate checks.
                 var prefix = (securityParams == null) ? "http://" : "https://";
                 var channel = GrpcChannel.ForAddress(prefix + target, new GrpcChannelOptions
                 {
