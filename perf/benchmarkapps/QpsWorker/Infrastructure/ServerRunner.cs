@@ -102,6 +102,9 @@ namespace QpsWorker.Infrastructure
                 kestrel.ListenAnyIP(config.Port, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http2;
+
+                    // Contents of "securityParams" are basically ignored.
+                    // Instead the server is setup with the default test cert.
                     if (config.SecurityParams != null)
                     {
                         listenOptions.UseHttps(certPath, "1111");
