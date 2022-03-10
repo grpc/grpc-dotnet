@@ -2,7 +2,8 @@
 # 2. Send a setup message to processes standard input.
 # 3. Leave standard input so the stream and server stay open.
 
-# Setup payload.
+# Setup payload. This payload is for demonstration purposes only.
+# To get actual values, see https://github.com/grpc/grpc/tree/2a0d6234cb2ccebb265c035ffd09ecc9a347b4bf/tools/run_tests/performance#approach-1-use-grpc-oss-benchmarks-framework-recommended
 $setup = @"
   {
     "setup": {

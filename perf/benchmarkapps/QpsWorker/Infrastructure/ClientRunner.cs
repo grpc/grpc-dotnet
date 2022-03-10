@@ -254,7 +254,7 @@ namespace QpsWorker.Infrastructure
 
                 // finish the streaming call
                 await call.RequestStream.CompleteAsync();
-                if (!await call.ResponseStream.MoveNext())
+                if (await call.ResponseStream.MoveNext())
                 {
                     throw new InvalidOperationException("Expected response stream end.");
                 }
@@ -285,7 +285,7 @@ namespace QpsWorker.Infrastructure
 
                 // finish the streaming call
                 await call.RequestStream.CompleteAsync();
-                if (!await call.ResponseStream.MoveNext())
+                if (await call.ResponseStream.MoveNext())
                 {
                     throw new InvalidOperationException("Expected response stream end.");
                 }

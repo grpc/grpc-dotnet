@@ -6,7 +6,9 @@ View the latest results [here](https://msit.powerbi.com/view?r=eyJrIjoiYTZjMTk3Y
 
 ## Run benchmarks locally
 
-Benchmarks can be run locally from the command line.
+The benchmark environment runs the tests using `qps_json_driver`. The driver is a C++ app in https://github.com/grpc/grpc repo that is only buildable on Unix based operating systems.
+
+Because the driver is challenging to get setup, the benchmarks can be run locally from the command line for quick testing. Note that there can be some differences in behavior. 
 
 Example of running client using Grpc.Net.Client against Grpc.AspNetCore server:
 
@@ -21,7 +23,7 @@ The `QpsWorker` runs in the [gRPC benchmark environment](https://grpc.io/docs/gu
 * `LogLevel` - Logging level of the client and server runners. Optional. Defaults to no logging.
 
 ```cmd
-dotnet run -c Release -- --LogLevel Debug --driver_port 5000
+dotnet run -c Release -- --LogLevel Warning --driver_port 5000
 ```
 
 To test a running worker:
