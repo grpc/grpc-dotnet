@@ -68,7 +68,6 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                 foreach (var method in serviceMethodProviderContext.Methods)
                 {
                     var endpointBuilder = endpointRouteBuilder.Map(method.Pattern, method.RequestDelegate);
-                    var httpMethod = method.Metadata.OfType<HttpMethodMetadata>().LastOrDefault();
 
                     endpointBuilder.Add(ep =>
                     {
@@ -82,6 +81,9 @@ namespace Grpc.AspNetCore.Server.Model.Internal
                     });
 
                     endpointConventionBuilders.Add(endpointBuilder);
+
+                    // Report the last HttpMethodMetadata added. It's the metadata used by routing.
+                    var httpMethod = method.Metadata.OfType<HttpMethodMetadata>().LastOrDefault();
 
                     Log.AddedServiceMethod(
                         _logger,
