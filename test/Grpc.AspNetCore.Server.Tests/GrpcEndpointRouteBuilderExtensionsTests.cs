@@ -144,10 +144,10 @@ namespace Grpc.AspNetCore.Server.Tests
             Assert.AreEqual("Discovering gRPC methods for Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute.GreeterWithAttributeService.", s1);
 
             var s2 = writes[1].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHello' to service 'greet.Greeter'. Method type: 'Unary', route pattern: '/greet.Greeter/SayHello'.", s2);
+            Assert.AreEqual("Added gRPC method 'SayHello' to service 'greet.Greeter'. Method type: Unary, HTTP method: POST, route pattern: '/greet.Greeter/SayHello'.", s2);
 
             var s3 = writes[2].State.ToString();
-            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'greet.Greeter'. Method type: 'ServerStreaming', route pattern: '/greet.Greeter/SayHellos'.", s3);
+            Assert.AreEqual("Added gRPC method 'SayHellos' to service 'greet.Greeter'. Method type: ServerStreaming, HTTP method: POST, route pattern: '/greet.Greeter/SayHellos'.", s3);
         }
 
         [Test]
