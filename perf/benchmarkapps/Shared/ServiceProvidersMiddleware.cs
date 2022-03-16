@@ -18,7 +18,7 @@
 
 using Microsoft.AspNetCore.Http.Features;
 
-namespace GrpcAspNetCoreServer
+namespace Grpc.Shared
 {
     public class ServiceProvidersMiddleware
     {
