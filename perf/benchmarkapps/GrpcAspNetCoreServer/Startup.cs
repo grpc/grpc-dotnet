@@ -18,6 +18,7 @@
 
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Grpc.Shared;
 using Grpc.Testing;
 #if NET5_0_OR_GREATER
 using Microsoft.AspNetCore.Authentication.Certificate;
