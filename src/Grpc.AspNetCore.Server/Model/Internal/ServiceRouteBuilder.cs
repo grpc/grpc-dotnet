@@ -82,7 +82,16 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
                     endpointConventionBuilders.Add(endpointBuilder);
 
-                    Log.AddedServiceMethod(_logger, method.Method.Name, method.Method.ServiceName, method.Method.Type, method.Pattern.RawText ?? string.Empty);
+                    // Report the last HttpMethodMetadata added. It's the metadata used by routing.
+                    var httpMethod = method.Metadata.OfType<HttpMethodMetadata>().LastOrDefault();
+
+                    Log.AddedServiceMethod(
+                        _logger,
+                        method.Method.Name,
+                        method.Method.ServiceName,
+                        method.Method.Type,
+                        httpMethod?.HttpMethods ?? Array.Empty<string>(),
+                        method.Pattern.RawText ?? string.Empty);
                 }
             }
             else
@@ -189,8 +198,8 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
     internal static class ServiceRouteBuilderLog
     {
-        private static readonly Action<ILogger, string, string, MethodType, string, Exception?> _addedServiceMethod =
-            LoggerMessage.Define<string, string, MethodType, string>(LogLevel.Trace, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: '{MethodType}', route pattern: '{RoutePattern}'.");
+        private static readonly Action<ILogger, string, string, MethodType, string, string, Exception?> _addedServiceMethod =
+            LoggerMessage.Define<string, string, MethodType, string, string>(LogLevel.Trace, new EventId(1, "AddedServiceMethod"), "Added gRPC method '{MethodName}' to service '{ServiceName}'. Method type: {MethodType}, HTTP method: {HttpMethod}, route pattern: '{RoutePattern}'.");
 
         private static readonly Action<ILogger, Type, Exception?> _discoveringServiceMethods =
             LoggerMessage.Define<Type>(LogLevel.Trace, new EventId(2, "DiscoveringServiceMethods"), "Discovering gRPC methods for {ServiceType}.");
@@ -198,9 +207,15 @@ namespace Grpc.AspNetCore.Server.Model.Internal
         private static readonly Action<ILogger, Type, Exception?> _noServiceMethodsDiscovered =
             LoggerMessage.Define<Type>(LogLevel.Debug, new EventId(3, "NoServiceMethodsDiscovered"), "No gRPC methods discovered for {ServiceType}.");
 
-        public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, string routePattern)
+        public static void AddedServiceMethod(ILogger logger, string methodName, string serviceName, MethodType methodType, IReadOnlyList<string> httpMethods, string routePattern)
         {
-            _addedServiceMethod(logger, methodName, serviceName, methodType, routePattern, null);
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                // There should be one HTTP method here, but concat in case someone has overriden metadata.
+                var allHttpMethods = string.Join(',', httpMethods);
+
+                _addedServiceMethod(logger, methodName, serviceName, methodType, allHttpMethods, routePattern, null);
+            }
         }
 
         public static void DiscoveringServiceMethods(ILogger logger, Type serviceType)
