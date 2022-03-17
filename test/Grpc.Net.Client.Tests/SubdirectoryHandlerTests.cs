@@ -48,7 +48,7 @@ namespace Grpc.Net.Client.Tests
             });
 
             var httpClient = new HttpClient(new SubdirectoryHandler(handler, "/TestSubdirectory"));
-            httpClient.BaseAddress = new Uri("https://localhost");
+            httpClient.BaseAddress = new Uri("https://localhost:5001");
 
             var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
@@ -61,7 +61,7 @@ namespace Grpc.Net.Client.Tests
             Assert.IsNotNull(httpRequestMessage);
             Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
             Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
-            Assert.AreEqual(new Uri("https://localhost/TestSubdirectory/ServiceName/MethodName"), httpRequestMessage.RequestUri);
+            Assert.AreEqual(new Uri("https://localhost:5001/TestSubdirectory/ServiceName/MethodName"), httpRequestMessage.RequestUri);
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace Grpc.Net.Client.Tests
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                var url = $"{request.RequestUri!.Scheme}://{request.RequestUri.Host}{_subdirectory}{request.RequestUri.AbsolutePath}";
+                var url = $"{request.RequestUri!.Scheme}://{request.RequestUri.Host}:{request.RequestUri.Port}{_subdirectory}{request.RequestUri.AbsolutePath}";
                 request.RequestUri = new Uri(url, UriKind.Absolute);
                 return base.SendAsync(request, cancellationToken);
             }
