@@ -27,8 +27,7 @@ namespace Grpc.Net.Client.Internal
 
         public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
         {
-            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-            channelCredentials.InternalPopulateConfiguration(this, null!);
+            channelCredentials.InternalPopulateConfiguration(this, state);
 
             if (callCredentials != null)
             {

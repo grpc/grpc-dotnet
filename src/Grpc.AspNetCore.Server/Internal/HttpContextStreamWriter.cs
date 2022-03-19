@@ -36,7 +36,7 @@ namespace Grpc.AspNetCore.Server.Internal
             _writeLock = new object();
         }
 
-        public WriteOptions WriteOptions
+        public WriteOptions? WriteOptions
         {
             get => _context.WriteOptions;
             set => _context.WriteOptions = value;

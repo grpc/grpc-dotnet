@@ -296,7 +296,7 @@ namespace Grpc.Net.Client.Tests
                 }
                 return writer.WriteAsync(message);
             }
-            public WriteOptions WriteOptions
+            public WriteOptions? WriteOptions
             {
                 get
                 {
