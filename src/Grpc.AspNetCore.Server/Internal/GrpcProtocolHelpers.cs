@@ -204,7 +204,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
             }
 
-            return new AuthContext(peerIdentityPropertyName!, properties);
+            return new AuthContext(peerIdentityPropertyName, properties);
 
             static void AddProperty(Dictionary<string, List<AuthProperty>> properties, string name, string value)
             {
