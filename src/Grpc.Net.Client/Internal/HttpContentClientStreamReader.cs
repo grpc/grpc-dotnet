@@ -109,15 +109,9 @@ namespace Grpc.Net.Client.Internal
 
         private async Task<bool> MoveNextCore(CancellationToken cancellationToken)
         {
-            CancellationTokenRegistration? ctsRegistration = null;
+            _call.TryRegisterCancellation(cancellationToken, out var ctsRegistration);
             try
             {
-                if (cancellationToken.CanBeCanceled)
-                {
-                    // The cancellation token will cancel the call CTS.
-                    ctsRegistration = cancellationToken.Register(_call.CancelCallFromCancellationToken);
-                }
-
                 _call.CancellationToken.ThrowIfCancellationRequested();
 
                 if (_httpResponse == null)

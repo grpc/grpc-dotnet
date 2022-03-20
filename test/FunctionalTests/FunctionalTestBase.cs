@@ -39,7 +39,9 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected GrpcChannel Channel => _channel ??= CreateChannel();
 
-        protected GrpcChannel CreateChannel(bool useHandler = false, ServiceConfig? serviceConfig = null, int? maxRetryAttempts = null, long? maxRetryBufferSize = null, long? maxRetryBufferPerCallSize = null)
+        protected GrpcChannel CreateChannel(bool useHandler = false, ServiceConfig? serviceConfig = null,
+            int? maxRetryAttempts = null, long? maxRetryBufferSize = null, long? maxRetryBufferPerCallSize = null,
+            int? maxReceiveMessageSize = null)
         {
             var options = new GrpcChannelOptions
             {
@@ -66,6 +68,10 @@ namespace Grpc.AspNetCore.FunctionalTests
             else
             {
                 options.HttpClient = Fixture.Client;
+            }
+            if (maxReceiveMessageSize != null)
+            {
+                options.MaxReceiveMessageSize = maxReceiveMessageSize;
             }
             return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, options);
         }

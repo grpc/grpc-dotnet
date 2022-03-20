@@ -85,14 +85,23 @@ namespace Grpc.Net.Client.Internal
             return Task.CompletedTask;
         }
 
-        public override Task WriteAsync(TRequest message)
+        public override async Task WriteCoreAsync(TRequest message, CancellationToken cancellationToken)
         {
             if (message == null)
             {
                 throw new ArgumentNullException(nameof(message));
             }
 
-            return WriteAsync(WriteMessageToStream, message);
+            _call.TryRegisterCancellation(cancellationToken, out var ctsRegistration);
+
+            try
+            {
+                await WriteAsync(WriteMessageToStream, message).ConfigureAwait(false);
+            }
+            finally
+            {
+                ctsRegistration?.Dispose();
+            }
 
             static ValueTask WriteMessageToStream(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
             {
@@ -163,7 +172,7 @@ namespace Grpc.Net.Client.Internal
                 await writeFunc(_call, writeStream, callOptions, state).ConfigureAwait(false);
 
                 // Flush stream to ensure messages are sent immediately
-                await writeStream.FlushAsync(callOptions.CancellationToken).ConfigureAwait(false);
+                await writeStream.FlushAsync(_call.CancellationToken).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();
             }

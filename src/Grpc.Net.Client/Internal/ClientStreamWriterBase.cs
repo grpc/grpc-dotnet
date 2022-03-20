@@ -40,7 +40,17 @@ namespace Grpc.Net.Client.Internal
 
         public abstract Task CompleteAsync();
 
-        public abstract Task WriteAsync(TRequest message);
+        public Task WriteAsync(TRequest message) => WriteCoreAsync(message, CancellationToken.None);
+
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+        // Explicit implementation because this WriteAsync has a default interface implementation.
+        Task IAsyncStreamWriter<TRequest>.WriteAsync(TRequest message, CancellationToken cancellationToken)
+        {
+            return WriteCoreAsync(message, cancellationToken);
+        }
+#endif
+
+        public abstract Task WriteCoreAsync(TRequest message, CancellationToken cancellationToken);
 
         protected Task CreateErrorTask(string message)
         {

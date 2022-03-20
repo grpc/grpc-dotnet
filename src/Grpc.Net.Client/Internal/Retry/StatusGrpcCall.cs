@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
 #if NETSTANDARD2_0
@@ -88,6 +89,12 @@ namespace Grpc.Net.Client.Internal.Retry
         public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
         {
             return Task.FromException(new RpcException(_status));
+        }
+
+        public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+        {
+            cancellationTokenRegistration = null;
+            return false;
         }
 
         private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>

@@ -205,6 +205,8 @@ namespace Grpc.Net.Client.Internal.Retry
 
         protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
         {
+            Debug.Assert(Monitor.IsEntered(Lock));
+
             _activeCalls.Remove(call);
 
             CleanUpUnsynchronized();
@@ -382,18 +384,44 @@ namespace Grpc.Net.Client.Internal.Retry
             });
         }
 
-        public override async Task ClientStreamWriteAsync(TRequest message)
+        public override async Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken)
         {
             // The retry client stream writer prevents multiple threads from reaching here.
-            await DoClientStreamActionAsync(calls =>
+            await DoClientStreamActionAsync(async calls =>
             {
-                var writeTasks = new Task[calls.Count];
+                // Note: There may be less write tasks than calls passed in.
+                // For example, a large message could cause the call to be commited and all active calls are removed.
+                var writeTasks = new List<Task>(calls.Count);
+                List<CancellationTokenRegistration>? registrations = null;
+
                 for (var i = 0; i < calls.Count; i++)
                 {
-                    writeTasks[i] = calls[i].WriteClientStreamAsync(WriteNewMessage, message);
+                    var c = calls[i];
+                    if (c.TryRegisterCancellation(cancellationToken, out var registration))
+                    {
+                        registrations ??= new List<CancellationTokenRegistration>(calls.Count);
+                        registrations.Add(registration.GetValueOrDefault());
+                    }
+
+                    var writeTask = c.WriteClientStreamAsync(WriteNewMessage, message);
+
+                    writeTasks.Add(writeTask);
                 }
 
-                return Task.WhenAll(writeTasks);
+                try
+                {
+                    await Task.WhenAll(writeTasks).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (registrations != null)
+                    {
+                        foreach (var registration in registrations)
+                        {
+                            registration.Dispose();
+                        }
+                    }
+                }
             }).ConfigureAwait(false);
 
             lock (Lock)

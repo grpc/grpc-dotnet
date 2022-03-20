@@ -68,7 +68,14 @@ namespace Grpc.AspNetCore.Server.Internal
 
                 if (flush)
                 {
-                    await pipeWriter.FlushAsync();
+                    var flushResult = await pipeWriter.FlushAsync();
+
+                    // Workaround bug where FlushAsync doesn't return IsCanceled = true on request abort.
+                    // https://github.com/dotnet/aspnetcore/issues/40788
+                    if (!flushResult.IsCompleted && serverCallContext.CancellationToken.IsCancellationRequested)
+                    {
+                        throw new OperationCanceledException();
+                    }
                 }
 
                 GrpcServerLog.MessageSent(serverCallContext.Logger);

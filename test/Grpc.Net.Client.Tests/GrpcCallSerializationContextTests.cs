@@ -311,6 +311,7 @@ namespace Grpc.Net.Client.Tests
 
             public override Type RequestType { get; } = typeof(int);
             public override Type ResponseType { get; } = typeof(string);
+            public override CancellationToken CancellationToken { get; }
         }
 
         private GrpcCallSerializationContext CreateSerializationContext(string? requestGrpcEncoding = null, int? maxSendMessageSize = null)
