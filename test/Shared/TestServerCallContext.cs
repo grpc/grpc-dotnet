@@ -31,10 +31,7 @@ namespace Grpc.Tests.Shared
             PeerCore = "unknown";
             RequestHeadersCore = Metadata.Empty;
             ResponseTrailersCore = Metadata.Empty;
-            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             AuthContextCore = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
 
         protected override string MethodCore { get; }
@@ -45,10 +42,7 @@ namespace Grpc.Tests.Shared
         protected override CancellationToken CancellationTokenCore { get; }
         protected override Metadata ResponseTrailersCore { get; }
         protected override Status StatusCore { get; set; }
-        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-#pragma warning disable CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
         protected override WriteOptions? WriteOptionsCore { get; set; }
-#pragma warning restore CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
         protected override AuthContext AuthContextCore { get; }
 
         protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions? options)

@@ -29,8 +29,7 @@ namespace Grpc.AspNetCore.Server.Internal
 {
     internal sealed partial class HttpContextServerCallContext : ServerCallContext, IServerCallContextFeature
     {
-        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null!, new Dictionary<string, List<AuthProperty>>());
+        private static readonly AuthContext UnauthenticatedContext = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
         private string? _peer;
         private Metadata? _requestHeaders;
         private Metadata? _responseTrailers;
@@ -303,10 +302,7 @@ namespace Grpc.AspNetCore.Server.Internal
             GrpcEventSource.Log.CallStop();
         }
 
-        // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-#pragma warning disable CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
         protected override WriteOptions? WriteOptionsCore { get; set; }
-#pragma warning restore CS8764 // Nullability of return type doesn't match overridden member (possibly because of nullability attributes).
 
         protected override AuthContext AuthContextCore
         {
