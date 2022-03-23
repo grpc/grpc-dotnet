@@ -204,8 +204,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 }
             }
 
-            // TODO(JamesNK): Remove nullable override after Grpc.Core.Api update
-            return new AuthContext(peerIdentityPropertyName!, properties);
+            return new AuthContext(peerIdentityPropertyName, properties);
 
             static void AddProperty(Dictionary<string, List<AuthProperty>> properties, string name, string value)
             {

@@ -31,12 +31,12 @@ namespace Grpc.Net.Client.Internal
             Credentials = null;
         }
 
-        public override void SetAsyncAuthInterceptorCredentials(object state, AsyncAuthInterceptor interceptor)
+        public override void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor)
         {
             Interceptor = interceptor;
         }
 
-        public override void SetCompositeCredentials(object state, IReadOnlyList<CallCredentials> credentials)
+        public override void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials)
         {
             Credentials = credentials;
         }
