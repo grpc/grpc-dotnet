@@ -885,7 +885,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual("Call canceled by the client.", clientEx.Status.Detail);
 
             var serverEx = await ExceptionAssert.ThrowsAsync<Exception>(() => tcs.Task).DefaultTimeout();
-            if (serverEx is IOException)
+            if (serverEx is IOException || serverEx is OperationCanceledException)
             {
                 // Cool
             }
