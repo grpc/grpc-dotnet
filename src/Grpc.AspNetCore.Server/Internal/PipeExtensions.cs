@@ -74,7 +74,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     // https://github.com/dotnet/aspnetcore/issues/40788
                     if (!flushResult.IsCompleted && serverCallContext.CancellationToken.IsCancellationRequested)
                     {
-                        throw new OperationCanceledException();
+                        throw new OperationCanceledException("Request aborted while sending the message.");
                     }
                 }
 

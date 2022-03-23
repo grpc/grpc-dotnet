@@ -36,6 +36,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class StreamingTests : FunctionalTestBase
     {
+        // Big enough to hit flow control if not immediately read by peer.
         private const int BigMessageSize = 1024 * 1024 * 5;
 
         protected override void ConfigureServices(IServiceCollection services)
@@ -1104,7 +1105,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithCancellation);
 
-            var channel = CreateChannel();
+            var channel = CreateChannel(maxReceiveMessageSize: BigMessageSize * 2);
 
             var client = TestClientFactory.Create(channel, method);
 

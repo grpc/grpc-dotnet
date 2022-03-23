@@ -37,6 +37,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class HedgingTests : FunctionalTestBase
     {
+        // Big enough to hit flow control if not immediately read by peer.
         private const int BigMessageSize = 1024 * 1024 * 5;
 
         protected override void ConfigureServices(IServiceCollection services)
@@ -792,7 +793,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(
                 maxAttempts: maxAttempts);
-            var channel = CreateChannel(serviceConfig: serviceConfig);
+            var channel = CreateChannel(
+                serviceConfig: serviceConfig,
+                maxReceiveMessageSize: BigMessageSize * 2);
 
             var client = TestClientFactory.Create(channel, method);
 
