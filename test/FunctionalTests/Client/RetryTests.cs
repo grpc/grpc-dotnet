@@ -801,6 +801,44 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout());
         }
+
+        [Test]
+        public async Task ClientStreaming_WriteAsyncCancellationDuringRetry_Canceled()
+        {
+            async Task<DataMessage> ClientStreamingWithReadFailures(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Assert.IsTrue(await requestStream.MoveNext());
+
+                throw new RpcException(new Status(StatusCode.Unavailable, string.Empty));
+            }
+
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithReadFailures);
+            var channel = CreateChannel(
+                serviceConfig: ServiceConfigHelpers.CreateRetryServiceConfig(maxAttempts: 10, initialBackoff: TimeSpan.FromSeconds(100), maxBackoff: TimeSpan.FromSeconds(100)),
+                maxReceiveMessageSize: BigMessageSize * 2,
+                maxRetryBufferPerCallSize: BigMessageSize * 2);
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+
+            var call = client.ClientStreamingCall();
+
+            Logger.LogInformation("Client writing message 1.");
+            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[] { (byte)1 }) }, cts.Token).DefaultTimeout();
+
+            Logger.LogInformation("Client writing message 2.");
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[BigMessageSize]) }, cts.Token)).DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        }
 #endif
     }
 }

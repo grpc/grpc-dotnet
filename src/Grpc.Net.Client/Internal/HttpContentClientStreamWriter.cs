@@ -171,7 +171,7 @@ namespace Grpc.Net.Client.Internal
 
                 await writeFunc(_call, writeStream, callOptions, state).ConfigureAwait(false);
 
-                // Flush stream to ensure messages are sent immediately
+                // Flush stream to ensure messages are sent immediately.
                 await writeStream.FlushAsync(_call.CancellationToken).ConfigureAwait(false);
 
                 GrpcEventSource.Log.MessageSent();

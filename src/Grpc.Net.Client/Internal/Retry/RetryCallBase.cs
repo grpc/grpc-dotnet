@@ -79,7 +79,7 @@ namespace Grpc.Net.Client.Internal.Retry
             // Note that if the token is already canceled then callback is run inline.
             if (options.CancellationToken.CanBeCanceled)
             {
-                _ctsRegistration = options.CancellationToken.Register(static state => ((RetryCallBase<TRequest, TResponse>)state!).CancellationTokenSource.Cancel(), this);
+                _ctsRegistration = RegisterRetryCancellationToken(options.CancellationToken);
             }
 
             var deadline = Options.Deadline.GetValueOrDefault(DateTime.MaxValue);
@@ -199,10 +199,6 @@ namespace Grpc.Net.Client.Internal.Retry
                         writeTask = default;
 #endif
                     }
-                    else if (BufferedMessages.Count == 1)
-                    {
-                        writeTask = call.WriteMessageAsync(requestStream, BufferedMessages[0], call.CancellationToken);
-                    }
                     else
                     {
                         // Copy messages to a new collection in lock for thread-safety.
@@ -218,14 +214,23 @@ namespace Grpc.Net.Client.Internal.Retry
                     await call.ClientStreamWriter!.CompleteAsync().ConfigureAwait(false);
                 }
             });
+        }
 
-            static async ValueTask WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
+        private async ValueTask WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
+        {
+            for (var i = 0; i < bufferedMessages.Length; i++)
             {
-                foreach (var writtenMessage in bufferedMessages)
-                {
-                    await call.WriteMessageAsync(requestStream, writtenMessage, call.CancellationToken).ConfigureAwait(false);
-                }
+                await call.WriteMessageAsync(requestStream, bufferedMessages[i], call.CancellationToken).ConfigureAwait(false);
+
+                // Flush stream to ensure messages are sent immediately.
+                await requestStream.FlushAsync(call.CancellationToken).ConfigureAwait(false);
+
+                OnBufferMessageWritten(i + 1);
             }
+        }
+
+        protected virtual void OnBufferMessageWritten(int count)
+        {
         }
 
         protected abstract void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc);
@@ -233,6 +238,19 @@ namespace Grpc.Net.Client.Internal.Retry
         public abstract Task ClientStreamCompleteAsync();
 
         public abstract Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken);
+
+        protected CancellationTokenRegistration RegisterRetryCancellationToken(CancellationToken cancellationToken)
+        {
+            return cancellationToken.Register(
+                static state =>
+                {
+                    var call = (RetryCallBase<TRequest, TResponse>)state!;
+
+                    Log.CanceledRetry(call.Logger);
+                    call.CancellationTokenSource.Cancel();
+                },
+                this);
+        }
 
         protected bool IsDeadlineExceeded()
         {
@@ -464,7 +482,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
         protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
         {
-            return new StatusGrpcCall<TRequest, TResponse>(status);
+            return new StatusGrpcCall<TRequest, TResponse>(status, Channel);
         }
 
         protected void HandleUnexpectedError(Exception ex)
@@ -530,7 +548,12 @@ namespace Grpc.Net.Client.Internal.Retry
 
         public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
+        }
+
+        public Exception CreateFailureStatusException(Status status)
+        {
+            throw new NotSupportedException();
         }
     }
 }

@@ -46,6 +46,8 @@ namespace Grpc.Net.Client.Internal
             Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
             TState state);
 
+        Exception CreateFailureStatusException(Status status);
+
         bool TryRegisterCancellation(
             CancellationToken cancellationToken,
             [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration);

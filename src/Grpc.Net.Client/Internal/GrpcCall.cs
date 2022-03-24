@@ -715,7 +715,8 @@ namespace Grpc.Net.Client.Internal
 
         public Exception CreateFailureStatusException(Status status)
         {
-            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            if (Channel.ThrowOperationCanceledOnCancellation &&
+                (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
             {
                 // Convert status response of DeadlineExceeded to OperationCanceledException when
                 // ThrowOperationCanceledOnCancellation is true.
