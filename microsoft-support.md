@@ -4,7 +4,7 @@
 >
 > In addition, grpc-dotnet is an important technology for the .NET ecosystem. It also receives official support directly from Microsoft's support team. This document summarized the details of Microsoft's support policy.
 
-[Microsoft supports grpc-dotnet](https://LINK-TODO) on multiple operating systems, per the [Microsoft Modern Lifecycle](https://support.microsoft.com/help/30881/modern-lifecycle-policy).
+Microsoft supports grpc-dotnet on multiple operating systems, per the [Microsoft Modern Lifecycle](https://support.microsoft.com/help/30881/modern-lifecycle-policy).
 
 Support is provided for the following grpc-dotnet packages:
 
