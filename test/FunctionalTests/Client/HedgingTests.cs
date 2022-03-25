@@ -779,7 +779,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (Exception ex)
                 {
-                    if (ex is InvalidOperationException || ex is IOException || ex is OperationCanceledException)
+                    if (IsWriteCanceledException(ex))
                     {
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
                         return new DataMessage();

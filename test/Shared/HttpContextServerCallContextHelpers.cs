@@ -19,6 +19,7 @@
 using System.IO.Compression;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Core;
 using Grpc.Net.Compression;
 using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
@@ -37,6 +38,7 @@ namespace Grpc.Tests.Shared
             int? maxSendMessageSize = null,
             int? maxReceiveMessageSize = null,
             ILogger? logger = null,
+            WriteOptions? writeOptions = null,
             bool initialize = true)
         {
             var options = CreateMethodOptions(
@@ -52,6 +54,10 @@ namespace Grpc.Tests.Shared
                 typeof(object),
                 typeof(object),
                 logger ?? NullLogger.Instance);
+            if (writeOptions != null)
+            {
+                context.WriteOptions = writeOptions;
+            }
             if (initialize)
             {
                 context.Initialize();

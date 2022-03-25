@@ -131,14 +131,14 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
-        public async Task WriteMessageAsync_NoFlush_WriteNoData()
+        public async Task WriteSingleMessageAsync_NoFlush_WriteNoData()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
             // Act
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: false);
+            await pipeWriter.WriteSingleMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -146,14 +146,14 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
-        public async Task WriteMessageAsync_EmptyMessage_WriteMessageWithNoData()
+        public async Task WriteStreamedMessageAsync_EmptyMessage_WriteMessageWithNoData()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
             // Act
-            await pipeWriter.WriteMessageAsync(new EchoRequest(), HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest(), HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
             // Assert
             var base64 = Encoding.UTF8.GetString(ms.ToArray());
@@ -172,16 +172,16 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
-        public async Task WriteMessageAsync_MultipleMessagesWithFlush_WriteMessagesAsSegments()
+        public async Task WriteStreamedMessageAsync_MultipleMessagesWithFlush_WriteMessagesAsSegments()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
             // Act
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: true);
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: true);
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
             // Assert
             var base64 = Encoding.UTF8.GetString(ms.ToArray());
@@ -189,16 +189,17 @@ namespace Grpc.AspNetCore.Server.Tests.Web
         }
 
         [Test]
-        public async Task WriteMessageAsync_MultipleMessagesNoFlush_WriteMessages()
+        public async Task WriteStreamedMessageAsync_MultipleMessagesNoFlush_WriteMessages()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
+            var writeOptions = new WriteOptions(WriteFlags.BufferHint);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: false);
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: false);
-            await pipeWriter.WriteMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer, canFlush: false);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
+            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
 
             pipeWriter.Complete();
 

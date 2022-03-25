@@ -695,7 +695,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (Exception ex)
                 {
-                    if (ex is InvalidOperationException || ex is IOException || ex is OperationCanceledException)
+                    if (IsWriteCanceledException(ex))
                     {
                         Logger.LogInformation("Server got expected cancellation when sending big message.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);

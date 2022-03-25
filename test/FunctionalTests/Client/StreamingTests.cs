@@ -1077,6 +1077,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 await firstMessageTcs.Task;
 
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+                cts.Token.Register(() => Logger.LogInformation("CTS timer triggered cancellation."));
                 try
                 {
                     Logger.LogInformation("Server sending big message.");
@@ -1089,7 +1090,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (Exception ex)
                 {
-                    if (ex is InvalidOperationException || ex is IOException || ex is OperationCanceledException)
+                    if (IsWriteCanceledException(ex))
                     {
                         Logger.LogInformation("Server got expected cancellation when sending big message.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
@@ -1153,7 +1154,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (Exception ex)
                 {
-                    if (ex is InvalidOperationException || ex is IOException || ex is OperationCanceledException)
+                    if (IsWriteCanceledException(ex))
                     {
                         Logger.LogInformation("Server read canceled as expeceted.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
@@ -1223,7 +1224,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (Exception ex)
                 {
-                    if (ex is InvalidOperationException || ex is IOException || ex is OperationCanceledException)
+                    if (IsWriteCanceledException(ex))
                     {
                         Logger.LogInformation("Server read canceled as expeceted.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);

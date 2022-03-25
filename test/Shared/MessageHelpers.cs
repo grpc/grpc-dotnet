@@ -119,7 +119,7 @@ namespace Grpc.Tests.Shared
                 responseCompressionAlgorithm: compressionEncoding);
             serverCallContext.Initialize();
 
-            pipeWriter.WriteMessageAsync(message, serverCallContext, (r, c) => c.Complete(r.ToByteArray()), canFlush: true).GetAwaiter().GetResult();
+            pipeWriter.WriteStreamedMessageAsync(message, serverCallContext, (r, c) => c.Complete(r.ToByteArray())).GetAwaiter().GetResult();
             stream.Seek(0, SeekOrigin.Begin);
         }
 

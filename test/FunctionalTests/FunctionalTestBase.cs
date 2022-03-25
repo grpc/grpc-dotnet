@@ -161,5 +161,12 @@ namespace Grpc.AspNetCore.FunctionalTests
 
             return null;
         }
+
+        protected static bool IsWriteCanceledException(Exception ex)
+        {
+            return ex is InvalidOperationException ||
+                ex is IOException ||
+                ex is OperationCanceledException;
+        }
     }
 }

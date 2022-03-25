@@ -64,6 +64,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 throw new ArgumentNullException(nameof(message));
             }
 
+            // Register cancellation token early to ensure request is canceled if cancellation is requested.
             CancellationTokenRegistration? registration = null;
             if (cancellationToken.CanBeCanceled)
             {
@@ -90,7 +91,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
 
                     // Save write task to track whether it is complete. Must be set inside lock.
-                    _writeTask = _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
+                    _writeTask = _context.HttpContext.Response.BodyWriter.WriteStreamedMessageAsync(message, _context, _serializer, cancellationToken);
                 }
 
                 await _writeTask;
