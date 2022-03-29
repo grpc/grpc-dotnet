@@ -1,30 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors>The gRPC Authors</Authors>
-    <Copyright>Copyright 2015 The gRPC Authors</Copyright>
     <Description>gRPC C# Authentication Library</Description>
-    <PackageIcon>packageIcon.png</PackageIcon>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/grpc/grpc</PackageProjectUrl>
     <PackageTags>gRPC RPC HTTP/2 Auth OAuth2</PackageTags>
-    <VersionPrefix>$(GrpcCsharpVersion)</VersionPrefix>
-  </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFrameworks>net45;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- TODO(jtattermusch): is using net462 instead of net45 ok here? -->
+    <TargetFrameworks>net462;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    
+    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
   </PropertyGroup>
-
-  <Import Project="..\Grpc.Core\SourceLink.csproj.include" />
-
-  <ItemGroup>
-    <None Include="../packageIcon.png" Pack="true" PackagePath="\"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Grpc.Core.Api\Version.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Grpc.Core.Api/Grpc.Core.Api.csproj">
@@ -36,9 +22,17 @@
     <PackageReference Include="Google.Apis.Auth" Version="1.46.0" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <!-- Needed for the net4xx build to work on Unix. See https://github.com/dotnet/designs/pull/33 -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
