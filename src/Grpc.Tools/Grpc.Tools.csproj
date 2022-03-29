@@ -47,6 +47,7 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
   </PropertyGroup>
 
+  <!-- TODO(jtattermusch): why is the property group only applied for "Release" configuration? -->
   <PropertyGroup Label="NuGet package definition" Condition=" '$(Configuration)' == 'Release' ">
     <!-- TODO(kkm): Change to "build\" after splitting. -->
     <BuildOutputTargetFolder>build\_protobuf\</BuildOutputTargetFolder>
