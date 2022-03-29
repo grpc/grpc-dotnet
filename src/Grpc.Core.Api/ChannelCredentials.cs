@@ -18,8 +18,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
-
 using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 
@@ -121,7 +121,7 @@ namespace Grpc.Core
 
                 if (!channelCredentials.IsComposable)
                 {
-                    throw new ArgumentException(string.Format("CallCredentials can't be composed with {0}. CallCredentials must be used with secure channel credentials like SslCredentials.", channelCredentials.GetType().Name));
+                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "CallCredentials can't be composed with {0}. CallCredentials must be used with secure channel credentials like SslCredentials.", channelCredentials.GetType().Name));
                 }
             }
 

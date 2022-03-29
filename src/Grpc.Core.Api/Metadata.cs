@@ -17,6 +17,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Grpc.Core.Api.Utils;
@@ -378,10 +379,10 @@ namespace Grpc.Core
             {
                 if (IsBinary)
                 {
-                    return string.Format("[Entry: key={0}, valueBytes={1}]", key, valueBytes);
+                    return string.Format(CultureInfo.InvariantCulture, "[Entry: key={0}, valueBytes={1}]", key, valueBytes);
                 }
 
-                return string.Format("[Entry: key={0}, value={1}]", key, value);
+                return string.Format(CultureInfo.InvariantCulture, "[Entry: key={0}, value={1}]", key, value);
             }
 
             /// <summary>
@@ -430,7 +431,7 @@ namespace Grpc.Core
                 }
             }
 
-            static readonly byte[] EmptyByteArray = new byte[0];
+            static readonly byte[] EmptyByteArray = Array.Empty<byte>();
 
             private static string NormalizeKey(string key)
             {
