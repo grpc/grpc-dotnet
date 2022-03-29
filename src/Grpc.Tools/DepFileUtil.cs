@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Microsoft.Build.Framework;
@@ -82,7 +83,10 @@ namespace Grpc.Tools
                 {
                     log.LogMessage(MessageImportance.Low,
               $"Skipping unparsable dependency file {depFilename}.\nLine with error: '{line}'");
+#pragma warning disable CA1825  // Avoid unnecessary zero-length array allocations
                     return new string[0];
+#pragma warning restore CA1825  // Avoid unnecessary zero-length array allocations
+
                 }
 
                 // Do not bend over backwards trying not to include a proto into its
@@ -128,7 +132,9 @@ namespace Grpc.Tools
                 {
                     log.LogError("Unable to parse generated dependency file {0}.\n" +
                                  "Line with error: '{1}'", depFilename, line);
+#pragma warning disable CA1825  // Avoid unnecessary zero-length array allocations
                     return new string[0];
+#pragma warning restore CA1825  // Avoid unnecessary zero-length array allocations
                 }
                 result.Add(file);
 
@@ -219,7 +225,7 @@ namespace Grpc.Tools
                 var hashstr = new StringBuilder(16);
                 for (int i = 0; i < 8; i++)
                 {
-                    hashstr.Append(hash[i].ToString("x2"));
+                    hashstr.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
                 }
                 return hashstr.ToString();
             }
@@ -298,7 +304,9 @@ namespace Grpc.Tools
                 {
                     log.LogMessage(MessageImportance.Low, $"Skipping {filename}: {ex.Message}");
                 }
+#pragma warning disable CA1825  // Avoid unnecessary zero-length array allocations
                 return new string[0];
+#pragma warning restore CA1825  // Avoid unnecessary zero-length array allocations
             }
         }
     };

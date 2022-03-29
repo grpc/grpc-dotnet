@@ -69,7 +69,9 @@ namespace Grpc.Tools
             }
             else
             {
+#pragma warning disable CA1825  // Avoid unnecessary zero-length array allocations
                 Dependencies = new ITaskItem[0];
+#pragma warning restore CA1825  // Avoid unnecessary zero-length array allocations
             }
 
             return !Log.HasLoggedErrors;
