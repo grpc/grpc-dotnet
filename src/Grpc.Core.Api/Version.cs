@@ -18,6 +18,7 @@
 
 using System.Reflection;
 
-[assembly: AssemblyVersion(Grpc.Core.VersionInfo.CurrentAssemblyVersion)]
-[assembly: AssemblyFileVersion(Grpc.Core.VersionInfo.CurrentAssemblyFileVersion)]
-[assembly: AssemblyInformationalVersion(Grpc.Core.VersionInfo.CurrentVersion)]
+// TODO: version info already comes from https://github.com/grpc/grpc-dotnet/blob/f238855fcb77cec01e87eb9cc08680c3420c132f/Directory.Build.props#L8-L10
+//[assembly: AssemblyVersion(Grpc.Core.VersionInfo.CurrentAssemblyVersion)]
+//[assembly: AssemblyFileVersion(Grpc.Core.VersionInfo.CurrentAssemblyFileVersion)]
+//[assembly: AssemblyInformationalVersion(Grpc.Core.VersionInfo.CurrentVersion)]

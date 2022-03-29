@@ -25,6 +25,9 @@ namespace Grpc.Core
     /// </summary>
     public static class VersionInfo
     {
+        // TODO(jtattermusch): how to propagate versions from https://github.com/grpc/grpc-dotnet/blob/f238855fcb77cec01e87eb9cc08680c3420c132f/Directory.Build.props#L8-L10version into
+        // public const string values?
+
         /// <summary>
         /// Current <c>AssemblyVersion</c> attribute of gRPC C# assemblies
         /// </summary>
