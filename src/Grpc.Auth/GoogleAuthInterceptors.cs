@@ -101,11 +101,7 @@ namespace Grpc.Auth
         /// </summary>
         private static Task GetCompletedTask()
         {
-#if NETSTANDARD
             return Task.CompletedTask;
-#else
-            return Task.FromResult<object>(null);  // for .NET45, emulate the functionality
-#endif
         }
     }
 }
