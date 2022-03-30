@@ -126,6 +126,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Client.Web.Tests",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QpsWorker", "perf\benchmarkapps\QpsWorker\QpsWorker.csproj", "{430F312C-550B-4D1F-907F-01A72F3E5CF2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Core.Api", "src\Grpc.Core.Api\Grpc.Core.Api.csproj", "{BAE7C213-5950-4916-B456-A482828D89A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -260,6 +262,10 @@ Global
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAE7C213-5950-4916-B456-A482828D89A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAE7C213-5950-4916-B456-A482828D89A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAE7C213-5950-4916-B456-A482828D89A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAE7C213-5950-4916-B456-A482828D89A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -306,6 +312,7 @@ Global
 		{FC5F9350-B812-4C62-AE76-0FF437F0F362} = {59C7B1F0-EE4D-4098-8596-0ADDBC305234}
 		{14B1CA94-1222-4D2E-B37A-1FF8676E233E} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
+		{BAE7C213-5950-4916-B456-A482828D89A0} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
