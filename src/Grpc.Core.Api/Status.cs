@@ -18,6 +18,7 @@ using System;
 
 namespace Grpc.Core
 {
+    // TODO(jtattermusch): make the Status struct readonly
     /// <summary>
     /// Represents RPC result, which consists of <see cref="StatusCode"/> and an optional detail string.
     /// </summary>

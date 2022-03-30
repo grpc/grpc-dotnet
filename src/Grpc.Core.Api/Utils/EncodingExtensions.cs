@@ -21,6 +21,7 @@ using System.Text;
 namespace Grpc.Core.Api.Utils
 {
 
+    // TODO(jtattermusch): revisit what uses this code and delete once possible.
     internal static class EncodingExtensions
     {
 #if NET45 // back-fill over a method missing in NET45

@@ -18,6 +18,7 @@
 
 namespace Grpc.Core
 {
+    // TODO(jtattermusch): revisit deletion of ContextPropagationToken once Grpc.Core is past end-of-support.
     /// <summary>
     /// Token for propagating context of server side handlers to child calls.
     /// In situations when a backend is making calls to another backend,
