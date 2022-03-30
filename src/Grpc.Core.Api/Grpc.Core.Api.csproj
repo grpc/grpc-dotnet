@@ -5,13 +5,14 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- TODO(jtattermusch): is using net462 instead of net45 ok here? -->
-    <TargetFrameworks>net462;netstandard1.5;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.5;netstandard2.0;netstandard2.1</TargetFrameworks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
+    <!-- grpc-dotnet global usings break the build. -->
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +23,7 @@
     <PackageReference Include="System.Memory" Version="$(SystemMemoryPackageVersion)" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>

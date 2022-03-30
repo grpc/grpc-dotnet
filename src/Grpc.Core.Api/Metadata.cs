@@ -431,7 +431,10 @@ namespace Grpc.Core
                 }
             }
 
-            static readonly byte[] EmptyByteArray = Array.Empty<byte>();
+#pragma warning disable CA1825  // Avoid unnecessary zero-length array allocations
+            // TODO(jtattermusch): use Array.Empty<byte> and reenable warning once we stop targeting net45
+            static readonly byte[] EmptyByteArray = new byte[0];
+#pragma warning restore CA1825  // Avoid unnecessary zero-length array allocations
 
             private static string NormalizeKey(string key)
             {
