@@ -66,25 +66,6 @@ namespace Grpc.Core.Tests
         }
 
         [Test]
-        public void Normalize()
-        {
-            Assert.AreSame(Metadata.Empty, new CallOptions().Normalize().Headers);
-            Assert.AreEqual(DateTime.MaxValue, new CallOptions().Normalize().Deadline.Value);
-
-            var deadline = DateTime.UtcNow;
-            var propagationToken1 = new ContextPropagationTokenImpl(CallSafeHandle.NullInstance, deadline, CancellationToken.None,
-                new ContextPropagationOptions(propagateDeadline: true, propagateCancellation: false));
-            Assert.AreEqual(deadline, new CallOptions(propagationToken: propagationToken1).Normalize().Deadline.Value);
-            Assert.Throws(typeof(ArgumentException), () => new CallOptions(deadline: deadline, propagationToken: propagationToken1).Normalize());
-
-            var token = new CancellationTokenSource().Token;
-            var propagationToken2 = new ContextPropagationTokenImpl(CallSafeHandle.NullInstance, deadline, token,
-                new ContextPropagationOptions(propagateDeadline: false, propagateCancellation: true));
-            Assert.AreEqual(token, new CallOptions(propagationToken: propagationToken2).Normalize().CancellationToken);
-            Assert.Throws(typeof(ArgumentException), () => new CallOptions(cancellationToken: token, propagationToken: propagationToken2).Normalize());
-        }
-
-        [Test]
         public void WaitForReady()
         {
             var callOptions = new CallOptions();
