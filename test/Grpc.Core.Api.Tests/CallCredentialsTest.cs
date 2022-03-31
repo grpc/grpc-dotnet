@@ -35,16 +35,5 @@ namespace Grpc.Core.Tests
         {
             Assert.Throws(typeof(ArgumentException), () => CallCredentials.Compose(new FakeCallCredentials()));
         }
-
-        [Test]
-        public void CallCredentials_ToNativeCredentials()
-        {
-            var composite = CallCredentials.Compose(
-                CallCredentials.FromInterceptor(async (uri, m) => { await Task.Delay(1); }),
-                CallCredentials.FromInterceptor(async (uri, m) => { await Task.Delay(2); }));
-            using (var nativeComposite = composite.ToNativeCredentials())
-            {
-            }
-        }
     }
 }
