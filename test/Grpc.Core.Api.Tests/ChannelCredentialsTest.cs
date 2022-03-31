@@ -49,19 +49,5 @@ namespace Grpc.Core.Tests
             var ex = Assert.Throws(typeof(ArgumentException), () => ChannelCredentials.Create(new FakeChannelCredentials(false), new FakeCallCredentials()));
             Assert.AreEqual("CallCredentials can't be composed with FakeChannelCredentials. CallCredentials must be used with secure channel credentials like SslCredentials.", ex.Message);
         }
-
-        [Test]
-        public void ChannelCredentials_NativeCredentialsAreReused()
-        {
-            // always returning the same native object is critical for subchannel sharing to work with secure channels
-            var creds = new SslCredentials();
-            var nativeCreds1 = creds.ToNativeCredentials();
-            var nativeCreds2 = creds.ToNativeCredentials();
-            Assert.AreSame(nativeCreds1, nativeCreds2);
-
-            var nativeCreds3 = ChannelCredentials.SecureSsl.ToNativeCredentials();
-            var nativeCreds4 = ChannelCredentials.SecureSsl.ToNativeCredentials();
-            Assert.AreSame(nativeCreds3, nativeCreds4);
-        }
     }
 }
