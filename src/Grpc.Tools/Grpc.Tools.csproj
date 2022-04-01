@@ -12,12 +12,14 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
     
     <!-- If changing targets, change also paths in Google.Protobuf.Tools.targets. -->
     <TargetFrameworks>net45;netstandard1.3</TargetFrameworks>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- TODO(jtattermusch): add readme -->
+    <!--<PackageReadmeFile>README.md</PackageReadmeFile> -->
     
     <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
+    <PackageId>Grpc.Tools</PackageId>
     <AssemblyName>Protobuf.MSBuild</AssemblyName>
   </PropertyGroup>
 
@@ -43,7 +45,7 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
 
   <PropertyGroup>
     <!-- .proto for well-known protobuf types -->
-    <Assets_ProtoFilesDir>../../../third_party/protobuf/src/google/protobuf/</Assets_ProtoFilesDir>
+    <Assets_ProtoFilesDir>../well_known_protos/</Assets_ProtoFilesDir>
     <!-- where to look for protoc and protoc plugin binaries binary -->
     <Assets_ProtocBinariesDir>../protoc_plugins/</Assets_ProtocBinariesDir>
   </PropertyGroup>
