@@ -9,7 +9,6 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
     <PackageTags>gRPC RPC HTTP/2 protoc protobuf protocol buffers</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     
     <!-- If changing targets, change also paths in Google.Protobuf.Tools.targets. -->
     <TargetFrameworks>net45;netstandard1.3</TargetFrameworks>
@@ -29,58 +28,50 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
-  <PropertyGroup Label="Asset root folders. TODO(kkm): Change with package separation.">
-    <!-- TODO(kkm): Rework whole section when splitting packages.  -->
-    <!-- GRPC: ../../third_party/protobuf/src/google/protobuf/  -->
-    <!-- GPB:  ../src/google/protobuf/ -->
-    <Assets_ProtoInclude>../../../third_party/protobuf/src/google/protobuf/</Assets_ProtoInclude>
-
-    <!-- GPB:  ../protoc/ -->
-    <!-- GRPC: ../protoc_plugins/protoc_ -->
-    <Assets_ProtoCompiler>../protoc_plugins/protoc_</Assets_ProtoCompiler>
-
-    <!-- GRPC: ../protoc_plugins/ -->
-    <Assets_GrpcPlugins>../protoc_plugins/</Assets_GrpcPlugins>
-  </PropertyGroup>
-
   <PropertyGroup Condition=" '$(TargetFramework)' != 'net45' ">
     <!-- TODO(jtattermusch): replace the NETCORE define by something that's defined automatically by dotnet -->
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
   </PropertyGroup>
 
-  <!-- TODO(jtattermusch): why is the property group only applied for "Release" configuration? -->
-  <PropertyGroup Label="NuGet package definition" Condition=" '$(Configuration)' == 'Release' ">
+  <!-- TODO(jtattermusch): check whether the extra packaging options are needed. -->
+  <PropertyGroup>
     <!-- TODO(kkm): Change to "build\" after splitting. -->
     <BuildOutputTargetFolder>build\_protobuf\</BuildOutputTargetFolder>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
 
-  <ItemGroup Label="NuGet package assets">
+  <PropertyGroup>
+    <!-- .proto for well-known protobuf types -->
+    <Assets_ProtoFilesDir>../../../third_party/protobuf/src/google/protobuf/</Assets_ProtoFilesDir>
+    <!-- where to look for protoc and protoc plugin binaries binary -->
+    <Assets_ProtocBinariesDir>../protoc_plugins/</Assets_ProtocBinariesDir>
+  </PropertyGroup>
+
+  <ItemGroup>
     <None Pack="true" PackagePath="build\" Include="build\**\*.xml; build\**\*.props; build\**\*.targets;" />
 
     <!-- Protobuf assets (for Google.Protobuf.Tools) -->
     <_ProtoAssetName Include="any;api;descriptor;duration;empty;field_mask;
                               source_context;struct;timestamp;type;wrappers" />
-    <_Asset PackagePath="build/native/include/google/protobuf/" Include="@(_ProtoAssetName->'$(Assets_ProtoInclude)%(Identity).proto')" />
+    <_Asset PackagePath="build/native/include/google/protobuf/" Include="@(_ProtoAssetName->'$(Assets_ProtoFilesDir)%(Identity).proto')" />
 
-    <!-- TODO(kkm): GPB builds assets into "macosx", GRPC into "macos". -->
     <!-- TODO(kkm): Do not place non-tools under tools/, use build/native/bin/. -->
     <!-- TODO(kkm): Do not package windows x64 builds (#13098). -->
-    <_Asset PackagePath="tools/windows_x86/" Include="$(Assets_ProtoCompiler)windows_x86/protoc.exe" />
-    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtoCompiler)windows_x64/protoc.exe" />
-    <_Asset PackagePath="tools/linux_x86/" Include="$(Assets_ProtoCompiler)linux_x86/protoc" />
-    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtoCompiler)linux_x64/protoc" />
-    <_Asset PackagePath="tools/linux_arm64/" Include="$(Assets_ProtoCompiler)linux_aarch64/protoc" />
-    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_ProtoCompiler)macos_x64/protoc" /> <!-- GPB: macosx-->
+    <_Asset PackagePath="tools/windows_x86/" Include="$(Assets_ProtocBinariesDir)protoc_windows_x86/protoc.exe" />
+    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtocBinariesDir)protoc_windows_x64/protoc.exe" />
+    <_Asset PackagePath="tools/linux_x86/" Include="$(Assets_ProtocBinariesDir)protoc_linux_x86/protoc" />
+    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtocBinariesDir)protoc_linux_x64/protoc" />
+    <_Asset PackagePath="tools/linux_arm64/" Include="$(Assets_ProtocBinariesDir)protoc_linux_aarch64/protoc" />
+    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_ProtocBinariesDir)protoc_macos_x64/protoc" />
 
-    <!-- gRPC assets (for Grpc.Tools) -->
-    <_Asset PackagePath="tools/windows_x86/" Include="$(Assets_GrpcPlugins)protoc_windows_x86/grpc_csharp_plugin.exe" />
-    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_GrpcPlugins)protoc_windows_x64/grpc_csharp_plugin.exe" />
-    <_Asset PackagePath="tools/linux_x86/" Include="$(Assets_GrpcPlugins)protoc_linux_x86/grpc_csharp_plugin" />
-    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_GrpcPlugins)protoc_linux_x64/grpc_csharp_plugin" />
-    <_Asset PackagePath="tools/linux_arm64/" Include="$(Assets_GrpcPlugins)protoc_linux_aarch64/grpc_csharp_plugin" />
-    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_GrpcPlugins)protoc_macos_x64/grpc_csharp_plugin" />
+    <!-- gRPC C# protoc plugin -->
+    <_Asset PackagePath="tools/windows_x86/" Include="$(Assets_ProtocBinariesDir)protoc_windows_x86/grpc_csharp_plugin.exe" />
+    <_Asset PackagePath="tools/windows_x64/" Include="$(Assets_ProtocBinariesDir)protoc_windows_x64/grpc_csharp_plugin.exe" />
+    <_Asset PackagePath="tools/linux_x86/" Include="$(Assets_ProtocBinariesDir)protoc_linux_x86/grpc_csharp_plugin" />
+    <_Asset PackagePath="tools/linux_x64/" Include="$(Assets_ProtocBinariesDir)protoc_linux_x64/grpc_csharp_plugin" />
+    <_Asset PackagePath="tools/linux_arm64/" Include="$(Assets_ProtocBinariesDir)protoc_linux_aarch64/grpc_csharp_plugin" />
+    <_Asset PackagePath="tools/macosx_x64/" Include="$(Assets_ProtocBinariesDir)protoc_macos_x64/grpc_csharp_plugin" />
 
     <None Include="@(_Asset)" Pack="true" Visible="false" />
   </ItemGroup>
@@ -90,6 +81,7 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' != 'net45' ">
+    <!-- TODO(jtattermusch): add version to dependencies.props -->
     <PackageReference Include="Microsoft.Build.Framework; Microsoft.Build.Utilities.Core" Version="15.6.*" />
     <!--  Set PrivateAssets="All" on all items, even those implicitly added,
           so that they do not become dependencies of this package. -->
