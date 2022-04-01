@@ -44,6 +44,7 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' != 'net45' ">
+    <!-- TODO(jtattermusch): replace the NETCORE define by something that's defined automatically by dotnet -->
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
   </PropertyGroup>
 
