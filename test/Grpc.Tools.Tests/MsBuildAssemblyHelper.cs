@@ -17,7 +17,6 @@
 #endregion
 
 using System.Reflection;
-using NUnitLite;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
