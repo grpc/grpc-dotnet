@@ -522,6 +522,69 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
             Assert.AreEqual("An error", ex.Status.Detail);
         }
+
+        [Test]
+        public async Task DeadlineExceeded_MultipleCalls_CallsWaitForDeadline()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            var testSink = new TestSink();
+            services.AddLogging(b =>
+            {
+                b.AddProvider(new TestLoggerProvider(testSink));
+            });
+            services.AddNUnitLogger();
+
+            var resolver = new TestResolver();
+            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+            {
+                return Task.FromResult(ConnectivityState.Connecting);
+            });
+
+            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            var handler = new TestHttpMessageHandler((r, ct) => default!);
+            var channelOptions = new GrpcChannelOptions
+            {
+                Credentials = ChannelCredentials.Insecure,
+                ServiceProvider = serviceProvider,
+                HttpHandler = handler
+            };
+
+            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+            {
+                o.Credentials = ChannelCredentials.Insecure;
+                o.ServiceProvider = services.BuildServiceProvider();
+            });
+
+            // Act 1
+            var call1 = invoker.AsyncUnaryCall(
+                ClientTestHelpers.ServiceMethod,
+                string.Empty,
+                new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
+                new HelloRequest());
+
+            // Assert 1
+            var ex1 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call1.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex1.StatusCode);
+
+            // Act 2
+            var call2 = invoker.AsyncUnaryCall(
+                ClientTestHelpers.ServiceMethod,
+                string.Empty,
+                new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
+                new HelloRequest());
+
+            // Assert 2
+            var ex2 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call2.ResponseAsync).DefaultTimeout();
+            Assert.AreEqual(StatusCode.DeadlineExceeded, ex2.StatusCode);
+        }
     }
 }
 #endif

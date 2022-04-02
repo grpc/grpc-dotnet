@@ -110,16 +110,16 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 endpointName);
         }
 
-        public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null, bool? connect = null)
+        public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null, bool? connect = null, RetryPolicy? retryPolicy = null)
         {
             var resolver = new TestResolver();
             var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
             resolver.UpdateAddresses(e);
 
-            return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect);
+            return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy);
         }
 
-        public static async Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, TestResolver resolver, HttpMessageHandler? httpMessageHandler = null, bool? connect = null)
+        public static async Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, TestResolver resolver, HttpMessageHandler? httpMessageHandler = null, bool? connect = null, RetryPolicy? retryPolicy = null)
         {
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -131,6 +131,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             if (loadBalancingConfig != null)
             {
                 serviceConfig.LoadBalancingConfigs.Add(loadBalancingConfig);
+            }
+            if (retryPolicy != null)
+            {
+                serviceConfig.MethodConfigs.Add(new MethodConfig
+                {
+                    Names = { MethodName.Default },
+                    RetryPolicy = retryPolicy
+                });
             }
 
             var channel = GrpcChannel.ForAddress("test:///localhost", new GrpcChannelOptions

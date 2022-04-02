@@ -398,20 +398,27 @@ namespace Grpc.Net.Client.Balancer.Internal
             Debug.Assert(Monitor.IsEntered(_lock));
 
             var nextPickerTcs = _nextPickerTcs;
+            Logger.LogDebug("Got next picker TCS " + nextPickerTcs.GetHashCode());
 
             await _nextPickerLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (cancellationToken.Register(s => ((TaskCompletionSource<SubchannelPicker?>)s!).TrySetCanceled(), nextPickerTcs))
+                using (cancellationToken.Register(
+                    static s => ((TaskCompletionSource<SubchannelPicker?>)s!).TrySetCanceled(),
+                    nextPickerTcs))
                 {
-                    var nextPicker = await nextPickerTcs.Task.ConfigureAwait(false);
-
-                    lock (_lock)
+                    try
                     {
-                        _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        return await nextPickerTcs.Task.ConfigureAwait(false);
                     }
-
-                    return nextPicker;
+                    finally
+                    {
+                        // Picker can throw when canceled so reset picker in finally block.
+                        lock (_lock)
+                        {
+                            _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
+                    }
                 }
             }
             finally
