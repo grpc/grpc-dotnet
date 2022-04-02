@@ -398,7 +398,6 @@ namespace Grpc.Net.Client.Balancer.Internal
             Debug.Assert(Monitor.IsEntered(_lock));
 
             var nextPickerTcs = _nextPickerTcs;
-            Logger.LogDebug("Got next picker TCS " + nextPickerTcs.GetHashCode());
 
             await _nextPickerLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
