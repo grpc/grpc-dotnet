@@ -284,10 +284,13 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         var stateWatcher = _stateWatchers[i];
 
+                        // Trigger watcher if either:
+                        // 1. Watcher is waiting for any state change.
+                        // 2. The state change matches the watcher's.
                         if (stateWatcher.WaitForState == null || stateWatcher.WaitForState == State)
                         {
-                            stateWatcher.Tcs.SetResult(null);
                             _stateWatchers.RemoveAt(i);
+                            stateWatcher.Tcs.SetResult(null);
                         }
                     }
                 }
