@@ -483,8 +483,22 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        // Don't use a record struct here. This type is cast to object and a struct will box.
-        private record StateWatcher(CancellationToken CancellationToken, ConnectivityState? WaitForState, TaskCompletionSource<object?> Tcs);
+        // Use a standard class for the watcher because:
+        // 1. On cancellation, a watcher is removed from collection. Should use default Equals implementation. Record overrides Equals.
+        // 2. This type is cast to object. A struct will box.
+        private sealed class StateWatcher
+        {
+            public StateWatcher(CancellationToken cancellationToken, ConnectivityState? waitForState, TaskCompletionSource<object?> tcs)
+            {
+                CancellationToken = cancellationToken;
+                WaitForState = waitForState;
+                Tcs = tcs;
+            }
+
+            public CancellationToken CancellationToken { get; }
+            public ConnectivityState? WaitForState { get; }
+            public TaskCompletionSource<object?> Tcs { get; }
+        }
     }
 
     internal static class ConnectionManagerLog
