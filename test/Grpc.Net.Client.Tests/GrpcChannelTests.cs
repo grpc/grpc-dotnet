@@ -25,6 +25,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
+using Grpc.Net.Client.Internal;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -842,7 +843,70 @@ namespace Grpc.Net.Client.Tests
                 throw new NotImplementedException();
             }
         }
+
+        [Test]
+        public void InitialReconnectBackoff_FirstBackOff_MatchConfiguredBackoff()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRandomGenerator, TestRandomGenerator>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                InitialReconnectBackoff = TimeSpan.FromSeconds(10),
+                ServiceProvider = services.BuildServiceProvider()
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+            var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
+
+            // Assert
+            Assert.AreEqual(TimeSpan.TicksPerMinute * 10, backoffPolicy.GetNextBackoffTicks());
+        }
+
+        [Test]
+        public void MaxReconnectBackoff_ManyBackoffs_MatchConfiguredBackoff()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddSingleton<IRandomGenerator, TestRandomGenerator>();
+
+            var channelOptions = new GrpcChannelOptions
+            {
+                MaxReconnectBackoff = TimeSpan.FromSeconds(10),
+                ServiceProvider = services.BuildServiceProvider()
+            };
+
+            // Act
+            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+            var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
+
+            // Assert
+            for (var i = 0; i < 100; i++)
+            {
+                if (backoffPolicy.GetNextBackoffTicks() == TimeSpan.TicksPerMinute * 10)
+                {
+                    break;
+                }
+            }
+
+            Assert.AreEqual(TimeSpan.TicksPerMinute * 10, backoffPolicy.GetNextBackoffTicks());
+        }
 #endif
+
+        public class TestRandomGenerator : IRandomGenerator
+        {
+            public int Next(int minValue, int maxValue)
+            {
+                return 0;
+            }
+
+            public double NextDouble()
+            {
+                return 0.5;
+            }
+        }
 
         public class TestHttpMessageHandler : HttpMessageHandler
         {
