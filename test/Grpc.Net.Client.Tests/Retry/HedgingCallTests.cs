@@ -139,8 +139,6 @@ namespace Grpc.Net.Client.Tests.Retry
             // Fatal status code will cancel other calls
             Assert.AreEqual(0, hedgingCall._activeCalls.Count);
             await hedgingCall.CreateHedgingCallsTask!.DefaultTimeout();
-
-            waitUntilFinishedTcs.SetResult(null);
         }
 
         [Test]

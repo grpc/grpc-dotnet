@@ -23,6 +23,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
 #endif
@@ -182,6 +183,10 @@ namespace Grpc.Net.Client.Internal
                 Disposed = true;
 
                 Cleanup(GrpcProtocolConstants.DisposeCanceledStatus);
+
+                // If the call was disposed then observe any potential response exception.
+                // Observe the task's exception to prevent TaskScheduler.UnobservedTaskException from firing.
+                _responseTcs?.Task.ObserveException();
             }
         }
 
@@ -316,9 +321,21 @@ namespace Grpc.Net.Client.Internal
 
                 return metadata;
             }
-            catch (Exception ex) when (ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException))
+            catch (Exception ex)
             {
-                throw resolvedException;
+                // If there was an error fetching response headers then it's likely the same error is reported
+                // by response TCS. The user is unlikely to observe both errors.
+                // Observe the task's exception to prevent TaskScheduler.UnobservedTaskException from firing.
+                _responseTcs?.Task.ObserveException();
+
+                if (ResolveException(ErrorStartingCallMessage, ex, out _, out var resolvedException))
+                {
+                    throw resolvedException;
+                }
+                else
+                {
+                    throw;
+                }
             }
         }
 
@@ -584,13 +601,23 @@ namespace Grpc.Net.Client.Internal
                     // Update HTTP response TCS before clean up. Needs to happen first because cleanup will
                     // cancel the TCS for anyone still listening.
                     _httpResponseTcs.TrySetException(resolvedException);
+                    _httpResponseTcs.Task.ObserveException();
 
                     Cleanup(status.Value);
 
                     // Update response TCS after overall call status is resolved. This is required so that
                     // the call is completed before an error is thrown from ResponseAsync. If it happens
                     // afterwards then there is a chance GetStatus() will error because the call isn't complete.
-                    _responseTcs?.TrySetException(resolvedException);
+                    if (_responseTcs != null)
+                    {
+                        _responseTcs.TrySetException(resolvedException);
+                        
+                        // Always observe cancellation-like exceptions.
+                        if (IsCancellationOrDeadlineException(ex))
+                        {
+                            _responseTcs.Task.ObserveException();
+                        }
+                    }
                 }
 
                 // Verify that FinishCall is called in every code path of this method.
