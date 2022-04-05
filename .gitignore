@@ -40,3 +40,4 @@ global.json
 build/feed
 .dotnet/
 *.log.txt
+input_artifacts/
