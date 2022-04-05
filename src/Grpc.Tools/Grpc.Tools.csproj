@@ -45,9 +45,9 @@ Linux and MacOS. Managed runtime is supplied separately in the Grpc.Core package
 
   <PropertyGroup>
     <!-- .proto for well-known protobuf types -->
-    <Assets_ProtoFilesDir>../well_known_protos/</Assets_ProtoFilesDir>
+    <Assets_ProtoFilesDir>../../input_artifacts/protobuf_wkt_protos/</Assets_ProtoFilesDir>
     <!-- where to look for protoc and protoc plugin binaries binary -->
-    <Assets_ProtocBinariesDir>../protoc_plugins/</Assets_ProtocBinariesDir>
+    <Assets_ProtocBinariesDir>../../input_artifacts/protoc_plugins/</Assets_ProtocBinariesDir>
   </PropertyGroup>
 
   <ItemGroup>
