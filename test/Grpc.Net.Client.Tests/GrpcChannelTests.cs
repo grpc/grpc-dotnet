@@ -853,16 +853,16 @@ namespace Grpc.Net.Client.Tests
 
             var channelOptions = new GrpcChannelOptions
             {
-                InitialReconnectBackoff = TimeSpan.FromSeconds(10),
+                InitialReconnectBackoff = TimeSpan.FromSeconds(0.2),
                 ServiceProvider = services.BuildServiceProvider()
             };
 
             // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
             var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
 
             // Assert
-            Assert.AreEqual(TimeSpan.TicksPerMinute * 10, backoffPolicy.GetNextBackoffTicks());
+            Assert.AreEqual(TimeSpan.TicksPerSecond * 0.2, backoffPolicy.GetNextBackoffTicks());
         }
 
         [Test]
@@ -879,7 +879,7 @@ namespace Grpc.Net.Client.Tests
             };
 
             // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
             var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
 
             // Assert
@@ -891,7 +891,7 @@ namespace Grpc.Net.Client.Tests
                 }
             }
 
-            Assert.AreEqual(TimeSpan.TicksPerMinute * 10, backoffPolicy.GetNextBackoffTicks());
+            Assert.AreEqual(TimeSpan.TicksPerSecond * 10, backoffPolicy.GetNextBackoffTicks());
         }
 #endif
 
