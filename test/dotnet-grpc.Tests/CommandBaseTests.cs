@@ -279,9 +279,7 @@ namespace Grpc.Dotnet.Cli.Tests
             const string proto = "Proto/a.proto";
             
             // Act
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            commandBase.AddProtobufReference(Services.Server, null, Access.Internal, proto, SourceUrl);
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            commandBase.AddProtobufReference(Services.Server, null!, Access.Internal, proto, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
