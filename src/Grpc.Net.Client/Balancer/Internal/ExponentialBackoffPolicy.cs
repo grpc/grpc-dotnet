@@ -73,7 +73,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public IBackoffPolicy Create()
         {
-            // Limit ticks to Int32.Value. Task.Delay can't use larger values,
+            // Limit ticks to Int32.MaxValue. Task.Delay can't use larger values,
             // and larger values mean we need to worry about overflows.
             return new ExponentialBackoffPolicy(
                 _channel.RandomGenerator,
