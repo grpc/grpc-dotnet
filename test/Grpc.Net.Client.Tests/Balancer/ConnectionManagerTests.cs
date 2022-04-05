@@ -17,14 +17,8 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer;
@@ -34,7 +28,6 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using ChannelState = Grpc.Net.Client.Balancer.ChannelState;
@@ -76,7 +69,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new RoundRobinBalancer(c, loggerFactory));
 
             // Act
@@ -119,20 +112,6 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!.EndPoint);
         }
 
-        private static ConnectionManager GetClientChannel(
-            ILoggerFactory loggerFactory,
-            TestResolver resolver,
-            TestSubchannelTransportFactory transportFactory)
-        {
-            return new ConnectionManager(
-                            resolver,
-                            disableResolverServiceConfig: false,
-                            loggerFactory,
-                            new TestBackoffPolicyFactory(),
-                            transportFactory,
-                            Array.Empty<LoadBalancerFactory>());
-        }
-
         [Test]
         public async Task PickAsync_WaitForReadyWithDrop_ThrowsError()
         {
@@ -149,7 +128,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new DropLoadBalancer(c));
 
             // Act
@@ -303,7 +282,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 new BalancerAddress("localhost", 80)
             });
 
-            var connectAddressesChannel = System.Threading.Channels.Channel.CreateUnbounded<DnsEndPoint>();
+            var connectAddressesChannel = Channel.CreateUnbounded<DnsEndPoint>();
 
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
@@ -320,7 +299,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 c.ThrowIfCancellationRequested();
                 return ConnectivityState.Ready;
             });
-            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
 
             // Act
@@ -346,6 +325,20 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             var connectAddress2 = await connectAddressesChannel.Reader.ReadAsync().AsTask().DefaultTimeout();
             Assert.AreEqual(81, connectAddress2.Port);
+        }
+
+        private static ConnectionManager CreateConnectionManager(
+            ILoggerFactory loggerFactory,
+            TestResolver resolver,
+            TestSubchannelTransportFactory transportFactory)
+        {
+            return new ConnectionManager(
+                resolver,
+                disableResolverServiceConfig: false,
+                loggerFactory,
+                new TestBackoffPolicyFactory(),
+                transportFactory,
+                Array.Empty<LoadBalancerFactory>());
         }
 
         private class DropLoadBalancer : LoadBalancer
