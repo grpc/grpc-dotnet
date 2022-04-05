@@ -893,6 +893,34 @@ namespace Grpc.Net.Client.Tests
 
             Assert.AreEqual(TimeSpan.TicksPerSecond * 10, backoffPolicy.GetNextBackoffTicks());
         }
+
+        [Test]
+        public void MaxReconnectBackoff_Get_IsExpectedDefault()
+        {
+            // Arrange
+            var channelOptions = new GrpcChannelOptions();
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            // Assert
+            Assert.AreEqual(TimeSpan.FromSeconds(120), channelOptions.MaxReconnectBackoff);
+            Assert.AreEqual(TimeSpan.FromSeconds(120), channel.MaxReconnectBackoff);
+        }
+
+        [Test]
+        public void InitialReconnectBackoff_Get_IsExpectedDefault()
+        {
+            // Arrange
+            var channelOptions = new GrpcChannelOptions();
+
+            // Act
+            var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+            // Assert
+            Assert.AreEqual(TimeSpan.FromSeconds(1), channelOptions.InitialReconnectBackoff);
+            Assert.AreEqual(TimeSpan.FromSeconds(1), channel.InitialReconnectBackoff);
+        }
 #endif
 
         public class TestRandomGenerator : IRandomGenerator

@@ -42,7 +42,7 @@ namespace Grpc.Net.Client
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 #if SUPPORT_LOAD_BALANCING
         internal const long DefaultInitialReconnectBackoffTicks = TimeSpan.TicksPerSecond * 1;
-        internal const long DefaultMaxReconnectBackoffTicks = TimeSpan.TicksPerSecond * 1;
+        internal const long DefaultMaxReconnectBackoffTicks = TimeSpan.TicksPerSecond * 120;
 #endif
         internal const int DefaultMaxRetryAttempts = 5;
         internal const long DefaultMaxRetryBufferSize = 1024 * 1024 * 16; // 16 MB
