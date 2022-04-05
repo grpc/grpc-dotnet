@@ -44,6 +44,22 @@ namespace Grpc.Net.Client.Tests.Balancer
     [TestFixture]
     public class ClientChannelTests
     {
+        internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
+        {
+            public IBackoffPolicy Create()
+            {
+                return new TestBackoffPolicy();
+            }
+
+            private class TestBackoffPolicy : IBackoffPolicy
+            {
+                public long GetNextBackoffTicks()
+                {
+                    return TimeSpan.TicksPerSecond * 20;
+                }
+            }
+        }
+
         [Test]
         public async Task PickAsync_ChannelStateChangesWithWaitForReady_WaitsForCorrectEndpoint()
         {
@@ -60,7 +76,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
+            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new RoundRobinBalancer(c, loggerFactory));
 
             // Act
@@ -103,6 +119,20 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(new DnsEndPoint("localhost", 82), result2.Address!.EndPoint);
         }
 
+        private static ConnectionManager GetClientChannel(
+            ILoggerFactory loggerFactory,
+            TestResolver resolver,
+            TestSubchannelTransportFactory transportFactory)
+        {
+            return new ConnectionManager(
+                            resolver,
+                            disableResolverServiceConfig: false,
+                            loggerFactory,
+                            new TestBackoffPolicyFactory(),
+                            transportFactory,
+                            Array.Empty<LoadBalancerFactory>());
+        }
+
         [Test]
         public async Task PickAsync_WaitForReadyWithDrop_ThrowsError()
         {
@@ -119,7 +149,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             });
 
             var transportFactory = new TestSubchannelTransportFactory();
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
+            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new DropLoadBalancer(c));
 
             // Act
@@ -290,7 +320,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 c.ThrowIfCancellationRequested();
                 return ConnectivityState.Ready;
             });
-            var clientChannel = new ConnectionManager(resolver, disableResolverServiceConfig: false, loggerFactory, transportFactory, Array.Empty<LoadBalancerFactory>());
+            var clientChannel = GetClientChannel(loggerFactory, resolver, transportFactory);
             clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
 
             // Act

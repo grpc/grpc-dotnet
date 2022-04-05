@@ -220,13 +220,12 @@ namespace Grpc.Net.Client.Balancer
 
             _connectCts = new CancellationTokenSource();
 
-            const int InitialBackOffMs = 1000;
+            var backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
             try
             {
                 SubchannelLog.ConnectingTransport(_logger, Id);
 
-                var backoffMs = InitialBackOffMs;
                 for (var attempt = 0; ; attempt++)
                 {
                     lock (Lock)
@@ -247,9 +246,15 @@ namespace Grpc.Net.Client.Balancer
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
 
-                    var delay = TimeSpan.FromMilliseconds(backoffMs);
-                    SubchannelLog.StartingConnectBackoff(_logger, Id, delay);
-                    var completedTask = await Task.WhenAny(Task.Delay(delay, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
+                    var backoffTicks = backoffPolicy.GetNextBackoffTicks();
+                    // Task.Delay supports up to Int32.MaxValue milliseconds.
+                    // Note that even if the maximum backoff is configured to this maximum, the jitter could push it over the limit.
+                    // Force an upper bound here to ensure an unsupported backoff is never used.
+                    backoffTicks = Math.Min(backoffTicks, TimeSpan.TicksPerMillisecond * int.MaxValue);
+                    
+                    var backkoff = TimeSpan.FromTicks(backoffTicks);
+                    SubchannelLog.StartingConnectBackoff(_logger, Id, backkoff);
+                    var completedTask = await Task.WhenAny(Task.Delay(backkoff, delayCts.Token), _delayInterruptTcs.Task).ConfigureAwait(false);
 
                     if (completedTask != _delayInterruptTcs.Task)
                     {
@@ -261,15 +266,12 @@ namespace Grpc.Net.Client.Balancer
                         SubchannelLog.ConnectBackoffInterrupted(_logger, Id);
 
                         // Delay interrupt was triggered. Reset back-off.
-                        backoffMs = InitialBackOffMs;
+                        backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
                         // Cancel the Task.Delay that's no longer needed.
                         // https://github.com/davidfowl/AspNetCoreDiagnosticScenarios/blob/519ef7d231c01116f02bc04354816a735f2a36b6/AsyncGuidance.md#using-a-timeout
                         delayCts.Cancel();
                     }
-
-                    // Exponential backoff with max.
-                    backoffMs = (int)Math.Min(backoffMs * 1.6, 1000 * 120);
                 }
             }
             catch (OperationCanceledException)

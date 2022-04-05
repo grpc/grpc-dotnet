@@ -17,12 +17,6 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-using System;
-using System.IO;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Grpc.Net.Client.Balancer.Internal
 {
     /// <summary>

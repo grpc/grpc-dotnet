@@ -230,6 +230,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             {
                 return 0;
             }
+
+            public double NextDouble()
+            {
+                return 0;
+            }
         }
 
         internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
