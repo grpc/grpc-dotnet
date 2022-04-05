@@ -267,6 +267,34 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
         }
 
+
+        [Test]
+        public void AddProtobufReference_Without_AdditionalImportDirs()
+        {
+            // Arrange
+            var commandBase = new CommandBase(
+                new TestConsole(),
+                CreateIsolatedProject(Path.Combine(Directory.GetCurrentDirectory(), "TestAssets", "EmptyProject", "test.csproj")));
+
+            const string proto = "Proto/a.proto";
+            
+            // Act
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+            commandBase.AddProtobufReference(Services.Server, null, Access.Internal, proto, SourceUrl);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            commandBase.Project.ReevaluateIfNecessary();
+
+            // Assert
+            var protoRefs = commandBase.Project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual(proto.Replace('/', '\\'), protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+            Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
+        }
+
         static object[] DoesNotOverwriteCases()
         {
             var cases = new List<object>
