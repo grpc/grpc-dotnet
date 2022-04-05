@@ -189,6 +189,9 @@ namespace Grpc.Net.Client.Tests
         public async Task AsyncClientStreamingCall_DeadlineDuringSend_ResponseThrowsDeadlineExceededStatus()
         {
             // Arrange
+            var testSink = new TestSink();
+            var testLoggerFactory = new TestLoggerFactory(testSink, true);
+
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 var content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
@@ -197,7 +200,7 @@ namespace Grpc.Net.Client.Tests
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock);
+            var invoker = HttpClientCallInvokerFactory.Create(httpClient, systemClock: testSystemClock, loggerFactory: testLoggerFactory);
             var deadline = testSystemClock.UtcNow.AddSeconds(0.1);
 
             // Act
@@ -212,6 +215,9 @@ namespace Grpc.Net.Client.Tests
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
             Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
             Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
+
+            var deadlineExceededLogCount = testSink.Writes.Count(s => s.EventId.Name == "DeadlineExceeded");
+            Assert.AreEqual(1, deadlineExceededLogCount);
         }
 
         [Test]

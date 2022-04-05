@@ -726,7 +726,10 @@ namespace Grpc.Net.Client.Internal
                 if (timeout.Value <= TimeSpan.Zero)
                 {
                     // Call was started with a deadline in the past so immediately trigger deadline exceeded.
-                    DeadlineExceeded();
+                    lock (this)
+                    {
+                        DeadlineExceeded();
+                    }
                 }
                 else
                 {
@@ -989,8 +992,14 @@ namespace Grpc.Net.Client.Internal
 
         private void DeadlineExceeded()
         {
+            Debug.Assert(Monitor.IsEntered(this));
+
             GrpcCallLog.DeadlineExceeded(Logger);
             GrpcEventSource.Log.CallDeadlineExceeded();
+
+            // Set _deadline to DateTime.MaxValue to signal that deadline has been exceeded.
+            // This prevents duplicate logging and cancellation.
+            _deadline = DateTime.MaxValue;
 
             CancelCall(new Status(StatusCode.DeadlineExceeded, string.Empty));
         }

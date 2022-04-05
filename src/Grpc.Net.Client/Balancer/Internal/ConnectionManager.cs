@@ -284,10 +284,13 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         var stateWatcher = _stateWatchers[i];
 
+                        // Trigger watcher if either:
+                        // 1. Watcher is waiting for any state change.
+                        // 2. The state change matches the watcher's.
                         if (stateWatcher.WaitForState == null || stateWatcher.WaitForState == State)
                         {
-                            stateWatcher.Tcs.SetResult(null);
                             _stateWatchers.RemoveAt(i);
+                            stateWatcher.Tcs.SetResult(null);
                         }
                     }
                 }
@@ -402,16 +405,22 @@ namespace Grpc.Net.Client.Balancer.Internal
             await _nextPickerLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                using (cancellationToken.Register(s => ((TaskCompletionSource<SubchannelPicker?>)s!).TrySetCanceled(), nextPickerTcs))
+                using (cancellationToken.Register(
+                    static s => ((TaskCompletionSource<SubchannelPicker?>)s!).TrySetCanceled(),
+                    nextPickerTcs))
                 {
-                    var nextPicker = await nextPickerTcs.Task.ConfigureAwait(false);
-
-                    lock (_lock)
+                    try
                     {
-                        _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        return await nextPickerTcs.Task.ConfigureAwait(false);
                     }
-
-                    return nextPicker;
+                    finally
+                    {
+                        // Picker can throw when canceled so reset picker in finally block.
+                        lock (_lock)
+                        {
+                            _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
+                    }
                 }
             }
             finally
@@ -474,8 +483,22 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        // Don't use a record struct here. This type is cast to object and a struct will box.
-        private record StateWatcher(CancellationToken CancellationToken, ConnectivityState? WaitForState, TaskCompletionSource<object?> Tcs);
+        // Use a standard class for the watcher because:
+        // 1. On cancellation, a watcher is removed from collection. Should use default Equals implementation. Record overrides Equals.
+        // 2. This type is cast to object. A struct will box.
+        private sealed class StateWatcher
+        {
+            public StateWatcher(CancellationToken cancellationToken, ConnectivityState? waitForState, TaskCompletionSource<object?> tcs)
+            {
+                CancellationToken = cancellationToken;
+                WaitForState = waitForState;
+                Tcs = tcs;
+            }
+
+            public CancellationToken CancellationToken { get; }
+            public ConnectivityState? WaitForState { get; }
+            public TaskCompletionSource<object?> Tcs { get; }
+        }
     }
 
     internal static class ConnectionManagerLog
