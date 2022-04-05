@@ -24,6 +24,8 @@ using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests
@@ -226,6 +228,90 @@ namespace Grpc.Net.Client.Tests
 
             Assert.AreEqual(0, headers.Count);
             Assert.AreEqual(0, call.GetTrailers().Count);
+        }
+
+        public enum ResponseHandleAction
+        {
+            ResponseAsync,
+            ResponseHeadersAsync,
+            Dispose,
+            Nothing
+        }
+
+        [Test]
+        [TestCase(0, ResponseHandleAction.ResponseAsync)]
+        [TestCase(0, ResponseHandleAction.ResponseHeadersAsync)]
+        [TestCase(0, ResponseHandleAction.Dispose)]
+        [TestCase(1, ResponseHandleAction.Nothing)]
+        public async Task AsyncUnaryCall_CallFailed_NoUnobservedExceptions(int expectedUnobservedExceptions, ResponseHandleAction action)
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger<CancellationTests>();
+
+            var unobservedExceptions = new List<Exception>();
+            EventHandler<UnobservedTaskExceptionEventArgs> onUnobservedTaskException = (sender, e) =>
+            {
+                unobservedExceptions.Add(e.Exception!);
+
+                logger.LogCritical(e.Exception!, "Unobserved task exception. Observed: " + e.Observed);
+            };
+
+            TaskScheduler.UnobservedTaskException += onUnobservedTaskException;
+
+            try
+            {
+                var httpClient = ClientTestHelpers.CreateTestClient(request =>
+                {
+                    throw new Exception("Test error");
+                });
+                var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory: loggerFactory);
+
+                // Act
+                logger.LogDebug("Starting call");
+                await MakeGrpcCallAsync(logger, invoker, action);
+
+                logger.LogDebug("Waiting for finalizers");
+                // Provoke the garbage collector to find the unobserved exception.
+                GC.Collect();
+                // Wait for any failed tasks to be garbage collected
+                GC.WaitForPendingFinalizers();
+
+                // Assert
+                Assert.AreEqual(expectedUnobservedExceptions, unobservedExceptions.Count);
+
+                static async Task MakeGrpcCallAsync(ILogger logger, HttpClientCallInvoker invoker, ResponseHandleAction action)
+                {
+                    var runTask = Task.Run(async () =>
+                    {
+                        var call = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+                        switch (action)
+                        {
+                            case ResponseHandleAction.ResponseAsync:
+                                await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+                                break;
+                            case ResponseHandleAction.ResponseHeadersAsync:
+                                await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseHeadersAsync);
+                                break;
+                            case ResponseHandleAction.Dispose:
+                                call.Dispose();
+                                break;
+                            default:
+                                // Do nothing.
+                                break;
+                        }
+                    });
+
+                    await runTask;
+                }
+            }
+            finally
+            {
+                TaskScheduler.UnobservedTaskException -= onUnobservedTaskException;
+            }
         }
     }
 }
