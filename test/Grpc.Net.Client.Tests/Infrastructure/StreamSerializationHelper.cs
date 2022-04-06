@@ -64,6 +64,7 @@ namespace Grpc.Net.Client.Tests.Infrastructure
 
             public override Type RequestType => _type;
             public override Type ResponseType => _type;
+            public override CancellationToken CancellationToken { get; }
         }
     }
 }

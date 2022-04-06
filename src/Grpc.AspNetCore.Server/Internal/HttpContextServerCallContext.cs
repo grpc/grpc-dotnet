@@ -476,6 +476,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 await completionFeature.CompleteAsync();
             }
 
+            CancelRequest();
+        }
+
+        internal void CancelRequest()
+        {
             // HttpResetFeature should always be set on context,
             // but in case it isn't, fall back to HttpContext.Abort.
             // Abort will send error code INTERNAL_ERROR.

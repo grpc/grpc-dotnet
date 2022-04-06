@@ -59,6 +59,9 @@ namespace Grpc.Net.Client.Internal.Retry
         private static readonly Action<ILogger, int, Exception?> _startingAttempt =
             LoggerMessage.Define<int>(LogLevel.Debug, new EventId(12, "StartingAttempt"), "Starting attempt {AttemptCount}.");
 
+        private static readonly Action<ILogger, Exception?> _canceledRetry =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(13, "CanceledRetry"), "gRPC retry call canceled.");
+
         internal static void RetryEvaluated(ILogger logger, StatusCode statusCode, int attemptCount, bool willRetry)
         {
             _retryEvaluated(logger, statusCode, attemptCount, willRetry, null);
@@ -117,6 +120,11 @@ namespace Grpc.Net.Client.Internal.Retry
         internal static void StartingAttempt(ILogger logger, int attempts)
         {
             _startingAttempt(logger, attempts, null);
+        }
+
+        internal static void CanceledRetry(ILogger logger)
+        {
+            _canceledRetry(logger, null);
         }
     }
 }

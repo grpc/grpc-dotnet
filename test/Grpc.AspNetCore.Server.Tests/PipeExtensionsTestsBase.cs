@@ -492,14 +492,14 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_NoFlush_WriteNoData()
+        public async Task WriteSingleMessageAsync_NoFlush_WriteNoData()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(Encoding.UTF8.GetBytes("Hello world")), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: false);
+            await pipeWriter.WriteSingleMessageAsync(new TestData(Encoding.UTF8.GetBytes("Hello world")), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -507,14 +507,15 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_EmptyMessage_WriteMessageWithNoData()
+        public async Task WriteSingleMessageAsync_EmptyMessage_WriteMessageWithNoData()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(Array.Empty<byte>()), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteSingleMessageAsync(new TestData(Array.Empty<byte>()), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer);
+            await pipeWriter.FlushAsync();
 
             // Assert
             var messageData = ms.ToArray();
@@ -532,14 +533,39 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_OneByteMessage_WriteData()
+        public async Task WriteStreamedMessageAsync_EmptyMessage_WriteMessageWithNoData()
         {
             // Arrange
             var ms = new MemoryStream();
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(Array.Empty<byte>()), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer);
+
+            // Assert
+            var messageData = ms.ToArray();
+
+            CollectionAssert.AreEqual(
+                new byte[]
+                {
+                    0x00, // compression = 0
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length = 0
+                },
+                messageData);
+        }
+
+        [Test]
+        public async Task WriteStreamedMessageAsync_OneByteMessage_WriteData()
+        {
+            // Arrange
+            var ms = new MemoryStream();
+            var pipeWriter = PipeWriter.Create(ms);
+
+            // Act
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10 }), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -558,7 +584,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_LongMessage_WriteData()
+        public async Task WriteStreamedMessageAsync_LongMessage_WriteData()
         {
             // Arrange
             var ms = new MemoryStream();
@@ -569,7 +595,7 @@ namespace Grpc.AspNetCore.Server.Tests
                 + "nisl, vitae tincidunt purus vestibulum sit amet. Interdum et malesuada fames ac ante ipsum primis in faucibus.");
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(content), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(content), HttpContextServerCallContextHelper.CreateServerCallContext(), TestDataMarshaller.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -587,7 +613,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_MultipleOneByteMessages_WriteData()
+        public async Task WriteStreamedMessageAsync_MultipleOneByteMessages_WriteData()
         {
             // Arrange
             var ms = new MemoryStream();
@@ -595,7 +621,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var context = HttpContextServerCallContextHelper.CreateServerCallContext();
 
             // Act 1
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer);
 
             // Assert 1
             var messageData = ms.ToArray();
@@ -615,7 +641,7 @@ namespace Grpc.AspNetCore.Server.Tests
             ms.Seek(0, SeekOrigin.Begin);
 
             // Act 2
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x20 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x20 }), context, TestDataMarshaller.ContextualSerializer);
 
             // Assert 2
             messageData = ms.ToArray();
@@ -634,7 +660,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_UnderSendSize_WriteData()
+        public async Task WriteStreamedMessageAsync_UnderSendSize_WriteData()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxSendMessageSize: 1);
@@ -642,7 +668,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -661,7 +687,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_ExceedSendSize_ThrowError()
+        public async Task WriteStreamedMessageAsync_ExceedSendSize_ThrowError()
         {
             // Arrange
             var context = HttpContextServerCallContextHelper.CreateServerCallContext(maxSendMessageSize: 1);
@@ -669,7 +695,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10, 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true)).DefaultTimeout();
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10, 0x10 }), context, TestDataMarshaller.ContextualSerializer)).DefaultTimeout();
 
             // Assert
             Assert.AreEqual("Sending message exceeds the maximum configured message size.", ex.Status.Detail);
@@ -677,7 +703,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_GzipCompressed_WriteCompressedData()
+        public async Task WriteStreamedMessageAsync_GzipCompressed_WriteCompressedData()
         {
             // Arrange
             var compressionProviders = new List<ICompressionProvider>
@@ -698,7 +724,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer);
 
             // Assert
             var messageData = ms.ToArray();
@@ -712,7 +738,7 @@ namespace Grpc.AspNetCore.Server.Tests
         }
 
         [Test]
-        public async Task WriteMessageAsync_HasCustomCompressionLevel_WriteCompressedDataWithLevel()
+        public async Task WriteStreamedMessageAsync_HasCustomCompressionLevel_WriteCompressedDataWithLevel()
         {
             // Arrange
             var mockCompressionProvider = new MockCompressionProvider();
@@ -734,7 +760,7 @@ namespace Grpc.AspNetCore.Server.Tests
             var pipeWriter = PipeWriter.Create(ms);
 
             // Act
-            await pipeWriter.WriteMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer, canFlush: true);
+            await pipeWriter.WriteStreamedMessageAsync(new TestData(new byte[] { 0x10 }), context, TestDataMarshaller.ContextualSerializer);
 
             // Assert
             Assert.AreEqual(System.IO.Compression.CompressionLevel.Optimal, mockCompressionProvider.ArgumentCompression);

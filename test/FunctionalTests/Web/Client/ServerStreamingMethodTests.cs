@@ -138,14 +138,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
                 for (var i = 0; i < request.MessageCount; i++)
                 {
-                    Logger.LogInformation($"Server writing message {i}");
-                    await responseStream.WriteAsync(new ServerStreamingEchoResponse
-                    {
-                        Message = request.Message
-                    });
-
                     try
                     {
+                        Logger.LogInformation($"Server writing message {i}");
+                        await responseStream.WriteAsync(new ServerStreamingEchoResponse
+                        {
+                            Message = request.Message
+                        });
+
                         await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
                     }
                     catch (OperationCanceledException)

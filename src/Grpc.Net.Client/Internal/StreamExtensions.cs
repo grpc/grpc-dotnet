@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Grpc.Core;
@@ -303,7 +304,7 @@ namespace Grpc.Net.Client
 
                 // Sending the header+content in a single WriteAsync call has significant performance benefits
                 // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
-                await stream.WriteAsync(serializationContext.GetWrittenPayload(), callOptions.CancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(serializationContext.GetWrittenPayload(), call.CancellationToken).ConfigureAwait(false);
 
                 GrpcCallLog.MessageSent(call.Logger);
             }
@@ -328,9 +329,17 @@ namespace Grpc.Net.Client
             {
                 GrpcCallLog.SendingMessage(call.Logger);
 
-                // Sending the header+content in a single WriteAsync call has significant performance benefits
-                // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
-                await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    // Sending the header+content in a single WriteAsync call has significant performance benefits
+                    // https://github.com/dotnet/runtime/issues/35184#issuecomment-626304981
+                    await stream.WriteAsync(data, cancellationToken).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException) when (call.CancellationToken.IsCancellationRequested)
+                {
+                    // Cancellation from disposing response while waiting for WriteAsync can throw ObjectDisposedException.
+                    throw new OperationCanceledException();
+                }
 
                 GrpcCallLog.MessageSent(call.Logger);
             }

@@ -18,6 +18,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -26,6 +27,7 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Streaming;
@@ -35,6 +37,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
     [TestFixture]
     public class HedgingTests : FunctionalTestBase
     {
+        // Big enough to hit flow control if not immediately read by peer.
+        private const int BigMessageSize = 1024 * 1024 * 5;
+
+        protected override void ConfigureServices(IServiceCollection services)
+        {
+            services
+                .AddGrpc(options =>
+                {
+                    options.MaxReceiveMessageSize = BigMessageSize * 2;
+                });
+        }
+
         [TestCase(null)]
         [TestCase(0)]
         [TestCase(20)]
@@ -558,7 +572,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Arrange
             var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryFailure);
 
-            var channel = CreateChannel(serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromMilliseconds(hedgingDelayMilliseconds)));
+            var channel = CreateChannel(
+                serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromMilliseconds(hedgingDelayMilliseconds)),
+                maxReceiveMessageSize: (int)GrpcChannel.DefaultMaxRetryBufferPerCallSize * 2);
 
             var client = TestClientFactory.Create(channel, method);
 
@@ -590,5 +606,345 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             Assert.AreEqual(0, channel.CurrentRetryBufferSize);
 
         }
+
+        [Test]
+        public async Task ClientStreaming_WriteLargeMessageCausingCommit_Success()
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            var firstMessageTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var clientCancellationTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var serverCanceledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            const int maxAttempts = 2;
+            var callCount = 0;
+            var serverSuccessCount = 0;
+            var serverAbortCount = 0;
+            async Task<DataMessage> ClientStreamingWithCancellation(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Logger.LogInformation("Server reading first message.");
+                Assert.IsTrue(await requestStream.MoveNext());
+                if (Interlocked.Increment(ref callCount) >= maxAttempts)
+                {
+                    firstMessageTcs.TrySetResult(null);
+                }
+
+                try
+                {
+                    await requestStream.MoveNext();
+                    Interlocked.Increment(ref serverSuccessCount);
+                    return requestStream.Current;
+                }
+                catch (Exception ex)
+                {
+                    Interlocked.Increment(ref serverAbortCount);
+                    serverCanceledTcs.TrySetException(ex);
+                    throw;
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithCancellation);
+
+            var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(
+                maxAttempts: maxAttempts);
+            var channel = CreateChannel(serviceConfig: serviceConfig, maxReceiveMessageSize: BigMessageSize * 2);
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            // Assert
+            Logger.LogInformation("Client sending first message.");
+            await call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) },
+                CancellationToken.None).DefaultTimeout();
+
+            await firstMessageTcs.Task.DefaultTimeout();
+
+            // This large message causes the call to be commited and cancels other calls.
+            Logger.LogInformation("Client sending large message.");
+            var writeLargeMessageTask = call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(new byte[BigMessageSize]) });
+
+            var response = await call.ResponseAsync.DefaultTimeout();
+            Assert.AreEqual(BigMessageSize, response.Data.Length);
+
+            await ExceptionAssert.ThrowsAsync<Exception>(() => serverCanceledTcs.Task).DefaultTimeout();
+            Assert.AreEqual(1, serverSuccessCount);
+            Assert.AreEqual(1, serverAbortCount);
+        }
+
+#if NET5_0_OR_GREATER
+        [Test]
+        public async Task ClientStreaming_WriteAsyncCancellationBefore_ClientAbort()
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            var firstMessageTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var serverCanceledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var maxAttempts = 2;
+            var callCount = 0;
+            async Task<DataMessage> ClientStreamingWithCancellation(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Assert.IsTrue(await requestStream.MoveNext());
+                if (Interlocked.Increment(ref callCount) >= maxAttempts)
+                {
+                    firstMessageTcs.TrySetResult(null);
+                }
+
+                try
+                {
+                    await requestStream.MoveNext();
+                    throw new Exception("Should never reached here.");
+                }
+                catch (IOException)
+                {
+                    serverCanceledTcs.TrySetResult(context.CancellationToken.IsCancellationRequested);
+                    return new DataMessage();
+                }
+                catch (Exception ex)
+                {
+                    serverCanceledTcs.TrySetException(ex);
+                    throw;
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithCancellation);
+
+            var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(
+                maxAttempts: maxAttempts);
+            var channel = CreateChannel(serviceConfig: serviceConfig);
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            // Assert
+            await call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) },
+                CancellationToken.None).DefaultTimeout();
+
+            await firstMessageTcs.Task.DefaultTimeout();
+
+            var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) },
+                new CancellationToken(true))).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
+
+            Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout());
+        }
+
+        [Test]
+        public async Task ClientStreaming_WriteAsyncCancellationDuring_ClientAbort()
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            var firstMessageTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var clientCancellationTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var serverCanceledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var maxAttempts = 2;
+            var callCount = 0;
+            async Task<DataMessage> ClientStreamingWithCancellation(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Logger.LogInformation("Server reading first message.");
+                Assert.IsTrue(await requestStream.MoveNext());
+                if (Interlocked.Increment(ref callCount) >= maxAttempts)
+                {
+                    firstMessageTcs.TrySetResult(null);
+                }
+
+                Logger.LogInformation("Server waiting for canceled client message.");
+                await clientCancellationTcs.Task;
+
+                try
+                {
+                    await requestStream.MoveNext();
+                    throw new Exception("Should never reached here.");
+                }
+                catch (Exception ex)
+                {
+                    if (IsWriteCanceledException(ex))
+                    {
+                        serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
+                        return new DataMessage();
+                    }
+
+                    serverCanceledTcs.TrySetException(ex);
+                    throw;
+                }
+            }
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithCancellation);
+
+            var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(
+                maxAttempts: maxAttempts);
+            var channel = CreateChannel(
+                serviceConfig: serviceConfig,
+                maxReceiveMessageSize: BigMessageSize * 2);
+
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            // Assert
+            Logger.LogInformation("Client sending first message.");
+            await call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(Encoding.UTF8.GetBytes("Hello world")) },
+                CancellationToken.None).DefaultTimeout();
+
+            await firstMessageTcs.Task.DefaultTimeout();
+
+            Logger.LogInformation("Client sending large message.");
+
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(
+                () => call.RequestStream.WriteAsync(
+                new DataMessage { Data = ByteString.CopyFrom(new byte[BigMessageSize]) },
+                cts.Token)).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
+
+            clientCancellationTcs.SetResult(null);
+
+            Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout());
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ClientStreaming_WriteAsyncCancellationDuringRetry_Canceled(bool throwOperationCanceledOnCancellation)
+        {
+            async Task<DataMessage> ClientStreamingWithReadFailures(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Logger.LogInformation("Server reading message 1.");
+                Assert.IsTrue(await requestStream.MoveNext());
+
+                Logger.LogInformation("Server pausing.");
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
+
+                Logger.LogInformation("Server erroring.");
+                throw new RpcException(new Status(StatusCode.Unavailable, string.Empty));
+            }
+
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithReadFailures);
+            var channel = CreateChannel(
+                serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(maxAttempts: 5, hedgingDelay: TimeSpan.FromSeconds(20)),
+                maxReceiveMessageSize: BigMessageSize * 2,
+                maxRetryBufferPerCallSize: BigMessageSize * 2,
+                throwOperationCanceledOnCancellation: throwOperationCanceledOnCancellation);
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+
+            var call = client.ClientStreamingCall();
+
+            Logger.LogInformation("Client writing message 1.");
+            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[] { (byte)1 }) }, cts.Token).DefaultTimeout();
+
+            Logger.LogInformation("Client writing message 2.");
+            var writeTask = call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[BigMessageSize]) }, cts.Token);
+
+            // Assert
+            if (throwOperationCanceledOnCancellation)
+            {
+                var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => writeTask).DefaultTimeout();
+                Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+            }
+            else
+            {
+                var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => writeTask).DefaultTimeout();
+                Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+            }
+            Assert.IsTrue(cts.Token.IsCancellationRequested, "WriteAsync finished when CancellationToken wasn't triggered.");
+        }
+
+        [Test]
+        public async Task ClientStreaming_WriteAsyncFailsUntilRetries_WriteAsyncAwaitsUntilSuccess()
+        {
+            Task? largeWriteTask = null;
+
+            var callCount = 0;
+            bool? clientWriteWaitedForServerRead = null;
+            async Task<DataMessage> ClientStreamingWithReadFailures(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            {
+                Logger.LogInformation("Server reading message 1.");
+                Assert.IsTrue(await requestStream.MoveNext());
+
+                var currentCallCount = Interlocked.Increment(ref callCount);
+                Logger.LogInformation("Server current call count: " + currentCallCount);
+
+                if (currentCallCount <= 2)
+                {
+                    Logger.LogInformation("Server pausing.");
+                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+
+                    Logger.LogInformation("Server erroring.");
+                    throw new RpcException(new Status(StatusCode.Unavailable, string.Empty));
+                }
+                else
+                {
+                    clientWriteWaitedForServerRead = !largeWriteTask!.IsCompleted;
+
+                    Logger.LogInformation("Server reading message 2.");
+                    Assert.IsTrue(await requestStream.MoveNext());
+
+                    Logger.LogInformation("Server sending response.");
+                    return new DataMessage();
+                }
+            }
+
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            // Arrange
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithReadFailures);
+            var channel = CreateChannel(
+                serviceConfig: ServiceConfigHelpers.CreateHedgingServiceConfig(maxAttempts: 5, hedgingDelay: TimeSpan.FromMinutes(20)),
+                maxReceiveMessageSize: BigMessageSize * 2,
+                maxRetryBufferPerCallSize: BigMessageSize * 2);
+            var client = TestClientFactory.Create(channel, method);
+
+            // Act
+            var call = client.ClientStreamingCall();
+
+            Logger.LogInformation("Client writing message 1.");
+            await call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[] { (byte)1 }) }).DefaultTimeout();
+
+            Logger.LogInformation("Client writing message 2.");
+            largeWriteTask = call.RequestStream.WriteAsync(new DataMessage { Data = ByteString.CopyFrom(new byte[BigMessageSize]) });
+
+            await largeWriteTask.DefaultTimeout();
+
+            // Assert
+            Logger.LogInformation("Client waiting for response.");
+            var response = await call.ResponseAsync.DefaultTimeout();
+            Assert.IsTrue(clientWriteWaitedForServerRead);
+        }
+#endif
     }
 }

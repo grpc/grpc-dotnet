@@ -64,7 +64,7 @@ namespace Grpc.AspNetCore.Server.Internal.CallHandlers
             }
 
             var responseBodyWriter = httpContext.Response.BodyWriter;
-            await responseBodyWriter.WriteMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer, canFlush: false);
+            await responseBodyWriter.WriteSingleMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
         }
     }
 }

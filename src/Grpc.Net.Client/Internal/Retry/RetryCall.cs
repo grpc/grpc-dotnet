@@ -299,10 +299,14 @@ namespace Grpc.Net.Client.Internal.Retry
             });
         }
 
-        public override Task ClientStreamWriteAsync(TRequest message)
+        public override async Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken)
         {
+            using var registration = (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
+                ? RegisterRetryCancellationToken(cancellationToken)
+                : default;
+
             // The retry client stream writer prevents multiple threads from reaching here.
-            return DoClientStreamActionAsync(async call =>
+            await DoClientStreamActionAsync(async call =>
             {
                 CompatibilityHelpers.Assert(call.ClientStreamWriter != null);
 
@@ -311,7 +315,15 @@ namespace Grpc.Net.Client.Internal.Retry
                     call.ClientStreamWriter.WriteOptions = ClientStreamWriteOptions;
                 }
 
-                await call.WriteClientStreamAsync(WriteNewMessage, message).ConfigureAwait(false);
+                call.TryRegisterCancellation(cancellationToken, out var registration);
+                try
+                {
+                    await call.WriteClientStreamAsync(WriteNewMessage, message).ConfigureAwait(false);
+                }
+                finally
+                {
+                    registration?.Dispose();
+                }
 
                 lock (Lock)
                 {
@@ -322,7 +334,7 @@ namespace Grpc.Net.Client.Internal.Retry
                 {
                     await call.ClientStreamWriter.CompleteAsync().ConfigureAwait(false);
                 }
-            });
+            }).ConfigureAwait(false);
         }
 
         private async Task DoClientStreamActionAsync(Func<IGrpcCall<TRequest, TResponse>, Task> action)

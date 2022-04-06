@@ -43,7 +43,37 @@ namespace Grpc.AspNetCore.Server.Internal
             return new Status(StatusCode.Unimplemented, $"Unsupported grpc-encoding value '{unsupportedEncoding}'. Supported encodings: {string.Join(", ", supportedEncodings)}");
         }
 
-        public static async Task WriteMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, bool canFlush)
+        public static async Task WriteSingleMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer)
+            where TResponse : class
+        {
+            var logger = serverCallContext.Logger;
+            try
+            {
+                // Must call StartAsync before the first pipeWriter.GetSpan() in WriteHeader
+                var httpResponse = serverCallContext.HttpContext.Response;
+                if (!httpResponse.HasStarted)
+                {
+                    await httpResponse.StartAsync();
+                }
+
+                GrpcServerLog.SendingMessage(logger);
+
+                var serializationContext = serverCallContext.SerializationContext;
+                serializationContext.Reset();
+                serializationContext.ResponseBufferWriter = pipeWriter;
+                serializer(response, serializationContext);
+
+                GrpcServerLog.MessageSent(serverCallContext.Logger);
+                GrpcEventSource.Log.MessageSent();
+            }
+            catch (Exception ex)
+            {
+                GrpcServerLog.ErrorSendingMessage(logger, ex);
+                throw;
+            }
+        }
+
+        public static async Task WriteStreamedMessageAsync<TResponse>(this PipeWriter pipeWriter, TResponse response, HttpContextServerCallContext serverCallContext, Action<TResponse, SerializationContext> serializer, CancellationToken cancellationToken = default)
             where TResponse : class
         {
             var logger = serverCallContext.Logger;
@@ -64,11 +94,20 @@ namespace Grpc.AspNetCore.Server.Internal
                 serializer(response, serializationContext);
 
                 // Flush messages unless WriteOptions.Flags has BufferHint set
-                var flush = canFlush && ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
+                var flush = ((serverCallContext.WriteOptions?.Flags ?? default) & WriteFlags.BufferHint) != WriteFlags.BufferHint;
 
                 if (flush)
                 {
-                    await pipeWriter.FlushAsync();
+                    var flushResult = await pipeWriter.FlushAsync();
+
+                    // Workaround bug where FlushAsync doesn't return IsCanceled = true on request abort.
+                    // https://github.com/dotnet/aspnetcore/issues/40788
+                    // Also, sometimes the request CT isn't triggered. Also check CT passed into method.
+                    if (!flushResult.IsCompleted &&
+                        (serverCallContext.CancellationToken.IsCancellationRequested || cancellationToken.IsCancellationRequested))
+                    {
+                        throw new OperationCanceledException("Request aborted while sending the message.");
+                    }
                 }
 
                 GrpcServerLog.MessageSent(serverCallContext.Logger);

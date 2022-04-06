@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
 #if NETSTANDARD2_0
@@ -29,6 +30,7 @@ namespace Grpc.Net.Client.Internal.Retry
         where TResponse : class
     {
         private readonly Status _status;
+        private readonly GrpcChannel _channel;
         private IClientStreamWriter<TRequest>? _clientStreamWriter;
         private IAsyncStreamReader<TResponse>? _clientStreamReader;
 
@@ -36,9 +38,10 @@ namespace Grpc.Net.Client.Internal.Retry
         public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
         public bool Disposed => true;
 
-        public StatusGrpcCall(Status status)
+        public StatusGrpcCall(Status status, GrpcChannel channel)
         {
             _status = status;
+            _channel = channel;
         }
 
         public void Dispose()
@@ -88,6 +91,29 @@ namespace Grpc.Net.Client.Internal.Retry
         public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
         {
             return Task.FromException(new RpcException(_status));
+        }
+
+        public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+        {
+            cancellationTokenRegistration = null;
+            return false;
+        }
+
+        public Exception CreateFailureStatusException(Status status)
+        {
+            if (_channel.ThrowOperationCanceledOnCancellation &&
+                (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
+            {
+                // Convert status response of DeadlineExceeded to OperationCanceledException when
+                // ThrowOperationCanceledOnCancellation is true.
+                // This avoids a race between the client-side timer and the server status throwing different
+                // errors on deadline exceeded.
+                return new OperationCanceledException();
+            }
+            else
+            {
+                return new RpcException(status);
+            }
         }
 
         private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>

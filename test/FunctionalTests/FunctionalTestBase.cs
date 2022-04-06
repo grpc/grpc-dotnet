@@ -39,12 +39,15 @@ namespace Grpc.AspNetCore.FunctionalTests
 
         protected GrpcChannel Channel => _channel ??= CreateChannel();
 
-        protected GrpcChannel CreateChannel(bool useHandler = false, ServiceConfig? serviceConfig = null, int? maxRetryAttempts = null, long? maxRetryBufferSize = null, long? maxRetryBufferPerCallSize = null)
+        protected GrpcChannel CreateChannel(bool useHandler = false, ServiceConfig? serviceConfig = null,
+            int? maxRetryAttempts = null, long? maxRetryBufferSize = null, long? maxRetryBufferPerCallSize = null,
+            int? maxReceiveMessageSize = null, bool? throwOperationCanceledOnCancellation = null)
         {
             var options = new GrpcChannelOptions
             {
                 LoggerFactory = LoggerFactory,
-                ServiceConfig = serviceConfig
+                ServiceConfig = serviceConfig,
+                ThrowOperationCanceledOnCancellation = throwOperationCanceledOnCancellation ?? false
             };
             // Don't overwrite defaults
             if (maxRetryAttempts != null)
@@ -66,6 +69,10 @@ namespace Grpc.AspNetCore.FunctionalTests
             else
             {
                 options.HttpClient = Fixture.Client;
+            }
+            if (maxReceiveMessageSize != null)
+            {
+                options.MaxReceiveMessageSize = maxReceiveMessageSize;
             }
             return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, options);
         }
@@ -153,6 +160,13 @@ namespace Grpc.AspNetCore.FunctionalTests
             }
 
             return null;
+        }
+
+        protected static bool IsWriteCanceledException(Exception ex)
+        {
+            return ex is InvalidOperationException ||
+                ex is IOException ||
+                ex is OperationCanceledException;
         }
     }
 }

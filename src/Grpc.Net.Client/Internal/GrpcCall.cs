@@ -92,10 +92,7 @@ namespace Grpc.Net.Client.Internal
 
         public Task<Status> CallTask => _callTcs.Task;
 
-        public CancellationToken CancellationToken
-        {
-            get { return _callCts.Token; }
-        }
+        public override CancellationToken CancellationToken => _callCts.Token;
 
         public override Type RequestType => typeof(TRequest);
         public override Type ResponseType => typeof(TResponse);
@@ -379,7 +376,26 @@ namespace Grpc.Net.Client.Internal
             message.Content = content;
         }
 
-        public void CancelCallFromCancellationToken()
+        public bool TryRegisterCancellation(
+            CancellationToken cancellationToken,
+            [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+        {
+            // Only register if the token:
+            // 1. Can be canceled.
+            // 2. The token isn't the same one used in CallOptions. Already listening for its cancellation.
+            if (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
+            {
+                cancellationTokenRegistration = cancellationToken.Register(
+                    static (state) => ((GrpcCall<TRequest, TResponse>)state!).CancelCallFromCancellationToken(),
+                    this);
+                return true;
+            }
+
+            cancellationTokenRegistration = null;
+            return false;
+        }
+
+        private void CancelCallFromCancellationToken()
         {
             using (StartScope())
             {
@@ -726,7 +742,8 @@ namespace Grpc.Net.Client.Internal
 
         public Exception CreateFailureStatusException(Status status)
         {
-            if (Channel.ThrowOperationCanceledOnCancellation && status.StatusCode == StatusCode.DeadlineExceeded)
+            if (Channel.ThrowOperationCanceledOnCancellation &&
+                (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
             {
                 // Convert status response of DeadlineExceeded to OperationCanceledException when
                 // ThrowOperationCanceledOnCancellation is true.
@@ -792,7 +809,9 @@ namespace Grpc.Net.Client.Internal
                 // The cancellation token will cancel the call CTS.
                 // This must be registered after the client writer has been created
                 // so that cancellation will always complete the writer.
-                _ctsRegistration = Options.CancellationToken.Register(CancelCallFromCancellationToken);
+                _ctsRegistration = Options.CancellationToken.Register(
+                    static (state) => ((GrpcCall<TRequest, TResponse>)state!).CancelCallFromCancellationToken(),
+                    this);
             }
 
             return (diagnosticSourceEnabled, activity);
