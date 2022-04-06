@@ -16,28 +16,17 @@
 
 #endregion
 
-
-namespace Grpc.Net.Client.Internal
+#if SUPPORT_LOAD_BALANCING
+namespace Grpc.Net.Client.Balancer.Internal
 {
-    internal interface IRandomGenerator
+    internal interface IBackoffPolicy
     {
-        int Next(int minValue, int maxValue);
-        double NextDouble();
+        long GetNextBackoffTicks();
     }
 
-    internal sealed class RandomGenerator : IRandomGenerator
+    internal interface IBackoffPolicyFactory
     {
-        private readonly Random _random;
-
-        public RandomGenerator()
-        {
-            // Can't use a singleton instance of RandomGenerator.
-            // Random isn't threadsafe and Random.Shared requires .NET 6+.
-            _random = new Random();
-        }
-
-        public int Next(int minValue, int maxValue) => _random.Next(minValue, maxValue);
-
-        public double NextDouble() => _random.NextDouble();
+        IBackoffPolicy Create();
     }
 }
+#endif
