@@ -174,7 +174,13 @@ namespace Grpc.Dotnet.Cli.Commands
             }
 
             var normalizedFile = NormalizePath(file);
-            var normalizedAdditionalImportDirs = string.Join(';', additionalImportDirs.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(NormalizePath));
+            
+            var normalizedAdditionalImportDirs = string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(additionalImportDirs))
+            {
+                normalizedAdditionalImportDirs = string.Join(';', additionalImportDirs.Split(';', StringSplitOptions.RemoveEmptyEntries).Select(NormalizePath));
+            }
 
             if (!Project.GetItems(ProtobufElement).Any(i => string.Equals(NormalizePath(i.UnevaluatedInclude), normalizedFile, StringComparison.OrdinalIgnoreCase)))
             {
