@@ -165,7 +165,7 @@ namespace Grpc.Dotnet.Cli.Commands
             }
         }
 
-        public void AddProtobufReference(Services services, string additionalImportDirs, Access access, string file, string url)
+        public void AddProtobufReference(Services services, string? additionalImportDirs, Access access, string file, string url)
         {
             var resolvedPath = Path.IsPathRooted(file) ? file : Path.Join(Project.DirectoryPath, file);
             if (!File.Exists(resolvedPath))

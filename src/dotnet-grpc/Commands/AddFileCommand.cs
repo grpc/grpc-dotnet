@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(CommonOptions.AdditionalImportDirsOption());
             command.AddOption(CommonOptions.AccessOption());
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string, string[]>(
+            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string?, string[]>(
                 async (console, project, services, access, additionalImportDirs, files) =>
                 {
                     try
@@ -68,7 +68,7 @@ namespace Grpc.Dotnet.Cli.Commands
             return command;
         }
 
-        public async Task AddFileAsync(Services services, Access access, string additionalImportDirs, string[] files)
+        public async Task AddFileAsync(Services services, Access access, string? additionalImportDirs, string[] files)
         {
             var resolvedServices = ResolveServices(services);
             await EnsureNugetPackagesAsync(resolvedServices);
