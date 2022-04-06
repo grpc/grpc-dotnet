@@ -28,6 +28,11 @@ namespace Grpc.Net.Client
     /// </summary>
     public sealed class GrpcChannelOptions
     {
+#if SUPPORT_LOAD_BALANCING
+        private TimeSpan _initialReconnectBackoff;
+        private TimeSpan? _maxReconnectBackoff;
+#endif
+
         /// <summary>
         /// Gets or sets the credentials for the channel. This setting is used to set <see cref="CallCredentials"/> for
         /// a channel. Connection transport layer security (TLS) is determined by the address used to create the channel.
@@ -202,6 +207,58 @@ namespace Grpc.Net.Client
         /// </para>
         /// </summary>
         public bool DisableResolverServiceConfig { get; set; }
+
+        /// <summary>
+        /// Gets or sets the the maximum time between subsequent connection attempts.
+        /// <para>
+        /// The reconnect backoff starts at an initial backoff and then exponentially increases between attempts, up to the maximum reconnect backoff.
+        /// Reconnect backoff adds a jitter to randomize the backoff. This is done to avoid spikes of connection attempts.
+        /// </para>
+        /// <para>
+        /// A <c>null</c> value removes the maximum reconnect backoff limit. The default value is 120 seconds.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public TimeSpan? MaxReconnectBackoff
+        { 
+            get => _maxReconnectBackoff;
+            set
+            {
+                if (value <= TimeSpan.Zero)
+                {
+                    throw new ArgumentException("Maximum reconnect backoff must be greater than zero.");
+                }
+                _maxReconnectBackoff = value;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the time between the first and second connection attempts.
+        /// <para>
+        /// The reconnect backoff starts at an initial backoff and then exponentially increases between attempts, up to the maximum reconnect backoff.
+        /// Reconnect backoff adds a jitter to randomize the backoff. This is done to avoid spikes of connection attempts.
+        /// </para>
+        /// <para>
+        /// Defaults to 1 second.
+        /// </para>
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        public TimeSpan InitialReconnectBackoff
+        {
+            get => _initialReconnectBackoff;
+            set
+            {
+                if (value <= TimeSpan.Zero)
+                {
+                    throw new ArgumentException("Initial reconnect backoff must be greater than zero.");
+                }
+                _initialReconnectBackoff = value;
+            }
+        }
 #endif
 
         /// <summary>
@@ -218,6 +275,10 @@ namespace Grpc.Net.Client
         public GrpcChannelOptions()
         {
             MaxReceiveMessageSize = GrpcChannel.DefaultMaxReceiveMessageSize;
+#if SUPPORT_LOAD_BALANCING
+            _maxReconnectBackoff = TimeSpan.FromTicks(GrpcChannel.DefaultMaxReconnectBackoffTicks);
+            _initialReconnectBackoff = TimeSpan.FromTicks(GrpcChannel.DefaultInitialReconnectBackoffTicks);
+#endif
             MaxRetryAttempts = GrpcChannel.DefaultMaxRetryAttempts;
             MaxRetryBufferSize = GrpcChannel.DefaultMaxRetryBufferSize;
             MaxRetryBufferPerCallSize = GrpcChannel.DefaultMaxRetryBufferPerCallSize;

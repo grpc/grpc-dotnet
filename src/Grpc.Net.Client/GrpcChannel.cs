@@ -40,6 +40,10 @@ namespace Grpc.Net.Client
     public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
+#if SUPPORT_LOAD_BALANCING
+        internal const long DefaultInitialReconnectBackoffTicks = TimeSpan.TicksPerSecond * 1;
+        internal const long DefaultMaxReconnectBackoffTicks = TimeSpan.TicksPerSecond * 120;
+#endif
         internal const int DefaultMaxRetryAttempts = 5;
         internal const long DefaultMaxRetryBufferSize = 1024 * 1024 * 16; // 16 MB
         internal const long DefaultMaxRetryBufferPerCallSize = 1024 * 1024; // 1 MB
@@ -56,6 +60,8 @@ namespace Grpc.Net.Client
         internal Uri Address { get; }
         internal HttpMessageInvoker HttpInvoker { get; }
         internal HttpHandlerType HttpHandlerType { get; }
+        internal TimeSpan InitialReconnectBackoff { get; }
+        internal TimeSpan? MaxReconnectBackoff { get; }
         internal int? SendMaxMessageSize { get; }
         internal int? ReceiveMaxMessageSize { get; }
         internal int? MaxRetryAttempts { get; }
@@ -113,6 +119,9 @@ namespace Grpc.Net.Client
             HttpHandlerType = CalculateHandlerType(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
+            InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
+            MaxReconnectBackoff = channelOptions.MaxReconnectBackoff;
+
             var resolverFactory = GetResolverFactory(channelOptions);
             ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
 
@@ -130,6 +139,7 @@ namespace Grpc.Net.Client
                 resolver,
                 channelOptions.DisableResolverServiceConfig,
                 LoggerFactory,
+                ResolveService<IBackoffPolicyFactory>(channelOptions.ServiceProvider, new ExponentialBackoffPolicyFactory(this)),
                 SubchannelTransportFactory,
                 ResolveLoadBalancerFactories(channelOptions.ServiceProvider));
             ConnectionManager.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
