@@ -36,6 +36,9 @@ namespace Grpc.Net.Client.Internal.Retry
         private TaskCompletionSource<object?>? _delayInterruptTcs;
         private TimeSpan? _pushbackDelay;
 
+        private TaskCompletionSource<bool>? _writeClientMessageTcs;
+        private int _writeClientMessageCount;
+
         // Internal for testing
         internal List<IGrpcCall<TRequest, TResponse>> _activeCalls { get; }
         internal Task? CreateHedgingCallsTask { get; set; }
@@ -205,6 +208,8 @@ namespace Grpc.Net.Client.Internal.Retry
 
         protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
         {
+            Debug.Assert(Monitor.IsEntered(Lock));
+
             _activeCalls.Remove(call);
 
             CleanUpUnsynchronized();
@@ -382,19 +387,95 @@ namespace Grpc.Net.Client.Internal.Retry
             });
         }
 
-        public override async Task ClientStreamWriteAsync(TRequest message)
+        public override async Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken)
         {
             // The retry client stream writer prevents multiple threads from reaching here.
-            await DoClientStreamActionAsync(calls =>
+            
+            // Hedging allows:
+            // 1. Multiple calls to happen simultaniously
+            // 2. Starting a new call once existing calls have failed.
+            // 
+            // We don't want to exit this method until either the message has been sent to the
+            // server at least once successfully, or the call fails.
+            // If there is an error sending the message then wait for another call to successfully
+            // send the buffered data.
+            //
+            // This is done by awaiting a TCS until either:
+            // 1. The message count is sent.
+            // 2. The call is commited with an error, throwing an exception.
+            _writeClientMessageCount++;
+            _writeClientMessageTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            // Register after TCS is created so immediate failure is propagated to TCS.
+            using var registration = (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
+                ? RegisterRetryCancellationToken(cancellationToken)
+                : default;
+
+            try
             {
-                var writeTasks = new Task[calls.Count];
-                for (var i = 0; i < calls.Count; i++)
+                await DoClientStreamActionAsync(async calls =>
                 {
-                    writeTasks[i] = calls[i].WriteClientStreamAsync(WriteNewMessage, message);
+                    // Note: There may be less write tasks than calls passed in.
+                    // For example, a large message could cause the call to be commited and all active calls are removed.
+                    var writeTasks = new List<Task>(calls.Count);
+                    List<CancellationTokenRegistration>? registrations = null;
+
+                    for (var i = 0; i < calls.Count; i++)
+                    {
+                        var c = calls[i];
+                        if (c.TryRegisterCancellation(cancellationToken, out var registration))
+                        {
+                            registrations ??= new List<CancellationTokenRegistration>(calls.Count);
+                            registrations.Add(registration.GetValueOrDefault());
+                        }
+
+                        var writeTask = c.WriteClientStreamAsync(WriteNewMessage, message);
+
+                        writeTasks.Add(writeTask);
+                    }
+
+                    try
+                    {
+                        await Task.WhenAll(writeTasks).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        if (registrations != null)
+                        {
+                            foreach (var registration in registrations)
+                            {
+                                registration.Dispose();
+                            }
+                        }
+                    }
+                }).ConfigureAwait(false);
+            }
+            catch
+            {
+                lock (Lock)
+                {
+                    if (CommitedCallTask.IsCompletedSuccessfully())
+                    {
+                        throw;
+                    }
                 }
 
-                return Task.WhenAll(writeTasks);
-            }).ConfigureAwait(false);
+                // Flag indicates whether buffered message was successfully written.
+                var success = await _writeClientMessageTcs.Task.ConfigureAwait(false);
+                if (success)
+                {
+                    return;
+                }
+                else
+                {
+                    var commitedCall = CommitedCallTask.Result;
+                    throw commitedCall.CreateFailureStatusException(commitedCall.GetStatus());
+                }
+            }
+            finally
+            {
+                _writeClientMessageTcs = null;
+            }
 
             lock (Lock)
             {
@@ -417,14 +498,9 @@ namespace Grpc.Net.Client.Internal.Retry
 
             lock (Lock)
             {
-                if (_activeCalls.Count > 0)
-                {
-                    return action(_activeCalls);
-                }
-                else
-                {
-                    return WaitForCallUnsynchronizedAsync(action);
-                }
+                return _activeCalls.Count > 0
+                    ? action(_activeCalls)
+                    : WaitForCallUnsynchronizedAsync(action);
             }
 
             async Task WaitForCallUnsynchronizedAsync(Func<IList<IGrpcCall<TRequest, TResponse>>, Task> action)
@@ -434,9 +510,18 @@ namespace Grpc.Net.Client.Internal.Retry
             }
         }
 
+        protected override void OnBufferMessageWritten(int count)
+        {
+            if (count >= _writeClientMessageCount)
+            {
+                _writeClientMessageTcs?.TrySetResult(true);
+            }
+        }
+
         protected override void OnCancellation()
         {
             _hedgingDelayCts?.Cancel();
+            _writeClientMessageTcs?.TrySetResult(false);
         }
     }
 }

@@ -53,6 +53,7 @@ namespace Grpc.Net.Client.Internal
 
         public string? RequestGrpcEncoding { get; internal set; }
 
+        public abstract CancellationToken CancellationToken { get; }
         public abstract Type RequestType { get; }
         public abstract Type ResponseType { get; }
 

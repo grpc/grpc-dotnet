@@ -58,7 +58,7 @@ namespace Grpc.Net.Client.Internal.Retry
             }
         }
 
-        public override Task WriteAsync(TRequest message)
+        public override Task WriteCoreAsync(TRequest message, CancellationToken cancellationToken)
         {
             lock (WriteLock)
             {
@@ -76,7 +76,7 @@ namespace Grpc.Net.Client.Internal.Retry
                 }
 
                 // Save write task to track whether it is complete. Must be set inside lock.
-                WriteTask = _retryCallBase.ClientStreamWriteAsync(message);
+                WriteTask = _retryCallBase.ClientStreamWriteAsync(message, cancellationToken);
             }
 
             return WriteTask;

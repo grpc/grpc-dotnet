@@ -17,6 +17,8 @@
 #endregion
 
 using Grpc.Core;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.AspNetCore.Server.Internal
 {
@@ -44,29 +46,60 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public Task WriteAsync(TResponse message)
         {
+            return WriteCoreAsync(message, CancellationToken.None);
+        }
+
+#if NET5_0_OR_GREATER
+        // Explicit implementation because this WriteAsync has a default interface implementation.
+        Task IAsyncStreamWriter<TResponse>.WriteAsync(TResponse message, CancellationToken cancellationToken)
+        {
+            return WriteCoreAsync(message, cancellationToken);
+        }
+#endif
+
+        private async Task WriteCoreAsync(TResponse message, CancellationToken cancellationToken)
+        {
             if (message == null)
             {
-                return Task.FromException(new ArgumentNullException(nameof(message)));
+                throw new ArgumentNullException(nameof(message));
             }
 
-            if (_completed || _context.CancellationToken.IsCancellationRequested)
+            // Register cancellation token early to ensure request is canceled if cancellation is requested.
+            CancellationTokenRegistration? registration = null;
+            if (cancellationToken.CanBeCanceled)
             {
-                return Task.FromException(new InvalidOperationException("Can't write the message because the request is complete."));
+                registration = cancellationToken.Register(
+                    static (state) => ((HttpContextServerCallContext)state!).CancelRequest(),
+                    _context);
             }
 
-            lock (_writeLock)
+            try
             {
-                // Pending writes need to be awaited first
-                if (IsWriteInProgressUnsynchronized)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (_completed || _context.CancellationToken.IsCancellationRequested)
                 {
-                    return Task.FromException(new InvalidOperationException("Can't write the message because the previous write is in progress."));
+                    throw new InvalidOperationException("Can't write the message because the request is complete.");
                 }
 
-                // Save write task to track whether it is complete. Must be set inside lock.
-                _writeTask = _context.HttpContext.Response.BodyWriter.WriteMessageAsync(message, _context, _serializer, canFlush: true);
-            }
+                lock (_writeLock)
+                {
+                    // Pending writes need to be awaited first
+                    if (IsWriteInProgressUnsynchronized)
+                    {
+                        throw new InvalidOperationException("Can't write the message because the previous write is in progress.");
+                    }
 
-            return _writeTask;
+                    // Save write task to track whether it is complete. Must be set inside lock.
+                    _writeTask = _context.HttpContext.Response.BodyWriter.WriteStreamedMessageAsync(message, _context, _serializer, cancellationToken);
+                }
+
+                await _writeTask;
+            }
+            finally
+            {
+                registration?.Dispose();
+            }
         }
 
         public void Complete()

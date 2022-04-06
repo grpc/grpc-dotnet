@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 
 #if NETSTANDARD2_0
@@ -41,7 +42,15 @@ namespace Grpc.Net.Client.Internal
         void StartServerStreaming(TRequest request);
         void StartDuplexStreaming();
 
-        Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state);
+        Task WriteClientStreamAsync<TState>(
+            Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
+            TState state);
+
+        Exception CreateFailureStatusException(Status status);
+
+        bool TryRegisterCancellation(
+            CancellationToken cancellationToken,
+            [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration);
 
         bool Disposed { get; }
     }

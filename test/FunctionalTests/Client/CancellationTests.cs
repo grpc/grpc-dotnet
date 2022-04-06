@@ -78,6 +78,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     {
                         return true;
                     }
+
+                    // Request is canceled while writing message
+                    if (writeContext.Exception is OperationCanceledException)
+                    {
+                        return true;
+                    }
                 }
 
                 if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall")
@@ -282,14 +288,23 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             async Task ServerStreamingCall(DataMessage request, IServerStreamWriter<DataMessage> streamWriter, ServerCallContext context)
             {
-                // Write until the client cancels
-                while (!context.CancellationToken.IsCancellationRequested)
+                try
                 {
-                    await streamWriter.WriteAsync(new DataMessage());
-                    await Task.Delay(TimeSpan.FromMilliseconds(10));
+                    // Write until the client cancels
+                    while (!context.CancellationToken.IsCancellationRequested)
+                    {
+                        await streamWriter.WriteAsync(new DataMessage());
+                        await Task.Delay(TimeSpan.FromMilliseconds(10));
+                    }
                 }
-
-                serverCompleteTcs.TrySetResult(null);
+                catch (OperationCanceledException)
+                {
+                    // Eat cancellation error.
+                }
+                finally
+                {
+                    serverCompleteTcs.TrySetResult(null);
+                }
             }
 
             // Arrange
@@ -298,6 +313,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 // Kestrel cancellation error message
                 if (writeContext.Exception is IOException &&
                     writeContext.Exception.Message == "The client reset the request stream.")
+                {
+                    return true;
+                }
+                if (writeContext.Exception is OperationCanceledException)
                 {
                     return true;
                 }
@@ -326,19 +345,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
 
             // 1. Lets read some messages
+            Logger.LogInformation("Client reading message.");
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+            Logger.LogInformation("Client reading message.");
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
 
             // 2. Cancel the token that was passed to the gRPC call. This was given to HttpClient.SendAsync
+            Logger.LogInformation("Client cancel token.");
             cts.Cancel();
 
             // 3. Read from the response stream. This will throw a cancellation exception locally
+            Logger.LogInformation("Client reading message.");
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
             // 4. Check that the cancellation was sent to the server.
+            Logger.LogInformation("Client waiting for server cancellation confirmation.");
             await serverCompleteTcs.Task.DefaultTimeout();
 
+            Logger.LogInformation("Client waiting for server cancellation log.");
             await TestHelpers.AssertIsTrueRetryAsync(
                 () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
                 "Missing client cancellation log.").DefaultTimeout();
@@ -381,13 +406,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             // Assert
 
             // 1. Lets read some messages
+            Logger.LogInformation("Client reading message.");
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
+            Logger.LogInformation("Client reading message.");
             Assert.IsTrue(await call.ResponseStream.MoveNext(CancellationToken.None).DefaultTimeout());
 
             // 2. Cancel the token that was passed to the gRPC call. This should dispose HttpResponseMessage
+            Logger.LogInformation("Client starting cancellation timer.");
             cts.CancelAfter(TimeSpan.FromSeconds(0.2));
 
             // 3. Read from the response stream. This will throw a cancellation exception locally
+            Logger.LogInformation("Client waiting for cancellation.");
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext(CancellationToken.None)).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
 
