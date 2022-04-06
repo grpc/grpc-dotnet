@@ -71,7 +71,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 Logger,
                 channel,
                 expectedCount: 2,
-                getPickerSubchannels: picker => ((LeastUsedPicker?)picker)?._subchannels.ToArray() ?? Array.Empty<Subchannel>()).DefaultTimeout();
+                getPickerSubchannels: picker => (picker as LeastUsedPicker)?._subchannels.ToArray() ?? Array.Empty<Subchannel>()).DefaultTimeout();
 
             var client = TestClientFactory.Create(channel, endpoint1.Method);
 
