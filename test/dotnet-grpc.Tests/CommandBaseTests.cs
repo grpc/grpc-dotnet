@@ -279,7 +279,7 @@ namespace Grpc.Dotnet.Cli.Tests
             const string proto = "Proto/a.proto";
             
             // Act
-            commandBase.AddProtobufReference(Services.Server, null!, Access.Internal, proto, SourceUrl);
+            commandBase.AddProtobufReference(Services.Server, null, Access.Internal, proto, SourceUrl);
             commandBase.Project.ReevaluateIfNecessary();
 
             // Assert
