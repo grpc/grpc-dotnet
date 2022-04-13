@@ -5,6 +5,24 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- When running under Mono (=on non-windows), skip the net45 targetframework -->
+  <!-- Mono unfortunately comes with broken Microsoft.Build.* assemblies installed in
+       the GAC, so we'd need to tweak the assembly search path to make sure the right
+       msbuild assemblies are loaded (and the tests work).
+       Since we expect most users to build their project with dotnet SDK
+       and we run the net45 tests on Windows, running the tests under Mono seems less important.
+       The original workaround from
+       https://github.com/grpc/grpc/blob/da1977f98c089762197a8b86387b87a38208e729/src/csharp/Grpc.Tools.Tests/MsBuildAssemblyHelper.cs#L32
+       doesn't work if "dotnet test" is used to run the tests,
+       since we no longer have control over the entrypoint for the tests
+       (the Main method).
+       More context: https://github.com/OmniSharp/omnisharp-vscode/issues/3258-->
+  <!-- TODO(jtattermusch): check that the net45 tests are being run on windows -->
+  <!-- TODO(jtattermusch): try to find a workaround to allow testing under Mono -->
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- TODO(jtattermusch): re-enable nullable -->
     <Nullable>disable</Nullable>
