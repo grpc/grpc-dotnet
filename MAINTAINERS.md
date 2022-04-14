@@ -9,8 +9,11 @@ for general contribution guidelines.
 
 ## Maintainers (in alphabetical order)
 - [apolcyn](https://github.com/apolcyn), Google LLC
+- [BrennanConroy](https://github.com/BrennanConroy), Microsoft Corporation
+- [brunolins16](https://github.com/brunolins16), Microsoft Corporation
 - [captainsafia](https://github.com/captainsafia), Microsoft Corporation
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
+- [halter73](https://github.com/halter73), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
 - [rafikiassumaniMSFT](https://github.com/rafikiassumaniMSFT), Microsoft Corporation
