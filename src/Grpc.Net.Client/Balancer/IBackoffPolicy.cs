@@ -17,15 +17,27 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer
 {
-    internal interface IBackoffPolicy
+    /// <summary>
+    /// An interface for specifying backoff duration.
+    /// </summary>
+    public interface IBackoffPolicy
     {
-        long GetNextBackoffTicks();
+        /// <summary>
+        /// Gets the next backoff duration.
+        /// </summary>
+        TimeSpan GetNextBackoff();
     }
 
-    internal interface IBackoffPolicyFactory
+    /// <summary>
+    /// A factory for creating <see cref="IBackoffPolicy"/> instances.
+    /// </summary>
+    public interface IBackoffPolicyFactory
     {
+        /// <summary>
+        /// Creates a backoff policy.
+        /// </summary>
         IBackoffPolicy Create();
     }
 }

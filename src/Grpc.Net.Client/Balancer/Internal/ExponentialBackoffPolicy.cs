@@ -44,13 +44,13 @@ namespace Grpc.Net.Client.Balancer.Internal
             _maxBackoffTicks = maxBackoffTicks;
         }
 
-        public long GetNextBackoffTicks()
+        public TimeSpan GetNextBackoff()
         {
             var currentBackoffTicks = _nextBackoffTicks;
             _nextBackoffTicks = Math.Min((long)Math.Round(currentBackoffTicks * Multiplier), _maxBackoffTicks);
 
             currentBackoffTicks += UniformRandom(-Jitter * currentBackoffTicks, Jitter * currentBackoffTicks);
-            return currentBackoffTicks;
+            return TimeSpan.FromTicks(currentBackoffTicks);
         }
 
         private long UniformRandom(double low, double high)
@@ -64,11 +64,15 @@ namespace Grpc.Net.Client.Balancer.Internal
 
     internal sealed class ExponentialBackoffPolicyFactory : IBackoffPolicyFactory
     {
-        private readonly GrpcChannel _channel;
+        private readonly IRandomGenerator _randomGenerator;
+        private readonly TimeSpan _initialReconnectBackoff;
+        private readonly TimeSpan? _maxReconnectBackoff;
 
-        public ExponentialBackoffPolicyFactory(GrpcChannel channel)
+        public ExponentialBackoffPolicyFactory(IRandomGenerator randomGenerator, TimeSpan initialReconnectBackoff, TimeSpan? maxReconnectBackoff)
         {
-            _channel = channel;
+            _randomGenerator = randomGenerator;
+            _initialReconnectBackoff = initialReconnectBackoff;
+            _maxReconnectBackoff = maxReconnectBackoff;
         }
 
         public IBackoffPolicy Create()
@@ -76,9 +80,9 @@ namespace Grpc.Net.Client.Balancer.Internal
             // Limit ticks to Int32.MaxValue. Task.Delay can't use larger values,
             // and larger values mean we need to worry about overflows.
             return new ExponentialBackoffPolicy(
-                _channel.RandomGenerator,
-                Math.Min(_channel.InitialReconnectBackoff.Ticks, int.MaxValue),
-                Math.Min(_channel.MaxReconnectBackoff?.Ticks ?? long.MaxValue, int.MaxValue));
+                _randomGenerator,
+                Math.Min(_initialReconnectBackoff.Ticks, int.MaxValue),
+                Math.Min(_maxReconnectBackoff?.Ticks ?? long.MaxValue, int.MaxValue));
         }
     }
 }
