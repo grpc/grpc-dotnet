@@ -61,6 +61,77 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             return channel;
         }
 
+        private static IEnumerable<TestCaseData> AddBrowserConfs()
+        {
+            return Enumerable.Range(0, 5).Select(i => new TestCaseData(i));
+        }
+
+        [Test, TestCaseSource("AddBrowserConfs")]
+        public async Task UnaryCall_Load_Success(int i)
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
+
+            var client = TestClientFactory.Create(channel, endpoint.Method);
+
+            endpoint.Dispose();
+            await Task.Delay(20);
+
+
+            try
+            {
+                var random = new Random();
+                var delay = random.Next(0, 30);
+                Logger.LogInformation($"First request (canceled). Cancellation delay: {delay}");
+                var cts = new CancellationTokenSource(delay);
+                cts.Token.Register(() => Logger.LogInformation("Cancellation token raised"));
+                var call = client.UnaryCall(
+                    new HelloRequest { Name = "Balancer" },
+                    new CallOptions(cancellationToken: cts.Token)).ResponseAsync.DefaultTimeout();
+            }
+            catch (Exception ex)
+            {
+                _ = ex;
+                //throw new Exception("Blah", ex);
+            }
+
+            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            // Act
+            for (var ji = 0; ji < 1; ji++)
+            {
+                try
+                {
+                    Logger.LogInformation($"Request {ji}");
+                    var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady(true)).ResponseAsync.DefaultTimeout();
+
+                    // Assert
+                    Assert.AreEqual("Balancer", reply.Message);
+                    Assert.AreEqual("127.0.0.1:50051", host);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInformation(ex, "Call error");
+                    throw new Exception("Blah", ex);
+                }
+            }
+        }
+
         [Test]
         public async Task UnaryCall_ReconnectBetweenCalls_Success()
         {
