@@ -246,7 +246,7 @@ namespace Grpc.Net.Client.Balancer
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
 
-                    var backoffTicks = backoffPolicy.GetNextBackoff().Ticks;
+                    var backoffTicks = backoffPolicy.NextBackoff().Ticks;
                     // Task.Delay supports up to Int32.MaxValue milliseconds.
                     // Note that even if the maximum backoff is configured to this maximum, the jitter could push it over the limit.
                     // Force an upper bound here to ensure an unsupported backoff is never used.

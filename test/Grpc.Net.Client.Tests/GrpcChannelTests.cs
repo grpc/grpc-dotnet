@@ -862,7 +862,7 @@ namespace Grpc.Net.Client.Tests
             var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
 
             // Assert
-            Assert.AreEqual(TimeSpan.FromSeconds(0.2), backoffPolicy.GetNextBackoff());
+            Assert.AreEqual(TimeSpan.FromSeconds(0.2), backoffPolicy.NextBackoff());
         }
 
         [Test]
@@ -885,13 +885,13 @@ namespace Grpc.Net.Client.Tests
             // Assert
             for (var i = 0; i < 100; i++)
             {
-                if (backoffPolicy.GetNextBackoff() == TimeSpan.FromMinutes(10))
+                if (backoffPolicy.NextBackoff() == TimeSpan.FromMinutes(10))
                 {
                     break;
                 }
             }
 
-            Assert.AreEqual(TimeSpan.FromSeconds(10), backoffPolicy.GetNextBackoff());
+            Assert.AreEqual(TimeSpan.FromSeconds(10), backoffPolicy.NextBackoff());
         }
 
         [Test]

@@ -192,7 +192,7 @@ namespace Grpc.Net.Client.Balancer
                         break;
                     }
 
-                    var backoffTicks = backoffPolicy.GetNextBackoff().Ticks;
+                    var backoffTicks = backoffPolicy.NextBackoff().Ticks;
                     // Task.Delay supports up to Int32.MaxValue milliseconds.
                     // Note that even if the maximum backoff is configured to this maximum, the jitter could push it over the limit.
                     // Force an upper bound here to ensure an unsupported backoff is never used.
@@ -209,8 +209,7 @@ namespace Grpc.Net.Client.Balancer
             }
             catch (Exception ex)
             {
-                throw ex;
-                // Unexpected error.
+                Log.ErrorRetryingResolve(_logger, GetType(), ex);
             }
         }
 
@@ -248,10 +247,13 @@ namespace Grpc.Net.Client.Balancer
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ResolveError"), "Error resolving {ResolveType}.");
 
             private static readonly Action<ILogger, string, StatusCode, int, Exception?> _resolveResult =
-                LoggerMessage.Define<string, StatusCode, int>(LogLevel.Trace, new EventId(4, "ResolverResult"), "{ResolveType} result with status code '{StatusCode}' and {AddressCount} addresses.");
+                LoggerMessage.Define<string, StatusCode, int>(LogLevel.Trace, new EventId(4, "ResolveResult"), "{ResolveType} result with status code '{StatusCode}' and {AddressCount} addresses.");
 
             private static readonly Action<ILogger, string, TimeSpan, Exception?> _startingResolveBackoff =
                 LoggerMessage.Define<string, TimeSpan>(LogLevel.Trace, new EventId(5, "StartingResolveBackoff"), "{ResolveType} starting resolve backoff of {BackoffDuration}.");
+
+            private static readonly Action<ILogger, string, Exception> _errorRetryingResolve =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, "ErrorRetryingResolve"), "{ResolveType} error retrying resolve.");
 
             public static void ResolverRefreshRequested(ILogger logger, Type resolverType)
             {
@@ -276,6 +278,11 @@ namespace Grpc.Net.Client.Balancer
             public static void StartingResolveBackoff(ILogger logger, Type resolverType, TimeSpan delay)
             {
                 _startingResolveBackoff(logger, resolverType.Name, delay, null);
+            }
+
+            public static void ErrorRetryingResolve(ILogger logger, Type resolverType, Exception ex)
+            {
+                _errorRetryingResolve(logger, resolverType.Name, ex);
             }
         }
     }

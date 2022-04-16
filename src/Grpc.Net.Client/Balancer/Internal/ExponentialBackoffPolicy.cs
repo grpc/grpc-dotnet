@@ -44,7 +44,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _maxBackoffTicks = maxBackoffTicks;
         }
 
-        public TimeSpan GetNextBackoff()
+        public TimeSpan NextBackoff()
         {
             var currentBackoffTicks = _nextBackoffTicks;
             _nextBackoffTicks = Math.Min((long)Math.Round(currentBackoffTicks * Multiplier), _maxBackoffTicks);

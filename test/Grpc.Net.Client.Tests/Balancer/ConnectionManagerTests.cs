@@ -46,7 +46,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             private class TestBackoffPolicy : IBackoffPolicy
             {
-                public TimeSpan GetNextBackoff()
+                public TimeSpan NextBackoff()
                 {
                     return TimeSpan.FromSeconds(20);
                 }

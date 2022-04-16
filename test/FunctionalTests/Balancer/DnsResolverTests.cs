@@ -120,7 +120,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
 
             private class TestBackoffPolicy : IBackoffPolicy
             {
-                public TimeSpan GetNextBackoff()
+                public TimeSpan NextBackoff()
                 {
                     return TimeSpan.FromSeconds(0.5);
                 }

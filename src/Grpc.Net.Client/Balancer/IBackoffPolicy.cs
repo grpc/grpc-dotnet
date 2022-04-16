@@ -25,9 +25,9 @@ namespace Grpc.Net.Client.Balancer
     public interface IBackoffPolicy
     {
         /// <summary>
-        /// Gets the next backoff duration.
+        /// Returns the next backoff duration.
         /// </summary>
-        TimeSpan GetNextBackoff();
+        TimeSpan NextBackoff();
     }
 
     /// <summary>
