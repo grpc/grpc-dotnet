@@ -36,7 +36,6 @@ namespace Grpc.Net.Client.Balancer.Internal
     {
         private static readonly ServiceConfig DefaultServiceConfig = new ServiceConfig();
 
-        private readonly SemaphoreSlim _nextPickerLock;
         private readonly object _lock;
         internal readonly Resolver _resolver;
         private readonly ISubchannelTransportFactory _subchannelTransportFactory;
@@ -47,6 +46,8 @@ namespace Grpc.Net.Client.Balancer.Internal
         // Internal for testing
         internal LoadBalancer? _balancer;
         internal SubchannelPicker? _picker;
+        // Cache picker wrapped in task once and reuse.
+        private Task<SubchannelPicker>? _pickerTask;
         private bool _resolverStarted;
         private TaskCompletionSource<SubchannelPicker> _nextPickerTcs;
         private int _currentSubchannelId;
@@ -61,7 +62,6 @@ namespace Grpc.Net.Client.Balancer.Internal
             LoadBalancerFactory[] loadBalancerFactories)
         {
             _lock = new object();
-            _nextPickerLock = new SemaphoreSlim(1);
             _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
             _resolverStartedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -200,7 +200,6 @@ namespace Grpc.Net.Client.Balancer.Internal
         public void Dispose()
         {
             _resolver.Dispose();
-            _nextPickerLock.Dispose();
             lock (_lock)
             {
                 _balancer?.Dispose();
@@ -301,6 +300,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 {
                     ConnectionManagerLog.ChannelPickerUpdated(Logger);
                     _picker = state.Picker;
+                    _pickerTask = Task.FromResult(state.Picker);
                     _nextPickerTcs.SetResult(state.Picker);
                     _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
@@ -365,69 +365,21 @@ namespace Grpc.Net.Client.Balancer.Internal
             }
         }
 
-        private
-#if !NETSTANDARD2_0
-            ValueTask<SubchannelPicker>
-#else
-            Task<SubchannelPicker>
-#endif
-            GetPickerAsync(SubchannelPicker? currentPicker, CancellationToken cancellationToken)
+        private Task<SubchannelPicker> GetPickerAsync(SubchannelPicker? currentPicker, CancellationToken cancellationToken)
         {
             lock (_lock)
             {
                 if (_picker != null && _picker != currentPicker)
                 {
-#if !NETSTANDARD2_0
-                    return new ValueTask<SubchannelPicker>(_picker);
-#else
-                    return Task.FromResult<SubchannelPicker>(_picker);
-#endif
+                    Debug.Assert(_pickerTask != null);
+                    return _pickerTask;
                 }
                 else
                 {
-                    return GetNextPickerAsync(cancellationToken);
+                    ConnectionManagerLog.PickWaiting(Logger);
+
+                    return _nextPickerTcs.Task.WaitAsync(cancellationToken);
                 }
-            }
-        }
-
-        private async
-#if !NETSTANDARD2_0
-            ValueTask<SubchannelPicker>
-#else
-            Task<SubchannelPicker>
-#endif
-            GetNextPickerAsync(CancellationToken cancellationToken)
-        {
-            ConnectionManagerLog.PickWaiting(Logger);
-
-            Debug.Assert(Monitor.IsEntered(_lock));
-
-            var nextPickerTcs = _nextPickerTcs;
-
-            await _nextPickerLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                using (cancellationToken.Register(
-                    static s => ((TaskCompletionSource<SubchannelPicker?>)s!).TrySetCanceled(),
-                    nextPickerTcs))
-                {
-                    try
-                    {
-                        return await nextPickerTcs.Task.ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        // Picker can throw when canceled so reset picker in finally block.
-                        lock (_lock)
-                        {
-                            _nextPickerTcs = new TaskCompletionSource<SubchannelPicker>(TaskCreationOptions.RunContinuationsAsynchronously);
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                _nextPickerLock.Release();
             }
         }
 
