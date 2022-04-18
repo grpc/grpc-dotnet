@@ -371,7 +371,8 @@ namespace Grpc.Net.Client.Balancer.Internal
             {
                 if (_picker != null && _picker != currentPicker)
                 {
-                    return _pickerTask!;
+                    Debug.Assert(_pickerTask != null);
+                    return _pickerTask;
                 }
                 else
                 {
