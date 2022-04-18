@@ -24,6 +24,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client.Balancer;
+using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
@@ -54,9 +55,76 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             Assert.Greater(result.Addresses!.Count, 0);
         }
 
+        [Test]
+        public async Task Refresh_Error_HasResult()
+        {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.State.ToString() == "Error querying DNS hosts for 'error.invalid'." &&
+                    writeContext.Exception is SocketException)
+                {
+                    return true;
+                }
+
+                return false;
+            });
+
+            // Arranged
+            var results = new List<ResolverResult>();
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var dnsResolver = CreateDnsResolver(new Uri("dns:///error.invalid"));
+            dnsResolver.Start(r =>
+            {
+                switch (results.Count)
+                {
+                    case 0:
+                        results.Add(r);
+                        break;
+                    case 1:
+                        results.Add(r);
+                        tcs.SetResult(r);
+                        break;
+                    default:
+                        // Ignore additional results
+                        break;
+                }
+            });
+
+            // Act
+            dnsResolver.Refresh();
+
+            // Assert
+            await tcs.Task.DefaultTimeout();
+
+            Assert.AreEqual(StatusCode.Unavailable, results[0].Status.StatusCode);
+            Assert.IsInstanceOf(typeof(SocketException), results[0].Status.DebugException);
+
+            Assert.AreEqual(StatusCode.Unavailable, results[1].Status.StatusCode);
+            Assert.IsInstanceOf(typeof(SocketException), results[1].Status.DebugException);
+
+            AssertHasLog(LogLevel.Trace, "StartingResolveBackoff", "DnsResolver starting resolve backoff of 00:00:00.5000000.");
+        }
+
         private DnsResolver CreateDnsResolver(Uri address, int? defaultPort = null, TimeSpan? refreshInterval = null)
         {
-            return new DnsResolver(address, defaultPort ?? 80, LoggerFactory, refreshInterval ?? Timeout.InfiniteTimeSpan);
+            return new DnsResolver(address, defaultPort ?? 80, LoggerFactory, refreshInterval ?? Timeout.InfiniteTimeSpan, new TestBackoffPolicyFactory());
+        }
+
+        internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
+        {
+            public IBackoffPolicy Create()
+            {
+                return new TestBackoffPolicy();
+            }
+
+            private class TestBackoffPolicy : IBackoffPolicy
+            {
+                public TimeSpan NextBackoff()
+                {
+                    return TimeSpan.FromSeconds(0.5);
+                }
+            }
         }
 
         [Test]

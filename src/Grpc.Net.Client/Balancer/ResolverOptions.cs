@@ -33,12 +33,13 @@ namespace Grpc.Net.Client.Balancer
         /// <summary>
         /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
         /// </summary>
-        internal ResolverOptions(Uri address, int defaultPort, bool disableServiceConfig, ILoggerFactory loggerFactory)
+        internal ResolverOptions(Uri address, int defaultPort, ILoggerFactory loggerFactory, GrpcChannelOptions channelOptions)
         {
             Address = address;
             DefaultPort = defaultPort;
-            DisableServiceConfig = disableServiceConfig;
+            DisableServiceConfig = channelOptions.DisableResolverServiceConfig;
             LoggerFactory = loggerFactory;
+            ChannelOptions = channelOptions;
         }
 
         /// <summary>
@@ -60,6 +61,11 @@ namespace Grpc.Net.Client.Balancer
         /// Gets the logger factory.
         /// </summary>
         public ILoggerFactory LoggerFactory { get; }
+
+        /// <summary>
+        /// Gets the channel options.
+        /// </summary>
+        public GrpcChannelOptions ChannelOptions { get; }
     }
 }
 #endif
