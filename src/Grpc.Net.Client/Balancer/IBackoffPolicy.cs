@@ -21,6 +21,9 @@ namespace Grpc.Net.Client.Balancer
 {
     /// <summary>
     /// An interface for specifying backoff duration.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public interface IBackoffPolicy
     {
@@ -32,6 +35,9 @@ namespace Grpc.Net.Client.Balancer
 
     /// <summary>
     /// A factory for creating <see cref="IBackoffPolicy"/> instances.
+    /// <para>
+    /// Note: Experimental API that can change or be removed without any prior notice.
+    /// </para>
     /// </summary>
     public interface IBackoffPolicyFactory
     {
