@@ -289,3 +289,12 @@ The uploader shows how to upload a file in chunks using a client streaming gRPC 
 
 * Client streaming call
 * Binary payload
+
+## [Downloader](./Downloader)
+
+The downloader shows how to download a file in chunks using a server streaming gRPC method.
+
+##### Scenarios:
+
+* Server streaming
+* Binary payload
