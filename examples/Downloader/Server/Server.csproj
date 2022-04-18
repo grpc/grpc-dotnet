@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
+
+    <Protobuf Include="..\Proto\download.proto" GrpcServices="Server" Link="Protos\download.proto" />
+  </ItemGroup>
+		
+</Project>
