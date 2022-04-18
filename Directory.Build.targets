@@ -19,7 +19,9 @@
     <CodeAnalysisRuleset>$(MSBuildThisFileDirectory)Grpc.DotNet.ruleset</CodeAnalysisRuleset>
 
     <IsTrimmable>true</IsTrimmable>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <!-- TODO(JamesNK) Trim anaylzers broken in .NET 7. Impacts benchmark environments that build with .NET 7 SDK. Issue: https://github.com/grpc/grpc-dotnet/issues/1667
+         Reenable when https://github.com/dotnet/linker/issues/2718 is fixed. -->
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->

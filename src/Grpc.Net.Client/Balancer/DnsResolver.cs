@@ -25,18 +25,13 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
+using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer
 {
-    /// <summary>
-    /// A <see cref="Resolver"/> that returns addresses queried from a DNS hostname.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
-    /// </summary>
     internal sealed class DnsResolver : PollingResolver
     {
         // To prevent excessive re-resolution, we enforce a rate limit on DNS resolution requests.
@@ -54,14 +49,7 @@ namespace Grpc.Net.Client.Balancer
         // Internal for testing.
         internal ISystemClock SystemClock = Client.Internal.SystemClock.Instance;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DnsResolver"/> class with the specified target <see cref="Uri"/>.
-        /// </summary>
-        /// <param name="address">The target <see cref="Uri"/>.</param>
-        /// <param name="defaultPort">The default port.</param>
-        /// <param name="loggerFactory">The logger factory.</param>
-        /// <param name="refreshInterval">An interval for automatically refreshing the DNS hostname.</param>
-        public DnsResolver(Uri address, int defaultPort, ILoggerFactory loggerFactory, TimeSpan refreshInterval) : base(loggerFactory)
+        public DnsResolver(Uri address, int defaultPort, ILoggerFactory loggerFactory, TimeSpan refreshInterval, IBackoffPolicyFactory backoffPolicyFactory) : base(loggerFactory, backoffPolicyFactory)
         {
             _originalAddress = address;
 
@@ -74,7 +62,6 @@ namespace Grpc.Net.Client.Balancer
             _logger = loggerFactory.CreateLogger<DnsResolver>();
         }
 
-        /// <inheritdoc />
         protected override void OnStarted()
         {
             base.OnStarted();
@@ -86,7 +73,6 @@ namespace Grpc.Net.Client.Balancer
             }
         }
 
-        /// <inheritdoc />
         protected override async Task ResolveAsync(CancellationToken cancellationToken)
         {
             try
@@ -100,7 +86,7 @@ namespace Grpc.Net.Client.Balancer
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
 
-                _lastResolveStart = SystemClock.UtcNow;
+                var lastResolveStart = SystemClock.UtcNow;
 
                 if (string.IsNullOrEmpty(_dnsAddress))
                 {
@@ -120,6 +106,9 @@ namespace Grpc.Net.Client.Balancer
                 var endpoints = addresses.Select(a => new BalancerAddress(a.ToString(), _port)).ToArray();
                 var resolverResult = ResolverResult.ForResult(endpoints);
                 Listener(resolverResult);
+  
+                // Only update last resolve start if successful. Backoff will handle limiting resolves on failure.
+                _lastResolveStart = lastResolveStart;
             }
             catch (Exception ex)
             {
@@ -130,7 +119,6 @@ namespace Grpc.Net.Client.Balancer
             }
         }
 
-        /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -223,7 +211,14 @@ namespace Grpc.Net.Client.Balancer
         /// <inheritdoc />
         public override Resolver Create(ResolverOptions options)
         {
-            return new DnsResolver(options.Address, options.DefaultPort, options.LoggerFactory, _refreshInterval);
+            var channelOptions = options.ChannelOptions;
+
+            var randomGenerator = channelOptions.ResolveService<IRandomGenerator>(
+                new RandomGenerator());
+            var backoffPolicyFactory = channelOptions.ResolveService<IBackoffPolicyFactory>(
+                new ExponentialBackoffPolicyFactory(randomGenerator, channelOptions.InitialReconnectBackoff, channelOptions.MaxReconnectBackoff));
+
+            return new DnsResolver(options.Address, options.DefaultPort, options.LoggerFactory, _refreshInterval, backoffPolicyFactory);
         }
     }
 }

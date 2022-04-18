@@ -35,8 +35,8 @@ namespace Grpc.Net.Client.Tests.Balancer
                 initialBackoffTicks: 10,
                 maxBackoffTicks: 2000);
 
-            Assert.AreEqual(10, policy.GetNextBackoffTicks());
-            Assert.AreEqual(16, policy.GetNextBackoffTicks());
+            Assert.AreEqual(TimeSpan.FromTicks(10), policy.NextBackoff());
+            Assert.AreEqual(TimeSpan.FromTicks(16), policy.NextBackoff());
         }
 
         [Test]
@@ -49,13 +49,13 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             for (var i = 0; i < 50; i++)
             {
-                if (policy.GetNextBackoffTicks() == 2000)
+                if (policy.NextBackoff() == TimeSpan.FromTicks(2000))
                 {
                     break;
                 }
             }
 
-            Assert.AreEqual(2000, policy.GetNextBackoffTicks());
+            Assert.AreEqual(TimeSpan.FromTicks(2000), policy.NextBackoff());
         }
 
         [Test]
@@ -70,13 +70,13 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             for (var i = 0; i < 1000; i++)
             {
-                var ticks = policy.GetNextBackoffTicks();
+                var backoff = policy.NextBackoff();
 
-                Assert.Greater(ticks, 0);
-                Assert.LessOrEqual(ticks, MaximumWithJitter);
+                Assert.Greater(backoff.Ticks, 0);
+                Assert.LessOrEqual(backoff.Ticks, MaximumWithJitter);
             }
 
-            Assert.AreEqual(policy.GetNextBackoffTicks(), MaximumWithJitter);
+            Assert.AreEqual(policy.NextBackoff(), TimeSpan.FromTicks(MaximumWithJitter));
         }
 
         private class TestRandomGenerator : IRandomGenerator
