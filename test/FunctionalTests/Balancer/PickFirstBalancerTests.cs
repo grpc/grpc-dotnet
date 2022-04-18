@@ -62,6 +62,50 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         }
 
         [Test]
+        public async Task UnaryCall_CallAfterCancellation_Success()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            string? host = null;
+            Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                host = context.Host;
+                return Task.FromResult(new HelloReply { Message = request.Name });
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new PickFirstConfig(), new[] { endpoint.Address }).DefaultTimeout();
+            var client = TestClientFactory.Create(channel, endpoint.Method);
+            
+            // Kill endpoint so client can't connect.
+            endpoint.Dispose();
+
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
+            cts.Token.Register(() => Logger.LogInformation("Cancellation token raised"));
+
+            // Start call that is canceled while getting picker.
+            await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(
+                new HelloRequest { Name = "Balancer" },
+                new CallOptions(cancellationToken: cts.Token)).ResponseAsync).DefaultTimeout();
+
+            // Restart endpoint.
+            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            // Act
+            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }, new CallOptions().WithWaitForReady(true)).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("Balancer", reply.Message);
+            Assert.AreEqual("127.0.0.1:50051", host);
+        }
+
+        [Test]
         public async Task UnaryCall_ReconnectBetweenCalls_Success()
         {
             // Ignore errors
