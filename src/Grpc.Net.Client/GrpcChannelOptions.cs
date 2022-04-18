@@ -269,6 +269,11 @@ namespace Grpc.Net.Client
         /// </summary>
         public IServiceProvider? ServiceProvider { get; set; }
 
+        internal T ResolveService<T>(T defaultValue)
+        {
+            return (T?)ServiceProvider?.GetService(typeof(T)) ?? defaultValue;
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="GrpcChannelOptions"/> class.
         /// </summary>
