@@ -44,5 +44,16 @@ namespace Grpc.Shared
             return s.IndexOf(value, comparisonType);
 #endif
         }
+
+#if !NET6_0_OR_GREATER
+        public async static Task<T> WaitAsync<T>(this Task<T> task, CancellationToken cancellationToken)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            using (cancellationToken.Register(static s => ((TaskCompletionSource<T>)s!).TrySetCanceled(), tcs))
+            {
+                return await (await Task.WhenAny(task, tcs.Task).ConfigureAwait(false)).ConfigureAwait(false);
+            }
+        }
+#endif
     }
 }
