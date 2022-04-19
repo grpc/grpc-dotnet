@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.Configuration
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Represents the <c>Name</c> message in https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto.
+    /// Represents the <c>Name</c> message in <see href="https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto"/>.
     /// </para>
     /// <para>
     /// If a name's <see cref="MethodName.Method"/> property isn't set then the method config is the default
