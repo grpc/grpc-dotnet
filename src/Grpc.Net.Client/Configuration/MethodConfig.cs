@@ -26,7 +26,7 @@ namespace Grpc.Net.Client.Configuration
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Represents the <c>MethodConfig</c> message in https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto.
+    /// Represents the <c>MethodConfig</c> message in <see href="https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto"/>.
     /// </para>
     /// </remarks>
     public sealed class MethodConfig : ConfigObject
