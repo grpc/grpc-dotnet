@@ -22,12 +22,12 @@ namespace Grpc.Net.Client.Configuration
     /// <summary>
     /// The retry throttling policy for a server.
     /// <para>
-    /// For more information about configuring throttling, see https://github.com/grpc/proposal/blob/master/A6-client-retries.md#throttling-retry-attempts-and-hedged-rpcs.
+    /// For more information about configuring throttling, see <see href="https://github.com/grpc/proposal/blob/master/A6-client-retries.md#throttling-retry-attempts-and-hedged-rpcs"/>.
     /// </para>
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Represents the <c>RetryThrottlingPolicy</c> message in https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto.
+    /// Represents the <c>RetryThrottlingPolicy</c> message in <see href="https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto"/>.
     /// </para>
     /// </remarks>
     public sealed class RetryThrottlingPolicy : ConfigObject

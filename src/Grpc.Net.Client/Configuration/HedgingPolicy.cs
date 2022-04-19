@@ -28,7 +28,7 @@ namespace Grpc.Net.Client.Configuration
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Represents the <c>HedgingPolicy</c> message in https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto.
+    /// Represents the <c>HedgingPolicy</c> message in <see href="https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto"/>.
     /// </para>
     /// </remarks>
     public sealed class HedgingPolicy : ConfigObject

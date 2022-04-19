@@ -25,7 +25,7 @@ namespace Grpc.Net.Client.Configuration
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Represents the <c>ServiceConfig</c> message in https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto.
+    /// Represents the <c>ServiceConfig</c> message in <see href="https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto"/>.
     /// </para>
     /// </remarks>
     public sealed class ServiceConfig : ConfigObject
@@ -99,7 +99,7 @@ namespace Grpc.Net.Client.Configuration
         /// retry attempts and hedged RPCs when the client's ratio of failures to
         /// successes exceeds a threshold.
         /// <para>
-        /// For more information about configuring throttling, see https://github.com/grpc/proposal/blob/master/A6-client-retries.md#throttling-retry-attempts-and-hedged-rpcs.
+        /// For more information about configuring throttling, see <see href="https://github.com/grpc/proposal/blob/master/A6-client-retries.md#throttling-retry-attempts-and-hedged-rpcs"/>.
         /// </para>
         /// </summary>
         public RetryThrottlingPolicy? RetryThrottling
