@@ -36,22 +36,26 @@
             </p>
             <img src="/images/grpc-rest-logo.png" class="img-fluid mb-3" alt="gRPC loves REST" />
             <h5 class="mb-3">Try it now</h5>
-            <nav>
-                <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                    <a class="nav-item nav-link active" id="nav-get-tab" data-toggle="tab" href="#nav-get" role="tab" aria-controls="nav-get" aria-selected="true">GET</a>
-                    <a class="nav-item nav-link" id="nav-post-tab" data-toggle="tab" href="#nav-post" role="tab" aria-controls="nav-post" aria-selected="false">POST</a>
-                    <a class="nav-item nav-link" id="nav-source-tab" data-toggle="tab" href="#nav-source" role="tab" aria-controls="nav-source" aria-selected="false">View source</a>
-                </div>
-            </nav>
-            <div class="tab-content" id="nav-tabContent">
-                <div class="tab-pane fade show active" id="nav-get" role="tabpanel" aria-labelledby="nav-get-tab">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="get-tab" data-bs-toggle="tab" data-bs-target="#get" type="button" role="tab" aria-controls="home" aria-selected="true">GET</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="post-tab" data-bs-toggle="tab" data-bs-target="#post" type="button" role="tab" aria-controls="profile" aria-selected="false">POST</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="source-tab" data-bs-toggle="tab" data-bs-target="#source" type="button" role="tab" aria-controls="contact" aria-selected="false">View source</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="get" role="tabpanel" aria-labelledby="get-tab">
                     <form id="sendGet">
                         <p>
                             Send a GET request to the Greeter gRPC service. The name is sent as a URL parameter.
                         </p>
-                        <div class="form-row align-items-center">
+                        <div class="row gx-2 align-items-center">
                             <div class="col-auto">
-                                <label class="sr-only" for="inlineFormInput">Hello</label>
+                                <label class="visually-hidden" for="inlineFormInput">Hello</label>
                                 <input type="text" class="form-control mb-2" id="nameGet" placeholder="Hello" required>
                             </div>
                             <div class="col-auto">
@@ -61,18 +65,18 @@
                     </form>
                     <div class="alert alert-success" role="alert" id="resultGet"></div>
                 </div>
-                <div class="tab-pane fade" id="nav-post" role="tabpanel" aria-labelledby="nav-post-tab">
+                <div class="tab-pane fade" id="post" role="tabpanel" aria-labelledby="post-tab">
                     <form id="sendPost">
                         <p>
                             Send a POST request to the Greeter gRPC service. JSON is sent in the request body.
                         </p>
-                        <div class="form-row align-items-center">
+                        <div class="row gx-2 align-items-center">
                             <div class="col-auto">
-                                <label class="sr-only" for="inlineFormInput">Hello</label>
+                                <label class="visually-hidden" for="inlineFormInput">Hello</label>
                                 <input type="text" class="form-control mb-2" id="toPost" placeholder="Hello">
                             </div>
                             <div class="col-auto">
-                                <label class="sr-only" for="inlineFormInput">From</label>
+                                <label class="visually-hidden" for="inlineFormInput">From</label>
                                 <input type="text" class="form-control mb-2" id="fromPost" placeholder="From">
                             </div>
                             <div class="col-auto">
@@ -82,7 +86,7 @@
                     </form>
                     <div class="alert alert-success" role="alert" id="resultPost"></div>
                 </div>
-                <div class="tab-pane fade" id="nav-source" role="tabpanel" aria-labelledby="nav-source-tab">
+                <div class="tab-pane fade" id="source" role="tabpanel" aria-labelledby="source-tab">
                     <p>
                         This website's source code on GitHub:
                     </p>
@@ -101,7 +105,6 @@
             </div>
         </main>
     </div>
-    <script type="text/javascript" src="/lib/jquery/dist/jquery.min.js"></script>
     <script type="text/javascript" src="/lib/bootstrap/dist/bootstrap.bundle.min.js"></script>
     <script type="text/javascript">
         var nameGetInput = document.getElementById('nameGet');
