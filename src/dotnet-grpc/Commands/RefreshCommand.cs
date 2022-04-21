@@ -27,7 +27,7 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RefreshCommand : CommandBase
     {
-        public RefreshCommand(IConsole console, FileInfo? projectPath, HttpClient httpClient)
+        public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
             : base(console, projectPath, httpClient) { }
 
         // Internal for testing
@@ -56,7 +56,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(dryRunOption);
             command.AddArgument(referencesArgument);
 
-            command.SetHandler<FileInfo, bool, string[], InvocationContext, IConsole>(
+            command.SetHandler<string, bool, string[], InvocationContext, IConsole>(
                 async (project, dryRun, references, context, console) =>
                 {
                     try

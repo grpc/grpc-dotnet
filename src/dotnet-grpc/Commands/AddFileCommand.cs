@@ -27,7 +27,7 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddFileCommand : CommandBase
     {
-        public AddFileCommand(IConsole console, FileInfo? projectPath, HttpClient httpClient)
+        public AddFileCommand(IConsole console, string? projectPath, HttpClient httpClient)
             : base(console, projectPath, httpClient) { }
 
         public static Command Create(HttpClient httpClient)
@@ -53,7 +53,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(additionalImportDirsOption);
             command.AddArgument(filesArgument);
 
-            command.SetHandler<FileInfo, Services, Access, string?, string[], InvocationContext, IConsole>(
+            command.SetHandler<string, Services, Access, string?, string[], InvocationContext, IConsole>(
                 async (project, services, access, additionalImportDirs, files, context, console) =>
                 {
                     try

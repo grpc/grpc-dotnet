@@ -27,7 +27,7 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RemoveCommand : CommandBase
     {
-        public RemoveCommand(IConsole console, FileInfo? projectPath, HttpClient httpClient)
+        public RemoveCommand(IConsole console, string? projectPath, HttpClient httpClient)
             : base(console, projectPath, httpClient) { }
 
         public static Command Create(HttpClient httpClient)
@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(projectOption);
             command.AddArgument(referencesArgument);
 
-            command.SetHandler<FileInfo, string[], InvocationContext, IConsole>(
+            command.SetHandler<string, string[], InvocationContext, IConsole>(
                 (project, references, context, console) =>
                 {
                     try

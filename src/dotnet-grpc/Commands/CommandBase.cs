@@ -47,7 +47,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
         private readonly HttpClient _httpClient;
 
-        public CommandBase(IConsole console, FileInfo? projectPath, HttpClient client)
+        public CommandBase(IConsole console, string? projectPath, HttpClient client)
             : this(console, ResolveProject(projectPath), client) { }
 
         // Internal for testing
@@ -219,20 +219,29 @@ namespace Grpc.Dotnet.Cli.Commands
             }
         }
 
-        public static Project ResolveProject(FileInfo? project)
+        public static Project ResolveProject(string? project)
         {
             if (project != null)
             {
-                if (!File.Exists(project.FullName))
+                if (File.Exists(project))
                 {
-                    throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorProjectDoesNotExist, project.FullName));
+                    return new Project(project);
+                }
+                if (Directory.Exists(project))
+                {
+                    return LoadFromDirectoryPath(project);
                 }
 
-                return new Project(project.FullName);
+                throw new CLIToolException(string.Format(CultureInfo.CurrentCulture, CoreStrings.ErrorProjectDoesNotExist, project));
             }
 
             var currentDirectory = Directory.GetCurrentDirectory();
-            var projectFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.csproj");
+            return LoadFromDirectoryPath(currentDirectory);
+        }
+
+        private static Project LoadFromDirectoryPath(string currentDirectory)
+        {
+            var projectFiles = Directory.GetFiles(currentDirectory, "*.csproj");
 
             if (projectFiles.Length == 0)
             {

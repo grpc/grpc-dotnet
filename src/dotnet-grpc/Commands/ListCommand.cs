@@ -29,7 +29,7 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class ListCommand : CommandBase
     {
-        public ListCommand(IConsole console, FileInfo? projectPath, HttpClient httpClient)
+        public ListCommand(IConsole console, string? projectPath, HttpClient httpClient)
             : base(console, projectPath, httpClient) { }
 
         public static Command Create(HttpClient httpClient)
@@ -41,7 +41,7 @@ namespace Grpc.Dotnet.Cli.Commands
 
             command.AddOption(projectOption);
 
-            command.SetHandler<FileInfo, InvocationContext, IConsole>(
+            command.SetHandler<string, InvocationContext, IConsole>(
                 (project, context, console) =>
                 {
                     try

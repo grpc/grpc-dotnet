@@ -43,8 +43,7 @@ namespace Grpc.Dotnet.Cli.Tests
             var parser = Program.BuildParser(CreateClient());
 
             // Act
-            Directory.SetCurrentDirectory(tempDir);
-            var result = await parser.InvokeAsync($"refresh --dry-run {dryRun}", testConsole);
+            var result = await parser.InvokeAsync($"refresh -p {tempDir} --dry-run {dryRun}", testConsole);
 
             // Assert
             Assert.AreEqual(0, result, testConsole.Error.ToString());
@@ -56,7 +55,6 @@ namespace Grpc.Dotnet.Cli.Tests
             Assert.AreEqual(dryRun, string.IsNullOrEmpty(File.ReadAllText(Path.Combine(project.DirectoryPath, "Proto", "a.proto"))));
 
             // Cleanup
-            Directory.SetCurrentDirectory(currentDir);
             Directory.Delete(tempDir, true);
         }
 

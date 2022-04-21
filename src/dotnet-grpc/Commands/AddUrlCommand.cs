@@ -26,7 +26,7 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddUrlCommand : CommandBase
     {
-        public AddUrlCommand(IConsole console, FileInfo? projectPath, HttpClient httpClient)
+        public AddUrlCommand(IConsole console, string? projectPath, HttpClient httpClient)
             : base(console, projectPath, httpClient) { }
 
         // Internal for testing
@@ -60,7 +60,7 @@ namespace Grpc.Dotnet.Cli.Commands
             command.AddOption(accessOption);
             command.AddArgument(urlArgument);
 
-            command.SetHandler<FileInfo, Services, Access, string?, string, string, InvocationContext, IConsole>(
+            command.SetHandler<string, Services, Access, string?, string, string, InvocationContext, IConsole>(
                 async (project, services, access, additionalImportDirs, url, output, context, console) =>
                 {
                     try

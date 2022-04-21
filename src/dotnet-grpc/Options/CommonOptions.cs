@@ -25,7 +25,7 @@ namespace Grpc.Dotnet.Cli.Options
     {
         public static Option ProjectOption()
         {
-            var o = new Option<FileInfo>(
+            var o = new Option<string>(
                 aliases: new[] { "-p", "--project" },
                 description: CoreStrings.ProjectOptionDescription);
             return o;

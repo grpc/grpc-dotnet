@@ -41,8 +41,7 @@ namespace Grpc.Dotnet.Cli.Tests
             var parser = Program.BuildParser(CreateClient());
 
             // Act
-            Directory.SetCurrentDirectory(tempDir);
-            var result = await parser.InvokeAsync($"add-file -s Server --access Internal -i ImportDir {Path.Combine("Proto", "*.proto")}", testConsole);
+            var result = await parser.InvokeAsync($"add-file -p {tempDir} -s Server --access Internal -i ImportDir {Path.Combine("Proto", "*.proto")}", testConsole);
 
             // Assert
             Assert.AreEqual(0, result, testConsole.Error.ToString());
@@ -67,7 +66,6 @@ namespace Grpc.Dotnet.Cli.Tests
             }
 
             // Cleanup
-            Directory.SetCurrentDirectory(currentDir);
             Directory.Delete(tempDir, true);
         }
 
