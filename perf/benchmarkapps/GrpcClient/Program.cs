@@ -17,6 +17,7 @@
 #endregion
 
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
 using System.Globalization;
@@ -58,25 +59,31 @@ namespace GrpcClient
 
         public static async Task<int> Main(string[] args)
         {
-            var rootCommand = new RootCommand();
-            rootCommand.AddOption(new Option<string>(new string[] { "-u", "--url" }, "The server url to request") { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "--udsFileName" }, "The Unix Domain Socket file name"));
-            rootCommand.AddOption(new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open"));
-            rootCommand.AddOption(new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds"));
-            rootCommand.AddOption(new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds"));
-            rootCommand.AddOption(new Option<int>(new string[] { "--callCount" }, "Call count of test"));
-            rootCommand.AddOption(new Option<string>(new string[] { "-s", "--scenario" }, "Scenario to run") { Required = true });
-            rootCommand.AddOption(new Option<bool>(new string[] { "-l", "--latency" }, () => false, "Whether to collect detailed latency"));
-            rootCommand.AddOption(new Option<string>(new string[] { "-p", "--protocol" }, "HTTP protocol") { Required = true });
-            rootCommand.AddOption(new Option<LogLevel>(new string[] { "-log", "--logLevel" }, () => LogLevel.None, "The log level to use for Console logging"));
-            rootCommand.AddOption(new Option<int>(new string[] { "--requestSize" }, "Request payload size"));
-            rootCommand.AddOption(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
-            rootCommand.AddOption(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
-            rootCommand.AddOption(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
-            rootCommand.AddOption(new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate"));
-            rootCommand.AddOption(new Option<int>(new string[] { "--deadline" }, "Duration of deadline in seconds"));
+            var options = new List<Option>();
+            options.Add(new Option<Uri>(new string[] { "-u", "--url" }, "The server url to request") { IsRequired = true });
+            options.Add(new Option<string>(new string[] { "--udsFileName" }, "The Unix Domain Socket file name"));
+            options.Add(new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open"));
+            options.Add(new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds"));
+            options.Add(new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds"));
+            options.Add(new Option<int>(new string[] { "--callCount" }, "Call count of test"));
+            options.Add(new Option<string>(new string[] { "-s", "--scenario" }, "Scenario to run") { IsRequired = true });
+            options.Add(new Option<bool>(new string[] { "-l", "--latency" }, () => false, "Whether to collect detailed latency"));
+            options.Add(new Option<string>(new string[] { "-p", "--protocol" }, "HTTP protocol") { IsRequired = true });
+            options.Add(new Option<LogLevel>(new string[] { "-log", "--logLevel" }, () => LogLevel.None, "The log level to use for Console logging"));
+            options.Add(new Option<int>(new string[] { "--requestSize" }, "Request payload size"));
+            options.Add(new Option<int>(new string[] { "--responseSize" }, "Response payload size"));
+            options.Add(new Option<GrpcClientType>(new string[] { "--grpcClientType" }, () => GrpcClientType.GrpcNetClient, "Whether to use Grpc.NetClient or Grpc.Core client"));
+            options.Add(new Option<int>(new string[] { "--streams" }, () => 1, "Maximum concurrent streams per connection"));
+            options.Add(new Option<bool>(new string[] { "--enableCertAuth" }, () => false, "Flag indicating whether client sends a client certificate"));
+            options.Add(new Option<int>(new string[] { "--deadline" }, "Duration of deadline in seconds"));
 
-            rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
+            var rootCommand = new RootCommand();
+            foreach (var option in options)
+            {
+                rootCommand.AddOption(option);
+            }
+
+            rootCommand.SetHandler<ClientOptions>(async (options) =>
             {
                 _options = options;
 
@@ -103,9 +110,37 @@ namespace GrpcClient
                 await StartScenario();
 
                 await StopJobAsync();
-            });
+            }, new ReflectionBinder<ClientOptions>(options));
 
             return await rootCommand.InvokeAsync(args);
+        }
+
+        private class ReflectionBinder<T> : BinderBase<T> where T : new()
+        {
+            private readonly List<Option> _options;
+
+            public ReflectionBinder(List<Option> options)
+            {
+                _options = options;
+            }
+
+            protected override T GetBoundValue(BindingContext bindingContext)
+            {
+                var boundValue = new T();
+
+                foreach (var option in _options)
+                {
+                    var value = bindingContext.ParseResult.GetValueForOption(option);
+
+                    var propertyInfo = typeof(T).GetProperty(option.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                    if (propertyInfo != null)
+                    {
+                        propertyInfo.SetValue(boundValue, value);
+                    }
+                }
+
+                return boundValue;
+            }
         }
 
         private static async Task StartScenario()
@@ -354,7 +389,7 @@ namespace GrpcClient
             }
 
             // Channel does not care about scheme
-            var initialUri = new Uri(_options.Url!);
+            var initialUri = _options.Url!;
             var resolvedUri = initialUri.Authority;
 
             Log($"gRPC client type: {_options.GrpcClientType}");

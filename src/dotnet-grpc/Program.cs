@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
@@ -30,18 +31,25 @@ namespace Grpc.Dotnet.Cli
         {
             MSBuildLocator.RegisterDefaults();
 
-            var parser = new CommandLineBuilder()
-                .AddCommand(AddFileCommand.Create())
-                .AddCommand(AddUrlCommand.Create())
-                .AddCommand(RefreshCommand.Create())
-                .AddCommand(RemoveCommand.Create())
-                .AddCommand(ListCommand.Create())
-                .UseDefaults()
-                .Build();
-
+            var parser = BuildParser(new HttpClient());
             var result = parser.Parse(args);
 
             return result.InvokeAsync(new SystemConsole());
+        }
+
+        internal static Parser BuildParser(HttpClient client)
+        {
+            var root = new RootCommand();
+            root.AddCommand(AddFileCommand.Create(client));
+            root.AddCommand(AddUrlCommand.Create(client));
+            root.AddCommand(RefreshCommand.Create(client));
+            root.AddCommand(RemoveCommand.Create(client));
+            root.AddCommand(ListCommand.Create(client));
+
+            var parser = new CommandLineBuilder(root)
+                .UseDefaults()
+                .Build();
+            return parser;
         }
     }
 }

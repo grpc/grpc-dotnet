@@ -47,8 +47,8 @@ namespace Grpc.Dotnet.Cli.Commands
 
         private readonly HttpClient _httpClient;
 
-        public CommandBase(IConsole console, FileInfo? projectPath)
-            : this(console, ResolveProject(projectPath), new HttpClient()) { }
+        public CommandBase(IConsole console, FileInfo? projectPath, HttpClient client)
+            : this(console, ResolveProject(projectPath), client) { }
 
         // Internal for testing
         internal CommandBase(IConsole console, Project project)

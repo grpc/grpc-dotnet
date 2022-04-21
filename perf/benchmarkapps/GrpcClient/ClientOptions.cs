@@ -22,7 +22,7 @@ namespace GrpcClient
 {
     public class ClientOptions
     {
-        public string? Url { get; set; }
+        public Uri? Url { get; set; }
 #if NET5_0_OR_GREATER
         public string? UdsFileName { get; set; }
 #endif

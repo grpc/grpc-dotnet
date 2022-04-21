@@ -32,10 +32,10 @@ namespace InteropTestsClient
         {
             var rootCommand = new RootCommand();
             rootCommand.AddOption(new Option<string>(new string[] { "--client_type", nameof(ClientOptions.ClientType) }, () => "httpclient"));
-            rootCommand.AddOption(new Option<string>(new string[] { "--server_host", nameof(ClientOptions.ServerHost) }) { Required = true });
+            rootCommand.AddOption(new Option<string>(new string[] { "--server_host", nameof(ClientOptions.ServerHost) }) { IsRequired = true });
             rootCommand.AddOption(new Option<string>(new string[] { "--server_host_override", nameof(ClientOptions.ServerHostOverride) }));
-            rootCommand.AddOption(new Option<int>(new string[] { "--server_port", nameof(ClientOptions.ServerPort) }) { Required = true });
-            rootCommand.AddOption(new Option<string>(new string[] { "--test_case", nameof(ClientOptions.TestCase) }) { Required = true });
+            rootCommand.AddOption(new Option<int>(new string[] { "--server_port", nameof(ClientOptions.ServerPort) }) { IsRequired = true });
+            rootCommand.AddOption(new Option<string>(new string[] { "--test_case", nameof(ClientOptions.TestCase) }) { IsRequired = true });
             rootCommand.AddOption(new Option<bool>(new string[] { "--use_tls", nameof(ClientOptions.UseTls) }));
             rootCommand.AddOption(new Option<bool>(new string[] { "--use_test_ca", nameof(ClientOptions.UseTestCa) }));
             rootCommand.AddOption(new Option<string>(new string[] { "--default_service_account", nameof(ClientOptions.DefaultServiceAccount) }));
@@ -45,7 +45,7 @@ namespace InteropTestsClient
             rootCommand.AddOption(new Option<bool>(new string[] { "--use_winhttp", nameof(ClientOptions.UseWinHttp) }));
             rootCommand.AddOption(new Option<bool>(new string[] { "--use_http3", nameof(ClientOptions.UseHttp3) }));
 
-            rootCommand.Handler = CommandHandler.Create<ClientOptions>(async (options) =>
+            rootCommand.SetHandler<ClientOptions>(async (options) =>
             {
                 var runtimeVersion = typeof(object).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
