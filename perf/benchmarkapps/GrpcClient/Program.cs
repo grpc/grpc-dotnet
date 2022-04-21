@@ -87,8 +87,6 @@ namespace GrpcClient
             {
                 _options = options;
 
-                Log("gRPC Client");
-
                 var runtimeVersion = typeof(object).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
                 var isServerGC = GCSettings.IsServerGC;
                 var processorCount = Environment.ProcessorCount;
@@ -112,6 +110,8 @@ namespace GrpcClient
                 await StopJobAsync();
             }, new ReflectionBinder<ClientOptions>(options));
 
+            Log("gRPC Client");
+
             return await rootCommand.InvokeAsync(args);
         }
 
@@ -128,6 +128,8 @@ namespace GrpcClient
             {
                 var boundValue = new T();
 
+                Log($"Binding {typeof(T)}");
+
                 foreach (var option in _options)
                 {
                     var value = bindingContext.ParseResult.GetValueForOption(option);
@@ -136,6 +138,8 @@ namespace GrpcClient
                     if (propertyInfo != null)
                     {
                         propertyInfo.SetValue(boundValue, value);
+                        
+                        Log($"-{propertyInfo.Name} = {value}");
                     }
                 }
 
