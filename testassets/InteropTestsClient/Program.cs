@@ -19,6 +19,7 @@
 using System.CommandLine;
 using System.CommandLine.Binding;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using Grpc.Shared.TestAssets;
@@ -33,19 +34,19 @@ namespace InteropTestsClient
         public static async Task<int> Main(string[] args)
         {
             var options = new List<Option>();
-            options.Add(new Option<string>(new string[] { "--client_type", nameof(ClientOptions.ClientType) }, () => "httpclient"));
-            options.Add(new Option<string>(new string[] { "--server_host", nameof(ClientOptions.ServerHost) }) { IsRequired = true });
-            options.Add(new Option<string>(new string[] { "--server_host_override", nameof(ClientOptions.ServerHostOverride) }));
-            options.Add(new Option<int>(new string[] { "--server_port", nameof(ClientOptions.ServerPort) }) { IsRequired = true });
-            options.Add(new Option<string>(new string[] { "--test_case", nameof(ClientOptions.TestCase) }) { IsRequired = true });
-            options.Add(new Option<bool>(new string[] { "--use_tls", nameof(ClientOptions.UseTls) }));
-            options.Add(new Option<bool>(new string[] { "--use_test_ca", nameof(ClientOptions.UseTestCa) }));
-            options.Add(new Option<string>(new string[] { "--default_service_account", nameof(ClientOptions.DefaultServiceAccount) }));
-            options.Add(new Option<string>(new string[] { "--oauth_scope", nameof(ClientOptions.OAuthScope) }));
-            options.Add(new Option<string>(new string[] { "--service_account_key_file", nameof(ClientOptions.ServiceAccountKeyFile) }));
-            options.Add(new Option<string>(new string[] { "--grpc_web_mode", nameof(ClientOptions.GrpcWebMode) }));
-            options.Add(new Option<bool>(new string[] { "--use_winhttp", nameof(ClientOptions.UseWinHttp) }));
-            options.Add(new Option<bool>(new string[] { "--use_http3", nameof(ClientOptions.UseHttp3) }));
+            options.Add(new Option<string>(new string[] { "--client_type" }, () => "httpclient") { Name = nameof(ClientOptions.ClientType) });
+            options.Add(new Option<string>(new string[] { "--server_host" }) { IsRequired = true, Name = nameof(ClientOptions.ServerHost) });
+            options.Add(new Option<string>(new string[] { "--server_host_override" }) { Name = nameof(ClientOptions.ServerHostOverride) });
+            options.Add(new Option<int>(new string[] { "--server_port" }) { IsRequired = true, Name = nameof(ClientOptions.ServerPort) });
+            options.Add(new Option<string>(new string[] { "--test_case" }) { IsRequired = true, Name = nameof(ClientOptions.TestCase) });
+            options.Add(new Option<bool>(new string[] { "--use_tls" }) { Name = nameof(ClientOptions.UseTls) });
+            options.Add(new Option<bool>(new string[] { "--use_test_ca" }) { Name = nameof(ClientOptions.UseTestCa) });
+            options.Add(new Option<string>(new string[] { "--default_service_account" }) { Name = nameof(ClientOptions.DefaultServiceAccount) });
+            options.Add(new Option<string>(new string[] { "--oauth_scope" }) { Name = nameof(ClientOptions.OAuthScope) });
+            options.Add(new Option<string>(new string[] { "--service_account_key_file" }) { Name = nameof(ClientOptions.ServiceAccountKeyFile) });
+            options.Add(new Option<string>(new string[] { "--grpc_web_mode" }) { Name = nameof(ClientOptions.GrpcWebMode) });
+            options.Add(new Option<bool>(new string[] { "--use_winhttp" }) { Name = nameof(ClientOptions.UseWinHttp) });
+            options.Add(new Option<bool>(new string[] { "--use_http3" }) { Name = nameof(ClientOptions.UseHttp3) });
 
             var rootCommand = new RootCommand();
             foreach (var option in options)
