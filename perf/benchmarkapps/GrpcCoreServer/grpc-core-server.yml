@@ -6,4 +6,6 @@ jobs:
       project: perf/benchmarkapps/GrpcCoreServer/GrpcCoreServer.csproj
     readyStateText: Application started
     waitForExit: false
-    arguments: "--server.urls {{serverUri}}:{{serverPort}}"
+    variables:
+      serverScheme: http
+    arguments: --server.urls {{serverScheme}}://{{serverAddress}}:{{serverPort}}
