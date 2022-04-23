@@ -29,33 +29,35 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class ListCommand : CommandBase
     {
-        public ListCommand(IConsole console, FileInfo? projectPath)
-            : base(console, projectPath) { }
+        public ListCommand(IConsole console, string? projectPath, HttpClient httpClient)
+            : base(console, projectPath, httpClient) { }
 
-        public static Command Create()
+        public static Command Create(HttpClient httpClient)
         {
             var command = new Command(
                 name: "list",
                 description: CoreStrings.ListCommandDescription);
-            command.AddOption(CommonOptions.ProjectOption());
+            var projectOption = CommonOptions.ProjectOption();
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo>(
-                (console, project) =>
+            command.AddOption(projectOption);
+
+            command.SetHandler<string, InvocationContext, IConsole>(
+                (project, context, console) =>
                 {
                     try
                     {
-                        var command = new ListCommand(console, project);
+                        var command = new ListCommand(console, project, httpClient);
                         command.List();
 
-                        return 0;
+                        context.ExitCode = 0;
                     }
                     catch (CLIToolException e)
                     {
                         console.LogError(e);
 
-                        return -1;
+                        context.ExitCode = -1;
                     }
-                });
+                }, projectOption);
 
             return command;
         }

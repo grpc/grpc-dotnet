@@ -27,48 +27,52 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RefreshCommand : CommandBase
     {
-        public RefreshCommand(IConsole console, FileInfo? projectPath)
-            : base(console, projectPath) { }
+        public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
+            : base(console, projectPath, httpClient) { }
 
         // Internal for testing
         public RefreshCommand(IConsole console, HttpClient client)
             : base(console, client) { }
 
-        public static Command Create()
+        public static Command Create(HttpClient httpClient)
         {
             var command = new Command(
                 name: "refresh",
                 description: CoreStrings.RefreshCommandDescription);
 
-            command.AddArgument(new Argument<string[]>
+            var projectOption = CommonOptions.ProjectOption();
+            var dryRunOption = new Option<bool>(
+                aliases: new[] { "--dry-run" },
+                description: CoreStrings.DryRunOptionDescription
+                );
+            var referencesArgument = new Argument<string[]>
             {
                 Name = "references",
                 Description = CoreStrings.RefreshCommandArgumentDescription,
                 Arity = ArgumentArity.ZeroOrMore
-            });
-            command.AddOption(CommonOptions.ProjectOption());
-            command.AddOption(new Option(
-                aliases: new[] { "--dry-run" },
-                description: CoreStrings.DryRunOptionDescription
-                ));
+            };
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, bool, string[]>(
-                async (console, project, dryRun, references) =>
+            command.AddOption(projectOption);
+            command.AddOption(dryRunOption);
+            command.AddArgument(referencesArgument);
+
+            command.SetHandler<string, bool, string[], InvocationContext, IConsole>(
+                async (project, dryRun, references, context, console) =>
                 {
                     try
                     {
-                        var command = new RefreshCommand(console, project);
+                        var command = new RefreshCommand(console, project, httpClient);
                         await command.RefreshAsync(dryRun, references);
 
-                        return 0;
+                        context.ExitCode = 0;
                     }
                     catch (CLIToolException e)
                     {
                         console.LogError(e);
 
-                        return -1;
+                        context.ExitCode = -1;
                     }
-                });
+                }, projectOption, dryRunOption, referencesArgument);
 
             return command;
         }

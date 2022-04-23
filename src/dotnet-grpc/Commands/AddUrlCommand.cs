@@ -26,37 +26,42 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddUrlCommand : CommandBase
     {
-        public AddUrlCommand(IConsole console, FileInfo? projectPath)
-            : base(console, projectPath) { }
+        public AddUrlCommand(IConsole console, string? projectPath, HttpClient httpClient)
+            : base(console, projectPath, httpClient) { }
 
         // Internal for testing
         internal AddUrlCommand(IConsole console, HttpClient client)
             : base(console, client) { }
 
-        public static Command Create()
+        public static Command Create(HttpClient httpClient)
         {
             var command = new Command(
                 name: "add-url",
                 description: CoreStrings.AddUrlCommandDescription);
-            command.AddArgument(new Argument<string>
+
+            var projectOption = CommonOptions.ProjectOption();
+            var serviceOption = CommonOptions.ServiceOption();
+            var additionalImportDirsOption = CommonOptions.AdditionalImportDirsOption();
+            var accessOption = CommonOptions.AccessOption();
+            var outputOption = new Option<string>(
+                aliases: new[] { "-o", "--output" },
+                description: CoreStrings.OutputOptionDescription);
+            var urlArgument = new Argument<string>
             {
                 Name = "url",
                 Description = CoreStrings.AddUrlCommandArgumentDescription,
                 Arity = ArgumentArity.ExactlyOne
-            });
+            };
 
-            var outputOption = new Option(
-                aliases: new[] { "-o", "--output" },
-                description: CoreStrings.OutputOptionDescription);
-            outputOption.Argument = new Argument<string> { Name = "path", Arity = ArgumentArity.ExactlyOne };
             command.AddOption(outputOption);
-            command.AddOption(CommonOptions.ProjectOption());
-            command.AddOption(CommonOptions.ServiceOption());
-            command.AddOption(CommonOptions.AdditionalImportDirsOption());
-            command.AddOption(CommonOptions.AccessOption());
+            command.AddOption(projectOption);
+            command.AddOption(serviceOption);
+            command.AddOption(additionalImportDirsOption);
+            command.AddOption(accessOption);
+            command.AddArgument(urlArgument);
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string?, string, string>(
-                async (console, project, services, access, additionalImportDirs, url, output) =>
+            command.SetHandler<string, Services, Access, string?, string, string, InvocationContext, IConsole>(
+                async (project, services, access, additionalImportDirs, url, output, context, console) =>
                 {
                     try
                     {
@@ -65,18 +70,18 @@ namespace Grpc.Dotnet.Cli.Commands
                             throw new CLIToolException(CoreStrings.ErrorNoOutputProvided);
                         }
 
-                        var command = new AddUrlCommand(console, project);
+                        var command = new AddUrlCommand(console, project, httpClient);
                         await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
 
-                        return 0;
+                        context.ExitCode = 0;
                     }
                     catch (CLIToolException e)
                     {
                         console.LogError(e);
 
-                        return -1;
+                        context.ExitCode = -1;
                     }
-                });
+                }, projectOption, serviceOption, accessOption, additionalImportDirsOption, urlArgument, outputOption);
 
             return command;
         }

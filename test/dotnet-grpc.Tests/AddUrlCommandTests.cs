@@ -17,10 +17,12 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Tests.Shared;
+using Microsoft.Build.Evaluation;
 using NUnit.Framework;
 
 namespace Grpc.Dotnet.Cli.Tests
@@ -28,6 +30,46 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class AddUrlCommandTests : TestBase
     {
+        [Test]
+        [NonParallelizable]
+        public async Task Commandline_AddUrlCommand_AddsPackagesAndReferences()
+        {
+            // Arrange
+            var currentDir = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var testConsole = new TestConsole();
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "EmptyProject")).CopyTo(tempDir);
+
+            var parser = Program.BuildParser(CreateClient());
+
+            // Act
+            var result = await parser.InvokeAsync($"add-url -p {tempDir} -s Server --access Internal -i ImportDir -o {Path.Combine("Proto", "c.proto")} {SourceUrl}", testConsole);
+
+            // Assert
+            Assert.AreEqual(0, result, testConsole.Error.ToString());
+
+            var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
+            project.ReevaluateIfNecessary();
+
+            var packageRefs = project.GetItems(CommandBase.PackageReferenceElement);
+            Assert.AreEqual(1, packageRefs.Count);
+            Assert.NotNull(packageRefs.SingleOrDefault(r => r.UnevaluatedInclude == "Grpc.AspNetCore" && !r.HasMetadata(CommandBase.PrivateAssetsElement)));
+
+            var protoRefs = project.GetItems(CommandBase.ProtobufElement);
+            Assert.AreEqual(1, protoRefs.Count);
+            var protoRef = protoRefs.Single();
+            Assert.AreEqual("Proto\\c.proto", protoRef.UnevaluatedInclude);
+            Assert.AreEqual("Server", protoRef.GetMetadataValue(CommandBase.GrpcServicesElement));
+            Assert.AreEqual("ImportDir", protoRef.GetMetadataValue(CommandBase.AdditionalImportDirsElement));
+            Assert.AreEqual("Internal", protoRef.GetMetadataValue(CommandBase.AccessElement));
+            Assert.AreEqual(SourceUrl, protoRef.GetMetadataValue(CommandBase.SourceUrlElement));
+
+            Assert.IsNotEmpty(File.ReadAllText(Path.Combine(project.DirectoryPath, "Proto", "c.proto")));
+
+            // Cleanup
+            Directory.Delete(tempDir, true);
+        }
+
         [Test]
         [NonParallelizable]
         public async Task AddUrlCommand_AddsPackagesAndReferences()

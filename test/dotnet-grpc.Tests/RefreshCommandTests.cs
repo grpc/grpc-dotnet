@@ -17,9 +17,11 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using System.Globalization;
 using Grpc.Dotnet.Cli.Commands;
 using Grpc.Dotnet.Cli.Properties;
+using Microsoft.Build.Evaluation;
 using NUnit.Framework;
 
 namespace Grpc.Dotnet.Cli.Tests
@@ -27,6 +29,35 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class RefreshCommandTests : TestBase
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        [NonParallelizable]
+        public async Task Commandline_Refresh_RefreshesReferences(bool dryRun)
+        {
+            // Arrange
+            var currentDir = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var testConsole = new TestConsole();
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
+
+            var parser = Program.BuildParser(CreateClient());
+
+            // Act
+            var result = await parser.InvokeAsync($"refresh -p {tempDir} --dry-run {dryRun}", testConsole);
+
+            // Assert
+            Assert.AreEqual(0, result, testConsole.Error.ToString());
+
+            var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
+            project.ReevaluateIfNecessary();
+
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, CoreStrings.LogDownload, "Proto/a.proto", SourceUrl), testConsole.Out.ToString()!.TrimEnd());
+            Assert.AreEqual(dryRun, string.IsNullOrEmpty(File.ReadAllText(Path.Combine(project.DirectoryPath, "Proto", "a.proto"))));
+
+            // Cleanup
+            Directory.Delete(tempDir, true);
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         [NonParallelizable]
