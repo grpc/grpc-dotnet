@@ -27,40 +27,43 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class RemoveCommand : CommandBase
     {
-        public RemoveCommand(IConsole console, FileInfo? projectPath)
-            : base(console, projectPath) { }
+        public RemoveCommand(IConsole console, string? projectPath, HttpClient httpClient)
+            : base(console, projectPath, httpClient) { }
 
-        public static Command Create()
+        public static Command Create(HttpClient httpClient)
         {
             var command = new Command(
                 name: "remove",
                 description: CoreStrings.RemoveCommandDescription);
-            command.AddArgument(new Argument<string[]>
+
+            var projectOption = CommonOptions.ProjectOption();
+            var referencesArgument = new Argument<string[]>
             {
                 Name = "references",
                 Description = CoreStrings.RemoveCommandArgumentDescription,
                 Arity = ArgumentArity.OneOrMore
-            });
+            };
+            
+            command.AddOption(projectOption);
+            command.AddArgument(referencesArgument);
 
-            command.AddOption(CommonOptions.ProjectOption());
-
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, string[]>(
-                (console, project, references) =>
+            command.SetHandler<string, string[], InvocationContext, IConsole>(
+                (project, references, context, console) =>
                 {
                     try
                     {
-                        var command = new RemoveCommand(console, project);
+                        var command = new RemoveCommand(console, project, httpClient);
                         command.Remove(references);
 
-                        return 0;
+                        context.ExitCode = 0;
                     }
                     catch (CLIToolException e)
                     {
                         console.LogError(e);
 
-                        return -1;
+                        context.ExitCode = -1;
                     }
-                });
+                }, projectOption, referencesArgument);
 
             return command;
         }

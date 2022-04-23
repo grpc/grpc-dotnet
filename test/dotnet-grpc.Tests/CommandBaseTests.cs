@@ -396,7 +396,7 @@ namespace Grpc.Dotnet.Cli.Tests
         public void ResolveProject_ThrowsIfProjectFileDoesNotExist()
         {
             // Act, Assert
-            Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject(new FileInfo("NonExistent")));
+            Assert.Throws<CLIToolException>(() => CommandBase.ResolveProject("NonExistent"));
         }
 
         [Test]

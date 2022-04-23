@@ -17,7 +17,9 @@
 #endregion
 
 using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using Grpc.Dotnet.Cli.Commands;
+using Microsoft.Build.Evaluation;
 using NUnit.Framework;
 
 namespace Grpc.Dotnet.Cli.Tests
@@ -25,6 +27,54 @@ namespace Grpc.Dotnet.Cli.Tests
     [TestFixture]
     public class ListCommandTests : TestBase
     {
+        [Test]
+        public async Task Commandline_List_ListsReferences()
+        {
+            var currentDir = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+            try
+            {
+                // Arrange
+                var testConsole = new TestConsole();
+                new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
+                var parser = Program.BuildParser(CreateClient());
+
+                // Act
+                var result = await parser.InvokeAsync($"list -p {tempDir}", testConsole);
+
+                // Assert
+                Assert.AreEqual(0, result, testConsole.Error.ToString());
+
+                var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
+                project.ReevaluateIfNecessary();
+
+                var output = testConsole.Out.ToString()!;
+                var lines = output.Split(Environment.NewLine);
+
+                // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
+                AssertContains(lines[0], "Protobuf Reference");
+                AssertContains(lines[0], "Service Type");
+                AssertContains(lines[0], "Source URL");
+                AssertContains(lines[0], "Access");
+
+                // Second line is the reference to
+                //<Protobuf Include="Proto/a.proto">
+                //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+                //</Protobuf>
+                Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+                // Third line is the reference to
+                //<Protobuf Include="Proto/b.proto" Access="Internal"/>
+                Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            }
+            finally
+            {
+                // Cleanup
+                Directory.Delete(tempDir, true);
+            }
+        }
+
         [Test]
         public void List_ListsReferences()
         {
@@ -39,7 +89,7 @@ namespace Grpc.Dotnet.Cli.Tests
 
                 // Act
                 Directory.SetCurrentDirectory(tempDir);
-                var command = new ListCommand(testConsole, null);
+                var command = new ListCommand(testConsole, null, CreateClient());
 
                 Assert.IsNotNull(command.Project);
                 Assert.AreEqual("test.csproj", Path.GetFileName(command.Project.FullPath));

@@ -25,37 +25,33 @@ namespace Grpc.Dotnet.Cli.Options
     {
         public static Option ProjectOption()
         {
-            var o = new Option(
+            var o = new Option<string>(
                 aliases: new[] { "-p", "--project" },
                 description: CoreStrings.ProjectOptionDescription);
-            o.Argument = new Argument<FileInfo> { Name = "project" };
             return o;
         }
 
         public static Option ServiceOption()
         {
-            var o = new Option(
+            var o = new Option<Services>(
                 aliases: new[] { "-s", "--services" },
                 description: CoreStrings.ServiceOptionDescription);
-            o.Argument = new Argument<Services> { Name = "services" };
             return o;
         }
 
         public static Option AccessOption()
         {
-            var o = new Option(
+            var o = new Option<Access>(
                 aliases: new[] { "--access" },
                 description: CoreStrings.AccessOptionDescription);
-            o.Argument = new Argument<Access> { Name = "access" };
             return o;
         }
 
         public static Option AdditionalImportDirsOption()
         {
-            var o = new Option(
+            var o = new Option<string>(
                 aliases: new[] { "-i", "--additional-import-dirs" },
                 description: CoreStrings.AdditionalImportDirsOption);
-            o.Argument = new Argument<string> { Name = "dirs" };
             return o;
         }
     }

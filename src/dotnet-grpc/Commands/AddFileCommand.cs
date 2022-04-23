@@ -27,43 +27,49 @@ namespace Grpc.Dotnet.Cli.Commands
 {
     internal class AddFileCommand : CommandBase
     {
-        public AddFileCommand(IConsole console, FileInfo? projectPath)
-            : base(console, projectPath) { }
+        public AddFileCommand(IConsole console, string? projectPath, HttpClient httpClient)
+            : base(console, projectPath, httpClient) { }
 
-        public static Command Create()
+        public static Command Create(HttpClient httpClient)
         {
             var command = new Command(
                 name: "add-file",
                 description: CoreStrings.AddFileCommandDescription);
-            command.AddArgument(new Argument<string[]>
+
+            var projectOption = CommonOptions.ProjectOption();
+            var serviceOption = CommonOptions.ServiceOption();
+            var additionalImportDirsOption = CommonOptions.AdditionalImportDirsOption();
+            var accessOption = CommonOptions.AccessOption();
+            var filesArgument = new Argument<string[]>
             {
                 Name = "files",
                 Description = CoreStrings.AddFileCommandArgumentDescription,
                 Arity = ArgumentArity.OneOrMore
-            });
+            };
 
-            command.AddOption(CommonOptions.ProjectOption());
-            command.AddOption(CommonOptions.ServiceOption());
-            command.AddOption(CommonOptions.AdditionalImportDirsOption());
-            command.AddOption(CommonOptions.AccessOption());
+            command.AddOption(projectOption);
+            command.AddOption(serviceOption);
+            command.AddOption(accessOption);
+            command.AddOption(additionalImportDirsOption);
+            command.AddArgument(filesArgument);
 
-            command.Handler = CommandHandler.Create<IConsole, FileInfo, Services, Access, string?, string[]>(
-                async (console, project, services, access, additionalImportDirs, files) =>
+            command.SetHandler<string, Services, Access, string?, string[], InvocationContext, IConsole>(
+                async (project, services, access, additionalImportDirs, files, context, console) =>
                 {
                     try
                     {
-                        var command = new AddFileCommand(console, project);
+                        var command = new AddFileCommand(console, project, httpClient);
                         await command.AddFileAsync(services, access, additionalImportDirs, files);
 
-                        return 0;
+                        context.ExitCode = 0;
                     }
                     catch (CLIToolException e)
                     {
                         console.LogError(e);
 
-                        return -1;
+                        context.ExitCode = -1;
                     }
-                });
+                }, projectOption, serviceOption, accessOption, additionalImportDirsOption, filesArgument);
 
             return command;
         }
