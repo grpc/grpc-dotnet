@@ -8,7 +8,6 @@
     <TargetFrameworks>net45;netstandard1.5;netstandard2.0;netstandard2.1</TargetFrameworks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <!-- grpc-dotnet global usings break the build. -->
