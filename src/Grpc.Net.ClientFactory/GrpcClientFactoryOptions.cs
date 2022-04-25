@@ -38,6 +38,11 @@ namespace Grpc.Net.ClientFactory
         public IList<Action<GrpcChannelOptions>> ChannelOptionsActions { get; } = new List<Action<GrpcChannelOptions>>();
 
         /// <summary>
+        /// Gets a list of operations used to configure a <see cref="CallOptions"/>.
+        /// </summary>
+        public IList<Func<CallOptions, IServiceProvider, CallOptions>> CallOptionsActions { get; } = new List<Func<CallOptions, IServiceProvider, CallOptions>>();
+
+        /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.
         /// </summary>
         [Obsolete("Interceptors collection is obsolete and will be removed in a future release. Use InterceptorRegistrations collection instead.")]

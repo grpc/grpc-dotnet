@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -62,6 +63,11 @@ namespace Grpc.Net.ClientFactory.Internal
             }
 #pragma warning restore CS0618 // Type or member is obsolete
 
+            if (clientFactoryOptions.CallOptionsActions.Count != 0)
+            {
+                resolvedCallInvoker = new CallOptionsConfigurationInvoker(resolvedCallInvoker, clientFactoryOptions, _serviceProvider);
+            }
+
             if (clientFactoryOptions.Creator != null)
             {
                 var c = clientFactoryOptions.Creator(resolvedCallInvoker);
@@ -80,6 +86,55 @@ namespace Grpc.Net.ClientFactory.Internal
             {
                 return defaultClientActivator.CreateClient(resolvedCallInvoker);
             }
+        }
+    }
+
+    internal class CallOptionsConfigurationInvoker : CallInvoker
+    {
+        private readonly IServiceProvider _serviceProvider;
+        private readonly GrpcClientFactoryOptions _grpcClientFactoryOptions;
+        private readonly CallInvoker _innerInvoker;
+
+        public CallOptionsConfigurationInvoker(CallInvoker innerInvoker, GrpcClientFactoryOptions grpcClientFactoryOptions, IServiceProvider serviceProvider)
+        {
+            _innerInvoker = innerInvoker;
+            _grpcClientFactoryOptions = grpcClientFactoryOptions;
+            _serviceProvider = serviceProvider;
+        }
+
+        private CallOptions ResolveCallOptions(CallOptions callOptions)
+        {
+            var current = callOptions;
+            for (var i = 0; i < _grpcClientFactoryOptions.CallOptionsActions.Count; i++)
+            {
+                current = _grpcClientFactoryOptions.CallOptionsActions[i](current, _serviceProvider);
+            }
+            return current;
+        }
+
+        public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
+        {
+            return _innerInvoker.AsyncClientStreamingCall(method, host, ResolveCallOptions(options));
+        }
+
+        public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)
+        {
+            return _innerInvoker.AsyncDuplexStreamingCall(method, host, ResolveCallOptions(options));
+        }
+
+        public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
+        {
+            return _innerInvoker.AsyncServerStreamingCall(method, host, ResolveCallOptions(options), request);
+        }
+
+        public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
+        {
+            return _innerInvoker.AsyncUnaryCall(method, host, ResolveCallOptions(options), request);
+        }
+
+        public override TResponse BlockingUnaryCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options, TRequest request)
+        {
+            return _innerInvoker.BlockingUnaryCall(method, host, ResolveCallOptions(options), request);
         }
     }
 }

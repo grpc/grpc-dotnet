@@ -70,6 +70,8 @@ namespace Grpc.Net.Client
         internal ILoggerFactory LoggerFactory { get; }
         internal ILogger Logger { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
+        internal bool UnsafeUseInsecureChannelCallCredentials { get; }
+
         internal bool IsSecure => _isSecure;
         internal List<CallCredentials>? CallCredentials => _callCredentials;
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }
@@ -159,6 +161,7 @@ namespace Grpc.Net.Client
             MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
             Logger = LoggerFactory.CreateLogger<GrpcChannel>();
             ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
+            UnsafeUseInsecureChannelCallCredentials = channelOptions.UnsafeUseInsecureChannelCallCredentials;
             _createMethodInfoFunc = CreateMethodInfo;
             ActiveCalls = new HashSet<IDisposable>();
             if (channelOptions.ServiceConfig is { } serviceConfig)

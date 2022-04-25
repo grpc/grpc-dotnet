@@ -129,6 +129,70 @@ namespace Microsoft.Extensions.DependencyInjection
             return builder;
         }
 
+        public static IHttpClientBuilder AddAuthInterceptor(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, Task> authInterceptor)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (authInterceptor == null)
+            {
+                throw new ArgumentNullException(nameof(authInterceptor));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            {
+                options.CallOptionsActions.Add((callOptions, serviceProvider) =>
+                {
+                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata));
+
+                    return UpdateCallOptionsCredentials(callOptions, credentials);
+                });
+            });
+
+            return builder;
+        }
+
+        public static IHttpClientBuilder AddAuthInterceptor(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, IServiceProvider, Task> authInterceptor)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (authInterceptor == null)
+            {
+                throw new ArgumentNullException(nameof(authInterceptor));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure(builder.Name, (Action<GrpcClientFactoryOptions>)(options =>
+            {
+                options.CallOptionsActions.Add((callOptions, serviceProvider) =>
+                {
+                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, serviceProvider));
+
+                    return UpdateCallOptionsCredentials(callOptions, credentials);
+                });
+            }));
+
+            return builder;
+        }
+
+        private static CallOptions UpdateCallOptionsCredentials(CallOptions callOptions, CallCredentials credentials)
+        {
+            if (callOptions.Credentials != null)
+            {
+                credentials = CallCredentials.Compose(callOptions.Credentials, credentials);
+            }
+
+            return callOptions.WithCredentials(credentials);
+        }
+
         /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
         /// The interceptor scope is <see cref="InterceptorScope.Channel"/>.
