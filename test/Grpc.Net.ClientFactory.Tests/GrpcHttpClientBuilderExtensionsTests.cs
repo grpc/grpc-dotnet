@@ -487,7 +487,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public async Task AddAsyncAuthInterceptor_ServiceProvider_RunInScope()
+        public async Task AddCallCredentials_ServiceProvider_RunInScope()
         {
             // Arrange
             var scopeCount = 0;
@@ -556,7 +556,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
-        public async Task AddAsyncAuthInterceptor_PassedInCallCredentials_Combine()
+        public async Task AddCallCredentials_PassedInCallCredentials_Combine()
         {
             // Arrange
             HttpRequestMessage? sentRequest = null;
