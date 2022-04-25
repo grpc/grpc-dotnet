@@ -23,24 +23,26 @@ namespace Grpc.Net.ClientFactory.Internal
     internal sealed class CallOptionsConfigurationInvoker : CallInvoker
     {
         private readonly IServiceProvider _serviceProvider;
-        private readonly GrpcClientFactoryOptions _grpcClientFactoryOptions;
+        private readonly IList<Action<CallOptionsContext>> _callOptionsActions;
         private readonly CallInvoker _innerInvoker;
 
-        public CallOptionsConfigurationInvoker(CallInvoker innerInvoker, GrpcClientFactoryOptions grpcClientFactoryOptions, IServiceProvider serviceProvider)
+        public CallOptionsConfigurationInvoker(CallInvoker innerInvoker, IList<Action<CallOptionsContext>> callOptionsActions, IServiceProvider serviceProvider)
         {
             _innerInvoker = innerInvoker;
-            _grpcClientFactoryOptions = grpcClientFactoryOptions;
+            _callOptionsActions = callOptionsActions;
             _serviceProvider = serviceProvider;
         }
 
         private CallOptions ResolveCallOptions(CallOptions callOptions)
         {
-            var current = callOptions;
-            for (var i = 0; i < _grpcClientFactoryOptions.CallOptionsActions.Count; i++)
+            var context = new CallOptionsContext(callOptions, _serviceProvider);
+
+            for (var i = 0; i < _callOptionsActions.Count; i++)
             {
-                current = _grpcClientFactoryOptions.CallOptionsActions[i](current, _serviceProvider);
+                _callOptionsActions[i](context);
             }
-            return current;
+
+            return context.CallOptions;
         }
 
         public override AsyncClientStreamingCall<TRequest, TResponse> AsyncClientStreamingCall<TRequest, TResponse>(Method<TRequest, TResponse> method, string? host, CallOptions options)

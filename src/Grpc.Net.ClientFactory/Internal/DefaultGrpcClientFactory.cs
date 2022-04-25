@@ -65,7 +65,7 @@ namespace Grpc.Net.ClientFactory.Internal
 
             if (clientFactoryOptions.CallOptionsActions.Count != 0)
             {
-                resolvedCallInvoker = new CallOptionsConfigurationInvoker(resolvedCallInvoker, clientFactoryOptions, _serviceProvider);
+                resolvedCallInvoker = new CallOptionsConfigurationInvoker(resolvedCallInvoker, clientFactoryOptions.CallOptionsActions, _serviceProvider);
             }
 
             if (clientFactoryOptions.Creator != null)

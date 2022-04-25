@@ -40,7 +40,7 @@ namespace Grpc.Net.ClientFactory
         /// <summary>
         /// Gets a list of operations used to configure a <see cref="CallOptions"/>.
         /// </summary>
-        public IList<Func<CallOptions, IServiceProvider, CallOptions>> CallOptionsActions { get; } = new List<Func<CallOptions, IServiceProvider, CallOptions>>();
+        public IList<Action<CallOptionsContext>> CallOptionsActions { get; } = new List<Action<CallOptionsContext>>();
 
         /// <summary>
         /// Gets a list of <see cref="Interceptor"/> instances used to configure a gRPC client pipeline.

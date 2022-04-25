@@ -151,11 +151,11 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.CallOptionsActions.Add((callOptions, serviceProvider) =>
+                options.CallOptionsActions.Add((callOptionsContext) =>
                 {
                     var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata));
 
-                    return UpdateCallOptionsCredentials(callOptions, credentials);
+                    callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
                 });
             });
 
@@ -184,18 +184,18 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
-                options.CallOptionsActions.Add((callOptions, serviceProvider) =>
+                options.CallOptionsActions.Add((callOptionsContext) =>
                 {
-                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, serviceProvider));
+                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, callOptionsContext.ServiceProvider));
 
-                    return UpdateCallOptionsCredentials(callOptions, credentials);
+                    callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
                 });
             });
 
             return builder;
         }
 
-        private static CallOptions UpdateCallOptionsCredentials(CallOptions callOptions, CallCredentials credentials)
+        private static CallOptions ResolveCallOptionsCredentials(CallOptions callOptions, CallCredentials credentials)
         {
             if (callOptions.Credentials != null)
             {
