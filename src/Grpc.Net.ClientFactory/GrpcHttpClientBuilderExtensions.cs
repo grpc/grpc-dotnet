@@ -129,7 +129,13 @@ namespace Microsoft.Extensions.DependencyInjection
             return builder;
         }
 
-        public static IHttpClientBuilder AddAuthInterceptor(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, Task> authInterceptor)
+        /// <summary>
+        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, Task> authInterceptor)
         {
             if (builder == null)
             {
@@ -156,7 +162,13 @@ namespace Microsoft.Extensions.DependencyInjection
             return builder;
         }
 
-        public static IHttpClientBuilder AddAuthInterceptor(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, IServiceProvider, Task> authInterceptor)
+        /// <summary>
+        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, IServiceProvider, Task> authInterceptor)
         {
             if (builder == null)
             {
@@ -170,7 +182,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             ValidateGrpcClient(builder);
 
-            builder.Services.Configure(builder.Name, (Action<GrpcClientFactoryOptions>)(options =>
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
                 options.CallOptionsActions.Add((callOptions, serviceProvider) =>
                 {
@@ -178,7 +190,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
                     return UpdateCallOptionsCredentials(callOptions, credentials);
                 });
-            }));
+            });
 
             return builder;
         }

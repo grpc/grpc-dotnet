@@ -500,7 +500,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = new Uri("https://localhost");
                 })
-                .AddAuthInterceptor(async (context, metadata, serviceProvider) =>
+                .AddCallCredentials(async (context, metadata, serviceProvider) =>
                 {
                     var authProvider = serviceProvider.GetRequiredService<AuthProvider>();
                     metadata.Add("authorize", await authProvider.GetTokenAsync());
@@ -567,7 +567,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 {
                     o.Address = new Uri("https://localhost");
                 })
-                .AddAuthInterceptor((context, metadata) =>
+                .AddCallCredentials((context, metadata) =>
                 {
                     metadata.Add("factory-authorize", "auth!");
                     return Task.CompletedTask;
