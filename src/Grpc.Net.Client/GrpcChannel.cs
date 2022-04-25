@@ -71,7 +71,6 @@ namespace Grpc.Net.Client
         internal ILogger Logger { get; }
         internal bool ThrowOperationCanceledOnCancellation { get; }
         internal bool UnsafeUseInsecureChannelCallCredentials { get; }
-
         internal bool IsSecure => _isSecure;
         internal List<CallCredentials>? CallCredentials => _callCredentials;
         internal Dictionary<string, ICompressionProvider> CompressionProviders { get; }

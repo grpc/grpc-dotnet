@@ -184,18 +184,19 @@ namespace Grpc.Net.Client
         public bool ThrowOperationCanceledOnCancellation { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether call credentials are used by insecure channels. The default value is <c>false</c>.
+        /// Gets or sets a value indicating whether a gRPC call's <see cref="CallCredentials"/> are used by an insecure channel.
+        /// The default value is <c>false</c>.
         /// <para>
         /// Note: Experimental API that can change or be removed without any prior notice.
         /// </para>
         /// </summary>
         /// <remarks>
         /// <para>
-        /// The default value for this property is <c>false</c>, which causes insecure channels to ignore call credentials.
+        /// The default value for this property is <c>false</c>, which causes an insecure channel to ignore a gRPC call's <see cref="CallCredentials"/>.
         /// Sending authentication headers over an insecure connection has security implications and shouldn't be done in production environments.
         /// </para>
         /// <para>
-        /// If this property is set to <c>true</c>, call credentials are run for both secure and insecure channels.
+        /// If this property is set to <c>true</c>, call credentials are always used by a channel.
         /// </para>
         /// </remarks>
         public bool UnsafeUseInsecureChannelCallCredentials { get; set; }
