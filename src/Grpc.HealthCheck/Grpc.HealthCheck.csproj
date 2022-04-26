@@ -1,43 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors>The gRPC Authors</Authors>
-    <Copyright>Copyright 2015 The gRPC Authors</Copyright>
-    <Description>gRPC C# Health Checking (for Grpc.Core)</Description>
-    <PackageIcon>packageIcon.png</PackageIcon>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/grpc/grpc</PackageProjectUrl>
+    <Description>gRPC C# Health Checking</Description>
     <PackageTags>gRPC health check</PackageTags>
-    <VersionPrefix>$(GrpcCsharpVersion)</VersionPrefix> 
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFrameworks>net462;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- TODO(jtattermusch): re-enable nullable -->
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFrameworks>net45;net462;netstandard1.5;netstandard2.0</TargetFrameworks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
+  </ItemGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard1.5' or '$(TargetFramework)' == 'netstandard2.0' ">
     <DefineConstants>$(DefineConstants);GRPC_SUPPORT_WATCH;</DefineConstants>
   </PropertyGroup>
 
-  <Import Project="..\Grpc.Core\SourceLink.csproj.include" />
-
   <ItemGroup>
-    <None Include="../packageIcon.png" Pack="true" PackagePath="\"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Grpc.Core.Api\Version.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="../Grpc.Core.Api/Grpc.Core.Api.csproj">
-      <PrivateAssets>None</PrivateAssets>
-    </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' or '$(TargetFramework)' == 'netstandard1.5' or '$(TargetFramework)' == 'netstandard2.0' ">
