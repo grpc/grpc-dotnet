@@ -65,10 +65,10 @@ namespace Grpc.Reflection
         /// </summary>
         public override async Task ServerReflectionInfo(IAsyncStreamReader<ServerReflectionRequest> requestStream, IServerStreamWriter<ServerReflectionResponse> responseStream, ServerCallContext context)
         {
-            while (await requestStream.MoveNext())
+            while (await requestStream.MoveNext().ConfigureAwait(false))
             {
                 var response = ProcessRequest(requestStream.Current);
-                await responseStream.WriteAsync(response);
+                await responseStream.WriteAsync(response).ConfigureAwait(false);
             }
         }
 

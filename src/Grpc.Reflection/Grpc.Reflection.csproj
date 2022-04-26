@@ -1,42 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Authors>The gRPC Authors</Authors>
-    <Copyright>Copyright 2016 The gRPC Authors</Copyright>
-    <Description>gRPC C# Server Reflection (for Grpc.Core)</Description>
-    <PackageIcon>packageIcon.png</PackageIcon>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/grpc/grpc</PackageProjectUrl>
+    <Description>gRPC C# Server Reflection</Description>
     <PackageTags>gRPC reflection</PackageTags>
-    <VersionPrefix>$(GrpcCsharpVersion)</VersionPrefix>
-  </PropertyGroup>
 
-  <PropertyGroup>
-    <TargetFrameworks>net45;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TargetFrameworks>net462;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- TODO(jtattermusch): re-enable nullable -->
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
-  <Import Project="..\Grpc.Core\SourceLink.csproj.include" />
-
   <ItemGroup>
-    <None Include="../packageIcon.png" Pack="true" PackagePath="\"/>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Grpc.Core.Api\Version.cs" />
+    <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Grpc.Core.Api/Grpc.Core.Api.csproj">
-      <PrivateAssets>None</PrivateAssets>
-    </ProjectReference>
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+  
+    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it fo generating the Reflection.cs and ReflectionGrpc.cs sources -->
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
