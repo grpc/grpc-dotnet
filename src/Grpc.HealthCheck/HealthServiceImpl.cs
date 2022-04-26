@@ -204,15 +204,15 @@ namespace Grpc.HealthCheck
 
             // Send current status immediately
             HealthCheckResponse response = GetHealthCheckResponse(service, throwOnNotFound: false);
-            await responseStream.WriteAsync(response);
+            await responseStream.WriteAsync(response).ConfigureAwait(false);
 
             // Read messages. WaitToReadAsync will wait until new messages are available.
             // Loop will exit when the call is canceled and the writer is marked as complete.
-            while (await channel.Reader.WaitToReadAsync())
+            while (await channel.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
                 if (channel.Reader.TryRead(out HealthCheckResponse item))
                 {
-                    await responseStream.WriteAsync(item);
+                    await responseStream.WriteAsync(item).ConfigureAwait(false);
                 }
             }
         }
