@@ -23,6 +23,8 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="System.Threading.Channels" Version="$(SystemThreadingChannelsPackageVersion)" />
+
+    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Health.cs and HealthGrpc.cs sources -->
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
