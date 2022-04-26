@@ -17,9 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-#if GRPC_SUPPORT_WATCH
 using System.Threading.Channels;
-#endif
 using System.Threading.Tasks;
 
 using Grpc.Core;
@@ -46,11 +44,9 @@ namespace Grpc.HealthCheck
         private readonly Dictionary<string, HealthCheckResponse.Types.ServingStatus> statusMap =
             new Dictionary<string, HealthCheckResponse.Types.ServingStatus>();
 
-#if GRPC_SUPPORT_WATCH
         private readonly object watchersLock = new object();
         private readonly Dictionary<string, List<ChannelWriter<HealthCheckResponse>>> watchers =
             new Dictionary<string, List<ChannelWriter<HealthCheckResponse>>>();
-#endif
 
         /// <summary>
         /// Sets the health status for given service.
@@ -66,12 +62,10 @@ namespace Grpc.HealthCheck
                 statusMap[service] = status;
             }
 
-#if GRPC_SUPPORT_WATCH
             if (status != previousStatus)
             {
                 NotifyStatus(service, status);
             }
-#endif
         }
 
         /// <summary>
@@ -87,12 +81,10 @@ namespace Grpc.HealthCheck
                 statusMap.Remove(service);
             }
 
-#if GRPC_SUPPORT_WATCH
             if (previousStatus != HealthCheckResponse.Types.ServingStatus.ServiceUnknown)
             {
                 NotifyStatus(service, HealthCheckResponse.Types.ServingStatus.ServiceUnknown);
             }
-#endif
         }
 
         /// <summary>
@@ -107,7 +99,6 @@ namespace Grpc.HealthCheck
                 statusMap.Clear();
             }
 
-#if GRPC_SUPPORT_WATCH
             foreach (KeyValuePair<string, HealthCheckResponse.Types.ServingStatus> status in statuses)
             {
                 if (status.Value != HealthCheckResponse.Types.ServingStatus.ServiceUnknown)
@@ -115,7 +106,6 @@ namespace Grpc.HealthCheck
                     NotifyStatus(status.Key, HealthCheckResponse.Types.ServingStatus.ServiceUnknown);
                 }
             }
-#endif
         }
 
         /// <summary>
@@ -131,7 +121,6 @@ namespace Grpc.HealthCheck
             return Task.FromResult(response);
         }
 
-#if GRPC_SUPPORT_WATCH
         /// <summary>
         /// Performs a watch for the serving status of the requested service.
         /// The server will immediately send back a message indicating the current
@@ -235,7 +224,6 @@ namespace Grpc.HealthCheck
                 }
             }
         }
-#endif
 
         private HealthCheckResponse GetHealthCheckResponse(string service, bool throwOnNotFound)
         {
