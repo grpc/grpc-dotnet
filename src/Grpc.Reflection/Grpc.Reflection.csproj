@@ -23,7 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
   
-    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it fo generating the Reflection.cs and ReflectionGrpc.cs sources -->
+    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Reflection.cs and ReflectionGrpc.cs sources -->
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
