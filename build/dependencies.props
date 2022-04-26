@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.13.1</BenchmarkDotNetPackageVersion>
+    <GoogleApisAuthPackageVersion>1.46.0</GoogleApisAuthPackageVersion>
     <GoogleProtobufPackageVersion>3.19.4</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.44.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.45.0</GrpcPackageVersion>

@@ -5,22 +5,20 @@
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- TODO(jtattermusch): is using net462 instead of net45 ok here? -->
     <TargetFrameworks>net462;netstandard1.5;netstandard2.0</TargetFrameworks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    
-    <VersionPrefix>$(GrpcDotnetVersion)</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Grpc.Core.Api/Grpc.Core.Api.csproj">
-      <!--TODO(jtattermusch): is this actually necessary? -->
-      <PrivateAssets>None</PrivateAssets>
-    </ProjectReference>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Auth" Version="1.46.0" />
+    <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="$(GoogleApisAuthPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
