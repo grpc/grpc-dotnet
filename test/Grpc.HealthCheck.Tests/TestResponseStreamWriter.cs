@@ -14,7 +14,6 @@
 // limitations under the License.
 #endregion
 
-#if GRPC_SUPPORT_WATCH
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -69,4 +68,3 @@ namespace Grpc.HealthCheck.Tests
         }
     }
 }
-#endif

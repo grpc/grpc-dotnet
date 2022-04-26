@@ -85,7 +85,6 @@ namespace Grpc.HealthCheck.Tests
             Assert.Throws(typeof(ArgumentNullException), () => impl.ClearStatus(null));
         }
 
-#if GRPC_SUPPORT_WATCH
         [Test]
         public async Task Watch()
         {
@@ -250,7 +249,6 @@ namespace Grpc.HealthCheck.Tests
             Assert.AreEqual((HealthCheckResponse.Types.ServingStatus)18, statuses[statuses.Count - 2]);
             Assert.AreEqual((HealthCheckResponse.Types.ServingStatus)19, statuses[statuses.Count - 1]);
         }
-#endif
 
         private static HealthCheckResponse.Types.ServingStatus GetStatusHelper(HealthServiceImpl impl, string service)
         {
