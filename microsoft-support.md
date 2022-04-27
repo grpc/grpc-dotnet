@@ -1,8 +1,8 @@
 # Microsoft support for grpc-dotnet
 
-> gRPC is a CNCF project and receives support from the gRPC team and the grpc-dotnet maintainers and contributors. All gRPC languages officially supported by CNCF have this level of support.
->
-> In addition, grpc-dotnet is an important technology for the .NET ecosystem. It also receives official support directly from Microsoft's support team. This document summarized the details of Microsoft's support policy.
+***gRPC is a CNCF project and receives support from the gRPC team and the grpc-dotnet maintainers and contributors. All gRPC languages officially supported by CNCF have this level of support.***
+
+***In addition, grpc-dotnet is an important technology for the .NET ecosystem. It also receives official support directly from Microsoft's support team. This document summarized the details of Microsoft's support policy.***
 
 Microsoft supports grpc-dotnet on multiple operating systems, per the [Microsoft Modern Lifecycle](https://support.microsoft.com/help/30881/modern-lifecycle-policy).
 
