@@ -65,7 +65,7 @@ namespace GrpcClient
             options.Add(new Option<int>(new string[] { "-c", "--connections" }, () => 1, "Total number of connections to keep open"));
             options.Add(new Option<int>(new string[] { "-w", "--warmup" }, () => 5, "Duration of the warmup in seconds"));
             options.Add(new Option<int>(new string[] { "-d", "--duration" }, () => 10, "Duration of the test in seconds"));
-            options.Add(new Option<int>(new string[] { "--callCount" }, "Call count of test"));
+            options.Add(new Option<int?>(new string[] { "--callCount" }, "Call count of test"));
             options.Add(new Option<string>(new string[] { "-s", "--scenario" }, "Scenario to run") { IsRequired = true });
             options.Add(new Option<bool>(new string[] { "-l", "--latency" }, () => false, "Whether to collect detailed latency"));
             options.Add(new Option<string>(new string[] { "-p", "--protocol" }, "HTTP protocol") { IsRequired = true });
