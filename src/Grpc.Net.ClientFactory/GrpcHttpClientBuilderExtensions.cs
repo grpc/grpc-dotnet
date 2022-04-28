@@ -130,6 +130,82 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
+        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, Task> authInterceptor)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (authInterceptor == null)
+            {
+                throw new ArgumentNullException(nameof(authInterceptor));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            {
+                options.CallOptionsActions.Add((callOptionsContext) =>
+                {
+                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata));
+
+                    callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
+                });
+            });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, IServiceProvider, Task> authInterceptor)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (authInterceptor == null)
+            {
+                throw new ArgumentNullException(nameof(authInterceptor));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            {
+                options.CallOptionsActions.Add((callOptionsContext) =>
+                {
+                    var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, callOptionsContext.ServiceProvider));
+
+                    callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
+                });
+            });
+
+            return builder;
+        }
+
+        private static CallOptions ResolveCallOptionsCredentials(CallOptions callOptions, CallCredentials credentials)
+        {
+            if (callOptions.Credentials != null)
+            {
+                credentials = CallCredentials.Compose(callOptions.Credentials, credentials);
+            }
+
+            return callOptions.WithCredentials(credentials);
+        }
+
+        /// <summary>
         /// Adds a delegate that will be used to create an additional inteceptor for a gRPC client.
         /// The interceptor scope is <see cref="InterceptorScope.Channel"/>.
         /// </summary>

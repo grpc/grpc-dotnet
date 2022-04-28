@@ -128,6 +128,37 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task CallCredentialsWithHttp_UnsafeUseInsecureChannelCallCredentials_MetadataOnRequest()
+        {
+            // Arrange
+            string? authorizationValue = null;
+            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            {
+                authorizationValue = request.Headers.GetValues("authorization").Single();
+
+                var reply = new HelloReply { Message = "Hello world" };
+                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+            }, new Uri("http://localhost"));
+            var invoker = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                configure: o => o.UnsafeUseInsecureChannelCallCredentials = true);
+
+            // Act
+            var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+            {
+                // The operation is asynchronous to ensure delegate is awaited
+                await Task.Delay(50);
+                metadata.Add("authorization", "SECRET_TOKEN");
+            });
+            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+            await call.ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.AreEqual("SECRET_TOKEN", authorizationValue);
+        }
+
+        [Test]
         public async Task CompositeCallCredentialsWithHttps_MetadataOnRequest()
         {
             // Arrange

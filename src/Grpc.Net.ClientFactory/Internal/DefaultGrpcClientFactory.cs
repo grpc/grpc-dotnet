@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -61,6 +62,11 @@ namespace Grpc.Net.ClientFactory.Internal
                 resolvedCallInvoker = resolvedCallInvoker.Intercept(clientFactoryOptions.Interceptors.ToArray());
             }
 #pragma warning restore CS0618 // Type or member is obsolete
+
+            if (clientFactoryOptions.CallOptionsActions.Count != 0)
+            {
+                resolvedCallInvoker = new CallOptionsConfigurationInvoker(resolvedCallInvoker, clientFactoryOptions.CallOptionsActions, _serviceProvider);
+            }
 
             if (clientFactoryOptions.Creator != null)
             {
