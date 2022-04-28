@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" />
+    <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
   </ItemGroup>
 
 </Project>
