@@ -34,8 +34,6 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
     internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     {
-        private static readonly ServiceConfig DefaultServiceConfig = new ServiceConfig();
-
         private readonly object _lock;
         internal readonly Resolver _resolver;
         private readonly ISubchannelTransportFactory _subchannelTransportFactory;
@@ -141,8 +139,8 @@ namespace Grpc.Net.Client.Balancer.Internal
                     if (result.ServiceConfigStatus == null)
                     {
                         // Step 5: Use default service config if none is provided.
-                        _previousServiceConfig = DefaultServiceConfig;
-                        workingServiceConfig = DefaultServiceConfig;
+                        workingServiceConfig = new ServiceConfig();
+                        _previousServiceConfig = workingServiceConfig;
                     }
                     else
                     {
