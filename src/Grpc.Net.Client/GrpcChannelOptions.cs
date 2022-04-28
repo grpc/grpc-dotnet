@@ -34,13 +34,13 @@ namespace Grpc.Net.Client
 #endif
 
         /// <summary>
-        /// Gets or sets the credentials for the channel. This setting is used to set <see cref="CallCredentials"/> for
+        /// Gets or sets the credentials for the channel. This setting is used to set <see cref="ChannelCredentials"/> for
         /// a channel. Connection transport layer security (TLS) is determined by the address used to create the channel.
         /// </summary>
         /// <remarks>
         /// <para>
         /// The channel credentials you use must match the address TLS setting. Use <see cref="ChannelCredentials.Insecure"/>
-        /// for an "http" address and <see cref="SslCredentials"/> with no arguments for "https".
+        /// for an "http" address and <see cref="ChannelCredentials.SecureSsl"/> for "https".
         /// </para>
         /// <para>
         /// The underlying <see cref="System.Net.Http.HttpClient"/> used by the channel automatically loads root certificates
@@ -182,6 +182,24 @@ namespace Grpc.Net.Client
         /// </para>
         /// </summary>
         public bool ThrowOperationCanceledOnCancellation { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether a gRPC call's <see cref="CallCredentials"/> are used by an insecure channel.
+        /// The default value is <c>false</c>.
+        /// <para>
+        /// Note: Experimental API that can change or be removed without any prior notice.
+        /// </para>
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The default value for this property is <c>false</c>, which causes an insecure channel to ignore a gRPC call's <see cref="CallCredentials"/>.
+        /// Sending authentication headers over an insecure connection has security implications and shouldn't be done in production environments.
+        /// </para>
+        /// <para>
+        /// If this property is set to <c>true</c>, call credentials are always used by a channel.
+        /// </para>
+        /// </remarks>
+        public bool UnsafeUseInsecureChannelCallCredentials { get; set; }
 
         /// <summary>
         /// Gets or sets the service config for a gRPC channel. A service config allows service owners to publish parameters

@@ -486,6 +486,130 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             Assert.AreEqual(1, channelInterceptorCreatedCount);
         }
 
+        [Test]
+        public async Task AddCallCredentials_ServiceProvider_RunInScope()
+        {
+            // Arrange
+            var scopeCount = 0;
+            var authHeaderValues = new List<string>();
+
+            var services = new ServiceCollection();
+            services
+                .AddScoped<AuthProvider>(s => new AuthProvider((scopeCount++).ToString()))
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("https://localhost");
+                })
+                .AddCallCredentials(async (context, metadata, serviceProvider) =>
+                {
+                    var authProvider = serviceProvider.GetRequiredService<AuthProvider>();
+                    metadata.Add("authorize", await authProvider.GetTokenAsync());
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler(request =>
+                {
+                    if (request.Headers.TryGetValues("authorize", out var values))
+                    {
+                        authHeaderValues.AddRange(values);
+                    }
+                }));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response1 = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+                var response2 = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response1);
+                Assert.IsNotNull(response2);
+                Assert.AreEqual(2, authHeaderValues.Count);
+                Assert.AreEqual("0", authHeaderValues[0]);
+                Assert.AreEqual("0", authHeaderValues[1]);
+            }
+
+            authHeaderValues.Clear();
+
+            // Act
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var clientFactory = scope.ServiceProvider.GetRequiredService<GrpcClientFactory>();
+                var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+                var response1 = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+                var response2 = await client.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+                // Assert
+                Assert.IsNotNull(response1);
+                Assert.IsNotNull(response2);
+                Assert.AreEqual(2, authHeaderValues.Count);
+                Assert.AreEqual("1", authHeaderValues[0]);
+                Assert.AreEqual("1", authHeaderValues[1]);
+            }
+
+            // Only one channel and its interceptor is created for multiple scopes.
+            Assert.AreEqual(2, scopeCount);
+        }
+
+        [Test]
+        public async Task AddCallCredentials_PassedInCallCredentials_Combine()
+        {
+            // Arrange
+            HttpRequestMessage? sentRequest = null;
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("https://localhost");
+                })
+                .AddCallCredentials((context, metadata) =>
+                {
+                    metadata.Add("factory-authorize", "auth!");
+                    return Task.CompletedTask;
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler(request =>
+                {
+                    sentRequest = request;
+                }));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            var response = await client.SayHelloAsync(
+                new HelloRequest(),
+                new CallOptions(credentials: CallCredentials.FromInterceptor((context, metadata) =>
+                {
+                    metadata.Add("call-authorize", "auth!");
+                    return Task.CompletedTask;
+                }))).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.NotNull(response);
+
+            Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("factory-authorize").Single());
+            Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("call-authorize").Single());
+        }
+
+        private class AuthProvider
+        {
+            private readonly string _headerValue;
+
+            public AuthProvider(string headerValue)
+            {
+                _headerValue = headerValue;
+            }
+
+            public Task<string> GetTokenAsync() => Task.FromResult(_headerValue);
+        }
+
         private class DerivedGreeterClient : Greeter.GreeterClient
         {
             public DerivedGreeterClient(CallInvoker callInvoker) : base(callInvoker)
@@ -497,9 +621,17 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         {
             public bool Invoked { get; private set; }
 
+            private Action<HttpRequestMessage>? _requestCallback;
+
+            public TestHttpMessageHandler(Action<HttpRequestMessage>? requestCallback = null)
+            {
+                _requestCallback = requestCallback;
+            }
+
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 Invoked = true;
+                _requestCallback?.Invoke(request);
 
                 // Get stream from request content so gRPC client serializes request message
 #if NET5_0_OR_GREATER
