@@ -49,7 +49,7 @@ namespace Grpc.Auth
         /// with a gRPC service.
         /// </summary>
         /// <param name="accessToken">OAuth2 access token.</param>
-        /// /// <returns>The <c>MetadataCredentials</c> instance.</returns>
+        /// <returns>The <c>CallCredentials</c> instance.</returns>
         public static CallCredentials FromAccessToken(string accessToken)
         {
             return CallCredentials.FromInterceptor(GoogleAuthInterceptors.FromAccessToken(accessToken));
