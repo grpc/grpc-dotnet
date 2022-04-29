@@ -132,6 +132,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8545CBA9-0
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Core.Api.Tests", "test\Grpc.Core.Api.Tests\Grpc.Core.Api.Tests.csproj", "{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Auth", "src\Grpc.Auth\Grpc.Auth.csproj", "{0BF42289-98E1-4490-8934-AF56B05ADB8B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -274,6 +276,10 @@ Global
 		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BF42289-98E1-4490-8934-AF56B05ADB8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BF42289-98E1-4490-8934-AF56B05ADB8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BF42289-98E1-4490-8934-AF56B05ADB8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BF42289-98E1-4490-8934-AF56B05ADB8B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -322,6 +328,7 @@ Global
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 		{BAE7C213-5950-4916-B456-A482828D89A0} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8} = {8545CBA9-0780-46C5-8A98-18D9E0B958C1}
+		{0BF42289-98E1-4490-8934-AF56B05ADB8B} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}
