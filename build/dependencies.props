@@ -31,5 +31,6 @@
     <SystemMemoryPackageVersion>4.5.3</SystemMemoryPackageVersion>
     <SystemNetHttpWinHttpHandlerPackageVersion>6.0.0</SystemNetHttpWinHttpHandlerPackageVersion>
     <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
+    <SystemThreadingChannelsPackageVersion>4.6.0</SystemThreadingChannelsPackageVersion>
   </PropertyGroup>
 </Project>

@@ -15,10 +15,9 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    
-    <PackageReference Include="Grpc.HealthCheck" Version="$(GrpcPackageVersion)" />
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
   </ItemGroup>
 
 </Project>
