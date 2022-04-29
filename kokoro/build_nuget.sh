@@ -29,9 +29,13 @@ mkdir -p artifacts
 
 build/expand_dev_version.sh
 
-# Set ContiniousIntegrationBuild to true for offical builds
+# Set ContinuousIntegrationBuild to true for offical builds
 # https://github.com/dotnet/sourcelink/blob/master/docs/README.md#continuousintegrationbuild
 
+(cd src/Grpc.Auth && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.Core.Api && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.HealthCheck && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
+(cd src/Grpc.Reflection && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/Grpc.Net.Common && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/Grpc.Net.Client && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
 (cd src/Grpc.Net.ClientFactory && dotnet pack --configuration Release --output ../../artifacts -p:ContinuousIntegrationBuild=true)
