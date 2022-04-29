@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net462;netcoreapp3.1</TargetFrameworks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- TODO(jtattermusch): re-enable nullable -->
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
+
+    <!-- TODO(jtattermusch): migrate client/server test to use grpc-dotnet instead of Grpc.Core -->
+    <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+    <Reference Include="System" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+</Project>

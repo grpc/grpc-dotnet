@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>gRPC C# Health Checking</Description>
+    <PackageTags>gRPC health check</PackageTags>
+
+    <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TargetFrameworks>net462;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- TODO(jtattermusch): re-enable nullable -->
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
+    <PackageReference Include="System.Threading.Channels" Version="$(SystemThreadingChannelsPackageVersion)" />
+
+    <!-- TODO(jtattermusch): add reference to Grpc.Tools and use it for generating the Health.cs and HealthGrpc.cs sources -->
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
+    <Reference Include="System" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+</Project>
