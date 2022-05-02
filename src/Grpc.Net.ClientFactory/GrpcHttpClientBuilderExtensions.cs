@@ -130,7 +130,7 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// Adds a delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
@@ -163,7 +163,7 @@ namespace Microsoft.Extensions.DependencyInjection
         }
 
         /// <summary>
-        /// Adds delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
+        /// Adds a delegate that will be used to create <see cref="CallCredentials"/> for a gRPC call.
         /// </summary>
         /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
         /// <param name="authInterceptor">A delegate that is used to create <see cref="CallCredentials"/> for a gRPC call.</param>
@@ -188,6 +188,37 @@ namespace Microsoft.Extensions.DependencyInjection
                 {
                     var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, callOptionsContext.ServiceProvider));
 
+                    callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
+                });
+            });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Adds <see cref="CallCredentials"/> for a gRPC call.
+        /// </summary>
+        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+        /// <param name="credentials">The <see cref="CallCredentials"/> for a gRPC call.</param>
+        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+        public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, CallCredentials credentials)
+        {
+            if (builder == null)
+            {
+                throw new ArgumentNullException(nameof(builder));
+            }
+
+            if (credentials == null)
+            {
+                throw new ArgumentNullException(nameof(credentials));
+            }
+
+            ValidateGrpcClient(builder);
+
+            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
+            {
+                options.CallOptionsActions.Add((callOptionsContext) =>
+                {
                     callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);
                 });
             });
