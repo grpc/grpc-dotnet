@@ -7,15 +7,12 @@ import "google/api/annotations.proto";
 
 package greet;
 
-// Greeter service!
 service Greeter {
-  // SayHello method!
   rpc SayHello (HelloRequest) returns (HelloReply) {
     option (google.api.http) = {
       get: "/v1/greeter/{name}"
     };
   }
-  // SayHelloFrom method!
   rpc SayHelloFrom (HelloRequestFrom) returns (HelloReply) {
     option (google.api.http) = {
       post: "/v1/greeter"
@@ -24,22 +21,15 @@ service Greeter {
   }
 }
 
-// HelloRequest!
 message HelloRequest {
-  // Name!
   string name = 1;
 }
 
-// HelloRequestFrom!
 message HelloRequestFrom {
-  // Name!
   string name = 1;
-  // From!
   string from = 2;
 }
 
-// HelloReply!
 message HelloReply {
-  // Message!
   string message = 1;
 }
