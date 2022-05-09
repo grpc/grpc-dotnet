@@ -556,6 +556,44 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public async Task AddCallCredentials_CallCredentials_HeaderAdded()
+        {
+            // Arrange
+            HttpRequestMessage? sentRequest = null;
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("https://localhost");
+                })
+                .AddCallCredentials(CallCredentials.FromInterceptor((context, metadata) =>
+                {
+                    metadata.Add("factory-authorize", "auth!");
+                    return Task.CompletedTask;
+                }))
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler(request =>
+                {
+                    sentRequest = request;
+                }));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            var response = await client.SayHelloAsync(
+                new HelloRequest(),
+                new CallOptions()).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.NotNull(response);
+
+            Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("factory-authorize").Single());
+        }
+
+        [Test]
         public async Task AddCallCredentials_PassedInCallCredentials_Combine()
         {
             // Arrange
@@ -566,6 +604,14 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
                 .AddGrpcClient<Greeter.GreeterClient>(o =>
                 {
                     o.Address = new Uri("https://localhost");
+                })
+                .ConfigureChannel(c =>
+                {
+                    c.Credentials = ChannelCredentials.Create(ChannelCredentials.SecureSsl, CallCredentials.FromInterceptor((c, m) =>
+                    {
+                        m.Add("channel-authorize", "auth!");
+                        return Task.CompletedTask;
+                    }));
                 })
                 .AddCallCredentials((context, metadata) =>
                 {
@@ -594,6 +640,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Assert
             Assert.NotNull(response);
 
+            Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("channel-authorize").Single());
             Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("factory-authorize").Single());
             Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("call-authorize").Single());
         }
