@@ -43,6 +43,8 @@ namespace Microsoft.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(services));
             }
 
+            services.TryAddSingleton<GrpcReflectionMarkerService>();
+
             // ReflectionServiceImpl is designed to be a singleton
             // Explicitly register creating it in DI using descriptors calculated from gRPC endpoints in the app
             services.TryAddSingleton<ReflectionServiceImpl>(serviceProvider =>
