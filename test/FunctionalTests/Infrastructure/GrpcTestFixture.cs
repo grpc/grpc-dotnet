@@ -107,8 +107,10 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                         urls[TestServerEndpointName.Http3WithTls] = "https://127.0.0.1:50019";
                         options.ListenLocalhost(50019, listenOptions =>
                         {
-                        // Support HTTP/2 for connectivity health in load balancing to work.
-                        listenOptions.Protocols = HttpProtocols.Http2 | HttpProtocols.Http3;
+#pragma warning disable CA2252 // This API requires opting into preview features
+                            // Support HTTP/2 for connectivity health in load balancing to work.
+                            listenOptions.Protocols = HttpProtocols.Http2 | HttpProtocols.Http3;
+#pragma warning restore CA2252 // This API requires opting into preview features
 
                             var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
                             var certPath = Path.Combine(basePath!, "server1.pfx");

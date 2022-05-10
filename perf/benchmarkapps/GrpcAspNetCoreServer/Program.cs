@@ -141,7 +141,9 @@ namespace GrpcAspNetCoreServer
 #if NET6_0_OR_GREATER
             else if (protocol.Equals("h3", StringComparison.OrdinalIgnoreCase))
             {
+#pragma warning disable CA2252 // This API requires opting into preview features
                 listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
+#pragma warning restore CA2252 // This API requires opting into preview features
 
                 listenOptions.UseHttps(certPath, "1111", httpsOptions =>
                 {

@@ -10,7 +10,7 @@
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>6.0.0</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22168.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>
@@ -29,7 +29,7 @@
     <SystemDiagnosticsDiagnosticSourcePackageVersion>4.5.1</SystemDiagnosticsDiagnosticSourcePackageVersion>
     <SystemIOPipelinesPackageVersion>5.0.1</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.3</SystemMemoryPackageVersion>
-    <SystemNetHttpWinHttpHandlerPackageVersion>6.0.0</SystemNetHttpWinHttpHandlerPackageVersion>
+    <SystemNetHttpWinHttpHandlerPackageVersion>6.0.1</SystemNetHttpWinHttpHandlerPackageVersion>
     <SystemSecurityPrincipalWindowsPackageVersion>4.6.0</SystemSecurityPrincipalWindowsPackageVersion>
     <SystemThreadingChannelsPackageVersion>4.6.0</SystemThreadingChannelsPackageVersion>
   </PropertyGroup>
