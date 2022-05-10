@@ -18,6 +18,7 @@
 
 using Grpc.Reflection;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -39,7 +40,19 @@ namespace Microsoft.AspNetCore.Builder
                 throw new ArgumentNullException(nameof(builder));
             }
 
+            ValidateServicesRegistered(builder.ServiceProvider);
+
             return builder.MapGrpcService<ReflectionServiceImpl>();
+        }
+
+        private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
+        {
+            var marker = serviceProvider.GetService(typeof(GrpcReflectionMarkerService));
+            if (marker == null)
+            {
+                throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
+                    "'IServiceCollection.AddGrpcReflection()' inside the call to 'ConfigureServices(...)' in the application startup code.");
+            }
         }
     }
 }
