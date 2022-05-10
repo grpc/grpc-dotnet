@@ -33,5 +33,8 @@ $install_script_path -v 3.1.300 -i $dotnet_install_path
 # Install .NET 5 SDK to run 5.0 test targets
 $install_script_path -v 5.0.302 -i $dotnet_install_path
 
+# Install .NET 7 SDK for transcoder sample
+$install_script_path -v 7.0.100-preview.5.22229.2 -i $dotnet_install_path
+
 # Install .NET version specified by global.json
 $install_script_path -v $sdk_version -i $dotnet_install_path

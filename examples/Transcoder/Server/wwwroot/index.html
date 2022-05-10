@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>gRPC JSON transcoding</title>
+    <link rel="stylesheet" href="/lib/bootstrap/dist/bootstrap.min.css" />
+    <style type="text/css">
+        .nav-tabs {
+            margin-bottom: 1em;
+        }
+        .alert:empty {
+            display:none;
+        }
+        code {
+            margin-bottom: 1em;
+        }
+        .container {
+            max-width: 720px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <h1 class="display-4 mb-4 mt-2">gRPC JSON transcoding</h1>
+            <p>
+                JSON transcoding allows you call gRPC methods with familiar HTTP concepts:
+            </p>
+            <ul>
+                <li>HTTP verbs</li>
+                <li>URL parameter binding</li>
+                <li>JSON requests/responses</li>
+            </ul>
+            <p>
+                RESTful APIs for your ASP.NET Core gRPC services. No duplication!
+            </p>
+            <img src="/images/grpc-rest-logo.png" class="img-fluid mb-3" alt="gRPC loves REST" />
+            <h5 class="mb-3">Try it now</h5>
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="get-tab" data-bs-toggle="tab" data-bs-target="#get" type="button" role="tab" aria-controls="home" aria-selected="true">GET</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="post-tab" data-bs-toggle="tab" data-bs-target="#post" type="button" role="tab" aria-controls="profile" aria-selected="false">POST</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="source-tab" data-bs-toggle="tab" data-bs-target="#source" type="button" role="tab" aria-controls="contact" aria-selected="false">View source</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="get" role="tabpanel" aria-labelledby="get-tab">
+                    <form id="sendGet">
+                        <p>
+                            Send a GET request to the Greeter gRPC service. The name is sent as a URL parameter.
+                        </p>
+                        <div class="row gx-2 align-items-center">
+                            <div class="col-auto">
+                                <label class="visually-hidden" for="inlineFormInput">Hello</label>
+                                <input type="text" class="form-control mb-2" id="nameGet" placeholder="Hello" required>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary mb-2">Send</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="alert alert-success" role="alert" id="resultGet"></div>
+                </div>
+                <div class="tab-pane fade" id="post" role="tabpanel" aria-labelledby="post-tab">
+                    <form id="sendPost">
+                        <p>
+                            Send a POST request to the Greeter gRPC service. JSON is sent in the request body.
+                        </p>
+                        <div class="row gx-2 align-items-center">
+                            <div class="col-auto">
+                                <label class="visually-hidden" for="inlineFormInput">Hello</label>
+                                <input type="text" class="form-control mb-2" id="toPost" placeholder="Hello">
+                            </div>
+                            <div class="col-auto">
+                                <label class="visually-hidden" for="inlineFormInput">From</label>
+                                <input type="text" class="form-control mb-2" id="fromPost" placeholder="From">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary mb-2">Send</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="alert alert-success" role="alert" id="resultPost"></div>
+                </div>
+                <div class="tab-pane fade" id="source" role="tabpanel" aria-labelledby="source-tab">
+                    <p>
+                        This website's source code on GitHub:
+                    </p>
+                    <ul>
+                        <li><a href="https://github.com/aspnet/AspLabs/blob/main/src/GrpcHttpApi/sample/Proto/greet.proto" target="_blank">Proto/greet.proto</a> - Add <code>google.api.http</code> annotations to map HTTP calls to gRPC.</li>
+                        <li><a href="https://github.com/aspnet/AspLabs/blob/main/src/GrpcHttpApi/sample/Server/Server.csproj" target="_blank">Server/Server.csproj</a> - Add <code>Microsoft.AspNetCore.Grpc.JsonTranscoding</code> NuGet package.</li>
+                        <li><a href="https://github.com/aspnet/AspLabs/blob/main/src/GrpcHttpApi/sample/Server/Startup.cs" target="_blank">Server/Startup.cs</a> - Register gRPC JSON transcoding with <code>AddJsonTranscoding()</code>.</li>
+                    </ul>
+                    <p>
+                        The service, <a href="https://github.com/aspnet/AspLabs/blob/main/src/GrpcHttpApi/sample/Server/Services/GreeterService.cs" target="_blank">Server/Services/GreeterService.cs</a>, is unchanged. gRPC and REST from one service!
+                    </p>
+                    <p>
+                        Find out more about using gRPC JSON transcoding <a href="https://docs.microsoft.com/aspnet/core/grpc/httpapi">here</a>.
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script type="text/javascript" src="/lib/bootstrap/dist/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript">
+        var nameGetInput = document.getElementById('nameGet');
+        var getForm = document.getElementById('sendGet');
+        var resultGetText = document.getElementById('resultGet');
+
+        getForm.addEventListener('submit', function (event) {
+            if (getForm.checkValidity()) {
+                resultGetText.innerHTML = '';
+
+                var url = '/v1/greeter/' + encodeURIComponent(nameGetInput.value);
+                fetch(url).then(function (response) {
+                    response.text().then(function (data) {
+                        resultGetText.innerHTML = `<h6>Request</h6>
+<p><code>GET ${url}</code></p>
+<h6>Response</h6>
+<p><code>${htmlEscape(data)}</code></p>
+<h6>Result</h6>
+<p>${JSON.parse(data).message}</p>`;
+                    });
+                });
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+        }, false);
+
+        var toPostInput = document.getElementById('toPost');
+        var fromPostInput = document.getElementById('fromPost');
+        var postForm = document.getElementById('sendPost');
+        var resultPostText = document.getElementById('resultPost');
+
+        postForm.addEventListener('submit', function (event) {
+            resultPostText.innerHTML = '';
+
+            var url = '/v1/greeter';
+            var content = JSON.stringify({ name: toPostInput.value, from: fromPostInput.value });
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: content
+            }).then(function (response) {
+                response.text().then(function (data) {
+                    resultPostText.innerHTML = `<h6>Request</h6>
+<p><code>POST ${url} ${htmlEscape(content)}</code></p>
+<h6>Response</h6>
+<p><code>${htmlEscape(data)}</code></p>
+<h6>Result</h6>
+<p>${JSON.parse(data).message}</p>`;
+                });
+            });
+
+            event.preventDefault();
+            event.stopPropagation();
+        }, false);
+
+        function htmlEscape(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/'/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+    </script>
+</body>
+</html>
