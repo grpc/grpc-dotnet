@@ -1002,37 +1002,45 @@ namespace Grpc.Net.Client.Internal
 
         private void DeadlineExceededCallback(object? state)
         {
-            // Deadline is only exceeded if the timeout has passed and
-            // the response has not been finished or canceled
-            if (!_callCts.IsCancellationRequested && !ResponseFinished)
+            try
             {
-                TimeSpan remaining;
-                lock (this)
+                // Deadline is only exceeded if the timeout has passed and
+                // the response has not been finished or canceled
+                if (!_callCts.IsCancellationRequested && !ResponseFinished)
                 {
-                    // If _deadline is MaxValue then the DEADLINE_EXCEEDED status has
-                    // already been received by the client and the timer can stop.
-                    if (_deadline == DateTime.MaxValue)
+                    TimeSpan remaining;
+                    lock (this)
                     {
-                        return;
-                    }
+                        // If _deadline is MaxValue then the DEADLINE_EXCEEDED status has
+                        // already been received by the client and the timer can stop.
+                        if (_deadline == DateTime.MaxValue)
+                        {
+                            return;
+                        }
 
-                    remaining = _deadline - Channel.Clock.UtcNow;
-                    if (remaining <= TimeSpan.Zero)
-                    {
-                        DeadlineExceeded();
-                        return;
-                    }
+                        remaining = _deadline - Channel.Clock.UtcNow;
+                        if (remaining <= TimeSpan.Zero)
+                        {
+                            DeadlineExceeded();
+                            return;
+                        }
 
-                    if (_deadlineTimer != null)
-                    {
-                        // Deadline has not been reached because timer maximum due time was smaller than deadline.
-                        // Reschedule DeadlineExceeded again until deadline has been exceeded.
-                        GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
+                        if (_deadlineTimer != null)
+                        {
+                            // Deadline has not been reached because timer maximum due time was smaller than deadline.
+                            // Reschedule DeadlineExceeded again until deadline has been exceeded.
+                            GrpcCallLog.DeadlineTimerRescheduled(Logger, remaining);
 
-                        var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
-                        _deadlineTimer.Change(dueTime, Timeout.Infinite);
+                            var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(remaining, Channel.MaxTimerDueTime);
+                            _deadlineTimer.Change(dueTime, Timeout.Infinite);
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                // Ensure exceptions are never thrown from a timer.
+                GrpcCallLog.ErrorExceedingDeadline(Logger, ex);
             }
         }
 
