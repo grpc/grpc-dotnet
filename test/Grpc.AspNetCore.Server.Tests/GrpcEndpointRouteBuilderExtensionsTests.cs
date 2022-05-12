@@ -35,6 +35,20 @@ namespace Grpc.AspNetCore.Server.Tests
     public class GrpcEndpointRouteBuilderExtensionsTests
     {
         [Test]
+        public void MapGrpcReflectionService_WithoutServices_RaiseError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+
+            var routeBuilder = CreateTestEndpointRouteBuilder(services.BuildServiceProvider(validateScopes: true));
+
+            // Act & Assert
+            var ex = Assert.Throws<InvalidOperationException>(() => routeBuilder.MapGrpcReflectionService())!;
+            Assert.AreEqual("Unable to find the required services. Please add all the required services by calling " +
+                    "'IServiceCollection.AddGrpcReflection()' inside the call to 'ConfigureServices(...)' in the application startup code.", ex.Message);
+        }
+
+        [Test]
         public void MapGrpcService_WithoutServices_RaiseError()
         {
             // Arrange
