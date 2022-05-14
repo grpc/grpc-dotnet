@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server
@@ -30,7 +32,12 @@ namespace Grpc.AspNetCore.Server
         /// </summary>
         /// <param name="serviceType">The implementing service type.</param>
         /// <param name="method">The method representation.</param>
-        public GrpcMethodMetadata(Type serviceType, IMethod method)
+        public GrpcMethodMetadata(
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+            Type serviceType,
+            IMethod method)
         {
             if (serviceType == null)
             {
@@ -49,6 +56,9 @@ namespace Grpc.AspNetCore.Server
         /// <summary>
         /// Gets the implementing service type.
         /// </summary>
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
         public Type ServiceType { get; }
 
         /// <summary>

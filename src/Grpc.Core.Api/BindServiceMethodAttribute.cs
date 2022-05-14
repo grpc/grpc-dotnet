@@ -32,7 +32,7 @@ namespace Grpc.Core
     {
         // grpc-dotnet uses reflection to find the bind service method.
         // DynamicallyAccessedMembersAttribute instructs the linker to never trim the method.
-        private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
+        private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BindServiceMethodAttribute"/> class.
