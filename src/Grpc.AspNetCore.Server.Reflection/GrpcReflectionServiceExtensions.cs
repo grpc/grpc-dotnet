@@ -121,7 +121,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return null;
         }
 
-        [SuppressMessage("Trimming", "IL2075", Justification = "Modern app using trimming should use attribute to find descriptor property.")]
+        [SuppressMessage("Trimming", "IL2075", Justification = "Modern apps published with trimming will be using newer Grpc.Tools and won't use this fallback.")]
         private static PropertyInfo? GetDescriptorPropertyFallback(Type serviceType)
         {
             // Search for the generated service base class
