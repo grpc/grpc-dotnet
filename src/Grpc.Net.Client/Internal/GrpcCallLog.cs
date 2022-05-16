@@ -101,6 +101,9 @@ namespace Grpc.Net.Client.Internal
         private static readonly Action<ILogger, Exception> _errorParsingTrailers =
             LoggerMessage.Define(LogLevel.Error, new EventId(26, "ErrorParsingTrailers"), "Error parsing trailers.");
 
+        private static readonly Action<ILogger, Exception> _errorExceedingDeadline =
+            LoggerMessage.Define(LogLevel.Error, new EventId(27, "ErrorExceedingDeadline"), "Error exceeding deadline.");
+
         public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
         {
             _startingCall(logger, methodType, uri, null);
@@ -229,6 +232,11 @@ namespace Grpc.Net.Client.Internal
         public static void ErrorParsingTrailers(ILogger logger, Exception ex)
         {
             _errorParsingTrailers(logger, ex);
+        }
+
+        public static void ErrorExceedingDeadline(ILogger logger, Exception ex)
+        {
+            _errorExceedingDeadline(logger, ex);
         }
     }
 }
