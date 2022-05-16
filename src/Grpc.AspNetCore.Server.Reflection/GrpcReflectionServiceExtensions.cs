@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Grpc.AspNetCore.Server;
 using Grpc.Core;
@@ -120,6 +121,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return null;
         }
 
+        [SuppressMessage("Trimming", "IL2075", Justification = "Modern apps published with trimming will be using newer Grpc.Tools and won't use this fallback.")]
         private static PropertyInfo? GetDescriptorPropertyFallback(Type serviceType)
         {
             // Search for the generated service base class

@@ -30,9 +30,10 @@ namespace Grpc.Core
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
     public class BindServiceMethodAttribute : Attribute
     {
-        // grpc-dotnet uses reflection to find the bind service method.
-        // DynamicallyAccessedMembersAttribute instructs the linker to never trim the method.
-        private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods;
+        // Grpc.AspNetCore.Server uses reflection to find the bind service method.
+        // Grpc.AspNetCore.Server.Reflection uses reflection to find the descriptor property.
+        // DynamicallyAccessedMembersAttribute instructs the linker to never trim the members.
+        private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BindServiceMethodAttribute"/> class.
