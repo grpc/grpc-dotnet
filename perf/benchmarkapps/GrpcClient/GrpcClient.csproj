@@ -6,6 +6,8 @@
     <DefineConstants Condition="'$(EnableGrpcWeb)' == 'true'">$(DefineConstants);GRPC_WEB</DefineConstants>
     <!-- Enable server GC to more closely simulate a microservice app making calls -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
+    <!-- TODO(JamesNK): Workaround https://github.com/grpc/grpc/issues/29672 -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
