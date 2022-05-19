@@ -134,11 +134,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                 Logger.LogInformation("Server call started");
 
                 var httpContext = context.GetHttpContext();
-                httpContext.RequestAborted.Register(() => serverAbortedTcs.SetResult(null));
-
-                for (var i = 0; i < request.MessageCount; i++)
+                httpContext.RequestAborted.Register(() =>
                 {
-                    try
+                    Logger.LogInformation("Server RequestAborted raised.");
+                    serverAbortedTcs.SetResult(null);
+                });
+
+                try
+                {
+                    for (var i = 0; i < request.MessageCount; i++)
                     {
                         Logger.LogInformation($"Server writing message {i}");
                         await responseStream.WriteAsync(new ServerStreamingEchoResponse
@@ -148,10 +152,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
 
                         await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        return;
-                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                finally
+                {
+                    Logger.LogInformation($"Server waiting for RequestAborted.");
+                    await serverAbortedTcs.Task;
                 }
             }
 
@@ -201,6 +210,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             if (EndpointName != TestServerEndpointName.Http1)
             {
                 // Verify the abort reached the server.
+                Logger.LogInformation("Client waiting for notification of abort in server.");
                 await serverAbortedTcs.Task.DefaultTimeout();
             }
         }
