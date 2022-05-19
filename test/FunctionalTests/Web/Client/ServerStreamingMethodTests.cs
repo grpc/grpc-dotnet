@@ -125,8 +125,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
         }
 
-        [Test]
-        public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException(bool delayWithCancellationToken)
         {
             var serverAbortedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
@@ -134,11 +135,15 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                 Logger.LogInformation("Server call started");
 
                 var httpContext = context.GetHttpContext();
-                httpContext.RequestAborted.Register(() => serverAbortedTcs.SetResult(null));
-
-                for (var i = 0; i < request.MessageCount; i++)
+                httpContext.RequestAborted.Register(() =>
                 {
-                    try
+                    Logger.LogInformation("Server RequestAborted raised.");
+                    serverAbortedTcs.SetResult(null);
+                });
+
+                try
+                {
+                    for (var i = 0; i < request.MessageCount; i++)
                     {
                         Logger.LogInformation($"Server writing message {i}");
                         await responseStream.WriteAsync(new ServerStreamingEchoResponse
@@ -146,12 +151,25 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                             Message = request.Message
                         });
 
-                        await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
+                        if (delayWithCancellationToken)
+                        {
+                            await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
+                        }
+                        else
+                        {
+                            await Task.Delay(request.MessageInterval.ToTimeSpan());
+                        }
                     }
-                    catch (OperationCanceledException)
-                    {
-                        return;
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInformation(ex, "Server error.");
+                    return;
+                }
+                finally
+                {
+                    Logger.LogInformation("Server waiting for RequestAborted.");
+                    await serverAbortedTcs.Task;
                 }
             }
 
@@ -201,6 +219,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             if (EndpointName != TestServerEndpointName.Http1)
             {
                 // Verify the abort reached the server.
+                Logger.LogInformation("Client waiting for notification of abort in server.");
                 await serverAbortedTcs.Task.DefaultTimeout();
             }
         }
