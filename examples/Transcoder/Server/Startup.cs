@@ -7,9 +7,7 @@ namespace Server
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services
-                .AddGrpc()
-                .AddJsonTranscoding();
+            services.AddGrpc().AddJsonTranscoding();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
