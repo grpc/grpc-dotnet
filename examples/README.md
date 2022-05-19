@@ -216,7 +216,7 @@ The gRPC-Web JavaScript client was generated from *greet.proto* using [`protoc`]
 
 ## [Transcoder](./Transcoder)
 
-The transcoder shows how to use gRPC JSON transcoding to generate RESTful APIs from gRPC services.
+The transcoder shows how to use [gRPC JSON transcoding](https://docs.microsoft.com/aspnet/core/grpc/httpapi) to generate RESTful APIs from gRPC services.
 
 ##### Scenarios:
 
