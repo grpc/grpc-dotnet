@@ -13,6 +13,8 @@
 
     <!-- Turn on preview features so we can use Http3. Can be removed in .NET 7 -->
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <!-- TODO(JamesNK): Workaround https://github.com/grpc/grpc/issues/29672 -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
