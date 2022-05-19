@@ -161,13 +161,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                         }
                     }
                 }
-                catch (OperationCanceledException)
+                catch (Exception ex)
                 {
+                    Logger.LogInformation(ex, "Server error.");
                     return;
                 }
                 finally
                 {
-                    Logger.LogInformation($"Server waiting for RequestAborted.");
+                    Logger.LogInformation("Server waiting for RequestAborted.");
                     await serverAbortedTcs.Task;
                 }
             }
