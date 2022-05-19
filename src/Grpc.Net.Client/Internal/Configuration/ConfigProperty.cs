@@ -38,7 +38,7 @@ namespace Grpc.Net.Client.Internal.Configuration
             if (_value == null)
             {
                 // Multiple threads can get a property at the same time. We want this to be safe.
-                // Because a value could be lazyily initialized, lock to ensure multiple threads
+                // Because a value could be lazily initialized, lock to ensure multiple threads
                 // don't try to update the underlying dictionary at the same time.
                 lock (this)
                 {

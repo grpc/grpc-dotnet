@@ -161,7 +161,7 @@ namespace Grpc.Net.Client.Tests
 
             void ConnectAsync()
             {
-                // Execuse to access LoadBalancingConfigs
+                // Excuse to access LoadBalancingConfigs
                 if (serviceConfig.LoadBalancingConfigs.Count > 0)
                 {
                     serviceConfig.ToString();
