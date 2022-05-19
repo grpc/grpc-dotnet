@@ -125,8 +125,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
             AssertHasLogRpcConnectionError(StatusCode.Aborted, "Aborted from server side.");
         }
 
-        [Test]
-        public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task SendValidRequest_ClientAbort_ClientThrowsCancelledException(bool delayWithCancellationToken)
         {
             var serverAbortedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
@@ -150,7 +151,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Web.Client
                             Message = request.Message
                         });
 
-                        await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
+                        if (delayWithCancellationToken)
+                        {
+                            await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
+                        }
+                        else
+                        {
+                            await Task.Delay(request.MessageInterval.ToTimeSpan());
+                        }
                     }
                 }
                 catch (OperationCanceledException)
