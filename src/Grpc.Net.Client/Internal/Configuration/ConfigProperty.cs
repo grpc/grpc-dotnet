@@ -20,7 +20,7 @@ using Grpc.Net.Client.Configuration;
 
 namespace Grpc.Net.Client.Internal.Configuration
 {
-    internal struct ConfigProperty<TValue, TInner> where TValue : IConfigValue
+    internal sealed class ConfigProperty<TValue, TInner> where TValue : IConfigValue
     {
         private TValue? _value;
         private readonly Func<TInner?, TValue?> _valueFactory;
@@ -37,13 +37,23 @@ namespace Grpc.Net.Client.Internal.Configuration
         {
             if (_value == null)
             {
-                var innerValue = inner.GetValue<TInner>(_key);
-                _value = _valueFactory(innerValue);
-
-                if (_value != null && innerValue == null)
+                // Multiple threads can get a property at the same time. We want this to be safe.
+                // Because a value could be lazily initialized, lock to ensure multiple threads
+                // don't try to update the underlying dictionary at the same time.
+                lock (this)
                 {
-                    // Set newly created value
-                    SetValue(inner, _value);
+                    // Double-check locking.
+                    if (_value == null)
+                    {
+                        var innerValue = inner.GetValue<TInner>(_key);
+                        _value = _valueFactory(innerValue);
+
+                        if (_value != null && innerValue == null)
+                        {
+                            // Set newly created value
+                            SetValue(inner, _value);
+                        }
+                    }
                 }
             }
 

@@ -329,7 +329,7 @@ namespace Grpc.Net.Client.Tests.Balancer
 
         private static ConnectionManager CreateConnectionManager(
             ILoggerFactory loggerFactory,
-            TestResolver resolver,
+            Resolver resolver,
             TestSubchannelTransportFactory transportFactory)
         {
             return new ConnectionManager(
