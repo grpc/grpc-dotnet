@@ -138,6 +138,38 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
+        public async Task ServiceConfig_LoadBalancingConfigs_ConcurrentAccess()
+        {
+            // Arrange & Act
+            for (var i = 0; i < 100; i++)
+            {
+                await AccessServiceConfigConcurrently();
+            }
+        }
+
+        private static async Task AccessServiceConfigConcurrently()
+        {
+            var serviceConfig = new ServiceConfig();
+
+            List<Task> connectTasks = new List<Task>();
+            for (var i = 0; i < 100; i++)
+            {
+                connectTasks.Add(Task.Run(ConnectAsync));
+            }
+
+            await Task.WhenAll(connectTasks);
+
+            void ConnectAsync()
+            {
+                // Excuse to access LoadBalancingConfigs
+                if (serviceConfig.LoadBalancingConfigs.Count > 0)
+                {
+                    serviceConfig.ToString();
+                }
+            }
+        }
+
+        [Test]
         public void LoadBalancingConfig_ReadUnderlyingConfig()
         {
             // Arrange
