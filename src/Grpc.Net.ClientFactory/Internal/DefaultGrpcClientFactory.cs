@@ -36,8 +36,6 @@ namespace Grpc.Net.ClientFactory.Internal
             _serviceProvider = serviceProvider;
             _callInvokerFactory = callInvokerFactory;
             _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;
-
-            
         }
 
         public override TClient CreateClient<TClient>(string name) where TClient : class

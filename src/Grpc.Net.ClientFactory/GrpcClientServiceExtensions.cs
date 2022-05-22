@@ -16,7 +16,6 @@
 
 #endregion
 
-using Grpc.Net.Client;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Grpc.Shared;
@@ -341,24 +340,6 @@ namespace Microsoft.Extensions.DependencyInjection
                     }
                 });
             });
-            //services.PostConfigure<GrpcClientFactoryOptions>(name, options =>
-            //{
-            //    if (options.HasCallCredentials && options.Address?.Scheme == Uri.UriSchemeHttp)
-            //    {
-            //        var channelOptions = new GrpcChannelOptions();
-            //        if (options.ChannelOptionsActions.Count > 0)
-            //        {
-            //            foreach (var action in options.ChannelOptionsActions)
-            //            {
-            //                action(channelOptions);
-            //            }
-            //        }
-            //        if (channelOptions.UnsafeUseInsecureChannelCallCredentials)
-            //        {
-
-            //        }
-            //    }
-            //});
 
             var builder = new DefaultHttpClientBuilder(services, name);
 
