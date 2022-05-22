@@ -58,6 +58,8 @@ namespace Grpc.Net.ClientFactory
         /// </summary>
         public Func<CallInvoker, object>? Creator { get; set; }
 
+        internal bool HasCallCredentials { get; set; }
+
         internal static CallInvoker BuildInterceptors(
             CallInvoker callInvoker,
             IServiceProvider serviceProvider,
