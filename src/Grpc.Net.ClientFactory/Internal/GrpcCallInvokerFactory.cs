@@ -106,15 +106,13 @@ namespace Grpc.Net.ClientFactory.Internal
                     throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{type.Name}>(o => o.Address = new Uri(""https://localhost:5001""))");
                 }
 
-                if (clientFactoryOptions.HasCallCredentials)
+                if (clientFactoryOptions.HasCallCredentials && !AreCallCredentialsSupported(channelOptions, address))
                 {
-                    if (!AreCallCredentialsSupported(channelOptions, address))
-                    {
-                        throw new InvalidOperationException(
-                            $"Call credential configured for gRPC client '{name}' requires TLS, and the client isn't configured to use TLS. " +
-                            $"Either configure a TLS address, or use the call credential without TLS by setting {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials)} to true: " +
-                            @"client.AddCallCredentials((context, metadata) => {}).ConfigureChannel(o => o.UnsafeUseInsecureChannelCallCredentials = true)");
-                    }
+                    // Throw error to tell dev that call credentials will never be used.
+                    throw new InvalidOperationException(
+                        $"Call credential configured for gRPC client '{name}' requires TLS, and the client isn't configured to use TLS. " +
+                        $"Either configure a TLS address, or use the call credential without TLS by setting {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials)} to true: " +
+                        @"client.AddCallCredentials((context, metadata) => {}).ConfigureChannel(o => o.UnsafeUseInsecureChannelCallCredentials = true)");
                 }
 
                 var channel = GrpcChannel.ForAddress(address, channelOptions);
@@ -140,37 +138,40 @@ namespace Grpc.Net.ClientFactory.Internal
         private static bool AreCallCredentialsSupported(GrpcChannelOptions channelOptions, Uri address)
         {
             bool isSecure;
+
             if (address.Scheme == Uri.UriSchemeHttps)
             {
                 isSecure = true;
             }
-            else if (address.Scheme != Uri.UriSchemeHttp)
-            {
-                isSecure = HasSecureCredentials(channelOptions.Credentials);
-            }
-            else
+            else if (address.Scheme == Uri.UriSchemeHttp)
             {
                 isSecure = false;
             }
+            else
+            {
+                // Load balancing means the address won't have a standard scheme, e.g. dns:///
+                // Use call credentials to figure out whether the channel is secure.
+                isSecure = HasSecureCredentials(channelOptions.Credentials);
+            }
 
             return isSecure || channelOptions.UnsafeUseInsecureChannelCallCredentials;
-        }
 
-        private static bool HasSecureCredentials(ChannelCredentials? channelCredentials)
-        {
-            if (channelCredentials == null)
+            static bool HasSecureCredentials(ChannelCredentials? channelCredentials)
             {
-                return false;
-            }
-            if (channelCredentials is SslCredentials)
-            {
-                return true;
-            }
+                if (channelCredentials == null)
+                {
+                    return false;
+                }
+                if (channelCredentials is SslCredentials)
+                {
+                    return true;
+                }
 
-            var configurator = new ClientFactoryCredentialsConfigurator();
-            channelCredentials.InternalPopulateConfiguration(configurator, channelCredentials);
+                var configurator = new ClientFactoryCredentialsConfigurator();
+                channelCredentials.InternalPopulateConfiguration(configurator, channelCredentials);
 
-            return configurator.IsSecure ?? false;
+                return configurator.IsSecure ?? false;
+            }
         }
 
         private sealed class ClientFactoryCredentialsConfigurator : ChannelCredentialsConfiguratorBase
