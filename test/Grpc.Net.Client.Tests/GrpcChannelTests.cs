@@ -475,7 +475,7 @@ namespace Grpc.Net.Client.Tests
             // Assert
             Assert.AreEqual("Unable to determine the TLS configuration of the channel from address 'test:///localhost'. " +
                 "GrpcChannelOptions.Credentials must be specified when the address doesn't have a 'http' or 'https' scheme. " +
-                "To call TLS endpoints, set credentials to 'new SslCredentials()'. " +
+                "To call TLS endpoints, set credentials to 'ChannelCredentials.SecureSsl'. " +
                 "To call non-TLS endpoints, set credentials to 'ChannelCredentials.Insecure'.", ex.Message);
         }
 

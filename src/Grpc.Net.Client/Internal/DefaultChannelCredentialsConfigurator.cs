@@ -20,7 +20,7 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal
 {
-    internal class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
+    internal sealed class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
     {
         public bool? IsSecure { get; private set; }
         public List<CallCredentials>? CallCredentials { get; private set; }

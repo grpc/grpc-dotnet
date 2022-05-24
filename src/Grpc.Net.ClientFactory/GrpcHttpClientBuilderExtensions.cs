@@ -151,6 +151,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
+                options.HasCallCredentials = true;
                 options.CallOptionsActions.Add((callOptionsContext) =>
                 {
                     var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata));
@@ -184,6 +185,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
+                options.HasCallCredentials = true;
                 options.CallOptionsActions.Add((callOptionsContext) =>
                 {
                     var credentials = CallCredentials.FromInterceptor((context, metadata) => authInterceptor(context, metadata, callOptionsContext.ServiceProvider));
@@ -217,6 +219,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, options =>
             {
+                options.HasCallCredentials = true;
                 options.CallOptionsActions.Add((callOptionsContext) =>
                 {
                     callOptionsContext.CallOptions = ResolveCallOptionsCredentials(callOptionsContext.CallOptions, credentials);

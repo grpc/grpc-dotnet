@@ -106,6 +106,15 @@ namespace Grpc.Net.ClientFactory.Internal
                     throw new InvalidOperationException($@"Could not resolve the address for gRPC client '{name}'. Set an address when registering the client: services.AddGrpcClient<{type.Name}>(o => o.Address = new Uri(""https://localhost:5001""))");
                 }
 
+                if (clientFactoryOptions.HasCallCredentials && !AreCallCredentialsSupported(channelOptions, address))
+                {
+                    // Throw error to tell dev that call credentials will never be used.
+                    throw new InvalidOperationException(
+                        $"Call credential configured for gRPC client '{name}' requires TLS, and the client isn't configured to use TLS. " +
+                        $"Either configure a TLS address, or use the call credential without TLS by setting {nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials)} to true: " +
+                        @"client.AddCallCredentials((context, metadata) => {}).ConfigureChannel(o => o.UnsafeUseInsecureChannelCallCredentials = true)");
+                }
+
                 var channel = GrpcChannel.ForAddress(address, channelOptions);
 
                 var httpClientCallInvoker = channel.CreateCallInvoker();
@@ -123,6 +132,64 @@ namespace Grpc.Net.ClientFactory.Internal
                 // If something fails while creating the handler, dispose the services.
                 scope?.Dispose();
                 throw;
+            }
+        }
+
+        private static bool AreCallCredentialsSupported(GrpcChannelOptions channelOptions, Uri address)
+        {
+            bool isSecure;
+
+            if (address.Scheme == Uri.UriSchemeHttps)
+            {
+                isSecure = true;
+            }
+            else if (address.Scheme == Uri.UriSchemeHttp)
+            {
+                isSecure = false;
+            }
+            else
+            {
+                // Load balancing means the address won't have a standard scheme, e.g. dns:///
+                // Use call credentials to figure out whether the channel is secure.
+                isSecure = HasSecureCredentials(channelOptions.Credentials);
+            }
+
+            return isSecure || channelOptions.UnsafeUseInsecureChannelCallCredentials;
+
+            static bool HasSecureCredentials(ChannelCredentials? channelCredentials)
+            {
+                if (channelCredentials == null)
+                {
+                    return false;
+                }
+                if (channelCredentials is SslCredentials)
+                {
+                    return true;
+                }
+
+                var configurator = new ClientFactoryCredentialsConfigurator();
+                channelCredentials.InternalPopulateConfiguration(configurator, channelCredentials);
+
+                return configurator.IsSecure ?? false;
+            }
+        }
+
+        private sealed class ClientFactoryCredentialsConfigurator : ChannelCredentialsConfiguratorBase
+        {
+            public bool? IsSecure { get; private set; }
+
+            public override void SetInsecureCredentials(object state)
+            {
+                IsSecure = false;
+            }
+
+            public override void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback)
+            {
+                IsSecure = true;
+            }
+
+            public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
+            {
             }
         }
     }

@@ -205,8 +205,8 @@ namespace Grpc.Net.Client
                 {
                     throw new InvalidOperationException($"Unable to determine the TLS configuration of the channel from address '{Address}'. " +
                         $"{nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.Credentials)} must be specified when the address doesn't have a 'http' or 'https' scheme. " +
-                        "To call TLS endpoints, set credentials to 'new SslCredentials()'. " +
-                        "To call non-TLS endpoints, set credentials to 'ChannelCredentials.Insecure'.");
+                        $"To call TLS endpoints, set credentials to '{nameof(ChannelCredentials)}.{nameof(ChannelCredentials.SecureSsl)}'. " +
+                        $"To call non-TLS endpoints, set credentials to '{nameof(ChannelCredentials)}.{nameof(ChannelCredentials.Insecure)}'.");
                 }
                 callCredentials = null;
             }

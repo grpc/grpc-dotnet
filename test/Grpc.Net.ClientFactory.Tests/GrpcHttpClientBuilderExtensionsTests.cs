@@ -19,6 +19,9 @@
 using System.Net;
 using Greet;
 using Grpc.Core;
+#if NET5_0_OR_GREATER
+using Grpc.Net.Client.Balancer;
+#endif
 using Grpc.Net.ClientFactory;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
@@ -594,6 +597,118 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
         }
 
         [Test]
+        public void AddCallCredentials_InsecureChannel_Error()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddCallCredentials(CallCredentials.FromInterceptor((context, metadata) =>
+                {
+                    metadata.Add("factory-authorize", "auth!");
+                    return Task.CompletedTask;
+                }))
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler());
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+
+            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient)))!;
+
+            // Assert
+            Assert.AreEqual("Call credential configured for gRPC client 'GreeterClient' requires TLS, and the client isn't configured to use TLS. " +
+                "Either configure a TLS address, or use the call credential without TLS by setting GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials to true: " +
+                "client.AddCallCredentials((context, metadata) => {}).ConfigureChannel(o => o.UnsafeUseInsecureChannelCallCredentials = true)", ex.Message);
+        }
+
+#if NET5_0_OR_GREATER
+        [Test]
+        public void AddCallCredentials_StaticLoadBalancingSecureChannel_Success()
+        {
+            // Arrange
+            HttpRequestMessage? sentRequest = null;
+
+            var services = new ServiceCollection();
+            services.AddSingleton<ResolverFactory>(new StaticResolverFactory(_ => new[]
+            {
+                new BalancerAddress("localhost", 80)
+            }));
+
+            // Can't use ConfigurePrimaryHttpMessageHandler with load balancing because underlying
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("static:///localhost");
+                })
+                .ConfigureChannel(o =>
+                {
+                    o.Credentials = ChannelCredentials.SecureSsl;
+                })
+                .AddCallCredentials(CallCredentials.FromInterceptor((context, metadata) =>
+                {
+                    metadata.Add("factory-authorize", "auth!");
+                    return Task.CompletedTask;
+                }))
+                .AddHttpMessageHandler(() => new TestHttpMessageHandler(request =>
+                {
+                    sentRequest = request;
+                }));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act & Assert
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            _ = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            // No call because there isn't an endpoint at localhost:80
+        }
+#endif
+
+        [Test]
+        public async Task AddCallCredentials_InsecureChannel_UnsafeUseInsecureChannelCallCredentials_Success()
+        {
+            // Arrange
+            HttpRequestMessage? sentRequest = null;
+
+            var services = new ServiceCollection();
+            services
+                .AddGrpcClient<Greeter.GreeterClient>(o =>
+                {
+                    o.Address = new Uri("http://localhost");
+                })
+                .AddCallCredentials(CallCredentials.FromInterceptor((context, metadata) =>
+                {
+                    metadata.Add("factory-authorize", "auth!");
+                    return Task.CompletedTask;
+                }))
+                .ConfigureChannel(o => o.UnsafeUseInsecureChannelCallCredentials = true)
+                .ConfigurePrimaryHttpMessageHandler(() => new TestHttpMessageHandler(request =>
+                {
+                    sentRequest = request;
+                }));
+
+            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+            // Act
+            var clientFactory = serviceProvider.GetRequiredService<GrpcClientFactory>();
+            var client = clientFactory.CreateClient<Greeter.GreeterClient>(nameof(Greeter.GreeterClient));
+
+            var response = await client.SayHelloAsync(
+                new HelloRequest(),
+                new CallOptions()).ResponseAsync.DefaultTimeout();
+
+            // Assert
+            Assert.NotNull(response);
+
+            Assert.AreEqual("auth!", sentRequest!.Headers.GetValues("factory-authorize").Single());
+        }
+
+        [Test]
         public async Task AddCallCredentials_PassedInCallCredentials_Combine()
         {
             // Arrange
@@ -664,7 +779,7 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             }
         }
 
-        private class TestHttpMessageHandler : HttpMessageHandler
+        private class TestHttpMessageHandler : DelegatingHandler
         {
             public bool Invoked { get; private set; }
 
