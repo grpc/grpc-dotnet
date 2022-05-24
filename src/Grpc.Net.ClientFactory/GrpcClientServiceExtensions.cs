@@ -341,7 +341,6 @@ namespace Microsoft.Extensions.DependencyInjection
                 });
             });
 
-
             var builder = new DefaultHttpClientBuilder(services, name);
 
             builder.Services.AddTransient<TClient>(s =>
