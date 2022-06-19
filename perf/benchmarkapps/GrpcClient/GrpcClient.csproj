@@ -21,6 +21,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
+    <Compile Include="..\..\..\test\Shared\HttpEventSourceListener.cs" Link="HttpEventSourceListener.cs" />
+
     <PackageReference Include="Microsoft.Crank.EventSources" Version="$(MicrosoftCrankEventSourcesPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionsPackageVersion)" />

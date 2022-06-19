@@ -31,6 +31,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Testing;
+using Grpc.Tests.Shared;
 using Microsoft.Crank.EventSources;
 using Microsoft.Extensions.Logging;
 
@@ -103,11 +104,27 @@ namespace GrpcClient
                 BenchmarksEventSource.Measure("IsServerGC", isServerGC.ToString());
                 BenchmarksEventSource.Measure("ProcessorCount", processorCount);
 
+                HttpEventSourceListener? listener = null;
+                if (_options.LogLevel != LogLevel.None)
+                {
+                    Log($"Setting up logging. Log level: {_options.LogLevel}");
+
+                    _loggerFactory = LoggerFactory.Create(c =>
+                    {
+                        c.AddConsole();
+                        c.SetMinimumLevel(_options.LogLevel);
+                    });
+
+                    listener = new HttpEventSourceListener(_loggerFactory);
+                }
+
                 CreateChannels();
 
                 await StartScenario();
 
                 await StopJobAsync();
+
+                listener?.Dispose();
             }, new ReflectionBinder<ClientOptions>(options));
 
             Log("gRPC Client");
@@ -382,15 +399,6 @@ namespace GrpcClient
             _errorsPerConnection = new List<int>(_options.Connections);
             _latencyPerConnection = new List<List<double>>(_options.Connections);
             _latencyAverage = new List<(double sum, int count)>(_options.Connections);
-
-            if (_options.LogLevel != LogLevel.None)
-            {
-                _loggerFactory = LoggerFactory.Create(c =>
-                {
-                    c.AddConsole();
-                    c.SetMinimumLevel(_options.LogLevel);
-                });
-            }
 
             // Channel does not care about scheme
             var initialUri = _options.Url!;
