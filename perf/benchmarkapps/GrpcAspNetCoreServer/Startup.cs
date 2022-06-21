@@ -20,6 +20,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Grpc.Shared;
 using Grpc.Testing;
+using Grpc.Tests.Shared;
 #if NET5_0_OR_GREATER
 using Microsoft.AspNetCore.Authentication.Certificate;
 #endif
@@ -73,6 +74,12 @@ namespace GrpcAspNetCoreServer
         {
             // Required to notify performance infrastructure that it can begin benchmarks
             applicationLifetime.ApplicationStarted.Register(() => Console.WriteLine("Application started."));
+
+            var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
+            if (loggerFactory.CreateLogger<Startup>().IsEnabled(LogLevel.Trace))
+            {
+                _ = new HttpEventSourceListener(loggerFactory);
+            }
 
             app.UseRouting();
 

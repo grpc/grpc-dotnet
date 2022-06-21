@@ -476,6 +476,10 @@ namespace GrpcClient
 
                     if (_options.Protocol == "h3")
                     {
+                        // Stop gRPC channel from creating TCP socket.
+                        httpClientHandler.ConnectCallback = (context, cancellationToken) => throw new InvalidOperationException("Should never be called for H3.");
+
+                        // Force H3 on all requests.
                         httpMessageHandler = new Http3DelegatingHandler(httpMessageHandler);
                     }
 
