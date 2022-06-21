@@ -17,6 +17,7 @@
 #endregion
 
 using System.Reflection;
+using System.Runtime;
 using Common;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -32,12 +33,19 @@ namespace GrpcAspNetCoreServer
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
+            var runtimeVersion = typeof(object).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
+            var isServerGC = GCSettings.IsServerGC;
+            var processorCount = Environment.ProcessorCount;
+
             Console.WriteLine();
             Console.WriteLine("ASP.NET Core gRPC Benchmarks");
             Console.WriteLine("----------------------------");
             Console.WriteLine($"Args: {string.Join(' ', args)}");
             Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
             Console.WriteLine($"WebHostBuilder loading from: {typeof(WebHostBuilder).GetTypeInfo().Assembly.Location}");
+            Console.WriteLine($"NetCoreAppVersion: {runtimeVersion}");
+            Console.WriteLine($"{nameof(GCSettings.IsServerGC)}: {isServerGC}");
+            Console.WriteLine($"{nameof(Environment.ProcessorCount)}: {processorCount}");
 
             var config = new ConfigurationBuilder()
                 .AddJsonFile("hosting.json", optional: true)
