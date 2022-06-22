@@ -176,9 +176,9 @@ namespace Grpc.Net.Client.Internal
 
                 GrpcEventSource.Log.MessageSent();
             }
-            catch (OperationCanceledException) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
+            catch (OperationCanceledException ex) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
             {
-                throw _call.CreateCanceledStatusException();
+                throw _call.CreateCanceledStatusException(ex);
             }
         }
     }
