@@ -19,4 +19,4 @@
       enableCertAuth: false
       latency: false
       serverScheme: http
-    arguments: "-c {{connections}} --streams {{streams}} -d {{duration}} -p {{protocol}} -s {{scenario}} -u {{serverScheme}}://{{serverAddress}}:{{serverPort}}{{path}} -w {{warmup}} --grpcClientType {{grpcClientType}} --requestSize {{requestSize}} --responseSize {{responseSize}} --enableCertAuth {{enableCertAuth}} --latency {{latency}} --callCount {{callCount}} {% if logLevel != 'none' %} --logLevel {{ logLevel }} {% endif %}"
+    arguments: "-c {{connections}} --streams {{streams}} -d {{duration}} -p {{protocol}} -s {{scenario}} -u {{serverScheme}}://{{serverAddress}}:{{serverPort}}{{path}} -w {{warmup}} --grpcClientType {{grpcClientType}} --requestSize {{requestSize}} --responseSize {{responseSize}} --enableCertAuth {{enableCertAuth}} --latency {{latency}} {% if callCount != '' %} --callCount {{callCount}} {% endif %} {% if logLevel != 'none' %} --logLevel {{ logLevel }} {% endif %}"
