@@ -20,7 +20,7 @@
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
-    <PackageReference Include="Grpc.Tools" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
