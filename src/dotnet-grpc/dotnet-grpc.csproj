@@ -63,7 +63,7 @@
     </AssemblyAttribute>
     <AssemblyAttribute Include="Grpc.Dotnet.Cli.Internal.GrpcDependencyAttribute">
       <_Parameter1>Grpc.Tools</_Parameter1>
-      <_Parameter2>$(GrpcPackageVersion)</_Parameter2>
+      <_Parameter2>$(GrpcToolsPackageVersion)</_Parameter2>
       <_Parameter3>All</_Parameter3>
       <_Parameter4>Client;None</_Parameter4>
     </AssemblyAttribute>
