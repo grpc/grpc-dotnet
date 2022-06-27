@@ -48,7 +48,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         {
             // We're modifying the SocketsHttpHandler and nothing prevents two threads from creating a
             // channel with the same handler on different threads.
-            // Place handler reads and modifications in a lock to ensure there is no change of race conditions.
+            // Place handler reads and modifications in a lock to ensure there is no chance of race conditions.
             // This is a static lock but it is only called once when a channel is created and the logic
             // inside it will complete straight away. Shouldn't have any performance impact.
             lock (SetupLock)
