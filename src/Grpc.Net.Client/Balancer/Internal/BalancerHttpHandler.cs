@@ -65,6 +65,8 @@ namespace Grpc.Net.Client.Balancer.Internal
             {
                 if (!IsSocketsHttpHandlerSetup(socketsHttpHandler))
                 {
+                    Debug.Assert(socketsHttpHandler.ConnectCallback == null, "ConnectCallback should be null to get to this point.");
+
                     socketsHttpHandler.ConnectCallback = OnConnect;
                     socketsHttpHandler.Properties[IsSocketsHttpHandlerSetupKey] = true;
                 }
