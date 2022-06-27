@@ -44,7 +44,17 @@ namespace Grpc.Net.Client.Balancer.Internal
             _manager = manager;
         }
 
-        internal static bool TryConfigureSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+        internal static bool IsSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+        {
+            lock (SetupLock)
+            {
+                return socketsHttpHandler.Properties.TryGetValue(IsSocketsHttpHandlerSetupKey, out var value) &&
+                    value is bool isEnabled &&
+                    isEnabled;
+            }
+        }
+
+        internal static void ConfigureSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
         {
             // We're modifying the SocketsHttpHandler and nothing prevents two threads from creating a
             // channel with the same handler on different threads.
@@ -53,27 +63,11 @@ namespace Grpc.Net.Client.Balancer.Internal
             // inside it will complete straight away. Shouldn't have any performance impact.
             lock (SetupLock)
             {
-                if (!IsSetup(socketsHttpHandler))
+                if (!IsSocketsHttpHandlerSetup(socketsHttpHandler))
                 {
-                    // Someone else has already configured ConnectCallback and we don't want to overwrite
-                    // that so skip configuring SocketsHttpHandler.
-                    if (socketsHttpHandler.ConnectCallback != null)
-                    {
-                        return false;
-                    }
-
                     socketsHttpHandler.ConnectCallback = OnConnect;
                     socketsHttpHandler.Properties[IsSocketsHttpHandlerSetupKey] = true;
                 }
-            }
-
-            return true;
-
-            static bool IsSetup(SocketsHttpHandler socketsHttpHandler)
-            {
-                return socketsHttpHandler.Properties.TryGetValue(IsSocketsHttpHandlerSetupKey, out var value) &&
-                    value is bool isEnabled &&
-                    isEnabled;
             }
         }
 

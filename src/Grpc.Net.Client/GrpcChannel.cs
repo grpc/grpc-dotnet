@@ -239,7 +239,7 @@ namespace Grpc.Net.Client
                 // Check if the SocketsHttpHandler is being shared by channels.
                 // It has already been setup by another channel (i.e. ConnectCallback is set) then
                 // additional channels can use advanced connectivity features.
-                if (BalancerHttpHandler.TryConfigureSocketsHttpHandlerSetup(socketsHttpHandler))
+                if (BalancerHttpHandler.IsSocketsHttpHandlerSetup(socketsHttpHandler))
                 {
                     return HttpHandlerType.SocketsHttpHandler;
                 }
@@ -377,6 +377,14 @@ namespace Grpc.Net.Client
 #endif
 
 #if SUPPORT_LOAD_BALANCING
+            if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+            {
+                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(handler);
+                CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
+
+                BalancerHttpHandler.ConfigureSocketsHttpHandlerSetup(socketsHttpHandler);
+            }
+
             handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
