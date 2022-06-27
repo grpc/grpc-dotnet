@@ -46,10 +46,10 @@ namespace Grpc.Net.Client.Balancer.Internal
                 var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
                 CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
 
-                if (!HttpRequestHelpers.IsLoadBalancingEnabled(socketsHttpHandler))
+                if (!HttpRequestHelpers.IsSocketsHttpHandlerSetup(socketsHttpHandler))
                 {
                     socketsHttpHandler.ConnectCallback = OnConnect;
-                    socketsHttpHandler.Properties[HttpRequestHelpers.LoadBalancingEnabledKey] = true;
+                    socketsHttpHandler.Properties[HttpRequestHelpers.IsSocketsHttpHandlerSetupKey] = true;
                 }
             }
 #endif

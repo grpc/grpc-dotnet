@@ -110,13 +110,15 @@ namespace Grpc.Shared
                 var socketsHttpHandler = GetHttpHandlerType<SocketsHttpHandler>(handler)!;
 
                 // Check if the SocketsHttpHandler is being shared by channels.
-                // It has already been setup for load balancing by another channel (i.e. ConnectCallback is set).
-                if (IsLoadBalancingEnabled(socketsHttpHandler))
+                // It has already been setup by another channel (i.e. ConnectCallback is set) then
+                // additional channels can use advanced connectivity features.
+                if (IsSocketsHttpHandlerSetup(socketsHttpHandler))
                 {
                     return HttpHandlerType.SocketsHttpHandler;
                 }
 
-                // Someone has already configured the handler callback so can't support load balancing.
+                // Someone has already configured the handler callback.
+                // This channel can't support advanced connectivity features.
                 if (socketsHttpHandler.ConnectCallback != null)
                 {
                     return HttpHandlerType.Custom;
@@ -133,11 +135,11 @@ namespace Grpc.Shared
         }
 
 #if NET5_0_OR_GREATER
-        internal const string LoadBalancingEnabledKey = "LoadBalancingEnabled";
+        internal const string IsSocketsHttpHandlerSetupKey = "IsSocketsHttpHandlerSetup";
 
-        internal static bool IsLoadBalancingEnabled(SocketsHttpHandler socketsHttpHandler)
+        internal static bool IsSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
         {
-            return socketsHttpHandler.Properties.TryGetValue(LoadBalancingEnabledKey, out var value) &&
+            return socketsHttpHandler.Properties.TryGetValue(IsSocketsHttpHandlerSetupKey, out var value) &&
                 value is bool isEnabled &&
                 isEnabled;
         }
