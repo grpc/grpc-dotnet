@@ -46,13 +46,17 @@ namespace Grpc.Net.Client.Balancer.Internal
                 var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
                 CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
 
-                socketsHttpHandler.ConnectCallback = OnConnect;
+                if (!HttpRequestHelpers.IsLoadBalancingEnabled(socketsHttpHandler))
+                {
+                    socketsHttpHandler.ConnectCallback = OnConnect;
+                    socketsHttpHandler.Properties[HttpRequestHelpers.LoadBalancingEnabledKey] = true;
+                }
             }
 #endif
         }
 
 #if NET5_0_OR_GREATER
-        private async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+        private static async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
         {
             if (!context.InitialRequestMessage.TryGetOption<Subchannel>(SubchannelKey, out var subchannel))
             {
