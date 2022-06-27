@@ -227,7 +227,38 @@ namespace Grpc.Net.Client
                     : HttpHandlerType.Custom;
             }
 
-            return HttpRequestHelpers.CalculateHandlerType(channelOptions.HttpHandler);
+            if (HttpRequestHelpers.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.WinHttpHandler"))
+            {
+                return HttpHandlerType.WinHttpHandler;
+            }
+            if (HttpRequestHelpers.HasHttpHandlerType(channelOptions.HttpHandler, "System.Net.Http.SocketsHttpHandler"))
+            {
+#if NET5_0_OR_GREATER
+                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(channelOptions.HttpHandler)!;
+
+                // Check if the SocketsHttpHandler is being shared by channels.
+                // It has already been setup by another channel (i.e. ConnectCallback is set) then
+                // additional channels can use advanced connectivity features.
+                if (BalancerHttpHandler.TryConfigureSocketsHttpHandlerSetup(socketsHttpHandler))
+                {
+                    return HttpHandlerType.SocketsHttpHandler;
+                }
+
+                // Someone has already configured the handler callback.
+                // This channel can't support advanced connectivity features.
+                if (socketsHttpHandler.ConnectCallback != null)
+                {
+                    return HttpHandlerType.Custom;
+                }
+#endif
+                return HttpHandlerType.SocketsHttpHandler;
+            }
+            if (HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(channelOptions.HttpHandler) != null)
+            {
+                return HttpHandlerType.HttpClientHandler;
+            }
+
+            return HttpHandlerType.Custom;
         }
 
 #if SUPPORT_LOAD_BALANCING
@@ -346,7 +377,7 @@ namespace Grpc.Net.Client
 #endif
 
 #if SUPPORT_LOAD_BALANCING
-            handler = new BalancerHttpHandler(handler, HttpHandlerType, ConnectionManager);
+            handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
             // Use HttpMessageInvoker instead of HttpClient because it is faster
@@ -663,7 +694,7 @@ namespace Grpc.Net.Client
         }
 
 #if SUPPORT_LOAD_BALANCING
-        private class SubChannelTransportFactory : ISubchannelTransportFactory
+        private sealed class SubChannelTransportFactory : ISubchannelTransportFactory
         {
             private readonly GrpcChannel _channel;
 
@@ -684,7 +715,7 @@ namespace Grpc.Net.Client
         }
 #endif
 
-        private struct MethodKey : IEquatable<MethodKey>
+        private readonly struct MethodKey : IEquatable<MethodKey>
         {
             public MethodKey(string? service, string? method)
             {
@@ -715,5 +746,13 @@ namespace Grpc.Net.Client
                 _addressPathUnused(logger, address, null);
             }
         }
+    }
+
+    internal enum HttpHandlerType
+    {
+        SocketsHttpHandler,
+        HttpClientHandler,
+        WinHttpHandler,
+        Custom
     }
 }

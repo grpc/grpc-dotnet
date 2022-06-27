@@ -29,30 +29,50 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
     internal class BalancerHttpHandler : DelegatingHandler
     {
+        private static readonly object SetupLock = new object();
+
         internal const string WaitForReadyKey = "WaitForReady";
         internal const string SubchannelKey = "Subchannel";
         internal const string CurrentAddressKey = "CurrentAddress";
+        internal const string IsSocketsHttpHandlerSetupKey = "IsSocketsHttpHandlerSetup";
 
         private readonly ConnectionManager _manager;
 
-        public BalancerHttpHandler(HttpMessageHandler innerHandler, HttpHandlerType httpHandlerType, ConnectionManager manager)
+        public BalancerHttpHandler(HttpMessageHandler innerHandler, ConnectionManager manager)
             : base(innerHandler)
         {
             _manager = manager;
+        }
 
-#if NET5_0_OR_GREATER
-            if (httpHandlerType == HttpHandlerType.SocketsHttpHandler)
+        internal static bool TryConfigureSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+        {
+            // We're modifying the SocketsHttpHandler and nothing prevents two threads from creating a
+            // channel with the same handler on different threads.
+            // Place handler reads and modifications in a lock to ensure there is no change of race conditions.
+            lock (SetupLock)
             {
-                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
-                CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
-
-                if (!HttpRequestHelpers.IsSocketsHttpHandlerSetup(socketsHttpHandler))
+                if (!IsSetup(socketsHttpHandler))
                 {
+                    // Someone else has already configured ConnectCallback and we don't want to overwrite
+                    // that so skip configuring SocketsHttpHandler.
+                    if (socketsHttpHandler.ConnectCallback != null)
+                    {
+                        return false;
+                    }
+
                     socketsHttpHandler.ConnectCallback = OnConnect;
-                    socketsHttpHandler.Properties[HttpRequestHelpers.IsSocketsHttpHandlerSetupKey] = true;
+                    socketsHttpHandler.Properties[IsSocketsHttpHandlerSetupKey] = true;
                 }
             }
-#endif
+
+            return true;
+
+            static bool IsSetup(SocketsHttpHandler socketsHttpHandler)
+            {
+                return socketsHttpHandler.Properties.TryGetValue(IsSocketsHttpHandlerSetupKey, out var value) &&
+                    value is bool isEnabled &&
+                    isEnabled;
+            }
         }
 
 #if NET5_0_OR_GREATER
