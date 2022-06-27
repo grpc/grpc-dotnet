@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using Grpc.Core;
@@ -133,15 +134,17 @@ namespace Grpc.Net.Client.Balancer
                 // Check existing subchannels for a match.
                 var i = FindSubchannelByAddress(currentSubchannels, address);
 
-                AddressSubchannel newOrCurrentSubConnection;
+                AddressSubchannel newOrCurrentSubchannel;
                 if (i != null)
                 {
                     // There is a match so take current subchannel.
-                    newOrCurrentSubConnection = currentSubchannels[i.GetValueOrDefault()];
+                    newOrCurrentSubchannel = currentSubchannels[i.GetValueOrDefault()];
 
                     // Remove from current collection because any subchannels
                     // remaining in this collection at the end will be disposed.
                     currentSubchannels.RemoveAt(i.GetValueOrDefault());
+
+                    SubchannelLog.SubchannelPreserved(_logger, newOrCurrentSubchannel.Subchannel.Id, address);
                 }
                 else
                 {
@@ -150,10 +153,10 @@ namespace Grpc.Net.Client.Balancer
                     c.OnStateChanged(s => UpdateSubchannelState(c, s));
 
                     newSubchannels.Add(c);
-                    newOrCurrentSubConnection = new AddressSubchannel(c, address);
+                    newOrCurrentSubchannel = new AddressSubchannel(c, address);
                 }
 
-                allUpdatedSubchannels.Add(newOrCurrentSubConnection);
+                allUpdatedSubchannels.Add(newOrCurrentSubchannel);
             }
 
             // Any sub-connections still in this collection are no longer returned by the resolver.
@@ -227,6 +230,7 @@ namespace Grpc.Net.Client.Balancer
             }
             else
             {
+                SubchannelsLoadBalancerLog.CreatingReadyPicker(_logger, readySubchannels);
                 UpdateChannelState(ConnectivityState.Ready, CreatePicker(readySubchannels));
             }
         }
@@ -298,7 +302,7 @@ namespace Grpc.Net.Client.Balancer
         /// <returns>A subchannel picker.</returns>
         protected abstract SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels);
 
-        private class AddressSubchannel
+        private sealed class AddressSubchannel
         {
             private ConnectivityState _lastKnownState;
 
@@ -340,6 +344,9 @@ namespace Grpc.Net.Client.Balancer
         private static readonly Action<ILogger, int, ConnectivityState, Exception?> _requestingConnectionForSubchannel =
             LoggerMessage.Define<int, ConnectivityState>(LogLevel.Trace, new EventId(5, "RequestingConnectionForSubchannel"), "Requesting connection for subchannel id '{SubchannelId}' because it is in state {State}.");
 
+        private static readonly Action<ILogger, int, string, Exception?> _creatingReadyPicker =
+            LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(6, "CreatingReadyPicker"), "Creating ready picker with {SubchannelCount} subchannels: {Subchannels}");
+
         public static void ProcessingSubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state, Status status)
         {
             _processingSubchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
@@ -363,6 +370,14 @@ namespace Grpc.Net.Client.Balancer
         public static void RequestingConnectionForSubchannel(ILogger logger, int subchannelId, ConnectivityState state)
         {
             _requestingConnectionForSubchannel(logger, subchannelId, state, null);
+        }
+
+        public static void CreatingReadyPicker(ILogger logger, List<Subchannel> readySubchannels)
+        {
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                _creatingReadyPicker(logger, readySubchannels.Count, string.Join(", ", readySubchannels.Select(s => $"id '{s.Id}' ({string.Join(",", s.GetAddresses())})")), null);
+            }
         }
     }
 }
