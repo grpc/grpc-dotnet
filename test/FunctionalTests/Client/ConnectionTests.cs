@@ -125,7 +125,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
 #if NET5_0_OR_GREATER
         [Test]
-        public async Task ShareSocketsHttpHandlerWithLoadBalancing()
+        public async Task ShareSocketsHttpHandler()
         {
             Task<HelloReply> Unary(HelloRequest request, ServerCallContext context)
             {
