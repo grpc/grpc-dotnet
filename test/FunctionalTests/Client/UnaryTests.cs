@@ -168,7 +168,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 #endif
 
         [Test]
-        public async Task Heatlh_Check_Success()
+        public async Task Health_Check_Success()
         {
             // Arrange
             var client = new Health.V1.Health.HealthClient(Channel);
