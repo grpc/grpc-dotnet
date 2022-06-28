@@ -17,7 +17,6 @@
 #endregion
 
 using System.Globalization;
-using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
