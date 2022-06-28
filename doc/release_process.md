@@ -11,7 +11,8 @@ release that the new release depends on.
 
 - Before cutting the release branch
     - If needed, on the master branch update the `<GrpcToolsPackageVersion>` and `<GrpcPackageVersion>` dependency versions in [dependencies.props](https://github.com/grpc/grpc-dotnet/blob/master/build/dependencies.props)
-      to the latest pre-release of `Grpc.Core.Api` (that was just released as part of the grpc/grpc release process) 
+      to the latest pre-release of `Grpc.Tools` or `Grpc.Core` (that was released as part of the grpc/grpc release process) 
+    
     - Make sure that any patches/bugfixes from the last released branch have been applied to the master branch as well.
 
 - Cut the release branch from master branch  (the branch format is `v2.25.x`, `v2.26.x`, ...).
@@ -19,17 +20,22 @@ release that the new release depends on.
 
 - On the release branch, replace the `-dev` suffix by `-pre1` under `<GrpcDotnetVersion>` version release number in [version.props](https://github.com/grpc/grpc-dotnet/blob/master/build/version.props)
   to prepare for building the pre-release nugets.
-  Also check that the minor version number matches the branch name.
+    - You'll also need to update `CurrentVersion` field in `Grpc.Core.Api`'s [VersionInfo.cs](https://github.com/grpc/grpc-dotnet/blob/6bbbf3627797ad8f787eced10b0e548cfd9ece15/src/Grpc.Core.Api/VersionInfo.cs#L44) to match the version number (otherwise tests will fail).
+    - Also check that the minor version number matches the branch name.
 
 - Build the signed nuget packages and push them to nuget.org (internal process). **These are the pre-release packages.**
 
 - Create a new release and tag in https://github.com/grpc/grpc-dotnet/releases (by creating the tag from the current release branch).
   Mark the release as "pre-release" in the github UI. Fill in the release notes.
 
-- Wait for the stable release of `Grpc.Core.Api` (as scheduled by the release schedule), keep checking the issue tracker for problems with the new grpc-dotnet pre-release packages.
+- Wait for the stable release of `Grpc.Tools` from the `grpc/grpc` repository (as scheduled by the release schedule), keep checking the issue tracker for problems with the new grpc-dotnet pre-release packages.
   If problems are discovered and they need to be fixed, the release manager might choose to release more pre-releases (`-pre2`, `-pre3`, ...) before deciding to release as stable.
+  
+- **Make sure at least 7 days have elapsed since the last pre-release before proceeding with the stable release**, to give users enough time to test the prerelease nugets and discover potential issues. This is to decrease the likelyhood of pushing a bad stable release.
 
-- Once stable version of `Grpc.Core.Api` is pushed, remove `-pre1` suffix of the `<GrpcDotnetVersion>` version release number in [version.props](https://github.com/grpc/grpc-dotnet/blob/master/build/version.props) to prepare for the stable release.
+- Once stable version of `Grpc.Tools` is pushed, remove `-pre1` suffix of the `<GrpcDotnetVersion>` version release number in [version.props](https://github.com/grpc/grpc-dotnet/blob/master/build/version.props) to prepare for the stable release.
+   
+   - Update `CurrentVersion` field in `Grpc.Core.Api`'s [VersionInfo.cs](https://github.com/grpc/grpc-dotnet/blob/6bbbf3627797ad8f787eced10b0e548cfd9ece15/src/Grpc.Core.Api/VersionInfo.cs#L44) to match the version number (otherwise tests will fail).
 
 - Build the signed nuget packages and push them to nuget.org (internal process). **These are the stable grpc-dotnet packages.**
 
