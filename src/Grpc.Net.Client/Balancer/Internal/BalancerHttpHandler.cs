@@ -29,30 +29,52 @@ namespace Grpc.Net.Client.Balancer.Internal
 {
     internal class BalancerHttpHandler : DelegatingHandler
     {
+        private static readonly object SetupLock = new object();
+
         internal const string WaitForReadyKey = "WaitForReady";
         internal const string SubchannelKey = "Subchannel";
         internal const string CurrentAddressKey = "CurrentAddress";
+        internal const string IsSocketsHttpHandlerSetupKey = "IsSocketsHttpHandlerSetup";
 
         private readonly ConnectionManager _manager;
 
-        public BalancerHttpHandler(HttpMessageHandler innerHandler, HttpHandlerType httpHandlerType, ConnectionManager manager)
+        public BalancerHttpHandler(HttpMessageHandler innerHandler, ConnectionManager manager)
             : base(innerHandler)
         {
             _manager = manager;
+        }
 
-#if NET5_0_OR_GREATER
-            if (httpHandlerType == HttpHandlerType.SocketsHttpHandler)
+        internal static bool IsSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+        {
+            lock (SetupLock)
             {
-                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(innerHandler);
-                CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
-
-                socketsHttpHandler.ConnectCallback = OnConnect;
+                return socketsHttpHandler.Properties.TryGetValue(IsSocketsHttpHandlerSetupKey, out var value) &&
+                    value is bool isEnabled &&
+                    isEnabled;
             }
-#endif
+        }
+
+        internal static void ConfigureSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+        {
+            // We're modifying the SocketsHttpHandler and nothing prevents two threads from creating a
+            // channel with the same handler on different threads.
+            // Place handler reads and modifications in a lock to ensure there is no chance of race conditions.
+            // This is a static lock but it is only called once when a channel is created and the logic
+            // inside it will complete straight away. Shouldn't have any performance impact.
+            lock (SetupLock)
+            {
+                if (!IsSocketsHttpHandlerSetup(socketsHttpHandler))
+                {
+                    Debug.Assert(socketsHttpHandler.ConnectCallback == null, "ConnectCallback should be null to get to this point.");
+
+                    socketsHttpHandler.ConnectCallback = OnConnect;
+                    socketsHttpHandler.Properties[IsSocketsHttpHandlerSetupKey] = true;
+                }
+            }
         }
 
 #if NET5_0_OR_GREATER
-        private async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+        private static async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
         {
             if (!context.InitialRequestMessage.TryGetOption<Subchannel>(SubchannelKey, out var subchannel))
             {
