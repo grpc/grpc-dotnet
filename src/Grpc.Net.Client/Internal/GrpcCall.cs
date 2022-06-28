@@ -248,9 +248,9 @@ namespace Grpc.Net.Client.Internal
             }
         }
 
-        public Exception CreateCanceledStatusException()
+        public Exception CreateCanceledStatusException(Exception? ex = null)
         {
-            var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+            var status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty, ex);
             return CreateRpcException(status);
         }
 
@@ -672,7 +672,7 @@ namespace Grpc.Net.Client.Internal
         {
             if (ex is OperationCanceledException)
             {
-                status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty);
+                status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty, ex);
                 if (!Channel.ThrowOperationCanceledOnCancellation)
                 {
                     resolvedException = CreateRpcException(status.Value);

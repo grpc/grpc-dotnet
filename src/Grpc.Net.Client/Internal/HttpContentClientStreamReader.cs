@@ -65,7 +65,8 @@ namespace Grpc.Net.Client.Internal
             {
                 if (!_call.Channel.ThrowOperationCanceledOnCancellation)
                 {
-                    return Task.FromException<bool>(_call.CreateCanceledStatusException());
+                    var ex = _call.CreateCanceledStatusException(new OperationCanceledException(_call.CancellationToken));
+                    return Task.FromException<bool>(ex);
                 }
                 else
                 {
@@ -190,7 +191,7 @@ namespace Grpc.Net.Client.Internal
 
                 if (!_call.Channel.ThrowOperationCanceledOnCancellation)
                 {
-                    throw _call.CreateCanceledStatusException();
+                    throw _call.CreateCanceledStatusException(ex);
                 }
                 else
                 {
