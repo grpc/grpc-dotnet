@@ -17,9 +17,11 @@
 #endregion
 
 using System.Globalization;
+using Google.Protobuf;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Health.V1;
 using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
@@ -166,5 +168,17 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 #endif
 
+        [Test]
+        public async Task Heatlh_Check_Success()
+        {
+            // Arrange
+            var client = new Health.V1.Health.HealthClient(Channel);
+
+            // Act
+            var result = await client.CheckAsync(new HealthCheckRequest());
+
+            // Assert
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, result.Status);
+        }
     }
 }
