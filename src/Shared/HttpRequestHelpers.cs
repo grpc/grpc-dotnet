@@ -97,38 +97,5 @@ namespace Grpc.Shared
 
             return null;
         }
-
-        public static HttpHandlerType CalculateHandlerType(HttpMessageHandler handler)
-        {
-            if (HasHttpHandlerType(handler, "System.Net.Http.WinHttpHandler"))
-            {
-                return HttpHandlerType.WinHttpHandler;
-            }
-            if (HasHttpHandlerType(handler, "System.Net.Http.SocketsHttpHandler"))
-            {
-#if NET5_0_OR_GREATER
-                var socketsHttpHandler = GetHttpHandlerType<SocketsHttpHandler>(handler)!;
-                if (socketsHttpHandler.ConnectCallback != null)
-                {
-                    return HttpHandlerType.Custom;
-                }
-#endif
-                return HttpHandlerType.SocketsHttpHandler;
-            }
-            if (GetHttpHandlerType<HttpClientHandler>(handler) != null)
-            {
-                return HttpHandlerType.HttpClientHandler;
-            }
-
-            return HttpHandlerType.Custom;
-        }
-    }
-
-    internal enum HttpHandlerType
-    {
-        SocketsHttpHandler,
-        HttpClientHandler,
-        WinHttpHandler,
-        Custom
     }
 }
