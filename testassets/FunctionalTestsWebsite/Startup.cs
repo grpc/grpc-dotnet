@@ -23,6 +23,7 @@ using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Greet;
 using Grpc.AspNetCore.Server.Model;
+using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -104,6 +105,13 @@ namespace FunctionalTestsWebsite
             // Add a Singleton service
             services.AddSingleton<SingletonCounterService>();
 
+            services.AddSingleton<HealthServiceImpl>(s =>
+            {
+                var service = new HealthServiceImpl();
+                service.SetStatus("", Grpc.Health.V1.HealthCheckResponse.Types.ServingStatus.Serving);
+                return service;
+            });
+
             static Uri GetCurrentAddress(IServiceProvider serviceProvider)
             {
                 // Get the address of the current server from the request
@@ -184,6 +192,7 @@ namespace FunctionalTestsWebsite
                 endpoints.MapGrpcService<EchoService>();
                 endpoints.MapGrpcService<IssueService>();
                 endpoints.MapGrpcService<TesterService>();
+                endpoints.MapGrpcService<HealthServiceImpl>();
 
                 endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
 
