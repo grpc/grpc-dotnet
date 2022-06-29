@@ -307,9 +307,12 @@ The downloader shows how to download a file in chunks using a server streaming g
 * Server streaming
 * Binary payload
 
-## [Hoster](./Hoster)
+## [Locator](./Locator)
 
-The hoster shows how to add host name constraints to gRPC services.
+The locator shows how to add host name constraints to gRPC services. This example adds two services:
+
+* Internal gRPC service is only accessible over port 5001.
+* External gRPC service is only accessible over port 5000.
 
 ##### Scenarios:
 
