@@ -306,3 +306,11 @@ The downloader shows how to download a file in chunks using a server streaming g
 
 * Server streaming
 * Binary payload
+
+## [Hoster](./Hoster)
+
+The hoster shows how to add host name constraints to gRPC services.
+
+##### Scenarios:
+
+* [`RequireHost`](https://docs.microsoft.com/aspnet/core/fundamentals/routing#host-matching-in-routes-with-requirehost)
