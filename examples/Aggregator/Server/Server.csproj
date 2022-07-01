@@ -12,10 +12,10 @@
     <PackageReference Include="Grpc.AspNetCore" Version="$(GrpcDotNetPackageVersion)" />
 
     <PackageReference Include="OpenTelemetry.Exporter.Zipkin" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryPackageVersion)" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="$(OpenTelemetryIntergationPackageVersion)" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryIntergationPackageVersion)" />
   </ItemGroup>
 
 </Project>
