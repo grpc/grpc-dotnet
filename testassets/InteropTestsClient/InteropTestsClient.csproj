@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net6.0;net5.0;net472</TargetFrameworks>
-    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net6.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net7.0;net6.0;net5.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net7.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -44,13 +44,8 @@
     <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
   </ItemGroup>
 
-  <ItemGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), 5.0))">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
   </ItemGroup>
-
-  <!-- Ensure TargetFrameworkVersion also has a value so VersionGreaterThanOrEquals doesn't break -->
-  <PropertyGroup Condition="'$(TargetFrameworkVersion)' == ''">
-    <TargetFrameworkVersion >v0.0</TargetFrameworkVersion>
-  </PropertyGroup>
   
 </Project>

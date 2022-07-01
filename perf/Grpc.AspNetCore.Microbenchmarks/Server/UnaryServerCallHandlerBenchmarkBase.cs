@@ -139,7 +139,7 @@ namespace Grpc.AspNetCore.Microbenchmarks.Server
             {
                 if (!value.Equals(ExpectedStatus))
                 {
-                    throw new InvalidOperationException("Unexpected grpc-status: " + Enum.Parse<StatusCode>(value));
+                    throw new InvalidOperationException("Unexpected grpc-status: " + Enum.Parse<StatusCode>(value.ToString()));
                 }
             }
             else

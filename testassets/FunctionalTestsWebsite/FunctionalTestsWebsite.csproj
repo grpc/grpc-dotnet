@@ -1,19 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-  
+
   <PropertyGroup>
     <!-- Multi-target because this website is referenced by Grpc.AspNetCore.FunctionalTests which also multi-targets -->
-    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
     <GenerateUserSecretsAttribute>false</GenerateUserSecretsAttribute>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
-    
+
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreApp31PackageVersion)" />
-    <PackageReference Include="System.Net.Http.Json" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
 
     <Protobuf Include="..\Proto\any.proto" Link="Protos\any.proto" />
     <Protobuf Include="..\Proto\authorize.proto" Link="Protos\authorize.proto" />
@@ -31,7 +30,11 @@
     <Protobuf Include="..\Proto\issue.proto" Link="Protos\issue.proto" />
     <Protobuf Include="..\Proto\test.proto" Link="Protos\test.proto" />
 
-	<Compile Include="..\..\test\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
+    <Compile Include="..\..\test\Shared\ActivityReplacer.cs" Link="Infrastructure\ActivityReplacer.cs" />
   </ItemGroup>
-  
+
+  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
+    <PackageReference Include="System.Net.Http.Json" Version="3.2.0" />
+  </ItemGroup>
+
 </Project>

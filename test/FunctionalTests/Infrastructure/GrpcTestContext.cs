@@ -44,6 +44,9 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddFilter((s, l) =>
                 {
+                    // Ensure not null
+                    s ??= string.Empty;
+
                     // Server categories are prefixed with SERVER
                     var category = s.StartsWith("SERVER ") ? s.AsSpan(7) : s.AsSpan();
 

@@ -127,11 +127,11 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         if (header.Key.EndsWith(Metadata.BinaryHeaderSuffix, StringComparison.OrdinalIgnoreCase))
                         {
-                            _requestHeaders.Add(header.Key, GrpcProtocolHelpers.ParseBinaryHeader(header.Value));
+                            _requestHeaders.Add(header.Key, GrpcProtocolHelpers.ParseBinaryHeader(header.Value!));
                         }
                         else
                         {
-                            _requestHeaders.Add(header.Key, header.Value);
+                            _requestHeaders.Add(header.Key, header.Value!);
                         }
                     }
                 }
@@ -450,7 +450,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     return timeout;
                 }
 
-                GrpcServerLog.InvalidTimeoutIgnored(Logger, values);
+                GrpcServerLog.InvalidTimeoutIgnored(Logger, values!);
             }
 
             return TimeSpan.Zero;

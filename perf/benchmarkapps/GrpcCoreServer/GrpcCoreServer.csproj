@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <!-- TODO(JamesNK): Workaround https://github.com/grpc/grpc/issues/29672 -->
     <NoWarn>$(NoWarn);CS8981</NoWarn>

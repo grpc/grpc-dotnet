@@ -23,6 +23,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
+using Grpc.Shared;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -504,7 +505,7 @@ namespace Grpc.Net.Client.Tests
 
             var httpClient = ClientTestHelpers.CreateTestClient(request =>
             {
-                return Task.FromException<HttpResponseMessage>(new Http2StreamException("The HTTP/2 server reset the stream. HTTP/2 error code 'CANCEL' (0x8)."));
+                return Task.FromException<HttpResponseMessage>(CreateHttp2Exception(Http2ErrorCode.CANCEL));
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
             var invoker = HttpClientCallInvokerFactory.Create(
@@ -533,7 +534,7 @@ namespace Grpc.Net.Client.Tests
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 await syncPoint.WaitToContinue();
-                throw new Http2StreamException("The HTTP/2 server reset the stream. HTTP/2 error code 'CANCEL' (0x8).");
+                throw CreateHttp2Exception(Http2ErrorCode.CANCEL);
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
             var invoker = HttpClientCallInvokerFactory.Create(
@@ -568,7 +569,7 @@ namespace Grpc.Net.Client.Tests
             var httpClient = ClientTestHelpers.CreateTestClient(async request =>
             {
                 await syncPoint.WaitToContinue();
-                throw new QuicStreamAbortedException("Stream aborted by peer (268).");
+                throw CreateHttp3Exception(Http3ErrorCode.H3_REQUEST_CANCELLED);
             });
             var testSystemClock = new TestSystemClock(DateTime.UtcNow);
             var invoker = HttpClientCallInvokerFactory.Create(
@@ -600,9 +601,28 @@ namespace Grpc.Net.Client.Tests
 
             public DateTime UtcNow { get; set; }
         }
+
+        private Exception CreateHttp2Exception(Http2ErrorCode errorCode)
+        {
+#if !NET7_0_OR_GREATER
+            return new Http2StreamException($"The HTTP/2 server reset the stream. HTTP/2 error code '{errorCode}' ({errorCode.ToString("x")}).");
+#else
+            return new HttpProtocolException((long)errorCode, "Dummy", innerException: null);
+#endif
+        }
+
+        private Exception CreateHttp3Exception(Http3ErrorCode errorCode)
+        {
+#if !NET7_0_OR_GREATER
+            return new QuicStreamAbortedException($"Stream aborted by peer ({(long)errorCode}).");
+#else
+            return new HttpProtocolException((long)errorCode, "Dummy", innerException: null);
+#endif
+        }
     }
 }
 
+#if !NET7_0_OR_GREATER
 namespace System.Net.Http
 {
     public class Http2StreamException : Exception
@@ -622,3 +642,4 @@ namespace System.Net.Quic
         }
     }
 }
+#endif

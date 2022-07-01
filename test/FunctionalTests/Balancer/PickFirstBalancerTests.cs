@@ -363,9 +363,11 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var activeStreams = transport.GetActiveStreams();
 
             // Assert
-            Assert.AreEqual(2, activeStreams.Count);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[0].Address.EndPoint);
-            Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), activeStreams[1].Address.EndPoint);
+            Assert.GreaterOrEqual(activeStreams.Count, 2);
+            foreach (var stream in activeStreams)
+            {
+                Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50051), stream.Address.EndPoint);
+            }
 
             tcs.SetResult(null);
 

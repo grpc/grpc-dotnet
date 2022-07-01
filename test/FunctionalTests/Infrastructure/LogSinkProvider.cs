@@ -68,10 +68,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
                 _scopeProvider = scopeProvider;
             }
 
+#pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
             public IDisposable BeginScope<TState>(TState state)
             {
                 return _scopeProvider != null ? _scopeProvider.Push(state) : NullScope.Instance;
             }
+#pragma warning restore CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 
             public bool IsEnabled(LogLevel logLevel)
             {
