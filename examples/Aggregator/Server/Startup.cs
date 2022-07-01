@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Server
@@ -48,7 +49,8 @@ namespace Server
             {
                 services.AddOpenTelemetryTracing(telemetry =>
                 {
-                    telemetry.AddZipkinExporter(o => o.ServiceName = "aggregator");
+                    telemetry.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("aggregator"));
+                    telemetry.AddZipkinExporter();
                     telemetry.AddGrpcClientInstrumentation();
                     telemetry.AddHttpClientInstrumentation();
                     telemetry.AddAspNetCoreInstrumentation();
