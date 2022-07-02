@@ -5,8 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore.HealthChecks" Version="2.46.0" />
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
+    <PackageReference Include="Grpc.AspNetCore.HealthChecks" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>
 
 </Project>
