@@ -16,6 +16,8 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Grpc.Net.ClientFactory
 {
     /// <summary>
@@ -30,6 +32,10 @@ namespace Grpc.Net.ClientFactory
         /// <typeparam name="TClient">The gRPC client type.</typeparam>
         /// <param name="name">The configuration name.</param>
         /// <returns>A gRPC client instance.</returns>
-        public abstract TClient CreateClient<TClient>(string name) where TClient : class;
+        public abstract TClient CreateClient<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+            TClient>(string name) where TClient : class;
     }
 }

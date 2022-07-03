@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Net.ClientFactory;
 using Grpc.Net.ClientFactory.Internal;
 using Grpc.Shared;
@@ -280,7 +281,11 @@ namespace Microsoft.Extensions.DependencyInjection
             return services.AddGrpcClientCore<TClient>(name);
         }
 
-        private static IHttpClientBuilder AddGrpcClientCore<TClient>(this IServiceCollection services, string name) where TClient : class
+        private static IHttpClientBuilder AddGrpcClientCore<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+            TClient>(this IServiceCollection services, string name) where TClient : class
         {
             if (name == null)
             {
@@ -305,7 +310,11 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <summary>
         /// This is a custom method to register the HttpClient and typed factory. Needed because we need to access the config name when creating the typed client
         /// </summary>
-        private static IHttpClientBuilder AddGrpcHttpClient<TClient>(this IServiceCollection services, string name)
+        private static IHttpClientBuilder AddGrpcHttpClient<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+            TClient>(this IServiceCollection services, string name)
             where TClient : class
         {
             if (services == null)
