@@ -5,9 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- TODO(JamesNK): Reference Grpc.AspNetCore.HealthChecks package when it is available on NuGet -->
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.HealthChecks\Grpc.AspNetCore.HealthChecks.csproj" />
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
+    <PackageReference Include="Grpc.AspNetCore.HealthChecks" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>
 
 </Project>
