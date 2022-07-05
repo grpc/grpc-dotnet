@@ -16,13 +16,18 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Grpc.Net.ClientFactory.Internal
 {
     // Should be registered as a singleton, so it that it can act as a cache for the Activator.
-    internal class DefaultClientActivator<TClient> where TClient : class
+    internal class DefaultClientActivator<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient> where TClient : class
     {
         private static readonly Func<ObjectFactory> _createActivator = static () => ActivatorUtilities.CreateFactory(typeof(TClient), new Type[] { typeof(CallInvoker), });
 
