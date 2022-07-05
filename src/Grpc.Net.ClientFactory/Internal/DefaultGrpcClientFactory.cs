@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,7 +39,11 @@ namespace Grpc.Net.ClientFactory.Internal
             _grpcClientFactoryOptionsMonitor = grpcClientFactoryOptionsMonitor;
         }
 
-        public override TClient CreateClient<TClient>(string name) where TClient : class
+        public override TClient CreateClient<
+#if NET5_0_OR_GREATER
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+            TClient>(string name) where TClient : class
         {
             var defaultClientActivator = _serviceProvider.GetService<DefaultClientActivator<TClient>>();
             if (defaultClientActivator == null)
