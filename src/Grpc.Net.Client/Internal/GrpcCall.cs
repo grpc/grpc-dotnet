@@ -282,7 +282,7 @@ namespace Grpc.Net.Client.Internal
             _callTcs.TrySetResult(status);
         }
 
-        public Task<Metadata> GetResponseHeadersAsync()
+        public async Task<Metadata> GetResponseHeadersAsync()
         {
             if (_responseHeadersTask == null)
             {
@@ -290,7 +290,7 @@ namespace Grpc.Net.Client.Internal
                 _responseHeadersTask = GetResponseHeadersCoreAsync();
             }
 
-            return _responseHeadersTask;
+            return await _responseHeadersTask;
         }
 
         private async Task<Metadata> GetResponseHeadersCoreAsync()
