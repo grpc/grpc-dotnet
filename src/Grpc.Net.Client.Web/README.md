@@ -31,6 +31,16 @@ The preceding code:
     * `GrpcWebMode.GrpcWebText` configures content to be base64 encoded. Required for server streaming calls in browsers.
 * **HttpVersion**: HTTP protocol `Version` used to set [`HttpRequestMessage.Version`](https://docs.microsoft.com/dotnet/api/system.net.http.httprequestmessage.version#system-net-http-httprequestmessage-version) on the underlying gRPC HTTP request. gRPC-Web doesn't require a specific version and doesn't override the default unless specified.
 
+### gRPC-Web and streaming
+
+Traditional gRPC over HTTP/2 supports streaming in all directions. gRPC-Web offers limited support for streaming:
+
+* gRPC-Web browser clients don't support calling client streaming and bidirectional streaming methods.
+* gRPC-Web .NET clients don't support calling client streaming and bidirectional streaming methods over HTTP/1.1.
+* ASP.NET Core gRPC services hosted on Azure App Service and IIS don't support bidirectional streaming.
+
+When using gRPC-Web, we only recommend the use of unary methods and server streaming methods.
+
 ## Links
 
 * [Documentation](https://docs.microsoft.com/aspnet/core/grpc/browser)
