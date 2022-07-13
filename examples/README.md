@@ -309,7 +309,7 @@ The downloader shows how to download a file in chunks using a server streaming g
 
 ## [Locator](./Locator)
 
-The locator shows how to add host name constraints to gRPC services. This example adds two services:
+The locator shows how to add host constraints to gRPC services. This example adds two services:
 
 * Internal gRPC service is only accessible over port 5001.
 * External gRPC service is only accessible over port 5000.
