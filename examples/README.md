@@ -306,3 +306,14 @@ The downloader shows how to download a file in chunks using a server streaming g
 
 * Server streaming
 * Binary payload
+
+## [Locator](./Locator)
+
+The locator shows how to add host constraints to gRPC services. This example adds two services:
+
+* Internal gRPC service is only accessible over port 5001.
+* External gRPC service is only accessible over port 5000.
+
+##### Scenarios:
+
+* [`RequireHost`](https://docs.microsoft.com/aspnet/core/fundamentals/routing#host-matching-in-routes-with-requirehost)
