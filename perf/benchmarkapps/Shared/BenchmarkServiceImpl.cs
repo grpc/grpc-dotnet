@@ -92,7 +92,8 @@ class BenchmarkServiceImpl : BenchmarkService.BenchmarkServiceBase
 
     public static SimpleResponse CreateResponse(SimpleRequest request)
     {
-        var body = UnsafeByteOperations.UnsafeWrap(new byte[request.ResponseSize]);
+        var data = request.ResponseSize == 0 ? Array.Empty<byte>() : new byte[request.ResponseSize];
+        var body = UnsafeByteOperations.UnsafeWrap(data);
 
         var payload = new Payload { Body = body };
         return new SimpleResponse { Payload = payload };
