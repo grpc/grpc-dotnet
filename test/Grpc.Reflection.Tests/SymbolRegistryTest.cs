@@ -15,7 +15,7 @@
 #endregion
 
 using Grpc.Reflection;
-using Grpc.Reflection.V1Alpha;
+using Grpc.Reflection.V1;
 using NUnit.Framework;
 
 

@@ -20,7 +20,7 @@ using Greet;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Reflection;
-using Grpc.Reflection.V1Alpha;
+using Grpc.Reflection.V1;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;

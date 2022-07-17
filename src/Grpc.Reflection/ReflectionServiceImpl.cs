@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 using Grpc.Core;
 using Grpc.Core.Utils;
-using Grpc.Reflection.V1Alpha;
+using Grpc.Reflection.V1;
 using Google.Protobuf.Reflection;
 
 namespace Grpc.Reflection
@@ -30,7 +30,7 @@ namespace Grpc.Reflection
     /// <summary>
     /// Implementation of server reflection service.
     /// </summary>
-    public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionBase
+    public class ReflectionServiceImpl : Grpc.Reflection.V1.ServerReflection.ServerReflectionBase
     {
         readonly List<string> services;
         readonly SymbolRegistry symbolRegistry;

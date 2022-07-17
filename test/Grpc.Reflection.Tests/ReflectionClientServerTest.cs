@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 
 using Grpc.Core;
 using Grpc.Reflection;
-using Grpc.Reflection.V1Alpha;
+using Grpc.Reflection.V1;
 using NUnit.Framework;
 
 namespace Grpc.Reflection.Tests
