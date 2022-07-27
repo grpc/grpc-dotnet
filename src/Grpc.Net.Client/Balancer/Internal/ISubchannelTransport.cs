@@ -72,7 +72,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public void Dispose()
         {
-            // Dispose the CTS because if could be created with a timer.
+            // Dispose the CTS because it could be created with an internal timer.
             _cts.Dispose();
             _disposed = true;
         }
