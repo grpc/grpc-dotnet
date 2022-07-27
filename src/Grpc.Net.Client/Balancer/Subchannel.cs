@@ -59,7 +59,7 @@ namespace Grpc.Net.Client.Balancer
         private readonly ConnectionManager _manager;
         private readonly ILogger _logger;
 
-        private CancellationTokenSource? _connectCts;
+        private ConnectContext? _connectContext;
         private ConnectivityState _state;
         private TaskCompletionSource<object?>? _delayInterruptTcs;
 
@@ -172,7 +172,7 @@ namespace Grpc.Net.Client.Balancer
 
             if (requireReconnect)
             {
-                _connectCts?.Cancel();
+                _connectContext?.CancelConnect();
                 Transport.Disconnect();
                 RequestConnection();
             }
@@ -216,9 +216,9 @@ namespace Grpc.Net.Client.Balancer
         private async Task ConnectTransportAsync()
         {
             // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
-            _connectCts?.Cancel();
+            _connectContext?.CancelConnect();
 
-            _connectCts = new CancellationTokenSource();
+            _connectContext = new ConnectContext(Transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
 
             var backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
@@ -236,12 +236,12 @@ namespace Grpc.Net.Client.Balancer
                         }
                     }
 
-                    if (await Transport.TryConnectAsync(_connectCts.Token).ConfigureAwait(false))
+                    if (await Transport.TryConnectAsync(_connectContext).ConfigureAwait(false))
                     {
                         return;
                     }
 
-                    _connectCts.Token.ThrowIfCancellationRequested();
+                    _connectContext.CancellationToken.ThrowIfCancellationRequested();
 
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
@@ -357,8 +357,9 @@ namespace Grpc.Net.Client.Balancer
         {
             UpdateConnectivityState(ConnectivityState.Shutdown, "Subchannel disposed.");
             _stateChangedRegistrations.Clear();
+            _connectContext?.CancelConnect();
+            _connectContext?.Dispose();
             Transport.Dispose();
-            _connectCts?.Cancel();
         }
     }
 

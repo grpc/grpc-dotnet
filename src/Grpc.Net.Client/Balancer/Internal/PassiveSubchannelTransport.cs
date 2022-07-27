@@ -43,6 +43,7 @@ namespace Grpc.Net.Client.Balancer.Internal
         }
 
         public BalancerAddress? CurrentAddress => _currentAddress;
+        public TimeSpan? ConnectTimeout { get; }
 
         public void Disconnect()
         {
@@ -56,7 +57,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 #else
             Task<bool>
 #endif
-            TryConnectAsync(CancellationToken cancellationToken)
+            TryConnectAsync(ConnectContext context)
         {
             Debug.Assert(_subchannel._addresses.Count == 1);
             Debug.Assert(CurrentAddress == null);

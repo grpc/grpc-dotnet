@@ -27,6 +27,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     internal interface ISubchannelTransport : IDisposable
     {
         BalancerAddress? CurrentAddress { get; }
+        TimeSpan? ConnectTimeout { get; }
 
 #if NET5_0_OR_GREATER
         ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
@@ -37,9 +38,37 @@ namespace Grpc.Net.Client.Balancer.Internal
 #else
         Task<bool>
 #endif
-            TryConnectAsync(CancellationToken cancellationToken);
+            TryConnectAsync(ConnectContext context);
 
         void Disconnect();
+    }
+
+    internal class ConnectContext
+    {
+        private readonly CancellationTokenSource _cts;
+
+        // Flag allows transport to determine whether the cancellation token was canceled
+        // because of explicit cancellation or because of timeout.
+        public bool IsConnectCanceled { get; private set; }
+
+        public CancellationToken CancellationToken => _cts.Token;
+
+        public ConnectContext(TimeSpan connectTimeout)
+        {
+            _cts = new CancellationTokenSource(connectTimeout);
+        }
+
+        public void CancelConnect()
+        {
+            IsConnectCanceled = true;
+            _cts.Cancel();
+        }
+
+        public void Dispose()
+        {
+            // Dispose the CTS because if could be created with a timer.
+            _cts.Dispose();
+        }
     }
 
     internal interface ISubchannelTransportFactory

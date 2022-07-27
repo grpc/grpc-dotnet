@@ -39,9 +39,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarkapps", "benchmarka
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{310E5783-455A-4D09-A7AE-39DC2AB09504}"
 	ProjectSection(SolutionItems) = preProject
-		perf\benchmarkapps\Shared\benchmark_service.proto = perf\benchmarkapps\Shared\benchmark_service.proto
 		perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs = perf\benchmarkapps\Shared\BenchmarkConfigurationHelpers.cs
 		perf\benchmarkapps\Shared\BenchmarkServiceImpl.cs = perf\benchmarkapps\Shared\BenchmarkServiceImpl.cs
+		perf\benchmarkapps\Shared\benchmark_service.proto = perf\benchmarkapps\Shared\benchmark_service.proto
 		perf\benchmarkapps\Shared\messages.proto = perf\benchmarkapps\Shared\messages.proto
 	EndProjectSection
 EndProject
@@ -124,23 +124,21 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LinkerTestsWebsite", "testa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Net.Client.Web.Tests", "test\Grpc.Net.Client.Web.Tests\Grpc.Net.Client.Web.Tests.csproj", "{14B1CA94-1222-4D2E-B37A-1FF8676E233E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QpsWorker", "perf\benchmarkapps\QpsWorker\QpsWorker.csproj", "{430F312C-550B-4D1F-907F-01A72F3E5CF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QpsWorker", "perf\benchmarkapps\QpsWorker\QpsWorker.csproj", "{430F312C-550B-4D1F-907F-01A72F3E5CF2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Core.Api", "src\Grpc.Core.Api\Grpc.Core.Api.csproj", "{BAE7C213-5950-4916-B456-A482828D89A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Core.Api", "src\Grpc.Core.Api\Grpc.Core.Api.csproj", "{BAE7C213-5950-4916-B456-A482828D89A0}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8545CBA9-0780-46C5-8A98-18D9E0B958C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Core.Api.Tests", "test\Grpc.Core.Api.Tests\Grpc.Core.Api.Tests.csproj", "{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Core.Api.Tests", "test\Grpc.Core.Api.Tests\Grpc.Core.Api.Tests.csproj", "{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Auth", "src\Grpc.Auth\Grpc.Auth.csproj", "{0BF42289-98E1-4490-8934-AF56B05ADB8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Auth", "src\Grpc.Auth\Grpc.Auth.csproj", "{0BF42289-98E1-4490-8934-AF56B05ADB8B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.HealthCheck", "src\Grpc.HealthCheck\Grpc.HealthCheck.csproj", "{6A70E853-DFAF-4484-90FC-ACA755CD02A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.HealthCheck", "src\Grpc.HealthCheck\Grpc.HealthCheck.csproj", "{6A70E853-DFAF-4484-90FC-ACA755CD02A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Reflection", "src\Grpc.Reflection\Grpc.Reflection.csproj", "{B4153E7F-5CF3-4DFB-A9D1-5E77A2FB2C48}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Reflection", "src\Grpc.Reflection\Grpc.Reflection.csproj", "{B4153E7F-5CF3-4DFB-A9D1-5E77A2FB2C48}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.HealthCheck.Tests", "test\Grpc.HealthCheck.Tests\Grpc.HealthCheck.Tests.csproj", "{25544326-C145-4D05-A4C3-AC7D59E17196}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.HealthCheck.Tests", "test\Grpc.HealthCheck.Tests\Grpc.HealthCheck.Tests.csproj", "{25544326-C145-4D05-A4C3-AC7D59E17196}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Grpc.Reflection.Tests", "test\Grpc.Reflection.Tests\Grpc.Reflection.Tests.csproj", "{857C5B4B-E2A8-4ACA-98FB-5E592E2224CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grpc.Reflection.Tests", "test\Grpc.Reflection.Tests\Grpc.Reflection.Tests.csproj", "{857C5B4B-E2A8-4ACA-98FB-5E592E2224CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -351,12 +349,12 @@ Global
 		{14B1CA94-1222-4D2E-B37A-1FF8676E233E} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{430F312C-550B-4D1F-907F-01A72F3E5CF2} = {1B8B6117-CE39-4580-BAFA-D8026102767A}
 		{BAE7C213-5950-4916-B456-A482828D89A0} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
-		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8} = {8545CBA9-0780-46C5-8A98-18D9E0B958C1}
+		{CAEA2276-BCB8-4B1E-9E6F-E546E4BDBCA8} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 		{0BF42289-98E1-4490-8934-AF56B05ADB8B} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{6A70E853-DFAF-4484-90FC-ACA755CD02A4} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
 		{B4153E7F-5CF3-4DFB-A9D1-5E77A2FB2C48} = {8C62055F-8CD7-4859-9001-634D544DF2AE}
-		{25544326-C145-4D05-A4C3-AC7D59E17196} = {8545CBA9-0780-46C5-8A98-18D9E0B958C1}
-		{857C5B4B-E2A8-4ACA-98FB-5E592E2224CC} = {8545CBA9-0780-46C5-8A98-18D9E0B958C1}
+		{25544326-C145-4D05-A4C3-AC7D59E17196} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
+		{857C5B4B-E2A8-4ACA-98FB-5E592E2224CC} = {CECC4AE8-9C4E-4727-939B-517CC2E58D65}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CD5C2B19-49B4-480A-990C-36D98A719B07}

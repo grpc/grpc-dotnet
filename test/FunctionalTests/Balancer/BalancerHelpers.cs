@@ -124,7 +124,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             var services = new ServiceCollection();
             services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
             services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5)));
+            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout: null));
             services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
             var serviceConfig = new ServiceConfig();
@@ -248,16 +248,18 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
         internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
         {
             private readonly TimeSpan _socketPingInterval;
+            private readonly TimeSpan? _connectTimeout;
 
-            public TestSubchannelTransportFactory(TimeSpan socketPingInterval)
+            public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout)
             {
                 _socketPingInterval = socketPingInterval;
+                _connectTimeout = connectTimeout;
             }
 
             public ISubchannelTransport Create(Subchannel subchannel)
             {
 #if NET5_0_OR_GREATER
-                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, NullLoggerFactory.Instance);
+                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, _connectTimeout, NullLoggerFactory.Instance);
 #else
                 return new PassiveSubchannelTransport(subchannel);
 #endif
