@@ -113,7 +113,7 @@ namespace Grpc.Net.Client
             Address = address;
             LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
             RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
-            (HttpHandlerType, ConnectTimeout) = CalculateHandlerType(channelOptions);
+            (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
             InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
@@ -218,7 +218,7 @@ namespace Grpc.Net.Client
             return Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp;
         }
 
-        private static HttpHandlerContext CalculateHandlerType(GrpcChannelOptions channelOptions)
+        private static HttpHandlerContext CalculateHandlerContext(GrpcChannelOptions channelOptions)
         {
             if (channelOptions.HttpHandler == null)
             {
@@ -765,6 +765,8 @@ namespace Grpc.Net.Client
                 _addressPathUnused(logger, address, null);
             }
         }
+
+        private readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null);
     }
 
     internal enum HttpHandlerType
@@ -774,6 +776,4 @@ namespace Grpc.Net.Client
         WinHttpHandler,
         Custom
     }
-
-    internal readonly record struct HttpHandlerContext(HttpHandlerType HttpHandlerType, TimeSpan? ConnectTimeout = null);
 }

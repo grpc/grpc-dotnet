@@ -43,12 +43,13 @@ namespace Grpc.Net.Client.Balancer.Internal
         void Disconnect();
     }
 
-    internal class ConnectContext
+    internal sealed class ConnectContext
     {
         private readonly CancellationTokenSource _cts;
 
-        // Flag allows transport to determine whether the cancellation token was canceled
-        // because of explicit cancellation or because of timeout.
+        // This flag allows the transport to determine why the cancellation token was canceled.
+        // - Explicit cancellation, e.g. the channel was disposed.
+        // - Connection timeout, e.g. SocketsHttpHandler.ConnectTimeout was exceeded.
         public bool IsConnectCanceled { get; private set; }
 
         public CancellationToken CancellationToken => _cts.Token;
