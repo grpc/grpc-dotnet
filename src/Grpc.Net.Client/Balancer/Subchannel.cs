@@ -172,7 +172,7 @@ namespace Grpc.Net.Client.Balancer
 
             if (requireReconnect)
             {
-                _connectContext?.CancelConnect();
+                CancelInProgressConnect();
                 Transport.Disconnect();
                 RequestConnection();
             }
@@ -213,12 +213,27 @@ namespace Grpc.Net.Client.Balancer
             _ = ConnectTransportAsync();
         }
 
+        private void CancelInProgressConnect()
+        {
+            var connectContext = _connectContext;
+            if (connectContext != null)
+            {
+                lock (Lock)
+                {
+                    // Cancel connect cancellation token.
+                    connectContext.CancelConnect();
+                    connectContext.Dispose();
+                    connectContext = null;
+                }
+            }
+        }
+
         private async Task ConnectTransportAsync()
         {
             // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
-            _connectContext?.CancelConnect();
+            CancelInProgressConnect();
 
-            _connectContext = new ConnectContext(Transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
+            var connectContext = _connectContext = new ConnectContext(Transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
 
             var backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
@@ -236,12 +251,12 @@ namespace Grpc.Net.Client.Balancer
                         }
                     }
 
-                    if (await Transport.TryConnectAsync(_connectContext).ConfigureAwait(false))
+                    if (await Transport.TryConnectAsync(connectContext).ConfigureAwait(false))
                     {
                         return;
                     }
 
-                    _connectContext.CancellationToken.ThrowIfCancellationRequested();
+                    connectContext.CancellationToken.ThrowIfCancellationRequested();
 
                     _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
                     var delayCts = new CancellationTokenSource();
@@ -283,6 +298,15 @@ namespace Grpc.Net.Client.Balancer
                 SubchannelLog.ConnectError(_logger, Id, ex);
 
                 UpdateConnectivityState(ConnectivityState.TransientFailure, "Error connecting to subchannel.");
+            }
+            finally
+            {
+                lock (Lock)
+                {
+                    // Dispose context because it might have been created with a connect timeout.
+                    // Want to clean up the connect timeout timer.
+                    connectContext.Dispose();
+                }
             }
         }
 
@@ -357,8 +381,8 @@ namespace Grpc.Net.Client.Balancer
         {
             UpdateConnectivityState(ConnectivityState.Shutdown, "Subchannel disposed.");
             _stateChangedRegistrations.Clear();
-            _connectContext?.CancelConnect();
-            _connectContext?.Dispose();
+
+            CancelInProgressConnect();
             Transport.Dispose();
         }
     }

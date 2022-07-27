@@ -46,6 +46,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     internal sealed class ConnectContext
     {
         private readonly CancellationTokenSource _cts;
+        private bool _disposed;
 
         // This flag allows the transport to determine why the cancellation token was canceled.
         // - Explicit cancellation, e.g. the channel was disposed.
@@ -61,14 +62,19 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public void CancelConnect()
         {
-            IsConnectCanceled = true;
-            _cts.Cancel();
+            // Check disposed because CTS.Cancel throws if the CTS is disposed.
+            if (!_disposed)
+            {
+                IsConnectCanceled = true;
+                _cts.Cancel();
+            }
         }
 
         public void Dispose()
         {
             // Dispose the CTS because if could be created with a timer.
             _cts.Dispose();
+            _disposed = true;
         }
     }
 
