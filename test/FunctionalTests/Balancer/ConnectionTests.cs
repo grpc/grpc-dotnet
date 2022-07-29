@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -36,6 +37,7 @@ using Grpc.Net.Client.Configuration;
 using Grpc.Net.Client.Web;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -47,6 +49,48 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
     public class ConnectionTests : FunctionalTestBase
     {
 #if NET5_0_OR_GREATER
+        [Test]
+        public async Task Active_UnaryCall_ConnectTimeout_ErrorThrownWhenTimeoutExceeded()
+        {
+            // Ignore errors
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                return true;
+            });
+
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            string? host = null;
+            async Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+            {
+                var protocol = context.GetHttpContext().Request.Protocol;
+
+                Logger.LogInformation("Received protocol: " + protocol);
+
+                await tcs.Task;
+                host = context.Host;
+                return new HelloReply { Message = request.Name };
+            }
+
+            // Arrange
+            using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+
+            var handler = new SocketsHttpHandler()
+            {
+                // ConnectTimeout is so small that CT will always be canceled before Socket is used.
+                ConnectTimeout = TimeSpan.FromTicks(1),
+            };
+            var channel = GrpcChannel.ForAddress(endpoint.Address, new GrpcChannelOptions()
+            {
+                HttpHandler = handler,
+                LoggerFactory = LoggerFactory
+            });
+
+            var client = TestClientFactory.Create(channel, endpoint.Method);
+
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.UnaryCall(new HelloRequest()).ResponseAsync).DefaultTimeout();
+            Assert.AreEqual("A connection could not be established within the configured ConnectTimeout.", ex.Status.DebugException!.Message);
+        }
+
         [Test]
         public async Task Active_UnaryCall_MultipleStreams_UnavailableAddress_FallbackToWorkingAddress()
         {
