@@ -223,7 +223,6 @@ namespace Grpc.Net.Client.Balancer
                     // Cancel connect cancellation token.
                     connectContext.CancelConnect();
                     connectContext.Dispose();
-                    connectContext = null;
                 }
             }
         }
