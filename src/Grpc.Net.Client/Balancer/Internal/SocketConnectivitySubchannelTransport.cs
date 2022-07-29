@@ -63,17 +63,19 @@ namespace Grpc.Net.Client.Balancer.Internal
         private bool _disposed;
         private BalancerAddress? _currentAddress;
 
-        public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, ILoggerFactory loggerFactory)
+        public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, TimeSpan? connectTimeout, ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<SocketConnectivitySubchannelTransport>();
             _subchannel = subchannel;
             _socketPingInterval = socketPingInterval;
+            ConnectTimeout = connectTimeout;
             _activeStreams = new List<ActiveStream>();
             _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         public object Lock => _subchannel.Lock;
         public BalancerAddress? CurrentAddress => _currentAddress;
+        public TimeSpan? ConnectTimeout { get; }
         public bool HasStream { get; }
 
         // For testing. Take a copy under lock for thread-safety.
@@ -112,7 +114,7 @@ namespace Grpc.Net.Client.Balancer.Internal
             _currentAddress = null;
         }
 
-        public async ValueTask<bool> TryConnectAsync(CancellationToken cancellationToken)
+        public async ValueTask<bool> TryConnectAsync(ConnectContext context)
         {
             Debug.Assert(CurrentAddress == null);
 
@@ -135,7 +137,7 @@ namespace Grpc.Net.Client.Balancer.Internal
                 try
                 {
                     SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, _subchannel.Id, currentAddress);
-                    await socket.ConnectAsync(currentAddress.EndPoint, cancellationToken).ConfigureAwait(false);
+                    await socket.ConnectAsync(currentAddress.EndPoint, context.CancellationToken).ConfigureAwait(false);
                     SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, _subchannel.Id, currentAddress);
 
                     lock (Lock)
@@ -158,7 +160,21 @@ namespace Grpc.Net.Client.Balancer.Internal
                     {
                         firstConnectionError = ex;
                     }
+
+                    // Stop trying to connect to addresses on cancellation.
+                    if (context.CancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
                 }
+            }
+
+            // Check if cancellation happened because of timeout.
+            if (firstConnectionError is OperationCanceledException oce &&
+                oce.CancellationToken == context.CancellationToken &&
+                !context.IsConnectCanceled)
+            {
+                firstConnectionError = new TimeoutException("A connection could not be established within the configured ConnectTimeout.", firstConnectionError);
             }
 
             // All connections failed

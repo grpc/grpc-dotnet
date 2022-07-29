@@ -32,19 +32,13 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
     {
         private ConnectivityState _state = ConnectivityState.Idle;
 
-/* Unmerged change from project 'Grpc.Net.Client.Tests(net6.0)'
-Before:
-        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
-After:
-        private readonly TaskCompletionSource<object?> _connectTcs;
-        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
-*/
         private readonly TaskCompletionSource<object?> _connectTcs;
         private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
 
         public Subchannel Subchannel { get; }
 
         public BalancerAddress? CurrentAddress { get; private set; }
+        public TimeSpan? ConnectTimeout { get; }
 
         public Task TryConnectTask => _connectTcs.Task;
 
@@ -82,9 +76,9 @@ After:
 #else
             Task<bool>
 #endif
-            TryConnectAsync(CancellationToken cancellationToken)
+            TryConnectAsync(ConnectContext context)
         {
-            var newState = await (_onTryConnect?.Invoke(cancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
+            var newState = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
             CurrentAddress = Subchannel._addresses[0];
             Subchannel.UpdateConnectivityState(newState, Status.DefaultSuccess);
