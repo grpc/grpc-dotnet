@@ -259,7 +259,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
             public ISubchannelTransport Create(Subchannel subchannel)
             {
 #if NET5_0_OR_GREATER
-                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, _connectTimeout, NullLoggerFactory.Instance, subchannel._manager.LoggerFactory);
+                return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, _connectTimeout, subchannel._manager.LoggerFactory);
 #else
                 return new PassiveSubchannelTransport(subchannel);
 #endif
