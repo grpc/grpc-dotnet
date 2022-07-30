@@ -103,8 +103,6 @@ namespace Grpc.Net.Client.Balancer
             return registration;
         }
 
-        private bool RemoveStateChanged(StateChangedRegistration registration) => _stateChangedRegistrations.Remove(registration);
-
         private string GetNextRegistrationId()
         {
             var registrationId = Interlocked.Increment(ref _currentRegistrationId);
@@ -135,7 +133,7 @@ namespace Grpc.Net.Client.Balancer
 
             public void Dispose()
             {
-                if (_subchannel.RemoveStateChanged(this))
+                if (_subchannel._stateChangedRegistrations.Remove(this))
                 {
                     SubchannelLog.StateChangedRegistrationRemoved(_subchannel._logger, _subchannel.Id, RegistrationId);
                 }
