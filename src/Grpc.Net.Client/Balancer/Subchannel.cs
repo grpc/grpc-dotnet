@@ -19,6 +19,7 @@
 #if SUPPORT_LOAD_BALANCING
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -56,12 +57,13 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         internal ConnectivityState State => _state;
 
-        private readonly ConnectionManager _manager;
+        internal readonly ConnectionManager _manager;
         private readonly ILogger _logger;
 
         private ConnectContext? _connectContext;
         private ConnectivityState _state;
         private TaskCompletionSource<object?>? _delayInterruptTcs;
+        private int _currentRegistrationId;
 
         /// <summary>
         /// Gets the current connected address.
@@ -101,25 +103,40 @@ namespace Grpc.Net.Client.Balancer
             return registration;
         }
 
+        private string GetNextRegistrationId()
+        {
+            var registrationId = Interlocked.Increment(ref _currentRegistrationId);
+            return Id + "-" + registrationId;
+        }
+
         private sealed class StateChangedRegistration : IDisposable
         {
             private readonly Subchannel _subchannel;
             private readonly Action<SubchannelState> _callback;
 
+            public string RegistrationId { get; }
+
             public StateChangedRegistration(Subchannel subchannel, Action<SubchannelState> callback)
             {
                 _subchannel = subchannel;
                 _callback = callback;
+                RegistrationId = subchannel.GetNextRegistrationId();
+
+                SubchannelLog.StateChangedRegistrationCreated(_subchannel._logger, _subchannel.Id, RegistrationId);
             }
 
             public void Invoke(SubchannelState state)
             {
+                SubchannelLog.ExecutingStateChangedRegistration(_subchannel._logger, _subchannel.Id, RegistrationId);
                 _callback(state);
             }
 
             public void Dispose()
             {
-                _subchannel._stateChangedRegistrations.Remove(this);
+                if (_subchannel._stateChangedRegistrations.Remove(this))
+                {
+                    SubchannelLog.StateChangedRegistrationRemoved(_subchannel._logger, _subchannel.Id, RegistrationId);
+                }
             }
         }
 
@@ -348,6 +365,10 @@ namespace Grpc.Net.Client.Balancer
                     registration.Invoke(subchannelState);
                 }
             }
+            else
+            {
+                SubchannelLog.NoStateChangedRegistrations(_logger, Id);
+            }
         }
 
         /// <inheritdocs />
@@ -379,6 +400,11 @@ namespace Grpc.Net.Client.Balancer
         public void Dispose()
         {
             UpdateConnectivityState(ConnectivityState.Shutdown, "Subchannel disposed.");
+
+            foreach (var registration in _stateChangedRegistrations)
+            {
+                SubchannelLog.StateChangedRegistrationRemoved(_logger, Id, registration.RegistrationId);
+            }
             _stateChangedRegistrations.Clear();
 
             CancelInProgressConnect();
@@ -420,6 +446,21 @@ namespace Grpc.Net.Client.Balancer
 
         private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
             LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
+
+        private static readonly Action<ILogger, int, string, Exception?> _stateChangedRegistrationCreated =
+            LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(12, "StateChangedRegistrationCreated"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' created.");
+
+        private static readonly Action<ILogger, int, string, Exception?> _stateChangedRegistrationRemoved =
+            LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(13, "StateChangedRegistrationRemoved"), "Subchannel id '{SubchannelId}' state changed registration '{RegistrationId}' removed.");
+
+        private static readonly Action<ILogger, int, string, Exception?> _executingStateChangedRegistration =
+            LoggerMessage.Define<int, string>(LogLevel.Trace, new EventId(14, "ExecutingStateChangedRegistration"), "Subchannel id '{SubchannelId}' executing state changed registration '{RegistrationId}'.");
+
+        private static readonly Action<ILogger, int, Exception?> _noStateChangedRegistrations =
+            LoggerMessage.Define<int>(LogLevel.Trace, new EventId(15, "NoStateChangedRegistrations"), "Subchannel id '{SubchannelId}' has no state changed registrations.");
+
+        private static readonly Action<ILogger, int, BalancerAddress, Exception?> _subchannelPreserved =
+            LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(16, "SubchannelPreserved"), "Subchannel id '{SubchannelId}' matches address '{Address}' and is preserved.");
 
         public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<BalancerAddress> addresses)
         {
@@ -478,6 +519,31 @@ namespace Grpc.Net.Client.Balancer
         public static void SubchannelStateChanged(ILogger logger, int subchannelId, ConnectivityState state, Status status)
         {
             _subchannelStateChanged(logger, subchannelId, state, status.Detail, status.DebugException);
+        }
+
+        public static void ExecutingStateChangedRegistration(ILogger logger, int subchannelId, string registrationId)
+        {
+            _executingStateChangedRegistration(logger, subchannelId, registrationId, null);
+        }
+
+        public static void NoStateChangedRegistrations(ILogger logger, int subchannelId)
+        {
+            _noStateChangedRegistrations(logger, subchannelId, null);
+        }
+
+        public static void StateChangedRegistrationCreated(ILogger logger, int subchannelId, string registrationId)
+        {
+            _stateChangedRegistrationCreated(logger, subchannelId, registrationId, null);
+        }
+
+        public static void StateChangedRegistrationRemoved(ILogger logger, int subchannelId, string registrationId)
+        {
+            _stateChangedRegistrationRemoved(logger, subchannelId, registrationId, null);
+        }
+
+        public static void SubchannelPreserved(ILogger logger, int subchannelId, BalancerAddress address)
+        {
+            _subchannelPreserved(logger, subchannelId, address, null);
         }
     }
 }
