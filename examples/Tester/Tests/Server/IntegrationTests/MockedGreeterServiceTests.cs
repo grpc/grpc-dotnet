@@ -16,6 +16,7 @@
 
 #endregion
 
+using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
@@ -30,13 +31,20 @@ namespace Tests.Server.IntegrationTests
         {
             var mockGreeter = new Mock<IGreeter>();
             mockGreeter.Setup(
-                m => m.Greet(It.IsAny<string>())).Returns((string s) => $"Test {s}");
+                m => m.Greet(It.IsAny<string>())).Returns((string s) =>
+                {
+                    if (string.IsNullOrEmpty(s))
+                    {
+                        throw new Exception("Name not provided.");
+                    }
+                    return $"Test {s}";
+                });
 
             services.AddSingleton(mockGreeter.Object);
         }
 
         [Test]
-        public async Task SayHelloUnaryTest_MockGreeter()
+        public async Task SayHelloUnaryTest_MockGreeter_Success()
         {
             // Arrange
             var client = new Tester.TesterClient(Channel);
@@ -47,6 +55,25 @@ namespace Tests.Server.IntegrationTests
 
             // Assert
             Assert.AreEqual("Test Joe", response.Message);
+        }
+
+        [Test]
+        public async Task SayHelloUnaryTest_MockGreeter_Error()
+        {
+            // Arrange
+            var client = new Tester.TesterClient(Channel);
+
+            // Act
+            try
+            {
+                await client.SayHelloUnaryAsync(new HelloRequest { Name = "" });
+                Assert.Fail();
+            }
+            catch (RpcException ex)
+            {
+                // Assert
+                StringAssert.Contains("Name not provided.", ex.Message);
+            }
         }
     }
 }
