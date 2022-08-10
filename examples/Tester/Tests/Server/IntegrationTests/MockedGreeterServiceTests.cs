@@ -35,7 +35,7 @@ namespace Tests.Server.IntegrationTests
                 {
                     if (string.IsNullOrEmpty(s))
                     {
-                        throw new Exception("Name not provided.");
+                        throw new ArgumentException("Name not provided.");
                     }
                     return $"Test {s}";
                 });
