@@ -72,7 +72,7 @@ namespace Tests.Server.IntegrationTests
             catch (RpcException ex)
             {
                 // Assert
-                StringAssert.Contains("Name not provided.", ex.Message);
+                StringAssert.Contains("Name not provided.", ex.Status.Detail);
             }
         }
     }
