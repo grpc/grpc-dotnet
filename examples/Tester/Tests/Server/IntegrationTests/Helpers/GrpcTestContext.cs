@@ -44,7 +44,7 @@ namespace Tests.Server.IntegrationTests.Helpers
             // if it is written in the test's execution context.
             ExecutionContext.Run(_executionContext, s =>
             {
-                Console.WriteLine($"{_stopwatch.Elapsed.TotalSeconds:N3}s {category} - {logLevel}: {message}");
+                Console.WriteLine($"{_stopwatch.Elapsed.TotalSeconds:N3}s {category} - {logLevel}: {message}: {exception}");
             }, null);
         }
 
