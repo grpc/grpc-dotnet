@@ -75,7 +75,7 @@ namespace Grpc.Net.Client.Balancer
                     {
                         RemoveSubchannel(addressSubchannel.Subchannel);
                     }
-                    Controller.UpdateState(new BalancerState(ConnectivityState.TransientFailure, new ErrorPicker(status)));
+                    UpdateBalancingState(status);
                     break;
             }
         }
@@ -85,7 +85,7 @@ namespace Grpc.Net.Client.Balancer
             for (var i = 0; i < addressSubchannels.Count; i++)
             {
                 var s = addressSubchannels[i];
-                if (Equals(s.Address.EndPoint, address.EndPoint))
+                if (s.LastKnownState != ConnectivityState.Shutdown && Equals(s.Address.EndPoint, address.EndPoint))
                 {
                     return i;
                 }
@@ -116,11 +116,6 @@ namespace Grpc.Net.Client.Balancer
                 ResolverError(state.Status);
                 return;
             }
-            if (state.Addresses == null || state.Addresses.Count == 0)
-            {
-                ResolverError(new Status(StatusCode.Unavailable, "Resolver returned no addresses."));
-                return;
-            }
 
             var allUpdatedSubchannels = new List<AddressSubchannel>();
             var newSubchannels = new List<Subchannel>();
@@ -128,7 +123,7 @@ namespace Grpc.Net.Client.Balancer
 
             // The state's addresses is the new authoritative list of addresses.
             // However, we want to keep existing subchannels when possible.
-            foreach (var address in state.Addresses)
+            foreach (var address in state.Addresses ?? Array.Empty<BalancerAddress>())
             {
                 // Check existing subchannels for a match.
                 var i = FindSubchannelByAddress(currentSubchannels, address);
@@ -142,6 +137,10 @@ namespace Grpc.Net.Client.Balancer
                     // Remove from current collection because any subchannels
                     // remaining in this collection at the end will be disposed.
                     currentSubchannels.RemoveAt(i.GetValueOrDefault());
+
+                    // Treat idle channels as new, so that we will request connection and update the blanching state
+                    if (newOrCurrentSubConnection.Subchannel.State == ConnectivityState.Idle)
+                        newSubchannels.Add(newOrCurrentSubConnection.Subchannel);
                 }
                 else
                 {
@@ -180,7 +179,7 @@ namespace Grpc.Net.Client.Balancer
                 c.RequestConnection();
             }
 
-            UpdateBalancingState(state.Status);
+            UpdateBalancingState(_addressSubchannels.Count > 0 ? state.Status : new Status(StatusCode.Unavailable, "Resolver returned no addresses."));
         }
 
         private void UpdateBalancingState(Status status)
@@ -248,7 +247,7 @@ namespace Grpc.Net.Client.Balancer
 
             addressSubchannel.UpdateKnownState(state.State);
             SubchannelsLoadBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State, state.Status);
-
+            
             UpdateBalancingState(state.Status);
 
             if (state.State == ConnectivityState.TransientFailure || state.State == ConnectivityState.Idle)
@@ -265,6 +264,7 @@ namespace Grpc.Net.Client.Balancer
 
         private void RemoveSubchannel(Subchannel subchannel)
         {
+            if (subchannel.State == ConnectivityState.Shutdown) return;
             subchannel.Dispose();
         }
 
