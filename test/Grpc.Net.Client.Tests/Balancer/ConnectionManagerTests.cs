@@ -327,10 +327,131 @@ namespace Grpc.Net.Client.Tests.Balancer
             Assert.AreEqual(81, connectAddress2.Port);
         }
 
+        [Test]
+        public async Task PickAsync_DoesNotDeadlockAfterReconnect_WithResolverError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            await using var serviceProvider = services.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+            var resolver = new TestResolver(loggerFactory);
+
+            GrpcChannelOptions channelOptions = new GrpcChannelOptions();
+            channelOptions.ServiceConfig = new ServiceConfig()
+            {
+                LoadBalancingConfigs = { new RoundRobinConfig() }
+            };
+
+            var transportFactory = new TestSubchannelTransportFactory(async (_, ct) =>
+            {
+                await Task.Delay(1, ct);
+                return ConnectivityState.Ready;
+            });
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new RoundRobinBalancerFactory() });
+            // Configure balancer similar to how GrpcChannel constructor does it
+            clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+                c,
+                channelOptions.ServiceConfig,
+                clientChannel));
+
+            // Act
+            var connectTask = clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+            var pickTask = clientChannel.PickAsync(
+                new PickContext { Request = new HttpRequestMessage() },
+                waitForReady: true,
+                CancellationToken.None).AsTask();
+
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 80)
+            });
+            await Task.WhenAll(connectTask, pickTask).DefaultTimeout();
+
+            // Simulate transport/network issue
+            transportFactory.Transports.ForEach(t => t.Disconnect());
+            resolver.UpdateError(new Status(StatusCode.Unavailable, "Test error"));
+
+            pickTask = clientChannel.PickAsync(
+                new PickContext { Request = new HttpRequestMessage() },
+                waitForReady: true,
+                CancellationToken.None).AsTask();
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 80)
+            });
+
+            // Assert
+            // Should not timeout (deadlock)
+            await pickTask.DefaultTimeout();
+        }
+
+        [Test]
+        public async Task PickAsync_DoesNotDeadlockAfterReconnect_WithZeroAddressResolved()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            await using var serviceProvider = services.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+            var resolver = new TestResolver(loggerFactory);
+
+            GrpcChannelOptions channelOptions = new GrpcChannelOptions();
+            channelOptions.ServiceConfig = new ServiceConfig()
+            {
+                LoadBalancingConfigs = { new RoundRobinConfig() }
+            };
+
+            var transportFactory = new TestSubchannelTransportFactory(async (_, ct) =>
+            {
+                await Task.Delay(1, ct);
+                return ConnectivityState.Ready;
+            });
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new RoundRobinBalancerFactory() });
+            // Configure balancer similar to how GrpcChannel constructor does it
+            clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+                c,
+                channelOptions.ServiceConfig,
+                clientChannel));
+
+            // Act
+            var connectTask = clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+            var pickTask = clientChannel.PickAsync(
+                new PickContext { Request = new HttpRequestMessage() },
+                waitForReady: true,
+                CancellationToken.None).AsTask();
+
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 80)
+            });
+            await Task.WhenAll(connectTask, pickTask).DefaultTimeout();
+
+            // Simulate transport/network issue (with resolver reporting no addresses)
+            transportFactory.Transports.ForEach(t => t.Disconnect());
+            resolver.UpdateAddresses(new List<BalancerAddress>());
+
+            pickTask = clientChannel.PickAsync(
+                new PickContext { Request = new HttpRequestMessage() },
+                waitForReady: true,
+                CancellationToken.None).AsTask();
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 80)
+            });
+
+            // Assert
+            // Should not timeout (deadlock)
+            await pickTask.DefaultTimeout();
+        }
+
         private static ConnectionManager CreateConnectionManager(
             ILoggerFactory loggerFactory,
             Resolver resolver,
-            TestSubchannelTransportFactory transportFactory)
+            TestSubchannelTransportFactory transportFactory,
+            LoadBalancerFactory[]? loadBalancerFactories = null)
         {
             return new ConnectionManager(
                 resolver,
@@ -338,7 +459,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 loggerFactory,
                 new TestBackoffPolicyFactory(),
                 transportFactory,
-                Array.Empty<LoadBalancerFactory>());
+                loadBalancerFactories ?? Array.Empty<LoadBalancerFactory>());
         }
 
         private class DropLoadBalancer : LoadBalancer
