@@ -247,7 +247,7 @@ namespace Grpc.Net.Client.Balancer
 
             addressSubchannel.UpdateKnownState(state.State);
             SubchannelsLoadBalancerLog.ProcessingSubchannelStateChanged(_logger, subchannel.Id, state.State, state.Status);
-            
+
             UpdateBalancingState(state.Status);
 
             if (state.State == ConnectivityState.TransientFailure || state.State == ConnectivityState.Idle)
@@ -273,7 +273,19 @@ namespace Grpc.Net.Client.Balancer
         {
             foreach (var addressSubchannel in _addressSubchannels)
             {
-                addressSubchannel.Subchannel.RequestConnection();
+                var subchannel = addressSubchannel.Subchannel;
+
+                if (subchannel.State != ConnectivityState.Shutdown)
+                {
+                    try
+                    {
+                        subchannel.RequestConnection();
+                    }
+                    catch when (subchannel.State == ConnectivityState.Shutdown)
+                    {
+                        // There is the odd chance of a race condition between requesting a connection and the channel being disconnected
+                    }
+                }
             }
         }
 
