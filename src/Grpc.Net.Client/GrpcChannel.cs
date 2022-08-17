@@ -114,7 +114,6 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
         OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
         InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
@@ -122,10 +121,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         var resolverFactory = GetResolverFactory(channelOptions);
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
+            (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(address, _isSecure, channelOptions);
 
         SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
 
-        if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
+            if (!IsHttpOrHttpsAddress(Address) || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
         {
             ValidateHttpHandlerSupportsConnectivity();
         }
@@ -150,6 +150,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
         }
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
+            (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(address, _isSecure, channelOptions);
 #endif
 
         HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -214,12 +215,12 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         }
     }
 
-    private bool IsHttpOrHttpsAddress()
+        private static bool IsHttpOrHttpsAddress(Uri address)
     {
-        return Address.Scheme == Uri.UriSchemeHttps || Address.Scheme == Uri.UriSchemeHttp;
+            return address.Scheme == Uri.UriSchemeHttps || address.Scheme == Uri.UriSchemeHttp;
     }
 
-    private static HttpHandlerContext CalculateHandlerContext(GrpcChannelOptions channelOptions)
+        private static HttpHandlerContext CalculateHandlerContext(Uri address, bool isSecure, GrpcChannelOptions channelOptions)
     {
         if (channelOptions.HttpHandler == null)
         {
@@ -259,6 +260,18 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                     connectTimeout = null;
                 }
             }
+
+                // If a proxy is specified then requests could be sent via an SSL tunnel.
+                // A CONNECT request is made to the proxy to establish the transport stream and then
+                // gRPC calls are sent via stream. This feature isn't supported by load balancer.
+                // Proxy can be specified via:
+                // - SocketsHttpHandler.Proxy. Set via app code.
+                // - HttpClient.DefaultProxy. Set via environment variables, e.g. HTTPS_PROXY.
+                if (IsProxied(socketsHttpHandler, address, isSecure))
+                {
+                    type = HttpHandlerType.Custom;
+                    connectTimeout = null;
+                }
 #else
             type = HttpHandlerType.SocketsHttpHandler;
             connectTimeout = null;
@@ -273,6 +286,33 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         return new HttpHandlerContext(HttpHandlerType.Custom);
     }
 
+#if NET5_0_OR_GREATER
+        private static readonly Uri HttpLoadBalancerTemporaryUri = new Uri("http://loadbalancer.temporary.invalid");
+        private static readonly Uri HttpsLoadBalancerTemporaryUri = new Uri("https://loadbalancer.temporary.invalid");
+
+        private static bool IsProxied(SocketsHttpHandler socketsHttpHandler, Uri address, bool isSecure)
+        {
+            // Check standard address directly.
+            // When load balancing the channel doesn't know the final addresses yet so use temporary address.
+            Uri resolvedAddress;
+            if (IsHttpOrHttpsAddress(address))
+            {
+                resolvedAddress = address;
+            }
+            else if (isSecure)
+            {
+                resolvedAddress = HttpsLoadBalancerTemporaryUri;
+            }
+            else
+            {
+                resolvedAddress = HttpLoadBalancerTemporaryUri;
+            }
+
+            var proxy = socketsHttpHandler.Proxy ?? HttpClient.DefaultProxy;
+            return proxy.GetProxy(resolvedAddress) != null;
+        }
+#endif
+
 #if SUPPORT_LOAD_BALANCING
     private ResolverFactory GetResolverFactory(GrpcChannelOptions options)
     {
@@ -281,7 +321,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         //
         // Even with just one address we still want to use the load balancing infrastructure. This enables
         // the connectivity APIs on channel like GrpcChannel.State and GrpcChannel.WaitForStateChanged.
-        if (IsHttpOrHttpsAddress())
+            if (IsHttpOrHttpsAddress(Address))
         {
             return new StaticResolverFactory(uri => new[] { new BalancerAddress(Address.Host, Address.Port) });
         }
