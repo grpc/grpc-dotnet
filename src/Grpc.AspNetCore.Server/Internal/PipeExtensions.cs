@@ -281,9 +281,9 @@ namespace Grpc.AspNetCore.Server.Internal
         /// <param name="deserializer">Message deserializer.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
-        #if NET6_0_OR_GREATER
+#if NET6_0_OR_GREATER
         [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
-        #endif
+#endif
         public static async ValueTask<T?> ReadStreamMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer, CancellationToken cancellationToken = default)
             where T : class
         {
