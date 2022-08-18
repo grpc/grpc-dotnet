@@ -26,5 +26,5 @@ message DataRequest {
 }
 
 message DataResult {
-  int32 bytesProcessed = 1;
+  int32 bytes_processed = 1;
 }
