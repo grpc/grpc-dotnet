@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Diagnostics;
 using System.Net;
 
 namespace Grpc.Net.Client.Balancer
@@ -35,6 +36,7 @@ namespace Grpc.Net.Client.Balancer
         /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified <see cref="DnsEndPoint"/>.
         /// </summary>
         /// <param name="endPoint">The end point.</param>
+        [DebuggerStepThrough]
         public BalancerAddress(DnsEndPoint endPoint)
         {
             EndPoint = endPoint;
@@ -45,6 +47,7 @@ namespace Grpc.Net.Client.Balancer
         /// </summary>
         /// <param name="host">The host.</param>
         /// <param name="port">The port.</param>
+        [DebuggerStepThrough]
         public BalancerAddress(string host, int port) : this(new DnsEndPoint(host, port))
         {
         }
