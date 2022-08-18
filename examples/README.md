@@ -317,3 +317,14 @@ The locator shows how to add host constraints to gRPC services. This example add
 ##### Scenarios:
 
 * [`RequireHost`](https://docs.microsoft.com/aspnet/core/fundamentals/routing#host-matching-in-routes-with-requirehost)
+
+## [Channeler](./Channeler)
+
+The channeler shows how to use `System.Threading.Channels` to safely read and write gRPC messages from multiple background tasks.
+
+##### Scenarios:
+
+* [`System.Threading.Channels`](https://docs.microsoft.com/dotnet/core/extensions/channels)
+* Multi-threaded gRPC methods
+* Server streaming
+* Client streaming
