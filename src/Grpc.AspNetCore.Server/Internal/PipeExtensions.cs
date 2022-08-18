@@ -21,6 +21,7 @@ using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
@@ -280,6 +281,9 @@ namespace Grpc.AspNetCore.Server.Internal
         /// <param name="deserializer">Message deserializer.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Complete message data or null if the stream is complete.</returns>
+#if NET6_0_OR_GREATER
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+#endif
         public static async ValueTask<T?> ReadStreamMessageAsync<T>(this PipeReader input, HttpContextServerCallContext serverCallContext, Func<DeserializationContext, T> deserializer, CancellationToken cancellationToken = default)
             where T : class
         {
