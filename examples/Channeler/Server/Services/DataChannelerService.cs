@@ -16,11 +16,9 @@
 
 #endregion
 
-using System.Threading.Tasks;
 using System.Threading.Channels;
-using Grpc.Core;
 using DataChannel;
-using Microsoft.Extensions.Logging;
+using Grpc.Core;
 
 namespace Server
 {
@@ -36,7 +34,7 @@ namespace Server
         public override async Task<DataResult> UploadData(
             IAsyncStreamReader<DataRequest> requestStream, ServerCallContext context)
         {
-            var channel = Channel.CreateBounded<DataRequest>(new BoundedChannelOptions(capacity: 1)
+            var channel = Channel.CreateBounded<DataRequest>(new BoundedChannelOptions(capacity: 5)
             {
                 SingleReader = false,
                 SingleWriter = true
@@ -76,36 +74,34 @@ namespace Server
         public override async Task DownloadResults(DataRequest request,
             IServerStreamWriter<DataResult> responseStream, ServerCallContext context)
         {
-            var channel = Channel.CreateBounded<DataResult>(new BoundedChannelOptions(capacity: 1)
+            var channel = Channel.CreateBounded<DataResult>(new BoundedChannelOptions(capacity: 5)
             {
                 SingleReader = true,
                 SingleWriter = false
             });
 
-            var processTask = Task.Run(async () =>
+            var consumerTask = Task.Run(async () =>
             {
-                var dataChunks = request.Value.Chunk(size: 10);
-
-                // Process results in multiple background tasks.
-                var processTasks = dataChunks.Select(
-                    async c =>
-                    {
-                        // Write results to channel across different threads.
-                        var message = new DataResult { BytesProcessed = c.Length };
-                        await channel.Writer.WriteAsync(message);
-                    });
-                await Task.WhenAll(processTasks);
-
-                channel.Writer.Complete();
+                // Consume results from channel and write to response stream.
+                await foreach (var message in channel.Reader.ReadAllAsync())
+                {
+                    await responseStream.WriteAsync(message);
+                }
             });
 
-            // Read results from channel.
-            await foreach (var message in channel.Reader.ReadAllAsync())
-            {
-                await responseStream.WriteAsync(message);
-            }
+            // Write results to channel in multiple background tasks.
+            var dataChunks = request.Value.Chunk(size: 10);
+            await Task.WhenAll(dataChunks.Select(
+                async c =>
+                {
+                    // Write results to channel across different threads.
+                    var message = new DataResult { BytesProcessed = c.Length };
+                    await channel.Writer.WriteAsync(message);
+                }));
 
-            await processTask;
+            // Complete writing and wait for consumer to complete.
+            channel.Writer.Complete();
+            await consumerTask;
         }
     }
 }
