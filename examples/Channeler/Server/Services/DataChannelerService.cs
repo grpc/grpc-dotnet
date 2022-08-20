@@ -89,7 +89,7 @@ namespace Server
                 }
             });
 
-            // Write results to channel in multiple background tasks.
+            // Write results to channel in multiple tasks.
             var dataChunks = request.Value.Chunk(size: 10);
             await Task.WhenAll(dataChunks.Select(
                 async c =>
