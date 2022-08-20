@@ -18,6 +18,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
@@ -35,6 +36,7 @@ namespace Grpc.Net.Client.Internal
         private int? _payloadLength;
         private ICompressionProvider? _compressionProvider;
 
+        [MemberNotNullWhen(true, nameof(_payloadLength))]
         private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
 
         private ArrayBufferWriter<byte>? _bufferWriter;
@@ -198,7 +200,7 @@ namespace Grpc.Net.Client.Internal
             {
                 if (_buffer == null)
                 {
-                    _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + _payloadLength.GetValueOrDefault());
+                    _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + _payloadLength.Value);
                 }
 
                 return this;
@@ -208,7 +210,7 @@ namespace Grpc.Net.Client.Internal
                 // Initialize buffer writer with exact length if available.
                 // ArrayBufferWriter doesn't allow zero initial length.
                 _bufferWriter = _payloadLength > 0
-                    ? new ArrayBufferWriter<byte>(_payloadLength.GetValueOrDefault())
+                    ? new ArrayBufferWriter<byte>(_payloadLength.Value)
                     : new ArrayBufferWriter<byte>();
             }
 
@@ -245,7 +247,7 @@ namespace Grpc.Net.Client.Internal
                     }
                     else
                     {
-                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, _payloadLength.GetValueOrDefault());
+                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, _payloadLength.Value);
                     }
                     break;
                 default:

@@ -148,13 +148,13 @@ namespace Grpc.Net.Client.Balancer.Internal
                         if (_previousServiceConfig == null)
                         {
                             // Step 4.ii: If no config was provided or set previously, then treat resolution as a failure.
-                            channelStatus = result.ServiceConfigStatus.GetValueOrDefault();
+                            channelStatus = result.ServiceConfigStatus.Value;
                         }
                         else
                         {
                             // Step 4.i: Continue using previous service config if it was set and a new one is not provided.
                             workingServiceConfig = _previousServiceConfig;
-                            ConnectionManagerLog.ResolverServiceConfigFallback(Logger, result.ServiceConfigStatus.GetValueOrDefault());
+                            ConnectionManagerLog.ResolverServiceConfigFallback(Logger, result.ServiceConfigStatus.Value);
                         }
                     }
                 }
@@ -164,7 +164,6 @@ namespace Grpc.Net.Client.Balancer.Internal
                     workingServiceConfig = result.ServiceConfig;
                     _previousServiceConfig = result.ServiceConfig;
                 }
-
 
                 if (workingServiceConfig?.LoadBalancingConfigs.Count > 0)
                 {

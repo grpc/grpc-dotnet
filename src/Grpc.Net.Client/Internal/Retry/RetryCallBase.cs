@@ -82,7 +82,7 @@ namespace Grpc.Net.Client.Internal.Retry
                 _ctsRegistration = RegisterRetryCancellationToken(options.CancellationToken);
             }
 
-            var deadline = Options.Deadline.GetValueOrDefault(DateTime.MaxValue);
+            var deadline = Options.Deadline ?? DateTime.MaxValue;
             if (deadline != DateTime.MaxValue)
             {
                 var timeout = CommonGrpcProtocolHelpers.GetTimerDueTime(deadline - Channel.Clock.UtcNow, Channel.MaxTimerDueTime);
@@ -97,8 +97,8 @@ namespace Grpc.Net.Client.Internal.Retry
 
             if (retryAttempts > Channel.MaxRetryAttempts)
             {
-                Log.MaxAttemptsLimited(Logger, retryAttempts, Channel.MaxRetryAttempts.GetValueOrDefault());
-                MaxRetryAttempts = Channel.MaxRetryAttempts.GetValueOrDefault();
+                Log.MaxAttemptsLimited(Logger, retryAttempts, Channel.MaxRetryAttempts.Value);
+                MaxRetryAttempts = Channel.MaxRetryAttempts.Value;
             }
             else
             {

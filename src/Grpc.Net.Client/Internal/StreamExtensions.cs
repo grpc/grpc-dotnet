@@ -136,7 +136,7 @@ namespace Grpc.Net.Client
                         throw call.CreateRpcException(CreateUnknownMessageEncodingMessageStatus(grpcEncoding, supportedEncodings));
                     }
 
-                    payload = decompressedMessage.GetValueOrDefault();
+                    payload = decompressedMessage;
                 }
                 else
                 {
@@ -248,7 +248,7 @@ namespace Grpc.Net.Client
             }
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, int length, [NotNullWhen(true)] out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, Dictionary<string, ICompressionProvider> compressionProviders, byte[] messageData, int length, out ReadOnlySequence<byte> result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -264,7 +264,7 @@ namespace Grpc.Net.Client
                 return true;
             }
 
-            result = null;
+            result = default;
             return false;
         }
 

@@ -559,7 +559,7 @@ namespace Grpc.Net.Client.Internal
             var exceptionMessage = CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(ex);
             statusCode ??= ResolveRpcExceptionStatusCode(ex);
 
-            return new Status(statusCode.GetValueOrDefault(), summary + " " + exceptionMessage, ex);
+            return new Status(statusCode.Value, summary + " " + exceptionMessage, ex);
         }
     }
 }

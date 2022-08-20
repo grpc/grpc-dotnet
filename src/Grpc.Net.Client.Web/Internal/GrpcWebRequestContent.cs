@@ -66,8 +66,8 @@ namespace Grpc.Net.Client.Web.Internal
                 // to take into account base64 encoding size difference:
                 // Increase length by 4/3, then round up to the next multiple of 4.
                 length = _mode == GrpcWebMode.GrpcWebText
-                    ? ((4 * contentLength.GetValueOrDefault() / 3) + 3) & ~3
-                    : contentLength.GetValueOrDefault();
+                    ? ((4 * contentLength.Value / 3) + 3) & ~3
+                    : contentLength.Value;
                 return true;
             }
 

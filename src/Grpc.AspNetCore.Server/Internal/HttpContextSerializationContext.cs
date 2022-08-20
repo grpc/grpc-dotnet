@@ -19,6 +19,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
@@ -39,6 +40,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public PipeWriter ResponseBufferWriter { get; set; } = default!;
 
+        [MemberNotNullWhen(true, nameof(_payloadLength))]
         private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
 
         public HttpContextSerializationContext(HttpContextServerCallContext serverCallContext)
@@ -186,7 +188,7 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                     else
                     {
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.GetValueOrDefault());
+                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.Value);
                     }
                     break;
                 default:
