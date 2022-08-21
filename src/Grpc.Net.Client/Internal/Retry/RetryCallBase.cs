@@ -82,7 +82,7 @@ namespace Grpc.Net.Client.Internal.Retry
                 _ctsRegistration = RegisterRetryCancellationToken(options.CancellationToken);
             }
 
-            var deadline = Options.Deadline ?? DateTime.MaxValue;
+            var deadline = Options.Deadline.GetValueOrDefault(DateTime.MaxValue);
             if (deadline != DateTime.MaxValue)
             {
                 var timeout = CommonGrpcProtocolHelpers.GetTimerDueTime(deadline - Channel.Clock.UtcNow, Channel.MaxTimerDueTime);
