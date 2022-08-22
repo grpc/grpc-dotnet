@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Buffers;
 using System.Buffers.Binary;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -163,6 +164,11 @@ namespace Grpc.Net.Client.Tests
             // Act
             serializationContext.SetPayloadLength(1);
             var bufferWriter = serializationContext.GetBufferWriter();
+
+            Assert.AreEqual(1, ((ArrayBufferWriter<byte>)bufferWriter).Capacity);
+            Assert.AreEqual(1, ((ArrayBufferWriter<byte>)bufferWriter).FreeCapacity);
+            Assert.AreEqual(0, ((ArrayBufferWriter<byte>)bufferWriter).WrittenSpan.Length);
+
             var span = bufferWriter.GetSpan(3);
             span[0] = byte.MaxValue;
             bufferWriter.Advance(3);

@@ -18,7 +18,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
@@ -36,8 +35,20 @@ namespace Grpc.Net.Client.Internal
         private int? _payloadLength;
         private ICompressionProvider? _compressionProvider;
 
-        [MemberNotNullWhen(true, nameof(_payloadLength))]
-        private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
+        private bool IsDirectSerializationSupported(out int payloadLength)
+        {
+            // Message can be written directly to the buffer if:
+            // - Its length is known.
+            // - There is no compression.
+            if (_payloadLength != null)
+            {
+                payloadLength = _payloadLength.Value;
+                return _compressionProvider == null;
+            }
+
+            payloadLength = 0;
+            return false;
+        }
 
         private ArrayBufferWriter<byte>? _bufferWriter;
         private byte[]? _buffer;
@@ -174,13 +185,11 @@ namespace Grpc.Net.Client.Internal
                     var bufferWriter = ResolveBufferWriter();
 
                     // When writing directly to the buffer the header with message size needs to be written first
-                    if (DirectSerializationSupported)
+                    if (IsDirectSerializationSupported(out var payloadLength))
                     {
-                        CompatibilityHelpers.Assert(_payloadLength != null, "A payload length is required for direct serialization.");
+                        EnsureMessageSizeAllowed(payloadLength);
 
-                        EnsureMessageSizeAllowed(_payloadLength.Value);
-
-                        WriteHeader(_buffer, _payloadLength.Value, compress: false);
+                        WriteHeader(_buffer, payloadLength, compress: false);
                         _bufferPosition += GrpcProtocolConstants.HeaderSize;
                     }
 
@@ -196,11 +205,11 @@ namespace Grpc.Net.Client.Internal
 
         private IBufferWriter<byte> ResolveBufferWriter()
         {
-            if (DirectSerializationSupported)
+            if (IsDirectSerializationSupported(out var payloadLength))
             {
                 if (_buffer == null)
                 {
-                    _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + _payloadLength.Value);
+                    _buffer = ArrayPool<byte>.Shared.Rent(GrpcProtocolConstants.HeaderSize + payloadLength);
                 }
 
                 return this;
@@ -209,8 +218,8 @@ namespace Grpc.Net.Client.Internal
             {
                 // Initialize buffer writer with exact length if available.
                 // ArrayBufferWriter doesn't allow zero initial length.
-                _bufferWriter = _payloadLength > 0
-                    ? new ArrayBufferWriter<byte>(_payloadLength.Value)
+                _bufferWriter = payloadLength > 0
+                    ? new ArrayBufferWriter<byte>(payloadLength)
                     : new ArrayBufferWriter<byte>();
             }
 
@@ -236,7 +245,11 @@ namespace Grpc.Net.Client.Internal
                 case InternalState.IncompleteBufferWriter:
                     _state = InternalState.CompleteBufferWriter;
 
-                    if (!DirectSerializationSupported)
+                    if (IsDirectSerializationSupported(out var payloadLength))
+                    {
+                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, payloadLength);
+                    }
+                    else
                     {
                         CompatibilityHelpers.Assert(_bufferWriter != null, "Buffer writer has been set to get to this state.");
 
@@ -244,10 +257,6 @@ namespace Grpc.Net.Client.Internal
 
                         GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, data.Length);
                         WriteMessage(data);
-                    }
-                    else
-                    {
-                        GrpcCallLog.SerializedMessage(_call.Logger, _call.RequestType, _payloadLength.Value);
                     }
                     break;
                 default:
