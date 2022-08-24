@@ -175,7 +175,7 @@ namespace Grpc.Net.Client.Internal.Retry
                             {
                                 if (retryPushbackMS >= 0)
                                 {
-                                    _pushbackDelay = TimeSpan.FromMilliseconds(retryPushbackMS.GetValueOrDefault());
+                                    _pushbackDelay = TimeSpan.FromMilliseconds(retryPushbackMS.Value);
                                 }
                                 _delayInterruptTcs.TrySetResult(null);
                             }
@@ -348,7 +348,7 @@ namespace Grpc.Net.Client.Internal.Retry
                     if (_pushbackDelay != null)
                     {
                         // Use pushback value and delay again
-                        hedgingDelay = _pushbackDelay.GetValueOrDefault();
+                        hedgingDelay = _pushbackDelay.Value;
 
                         _pushbackDelay = null;
                     }
@@ -426,7 +426,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         if (c.TryRegisterCancellation(cancellationToken, out var registration))
                         {
                             registrations ??= new List<CancellationTokenRegistration>(calls.Count);
-                            registrations.Add(registration.GetValueOrDefault());
+                            registrations.Add(registration.Value);
                         }
 
                         var writeTask = c.WriteClientStreamAsync(WriteNewMessage, message);

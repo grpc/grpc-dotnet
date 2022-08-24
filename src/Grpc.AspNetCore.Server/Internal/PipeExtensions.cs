@@ -219,7 +219,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             if (TryReadMessage(ref buffer, serverCallContext, out var data))
                             {
                                 // Finished and the complete message has arrived
-                                GrpcServerLog.DeserializingMessage(logger, (int)data.GetValueOrDefault().Length, typeof(T));
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.Length, typeof(T));
 
                                 serverCallContext.DeserializationContext.SetPayload(data);
                                 request = deserializer(serverCallContext.DeserializationContext);
@@ -311,7 +311,7 @@ namespace Grpc.AspNetCore.Server.Internal
                             {
                                 completeMessage = true;
 
-                                GrpcServerLog.DeserializingMessage(logger, (int)data.Value.Length, typeof(T));
+                                GrpcServerLog.DeserializingMessage(logger, (int)data.Length, typeof(T));
 
                                 serverCallContext.DeserializationContext.SetPayload(data);
                                 var request = deserializer(serverCallContext.DeserializationContext);
@@ -361,11 +361,11 @@ namespace Grpc.AspNetCore.Server.Internal
             }
         }
 
-        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, [NotNullWhen(true)] out ReadOnlySequence<byte>? message)
+        private static bool TryReadMessage(ref ReadOnlySequence<byte> buffer, HttpContextServerCallContext context, out ReadOnlySequence<byte> message)
         {
             if (!TryReadHeader(buffer, out var compressed, out var messageLength))
             {
-                message = null;
+                message = default;
                 return false;
             }
 
@@ -376,7 +376,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (buffer.Length < HeaderSize + messageLength)
             {
-                message = null;
+                message = default;
                 return false;
             }
 
@@ -429,7 +429,7 @@ namespace Grpc.AspNetCore.Server.Internal
             return true;
         }
 
-        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, [NotNullWhen(true)] out ReadOnlySequence<byte>? result)
+        private static bool TryDecompressMessage(ILogger logger, string compressionEncoding, IReadOnlyDictionary<string, ICompressionProvider> compressionProviders, in ReadOnlySequence<byte> messageData, out ReadOnlySequence<byte> result)
         {
             if (compressionProviders.TryGetValue(compressionEncoding, out var compressionProvider))
             {
@@ -445,7 +445,7 @@ namespace Grpc.AspNetCore.Server.Internal
                 return true;
             }
 
-            result = null;
+            result = default;
             return false;
         }
     }

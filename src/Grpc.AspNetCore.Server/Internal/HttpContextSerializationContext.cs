@@ -39,7 +39,20 @@ namespace Grpc.AspNetCore.Server.Internal
 
         public PipeWriter ResponseBufferWriter { get; set; } = default!;
 
-        private bool DirectSerializationSupported => _compressionProvider == null && _payloadLength != null;
+        private bool IsDirectSerializationSupported(out int payloadLength)
+        {
+            // Message can be written directly to the buffer if:
+            // - Its length is known.
+            // - There is no compression.
+            if (_payloadLength != null)
+            {
+                payloadLength = _payloadLength.Value;
+                return _compressionProvider == null;
+            }
+
+            payloadLength = 0;
+            return false;
+        }
 
         public HttpContextSerializationContext(HttpContextServerCallContext serverCallContext)
         {
@@ -130,13 +143,11 @@ namespace Grpc.AspNetCore.Server.Internal
             {
                 case InternalState.Initialized:
                     // When writing directly to the buffer the header with message size needs to be written first
-                    if (DirectSerializationSupported)
+                    if (IsDirectSerializationSupported(out var payloadLength))
                     {
-                        Debug.Assert(_payloadLength != null, "A payload length is required for direct serialization.");
+                        EnsureMessageSizeAllowed(payloadLength);
 
-                        EnsureMessageSizeAllowed(_payloadLength.Value);
-
-                        WriteHeader(ResponseBufferWriter, _payloadLength.Value, compress: false);
+                        WriteHeader(ResponseBufferWriter, payloadLength, compress: false);
                     }
 
                     _state = InternalState.IncompleteBufferWriter;
@@ -151,9 +162,20 @@ namespace Grpc.AspNetCore.Server.Internal
 
         private IBufferWriter<byte> ResolveBufferWriter()
         {
-            return DirectSerializationSupported
-                ? (IBufferWriter<byte>)ResponseBufferWriter
-                : _bufferWriter ??= new ArrayBufferWriter<byte>();
+            if (IsDirectSerializationSupported(out var payloadLength))
+            {
+                return ResponseBufferWriter;
+            }
+            else if (_bufferWriter == null)
+            {
+                // Initialize buffer writer with exact length if available.
+                // ArrayBufferWriter doesn't allow zero initial length.
+                _bufferWriter = payloadLength > 0
+                    ? new ArrayBufferWriter<byte>(payloadLength)
+                    : new ArrayBufferWriter<byte>();
+            }
+
+            return _bufferWriter;
         }
 
         private void EnsureMessageSizeAllowed(int payloadLength)
@@ -175,7 +197,11 @@ namespace Grpc.AspNetCore.Server.Internal
                 case InternalState.IncompleteBufferWriter:
                     _state = InternalState.CompleteBufferWriter;
 
-                    if (!DirectSerializationSupported)
+                    if (IsDirectSerializationSupported(out var payloadLength))
+                    {
+                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, payloadLength);
+                    }
+                    else
                     {
                         Debug.Assert(_bufferWriter != null, "Buffer writer has been set to get to this state.");
 
@@ -183,10 +209,6 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, data.Length);
                         WriteMessage(data);
-                    }
-                    else
-                    {
-                        GrpcServerLog.SerializedMessage(_serverCallContext.Logger, _serverCallContext.ResponseType, _payloadLength.GetValueOrDefault());
                     }
                     break;
                 default:

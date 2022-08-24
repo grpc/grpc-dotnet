@@ -138,11 +138,11 @@ namespace Grpc.Net.Client.Balancer
                 if (i != null)
                 {
                     // There is a match so take current subchannel.
-                    newOrCurrentSubchannel = currentSubchannels[i.GetValueOrDefault()];
+                    newOrCurrentSubchannel = currentSubchannels[i.Value];
 
                     // Remove from current collection because any subchannels
                     // remaining in this collection at the end will be disposed.
-                    currentSubchannels.RemoveAt(i.GetValueOrDefault());
+                    currentSubchannels.RemoveAt(i.Value);
 
                     SubchannelLog.SubchannelPreserved(_logger, newOrCurrentSubchannel.Subchannel.Id, address);
                 }

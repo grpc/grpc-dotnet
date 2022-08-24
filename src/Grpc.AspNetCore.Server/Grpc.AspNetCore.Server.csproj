@@ -28,6 +28,7 @@
     <Compile Include="..\Shared\Server\ServerMethodInvokerBase.cs" Link="Model\Internal\ServerMethodInvokerBase.cs" />
     <Compile Include="..\Shared\Server\ServerStreamingServerMethodInvoker.cs" Link="Model\Internal\ServerStreamingServerMethodInvoker.cs" />
     <Compile Include="..\Shared\Server\UnaryServerMethodInvoker.cs" Link="Model\Internal\UnaryServerMethodInvoker.cs" />
+    <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
   </ItemGroup>
 
   <ItemGroup>
