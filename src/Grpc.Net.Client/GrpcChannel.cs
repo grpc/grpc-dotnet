@@ -345,7 +345,7 @@ namespace Grpc.Net.Client
                 throw CreateException(RetryThrottlingPolicy.TokenRatioPropertyName);
             }
 
-            return new ChannelRetryThrottling(retryThrottling.MaxTokens.GetValueOrDefault(), retryThrottling.TokenRatio.GetValueOrDefault(), LoggerFactory);
+            return new ChannelRetryThrottling(retryThrottling.MaxTokens.Value, retryThrottling.TokenRatio.Value, LoggerFactory);
 
             static InvalidOperationException CreateException(string propertyName)
             {

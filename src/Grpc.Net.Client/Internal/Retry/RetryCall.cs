@@ -161,7 +161,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
 
                         responseStatus = await currentCall.CallTask.ConfigureAwait(false);
-                        if (responseStatus.GetValueOrDefault().StatusCode == StatusCode.OK)
+                        if (responseStatus.Value.StatusCode == StatusCode.OK)
                         {
                             RetryAttemptCallSuccess();
                         }
@@ -169,7 +169,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         // Commited so exit retry loop.
                         return;
                     }
-                    else if (IsSuccessfulStreamingCall(responseStatus.GetValueOrDefault(), currentCall))
+                    else if (IsSuccessfulStreamingCall(responseStatus.Value, currentCall))
                     {
                         // Headers were returned. We're commited.
                         CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
@@ -186,7 +186,7 @@ namespace Grpc.Net.Client.Internal.Retry
                         return;
                     }
 
-                    var status = responseStatus.GetValueOrDefault();
+                    var status = responseStatus.Value;
                     var retryPushbackMS = GetRetryPushback(httpResponse);
 
                     // Failures only count towards retry throttling if they have a known, retriable status.
@@ -205,8 +205,8 @@ namespace Grpc.Net.Client.Internal.Retry
                         TimeSpan delayDuration;
                         if (retryPushbackMS != null)
                         {
-                            delayDuration = TimeSpan.FromMilliseconds(retryPushbackMS.GetValueOrDefault());
-                            _nextRetryDelayMilliseconds = retryPushbackMS.GetValueOrDefault();
+                            delayDuration = TimeSpan.FromMilliseconds(retryPushbackMS.Value);
+                            _nextRetryDelayMilliseconds = retryPushbackMS.Value;
                         }
                         else
                         {
@@ -234,7 +234,7 @@ namespace Grpc.Net.Client.Internal.Retry
 
                         // Can't retry.
                         // Signal public API exceptions that they should finish throwing and then exit the retry loop.
-                        CommitCall(resolvedCall, result.GetValueOrDefault());
+                        CommitCall(resolvedCall, result.Value);
                         return;
                     }
                 }

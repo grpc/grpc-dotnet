@@ -84,10 +84,10 @@ namespace Grpc.Net.Client.Internal
 
             return new RetryPolicyInfo
             {
-                MaxAttempts = r.MaxAttempts.GetValueOrDefault(),
-                InitialBackoff = r.InitialBackoff.GetValueOrDefault(),
-                MaxBackoff = r.MaxBackoff.GetValueOrDefault(),
-                BackoffMultiplier = r.BackoffMultiplier.GetValueOrDefault(),
+                MaxAttempts = r.MaxAttempts.Value,
+                InitialBackoff = r.InitialBackoff.Value,
+                MaxBackoff = r.MaxBackoff.Value,
+                BackoffMultiplier = r.BackoffMultiplier.Value,
                 RetryableStatusCodes = r.RetryableStatusCodes.ToList()
             };
         }
@@ -105,8 +105,8 @@ namespace Grpc.Net.Client.Internal
 
             return new HedgingPolicyInfo
             {
-                MaxAttempts = h.MaxAttempts.GetValueOrDefault(),
-                HedgingDelay = h.HedgingDelay.GetValueOrDefault(),
+                MaxAttempts = h.MaxAttempts.Value,
+                HedgingDelay = h.HedgingDelay ?? TimeSpan.Zero,
                 NonFatalStatusCodes = h.NonFatalStatusCodes.ToList()
             };
         }
