@@ -344,11 +344,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 LoadBalancingConfigs = { new RoundRobinConfig() }
             };
 
-            var transportFactory = new TestSubchannelTransportFactory(async (_, ct) =>
-            {
-                await Task.Delay(1, ct);
-                return ConnectivityState.Ready;
-            });
+            var transportFactory = new TestSubchannelTransportFactory();
             var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new RoundRobinBalancerFactory() });
             // Configure balancer similar to how GrpcChannel constructor does it
             clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
@@ -404,11 +400,7 @@ namespace Grpc.Net.Client.Tests.Balancer
                 LoadBalancingConfigs = { new RoundRobinConfig() }
             };
 
-            var transportFactory = new TestSubchannelTransportFactory(async (_, ct) =>
-            {
-                await Task.Delay(1, ct);
-                return ConnectivityState.Ready;
-            });
+            var transportFactory = new TestSubchannelTransportFactory();
             var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new RoundRobinBalancerFactory() });
             // Configure balancer similar to how GrpcChannel constructor does it
             clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
