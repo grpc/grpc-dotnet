@@ -407,36 +407,6 @@ namespace Grpc.Net.Client.Tests
         }
 
         [Test]
-        public async Task AsyncUnaryCall_SuccessAndReadValuesAfterDeadline_ValuesReturned()
-        {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply()).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(
-                httpClient,
-                systemClock: new TestSystemClock(new DateTime(2019, 11, 29, 1, 1, 1, DateTimeKind.Utc)));
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(deadline: invoker.Channel.Clock.UtcNow.AddSeconds(0.5)), new HelloRequest());
-
-            // Assert
-            var result = await call.ResponseAsync.DefaultTimeout();
-            Assert.IsNotNull(result);
-
-            // Wait for deadline to trigger
-            await Task.Delay(1000);
-
-            Assert.IsNotNull(await call.ResponseHeadersAsync.DefaultTimeout());
-
-            Assert.IsNotNull(call.GetTrailers());
-
-            Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
-        }
-
-        [Test]
         public async Task AsyncUnaryCall_SetNonUtcDeadline_ThrowError()
         {
             // Arrange
