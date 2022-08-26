@@ -344,9 +344,9 @@ namespace Microsoft.Extensions.DependencyInjection
 #if NET5_0_OR_GREATER
                         if (handler is SocketsHttpHandler socketsHttpHandler)
                         {
-                            // Channel has a singleton lifetime and the primary handler never changes.
-                            // Replicate the core benefit of handler lifetime (periodic connection recreation)
-                            // by setting PooledConnectionLifetime.
+                            // A channel is created once per client and the primary handler never changes.
+                            // Replicate the core benefit of a handler lifetime (periodic connection recreation)
+                            // by setting PooledConnectionLifetime to handler lifetime.
                             socketsHttpHandler.PooledConnectionLifetime = options.HandlerLifetime;
                         }
 #endif
