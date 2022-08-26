@@ -76,6 +76,7 @@ namespace Grpc.Net.Client.Balancer
                     {
                         RemoveSubchannel(addressSubchannel.Subchannel);
                     }
+                    _addressSubchannels.Clear();
                     Controller.UpdateState(new BalancerState(ConnectivityState.TransientFailure, new ErrorPicker(status)));
                     break;
             }
