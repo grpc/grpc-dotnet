@@ -344,7 +344,8 @@ namespace Microsoft.Extensions.DependencyInjection
 #if NET5_0_OR_GREATER
                         if (handler is SocketsHttpHandler socketsHttpHandler)
                         {
-                            // A channel is created once per client and the primary handler never changes.
+                            // A channel is created once per client, lives forever, and the primary handler never changes.
+                            // It's possible that long lived connections cause the client to miss out on DNS changes.
                             // Replicate the core benefit of a handler lifetime (periodic connection recreation)
                             // by setting PooledConnectionLifetime to handler lifetime.
                             socketsHttpHandler.PooledConnectionLifetime = options.HandlerLifetime;
