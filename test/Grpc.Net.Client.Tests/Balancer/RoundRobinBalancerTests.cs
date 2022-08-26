@@ -214,18 +214,26 @@ namespace Grpc.Net.Client.Tests.Balancer
             var services = new ServiceCollection();
             services.AddNUnitLogger();
 
+            ILogger? logger = null;
             SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
             var connectState = ConnectivityState.Ready;
 
-            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(connectState));
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+            {
+                logger.LogInformation($"Transport factory returning state: {connectState}");
+                return Task.FromResult(connectState);
+            });
             services.AddSingleton<TestResolver>(s =>
             {
                 return new TestResolver(
                     s.GetRequiredService<ILoggerFactory>(),
                     async () =>
                     {
+                        logger.LogInformation("Resolver waiting to continue.");
                         await syncPoint.WaitToContinue().DefaultTimeout();
+
+                        logger.LogInformation("Resolver creating new sync point.");
                         syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
                     });
             });
@@ -233,6 +241,7 @@ namespace Grpc.Net.Client.Tests.Balancer
             services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
             var serviceProvider = services.BuildServiceProvider();
 
+            logger = serviceProvider.GetRequiredService<ILogger<RoundRobinBalancerTests>>();
             var handler = new TestHttpMessageHandler((r, ct) => default!);
             var channelOptions = new GrpcChannelOptions
             {
@@ -250,10 +259,13 @@ namespace Grpc.Net.Client.Tests.Balancer
 
             // Act
             var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+            logger.LogInformation("Client connecting");
             var connectTask = channel.ConnectAsync();
 
             // Assert
             syncPoint!.Continue();
+            logger.LogInformation("Client waiting for connect to complete.");
             await connectTask.DefaultTimeout();
 
             var subchannels = channel.ConnectionManager.GetSubchannels();
@@ -265,10 +277,12 @@ namespace Grpc.Net.Client.Tests.Balancer
             await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
             Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
+            logger.LogInformation("Transport factory updating state.");
             connectState = ConnectivityState.TransientFailure;
             transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
 
             // Transport will refresh resolver after some failures
+            logger.LogInformation("Waiting for sync point in resolver.");
             await syncPoint!.WaitForSyncPoint().DefaultTimeout();
             syncPoint.Continue();
         }
