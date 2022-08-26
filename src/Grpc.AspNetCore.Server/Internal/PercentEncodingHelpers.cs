@@ -96,11 +96,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         for (var count = 0; count < numberOfBytes; count++)
                         {
-                            var c = (char)unicodeBytesBuffer[count];
-
-                            span[writePosition++] = '%';
-                            span[writePosition++] = HexChars[c >> 4];
-                            span[writePosition++] = HexChars[c & 15];
+                            EscapeAsciiChar(span, ref writePosition, (char)unicodeBytesBuffer[count]);
                         }
                         i += unicodeCharCount - 1;
                     }
@@ -110,12 +106,17 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                     else
                     {
-                        span[writePosition++] = '%';
-                        span[writePosition++] = HexChars[current >> 4];
-                        span[writePosition++] = HexChars[current & 15];
+                        EscapeAsciiChar(span, ref writePosition, current);
                     }
                 }
             }
+        }
+
+        private static void EscapeAsciiChar(Span<char> span, ref int writePosition, char current)
+        {
+            span[writePosition++] = '%';
+            span[writePosition++] = HexChars[current >> 4];
+            span[writePosition++] = HexChars[current & 15];
         }
 
         private static int GetCountOfNonAsciiUtf16CodeUnits(string value, int currentIndex, int maxCount)
