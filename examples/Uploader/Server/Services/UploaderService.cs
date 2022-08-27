@@ -35,7 +35,7 @@ namespace Server
         public override async Task<UploadFileResponse> UploadFile(IAsyncStreamReader<UploadFileRequest> requestStream, ServerCallContext context)
         {
             var uploadId = Path.GetRandomFileName();
-            var uploadPath = Path.Combine(_config["StoredFilesPath"], uploadId);
+            var uploadPath = Path.Combine(_config["StoredFilesPath"]!, uploadId);
             Directory.CreateDirectory(uploadPath);
 
             await using var writeStream = File.Create(Path.Combine(uploadPath, "data.bin"));

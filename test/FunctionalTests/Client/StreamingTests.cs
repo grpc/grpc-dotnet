@@ -600,6 +600,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
                     context.GetHttpContext().Abort();
 
+                    await context.CancellationToken.WaitForCancellationAsync();
+
                     await responseStream.WriteAsync(new DataMessage());
                 });
                 writeTcs.SetResult(writeTask);
@@ -719,8 +721,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                     return true;
                 }
 
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.HttpContentClientStreamWriter" &&
-                    writeContext.Exception is InvalidOperationException)
+                if (writeContext.Exception is InvalidOperationException ex &&
+                    ex.Message == "Can't read messages after the request is complete.")
                 {
                     return true;
                 }
@@ -736,16 +738,26 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             {
                 var readTask = Task.Run(async () =>
                 {
-                    if (readBeforeExit)
+                    try
                     {
-                        Assert.IsTrue(await requestStream.MoveNext());
+                        if (readBeforeExit)
+                        {
+                            Assert.IsTrue(await requestStream.MoveNext());
+                        }
+
+                        await syncPoint.WaitToContinue();
+
+                        context.GetHttpContext().Abort();
+
+                        await context.CancellationToken.WaitForCancellationAsync();
+
+                        Assert.IsFalse(await requestStream.MoveNext());
                     }
-
-                    await syncPoint.WaitToContinue();
-
-                    context.GetHttpContext().Abort();
-
-                    Assert.IsFalse(await requestStream.MoveNext());
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Server error from reading client stream.");
+                        throw;
+                    }
                 });
                 readTcs.SetResult(readTask);
 
@@ -1033,6 +1045,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 }
                 catch (OperationCanceledException)
                 {
+                    await context.CancellationToken.WaitForCancellationAsync();
+
                     serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
                     throw;
                 }
@@ -1055,7 +1069,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
 
-            Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout());
+            Assert.IsTrue(await serverCanceledTcs.Task.DefaultTimeout(), "Check to see whether cancellation token is triggered on the server.");
         }
 
         [Test]
@@ -1093,6 +1107,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 {
                     if (IsWriteCanceledException(ex))
                     {
+                        await context.CancellationToken.WaitForCancellationAsync();
+
                         Logger.LogInformation("Server got expected cancellation when sending big message.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
                         return;
@@ -1157,6 +1173,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 {
                     if (IsWriteCanceledException(ex))
                     {
+                        await context.CancellationToken.WaitForCancellationAsync();
+
                         Logger.LogInformation("Server read canceled as expeceted.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
                         return new DataMessage();
@@ -1227,6 +1245,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
                 {
                     if (IsWriteCanceledException(ex))
                     {
+                        await context.CancellationToken.WaitForCancellationAsync();
+
                         Logger.LogInformation("Server read canceled as expeceted.");
                         serverCanceledTcs.SetResult(context.CancellationToken.IsCancellationRequested);
                         return new DataMessage();

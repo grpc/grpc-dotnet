@@ -435,11 +435,19 @@ namespace Grpc.Net.Client.Internal
                     // SocketError.HostNotFound happens when unknown host is specified.
                     hasSocketException = true;
                 }
-                else if (current is IOException)
+#if NET7_0_OR_GREATER
+                else if (current is HttpProtocolException httpProtocolException)
                 {
-                    // IOException happens if there is a protocol mismatch.
-                    hasIOException = true;
+                    if (httpProtocolException.ErrorCode >= (long)Http3ErrorCode.H3_NO_ERROR)
+                    {
+                        statusCode = MapHttp3ErrorCodeToStatus(httpProtocolException.ErrorCode);
+                    }
+                    else
+                    {
+                        statusCode = MapHttp2ErrorCodeToStatus(httpProtocolException.ErrorCode);
+                    }
                 }
+#else
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
                 else if (current.GetType().FullName == "System.Net.Http.Http2StreamException")
                 {
@@ -464,6 +472,12 @@ namespace Grpc.Net.Client.Internal
                     }
                 }
 #endif
+#endif
+                else if (current is IOException)
+                {
+                    // IOException happens if there is a protocol mismatch.
+                    hasIOException = true;
+                }
             } while ((current = current.InnerException) != null);
 
             if (statusCode == null && (hasSocketException || hasIOException))
@@ -474,6 +488,7 @@ namespace Grpc.Net.Client.Internal
             return statusCode ?? StatusCode.Internal;
 
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
+#if !NET7_0_OR_GREATER
             static bool TryGetProtocol(string message, out long protocolError)
             {
                 // Example content to parse:
@@ -501,6 +516,7 @@ namespace Grpc.Net.Client.Internal
                 protocolError = -1;
                 return false;
             }
+#endif
 
             static StatusCode MapHttp2ErrorCodeToStatus(long protocolError)
             {

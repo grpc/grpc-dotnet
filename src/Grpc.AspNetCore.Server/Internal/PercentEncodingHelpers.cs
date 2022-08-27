@@ -96,7 +96,7 @@ namespace Grpc.AspNetCore.Server.Internal
 
                         for (var count = 0; count < numberOfBytes; count++)
                         {
-                            EscapeAsciiChar(ref span, ref writePosition, (char)unicodeBytesBuffer[count]);
+                            EscapeAsciiChar(span, ref writePosition, (char)unicodeBytesBuffer[count]);
                         }
                         i += unicodeCharCount - 1;
                     }
@@ -106,13 +106,13 @@ namespace Grpc.AspNetCore.Server.Internal
                     }
                     else
                     {
-                        EscapeAsciiChar(ref span, ref writePosition, current);
+                        EscapeAsciiChar(span, ref writePosition, current);
                     }
                 }
             }
         }
 
-        private static void EscapeAsciiChar(ref Span<char> span, ref int writePosition, char current)
+        private static void EscapeAsciiChar(Span<char> span, ref int writePosition, char current)
         {
             span[writePosition++] = '%';
             span[writePosition++] = HexChars[current >> 4];

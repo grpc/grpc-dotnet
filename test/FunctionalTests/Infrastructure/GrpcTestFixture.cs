@@ -104,8 +104,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
 #if NET6_0_OR_GREATER
                     if (RequireHttp3Attribute.IsSupported(out _))
                     {
-                        urls[TestServerEndpointName.Http3WithTls] = "https://127.0.0.1:50019";
-                        options.ListenLocalhost(50019, listenOptions =>
+                        urls[TestServerEndpointName.Http3WithTls] = "https://127.0.0.1:55019";
+                        options.ListenLocalhost(55019, listenOptions =>
                         {
 #pragma warning disable CA2252 // This API requires opting into preview features
                             // Support HTTP/2 for connectivity health in load balancing to work.

@@ -2,16 +2,17 @@
   <PropertyGroup>
     <BenchmarkDotNetPackageVersion>0.13.1</BenchmarkDotNetPackageVersion>
     <GoogleApisAuthPackageVersion>1.46.0</GoogleApisAuthPackageVersion>
-    <GoogleProtobufPackageVersion>3.19.4</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.44.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
+    <GoogleProtobufPackageVersion>3.21.5</GoogleProtobufPackageVersion>
+    <GrpcDotNetPackageVersion>2.47.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.46.3</GrpcPackageVersion>
-    <GrpcToolsPackageVersion>2.48.0</GrpcToolsPackageVersion>
-    <MicrosoftAspNetCoreAppPackageVersion>6.0.0</MicrosoftAspNetCoreAppPackageVersion>
+    <GrpcToolsPackageVersion>2.49.0-pre1</GrpcToolsPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>7.0.0-preview.6.22327.7</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreApp6PackageVersion>6.0.0</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftAspNetCoreApp5PackageVersion>5.0.3</MicrosoftAspNetCoreApp5PackageVersion>
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.2.2</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.0.461</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22168.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22310.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>

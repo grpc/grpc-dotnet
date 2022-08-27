@@ -149,8 +149,11 @@ namespace Grpc.AspNetCore.Server.Model.Internal
 
         private static IEndpointConventionBuilder CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
         {
-            // https://github.com/dotnet/aspnetcore/issues/24042
-            var routePattern = RoutePatternFactory.Parse(pattern, defaults: null, new { contentType = GrpcUnimplementedConstraint.Instance });
+            var routePattern = RoutePatternFactory.Parse(
+                pattern,
+                defaults: null,
+                parameterPolicies: new RouteValueDictionary { ["contentType"] = GrpcUnimplementedConstraint.Instance });
+
             var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
 
             endpointBuilder.Add(ep =>

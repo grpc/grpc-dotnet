@@ -31,7 +31,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
     [Category("LongRunning")]
     public class LinkerTests
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(120);
 
         [Test]
         public async Task RunWebsiteAndCallWithClient_Success()
@@ -50,13 +50,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
 
             try
             {
+                using var cts = new CancellationTokenSource();
                 using var websiteProcess = new WebsiteProcess();
                 using var clientProcess = new DotNetProcess();
 
                 try
                 {
-                    var publishWebsiteTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath);
-                    var publishClientTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath);
+                    var publishWebsiteTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsWebsite\LinkerTestsWebsite.csproj", linkerTestsWebsitePath, cts.Token);
+                    var publishClientTask = PublishAppAsync(projectDirectory + @"\..\..\testassets\LinkerTestsClient\LinkerTestsClient.csproj", linkerTestsClientPath, cts.Token);
 
                     await Task.WhenAll(publishWebsiteTask, publishClientTask).TimeoutAfter(Timeout);
 
@@ -74,6 +75,8 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
                     Console.WriteLine(websiteProcess.GetOutput());
                     Console.WriteLine("Client output:");
                     Console.WriteLine(clientProcess.GetOutput());
+
+                    cts.Dispose();
                 }
             }
             finally
@@ -91,12 +94,14 @@ namespace Grpc.AspNetCore.FunctionalTests.Linker
             }
         }
 
-        private static async Task PublishAppAsync(string path, string outputPath)
+        private static async Task PublishAppAsync(string path, string outputPath, CancellationToken cancellationToken)
         {
             var resolvedPath = Path.GetFullPath(path);
             Console.WriteLine($"Publishing {resolvedPath}");
 
             var process = new DotNetProcess();
+            cancellationToken.Register(() => process.Dispose());
+
             try
             {
                 process.Start($"publish {resolvedPath} -r {GetRuntimeIdentifier()} -c Release -o {outputPath} --self-contained");

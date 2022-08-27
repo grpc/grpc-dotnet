@@ -111,7 +111,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        public async Task AsyncUnaryCall_ExceedDeadlineWithActiveCalls_Failure()//(int i)
+        public async Task AsyncUnaryCall_ExceedDeadlineWithActiveCalls_Failure()
         {
             TaskCompletionSource<object?> tcs = null!;
             async Task ServerStreamingTimeout(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
