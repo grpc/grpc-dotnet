@@ -45,7 +45,7 @@ namespace Server
             services.AddGrpc();
             services.AddSingleton<IncrementingCounter>();
 
-            if (_configuration.GetValue<bool>(EnableOpenTelemetryKey))
+            if (bool.TryParse(_configuration[EnableOpenTelemetryKey], out var enableOpenTelemetry) && enableOpenTelemetry)
             {
                 services.AddOpenTelemetryTracing(telemetry =>
                 {

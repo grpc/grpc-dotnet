@@ -168,7 +168,7 @@ namespace Grpc.Shared.TestAssets
         {
 #pragma warning disable CA1416 // Validate platform compatibility
             var handler = new WinHttpHandler();
-            handler.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls;
+            handler.SslProtocols = SslProtocols.Tls12;
             handler.ServerCertificateValidationCallback = (message, cert, chain, errors) => true;
             return handler;
 #pragma warning restore CA1416 // Validate platform compatibility

@@ -51,10 +51,12 @@ namespace InteropTestsGrpcWebClient.Infrastructure
                 _writeAction = writeAction;
             }
 
+#pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
             public IDisposable BeginScope<TState>(TState state)
             {
                 return null!;
             }
+#pragma warning restore CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 
             public bool IsEnabled(LogLevel logLevel)
             {

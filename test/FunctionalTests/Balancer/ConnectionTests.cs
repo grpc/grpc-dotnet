@@ -260,7 +260,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Balancer
                 EnableMultipleHttp2Connections = true,
                 SslOptions = new System.Net.Security.SslClientAuthenticationOptions
                 {
-                    EnabledSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                    EnabledSslProtocols = SslProtocols.Tls12,
                     RemoteCertificateValidationCallback = (_, __, ___, ____) => true
                 }
             };

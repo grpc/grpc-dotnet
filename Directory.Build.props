@@ -13,12 +13,17 @@
     <SignAssembly>true</SignAssembly>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
 
     <!-- Don't make missing XML docs a fatal build error, but still surface so we have visibility into undocumented APIs. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CS1591</WarningsNotAsErrors>
 
+    <!-- Ignore warning about lowercase identifiers. Caused by generated source from Protobuf. -->
+    <!-- TODO(JamesNK): Remove when Protobuf is updated and samples use a version of Grpc.AspNetCore that brings in Grpc.Tools 2.49.0 or later. -->
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
+
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <LangVersion>10.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

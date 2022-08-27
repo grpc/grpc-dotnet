@@ -49,7 +49,7 @@ namespace Frontend
 
             services.AddSingleton(services =>
             {
-                var backendUrl = Configuration["BackendUrl"];
+                var backendUrl = Configuration["BackendUrl"]!;
 
                 var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions
                 {

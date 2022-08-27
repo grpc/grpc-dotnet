@@ -80,7 +80,7 @@ namespace Server
 
                 endpoints.MapGet("/generateJwtToken", context =>
                 {
-                    return context.Response.WriteAsync(GenerateJwtToken(context.Request.Query["name"]));
+                    return context.Response.WriteAsync(GenerateJwtToken(context.Request.Query["name"]!));
                 });
             });
         }

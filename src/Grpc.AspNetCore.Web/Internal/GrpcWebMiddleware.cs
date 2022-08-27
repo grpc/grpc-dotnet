@@ -78,7 +78,7 @@ namespace Grpc.AspNetCore.Web.Internal
                     var contentType = grcpWebContext.Response == ServerGrpcWebMode.GrpcWeb
                         ? GrpcWebProtocolConstants.GrpcWebContentType
                         : GrpcWebProtocolConstants.GrpcWebTextContentType;
-                    var responseContentType = ResolveContentType(contentType, httpContext.Response.ContentType);
+                    var responseContentType = ResolveContentType(contentType, httpContext.Response.ContentType!);
 
                     httpContext.Response.ContentType = responseContentType;
                     Log.SendingGrpcWebResponse(_logger, responseContentType);
