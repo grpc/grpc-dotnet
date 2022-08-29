@@ -195,7 +195,8 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             // Arrange
             var services = new ServiceCollection();
             services
-                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"));
+                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"))
+                .SetHandlerLifetime(TimeSpan.FromSeconds(10));
 
             var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
@@ -206,20 +207,22 @@ namespace Grpc.AspNetCore.Server.ClientFactory.Tests
             var handler = handlerFactory.CreateHandler(nameof(TestGreeterClient));
 
             // Assert
-            var hasSocketsHttpHandler = false;
+            SocketsHttpHandler? socketsHttpHandler = null;
             HttpMessageHandler? currentHandler = handler;
             while (currentHandler is DelegatingHandler delegatingHandler)
             {
                 currentHandler = delegatingHandler.InnerHandler;
 
-                if (currentHandler?.GetType() == typeof(SocketsHttpHandler))
+                if (currentHandler is SocketsHttpHandler s)
                 {
-                    hasSocketsHttpHandler = true;
+                    socketsHttpHandler = s;
                     break;
                 }
             }
 
-            Assert.IsTrue(hasSocketsHttpHandler);
+            Assert.IsNotNull(socketsHttpHandler);
+            Assert.AreEqual(true, socketsHttpHandler!.EnableMultipleHttp2Connections);
+            Assert.AreEqual(TimeSpan.FromSeconds(10), socketsHttpHandler!.PooledConnectionLifetime);
         }
 #endif
 
