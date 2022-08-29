@@ -334,13 +334,23 @@ namespace Microsoft.Extensions.DependencyInjection
 
             services.PostConfigure<HttpClientFactoryOptions>(name, options =>
             {
-                options.HttpMessageHandlerBuilderActions.Add(static builder =>
+                options.HttpMessageHandlerBuilderActions.Add(builder =>
                 {
                     if (builder.PrimaryHandler == null)
                     {
                         // This will throw in .NET Standard 2.0 with a prompt that a user must set a handler.
                         // Because it throws it should only be called in PostConfigure if no handler has been set.
                         var handler = HttpHandlerFactory.CreatePrimaryHandler();
+#if NET5_0_OR_GREATER
+                        if (handler is SocketsHttpHandler socketsHttpHandler)
+                        {
+                            // A channel is created once per client, lives forever, and the primary handler never changes.
+                            // It's possible that long lived connections cause the client to miss out on DNS changes.
+                            // Replicate the core benefit of a handler lifetime (periodic connection recreation)
+                            // by setting PooledConnectionLifetime to handler lifetime.
+                            socketsHttpHandler.PooledConnectionLifetime = options.HandlerLifetime;
+                        }
+#endif
 #if NET5_0
                         handler = HttpHandlerFactory.EnsureTelemetryHandler(handler);
 #endif
