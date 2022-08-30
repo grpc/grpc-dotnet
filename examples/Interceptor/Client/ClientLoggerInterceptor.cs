@@ -33,7 +33,15 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            return continuation(request, context);
+            try
+            {
+                return continuation(request, context);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
         }
 
         public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
@@ -44,9 +52,17 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            var call = continuation(request, context);
+            try
+            {
+                var call = continuation(request, context);
 
-            return new AsyncUnaryCall<TResponse>(HandleResponse(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+                return new AsyncUnaryCall<TResponse>(HandleResponse(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
         }
 
         private async Task<TResponse> HandleResponse<TResponse>(Task<TResponse> t)
@@ -59,14 +75,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                // Log error to the console.
-                // Note: Configuring .NET Core logging is the recommended way to log errors
-                // https://docs.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
-                var initialColor = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Call error: {ex.Message}");
-                Console.ForegroundColor = initialColor;
-
+                LogError(ex);
                 throw;
             }
         }
@@ -78,7 +87,15 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            return continuation(context);
+            try
+            {
+                return continuation(context);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
         }
 
         public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
@@ -89,7 +106,15 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            return continuation(request, context);
+            try
+            {
+                return continuation(request, context);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
         }
 
         public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(
@@ -99,7 +124,15 @@ namespace Client
             LogCall(context.Method);
             AddCallerMetadata(ref context);
 
-            return continuation(context);
+            try
+            {
+                return continuation(context);
+            }
+            catch (Exception ex)
+            {
+                LogError(ex);
+                throw;
+            }
         }
 
         private void LogCall<TRequest, TResponse>(Method<TRequest, TResponse> method)
@@ -131,6 +164,17 @@ namespace Client
             headers.Add("caller-user", Environment.UserName);
             headers.Add("caller-machine", Environment.MachineName);
             headers.Add("caller-os", Environment.OSVersion.ToString());
+        }
+
+        private static void LogError(Exception ex)
+        {
+            // Log error to the console.
+            // Note: Configuring .NET Core logging is the recommended way to log errors
+            // https://docs.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
+            var initialColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Call error: {ex.Message}");
+            Console.ForegroundColor = initialColor;
         }
     }
 }
