@@ -23,6 +23,7 @@ using Greet;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
+using Microsoft.Extensions.Logging;
 
 namespace Client
 {
@@ -30,8 +31,13 @@ namespace Client
     {
         static async Task Main(string[] args)
         {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-            var invoker = channel.Intercept(new ClientLoggerInterceptor());
+            var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+
+            using var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
+            {
+                LoggerFactory = loggerFactory
+            });
+            var invoker = channel.Intercept(new ClientLoggerInterceptor(loggerFactory));
 
             var client = new Greeter.GreeterClient(invoker);
 
