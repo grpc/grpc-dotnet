@@ -46,6 +46,7 @@ namespace Grpc.Net.Client.Balancer.Internal
     internal sealed class ConnectContext
     {
         private readonly CancellationTokenSource _cts;
+        private readonly CancellationToken _token;
         private bool _disposed;
 
         // This flag allows the transport to determine why the cancellation token was canceled.
@@ -53,11 +54,14 @@ namespace Grpc.Net.Client.Balancer.Internal
         // - Connection timeout, e.g. SocketsHttpHandler.ConnectTimeout was exceeded.
         public bool IsConnectCanceled { get; private set; }
 
-        public CancellationToken CancellationToken => _cts.Token;
+        public CancellationToken CancellationToken => _token;
 
         public ConnectContext(TimeSpan connectTimeout)
         {
             _cts = new CancellationTokenSource(connectTimeout);
+
+            // Take a copy of the token to avoid ObjectDisposedException when accessing _cts.Token after CTS is disposed.
+            _token = _cts.Token;
         }
 
         public void CancelConnect()
