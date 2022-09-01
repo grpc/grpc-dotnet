@@ -313,7 +313,7 @@ namespace Grpc.Net.Client.Balancer
             {
                 SubchannelLog.ConnectError(_logger, Id, ex);
 
-                UpdateConnectivityState(ConnectivityState.TransientFailure, "Error connecting to subchannel.");
+                UpdateConnectivityState(ConnectivityState.TransientFailure, new Status(StatusCode.Unavailable, "Error connecting to subchannel.", ex));
             }
             finally
             {

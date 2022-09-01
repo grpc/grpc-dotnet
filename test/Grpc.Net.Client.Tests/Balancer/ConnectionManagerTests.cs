@@ -145,6 +145,43 @@ namespace Grpc.Net.Client.Tests.Balancer
         }
 
         [Test]
+        public async Task PickAsync_ErrorConnectingToSubchannel_ThrowsError()
+        {
+            // Arrange
+            var services = new ServiceCollection();
+            services.AddNUnitLogger();
+            var serviceProvider = services.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+            var resolver = new TestResolver(loggerFactory);
+            resolver.UpdateAddresses(new List<BalancerAddress>
+            {
+                new BalancerAddress("localhost", 80)
+            });
+
+            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+            {
+                return Task.FromException<ConnectivityState>(new Exception("Test error!"));
+            });
+            var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
+            clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
+
+            // Act
+            _ = clientChannel.ConnectAsync(waitForReady: false, CancellationToken.None).ConfigureAwait(false);
+
+            var pickTask = clientChannel.PickAsync(
+                new PickContext { Request = new HttpRequestMessage() },
+                waitForReady: false,
+                CancellationToken.None).AsTask();
+
+            // Assert
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => pickTask).DefaultTimeout();
+            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+            Assert.AreEqual("Error connecting to subchannel.", ex.Status.Detail);
+            Assert.AreEqual("Test error!", ex.Status.DebugException?.Message);
+        }
+
+        [Test]
         public async Task PickAsync_RetryWithDrop_ThrowsError()
         {
             // Arrange
