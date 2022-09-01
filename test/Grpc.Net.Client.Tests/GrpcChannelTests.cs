@@ -626,6 +626,7 @@ namespace Grpc.Net.Client.Tests
             var currentConnectivityState = ConnectivityState.TransientFailure;
 
             var services = new ServiceCollection();
+            services.AddNUnitLogger();
             services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
             services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
             {

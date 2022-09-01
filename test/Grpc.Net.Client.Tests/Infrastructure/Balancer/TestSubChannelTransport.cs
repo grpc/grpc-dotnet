@@ -81,7 +81,8 @@ namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
             var newState = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
             CurrentAddress = Subchannel._addresses[0];
-            Subchannel.UpdateConnectivityState(newState, Status.DefaultSuccess);
+            var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
+            Subchannel.UpdateConnectivityState(newState, newStatus);
 
             _connectTcs.TrySetResult(null);
 
