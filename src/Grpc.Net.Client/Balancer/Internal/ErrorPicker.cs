@@ -18,6 +18,7 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
+using System.Diagnostics;
 using Grpc.Core;
 
 namespace Grpc.Net.Client.Balancer.Internal
@@ -28,6 +29,7 @@ namespace Grpc.Net.Client.Balancer.Internal
 
         public ErrorPicker(Status status)
         {
+            Debug.Assert(status.StatusCode != StatusCode.OK, "Error status code must not be OK.");
             _status = status;
         }
 
