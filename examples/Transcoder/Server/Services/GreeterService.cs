@@ -23,10 +23,15 @@ namespace Server
             return Task.FromResult(new HelloReply { Message = $"Hello {request.Name}" });
         }
 
-        public override Task<HelloReply> SayHelloFrom(HelloRequestFrom request, ServerCallContext context)
+        public override async Task SayHelloStream(HelloRequestCount request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
         {
-            _logger.LogInformation($"Sending hello to {request.Name} from {request.From}");
-            return Task.FromResult(new HelloReply { Message = $"Hello {request.Name} from {request.From}" });
+            _logger.LogInformation($"Sending {request.Count} hellos to {request.Name}");
+
+            for (var i = 0; i < request.Count; i++)
+            {
+                await responseStream.WriteAsync(new HelloReply { Message = $"Hello {request.Name} {i + 1}" });
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
         }
     }
 }
