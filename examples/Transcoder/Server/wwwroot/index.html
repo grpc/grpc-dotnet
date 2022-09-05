@@ -76,11 +76,11 @@
                         <div class="row gx-2 align-items-center">
                             <div class="col-auto">
                                 <label class="visually-hidden" for="inlineFormInput">Hello</label>
-                                <input type="text" class="form-control mb-2" id="namePost" placeholder="Hello">
+                                <input type="text" class="form-control mb-2" id="namePost" placeholder="Hello" required>
                             </div>
                             <div class="col-auto">
                                 <label class="visually-hidden" for="inlineFormInput">Count</label>
-                                <input type="text" class="form-control mb-2" id="countPost" placeholder="Count">
+                                <input type="number" class="form-control mb-2" id="countPost" placeholder="Count" required>
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-primary mb-2">Send</button>
@@ -132,6 +132,7 @@
                         resultGetText.innerHTML = `<h6>Request</h6>
 <p><code>GET ${url}</code></p>
 <h6>Response</h6>
+<p><code>HTTP/1.1 ${response.status} ${getReasonPhrase(response.status)}</code></p>
 <p><code>${htmlEscape(data)}</code></p>
 <h6>Result</h6>
 <p>${JSON.parse(data).message}</p>`;
@@ -169,7 +170,7 @@
                 while (!done) {
                     ({ value, done } = await reader.read());
                     if (done) {
-                        displayData(resultPostText, url, content, values, true);
+                        displayData(resultPostText, url, content, response, values, true);
                         break;
                     }
                     buffer += decoder.decode(value, { stream: true });
@@ -177,7 +178,7 @@
                     var lines = buffer.split(/[\r\n]/);
                     buffer = lines.pop();
                     values.push(...lines);
-                    displayData(resultPostText, url, content, values, false);
+                    displayData(resultPostText, url, content, response, values, false);
                 }
             });
 
@@ -185,10 +186,12 @@
             event.stopPropagation();
         }, false);
 
-        function displayData(text, url, content, values, done) {
+        function displayData(text, url, content, response, values, done) {
             text.innerHTML = `<h6>Request</h6>
-<p><code>POST ${url} ${htmlEscape(content)}</code></p>
+<p><code>POST ${url}</code></p>
+<p><code>${htmlEscape(content)}</code></p>
 <h6>Response</h6>
+<p><code>HTTP/1.1 ${response.status} ${getReasonPhrase(response.status)}</code></p>
 <p><code>${values.map(v => htmlEscape(v) + "<br />").join("")}</code></p>`;
 
             if (done) {
@@ -204,6 +207,57 @@
                 .replace(/'/g, '&#39;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
+        }
+
+        function getReasonPhrase(statusCode) {
+            switch (statusCode) {
+                case (200): return "OK";
+                case (201): return "Created";
+                case (202): return "Accepted";
+                case (203): return "Non Authoritative Information";
+                case (204): return "No Content";
+                case (205): return "Reset Content";
+                case (206): return "Partial Content";
+                case (207): return "Partial Update OK";
+                case (300): return "Mutliple Choices";
+                case (301): return "Moved Permanently";
+                case (302): return "Moved Temporarily";
+                case (303): return "See Other";
+                case (304): return "Not Modified";
+                case (305): return "Use Proxy";
+                case (307): return "Temporary Redirect";
+                case (400): return "Bad Request";
+                case (401): return "Unauthorized";
+                case (402): return "Payment Required";
+                case (403): return "Forbidden";
+                case (404): return "Not Found";
+                case (405): return "Method Not Allowed";
+                case (406): return "Not Acceptable";
+                case (407): return "Proxy Authentication Required";
+                case (408): return "Request Timeout";
+                case (409): return "Conflict";
+                case (410): return "Gone";
+                case (411): return "Length Required";
+                case (412): return "Precondition Failed";
+                case (413): return "Request Entity Too Large";
+                case (414): return "Request-URI Too Long";
+                case (415): return "Unsupported Media Type";
+                case (416): return "Requested Range Not Satisfiable";
+                case (417): return "Expectation Failed";
+                case (418): return "Reauthentication Required";
+                case (419): return "Proxy Reauthentication Required";
+                case (422): return "Unprocessable Entity";
+                case (423): return "Locked";
+                case (424): return "Failed Dependency";
+                case (500): return "Server Error";
+                case (501): return "Not Implemented";
+                case (502): return "Bad Gateway";
+                case (503): return "Service Unavailable";
+                case (504): return "Gateway Timeout";
+                case (505): return "HTTP Version Not Supported";
+                case (507): return "Insufficient Storage";
+                default: return "";
+            }
         }
     </script>
 </body>

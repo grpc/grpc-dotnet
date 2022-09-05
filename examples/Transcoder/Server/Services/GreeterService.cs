@@ -1,10 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 
 namespace Server
 {
@@ -25,6 +23,11 @@ namespace Server
 
         public override async Task SayHelloStream(HelloRequestCount request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
         {
+            if (request.Count <= 0)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Count must be greater than zero."));
+            }
+
             _logger.LogInformation($"Sending {request.Count} hellos to {request.Name}");
 
             for (var i = 0; i < request.Count; i++)
