@@ -71,6 +71,8 @@ namespace Client
                 Console.WriteLine($"Unexpected error calling service.");
                 throw;
             }
+
+            Console.WriteLine();
         }
 
         private static HttpClientHandler CreateHttpHandler(bool includeClientCertificate)
