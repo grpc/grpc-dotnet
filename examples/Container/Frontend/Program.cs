@@ -16,32 +16,71 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Frontend.Balancer;
+using Grpc.Core;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Balancer;
 
-namespace Frontend
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.SetMinimumLevel(LogLevel.Trace);
+builder.Logging.AddSimpleConsole(c =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    c.TimestampFormat = "[HH:mm:ss.ff]";
+});
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(logging =>
-                {
-                    logging.SetMinimumLevel(LogLevel.Trace);
-                    logging.AddSimpleConsole(c =>
-                    {
-                        c.TimestampFormat = "[HH:mm:ss.ff]";
-                    });
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
+builder.Services.AddSingleton(services =>
+{
+    var backendUrl = builder.Configuration["BackendUrl"]!;
+
+    var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions
+    {
+        Credentials = ChannelCredentials.Insecure,
+        ServiceProvider = services
+    });
+
+    return channel;
+});
+
+SetupReportingServices(builder.Services);
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
+
+app.Run();
+
+static void SetupReportingServices(IServiceCollection services)
+{
+    // These services allow the load balancer policy to be configured and subchannels to be reported in the UI.
+    services.AddSingleton<SubchannelReporter>();
+    services.AddSingleton<BalancerConfiguration>();
+    services.AddSingleton<ResolverFactory>(s =>
+    {
+        var inner = new DnsResolverFactory(refreshInterval: TimeSpan.FromSeconds(20));
+        return new ConfigurableResolverFactory(inner, s.GetRequiredService<BalancerConfiguration>());
+    });
+    services.AddSingleton<LoadBalancerFactory>(s =>
+    {
+        var inner = new RoundRobinBalancerFactory();
+        return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
+    });
+    services.AddSingleton<LoadBalancerFactory>(s =>
+    {
+        var inner = new PickFirstBalancerFactory();
+        return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
+    });
 }

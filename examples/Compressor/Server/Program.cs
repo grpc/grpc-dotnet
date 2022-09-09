@@ -16,23 +16,15 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using Server;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc(o =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    o.ResponseCompressionAlgorithm = "gzip";
+});
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
-}
+var app = builder.Build();
+app.MapGrpcService<GreeterService>();
+
+app.Run();

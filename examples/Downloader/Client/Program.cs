@@ -20,50 +20,41 @@ using Download;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Client
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+
+var client = new Downloader.DownloaderClient(channel);
+
+var downloadsPath = Path.Combine(Environment.CurrentDirectory, "downloads");
+var downloadId = Path.GetRandomFileName();
+var downloadIdPath = Path.Combine(downloadsPath, downloadId);
+Directory.CreateDirectory(downloadIdPath);
+
+Console.WriteLine("Starting call");
+
+using var call = client.DownloadFile(new DownloadFileRequest
 {
-    public class Program
+    Id = downloadId
+});
+
+await using var writeStream = File.Create(Path.Combine(downloadIdPath, "data.bin"));
+
+await foreach (var message in call.ResponseStream.ReadAllAsync())
+{
+    if (message.Metadata != null)
     {
-        static async Task Main(string[] args)
-        {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-
-            var client = new Downloader.DownloaderClient(channel);
-           
-            var downloadsPath = Path.Combine(Environment.CurrentDirectory, "downloads");
-            var downloadId = Path.GetRandomFileName();
-            var downloadIdPath = Path.Combine(downloadsPath, downloadId);
-            Directory.CreateDirectory(downloadIdPath);
-
-            Console.WriteLine("Starting call");
-
-            using var call = client.DownloadFile(new DownloadFileRequest
-            {
-                Id = downloadId
-            });
-
-            await using var writeStream = File.Create(Path.Combine(downloadIdPath, "data.bin"));
-
-            await foreach (var message in call.ResponseStream.ReadAllAsync())
-            {
-                if (message.Metadata != null)
-                {
-                    Console.WriteLine("Saving metadata to file"); 
-                    var metadata = message.Metadata.ToString();                    
-                    await File.WriteAllTextAsync(Path.Combine(downloadIdPath, "metadata.json"), metadata);
-                }
-                if (message.Data != null)
-                {
-                    var bytes = message.Data.Memory;
-                    Console.WriteLine($"Saving {bytes.Length} bytes to file");
-                    await writeStream.WriteAsync(bytes);
-                }
-            }
-
-            Console.WriteLine();
-            Console.WriteLine("Files were saved in: " + downloadIdPath);
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
+        Console.WriteLine("Saving metadata to file");
+        var metadata = message.Metadata.ToString();
+        await File.WriteAllTextAsync(Path.Combine(downloadIdPath, "metadata.json"), metadata);
+    }
+    if (message.Data != null)
+    {
+        var bytes = message.Data.Memory;
+        Console.WriteLine($"Saving {bytes.Length} bytes to file");
+        await writeStream.WriteAsync(bytes);
     }
 }
+
+Console.WriteLine();
+Console.WriteLine("Files were saved in: " + downloadIdPath);
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();

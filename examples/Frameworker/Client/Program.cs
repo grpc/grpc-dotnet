@@ -16,32 +16,20 @@
 
 #endregion
 
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Net.Client;
 
-namespace Client
+Console.WriteLine("Target framework name: " + AppDomain.CurrentDomain.SetupInformation.TargetFrameworkName);
+
+using var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
 {
-    public class Program
-    {
-        static async Task Main(string[] args)
-        {
-            Console.WriteLine("Target framework name: " + AppDomain.CurrentDomain.SetupInformation.TargetFrameworkName);
+    HttpHandler = new WinHttpHandler()
+});
+var client = new Greeter.GreeterClient(channel);
 
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
-            {
-                HttpHandler = new WinHttpHandler()
-            });
-            var client = new Greeter.GreeterClient(channel);
+var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+Console.WriteLine("Greeting: " + reply.Message);
 
-            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
-
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
-    }
-}
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
