@@ -16,29 +16,18 @@
 
 #endregion
 
-using System;
+using Client;
 using Count;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
-namespace Client
-{
-    public class Program
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((hostContext, services) =>
     {
-        public static void Main(string[] args)
+        services.AddHostedService<Worker>();
+        services.AddGrpcClient<Counter.CounterClient>(options =>
         {
-            CreateHostBuilder(args).Build().Run();
-        }
+            options.Address = new Uri("https://localhost:5001");
+        });
+    })
+    .Build();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddHostedService<Worker>();
-                    services.AddGrpcClient<Counter.CounterClient>(options =>
-                    {
-                        options.Address = new Uri("https://localhost:5001");
-                    });
-                });
-    }
-}
+host.Run();

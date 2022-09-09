@@ -16,35 +16,26 @@
 
 #endregion
 
-using System.IO;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using Server;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+builder.WebHost.ConfigureKestrel(options =>
 {
-    public class Program
+    if (File.Exists(SocketPath))
     {
-        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
-
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    webBuilder.ConfigureKestrel(options =>
-                    {
-                        if (File.Exists(SocketPath))
-                        {
-                            File.Delete(SocketPath);
-                        }
-
-                        options.ListenUnixSocket(SocketPath);
-                    });
-                });
+        File.Delete(SocketPath);
     }
+
+    options.ListenUnixSocket(SocketPath);
+});
+
+var app = builder.Build();
+app.MapGrpcService<GreeterService>();
+
+app.Run();
+
+public partial class Program
+{
+    private static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
 }
