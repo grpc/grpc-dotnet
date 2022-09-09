@@ -30,14 +30,17 @@ builder.Services.AddResponseCompression(opts =>
 var app = builder.Build();
 app.UseResponseCompression();
 
-if (builder.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
     app.UseWebAssemblyDebugging();
 }
+else
+{
+    app.UseHsts();
+}
 
-app.UseStaticFiles();
 app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 
 app.UseRouting();
 
