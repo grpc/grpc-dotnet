@@ -22,51 +22,45 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Client
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new DataChanneler.DataChannelerClient(channel);
+
+await UploadDataAsync(client);
+
+await DownloadResultsAsync(client);
+
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
+
+static async Task UploadDataAsync(DataChanneler.DataChannelerClient client)
 {
-    public partial class Program
+    var call = client.UploadData();
+
+    var dataChunks = TestData.Chunk(5);
+    foreach (var chunk in dataChunks)
     {
-        public static readonly byte[] TestData = Encoding.UTF8.GetBytes("The quick brown fox jumped over the lazy dog.");
-
-        static async Task Main(string[] args)
-        {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-            var client = new DataChanneler.DataChannelerClient(channel);
-
-            await UploadDataAsync(client);
-
-            await DownloadResultsAsync(client);
-
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
-
-        private static async Task UploadDataAsync(DataChanneler.DataChannelerClient client)
-        {
-            var call = client.UploadData();
-
-            var dataChunks = TestData.Chunk(5);
-            foreach (var chunk in dataChunks)
-            {
-                Console.WriteLine($"Uploading chunk: {chunk.Length} bytes");
-                await call.RequestStream.WriteAsync(new DataRequest { Value = ByteString.CopyFrom(chunk) });
-            }
-
-            await call.RequestStream.CompleteAsync();
-
-            var result = await call;
-            Console.WriteLine($"Total upload processed: {result.BytesProcessed} bytes");
-        }
-
-        private static async Task DownloadResultsAsync(DataChanneler.DataChannelerClient client)
-        {
-            var call = client.DownloadResults(new DataRequest { Value = ByteString.CopyFrom(TestData) });
-
-            await foreach (var result in call.ResponseStream.ReadAllAsync())
-            {
-                Console.WriteLine($"Downloaded bytes processed result: {result.BytesProcessed}");
-            }
-        }
+        Console.WriteLine($"Uploading chunk: {chunk.Length} bytes");
+        await call.RequestStream.WriteAsync(new DataRequest { Value = ByteString.CopyFrom(chunk) });
     }
+
+    await call.RequestStream.CompleteAsync();
+
+    var result = await call;
+    Console.WriteLine($"Total upload processed: {result.BytesProcessed} bytes");
+}
+
+static async Task DownloadResultsAsync(DataChanneler.DataChannelerClient client)
+{
+    var call = client.DownloadResults(new DataRequest { Value = ByteString.CopyFrom(TestData) });
+
+    await foreach (var result in call.ResponseStream.ReadAllAsync())
+    {
+        Console.WriteLine($"Downloaded bytes processed result: {result.BytesProcessed}");
+    }
+}
+
+public partial class Program
+{
+    private static readonly byte[] TestData = Encoding.UTF8.GetBytes("The quick brown fox jumped over the lazy dog.");
 }
