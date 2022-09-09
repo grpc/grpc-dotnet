@@ -16,23 +16,75 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Server.Services;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+builder.Services.AddSpaStaticFiles(configuration =>
 {
-    public static class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    configuration.RootPath = "ClientApp/dist";
+});
+builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+{
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader()
+           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+}));
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+var app = builder.Build();
+if (app.Environment.IsDevelopment())
+{
+    var indexPage = "ClientApp/dist/index.html";
+    if (!File.Exists(indexPage))
+    {
+        using var p = RunNpmScript("build:prod");
+        p.WaitForExit();
     }
+}
+else
+{
+    app.UseHsts();
+}
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.UseSpaStaticFiles();
+app.UseRouting();
+app.UseCors();
+
+app.UseGrpcWeb();
+
+app.MapGrpcService<GreeterService>()
+    .RequireCors("AllowAll")
+    .EnableGrpcWeb();
+
+app.UseSpa(spa =>
+{
+    if (app.Environment.IsDevelopment())
+    {
+        RunNpmScript("build:watch");
+    }
+});
+
+app.Run();
+
+static Process RunNpmScript(string script)
+{
+    var fileName = "npm";
+    var args = $"run {script}";
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        fileName = "cmd";
+        args = $"/c npm {args}";
+    }
+
+    return Process.Start(new ProcessStartInfo
+    {
+        FileName = fileName,
+        Arguments = args,
+        WorkingDirectory = "ClientApp",
+    })!;
 }

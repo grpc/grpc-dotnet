@@ -16,62 +16,51 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Client
+await MakeInternalCall("https://localhost:5001");
+try
 {
-    public class Program
-    {
-        static async Task Main(string[] args)
-        {
-            await MakeInternalCall("https://localhost:5001");
-            try
-            {
-                await MakeInternalCall("http://localhost:5000");
-                Debug.Fail("Expected error.");
-            }
-            catch (RpcException ex)
-            {
-                Console.WriteLine(ex.Status.StatusCode);
-            }
+    await MakeInternalCall("http://localhost:5000");
+    Debug.Fail("Expected error.");
+}
+catch (RpcException ex)
+{
+    Console.WriteLine(ex.Status.StatusCode);
+}
 
-            await MakeExternalCall("http://localhost:5000");
-            try
-            {
-                await MakeExternalCall("https://localhost:5001");
-                Debug.Fail("Expected error.");
-            }
-            catch (RpcException ex)
-            {
-                Console.WriteLine(ex.Status.StatusCode);
-            }
+await MakeExternalCall("http://localhost:5000");
+try
+{
+    await MakeExternalCall("https://localhost:5001");
+    Debug.Fail("Expected error.");
+}
+catch (RpcException ex)
+{
+    Console.WriteLine(ex.Status.StatusCode);
+}
 
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
 
-        private static async Task MakeInternalCall(string address)
-        {
-            var channel = GrpcChannel.ForAddress(address);
-            var client = new Internal.InternalClient(channel);
+static async Task MakeInternalCall(string address)
+{
+    var channel = GrpcChannel.ForAddress(address);
+    var client = new Internal.InternalClient(channel);
 
-            var reply = await client.SayHelloAsync(new InternalRequest { Name = "InternalClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
-        }
+    var reply = await client.SayHelloAsync(new InternalRequest { Name = "InternalClient" });
+    Console.WriteLine("Greeting: " + reply.Message);
+}
 
-        private static async Task MakeExternalCall(string address)
-        {
-            var channel = GrpcChannel.ForAddress(address);
-            var client = new External.ExternalClient(channel);
+static async Task MakeExternalCall(string address)
+{
+    var channel = GrpcChannel.ForAddress(address);
+    var client = new External.ExternalClient(channel);
 
-            var reply = await client.SayHelloAsync(new ExternalRequest { Name = "ExternalClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
-        }
-    }
+    var reply = await client.SayHelloAsync(new ExternalRequest { Name = "ExternalClient" });
+    Console.WriteLine("Greeting: " + reply.Message);
 }

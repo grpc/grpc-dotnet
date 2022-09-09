@@ -16,27 +16,19 @@
 
 #endregion
 
+using Client;
 using Test;
 
-namespace Client
-{
-    public class Program
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices(services =>
     {
-        public static void Main(string[] args)
+        services.AddHostedService<Worker>();
+        services.AddSingleton<IGreetRepository, GreetRepository>();
+        services.AddGrpcClient<Tester.TesterClient>(options =>
         {
-            CreateHostBuilder(args).Build().Run();
-        }
+            options.Address = new Uri("https://localhost:5001");
+        });
+    })
+    .Build();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddHostedService<Worker>();
-                    services.AddSingleton<IGreetRepository, GreetRepository>();
-                    services.AddGrpcClient<Tester.TesterClient>(options =>
-                    {
-                        options.Address = new Uri("https://localhost:5001");
-                    });
-                });
-    }
-}
+host.Run();
