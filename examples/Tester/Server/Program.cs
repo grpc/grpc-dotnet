@@ -18,11 +18,10 @@
 
 using Server;
 
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddGrpc(o => o.EnableDetailedErrors = true);
-builder.Services.AddSingleton<IGreeter, Greeter>();
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureWebHostDefaults(webBuilder =>
+    {
+        webBuilder.UseStartup<Startup>();
+    }).Build();
 
-var app = builder.Build();
-app.MapGrpcService<TesterService>();
-
-app.Run();
+host.Run();
