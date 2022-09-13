@@ -16,14 +16,10 @@
 
 #endregion
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Microsoft.Extensions.Logging;
 
-namespace Client
+namespace Server
 {
     public class ServerLoggerInterceptor : Interceptor
     {
