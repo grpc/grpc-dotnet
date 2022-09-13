@@ -430,11 +430,12 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
             AssertHasLogRpcConnectionError(StatusCode.Internal, "Request did not include grpc-encoding value with compressed message.");
         }
 
-        [TestCase("gzip", true)]
+        [TestCase("gzip", "gzip", true)]
+        [TestCase("gzip", "identity, gzip", true)]
 #if NET6_0_OR_GREATER
-        [TestCase("deflate", false)]
+        [TestCase("deflate", "deflate", false)]
 #endif
-        public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string algorithmName, bool algorithmSupportedByServer)
+        public async Task SendCompressedMessageAndReturnResultWithNoCompressFlag_ResponseNotCompressed(string algorithmName, string messageAcceptEncoding, bool algorithmSupportedByServer)
         {
             // Arrange
             var requestMessage = new HelloRequest
@@ -447,7 +448,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
             var httpRequest = GrpcHttpHelper.Create("Compression.CompressionService/WriteMessageWithoutCompression");
             httpRequest.Headers.Add(GrpcProtocolConstants.MessageEncodingHeader, algorithmName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, algorithmName);
+            httpRequest.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, messageAcceptEncoding);
             httpRequest.Content = new GrpcStreamContent(requestStream);
 
             // Act
