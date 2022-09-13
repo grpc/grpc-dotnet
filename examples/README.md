@@ -328,3 +328,12 @@ The channeler shows how to use `System.Threading.Channels` to safely read and wr
 * Multi-threaded gRPC methods
 * Server streaming
 * Client streaming
+
+## [Frameworker](./Frameworker)
+
+The frameworker shows how to call gRPC services from a .NET Framework client using `WinHttpHandler`.
+
+##### Scenarios:
+
+* .NET Framework
+* [`WinHttpHandler`](https://docs.microsoft.com/dotnet/api/system.net.http.winhttphandler)

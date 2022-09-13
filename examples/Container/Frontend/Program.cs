@@ -16,32 +16,48 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Frontend.Balancer;
+using Grpc.Core;
+using Grpc.Net.Client;
 
-namespace Frontend
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.SetMinimumLevel(LogLevel.Trace);
+builder.Logging.AddSimpleConsole(c =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    c.TimestampFormat = "[HH:mm:ss.ff]";
+});
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(logging =>
-                {
-                    logging.SetMinimumLevel(LogLevel.Trace);
-                    logging.AddSimpleConsole(c =>
-                    {
-                        c.TimestampFormat = "[HH:mm:ss.ff]";
-                    });
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
+builder.Services.AddSingleton(services =>
+{
+    var backendUrl = builder.Configuration["BackendUrl"]!;
+
+    var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions
+    {
+        Credentials = ChannelCredentials.Insecure,
+        ServiceProvider = services
+    });
+
+    return channel;
+});
+
+ReportingSetup.RegisterReportingServices(builder.Services);
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
+
+app.Run();

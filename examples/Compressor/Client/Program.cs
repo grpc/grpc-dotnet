@@ -16,39 +16,27 @@
 
 #endregion
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Client
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new Greeter.GreeterClient(channel);
+
+await UnaryCallExample(client);
+
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
+
+static async Task UnaryCallExample(Greeter.GreeterClient client)
 {
-    public class Program
-    {
-        static async Task Main(string[] args)
-        {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-            var client = new Greeter.GreeterClient(channel);
+    // 'grpc-internal-encoding-request' is a special metadata value that tells
+    // the client to compress the request.
+    // This metadata is only used in the client is not sent as a header to the server.
+    var metadata = new Metadata();
+    metadata.Add("grpc-internal-encoding-request", "gzip");
 
-            await UnaryCallExample(client);
-
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
-
-        private static async Task UnaryCallExample(Greeter.GreeterClient client)
-        {
-            // 'grpc-internal-encoding-request' is a special metadata value that tells
-            // the client to compress the request.
-            // This metadata is only used in the client is not sent as a header to the server.
-            var metadata = new Metadata();
-            metadata.Add("grpc-internal-encoding-request", "gzip");
-
-            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" }, headers: metadata);
-            Console.WriteLine("Greeting: " + reply.Message);
-        }
-    }
+    var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" }, headers: metadata);
+    Console.WriteLine("Greeting: " + reply.Message);
 }
