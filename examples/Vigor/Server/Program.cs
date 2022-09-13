@@ -16,23 +16,26 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Server
-{
-    public class Program
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+builder.Services.AddGrpcHealthChecks()
+    .AddAsyncCheck("", () =>
     {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+        var result = Random.Shared.Next() % 5 == 0
+            ? HealthCheckResult.Unhealthy()
+            : HealthCheckResult.Healthy();
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
-}
+        return Task.FromResult(result);
+    }, Array.Empty<string>());
+builder.Services.Configure<HealthCheckPublisherOptions>(options =>
+{
+    options.Delay = TimeSpan.Zero;
+    options.Period = TimeSpan.FromSeconds(5);
+});
+
+var app = builder.Build();
+app.MapGrpcHealthChecksService();
+
+app.Run();

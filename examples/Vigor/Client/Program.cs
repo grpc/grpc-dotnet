@@ -16,47 +16,35 @@
 
 #endregion
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.Net.Client;
 
-namespace Client
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new Health.HealthClient(channel);
+
+Console.WriteLine("Watching health status");
+Console.WriteLine("Press any key to exit...");
+
+var cts = new CancellationTokenSource();
+using var call = client.Watch(new HealthCheckRequest { Service = "" }, cancellationToken: cts.Token);
+var watchTask = Task.Run(async () =>
 {
-    public class Program
+    try
     {
-        static async Task Main(string[] args)
+        await foreach (var message in call.ResponseStream.ReadAllAsync())
         {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-            var client = new Health.HealthClient(channel);
-
-            Console.WriteLine("Watching health status");
-            Console.WriteLine("Press any key to exit...");
-
-            var cts = new CancellationTokenSource();
-            using var call = client.Watch(new HealthCheckRequest { Service = "" }, cancellationToken: cts.Token);
-            var watchTask = Task.Run(async () =>
-            {
-                try
-                {
-                    await foreach (var message in call.ResponseStream.ReadAllAsync())
-                    {
-                        Console.WriteLine($"{DateTime.Now}: Service is {message.Status}");
-                    }
-                }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    // Handle cancellation exception.
-                }
-            });
-
-            Console.ReadKey();
-            Console.WriteLine("Finished");
-
-            cts.Cancel();
-            await watchTask;
+            Console.WriteLine($"{DateTime.Now}: Service is {message.Status}");
         }
     }
-}
+    catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+    {
+        // Handle cancellation exception.
+    }
+});
+
+Console.ReadKey();
+Console.WriteLine("Finished");
+
+cts.Cancel();
+await watchTask;

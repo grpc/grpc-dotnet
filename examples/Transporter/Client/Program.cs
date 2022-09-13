@@ -16,46 +16,34 @@
 
 #endregion
 
-using System;
-using System.IO;
-using System.Net.Http;
 using System.Net.Sockets;
-using System.Threading.Tasks;
+using Client;
 using Greet;
 using Grpc.Net.Client;
 
-namespace Client
+var socketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
+
+using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
 {
-    public partial class Program
+    HttpHandler = CreateHttpHandler(socketPath)
+});
+var client = new Greeter.GreeterClient(channel);
+
+var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+Console.WriteLine("Greeting: " + reply.Message);
+
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
+
+static SocketsHttpHandler CreateHttpHandler(string socketPath)
+{
+    var udsEndPoint = new UnixDomainSocketEndPoint(socketPath);
+    var connectionFactory = new UnixDomainSocketConnectionFactory(udsEndPoint);
+    var socketsHttpHandler = new SocketsHttpHandler
     {
-        public static readonly string SocketPath = Path.Combine(Path.GetTempPath(), "grpc-transporter.tmp");
+        ConnectCallback = connectionFactory.ConnectAsync
+    };
 
-        static async Task Main(string[] args)
-        {
-            using var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                HttpHandler = CreateHttpHandler(SocketPath)
-            });
-            var client = new Greeter.GreeterClient(channel);
-
-            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
-
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
-
-        private static SocketsHttpHandler CreateHttpHandler(string socketPath)
-        {
-            var udsEndPoint = new UnixDomainSocketEndPoint(socketPath);
-            var connectionFactory = new UnixDomainSocketConnectionFactory(udsEndPoint);
-            var socketsHttpHandler = new SocketsHttpHandler
-            {
-                ConnectCallback = connectionFactory.ConnectAsync
-            };
-
-            return socketsHttpHandler;
-        }
-    }
+    return socketsHttpHandler;
 }
