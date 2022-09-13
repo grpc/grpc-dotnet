@@ -34,7 +34,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim(ClaimTypes.Name);
     });
 });
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters =
@@ -49,8 +49,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var app = builder.Build();
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapGrpcService<TicketerService>();
 

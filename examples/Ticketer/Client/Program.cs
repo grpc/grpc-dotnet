@@ -100,9 +100,13 @@ static async Task PurchaseTicket(Ticketer.TicketerClient client, string? token)
             Console.WriteLine("Purchase failed. No tickets available.");
         }
     }
+    catch (RpcException ex)
+    {
+        Console.WriteLine($"Error purchasing ticket: {ex.Status.StatusCode}");
+    }
     catch (Exception ex)
     {
-        Console.WriteLine("Error purchasing ticket." + Environment.NewLine + ex.ToString());
+        Console.WriteLine($"Error purchasing ticket.{Environment.NewLine}{ex.ToString()}");
     }
 }
 
