@@ -19,7 +19,6 @@
 using Frontend.Balancer;
 using Grpc.Core;
 using Grpc.Net.Client;
-using Grpc.Net.Client.Balancer;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.SetMinimumLevel(LogLevel.Trace);
@@ -43,7 +42,7 @@ builder.Services.AddSingleton(services =>
     return channel;
 });
 
-SetupReportingServices(builder.Services);
+ReportingSetup.RegisterReportingServices(builder.Services);
 
 var app = builder.Build();
 
@@ -62,25 +61,3 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
-
-static void SetupReportingServices(IServiceCollection services)
-{
-    // These services allow the load balancer policy to be configured and subchannels to be reported in the UI.
-    services.AddSingleton<SubchannelReporter>();
-    services.AddSingleton<BalancerConfiguration>();
-    services.AddSingleton<ResolverFactory>(s =>
-    {
-        var inner = new DnsResolverFactory(refreshInterval: TimeSpan.FromSeconds(20));
-        return new ConfigurableResolverFactory(inner, s.GetRequiredService<BalancerConfiguration>());
-    });
-    services.AddSingleton<LoadBalancerFactory>(s =>
-    {
-        var inner = new RoundRobinBalancerFactory();
-        return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
-    });
-    services.AddSingleton<LoadBalancerFactory>(s =>
-    {
-        var inner = new PickFirstBalancerFactory();
-        return new ReportingLoadBalancerFactory(inner, s.GetRequiredService<SubchannelReporter>());
-    });
-}
