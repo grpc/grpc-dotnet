@@ -16,31 +16,36 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
-using Microsoft.Extensions.Hosting;
+using Server;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(kestrelOptions =>
 {
-    public class Program
+    kestrelOptions.ConfigureHttpsDefaults(httpsOptions =>
     {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+        httpsOptions.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+    });
+});
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.ConfigureKestrel(kestrelOptions =>
-                    {
-                        kestrelOptions.ConfigureHttpsDefaults(httpsOptions =>
-                        {
-                            httpsOptions.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
-                        });
-                    });
-                    webBuilder.UseStartup<Startup>();
-                });
-    }
-}
+builder.Services.AddGrpc();
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(CertificateAuthenticationDefaults.AuthenticationScheme)
+    .AddCertificate(options =>
+    {
+        // Not recommended in production environments. The example is using a self-signed test certificate.
+        options.RevocationMode = X509RevocationMode.NoCheck;
+        options.ChainTrustValidationMode = X509ChainTrustMode.CustomRootTrust;
+        options.AllowedCertificateTypes = CertificateTypes.All;
+    });
+
+var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapGrpcService<CertifierService>();
+
+app.Run();
