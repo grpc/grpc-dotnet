@@ -432,6 +432,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Server
 
         [TestCase("gzip", "gzip", true)]
         [TestCase("gzip", "identity, gzip", true)]
+        [TestCase("gzip", "gzip ", true)]
 #if NET6_0_OR_GREATER
         [TestCase("deflate", "deflate", false)]
 #endif
