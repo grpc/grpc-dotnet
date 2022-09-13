@@ -16,23 +16,64 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Server;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+builder.Services.AddSingleton<TicketRepository>();
+
+builder.Services.AddAuthorization(options =>
 {
-    public class Program
+    options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
     {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+        policy.RequireClaim(ClaimTypes.Name);
+    });
+});
+builder.Services.AddAuthentication()
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateActor = false,
+                ValidateLifetime = true,
+                IssuerSigningKey = SecurityKey
+            };
+    });
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+var app = builder.Build();
+
+app.MapGrpcService<TicketerService>();
+
+app.MapGet("/generateJwtToken", context =>
+{
+    return context.Response.WriteAsync(GenerateJwtToken(context.Request.Query["name"]!));
+});
+
+app.Run();
+
+static string GenerateJwtToken(string name)
+{
+    if (string.IsNullOrEmpty(name))
+    {
+        throw new InvalidOperationException("Name is not specified.");
     }
+
+    var claims = new[] { new Claim(ClaimTypes.Name, name) };
+    var credentials = new SigningCredentials(SecurityKey, SecurityAlgorithms.HmacSha256);
+    var token = new JwtSecurityToken("ExampleServer", "ExampleClients", claims, expires: DateTime.Now.AddSeconds(60), signingCredentials: credentials);
+    return JwtTokenHandler.WriteToken(token);
+}
+
+public partial class Program
+{
+    private static readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
+    private static readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
 }
