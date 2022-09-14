@@ -531,6 +531,8 @@ namespace Grpc.AspNetCore.Server.Internal
                         segment = acceptEncoding;
                     }
 
+                    segment = segment.Trim();
+
                     // Check segment
                     if (segment.SequenceEqual(encoding))
                     {
