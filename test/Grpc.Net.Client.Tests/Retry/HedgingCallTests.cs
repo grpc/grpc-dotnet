@@ -333,7 +333,9 @@ namespace Grpc.Net.Client.Tests.Retry
             var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => hedgingCall.GetResponseAsync()).DefaultTimeout();
             Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
             Assert.AreEqual("Call canceled by the client.", ex.Status.Detail);
-            Assert.IsNull(hedgingCall._ctsRegistration);
+
+            // There is a race between unregistering and GetResponseAsync returning.
+            await TestHelpers.AssertIsTrueRetryAsync(() => hedgingCall._ctsRegistration == null, "Hedge call CTS unregistered.");
         }
 
         [Test]
