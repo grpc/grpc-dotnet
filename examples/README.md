@@ -222,25 +222,6 @@ The transcoder shows how to use [gRPC JSON transcoding](https://docs.microsoft.c
 
 * gRPC JSON transcoding
 
-## [Microservicer](./Microservicer)
-
-The microservicer example shows how to use gRPC in a solution that contains multiple web apps. The backend app hosts a gRPC service that is called by the frontend app. The frontend app uses gRPC client factory to create a client an inject it into the MVC controller with dependency injection.
-
-This example uses [tye](https://github.com/dotnet/tye) to run the solution and for service discovery. When `tye run` command is run:
-
-1. Tye builds and runs the frontend and backend apps.
-2. Tye injects service addresses into each app. The backend app address is accessible via `IConfiguration`.
-3. The frontend app configures the gRPC client with the backend address in *Startup.cs*.
-
-[Install the Tye dotnet tool](https://github.com/dotnet/tye/blob/master/docs/getting_started.md) and then execute `tye run` in the *examples/Microservicer* directory.
-
-##### Scenarios:
-
-* Microservices
-* Client factory
-* Mixing frontend RESTful API with backend gRPC services
-* App development with [Tye](https://github.com/dotnet/tye)
-
 ## [Transporter](./Transporter)
 
 **Requirements:**

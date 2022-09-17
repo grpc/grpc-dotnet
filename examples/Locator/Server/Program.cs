@@ -16,28 +16,18 @@
 
 #endregion
 
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using Server;
 
-namespace Server
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
+builder.WebHost.ConfigureKestrel(options =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }
+    options.ListenLocalhost(5000);
+    options.ListenLocalhost(5001, listener => listener.UseHttps());
+});
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                    webBuilder.ConfigureKestrel(options =>
-                    {
-                        options.ListenLocalhost(5000);
-                        options.ListenLocalhost(5001, listener => listener.UseHttps());
-                    });
-                });
-    }
-}
+var app = builder.Build();
+app.MapGrpcService<InternalService>().RequireHost("*:5001");
+app.MapGrpcService<ExternalService>().RequireHost("*:5000");
+
+app.Run();

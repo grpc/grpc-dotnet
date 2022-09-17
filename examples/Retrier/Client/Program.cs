@@ -16,110 +16,101 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Retry;
 
-namespace Client
+using var channel = CreateChannel();
+var client = new Retrier.RetrierClient(channel);
+
+await UnaryRetry(client);
+
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
+
+static async Task UnaryRetry(Retrier.RetrierClient client)
 {
-    public class Program
+    Console.WriteLine("Delivering packages...");
+    foreach (var product in Products)
     {
-        static async Task Main(string[] args)
+        try
         {
-            using var channel = CreateChannel();
-            var client = new Retrier.RetrierClient(channel);
+            var package = new Package { Name = product };
+            var call = client.DeliverPackageAsync(package);
+            var response = await call;
 
-            await UnaryRetry(client);
-
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+            #region Print success
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write(response.Message);
+            Console.ResetColor();
+            Console.Write(" " + await GetRetryCount(call.ResponseHeadersAsync));
+            Console.WriteLine();
+            #endregion
+        }
+        catch (RpcException ex)
+        {
+            #region Print failure
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Status.Detail);
+            Console.ResetColor();
+            #endregion
         }
 
-        private static async Task UnaryRetry(Retrier.RetrierClient client)
-        {
-            Console.WriteLine("Delivering packages...");
-            foreach (var product in Products)
-            {
-                try
-                {
-                    var package = new Package { Name = product };
-                    var call = client.DeliverPackageAsync(package);
-                    var response = await call;
-
-                    #region Print success
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Write(response.Message);
-                    Console.ResetColor();
-                    Console.Write(" " + await GetRetryCount(call.ResponseHeadersAsync));
-                    Console.WriteLine();
-                    #endregion
-                }
-                catch (RpcException ex)
-                {
-                    #region Print failure
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(ex.Status.Detail);
-                    Console.ResetColor();
-                    #endregion
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(0.2));
-            }
-        }
-
-        private static GrpcChannel CreateChannel()
-        {
-            var methodConfig = new MethodConfig
-            {
-                Names = { MethodName.Default },
-                RetryPolicy = new RetryPolicy
-                {
-                    MaxAttempts = 5,
-                    InitialBackoff = TimeSpan.FromSeconds(0.5),
-                    MaxBackoff = TimeSpan.FromSeconds(0.5),
-                    BackoffMultiplier = 1,
-                    RetryableStatusCodes = { StatusCode.Unavailable }
-                }
-            };
-
-            return GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
-            {
-                ServiceConfig = new ServiceConfig { MethodConfigs = { methodConfig } }
-            });
-        }
-
-        private static async Task<string> GetRetryCount(Task<Metadata> responseHeadersTask)
-        {
-            var headers = await responseHeadersTask;
-            var previousAttemptCount = headers.GetValue("grpc-previous-rpc-attempts");
-            return previousAttemptCount != null ? $"(retry count: {previousAttemptCount})" : string.Empty;
-        }
-
-        private static readonly IList<string> Products = new List<string>
-        {
-            "Secrets of Silicon Valley",
-            "The Busy Executive's Database Guide",
-            "Emotional Security: A New Algorithm",
-            "Prolonged Data Deprivation: Four Case Studies",
-            "Cooking with Computers: Surreptitious Balance Sheets",
-            "Silicon Valley Gastronomic Treats",
-            "Sushi, Anyone?",
-            "Fifty Years in Buckingham Palace Kitchens",
-            "But Is It User Friendly?",
-            "You Can Combat Computer Stress!",
-            "Is Anger the Enemy?",
-            "Life Without Fear",
-            "The Gourmet Microwave",
-            "Onions, Leeks, and Garlic: Cooking Secrets of the Mediterranean",
-            "The Psychology of Computer Cooking",
-            "Straight Talk About Computers",
-            "Computer Phobic AND Non-Phobic Individuals: Behavior Variations",
-            "Net Etiquette"
-        };
+        await Task.Delay(TimeSpan.FromSeconds(0.2));
     }
+}
+
+static GrpcChannel CreateChannel()
+{
+    var methodConfig = new MethodConfig
+    {
+        Names = { MethodName.Default },
+        RetryPolicy = new RetryPolicy
+        {
+            MaxAttempts = 5,
+            InitialBackoff = TimeSpan.FromSeconds(0.5),
+            MaxBackoff = TimeSpan.FromSeconds(0.5),
+            BackoffMultiplier = 1,
+            RetryableStatusCodes = { StatusCode.Unavailable }
+        }
+    };
+
+    return GrpcChannel.ForAddress("https://localhost:5001", new GrpcChannelOptions
+    {
+        ServiceConfig = new ServiceConfig { MethodConfigs = { methodConfig } }
+    });
+}
+
+public partial class Program
+{
+    private static async Task<string> GetRetryCount(Task<Metadata> responseHeadersTask)
+    {
+        var headers = await responseHeadersTask;
+        var previousAttemptCount = headers.GetValue("grpc-previous-rpc-attempts");
+        return previousAttemptCount != null ? $"(retry count: {previousAttemptCount})" : string.Empty;
+    }
+
+    private static readonly IList<string> Products = new List<string>
+    {
+        "Secrets of Silicon Valley",
+        "The Busy Executive's Database Guide",
+        "Emotional Security: A New Algorithm",
+        "Prolonged Data Deprivation: Four Case Studies",
+        "Cooking with Computers: Surreptitious Balance Sheets",
+        "Silicon Valley Gastronomic Treats",
+        "Sushi, Anyone?",
+        "Fifty Years in Buckingham Palace Kitchens",
+        "But Is It User Friendly?",
+        "You Can Combat Computer Stress!",
+        "Is Anger the Enemy?",
+        "Life Without Fear",
+        "The Gourmet Microwave",
+        "Onions, Leeks, and Garlic: Cooking Secrets of the Mediterranean",
+        "The Psychology of Computer Cooking",
+        "Straight Talk About Computers",
+        "Computer Phobic AND Non-Phobic Individuals: Behavior Variations",
+        "Net Etiquette"
+    };
 }
