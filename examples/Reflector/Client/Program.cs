@@ -16,49 +16,38 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Reflection.V1Alpha;
 using ServerReflectionClient = Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionClient;
 
-namespace Client
+using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new ServerReflectionClient(channel);
+
+Console.WriteLine("Calling reflection service:");
+var response = await SingleRequestAsync(client, new ServerReflectionRequest
 {
-    public class Program
-    {
-        static async Task Main(string[] args)
-        {
-            using var channel = GrpcChannel.ForAddress("https://localhost:5001");
-            var client = new ServerReflectionClient(channel);
+    ListServices = "" // Get all services
+});
 
-            Console.WriteLine("Calling reflection service:");
-            var response = await SingleRequestAsync(client, new ServerReflectionRequest
-            {
-                ListServices = "" // Get all services
-            });
+Console.WriteLine("Services:");
+foreach (var item in response.ListServicesResponse.Service)
+{
+    Console.WriteLine("- " + item.Name);
+}
 
-            Console.WriteLine("Services:");
-            foreach (var item in response.ListServicesResponse.Service)
-            {
-                Console.WriteLine("- " + item.Name);
-            }
+Console.WriteLine("Shutting down");
+Console.WriteLine("Press any key to exit...");
+Console.ReadKey();
 
-            Console.WriteLine("Shutting down");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-        }
+static async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionClient client, ServerReflectionRequest request)
+{
+    using var call = client.ServerReflectionInfo();
+    await call.RequestStream.WriteAsync(request);
+    Debug.Assert(await call.ResponseStream.MoveNext());
 
-        private static async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionClient client, ServerReflectionRequest request)
-        {
-            using var call = client.ServerReflectionInfo();
-            await call.RequestStream.WriteAsync(request);
-            Debug.Assert(await call.ResponseStream.MoveNext());
-
-            var response = call.ResponseStream.Current;
-            await call.RequestStream.CompleteAsync();
-            return response;
-        }
-    }
+    var response = call.ResponseStream.Current;
+    await call.RequestStream.CompleteAsync();
+    return response;
 }
