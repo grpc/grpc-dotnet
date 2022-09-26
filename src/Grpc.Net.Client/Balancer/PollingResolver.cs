@@ -129,7 +129,7 @@ namespace Grpc.Net.Client.Balancer
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(DnsResolver));
+                throw new ObjectDisposedException(GetType().Name);
             }
             if (_listener == null)
             {
