@@ -51,7 +51,8 @@ namespace Grpc.AspNetCore.Server.Internal
 
             if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
             {
-                return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
+                // gRPC specification indicates that MoveNext() should not throw. Simply return false.
+                return CommonGrpcProtocolHelpers.FalseTask;
             }
 
             var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);

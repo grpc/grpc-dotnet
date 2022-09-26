@@ -49,7 +49,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         }
 
         [Test]
-        public async Task DuplexStream_SendLargeFileBatchedAndRecieveLargeFileBatched_Success()
+        public async Task DuplexStream_SendLargeFileBatchedAndReceiveLargeFileBatched_Success()
         {
             // Arrange
             var data = CreateTestData(1024 * 1024 * 1); // 1 MB
@@ -313,7 +313,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [TestCase(1)]
         [TestCase(5)]
         [TestCase(20)]
-        public async Task DuplexStreaming_SimultaniousSendAndReceiveInParallel_Success(int tasks)
+        public async Task DuplexStreaming_SimultaneousSendAndReceiveInParallel_Success(int tasks)
         {
             // Arrange
             const int total = 1024 * 1024 * 1;
@@ -323,7 +323,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             var client = new StreamService.StreamServiceClient(Channel);
 
-            await TestHelpers.RunParallel(tasks, async taskIndex =>
+            await TestHelpers.RunParallel(tasks, async _ =>
             {
                 var (sent, received) = await EchoData(total, data, client).DefaultTimeout();
 
@@ -436,7 +436,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task DuplexStreaming_ParallelCallsFromOneChannel_Success()
         {
-            async Task UnaryDeadlineExceeded(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            static async Task UnaryDeadlineExceeded(IAsyncStreamReader<DataMessage> requestStream, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
             {
                 await foreach (var message in requestStream.ReadAllAsync())
                 {
@@ -475,7 +475,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
         [Test]
         public async Task ServerStreaming_GetTrailersAndStatus_Success()
         {
-            async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+            static async Task ServerStreamingWithTrailers(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
             {
                 await responseStream.WriteAsync(new DataMessage());
                 context.ResponseTrailers.Add("my-trailer", "value");
@@ -642,7 +642,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task ClientStreaming_ReadAfterMethodComplete_Error(bool readBeforeExit)
+        public async Task ClientStreaming_ReadAfterMethodComplete_False(bool readBeforeExit)
         {
             SetExpectedErrorsFilter(writeContext =>
             {
@@ -658,7 +658,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             var readTcs = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
             var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            async Task<DataMessage> ClientStreamingWithTrailers(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
+            async Task<DataMessage> ClientStreamingWithTrailersAsync(IAsyncStreamReader<DataMessage> requestStream, ServerCallContext context)
             {
                 var readTask = Task.Run(async () =>
                 {
@@ -678,7 +678,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             }
 
             // Arrange
-            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithTrailers);
+            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingWithTrailersAsync);
 
             var channel = CreateChannel();
 
@@ -697,13 +697,13 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
             tcs.SetResult(null);
 
-            var response = await call;
+            DataMessage response = await call;
+            Assert.IsNotNull(response);
 
             syncPoint.Continue();
 
             var readTask = await readTcs.Task.DefaultTimeout();
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
-            Assert.AreEqual("Can't read messages after the request is complete.", ex.Message);
+            await readTask.DefaultTimeout();
 
             var clientException = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
             Assert.AreEqual(StatusCode.OK, clientException.StatusCode);
@@ -711,7 +711,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
 
         [TestCase(true)]
         [TestCase(false)]
-        public async Task ClientStreaming_ReadAfterMethodCancelled_Error(bool readBeforeExit)
+        public async Task ClientStreaming_ReadAfterMethodCancelled_False(bool readBeforeExit)
         {
             SetExpectedErrorsFilter(writeContext =>
             {
@@ -786,8 +786,7 @@ namespace Grpc.AspNetCore.FunctionalTests.Client
             syncPoint.Continue();
 
             var readTask = await readTcs.Task.DefaultTimeout();
-            var serverException = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() => readTask).DefaultTimeout();
-            Assert.AreEqual("Can't read messages after the request is complete.", serverException.Message);
+            await readTask;
 
             // Ensure the server abort reaches the client
             await Task.Delay(100);
