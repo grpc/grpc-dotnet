@@ -16,84 +16,8 @@
 
 #endregion
 
-
-/* Unmerged change from project 'Grpc.AspNetCore.Server (netcoreapp3.0)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
 namespace System.Diagnostics.CodeAnalysis;
 
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.Client (netstandard2.0)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.Client (netstandard2.1)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.ClientFactory (netstandard2.1)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.ClientFactory (netstandard2.0)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.Client.Web (netstandard2.1)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-
-/* Unmerged change from project 'Grpc.Net.Client.Web (netstandard2.0)'
-Before:
-namespace System.Diagnostics.CodeAnalysis
-{
-#if NETSTANDARD2_0
-After:
-namespace System.Diagnostics.CodeAnalysis;
-
-#if NETSTANDARD2_0
-*/
-namespace System.Diagnostics.CodeAnalysis;
 #if NETSTANDARD2_0
 
 /// <summary>Specifies that an output will not be null even if the corresponding type allows it.</summary>

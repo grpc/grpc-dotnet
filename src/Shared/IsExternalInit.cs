@@ -16,40 +16,8 @@
 
 #endregion
 
-
-/* Unmerged change from project 'Grpc.Net.ClientFactory (netstandard2.1)'
-Before:
-namespace System.Runtime.CompilerServices
-{
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-After:
 namespace System.Runtime.CompilerServices;
 
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-*/
-
-/* Unmerged change from project 'Grpc.Net.ClientFactory (netstandard2.0)'
-Before:
-namespace System.Runtime.CompilerServices
-{
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-After:
-namespace System.Runtime.CompilerServices;
-
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-*/
-
-/* Unmerged change from project 'Grpc.AspNetCore.Web (netcoreapp3.0)'
-Before:
-namespace System.Runtime.CompilerServices
-{
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-After:
-namespace System.Runtime.CompilerServices;
-
-#if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-*/
-namespace System.Runtime.CompilerServices;
 #if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
 internal static class IsExternalInit
 {
