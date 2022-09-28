@@ -19,21 +19,20 @@
 using Grpc.Core;
 using Nested;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class NestedService : Nested.NestedService.NestedServiceBase
 {
-    public class NestedService : Nested.NestedService.NestedServiceBase
+    private readonly Greet.Greeter.GreeterClient _greeterClient;
+
+    public NestedService(Greet.Greeter.GreeterClient greeterClient)
     {
-        private readonly Greet.Greeter.GreeterClient _greeterClient;
+        _greeterClient = greeterClient;
+    }
 
-        public NestedService(Greet.Greeter.GreeterClient greeterClient)
-        {
-            _greeterClient = greeterClient;
-        }
-
-        public override async Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        {
-            var reply = await _greeterClient.SayHelloAsync(new Greet.HelloRequest { Name = "Nested: " + request.Name });
-            return new HelloReply { Message = reply.Message };
-        }
+    public override async Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+    {
+        var reply = await _greeterClient.SayHelloAsync(new Greet.HelloRequest { Name = "Nested: " + request.Name });
+        return new HelloReply { Message = reply.Message };
     }
 }

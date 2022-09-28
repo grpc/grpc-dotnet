@@ -24,151 +24,150 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public abstract class InProcessTestServer : IDisposable
 {
-    public abstract class InProcessTestServer : IDisposable
+    internal abstract event Action<LogRecord> ServerLogged;
+
+    public abstract string GetUrl(TestServerEndpointName endpointName);
+
+    public abstract IWebHost? Host { get; }
+
+    public abstract void StartServer();
+
+    public abstract void Dispose();
+}
+
+public class InProcessTestServer<TStartup> : InProcessTestServer
+    where TStartup : class
+{
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
+    private readonly LogSinkProvider _logSinkProvider;
+    private readonly Action<IServiceCollection> _initialConfigureServices;
+    private readonly Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> _configureKestrel;
+    private IWebHost? _host;
+    private IHostApplicationLifetime? _lifetime;
+    private Dictionary<TestServerEndpointName, string>? _urls;
+
+    internal override event Action<LogRecord> ServerLogged
     {
-        internal abstract event Action<LogRecord> ServerLogged;
-
-        public abstract string GetUrl(TestServerEndpointName endpointName);
-
-        public abstract IWebHost? Host { get; }
-
-        public abstract void StartServer();
-
-        public abstract void Dispose();
+        add => _logSinkProvider.RecordLogged += value;
+        remove => _logSinkProvider.RecordLogged -= value;
     }
 
-    public class InProcessTestServer<TStartup> : InProcessTestServer
-        where TStartup : class
+    public override string GetUrl(TestServerEndpointName endpointName)
+    {
+        if (_urls == null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _urls[endpointName];
+    }
+
+    public override IWebHost? Host => _host;
+
+    public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> configureKestrel)
+    {
+        _logSinkProvider = new LogSinkProvider();
+        _loggerFactory = new LoggerFactory();
+        _loggerFactory.AddProvider(_logSinkProvider);
+        _logger = _loggerFactory.CreateLogger<InProcessTestServer<TStartup>>();
+
+        _initialConfigureServices = initialConfigureServices;
+        _configureKestrel = configureKestrel;
+    }
+
+    public override void StartServer()
+    {
+        _urls = new Dictionary<TestServerEndpointName, string>();
+
+        var builder = new WebHostBuilder()
+            .ConfigureLogging(builder => builder
+                .SetMinimumLevel(LogLevel.Trace)
+                .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
+            .ConfigureServices(services =>
+            {
+                _initialConfigureServices?.Invoke(services);
+            })
+            .UseStartup(typeof(TStartup))
+            .UseKestrel(options =>
+            {
+                _configureKestrel(options, _urls);
+            })
+            .UseContentRoot(Directory.GetCurrentDirectory());
+
+        _host = builder.Build();
+
+        var t = Task.Run(() => _host.Start());
+        _logger.LogInformation("Starting test server...");
+        _lifetime = _host.Services.GetRequiredService<IHostApplicationLifetime>();
+
+        // This only happens once per fixture, so we can afford to wait a little bit on it.
+        if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(20)))
+        {
+            // t probably faulted
+            if (t.IsFaulted)
+            {
+                throw t.Exception!.InnerException!;
+            }
+
+            var logs = _logSinkProvider.GetLogs();
+            throw new TimeoutException($"Timed out waiting for application to start.{Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
+        }
+        _logger.LogInformation("Test Server started");
+
+        _lifetime.ApplicationStopped.Register(() =>
+        {
+            _logger.LogInformation("Test server shut down");
+        });
+    }
+
+    private string RenderLogs(IList<LogRecord> logs)
+    {
+        var builder = new StringBuilder();
+        foreach (var log in logs)
+        {
+            var s = $"{log.Timestamp:O} {log.LoggerName} {log.LogLevel}: {log.Formatter(log.State, log.Exception)}";
+            builder.AppendLine(s);
+            if (log.Exception != null)
+            {
+                var message = log.Exception.ToString();
+                foreach (var line in message.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+                {
+                    s = $"| {line}";
+                    builder.AppendLine(s);
+                }
+            }
+        }
+        return builder.ToString();
+    }
+
+    public override void Dispose()
+    {
+        _logger.LogInformation("Shutting down test server");
+        _host?.Dispose();
+        _loggerFactory.Dispose();
+    }
+
+    private class ForwardingLoggerProvider : ILoggerProvider
     {
         private readonly ILoggerFactory _loggerFactory;
-        private readonly ILogger _logger;
-        private readonly LogSinkProvider _logSinkProvider;
-        private readonly Action<IServiceCollection> _initialConfigureServices;
-        private readonly Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> _configureKestrel;
-        private IWebHost? _host;
-        private IHostApplicationLifetime? _lifetime;
-        private Dictionary<TestServerEndpointName, string>? _urls;
 
-        internal override event Action<LogRecord> ServerLogged
+        public ForwardingLoggerProvider(ILoggerFactory loggerFactory)
         {
-            add => _logSinkProvider.RecordLogged += value;
-            remove => _logSinkProvider.RecordLogged -= value;
+            _loggerFactory = loggerFactory;
         }
 
-        public override string GetUrl(TestServerEndpointName endpointName)
+        public void Dispose()
         {
-            if (_urls == null)
-            {
-                throw new InvalidOperationException();
-            }
-
-            return _urls[endpointName];
         }
 
-        public override IWebHost? Host => _host;
-
-        public InProcessTestServer(Action<IServiceCollection> initialConfigureServices, Action<KestrelServerOptions, IDictionary<TestServerEndpointName, string>> configureKestrel)
+        public ILogger CreateLogger(string categoryName)
         {
-            _logSinkProvider = new LogSinkProvider();
-            _loggerFactory = new LoggerFactory();
-            _loggerFactory.AddProvider(_logSinkProvider);
-            _logger = _loggerFactory.CreateLogger<InProcessTestServer<TStartup>>();
-
-            _initialConfigureServices = initialConfigureServices;
-            _configureKestrel = configureKestrel;
-        }
-
-        public override void StartServer()
-        {
-            _urls = new Dictionary<TestServerEndpointName, string>();
-
-            var builder = new WebHostBuilder()
-                .ConfigureLogging(builder => builder
-                    .SetMinimumLevel(LogLevel.Trace)
-                    .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
-                .ConfigureServices(services =>
-                {
-                    _initialConfigureServices?.Invoke(services);
-                })
-                .UseStartup(typeof(TStartup))
-                .UseKestrel(options =>
-                {
-                    _configureKestrel(options, _urls);
-                })
-                .UseContentRoot(Directory.GetCurrentDirectory());
-
-            _host = builder.Build();
-
-            var t = Task.Run(() => _host.Start());
-            _logger.LogInformation("Starting test server...");
-            _lifetime = _host.Services.GetRequiredService<IHostApplicationLifetime>();
-
-            // This only happens once per fixture, so we can afford to wait a little bit on it.
-            if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(20)))
-            {
-                // t probably faulted
-                if (t.IsFaulted)
-                {
-                    throw t.Exception!.InnerException!;
-                }
-
-                var logs = _logSinkProvider.GetLogs();
-                throw new TimeoutException($"Timed out waiting for application to start.{Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
-            }
-            _logger.LogInformation("Test Server started");
-
-            _lifetime.ApplicationStopped.Register(() =>
-            {
-                _logger.LogInformation("Test server shut down");
-            });
-        }
-
-        private string RenderLogs(IList<LogRecord> logs)
-        {
-            var builder = new StringBuilder();
-            foreach (var log in logs)
-            {
-                var s = $"{log.Timestamp:O} {log.LoggerName} {log.LogLevel}: {log.Formatter(log.State, log.Exception)}";
-                builder.AppendLine(s);
-                if (log.Exception != null)
-                {
-                    var message = log.Exception.ToString();
-                    foreach (var line in message.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
-                    {
-                        s = $"| {line}";
-                        builder.AppendLine(s);
-                    }
-                }
-            }
-            return builder.ToString();
-        }
-
-        public override void Dispose()
-        {
-            _logger.LogInformation("Shutting down test server");
-            _host?.Dispose();
-            _loggerFactory.Dispose();
-        }
-
-        private class ForwardingLoggerProvider : ILoggerProvider
-        {
-            private readonly ILoggerFactory _loggerFactory;
-
-            public ForwardingLoggerProvider(ILoggerFactory loggerFactory)
-            {
-                _loggerFactory = loggerFactory;
-            }
-
-            public void Dispose()
-            {
-            }
-
-            public ILogger CreateLogger(string categoryName)
-            {
-                return _loggerFactory.CreateLogger(categoryName);
-            }
+            return _loggerFactory.CreateLogger(categoryName);
         }
     }
 }

@@ -19,99 +19,98 @@
 using InteropTestsGrpcWebClient.Infrastructure;
 using Microsoft.JSInterop;
 
-namespace InteropTestsGrpcWebClient.Pages
+namespace InteropTestsGrpcWebClient.Pages;
+
+public partial class Index
 {
-    public partial class Index
+    private readonly object _lock = new object();
+    private InteropTestInvoker? _interopTestInvoker;
+
+    public List<Message> Messages { get; } = new List<Message>();
+
+    public List<string> TestNames { get; } = new List<string>();
+
+    public string? SelectedTest { get; set; }
+    public bool IsTestRunning { get; set; }
+
+    private readonly Dictionary<string, string[]> _testCases = new Dictionary<string, string[]>
     {
-        private readonly object _lock = new object();
-        private InteropTestInvoker? _interopTestInvoker;
+        ["empty_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["large_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["server_streaming"] = new[] { "GrpcWebText" },
+        ["custom_metadata"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["special_status_message"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["unimplemented_service"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["unimplemented_method"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["client_compressed_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["server_compressed_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
+        ["server_compressed_streaming"] = new[] { "GrpcWebText" },
+        ["status_code_and_message"] = new[] { "GrpcWebText", "GrpcWeb" }
+    };
 
-        public List<Message> Messages { get; } = new List<Message>();
+    protected override Task OnInitializedAsync()
+    {
+        TestNames.AddRange(_testCases.Keys);
+        SelectedTest = TestNames.First();
 
-        public List<string> TestNames { get; } = new List<string>();
+        _interopTestInvoker = new InteropTestInvoker(new PageLoggerFactory(AddMessage), _testCases);
 
-        public string? SelectedTest { get; set; }
-        public bool IsTestRunning { get; set; }
+        var objRef = DotNetObjectReference.Create(_interopTestInvoker);
+        _ = JSRuntime.InvokeAsync<string>("initialTestHelper", objRef).AsTask();
 
-        private readonly Dictionary<string, string[]> _testCases = new Dictionary<string, string[]>
+        return base.OnInitializedAsync();
+    }
+
+    private async Task RunTest()
+    {
+        Messages.Clear();
+        IsTestRunning = true;
+        try
         {
-            ["empty_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["large_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["server_streaming"] = new[] { "GrpcWebText" },
-            ["custom_metadata"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["special_status_message"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["unimplemented_service"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["unimplemented_method"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["client_compressed_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["server_compressed_unary"] = new[] { "GrpcWebText", "GrpcWeb" },
-            ["server_compressed_streaming"] = new[] { "GrpcWebText" },
-            ["status_code_and_message"] = new[] { "GrpcWebText", "GrpcWeb" }
-        };
-
-        protected override Task OnInitializedAsync()
-        {
-            TestNames.AddRange(_testCases.Keys);
-            SelectedTest = TestNames.First();
-
-            _interopTestInvoker = new InteropTestInvoker(new PageLoggerFactory(AddMessage), _testCases);
-
-            var objRef = DotNetObjectReference.Create(_interopTestInvoker);
-            _ = JSRuntime.InvokeAsync<string>("initialTestHelper", objRef).AsTask();
-
-            return base.OnInitializedAsync();
+            await _interopTestInvoker!.RunTestAsync("localhost", 8080, "GrpcWebText", SelectedTest!);
         }
-
-        private async Task RunTest()
+        finally
         {
-            Messages.Clear();
-            IsTestRunning = true;
-            try
-            {
-                await _interopTestInvoker!.RunTestAsync("localhost", 8080, "GrpcWebText", SelectedTest!);
-            }
-            finally
-            {
-                IsTestRunning = false;
-            }
-        }
-
-        private async Task RunAll()
-        {
-            Messages.Clear();
-            IsTestRunning = true;
-            try
-            {
-                foreach (var testName in TestNames)
-                {
-                    await _interopTestInvoker!.RunTestAsync("localhost", 8080, "GrpcWebText", testName);
-                }
-            }
-            finally
-            {
-                IsTestRunning = false;
-            }
-        }
-
-        private void AddMessage(LogLevel logLevel, string message)
-        {
-            _ = InvokeAsync(() =>
-            {
-                lock (_lock)
-                {
-                    Messages.Add(new Message
-                    {
-                        LogLevel = logLevel,
-                        Content = message,
-                    });
-                    StateHasChanged();
-                }
-            });
+            IsTestRunning = false;
         }
     }
 
-    public class Message
+    private async Task RunAll()
     {
-        public LogLevel LogLevel { get; set; }
-        public string? Content { get; set; }
+        Messages.Clear();
+        IsTestRunning = true;
+        try
+        {
+            foreach (var testName in TestNames)
+            {
+                await _interopTestInvoker!.RunTestAsync("localhost", 8080, "GrpcWebText", testName);
+            }
+        }
+        finally
+        {
+            IsTestRunning = false;
+        }
     }
+
+    private void AddMessage(LogLevel logLevel, string message)
+    {
+        _ = InvokeAsync(() =>
+        {
+            lock (_lock)
+            {
+                Messages.Add(new Message
+                {
+                    LogLevel = logLevel,
+                    Content = message,
+                });
+                StateHasChanged();
+            }
+        });
+    }
+}
+
+public class Message
+{
+    public LogLevel LogLevel { get; set; }
+    public string? Content { get; set; }
 }

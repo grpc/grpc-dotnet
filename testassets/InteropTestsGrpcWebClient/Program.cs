@@ -18,16 +18,15 @@
 
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
-namespace InteropTestsGrpcWebClient
-{
-    public class Program
-    {
-        public static async Task Main(string[] args)
-        {
-            var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.RootComponents.Add<App>("#app");
+namespace InteropTestsGrpcWebClient;
 
-            await builder.Build().RunAsync();
-        }
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var builder = WebAssemblyHostBuilder.CreateDefault(args);
+        builder.RootComponents.Add<App>("#app");
+
+        await builder.Build().RunAsync();
     }
 }

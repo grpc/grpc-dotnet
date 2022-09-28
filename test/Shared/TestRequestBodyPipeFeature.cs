@@ -19,15 +19,14 @@
 using System.IO.Pipelines;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.Tests.Shared
-{
-    public class TestRequestBodyPipeFeature : IRequestBodyPipeFeature
-    {
-        public TestRequestBodyPipeFeature(PipeReader reader)
-        {
-            Reader = reader;
-        }
+namespace Grpc.Tests.Shared;
 
-        public PipeReader Reader { get; }
+public class TestRequestBodyPipeFeature : IRequestBodyPipeFeature
+{
+    public TestRequestBodyPipeFeature(PipeReader reader)
+    {
+        Reader = reader;
     }
+
+    public PipeReader Reader { get; }
 }

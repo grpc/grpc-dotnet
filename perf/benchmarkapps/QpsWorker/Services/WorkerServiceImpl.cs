@@ -21,94 +21,93 @@ using Grpc.Testing;
 using QpsWorker.Infrastructure;
 using Void = Grpc.Testing.Void;
 
-namespace QpsWorker.Services
+namespace QpsWorker.Services;
+
+public class WorkerServiceImpl : WorkerService.WorkerServiceBase
 {
-    public class WorkerServiceImpl : WorkerService.WorkerServiceBase
+    private readonly ILogger<WorkerServiceImpl> _logger;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IHostApplicationLifetime _applicationLifetime;
+
+    public WorkerServiceImpl(ILogger<WorkerServiceImpl> logger, ILoggerFactory loggerFactory, IHostApplicationLifetime applicationLifetime)
     {
-        private readonly ILogger<WorkerServiceImpl> _logger;
-        private readonly ILoggerFactory _loggerFactory;
-        private readonly IHostApplicationLifetime _applicationLifetime;
+        _logger = logger;
+        _loggerFactory = loggerFactory;
+        _applicationLifetime = applicationLifetime;
+    }
 
-        public WorkerServiceImpl(ILogger<WorkerServiceImpl> logger, ILoggerFactory loggerFactory, IHostApplicationLifetime applicationLifetime)
+    public override async Task RunServer(IAsyncStreamReader<ServerArgs> requestStream, IServerStreamWriter<ServerStatus> responseStream, ServerCallContext context)
+    {
+        if (!await requestStream.MoveNext())
         {
-            _logger = logger;
-            _loggerFactory = loggerFactory;
-            _applicationLifetime = applicationLifetime;
+            throw new InvalidOperationException();
         }
-
-        public override async Task RunServer(IAsyncStreamReader<ServerArgs> requestStream, IServerStreamWriter<ServerStatus> responseStream, ServerCallContext context)
+        var serverConfig = requestStream.Current.Setup;
+        var runner = ServerRunner.Start(_loggerFactory, serverConfig);
+        try
         {
-            if (!await requestStream.MoveNext())
+            await responseStream.WriteAsync(new ServerStatus
             {
-                throw new InvalidOperationException();
-            }
-            var serverConfig = requestStream.Current.Setup;
-            var runner = ServerRunner.Start(_loggerFactory, serverConfig);
-            try
+                Stats = runner.GetStats(false),
+                Port = runner.BoundPort,
+                Cores = Environment.ProcessorCount,
+            });
+
+            while (await requestStream.MoveNext())
             {
+                var reset = requestStream.Current.Mark.Reset;
                 await responseStream.WriteAsync(new ServerStatus
                 {
-                    Stats = runner.GetStats(false),
-                    Port = runner.BoundPort,
-                    Cores = Environment.ProcessorCount,
+                    Stats = runner.GetStats(reset)
                 });
-
-                while (await requestStream.MoveNext())
-                {
-                    var reset = requestStream.Current.Mark.Reset;
-                    await responseStream.WriteAsync(new ServerStatus
-                    {
-                        Stats = runner.GetStats(reset)
-                    });
-                }
-            }
-            finally
-            {
-                _logger.LogInformation("Exiting RunServer.");
-                await runner.StopAsync();
             }
         }
-
-        public override async Task RunClient(IAsyncStreamReader<ClientArgs> requestStream, IServerStreamWriter<ClientStatus> responseStream, ServerCallContext context)
+        finally
         {
-            if (!await requestStream.MoveNext())
+            _logger.LogInformation("Exiting RunServer.");
+            await runner.StopAsync();
+        }
+    }
+
+    public override async Task RunClient(IAsyncStreamReader<ClientArgs> requestStream, IServerStreamWriter<ClientStatus> responseStream, ServerCallContext context)
+    {
+        if (!await requestStream.MoveNext())
+        {
+            throw new InvalidOperationException();
+        }
+        var clientConfig = requestStream.Current.Setup;
+        var clientRunner = ClientRunner.Start(_loggerFactory, clientConfig);
+        try
+        {
+            await responseStream.WriteAsync(new ClientStatus
             {
-                throw new InvalidOperationException();
-            }
-            var clientConfig = requestStream.Current.Setup;
-            var clientRunner = ClientRunner.Start(_loggerFactory, clientConfig);
-            try
+                Stats = clientRunner.GetStats(false)
+            });
+
+            while (await requestStream.MoveNext())
             {
+                var reset = requestStream.Current.Mark.Reset;
                 await responseStream.WriteAsync(new ClientStatus
                 {
-                    Stats = clientRunner.GetStats(false)
+                    Stats = clientRunner.GetStats(reset)
                 });
-
-                while (await requestStream.MoveNext())
-                {
-                    var reset = requestStream.Current.Mark.Reset;
-                    await responseStream.WriteAsync(new ClientStatus
-                    {
-                        Stats = clientRunner.GetStats(reset)
-                    });
-                }
-            }
-            finally
-            {
-                _logger.LogInformation("Exiting RunClient.");
-                await clientRunner.StopAsync();
             }
         }
-
-        public override Task<CoreResponse> CoreCount(CoreRequest request, ServerCallContext context)
+        finally
         {
-            return Task.FromResult(new CoreResponse { Cores = Environment.ProcessorCount });
+            _logger.LogInformation("Exiting RunClient.");
+            await clientRunner.StopAsync();
         }
+    }
 
-        public override Task<Void> QuitWorker(Void request, ServerCallContext context)
-        {
-            _applicationLifetime.StopApplication();
-            return Task.FromResult(new Void());
-        }
+    public override Task<CoreResponse> CoreCount(CoreRequest request, ServerCallContext context)
+    {
+        return Task.FromResult(new CoreResponse { Cores = Environment.ProcessorCount });
+    }
+
+    public override Task<Void> QuitWorker(Void request, ServerCallContext context)
+    {
+        _applicationLifetime.StopApplication();
+        return Task.FromResult(new Void());
     }
 }

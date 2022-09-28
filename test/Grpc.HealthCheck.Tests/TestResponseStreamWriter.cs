@@ -20,51 +20,50 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Health.V1;
 
-namespace Grpc.HealthCheck.Tests
+namespace Grpc.HealthCheck.Tests;
+
+internal class TestResponseStreamWriter : IServerStreamWriter<HealthCheckResponse>
 {
-    internal class TestResponseStreamWriter : IServerStreamWriter<HealthCheckResponse>
+    private readonly Channel<HealthCheckResponse> _channel;
+    private readonly TaskCompletionSource<object> _startTcs;
+
+    public TestResponseStreamWriter(int maxCapacity = 1, bool started = true)
     {
-        private readonly Channel<HealthCheckResponse> _channel;
-        private readonly TaskCompletionSource<object> _startTcs;
-
-        public TestResponseStreamWriter(int maxCapacity = 1, bool started = true)
+        _channel = System.Threading.Channels.Channel.CreateBounded<HealthCheckResponse>(new BoundedChannelOptions(maxCapacity) {
+            SingleReader = false,
+            SingleWriter = true,
+            FullMode = BoundedChannelFullMode.Wait
+        });
+        if (!started)
         {
-            _channel = System.Threading.Channels.Channel.CreateBounded<HealthCheckResponse>(new BoundedChannelOptions(maxCapacity) {
-                SingleReader = false,
-                SingleWriter = true,
-                FullMode = BoundedChannelFullMode.Wait
-            });
-            if (!started)
-            {
-                _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
+            _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+    }
+
+    public ChannelReader<HealthCheckResponse> WrittenMessagesReader => _channel.Reader;
+
+    public WriteOptions WriteOptions { get; set; }
+
+    public async Task WriteAsync(HealthCheckResponse message)
+    {
+        if (_startTcs != null)
+        {
+            await _startTcs.Task;
         }
 
-        public ChannelReader<HealthCheckResponse> WrittenMessagesReader => _channel.Reader;
+        await _channel.Writer.WriteAsync(message);
+    }
 
-        public WriteOptions WriteOptions { get; set; }
-
-        public async Task WriteAsync(HealthCheckResponse message)
+    public void Start()
+    {
+        if (_startTcs != null)
         {
-            if (_startTcs != null)
-            {
-                await _startTcs.Task;
-            }
-
-            await _channel.Writer.WriteAsync(message);
+            _startTcs.TrySetResult(null);
         }
+    }
 
-        public void Start()
-        {
-            if (_startTcs != null)
-            {
-                _startTcs.TrySetResult(null);
-            }
-        }
-
-        public void Complete()
-        {
-            _channel.Writer.Complete();
-        }
+    public void Complete()
+    {
+        _channel.Writer.Complete();
     }
 }

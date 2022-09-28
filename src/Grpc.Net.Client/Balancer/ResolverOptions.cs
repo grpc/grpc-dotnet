@@ -20,52 +20,51 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Options for creating a resolver.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public sealed class ResolverOptions
 {
     /// <summary>
-    /// Options for creating a resolver.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
     /// </summary>
-    public sealed class ResolverOptions
+    internal ResolverOptions(Uri address, int defaultPort, ILoggerFactory loggerFactory, GrpcChannelOptions channelOptions)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ResolverOptions"/> class.
-        /// </summary>
-        internal ResolverOptions(Uri address, int defaultPort, ILoggerFactory loggerFactory, GrpcChannelOptions channelOptions)
-        {
-            Address = address;
-            DefaultPort = defaultPort;
-            DisableServiceConfig = channelOptions.DisableResolverServiceConfig;
-            LoggerFactory = loggerFactory;
-            ChannelOptions = channelOptions;
-        }
-
-        /// <summary>
-        /// Gets the address.
-        /// </summary>
-        public Uri Address { get; }
-
-        /// <summary>
-        /// Gets the default port. This port is used when the resolver address doesn't specify a port.
-        /// </summary>
-        public int DefaultPort { get; }
-
-        /// <summary>
-        /// Gets a flag indicating whether the resolver should disable resolving a service config.
-        /// </summary>
-        public bool DisableServiceConfig { get; }
-
-        /// <summary>
-        /// Gets the logger factory.
-        /// </summary>
-        public ILoggerFactory LoggerFactory { get; }
-
-        /// <summary>
-        /// Gets the channel options.
-        /// </summary>
-        public GrpcChannelOptions ChannelOptions { get; }
+        Address = address;
+        DefaultPort = defaultPort;
+        DisableServiceConfig = channelOptions.DisableResolverServiceConfig;
+        LoggerFactory = loggerFactory;
+        ChannelOptions = channelOptions;
     }
+
+    /// <summary>
+    /// Gets the address.
+    /// </summary>
+    public Uri Address { get; }
+
+    /// <summary>
+    /// Gets the default port. This port is used when the resolver address doesn't specify a port.
+    /// </summary>
+    public int DefaultPort { get; }
+
+    /// <summary>
+    /// Gets a flag indicating whether the resolver should disable resolving a service config.
+    /// </summary>
+    public bool DisableServiceConfig { get; }
+
+    /// <summary>
+    /// Gets the logger factory.
+    /// </summary>
+    public ILoggerFactory LoggerFactory { get; }
+
+    /// <summary>
+    /// Gets the channel options.
+    /// </summary>
+    public GrpcChannelOptions ChannelOptions { get; }
 }
 #endif

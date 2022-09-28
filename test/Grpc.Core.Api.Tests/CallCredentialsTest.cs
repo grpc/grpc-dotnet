@@ -26,14 +26,13 @@ using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 using NUnit.Framework;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class CallCredentialsTest
 {
-    public class CallCredentialsTest
+    [Test]
+    public void CallCredentials_ComposeAtLeastTwo()
     {
-        [Test]
-        public void CallCredentials_ComposeAtLeastTwo()
-        {
-            Assert.Throws(typeof(ArgumentException), () => CallCredentials.Compose(new FakeCallCredentials()));
-        }
+        Assert.Throws(typeof(ArgumentException), () => CallCredentials.Compose(new FakeCallCredentials()));
     }
 }

@@ -18,15 +18,14 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects
-{
-    public class TestServerCallContextFeature : IServerCallContextFeature
-    {
-        public TestServerCallContextFeature(ServerCallContext serverCallContext)
-        {
-            ServerCallContext = serverCallContext;
-        }
+namespace Grpc.AspNetCore.Server.ClientFactory.Tests.TestObjects;
 
-        public ServerCallContext ServerCallContext { get; }
+public class TestServerCallContextFeature : IServerCallContextFeature
+{
+    public TestServerCallContextFeature(ServerCallContext serverCallContext)
+    {
+        ServerCallContext = serverCallContext;
     }
+
+    public ServerCallContext ServerCallContext { get; }
 }

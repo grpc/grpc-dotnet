@@ -17,12 +17,11 @@
 #endregion
 
 // Namespace and class name needs to resolve to System.Net.Http.WinHttpHandler.
-namespace System.Net.Http
+namespace System.Net.Http;
+
+public class WinHttpHandler : DelegatingHandler
 {
-    public class WinHttpHandler : DelegatingHandler
+    public WinHttpHandler(HttpMessageHandler innerHandler) : base(innerHandler)
     {
-        public WinHttpHandler(HttpMessageHandler innerHandler) : base(innerHandler)
-        {
-        }
     }
 }

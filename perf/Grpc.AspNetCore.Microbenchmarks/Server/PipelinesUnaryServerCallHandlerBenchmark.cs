@@ -20,35 +20,34 @@ using BenchmarkDotNet.Attributes;
 using Chat;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
+namespace Grpc.AspNetCore.Microbenchmarks.Server;
+
+public class PipelinesUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
 {
-    public class PipelinesUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+    protected override Marshaller<ChatMessage> CreateMarshaller()
     {
-        protected override Marshaller<ChatMessage> CreateMarshaller()
-        {
-            var marshaller = new Marshaller<ChatMessage>(
-                (ChatMessage data, SerializationContext c) =>
-                {
-                    var size = data.CalculateSize();
-                    c.SetPayloadLength(size);
-                    var writer = c.GetBufferWriter();
-                    writer.GetSpan(size);
-                    writer.Advance(size);
-                    c.Complete();
-                },
-                (DeserializationContext c) =>
-                {
-                    c.PayloadAsReadOnlySequence();
-                    return new ChatMessage();
-                });
+        var marshaller = new Marshaller<ChatMessage>(
+            (ChatMessage data, SerializationContext c) =>
+            {
+                var size = data.CalculateSize();
+                c.SetPayloadLength(size);
+                var writer = c.GetBufferWriter();
+                writer.GetSpan(size);
+                writer.Advance(size);
+                c.Complete();
+            },
+            (DeserializationContext c) =>
+            {
+                c.PayloadAsReadOnlySequence();
+                return new ChatMessage();
+            });
 
-            return marshaller;
-        }
+        return marshaller;
+    }
 
-        [Benchmark]
-        public Task PipelinesHandleCallAsync()
-        {
-            return InvokeUnaryRequestAsync();
-        }
+    [Benchmark]
+    public Task PipelinesHandleCallAsync()
+    {
+        return InvokeUnaryRequestAsync();
     }
 }

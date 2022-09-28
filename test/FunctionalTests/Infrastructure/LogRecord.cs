@@ -19,36 +19,35 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+[DebuggerDisplay("{Message,nq}")]
+public class LogRecord
 {
-    [DebuggerDisplay("{Message,nq}")]
-    public class LogRecord
+    public LogRecord(DateTime timestamp, LogLevel logLevel, EventId eventId, object state, Exception? exception, Func<object, Exception?, string> formatter, string loggerName)
     {
-        public LogRecord(DateTime timestamp, LogLevel logLevel, EventId eventId, object state, Exception? exception, Func<object, Exception?, string> formatter, string loggerName)
-        {
-            Timestamp = timestamp;
-            LogLevel = logLevel;
-            EventId = eventId;
-            State = state;
-            Exception = exception;
-            Formatter = formatter;
-            LoggerName = loggerName;
-        }
-
-        public DateTime Timestamp { get; }
-
-        public LogLevel LogLevel { get; }
-
-        public EventId EventId { get; }
-
-        public object State { get; }
-
-        public Exception? Exception { get; }
-
-        public Func<object, Exception?, string> Formatter { get; }
-
-        public string LoggerName { get; }
-
-        public string Message => Formatter(State, Exception) ?? string.Empty;
+        Timestamp = timestamp;
+        LogLevel = logLevel;
+        EventId = eventId;
+        State = state;
+        Exception = exception;
+        Formatter = formatter;
+        LoggerName = loggerName;
     }
+
+    public DateTime Timestamp { get; }
+
+    public LogLevel LogLevel { get; }
+
+    public EventId EventId { get; }
+
+    public object State { get; }
+
+    public Exception? Exception { get; }
+
+    public Func<object, Exception?, string> Formatter { get; }
+
+    public string LoggerName { get; }
+
+    public string Message => Formatter(State, Exception) ?? string.Empty;
 }

@@ -19,99 +19,98 @@
 using Grpc.Core;
 using Grpc.Gateway.Testing;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+/// <summary>
+/// Written to as closely as possible mirror the behaviour of the C++ implementation in grpc/grpc-web:
+/// https://github.com/grpc/grpc-web/blob/92aa9f8fc8e7af4aadede52ea075dd5790a63b62/net/grpc/gateway/examples/echo/echo_service_impl.cc
+/// </summary>
+public class EchoService : Grpc.Gateway.Testing.EchoService.EchoServiceBase
 {
-    /// <summary>
-    /// Written to as closely as possible mirror the behaviour of the C++ implementation in grpc/grpc-web:
-    /// https://github.com/grpc/grpc-web/blob/92aa9f8fc8e7af4aadede52ea075dd5790a63b62/net/grpc/gateway/examples/echo/echo_service_impl.cc
-    /// </summary>
-    public class EchoService : Grpc.Gateway.Testing.EchoService.EchoServiceBase
+    public override Task<EchoResponse> Echo(EchoRequest request, ServerCallContext context)
     {
-        public override Task<EchoResponse> Echo(EchoRequest request, ServerCallContext context)
+        return Task.FromResult(new EchoResponse
         {
-            return Task.FromResult(new EchoResponse
-            {
-                Message = request.Message
-            });
-        }
+            Message = request.Message
+        });
+    }
 
-        public override Task<EchoResponse> EchoAbort(EchoRequest request, ServerCallContext context)
-        {
-            throw new RpcException(new Status(StatusCode.Aborted, "Aborted from server side."));
-        }
+    public override Task<EchoResponse> EchoAbort(EchoRequest request, ServerCallContext context)
+    {
+        throw new RpcException(new Status(StatusCode.Aborted, "Aborted from server side."));
+    }
 
-        public override Task<Empty> NoOp(Empty request, ServerCallContext context)
-        {
-            return Task.FromResult(new Empty());
-        }
+    public override Task<Empty> NoOp(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(new Empty());
+    }
 
-        public override async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
-        {
-            for (var i = 0; i < request.MessageCount; i++)
-            {
-                await responseStream.WriteAsync(new ServerStreamingEchoResponse
-                {
-                    Message = request.Message
-                });
-
-                try
-                {
-                    await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-            }
-        }
-
-        public override async Task ServerStreamingEchoAbort(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
+    public override async Task ServerStreamingEcho(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
+    {
+        for (var i = 0; i < request.MessageCount; i++)
         {
             await responseStream.WriteAsync(new ServerStreamingEchoResponse
             {
                 Message = request.Message
             });
 
-            throw new RpcException(new Status(StatusCode.Aborted, "Aborted from server side."));
-        }
-
-        public override async Task<ClientStreamingEchoResponse> ClientStreamingEcho(IAsyncStreamReader<ClientStreamingEchoRequest> requestStream, ServerCallContext context)
-        {
-            var i = 0;
-            await foreach (var message in requestStream.ReadAllAsync())
+            try
             {
-                i++;
+                await Task.Delay(request.MessageInterval.ToTimeSpan(), context.CancellationToken);
             }
-
-            return new ClientStreamingEchoResponse { MessageCount = i };
-        }
-
-        public override async Task FullDuplexEcho(IAsyncStreamReader<EchoRequest> requestStream, IServerStreamWriter<EchoResponse> responseStream, ServerCallContext context)
-        {
-            await foreach (var message in requestStream.ReadAllAsync())
+            catch (OperationCanceledException)
             {
-                await responseStream.WriteAsync(new EchoResponse
-                {
-                    Message = message.Message
-                });
+                return;
             }
         }
+    }
 
-        public override async Task HalfDuplexEcho(IAsyncStreamReader<EchoRequest> requestStream, IServerStreamWriter<EchoResponse> responseStream, ServerCallContext context)
+    public override async Task ServerStreamingEchoAbort(ServerStreamingEchoRequest request, IServerStreamWriter<ServerStreamingEchoResponse> responseStream, ServerCallContext context)
+    {
+        await responseStream.WriteAsync(new ServerStreamingEchoResponse
         {
-            var messages = new List<string>();
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                messages.Add(message.Message);
-            }
+            Message = request.Message
+        });
 
-            foreach (var message in messages)
+        throw new RpcException(new Status(StatusCode.Aborted, "Aborted from server side."));
+    }
+
+    public override async Task<ClientStreamingEchoResponse> ClientStreamingEcho(IAsyncStreamReader<ClientStreamingEchoRequest> requestStream, ServerCallContext context)
+    {
+        var i = 0;
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            i++;
+        }
+
+        return new ClientStreamingEchoResponse { MessageCount = i };
+    }
+
+    public override async Task FullDuplexEcho(IAsyncStreamReader<EchoRequest> requestStream, IServerStreamWriter<EchoResponse> responseStream, ServerCallContext context)
+    {
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            await responseStream.WriteAsync(new EchoResponse
             {
-                await responseStream.WriteAsync(new EchoResponse
-                {
-                    Message = message
-                });
-            }
+                Message = message.Message
+            });
+        }
+    }
+
+    public override async Task HalfDuplexEcho(IAsyncStreamReader<EchoRequest> requestStream, IServerStreamWriter<EchoResponse> responseStream, ServerCallContext context)
+    {
+        var messages = new List<string>();
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            messages.Add(message.Message);
+        }
+
+        foreach (var message in messages)
+        {
+            await responseStream.WriteAsync(new EchoResponse
+            {
+                Message = message
+            });
         }
     }
 }

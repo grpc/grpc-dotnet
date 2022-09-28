@@ -19,75 +19,74 @@
 using System.Net;
 using System.Net.Http.Headers;
 
-namespace Grpc.Net.Client.Web.Internal
+namespace Grpc.Net.Client.Web.Internal;
+
+internal class GrpcWebResponseContent : HttpContent
 {
-    internal class GrpcWebResponseContent : HttpContent
+    private readonly HttpContent _inner;
+    private readonly GrpcWebMode _mode;
+    private readonly HttpHeaders _responseTrailers;
+    private Stream? _innerStream;
+
+    public GrpcWebResponseContent(HttpContent inner, GrpcWebMode mode, HttpHeaders responseTrailers)
     {
-        private readonly HttpContent _inner;
-        private readonly GrpcWebMode _mode;
-        private readonly HttpHeaders _responseTrailers;
-        private Stream? _innerStream;
+        _inner = inner;
+        _mode = mode;
+        _responseTrailers = responseTrailers;
 
-        public GrpcWebResponseContent(HttpContent inner, GrpcWebMode mode, HttpHeaders responseTrailers)
+        foreach (var header in inner.Headers)
         {
-            _inner = inner;
-            _mode = mode;
-            _responseTrailers = responseTrailers;
-
-            foreach (var header in inner.Headers)
-            {
-                Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
-            Headers.ContentType = GrpcWebProtocolConstants.GrpcHeader;
+            Headers.TryAddWithoutValidation(header.Key, header.Value);
         }
 
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        Headers.ContentType = GrpcWebProtocolConstants.GrpcHeader;
+    }
+
+    protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
+        // This method will only be called by tests when response content is
+        // accessed via ReadAsBytesAsync. The gRPC client will always
+        // call ReadAsStreamAsync, which will call CreateContentReadStreamAsync.
+
+        _innerStream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+
+        if (_mode == GrpcWebMode.GrpcWebText)
         {
-            // This method will only be called by tests when response content is
-            // accessed via ReadAsBytesAsync. The gRPC client will always
-            // call ReadAsStreamAsync, which will call CreateContentReadStreamAsync.
-
-            _innerStream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
-
-            if (_mode == GrpcWebMode.GrpcWebText)
-            {
-                _innerStream = new Base64ResponseStream(_innerStream);
-            }
-
-            _innerStream = new GrpcWebResponseStream(_innerStream, _responseTrailers);
-
-            await _innerStream.CopyToAsync(stream).ConfigureAwait(false);
+            _innerStream = new Base64ResponseStream(_innerStream);
         }
 
-        protected override async Task<Stream> CreateContentReadStreamAsync()
+        _innerStream = new GrpcWebResponseStream(_innerStream, _responseTrailers);
+
+        await _innerStream.CopyToAsync(stream).ConfigureAwait(false);
+    }
+
+    protected override async Task<Stream> CreateContentReadStreamAsync()
+    {
+        var stream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
+
+        if (_mode == GrpcWebMode.GrpcWebText)
         {
-            var stream = await _inner.ReadAsStreamAsync().ConfigureAwait(false);
-
-            if (_mode == GrpcWebMode.GrpcWebText)
-            {
-                stream = new Base64ResponseStream(stream);
-            }
-
-            return new GrpcWebResponseStream(stream, _responseTrailers);
+            stream = new Base64ResponseStream(stream);
         }
 
-        protected override bool TryComputeLength(out long length)
+        return new GrpcWebResponseStream(stream, _responseTrailers);
+    }
+
+    protected override bool TryComputeLength(out long length)
+    {
+        length = -1;
+        return false;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            length = -1;
-            return false;
+            // This is important. Disposing original response content will cancel the gRPC call.
+            _inner.Dispose();
+            _innerStream?.Dispose();
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                // This is important. Disposing original response content will cancel the gRPC call.
-                _inner.Dispose();
-                _innerStream?.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
+        base.Dispose(disposing);
     }
 }

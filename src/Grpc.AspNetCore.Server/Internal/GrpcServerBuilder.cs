@@ -18,15 +18,14 @@
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server.Internal
-{
-    internal class GrpcServerBuilder : IGrpcServerBuilder
-    {
-        public IServiceCollection Services { get; }
+namespace Grpc.AspNetCore.Server.Internal;
 
-        public GrpcServerBuilder(IServiceCollection services)
-        {
-            Services = services;
-        }
+internal class GrpcServerBuilder : IGrpcServerBuilder
+{
+    public IServiceCollection Services { get; }
+
+    public GrpcServerBuilder(IServiceCollection services)
+    {
+        Services = services;
     }
 }

@@ -16,20 +16,19 @@
 
 #endregion
 
-namespace Grpc.Net.Client.Web
+namespace Grpc.Net.Client.Web;
+
+/// <summary>
+/// The gRPC-Web mode.
+/// </summary>
+public enum GrpcWebMode
 {
     /// <summary>
-    /// The gRPC-Web mode.
+    /// Calls are made using the <c>application/grpc-web</c> content type. Request content is not translated to base64.
     /// </summary>
-    public enum GrpcWebMode
-    {
-        /// <summary>
-        /// Calls are made using the <c>application/grpc-web</c> content type. Request content is not translated to base64.
-        /// </summary>
-        GrpcWeb,
-        /// <summary>
-        /// Calls are made using the <c>application/grpc-web-text</c> content type. Request content is translated to base64.
-        /// </summary>
-        GrpcWebText
-    }
+    GrpcWeb,
+    /// <summary>
+    /// Calls are made using the <c>application/grpc-web-text</c> content type. Request content is translated to base64.
+    /// </summary>
+    GrpcWebText
 }

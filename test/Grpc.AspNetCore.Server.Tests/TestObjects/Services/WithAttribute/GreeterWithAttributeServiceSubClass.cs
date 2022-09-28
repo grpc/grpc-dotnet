@@ -16,9 +16,8 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute
+namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithAttribute;
+
+public class GreeterWithAttributeServiceSubClass : GreeterWithAttributeService
 {
-    public class GreeterWithAttributeServiceSubClass : GreeterWithAttributeService
-    {
-    }
 }

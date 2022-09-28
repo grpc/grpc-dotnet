@@ -17,20 +17,19 @@
 #endregion
 
 
-namespace Grpc.Net.Client.Configuration
+namespace Grpc.Net.Client.Configuration;
+
+/// <summary>
+/// Configuration for pick_first load balancer policy.
+/// </summary>
+public sealed class RoundRobinConfig : LoadBalancingConfig
 {
     /// <summary>
-    /// Configuration for pick_first load balancer policy.
+    /// Initializes a new instance of the <see cref="RoundRobinConfig"/> class.
     /// </summary>
-    public sealed class RoundRobinConfig : LoadBalancingConfig
+    public RoundRobinConfig() : base(RoundRobinPolicyName)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RoundRobinConfig"/> class.
-        /// </summary>
-        public RoundRobinConfig() : base(RoundRobinPolicyName)
-        {
-        }
-
-        internal RoundRobinConfig(IDictionary<string, object> inner) : base(inner) { }
     }
+
+    internal RoundRobinConfig(IDictionary<string, object> inner) : base(inner) { }
 }

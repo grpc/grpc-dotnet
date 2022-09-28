@@ -20,42 +20,41 @@ using System.Net;
 using System.Net.Http.Headers;
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+internal class StreamingContent : HttpContent
 {
-    internal class StreamingContent : HttpContent
+    private readonly TaskCompletionSource<Stream> _streamTcs;
+    private readonly TaskCompletionSource<object?> _contentTcs;
+
+    public StreamingContent(MediaTypeHeaderValue? mediaType = null)
     {
-        private readonly TaskCompletionSource<Stream> _streamTcs;
-        private readonly TaskCompletionSource<object?> _contentTcs;
+        _streamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _contentTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public StreamingContent(MediaTypeHeaderValue? mediaType = null)
-        {
-            _streamTcs = new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _contentTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Headers.ContentType = mediaType ?? new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
+    }
 
-            Headers.ContentType = mediaType ?? new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
-        }
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
+        _streamTcs.TrySetResult(stream);
+        return _contentTcs.Task;
+    }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-        {
-            _streamTcs.TrySetResult(stream);
-            return _contentTcs.Task;
-        }
+    protected override bool TryComputeLength(out long length)
+    {
+        // We can't know the length of the content being pushed to the output stream.
+        length = -1;
+        return false;
+    }
 
-        protected override bool TryComputeLength(out long length)
-        {
-            // We can't know the length of the content being pushed to the output stream.
-            length = -1;
-            return false;
-        }
+    public Task<Stream> GetRequestStreamAsync()
+    {
+        return _streamTcs.Task;
+    }
 
-        public Task<Stream> GetRequestStreamAsync()
-        {
-            return _streamTcs.Task;
-        }
-
-        public void Complete()
-        {
-            _contentTcs.TrySetResult(null);
-        }
+    public void Complete()
+    {
+        _contentTcs.TrySetResult(null);
     }
 }

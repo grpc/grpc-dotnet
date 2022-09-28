@@ -21,31 +21,30 @@ using System.Net.Sockets;
 
 #if NET5_0_OR_GREATER
 
-namespace GrpcClient
+namespace GrpcClient;
+
+public class UnixDomainSocketConnectionFactory
 {
-    public class UnixDomainSocketConnectionFactory
+    private readonly EndPoint _endPoint;
+
+    public UnixDomainSocketConnectionFactory(EndPoint endPoint)
     {
-        private readonly EndPoint _endPoint;
+        _endPoint = endPoint;
+    }
 
-        public UnixDomainSocketConnectionFactory(EndPoint endPoint)
+    public async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext _, CancellationToken cancellationToken = default)
+    {
+        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+
+        try
         {
-            _endPoint = endPoint;
+            await socket.ConnectAsync(_endPoint, cancellationToken).ConfigureAwait(false);
+            return new NetworkStream(socket, true);
         }
-
-        public async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext _, CancellationToken cancellationToken = default)
+        catch
         {
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-
-            try
-            {
-                await socket.ConnectAsync(_endPoint, cancellationToken).ConfigureAwait(false);
-                return new NetworkStream(socket, true);
-            }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
+            socket.Dispose();
+            throw;
         }
     }
 }

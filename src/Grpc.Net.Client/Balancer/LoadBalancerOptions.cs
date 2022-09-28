@@ -20,40 +20,39 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Options for creating a <see cref="LoadBalancer"/>.
+/// </summary>
+public sealed class LoadBalancerOptions
 {
     /// <summary>
-    /// Options for creating a <see cref="LoadBalancer"/>.
+    /// Initializes a new instance of the <see cref="LoadBalancerOptions"/> class.
     /// </summary>
-    public sealed class LoadBalancerOptions
+    /// <param name="controller">The controller.</param>
+    /// <param name="loggerFactory">The logger factory.</param>
+    /// <param name="configuration">The load balancer configuration.</param>
+    public LoadBalancerOptions(IChannelControlHelper controller, ILoggerFactory loggerFactory, IDictionary<string, object> configuration)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LoadBalancerOptions"/> class.
-        /// </summary>
-        /// <param name="controller">The controller.</param>
-        /// <param name="loggerFactory">The logger factory.</param>
-        /// <param name="configuration">The load balancer configuration.</param>
-        public LoadBalancerOptions(IChannelControlHelper controller, ILoggerFactory loggerFactory, IDictionary<string, object> configuration)
-        {
-            Controller = controller;
-            LoggerFactory = loggerFactory;
-            Configuration = configuration;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="IChannelControlHelper"/>.
-        /// </summary>
-        public IChannelControlHelper Controller { get; }
-
-        /// <summary>
-        /// Gets the logger factory.
-        /// </summary>
-        public ILoggerFactory LoggerFactory { get; }
-
-        /// <summary>
-        /// Gets the load balancer configuration.
-        /// </summary>
-        public IDictionary<string, object> Configuration { get; }
+        Controller = controller;
+        LoggerFactory = loggerFactory;
+        Configuration = configuration;
     }
+
+    /// <summary>
+    /// Gets the <see cref="IChannelControlHelper"/>.
+    /// </summary>
+    public IChannelControlHelper Controller { get; }
+
+    /// <summary>
+    /// Gets the logger factory.
+    /// </summary>
+    public ILoggerFactory LoggerFactory { get; }
+
+    /// <summary>
+    /// Gets the load balancer configuration.
+    /// </summary>
+    public IDictionary<string, object> Configuration { get; }
 }
 #endif

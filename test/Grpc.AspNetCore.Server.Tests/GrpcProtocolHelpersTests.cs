@@ -21,83 +21,82 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.Server.Tests;
+
+[TestFixture]
+public class GrpcProtocolHelpersTests
 {
-    [TestFixture]
-    public class GrpcProtocolHelpersTests
+    [Test]
+    public void CreateAuthContext_CertWithAlternativeNames_UseAlternativeNamesAsPeerIdentity()
     {
-        [Test]
-        public void CreateAuthContext_CertWithAlternativeNames_UseAlternativeNamesAsPeerIdentity()
-        {
-            // Arrange
-            X509Certificate2 certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/outlookcom.crt"));
+        // Arrange
+        X509Certificate2 certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/outlookcom.crt"));
 
-            // Act
-            var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
+        // Act
+        var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
 
-            // Assert
-            Assert.AreEqual(true, authContext.IsPeerAuthenticated);
-            Assert.AreEqual(GrpcProtocolConstants.X509SubjectAlternativeNameKey, authContext.PeerIdentityPropertyName);
+        // Assert
+        Assert.AreEqual(true, authContext.IsPeerAuthenticated);
+        Assert.AreEqual(GrpcProtocolConstants.X509SubjectAlternativeNameKey, authContext.PeerIdentityPropertyName);
 
-            var identity = authContext.PeerIdentity.ToList();
+        var identity = authContext.PeerIdentity.ToList();
 
-            Assert.AreEqual(23, identity.Count);
-            Assert.AreEqual(GrpcProtocolConstants.X509SubjectAlternativeNameKey, identity[0].Name);
-            Assert.AreEqual("*.internal.outlook.com", identity[0].Value);
+        Assert.AreEqual(23, identity.Count);
+        Assert.AreEqual(GrpcProtocolConstants.X509SubjectAlternativeNameKey, identity[0].Name);
+        Assert.AreEqual("*.internal.outlook.com", identity[0].Value);
 
-            var allProperties = authContext.Properties.ToList();
-            Assert.AreEqual(24, allProperties.Count);
+        var allProperties = authContext.Properties.ToList();
+        Assert.AreEqual(24, allProperties.Count);
 
-            var commonName = authContext.FindPropertiesByName(GrpcProtocolConstants.X509CommonNameKey).Single();
-            Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, commonName.Name);
-            Assert.AreEqual("outlook.com", commonName.Value);
-        }
+        var commonName = authContext.FindPropertiesByName(GrpcProtocolConstants.X509CommonNameKey).Single();
+        Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, commonName.Name);
+        Assert.AreEqual("outlook.com", commonName.Value);
+    }
 
-        [Test]
-        public void CreateAuthContext_CertWithCommonName_UseCommonNameAsPeerIdentity()
-        {
-            // Arrange
-            var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
+    [Test]
+    public void CreateAuthContext_CertWithCommonName_UseCommonNameAsPeerIdentity()
+    {
+        // Arrange
+        var certificate = new X509Certificate2(TestHelpers.ResolvePath(@"Certs/client.crt"));
 
-            // Act
-            var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
+        // Act
+        var authContext = GrpcProtocolHelpers.CreateAuthContext(certificate);
 
-            // Assert
-            Assert.AreEqual(true, authContext.IsPeerAuthenticated);
-            Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, authContext.PeerIdentityPropertyName);
+        // Assert
+        Assert.AreEqual(true, authContext.IsPeerAuthenticated);
+        Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, authContext.PeerIdentityPropertyName);
 
-            var identity = authContext.PeerIdentity.ToList();
+        var identity = authContext.PeerIdentity.ToList();
 
-            Assert.AreEqual(1, identity.Count);
-            Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, identity[0].Name);
-            Assert.AreEqual("localhost", identity[0].Value);
+        Assert.AreEqual(1, identity.Count);
+        Assert.AreEqual(GrpcProtocolConstants.X509CommonNameKey, identity[0].Name);
+        Assert.AreEqual("localhost", identity[0].Value);
 
-            var allProperties = authContext.Properties.ToList();
-            Assert.AreEqual(1, allProperties.Count);
-        }
+        var allProperties = authContext.Properties.ToList();
+        Assert.AreEqual(1, allProperties.Count);
+    }
 
-        [TestCase("1H", 36000000000, true)]
-        [TestCase("1M", 600000000, true)]
-        [TestCase("1S", 10000000, true)]
-        [TestCase("1m", 10000, true)]
-        [TestCase("1u", 10, true)]
-        [TestCase("100n", 1, true)]
-        [TestCase("1n", 0, true)]
-        [TestCase("0S", 0, true)]
-        [TestCase("", 0, false)]
-        [TestCase("5", 0, false)]
-        [TestCase("M", 0, false)]
-        public void TryDecodeTimeout_WithVariousUnits_ShouldMatchExpected(string timeout, long expectedTicks, bool expectedSuccesfullyDecoded)
-        {
-            // Arrange
-            var expectedTimespan = new TimeSpan(expectedTicks);
+    [TestCase("1H", 36000000000, true)]
+    [TestCase("1M", 600000000, true)]
+    [TestCase("1S", 10000000, true)]
+    [TestCase("1m", 10000, true)]
+    [TestCase("1u", 10, true)]
+    [TestCase("100n", 1, true)]
+    [TestCase("1n", 0, true)]
+    [TestCase("0S", 0, true)]
+    [TestCase("", 0, false)]
+    [TestCase("5", 0, false)]
+    [TestCase("M", 0, false)]
+    public void TryDecodeTimeout_WithVariousUnits_ShouldMatchExpected(string timeout, long expectedTicks, bool expectedSuccesfullyDecoded)
+    {
+        // Arrange
+        var expectedTimespan = new TimeSpan(expectedTicks);
 
-            // Act
-            var successfullyDecoded = GrpcProtocolHelpers.TryDecodeTimeout(timeout, out var timeSpan);
+        // Act
+        var successfullyDecoded = GrpcProtocolHelpers.TryDecodeTimeout(timeout, out var timeSpan);
 
-            // Assert
-            Assert.AreEqual(expectedSuccesfullyDecoded, successfullyDecoded);
-            Assert.AreEqual(expectedTimespan, timeSpan);
-        }
+        // Assert
+        Assert.AreEqual(expectedSuccesfullyDecoded, successfullyDecoded);
+        Assert.AreEqual(expectedTimespan, timeSpan);
     }
 }

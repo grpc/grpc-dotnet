@@ -17,20 +17,19 @@
 #endregion
 
 
-namespace Grpc.Net.Client.Configuration
+namespace Grpc.Net.Client.Configuration;
+
+/// <summary>
+/// Configuration for pick_first load balancer policy.
+/// </summary>
+public sealed class PickFirstConfig : LoadBalancingConfig
 {
     /// <summary>
-    /// Configuration for pick_first load balancer policy.
+    /// Initializes a new instance of the <see cref="PickFirstConfig"/> class.
     /// </summary>
-    public sealed class PickFirstConfig : LoadBalancingConfig
+    public PickFirstConfig() : base(PickFirstPolicyName)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PickFirstConfig"/> class.
-        /// </summary>
-        public PickFirstConfig() : base(PickFirstPolicyName)
-        {
-        }
-
-        internal PickFirstConfig(IDictionary<string, object> inner) : base(inner) { }
     }
+
+    internal PickFirstConfig(IDictionary<string, object> inner) : base(inner) { }
 }

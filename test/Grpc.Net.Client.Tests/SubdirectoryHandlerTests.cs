@@ -23,65 +23,64 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class SubdirectoryHandlerTests
 {
-    [TestFixture]
-    public class SubdirectoryHandlerTests
+    [Test]
+    public async Task AsyncUnaryCall_SubdirectoryHandlerConfigured_RequestUriChanged()
     {
-        [Test]
-        public async Task AsyncUnaryCall_SubdirectoryHandlerConfigured_RequestUriChanged()
+        // Arrange
+        HttpRequestMessage? httpRequestMessage = null;
+
+        var handler = TestHttpMessageHandler.Create(async r =>
         {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
+            httpRequestMessage = r;
 
-            var handler = TestHttpMessageHandler.Create(async r =>
+            var reply = new HelloReply
             {
-                httpRequestMessage = r;
+                Message = "Hello world"
+            };
 
-                var reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
 
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
+        var httpClient = new HttpClient(new SubdirectoryHandler(handler, "/TestSubdirectory"));
+        httpClient.BaseAddress = new Uri("https://localhost:5001");
 
-            var httpClient = new HttpClient(new SubdirectoryHandler(handler, "/TestSubdirectory"));
-            httpClient.BaseAddress = new Uri("https://localhost:5001");
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        // Act
+        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
-            // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        // Assert
+        Assert.AreEqual("Hello world", rs.Message);
 
-            // Assert
-            Assert.AreEqual("Hello world", rs.Message);
+        Assert.IsNotNull(httpRequestMessage);
+        Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
+        Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
+        Assert.AreEqual(new Uri("https://localhost:5001/TestSubdirectory/ServiceName/MethodName"), httpRequestMessage.RequestUri);
+    }
 
-            Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual(new Version(2, 0), httpRequestMessage!.Version);
-            Assert.AreEqual(HttpMethod.Post, httpRequestMessage.Method);
-            Assert.AreEqual(new Uri("https://localhost:5001/TestSubdirectory/ServiceName/MethodName"), httpRequestMessage.RequestUri);
+    /// <summary>
+    /// A delegating handler that will add a subdirectory to the URI of gRPC requests.
+    /// </summary>
+    public class SubdirectoryHandler : DelegatingHandler
+    {
+        private readonly string _subdirectory;
+
+        public SubdirectoryHandler(HttpMessageHandler innerHandler, string subdirectory) : base(innerHandler)
+        {
+            _subdirectory = subdirectory;
         }
 
-        /// <summary>
-        /// A delegating handler that will add a subdirectory to the URI of gRPC requests.
-        /// </summary>
-        public class SubdirectoryHandler : DelegatingHandler
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            private readonly string _subdirectory;
-
-            public SubdirectoryHandler(HttpMessageHandler innerHandler, string subdirectory) : base(innerHandler)
-            {
-                _subdirectory = subdirectory;
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                var url = $"{request.RequestUri!.Scheme}://{request.RequestUri.Host}:{request.RequestUri.Port}{_subdirectory}{request.RequestUri.AbsolutePath}";
-                request.RequestUri = new Uri(url, UriKind.Absolute);
-                return base.SendAsync(request, cancellationToken);
-            }
+            var url = $"{request.RequestUri!.Scheme}://{request.RequestUri.Host}:{request.RequestUri.Port}{_subdirectory}{request.RequestUri.AbsolutePath}";
+            request.RequestUri = new Uri(url, UriKind.Absolute);
+            return base.SendAsync(request, cancellationToken);
         }
     }
 }

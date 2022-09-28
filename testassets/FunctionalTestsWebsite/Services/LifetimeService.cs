@@ -21,39 +21,38 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Lifetime;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class LifetimeService : Lifetime.LifetimeService.LifetimeServiceBase
 {
-    public class LifetimeService : Lifetime.LifetimeService.LifetimeServiceBase
+    private readonly SingletonValueProvider _singletonValueProvider;
+    private readonly TransientValueProvider _transientValueProvider;
+    private readonly ScopedValueProvider _scopedValueProvider;
+
+    public LifetimeService(SingletonValueProvider singletonValueProvider, TransientValueProvider transientValueProvider, ScopedValueProvider scopedValueProvider)
     {
-        private readonly SingletonValueProvider _singletonValueProvider;
-        private readonly TransientValueProvider _transientValueProvider;
-        private readonly ScopedValueProvider _scopedValueProvider;
+        _singletonValueProvider = singletonValueProvider;
+        _transientValueProvider = transientValueProvider;
+        _scopedValueProvider = scopedValueProvider;
+    }
 
-        public LifetimeService(SingletonValueProvider singletonValueProvider, TransientValueProvider transientValueProvider, ScopedValueProvider scopedValueProvider)
-        {
-            _singletonValueProvider = singletonValueProvider;
-            _transientValueProvider = transientValueProvider;
-            _scopedValueProvider = scopedValueProvider;
-        }
+    public override Task<ValueResponse> GetSingletonValue(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(CreateValueResponse(_singletonValueProvider));
+    }
 
-        public override Task<ValueResponse> GetSingletonValue(Empty request, ServerCallContext context)
-        {
-            return Task.FromResult(CreateValueResponse(_singletonValueProvider));
-        }
+    public override Task<ValueResponse> GetScopedValue(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(CreateValueResponse(_scopedValueProvider));
+    }
 
-        public override Task<ValueResponse> GetScopedValue(Empty request, ServerCallContext context)
-        {
-            return Task.FromResult(CreateValueResponse(_scopedValueProvider));
-        }
+    public override Task<ValueResponse> GetTransientValue(Empty request, ServerCallContext context)
+    {
+        return Task.FromResult(CreateValueResponse(_transientValueProvider));
+    }
 
-        public override Task<ValueResponse> GetTransientValue(Empty request, ServerCallContext context)
-        {
-            return Task.FromResult(CreateValueResponse(_transientValueProvider));
-        }
-
-        private ValueResponse CreateValueResponse(ValueProvider valueProvider)
-        {
-            return new ValueResponse { Value = valueProvider.GetNext() };
-        }
+    private ValueResponse CreateValueResponse(ValueProvider valueProvider)
+    {
+        return new ValueResponse { Value = valueProvider.GetNext() };
     }
 }

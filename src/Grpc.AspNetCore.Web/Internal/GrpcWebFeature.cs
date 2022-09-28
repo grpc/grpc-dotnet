@@ -20,122 +20,121 @@ using System.IO.Pipelines;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.AspNetCore.Web.Internal
+namespace Grpc.AspNetCore.Web.Internal;
+
+internal class GrpcWebFeature :
+    IRequestBodyPipeFeature,
+    IHttpResponseBodyFeature,
+    IHttpResponseTrailersFeature,
+    IHttpResetFeature
 {
-    internal class GrpcWebFeature :
-        IRequestBodyPipeFeature,
-        IHttpResponseBodyFeature,
-        IHttpResponseTrailersFeature,
-        IHttpResetFeature
+    private readonly IHttpResponseBodyFeature _initialResponseFeature;
+    private readonly IRequestBodyPipeFeature? _initialRequestFeature;
+    private readonly IHttpResetFeature? _initialResetFeature;
+    private readonly IHttpResponseTrailersFeature? _initialTrailersFeature;
+    private bool _isComplete;
+
+    public GrpcWebFeature(ServerGrpcWebContext grcpWebContext, HttpContext httpContext)
     {
-        private readonly IHttpResponseBodyFeature _initialResponseFeature;
-        private readonly IRequestBodyPipeFeature? _initialRequestFeature;
-        private readonly IHttpResetFeature? _initialResetFeature;
-        private readonly IHttpResponseTrailersFeature? _initialTrailersFeature;
-        private bool _isComplete;
+        // Capture existing features. We'll use these internally, and restore them onto the context
+        // once the middleware has finished executing.
 
-        public GrpcWebFeature(ServerGrpcWebContext grcpWebContext, HttpContext httpContext)
+        // Note that some of these will be missing depending on the host and protocol.
+        // e.g.
+        // - IHttpResponseTrailersFeature and IHttpResetFeature will be missing when HTTP/1.1.
+        // - IRequestBodyPipeFeature will be missing when in IIS.
+        _initialRequestFeature = httpContext.Features.Get<IRequestBodyPipeFeature>();
+        _initialResponseFeature = GetRequiredFeature<IHttpResponseBodyFeature>(httpContext);
+        _initialResetFeature = httpContext.Features.Get<IHttpResetFeature>();
+        _initialTrailersFeature = httpContext.Features.Get<IHttpResponseTrailersFeature>();
+
+        var innerReader = _initialRequestFeature?.Reader ?? httpContext.Request.BodyReader;
+        var innerWriter = _initialResponseFeature.Writer ?? httpContext.Response.BodyWriter;
+
+        Trailers = new HeaderDictionary();
+        if (grcpWebContext.Request == ServerGrpcWebMode.GrpcWebText)
         {
-            // Capture existing features. We'll use these internally, and restore them onto the context
-            // once the middleware has finished executing.
-
-            // Note that some of these will be missing depending on the host and protocol.
-            // e.g.
-            // - IHttpResponseTrailersFeature and IHttpResetFeature will be missing when HTTP/1.1.
-            // - IRequestBodyPipeFeature will be missing when in IIS.
-            _initialRequestFeature = httpContext.Features.Get<IRequestBodyPipeFeature>();
-            _initialResponseFeature = GetRequiredFeature<IHttpResponseBodyFeature>(httpContext);
-            _initialResetFeature = httpContext.Features.Get<IHttpResetFeature>();
-            _initialTrailersFeature = httpContext.Features.Get<IHttpResponseTrailersFeature>();
-
-            var innerReader = _initialRequestFeature?.Reader ?? httpContext.Request.BodyReader;
-            var innerWriter = _initialResponseFeature.Writer ?? httpContext.Response.BodyWriter;
-
-            Trailers = new HeaderDictionary();
-            if (grcpWebContext.Request == ServerGrpcWebMode.GrpcWebText)
-            {
-                Reader = new Base64PipeReader(innerReader);
-            }
-            else
-            {
-                Reader = innerReader;
-            }
-            if (grcpWebContext.Response == ServerGrpcWebMode.GrpcWebText)
-            {
-                Writer = new Base64PipeWriter(innerWriter);
-            }
-            else
-            {
-                Writer = innerWriter;
-            }
-
-            httpContext.Features.Set<IRequestBodyPipeFeature>(this);
-            httpContext.Features.Set<IHttpResponseBodyFeature>(this);
-            httpContext.Features.Set<IHttpResponseTrailersFeature>(this);
-            httpContext.Features.Set<IHttpResetFeature>(this);
+            Reader = new Base64PipeReader(innerReader);
+        }
+        else
+        {
+            Reader = innerReader;
+        }
+        if (grcpWebContext.Response == ServerGrpcWebMode.GrpcWebText)
+        {
+            Writer = new Base64PipeWriter(innerWriter);
+        }
+        else
+        {
+            Writer = innerWriter;
         }
 
-        private static T GetRequiredFeature<T>(HttpContext httpContext)
-        {
-            var feature = httpContext.Features.Get<T>();
-            if (feature == null)
-            {
-                throw new InvalidOperationException($"Couldn't get {typeof(T).FullName} from the current request.");
-            }
+        httpContext.Features.Set<IRequestBodyPipeFeature>(this);
+        httpContext.Features.Set<IHttpResponseBodyFeature>(this);
+        httpContext.Features.Set<IHttpResponseTrailersFeature>(this);
+        httpContext.Features.Set<IHttpResetFeature>(this);
+    }
 
-            return feature;
+    private static T GetRequiredFeature<T>(HttpContext httpContext)
+    {
+        var feature = httpContext.Features.Get<T>();
+        if (feature == null)
+        {
+            throw new InvalidOperationException($"Couldn't get {typeof(T).FullName} from the current request.");
         }
 
-        public PipeReader Reader { get; }
+        return feature;
+    }
 
-        public PipeWriter Writer { get; }
+    public PipeReader Reader { get; }
 
-        public Stream Stream => throw new NotSupportedException("Writing to the response stream during a gRPC call is not supported.");
+    public PipeWriter Writer { get; }
 
-        public IHeaderDictionary Trailers { get; set; }
+    public Stream Stream => throw new NotSupportedException("Writing to the response stream during a gRPC call is not supported.");
 
-        public async Task CompleteAsync()
+    public IHeaderDictionary Trailers { get; set; }
+
+    public async Task CompleteAsync()
+    {
+        // TODO(JamesNK): When CompleteAsync is called from another thread (e.g. deadline exceeded),
+        // there is the potential for the main thread and CompleteAsync to both be writing to the response.
+        // Shouldn't matter to the client because it will have already thrown deadline exceeded error, but
+        // the response could return badly formatted trailers.
+        await WriteTrailersAsync();
+        await _initialResponseFeature.CompleteAsync();
+        _isComplete = true;
+    }
+
+    public void DisableBuffering() => _initialResponseFeature.DisableBuffering();
+
+    public void Reset(int errorCode)
+    {
+        // We set a reset feature so that HTTP/1.1 doesn't call HttpContext.Abort() on deadline.
+        // In HTTP/1.1 this will do nothing. In HTTP/2+ it will call the real reset feature.
+        _initialResetFeature?.Reset(errorCode);
+    }
+
+    internal void DetachFromContext(HttpContext httpContext)
+    {
+        httpContext.Features.Set<IRequestBodyPipeFeature>(_initialRequestFeature!);
+        httpContext.Features.Set<IHttpResponseBodyFeature>(_initialResponseFeature);
+        httpContext.Features.Set<IHttpResponseTrailersFeature>(_initialTrailersFeature!);
+        httpContext.Features.Set<IHttpResetFeature>(_initialResetFeature!);
+    }
+
+    public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Sending a file during a gRPC call is not supported.");
+
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        _initialResponseFeature.StartAsync(cancellationToken);
+
+    public Task WriteTrailersAsync()
+    {
+        if (!_isComplete && Trailers.Count > 0)
         {
-            // TODO(JamesNK): When CompleteAsync is called from another thread (e.g. deadline exceeded),
-            // there is the potential for the main thread and CompleteAsync to both be writing to the response.
-            // Shouldn't matter to the client because it will have already thrown deadline exceeded error, but
-            // the response could return badly formatted trailers.
-            await WriteTrailersAsync();
-            await _initialResponseFeature.CompleteAsync();
-            _isComplete = true;
+            return GrpcWebProtocolHelpers.WriteTrailersAsync(Trailers, Writer);
         }
 
-        public void DisableBuffering() => _initialResponseFeature.DisableBuffering();
-
-        public void Reset(int errorCode)
-        {
-            // We set a reset feature so that HTTP/1.1 doesn't call HttpContext.Abort() on deadline.
-            // In HTTP/1.1 this will do nothing. In HTTP/2+ it will call the real reset feature.
-            _initialResetFeature?.Reset(errorCode);
-        }
-
-        internal void DetachFromContext(HttpContext httpContext)
-        {
-            httpContext.Features.Set<IRequestBodyPipeFeature>(_initialRequestFeature!);
-            httpContext.Features.Set<IHttpResponseBodyFeature>(_initialResponseFeature);
-            httpContext.Features.Set<IHttpResponseTrailersFeature>(_initialTrailersFeature!);
-            httpContext.Features.Set<IHttpResetFeature>(_initialResetFeature!);
-        }
-
-        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("Sending a file during a gRPC call is not supported.");
-
-        public Task StartAsync(CancellationToken cancellationToken) =>
-            _initialResponseFeature.StartAsync(cancellationToken);
-
-        public Task WriteTrailersAsync()
-        {
-            if (!_isComplete && Trailers.Count > 0)
-            {
-                return GrpcWebProtocolHelpers.WriteTrailersAsync(Trailers, Writer);
-            }
-
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

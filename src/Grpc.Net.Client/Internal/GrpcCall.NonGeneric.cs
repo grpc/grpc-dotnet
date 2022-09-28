@@ -22,207 +22,206 @@ using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal abstract class GrpcCall
 {
-    internal abstract class GrpcCall
+    // Getting logger name from generic type is slow
+    private const string LoggerName = "Grpc.Net.Client.Internal.GrpcCall";
+
+    private GrpcCallSerializationContext? _serializationContext;
+    private DefaultDeserializationContext? _deserializationContext;
+
+    protected Metadata? Trailers { get; set; }
+
+    public bool ResponseFinished { get; protected set; }
+    public HttpResponseMessage? HttpResponse { get; protected set; }
+
+    public GrpcCallSerializationContext SerializationContext
     {
-        // Getting logger name from generic type is slow
-        private const string LoggerName = "Grpc.Net.Client.Internal.GrpcCall";
+        get { return _serializationContext ??= new GrpcCallSerializationContext(this); }
+    }
 
-        private GrpcCallSerializationContext? _serializationContext;
-        private DefaultDeserializationContext? _deserializationContext;
+    public DefaultDeserializationContext DeserializationContext
+    {
+        get { return _deserializationContext ??= new DefaultDeserializationContext(); }
+    }
 
-        protected Metadata? Trailers { get; set; }
+    public CallOptions Options { get; }
+    public ILogger Logger { get; }
+    public GrpcChannel Channel { get; }
 
-        public bool ResponseFinished { get; protected set; }
-        public HttpResponseMessage? HttpResponse { get; protected set; }
+    public string? RequestGrpcEncoding { get; internal set; }
 
-        public GrpcCallSerializationContext SerializationContext
+    public abstract CancellationToken CancellationToken { get; }
+    public abstract Type RequestType { get; }
+    public abstract Type ResponseType { get; }
+
+    protected GrpcCall(CallOptions options, GrpcChannel channel)
+    {
+        Options = options;
+        Channel = channel;
+        Logger = channel.LoggerFactory.CreateLogger(LoggerName);
+    }
+
+    internal RpcException CreateRpcException(Status status)
+    {
+        // This code can be called from a background task.
+        // If an error is thrown when parsing the trailers into a Metadata
+        // collection then the background task will never complete and
+        // the gRPC call will hang. If the trailers are invalid then log
+        // an error message and return an empty trailers collection
+        // on the RpcException that we want to return to the app.
+        Metadata? trailers = null;
+        try
         {
-            get { return _serializationContext ??= new GrpcCallSerializationContext(this); }
+            TryGetTrailers(out trailers);
         }
-
-        public DefaultDeserializationContext DeserializationContext
+        catch (Exception ex)
         {
-            get { return _deserializationContext ??= new DefaultDeserializationContext(); }
+            GrpcCallLog.ErrorParsingTrailers(Logger, ex);
         }
+        return new RpcException(status, trailers ?? Metadata.Empty);
+    }
 
-        public CallOptions Options { get; }
-        public ILogger Logger { get; }
-        public GrpcChannel Channel { get; }
-
-        public string? RequestGrpcEncoding { get; internal set; }
-
-        public abstract CancellationToken CancellationToken { get; }
-        public abstract Type RequestType { get; }
-        public abstract Type ResponseType { get; }
-
-        protected GrpcCall(CallOptions options, GrpcChannel channel)
+    protected bool TryGetTrailers([NotNullWhen(true)] out Metadata? trailers)
+    {
+        if (Trailers == null)
         {
-            Options = options;
-            Channel = channel;
-            Logger = channel.LoggerFactory.CreateLogger(LoggerName);
-        }
-
-        internal RpcException CreateRpcException(Status status)
-        {
-            // This code can be called from a background task.
-            // If an error is thrown when parsing the trailers into a Metadata
-            // collection then the background task will never complete and
-            // the gRPC call will hang. If the trailers are invalid then log
-            // an error message and return an empty trailers collection
-            // on the RpcException that we want to return to the app.
-            Metadata? trailers = null;
-            try
+            // Trailers are read from the end of the request.
+            // If the request isn't finished then we can't get the trailers.
+            if (!ResponseFinished)
             {
-                TryGetTrailers(out trailers);
+                trailers = null;
+                return false;
             }
-            catch (Exception ex)
-            {
-                GrpcCallLog.ErrorParsingTrailers(Logger, ex);
-            }
-            return new RpcException(status, trailers ?? Metadata.Empty);
+
+            CompatibilityHelpers.Assert(HttpResponse != null);
+            Trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders());
         }
 
-        protected bool TryGetTrailers([NotNullWhen(true)] out Metadata? trailers)
+        trailers = Trailers;
+        return true;
+    }
+
+    internal static Status? ValidateHeaders(HttpResponseMessage httpResponse, out Metadata? trailers)
+    {
+        // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
+        // An explicitly specified status header has priority over other failing statuses
+        if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
         {
-            if (Trailers == null)
-            {
-                // Trailers are read from the end of the request.
-                // If the request isn't finished then we can't get the trailers.
-                if (!ResponseFinished)
+            // Trailers are in the header because there is no message.
+            // Note that some default headers will end up in the trailers (e.g. Date, Server).
+            trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
+            return status;
+        }
+
+        trailers = null;
+
+        // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
+        // Check that the response wasn't downgraded to HTTP/1.1.
+        if (httpResponse.Version < GrpcProtocolConstants.Http2Version)
+        {
+            return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
+        }
+
+        if (httpResponse.StatusCode != HttpStatusCode.OK)
+        {
+            var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
+            return new Status(statusCode, "Bad gRPC response. HTTP status code: " + (int)httpResponse.StatusCode);
+        }
+
+        // Don't access Headers.ContentType property because it is not threadsafe.
+        var contentType = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Content?.Headers, "Content-Type");
+        if (contentType == null)
+        {
+            return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");
+        }
+
+        if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, contentType))
+        {
+            return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + contentType);
+        }
+
+        // Call is still in progress
+        return null;
+    }
+
+    private static StatusCode MapHttpStatusToGrpcCode(HttpStatusCode httpStatusCode)
+    {
+        switch (httpStatusCode)
+        {
+            case HttpStatusCode.BadRequest:  // 400
+#if !NETSTANDARD2_0
+            case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
+#else
+            case (HttpStatusCode)431:
+#endif
+                return StatusCode.Internal;
+            case HttpStatusCode.Unauthorized:  // 401
+                return StatusCode.Unauthenticated;
+            case HttpStatusCode.Forbidden:  // 403
+                return StatusCode.PermissionDenied;
+            case HttpStatusCode.NotFound:  // 404
+                return StatusCode.Unimplemented;
+#if !NETSTANDARD2_0
+            case HttpStatusCode.TooManyRequests:  // 429
+#else
+            case (HttpStatusCode)429:
+#endif
+            case HttpStatusCode.BadGateway:  // 502
+            case HttpStatusCode.ServiceUnavailable:  // 503
+            case HttpStatusCode.GatewayTimeout:  // 504
+                return StatusCode.Unavailable;
+            default:
+                if ((int)httpStatusCode >= 100 && (int)httpStatusCode < 200)
                 {
-                    trailers = null;
-                    return false;
+                    // 1xx. These headers should have been ignored.
+                    return StatusCode.Internal;
                 }
 
-                CompatibilityHelpers.Assert(HttpResponse != null);
-                Trailers = GrpcProtocolHelpers.BuildMetadata(HttpResponse.TrailingHeaders());
-            }
-
-            trailers = Trailers;
-            return true;
+                return StatusCode.Unknown;
         }
+    }
 
-        internal static Status? ValidateHeaders(HttpResponseMessage httpResponse, out Metadata? trailers)
-        {
-            // gRPC status can be returned in the header when there is no message (e.g. unimplemented status)
-            // An explicitly specified status header has priority over other failing statuses
-            if (GrpcProtocolHelpers.TryGetStatusCore(httpResponse.Headers, out var status))
-            {
-                // Trailers are in the header because there is no message.
-                // Note that some default headers will end up in the trailers (e.g. Date, Server).
-                trailers = GrpcProtocolHelpers.BuildMetadata(httpResponse.Headers);
-                return status;
-            }
-
-            trailers = null;
-
-            // ALPN negotiation is sending HTTP/1.1 and HTTP/2.
-            // Check that the response wasn't downgraded to HTTP/1.1.
-            if (httpResponse.Version < GrpcProtocolConstants.Http2Version)
-            {
-                return new Status(StatusCode.Internal, $"Bad gRPC response. Response protocol downgraded to HTTP/{httpResponse.Version.ToString(2)}.");
-            }
-
-            if (httpResponse.StatusCode != HttpStatusCode.OK)
-            {
-                var statusCode = MapHttpStatusToGrpcCode(httpResponse.StatusCode);
-                return new Status(statusCode, "Bad gRPC response. HTTP status code: " + (int)httpResponse.StatusCode);
-            }
-
-            // Don't access Headers.ContentType property because it is not threadsafe.
-            var contentType = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Content?.Headers, "Content-Type");
-            if (contentType == null)
-            {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Response did not have a content-type header.");
-            }
-
-            if (!CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, contentType))
-            {
-                return new Status(StatusCode.Cancelled, "Bad gRPC response. Invalid content-type value: " + contentType);
-            }
-
-            // Call is still in progress
-            return null;
-        }
-
-        private static StatusCode MapHttpStatusToGrpcCode(HttpStatusCode httpStatusCode)
-        {
-            switch (httpStatusCode)
-            {
-                case HttpStatusCode.BadRequest:  // 400
-#if !NETSTANDARD2_0
-                case HttpStatusCode.RequestHeaderFieldsTooLarge: // 431
-#else
-                case (HttpStatusCode)431:
-#endif
-                    return StatusCode.Internal;
-                case HttpStatusCode.Unauthorized:  // 401
-                    return StatusCode.Unauthenticated;
-                case HttpStatusCode.Forbidden:  // 403
-                    return StatusCode.PermissionDenied;
-                case HttpStatusCode.NotFound:  // 404
-                    return StatusCode.Unimplemented;
-#if !NETSTANDARD2_0
-                case HttpStatusCode.TooManyRequests:  // 429
-#else
-                case (HttpStatusCode)429:
-#endif
-                case HttpStatusCode.BadGateway:  // 502
-                case HttpStatusCode.ServiceUnavailable:  // 503
-                case HttpStatusCode.GatewayTimeout:  // 504
-                    return StatusCode.Unavailable;
-                default:
-                    if ((int)httpStatusCode >= 100 && (int)httpStatusCode < 200)
-                    {
-                        // 1xx. These headers should have been ignored.
-                        return StatusCode.Internal;
-                    }
-
-                    return StatusCode.Unknown;
-            }
-        }
-
-        protected internal sealed class ActivityStartData
-        {
+    protected internal sealed class ActivityStartData
+    {
 #if NET5_0_OR_GREATER
-            // Common properties. Properties not in this list could be trimmed.
-            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
-            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
-            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
-            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+        // Common properties. Properties not in this list could be trimmed.
+        [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+        [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+        [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+        [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
 #endif
-            internal ActivityStartData(HttpRequestMessage request)
-            {
-                Request = request;
-            }
-
-            public HttpRequestMessage Request { get; }
-
-            public override string ToString() => $"{{ {nameof(Request)} = {Request} }}";
-        }
-
-        protected internal sealed class ActivityStopData
+        internal ActivityStartData(HttpRequestMessage request)
         {
-#if NET5_0_OR_GREATER
-            // Common properties. Properties not in this list could be trimmed.
-            [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
-            [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
-            [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
-            [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
-            [DynamicDependency(nameof(HttpResponseMessage.StatusCode), typeof(HttpResponseMessage))]
-#endif
-            internal ActivityStopData(HttpResponseMessage? response, HttpRequestMessage request)
-            {
-                Response = response;
-                Request = request;
-            }
-
-            public HttpResponseMessage? Response { get; }
-            public HttpRequestMessage Request { get; }
-
-            public override string ToString() => $"{{ {nameof(Response)} = {Response}, {nameof(Request)} = {Request} }}";
+            Request = request;
         }
+
+        public HttpRequestMessage Request { get; }
+
+        public override string ToString() => $"{{ {nameof(Request)} = {Request} }}";
+    }
+
+    protected internal sealed class ActivityStopData
+    {
+#if NET5_0_OR_GREATER
+        // Common properties. Properties not in this list could be trimmed.
+        [DynamicDependency(nameof(HttpRequestMessage.RequestUri), typeof(HttpRequestMessage))]
+        [DynamicDependency(nameof(HttpRequestMessage.Method), typeof(HttpRequestMessage))]
+        [DynamicDependency(nameof(Uri.Host), typeof(Uri))]
+        [DynamicDependency(nameof(Uri.Port), typeof(Uri))]
+        [DynamicDependency(nameof(HttpResponseMessage.StatusCode), typeof(HttpResponseMessage))]
+#endif
+        internal ActivityStopData(HttpResponseMessage? response, HttpRequestMessage request)
+        {
+            Response = response;
+            Request = request;
+        }
+
+        public HttpResponseMessage? Response { get; }
+        public HttpRequestMessage Request { get; }
+
+        public override string ToString() => $"{{ {nameof(Response)} = {Response}, {nameof(Request)} = {Request} }}";
     }
 }

@@ -18,16 +18,15 @@
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server;
+
+/// <summary>
+/// A builder abstraction for configuring gRPC servers.
+/// </summary>
+public interface IGrpcServerBuilder
 {
     /// <summary>
-    /// A builder abstraction for configuring gRPC servers.
+    /// Gets the builder service collection.
     /// </summary>
-    public interface IGrpcServerBuilder
-    {
-        /// <summary>
-        /// Gets the builder service collection.
-        /// </summary>
-        IServiceCollection Services { get; }
-    }
+    IServiceCollection Services { get; }
 }

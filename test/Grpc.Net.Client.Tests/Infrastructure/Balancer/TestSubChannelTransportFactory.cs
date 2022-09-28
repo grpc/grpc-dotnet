@@ -28,32 +28,31 @@ using Grpc.Core;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 
-namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
+namespace Grpc.Net.Client.Tests.Infrastructure.Balancer;
+
+internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
 {
-    internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
+    private readonly Func<Subchannel, CancellationToken, Task<ConnectivityState>>? _onSubchannelTryConnect;
+
+    public List<TestSubchannelTransport> Transports { get; } = new List<TestSubchannelTransport>();
+
+    public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<ConnectivityState>>? onSubchannelTryConnect = null)
     {
-        private readonly Func<Subchannel, CancellationToken, Task<ConnectivityState>>? _onSubchannelTryConnect;
+        _onSubchannelTryConnect = onSubchannelTryConnect;
+    }
 
-        public List<TestSubchannelTransport> Transports { get; } = new List<TestSubchannelTransport>();
-
-        public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<ConnectivityState>>? onSubchannelTryConnect = null)
+    public ISubchannelTransport Create(Subchannel subchannel)
+    {
+        Func<CancellationToken, Task<ConnectivityState>>? onTryConnect = null;
+        if (_onSubchannelTryConnect != null)
         {
-            _onSubchannelTryConnect = onSubchannelTryConnect;
+            onTryConnect = (c) => _onSubchannelTryConnect(subchannel, c);
         }
 
-        public ISubchannelTransport Create(Subchannel subchannel)
-        {
-            Func<CancellationToken, Task<ConnectivityState>>? onTryConnect = null;
-            if (_onSubchannelTryConnect != null)
-            {
-                onTryConnect = (c) => _onSubchannelTryConnect(subchannel, c);
-            }
+        var transport = new TestSubchannelTransport(subchannel, onTryConnect);
+        Transports.Add(transport);
 
-            var transport = new TestSubchannelTransport(subchannel, onTryConnect);
-            Transports.Add(transport);
-
-            return transport;
-        }
+        return transport;
     }
 }
 #endif

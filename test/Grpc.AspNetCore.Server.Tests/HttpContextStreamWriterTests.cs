@@ -25,118 +25,117 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.Server.Tests;
+
+[TestFixture]
+public class HttpContextStreamWriterTests
 {
-    [TestFixture]
-    public class HttpContextStreamWriterTests
+    [Test]
+    public async Task WriteAsync_DefaultWriteOptions_Flushes()
     {
-        [Test]
-        public async Task WriteAsync_DefaultWriteOptions_Flushes()
+        // Arrange
+        var ms = new MemoryStream();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+        var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
+
+        // Act 1
+        await writer.WriteAsync(new HelloReply
         {
-            // Arrange
-            var ms = new MemoryStream();
+            Message = "Hello world 1"
+        });
 
-            var httpContext = new DefaultHttpContext();
-            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
+        // Assert 1
+        Assert.AreEqual(20, ms.Length);
 
-            // Act 1
-            await writer.WriteAsync(new HelloReply
-            {
-                Message = "Hello world 1"
-            });
-
-            // Assert 1
-            Assert.AreEqual(20, ms.Length);
-
-            // Act 2
-            await writer.WriteAsync(new HelloReply
-            {
-                Message = "Hello world 2"
-            });
-
-            // Assert 2
-            Assert.AreEqual(40, ms.Length);
-
-            ms.Seek(0, SeekOrigin.Begin);
-            var pipeReader = PipeReader.Create(ms);
-
-            var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
-            var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
-        }
-
-        [Test]
-        public async Task WriteAsync_BufferHintWriteOptions_DoesNotFlush()
+        // Act 2
+        await writer.WriteAsync(new HelloReply
         {
-            // Arrange
-            var ms = new MemoryStream();
+            Message = "Hello world 2"
+        });
 
-            var httpContext = new DefaultHttpContext();
-            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
-            serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+        // Assert 2
+        Assert.AreEqual(40, ms.Length);
 
-            // Act 1 
-            await writer.WriteAsync(new HelloReply
-            {
-                Message = "Hello world 1"
-            }).DefaultTimeout();
+        ms.Seek(0, SeekOrigin.Begin);
+        var pipeReader = PipeReader.Create(ms);
 
-            // Assert 1
-            Assert.AreEqual(0, ms.Length);
-
-            // Act 2
-            await writer.WriteAsync(new HelloReply
-            {
-                Message = "Hello world 2"
-            }).DefaultTimeout();
-
-            // Assert 2
-            Assert.AreEqual(0, ms.Length);
-
-            await httpContext.Response.BodyWriter.FlushAsync().AsTask().DefaultTimeout();
-
-            ms.Seek(0, SeekOrigin.Begin);
-            var pipeReader = PipeReader.Create(ms);
-
-            var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
-            var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
-            Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
-        }
-
-        [Test]
-        public async Task WriteAsync_WriteInProgress_Error()
-        {
-            // Arrange
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            var httpContext = new DefaultHttpContext();
-            httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(new MemoryStream()), startAsyncTask: tcs.Task));
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
-
-            // Act
-            _ = writer.WriteAsync(new HelloReply
-            {
-                Message = "Hello world 1"
-            });
-
-            var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() =>
-            {
-                return writer.WriteAsync(new HelloReply
-                {
-                    Message = "Hello world 2"
-                });
-            });
-
-            // Assert
-            Assert.AreEqual("Can't write the message because the previous write is in progress.", ex.Message);
-        }
-
+        var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+        Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
+        var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+        Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
     }
+
+    [Test]
+    public async Task WriteAsync_BufferHintWriteOptions_DoesNotFlush()
+    {
+        // Arrange
+        var ms = new MemoryStream();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+        var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
+        serverCallContext.WriteOptions = new WriteOptions(WriteFlags.BufferHint);
+
+        // Act 1 
+        await writer.WriteAsync(new HelloReply
+        {
+            Message = "Hello world 1"
+        }).DefaultTimeout();
+
+        // Assert 1
+        Assert.AreEqual(0, ms.Length);
+
+        // Act 2
+        await writer.WriteAsync(new HelloReply
+        {
+            Message = "Hello world 2"
+        }).DefaultTimeout();
+
+        // Assert 2
+        Assert.AreEqual(0, ms.Length);
+
+        await httpContext.Response.BodyWriter.FlushAsync().AsTask().DefaultTimeout();
+
+        ms.Seek(0, SeekOrigin.Begin);
+        var pipeReader = PipeReader.Create(ms);
+
+        var writtenMessage1 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+        Assert.AreEqual("Hello world 1", writtenMessage1!.Message);
+        var writtenMessage2 = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader);
+        Assert.AreEqual("Hello world 2", writtenMessage2!.Message);
+    }
+
+    [Test]
+    public async Task WriteAsync_WriteInProgress_Error()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(new MemoryStream()), startAsyncTask: tcs.Task));
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+        var writer = new HttpContextStreamWriter<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualSerializer);
+
+        // Act
+        _ = writer.WriteAsync(new HelloReply
+        {
+            Message = "Hello world 1"
+        });
+
+        var ex = await ExceptionAssert.ThrowsAsync<InvalidOperationException>(() =>
+        {
+            return writer.WriteAsync(new HelloReply
+            {
+                Message = "Hello world 2"
+            });
+        });
+
+        // Assert
+        Assert.AreEqual("Can't write the message because the previous write is in progress.", ex.Message);
+    }
+
 }

@@ -19,10 +19,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
 {
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
-    {
-        public IHeaderDictionary Trailers { get; set; } = default!;
-    }
+    public IHeaderDictionary Trailers { get; set; } = default!;
 }

@@ -19,49 +19,48 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace Grpc.AspNetCore.FunctionalTests.Linker.Helpers
+namespace Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
+
+public class WebsiteProcess : DotNetProcess
 {
-    public class WebsiteProcess : DotNetProcess
+    private static readonly Regex NowListeningRegex = new Regex(@"^\s*Now listening on: .*:(?<port>\d*)$");
+
+    private readonly TaskCompletionSource<object?> _startTcs;
+
+    public string? ServerPort { get; private set; }
+    public bool IsReady => _startTcs.Task.IsCompletedSuccessfully;
+
+    public WebsiteProcess()
     {
-        private static readonly Regex NowListeningRegex = new Regex(@"^\s*Now listening on: .*:(?<port>\d*)$");
+        Process.OutputDataReceived += Process_OutputDataReceived;
 
-        private readonly TaskCompletionSource<object?> _startTcs;
+        _startTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
-        public string? ServerPort { get; private set; }
-        public bool IsReady => _startTcs.Task.IsCompletedSuccessfully;
-
-        public WebsiteProcess()
+    public Task WaitForReadyAsync()
+    {
+        if (Process.HasExited)
         {
-            Process.OutputDataReceived += Process_OutputDataReceived;
-
-            _startTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            return Task.FromException(new InvalidOperationException("Server is not running."));
         }
 
-        public Task WaitForReadyAsync()
+        return _startTcs.Task;
+    }
+
+    private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+    {
+        var data = e.Data;
+        if (data != null)
         {
-            if (Process.HasExited)
+            var m = NowListeningRegex.Match(data);
+            if (m.Success)
             {
-                return Task.FromException(new InvalidOperationException("Server is not running."));
+                ServerPort = m.Groups["port"].Value;
             }
 
-            return _startTcs.Task;
-        }
-
-        private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            var data = e.Data;
-            if (data != null)
+            if (data.Contains("Application started. Press Ctrl+C to shut down."))
             {
-                var m = NowListeningRegex.Match(data);
-                if (m.Success)
-                {
-                    ServerPort = m.Groups["port"].Value;
-                }
-
-                if (data.Contains("Application started. Press Ctrl+C to shut down."))
-                {
-                    _startTcs.TrySetResult(null);
-                }
+                _startTcs.TrySetResult(null);
             }
         }
     }

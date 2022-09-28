@@ -19,88 +19,87 @@
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+internal static class ServiceConfigHelpers
 {
-    internal static class ServiceConfigHelpers
+    public static ServiceConfig CreateRetryServiceConfig(
+        int? maxAttempts = null,
+        TimeSpan? initialBackoff = null,
+        TimeSpan? maxBackoff = null,
+        double? backoffMultiplier = null,
+        IList<StatusCode>? retryableStatusCodes = null,
+        RetryThrottlingPolicy? retryThrottling = null)
     {
-        public static ServiceConfig CreateRetryServiceConfig(
-            int? maxAttempts = null,
-            TimeSpan? initialBackoff = null,
-            TimeSpan? maxBackoff = null,
-            double? backoffMultiplier = null,
-            IList<StatusCode>? retryableStatusCodes = null,
-            RetryThrottlingPolicy? retryThrottling = null)
+        var retryPolicy = new RetryPolicy
         {
-            var retryPolicy = new RetryPolicy
-            {
-                MaxAttempts = maxAttempts ?? 5,
-                InitialBackoff = initialBackoff ?? TimeSpan.FromMilliseconds(1),
-                MaxBackoff = maxBackoff ?? TimeSpan.FromMilliseconds(1),
-                BackoffMultiplier = backoffMultiplier ?? 1
-            };
+            MaxAttempts = maxAttempts ?? 5,
+            InitialBackoff = initialBackoff ?? TimeSpan.FromMilliseconds(1),
+            MaxBackoff = maxBackoff ?? TimeSpan.FromMilliseconds(1),
+            BackoffMultiplier = backoffMultiplier ?? 1
+        };
 
-            if (retryableStatusCodes != null)
+        if (retryableStatusCodes != null)
+        {
+            foreach (var statusCode in retryableStatusCodes)
             {
-                foreach (var statusCode in retryableStatusCodes)
-                {
-                    retryPolicy.RetryableStatusCodes.Add(statusCode);
-                }
+                retryPolicy.RetryableStatusCodes.Add(statusCode);
             }
-            else
-            {
-                retryPolicy.RetryableStatusCodes.Add(StatusCode.Unavailable);
-            }
-
-            return new ServiceConfig
-            {
-                MethodConfigs =
-                {
-                    new MethodConfig
-                    {
-                        Names = { MethodName.Default },
-                        RetryPolicy = retryPolicy
-                    }
-                },
-                RetryThrottling = retryThrottling
-            };
+        }
+        else
+        {
+            retryPolicy.RetryableStatusCodes.Add(StatusCode.Unavailable);
         }
 
-        public static ServiceConfig CreateHedgingServiceConfig(
-            int? maxAttempts = null,
-            TimeSpan? hedgingDelay = null,
-            IList<StatusCode>? nonFatalStatusCodes = null,
-            RetryThrottlingPolicy? retryThrottling = null)
+        return new ServiceConfig
         {
-            var hedgingPolicy = new HedgingPolicy
+            MethodConfigs =
             {
-                MaxAttempts = maxAttempts ?? 5,
-                HedgingDelay = hedgingDelay
-            };
-
-            if (nonFatalStatusCodes != null)
-            {
-                foreach (var statusCode in nonFatalStatusCodes)
+                new MethodConfig
                 {
-                    hedgingPolicy.NonFatalStatusCodes.Add(statusCode);
+                    Names = { MethodName.Default },
+                    RetryPolicy = retryPolicy
                 }
-            }
-            else
-            {
-                hedgingPolicy.NonFatalStatusCodes.Add(StatusCode.Unavailable);
-            }
+            },
+            RetryThrottling = retryThrottling
+        };
+    }
 
-            return new ServiceConfig
+    public static ServiceConfig CreateHedgingServiceConfig(
+        int? maxAttempts = null,
+        TimeSpan? hedgingDelay = null,
+        IList<StatusCode>? nonFatalStatusCodes = null,
+        RetryThrottlingPolicy? retryThrottling = null)
+    {
+        var hedgingPolicy = new HedgingPolicy
+        {
+            MaxAttempts = maxAttempts ?? 5,
+            HedgingDelay = hedgingDelay
+        };
+
+        if (nonFatalStatusCodes != null)
+        {
+            foreach (var statusCode in nonFatalStatusCodes)
             {
-                MethodConfigs =
-                {
-                    new MethodConfig
-                    {
-                        Names = { MethodName.Default },
-                        HedgingPolicy = hedgingPolicy
-                    }
-                },
-                RetryThrottling = retryThrottling
-            };
+                hedgingPolicy.NonFatalStatusCodes.Add(statusCode);
+            }
         }
+        else
+        {
+            hedgingPolicy.NonFatalStatusCodes.Add(StatusCode.Unavailable);
+        }
+
+        return new ServiceConfig
+        {
+            MethodConfigs =
+            {
+                new MethodConfig
+                {
+                    Names = { MethodName.Default },
+                    HedgingPolicy = hedgingPolicy
+                }
+            },
+            RetryThrottling = retryThrottling
+        };
     }
 }

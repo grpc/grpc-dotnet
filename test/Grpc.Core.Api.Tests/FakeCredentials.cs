@@ -18,33 +18,32 @@
 
 using Grpc.Core.Internal;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+internal class FakeChannelCredentials : ChannelCredentials
 {
-    internal class FakeChannelCredentials : ChannelCredentials
+    readonly bool composable;
+
+    public FakeChannelCredentials(bool composable)
     {
-        readonly bool composable;
-
-        public FakeChannelCredentials(bool composable)
-        {
-            this.composable = composable;
-        }
-
-        internal override bool IsComposable
-        {
-            get { return composable; }
-        }
-
-        public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
-        {
-            // not invoking configuration on purpose
-        }
+        this.composable = composable;
     }
 
-    internal class FakeCallCredentials : CallCredentials
+    internal override bool IsComposable
     {
-        public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object state)
-        {
-            // not invoking the configurator on purpose
-        }
+        get { return composable; }
+    }
+
+    public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
+    {
+        // not invoking configuration on purpose
+    }
+}
+
+internal class FakeCallCredentials : CallCredentials
+{
+    public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object state)
+    {
+        // not invoking the configurator on purpose
     }
 }

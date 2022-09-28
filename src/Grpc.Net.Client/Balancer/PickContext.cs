@@ -19,20 +19,19 @@
 #if SUPPORT_LOAD_BALANCING
 using System.Net.Http;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Context used to pick a <see cref="Subchannel"/>.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public sealed class PickContext
 {
     /// <summary>
-    /// Context used to pick a <see cref="Subchannel"/>.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Gets or sets the <see cref="HttpRequestMessage"/>.
     /// </summary>
-    public sealed class PickContext
-    {
-        /// <summary>
-        /// Gets or sets the <see cref="HttpRequestMessage"/>.
-        /// </summary>
-        public HttpRequestMessage? Request { get; set; }
-    }
+    public HttpRequestMessage? Request { get; set; }
 }
 #endif

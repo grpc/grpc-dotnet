@@ -16,21 +16,20 @@
 
 #endregion
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+// TODO(jtattermusch): revisit deletion of ContextPropagationToken once Grpc.Core is past end-of-support.
+/// <summary>
+/// Token for propagating context of server side handlers to child calls.
+/// In situations when a backend is making calls to another backend,
+/// it makes sense to propagate properties like deadline and cancellation 
+/// token of the server call to the child call.
+/// Underlying gRPC implementation may provide other "opaque" contexts (like tracing context) that
+/// are not explicitly accesible via the public C# API, but this token still allows propagating them.
+/// </summary>
+public abstract class ContextPropagationToken
 {
-    // TODO(jtattermusch): revisit deletion of ContextPropagationToken once Grpc.Core is past end-of-support.
-    /// <summary>
-    /// Token for propagating context of server side handlers to child calls.
-    /// In situations when a backend is making calls to another backend,
-    /// it makes sense to propagate properties like deadline and cancellation 
-    /// token of the server call to the child call.
-    /// Underlying gRPC implementation may provide other "opaque" contexts (like tracing context) that
-    /// are not explicitly accesible via the public C# API, but this token still allows propagating them.
-    /// </summary>
-    public abstract class ContextPropagationToken
+    internal ContextPropagationToken()
     {
-        internal ContextPropagationToken()
-        {
-        }
     }
 }

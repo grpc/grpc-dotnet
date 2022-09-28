@@ -28,532 +28,531 @@ using Log = Grpc.Net.Client.Internal.Retry.RetryCallBaseLog;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
 {
-    internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
-        where TRequest : class
-        where TResponse : class
+    private readonly TaskCompletionSource<IGrpcCall<TRequest, TResponse>> _commitedCallTcs;
+    private RetryCallBaseClientStreamReader<TRequest, TResponse>? _retryBaseClientStreamReader;
+    private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
+
+    // Internal for unit testing.
+    internal CancellationTokenRegistration? _ctsRegistration;
+
+    protected object Lock { get; } = new object();
+    protected ILogger Logger { get; }
+    protected Method<TRequest, TResponse> Method { get; }
+    protected CallOptions Options { get; }
+    protected int MaxRetryAttempts { get; }
+    protected CancellationTokenSource CancellationTokenSource { get; }
+    protected TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>? NewActiveCallTcs { get; set; }
+
+    public GrpcChannel Channel { get; }
+    public Task<IGrpcCall<TRequest, TResponse>> CommitedCallTask => _commitedCallTcs.Task;
+    public IAsyncStreamReader<TResponse>? ClientStreamReader => _retryBaseClientStreamReader ??= new RetryCallBaseClientStreamReader<TRequest, TResponse>(this);
+    public IClientStreamWriter<TRequest>? ClientStreamWriter => _retryBaseClientStreamWriter ??= new RetryCallBaseClientStreamWriter<TRequest, TResponse>(this);
+    public WriteOptions? ClientStreamWriteOptions { get; internal set; }
+    public bool ClientStreamComplete { get; set; }
+    public bool Disposed { get; private set; }
+
+    protected int AttemptCount { get; private set; }
+    protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
+    protected long CurrentCallBufferSize { get; set; }
+    protected bool BufferedCurrentMessage { get; set; }
+
+    protected RetryCallBase(GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options, string loggerName, int retryAttempts)
     {
-        private readonly TaskCompletionSource<IGrpcCall<TRequest, TResponse>> _commitedCallTcs;
-        private RetryCallBaseClientStreamReader<TRequest, TResponse>? _retryBaseClientStreamReader;
-        private RetryCallBaseClientStreamWriter<TRequest, TResponse>? _retryBaseClientStreamWriter;
+        Logger = channel.LoggerFactory.CreateLogger(loggerName);
+        Channel = channel;
+        Method = method;
+        Options = options;
+        _commitedCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BufferedMessages = new List<ReadOnlyMemory<byte>>();
 
-        // Internal for unit testing.
-        internal CancellationTokenRegistration? _ctsRegistration;
+        // Raise OnCancellation event for cancellation related clean up.
+        CancellationTokenSource = new CancellationTokenSource();
+        CancellationTokenSource.Token.Register(static state => ((RetryCallBase<TRequest, TResponse>)state!).OnCancellation(), this);
 
-        protected object Lock { get; } = new object();
-        protected ILogger Logger { get; }
-        protected Method<TRequest, TResponse> Method { get; }
-        protected CallOptions Options { get; }
-        protected int MaxRetryAttempts { get; }
-        protected CancellationTokenSource CancellationTokenSource { get; }
-        protected TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>? NewActiveCallTcs { get; set; }
-
-        public GrpcChannel Channel { get; }
-        public Task<IGrpcCall<TRequest, TResponse>> CommitedCallTask => _commitedCallTcs.Task;
-        public IAsyncStreamReader<TResponse>? ClientStreamReader => _retryBaseClientStreamReader ??= new RetryCallBaseClientStreamReader<TRequest, TResponse>(this);
-        public IClientStreamWriter<TRequest>? ClientStreamWriter => _retryBaseClientStreamWriter ??= new RetryCallBaseClientStreamWriter<TRequest, TResponse>(this);
-        public WriteOptions? ClientStreamWriteOptions { get; internal set; }
-        public bool ClientStreamComplete { get; set; }
-        public bool Disposed { get; private set; }
-
-        protected int AttemptCount { get; private set; }
-        protected List<ReadOnlyMemory<byte>> BufferedMessages { get; }
-        protected long CurrentCallBufferSize { get; set; }
-        protected bool BufferedCurrentMessage { get; set; }
-
-        protected RetryCallBase(GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options, string loggerName, int retryAttempts)
+        // If the passed in token is canceled then we want to cancel the retry cancellation token.
+        // Note that if the token is already canceled then callback is run inline.
+        if (options.CancellationToken.CanBeCanceled)
         {
-            Logger = channel.LoggerFactory.CreateLogger(loggerName);
-            Channel = channel;
-            Method = method;
-            Options = options;
-            _commitedCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
-            BufferedMessages = new List<ReadOnlyMemory<byte>>();
-
-            // Raise OnCancellation event for cancellation related clean up.
-            CancellationTokenSource = new CancellationTokenSource();
-            CancellationTokenSource.Token.Register(static state => ((RetryCallBase<TRequest, TResponse>)state!).OnCancellation(), this);
-
-            // If the passed in token is canceled then we want to cancel the retry cancellation token.
-            // Note that if the token is already canceled then callback is run inline.
-            if (options.CancellationToken.CanBeCanceled)
-            {
-                _ctsRegistration = RegisterRetryCancellationToken(options.CancellationToken);
-            }
-
-            var deadline = Options.Deadline.GetValueOrDefault(DateTime.MaxValue);
-            if (deadline != DateTime.MaxValue)
-            {
-                var timeout = CommonGrpcProtocolHelpers.GetTimerDueTime(deadline - Channel.Clock.UtcNow, Channel.MaxTimerDueTime);
-                CancellationTokenSource.CancelAfter(TimeSpan.FromMilliseconds(timeout));
-            }
-
-            if (HasClientStream())
-            {
-                // Run continuation synchronously so awaiters execute inside the lock
-                NewActiveCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>(TaskCreationOptions.None);
-            }
-
-            if (retryAttempts > Channel.MaxRetryAttempts)
-            {
-                Log.MaxAttemptsLimited(Logger, retryAttempts, Channel.MaxRetryAttempts.Value);
-                MaxRetryAttempts = Channel.MaxRetryAttempts.Value;
-            }
-            else
-            {
-                MaxRetryAttempts = retryAttempts;
-            }
+            _ctsRegistration = RegisterRetryCancellationToken(options.CancellationToken);
         }
 
-        public async Task<TResponse> GetResponseAsync()
+        var deadline = Options.Deadline.GetValueOrDefault(DateTime.MaxValue);
+        if (deadline != DateTime.MaxValue)
         {
-            var call = await CommitedCallTask.ConfigureAwait(false);
-            return await call.GetResponseAsync().ConfigureAwait(false);
+            var timeout = CommonGrpcProtocolHelpers.GetTimerDueTime(deadline - Channel.Clock.UtcNow, Channel.MaxTimerDueTime);
+            CancellationTokenSource.CancelAfter(TimeSpan.FromMilliseconds(timeout));
         }
 
-        public async Task<Metadata> GetResponseHeadersAsync()
+        if (HasClientStream())
         {
-            var call = await CommitedCallTask.ConfigureAwait(false);
-            return await call.GetResponseHeadersAsync().ConfigureAwait(false);
+            // Run continuation synchronously so awaiters execute inside the lock
+            NewActiveCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>(TaskCreationOptions.None);
         }
 
-        public Status GetStatus()
+        if (retryAttempts > Channel.MaxRetryAttempts)
         {
-            if (CommitedCallTask.IsCompletedSuccessfully())
+            Log.MaxAttemptsLimited(Logger, retryAttempts, Channel.MaxRetryAttempts.Value);
+            MaxRetryAttempts = Channel.MaxRetryAttempts.Value;
+        }
+        else
+        {
+            MaxRetryAttempts = retryAttempts;
+        }
+    }
+
+    public async Task<TResponse> GetResponseAsync()
+    {
+        var call = await CommitedCallTask.ConfigureAwait(false);
+        return await call.GetResponseAsync().ConfigureAwait(false);
+    }
+
+    public async Task<Metadata> GetResponseHeadersAsync()
+    {
+        var call = await CommitedCallTask.ConfigureAwait(false);
+        return await call.GetResponseHeadersAsync().ConfigureAwait(false);
+    }
+
+    public Status GetStatus()
+    {
+        if (CommitedCallTask.IsCompletedSuccessfully())
+        {
+            return CommitedCallTask.Result.GetStatus();
+        }
+
+        throw new InvalidOperationException("Unable to get the status because the call is not complete.");
+    }
+
+    public Metadata GetTrailers()
+    {
+        if (CommitedCallTask.IsCompletedSuccessfully())
+        {
+            return CommitedCallTask.Result.GetTrailers();
+        }
+
+        throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
+    }
+
+    public void Dispose() => Dispose(true);
+
+    public void StartUnary(TRequest request)
+    {
+        StartCore(call => call.StartUnaryCore(CreatePushUnaryContent(request, call)));
+    }
+
+    public void StartClientStreaming()
+    {
+        StartCore(call =>
+        {
+            var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(call);
+            var content = CreatePushStreamContent(call, clientStreamWriter);
+            call.StartClientStreamingCore(clientStreamWriter, content);
+        });
+    }
+
+    public void StartServerStreaming(TRequest request)
+    {
+        StartCore(call => call.StartServerStreamingCore(CreatePushUnaryContent(request, call)));
+    }
+
+    public void StartDuplexStreaming()
+    {
+        StartCore(call =>
+        {
+            var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(call);
+            var content = CreatePushStreamContent(call, clientStreamWriter);
+            call.StartDuplexStreamingCore(clientStreamWriter, content);
+        });
+    }
+
+    private HttpContent CreatePushUnaryContent(TRequest request, GrpcCall<TRequest, TResponse> call)
+    {
+        return Channel.HttpHandlerType != HttpHandlerType.WinHttpHandler
+            ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
+            : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, call);
+
+        ValueTask WriteAsync(TRequest request, Stream stream)
+        {
+            return WriteNewMessage(call, stream, call.Options, request);
+        }
+    }
+
+    private PushStreamContent<TRequest, TResponse> CreatePushStreamContent(GrpcCall<TRequest, TResponse> call, HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter)
+    {
+        return new PushStreamContent<TRequest, TResponse>(clientStreamWriter, async requestStream =>
+        {
+            ValueTask writeTask;
+            lock (Lock)
             {
-                return CommitedCallTask.Result.GetStatus();
-            }
+                Log.SendingBufferedMessages(Logger, BufferedMessages.Count);
 
-            throw new InvalidOperationException("Unable to get the status because the call is not complete.");
-        }
-
-        public Metadata GetTrailers()
-        {
-            if (CommitedCallTask.IsCompletedSuccessfully())
-            {
-                return CommitedCallTask.Result.GetTrailers();
-            }
-
-            throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
-        }
-
-        public void Dispose() => Dispose(true);
-
-        public void StartUnary(TRequest request)
-        {
-            StartCore(call => call.StartUnaryCore(CreatePushUnaryContent(request, call)));
-        }
-
-        public void StartClientStreaming()
-        {
-            StartCore(call =>
-            {
-                var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(call);
-                var content = CreatePushStreamContent(call, clientStreamWriter);
-                call.StartClientStreamingCore(clientStreamWriter, content);
-            });
-        }
-
-        public void StartServerStreaming(TRequest request)
-        {
-            StartCore(call => call.StartServerStreamingCore(CreatePushUnaryContent(request, call)));
-        }
-
-        public void StartDuplexStreaming()
-        {
-            StartCore(call =>
-            {
-                var clientStreamWriter = new HttpContentClientStreamWriter<TRequest, TResponse>(call);
-                var content = CreatePushStreamContent(call, clientStreamWriter);
-                call.StartDuplexStreamingCore(clientStreamWriter, content);
-            });
-        }
-
-        private HttpContent CreatePushUnaryContent(TRequest request, GrpcCall<TRequest, TResponse> call)
-        {
-            return Channel.HttpHandlerType != HttpHandlerType.WinHttpHandler
-                ? new PushUnaryContent<TRequest, TResponse>(request, WriteAsync)
-                : new WinHttpUnaryContent<TRequest, TResponse>(request, WriteAsync, call);
-
-            ValueTask WriteAsync(TRequest request, Stream stream)
-            {
-                return WriteNewMessage(call, stream, call.Options, request);
-            }
-        }
-
-        private PushStreamContent<TRequest, TResponse> CreatePushStreamContent(GrpcCall<TRequest, TResponse> call, HttpContentClientStreamWriter<TRequest, TResponse> clientStreamWriter)
-        {
-            return new PushStreamContent<TRequest, TResponse>(clientStreamWriter, async requestStream =>
-            {
-                ValueTask writeTask;
-                lock (Lock)
+                if (BufferedMessages.Count == 0)
                 {
-                    Log.SendingBufferedMessages(Logger, BufferedMessages.Count);
-
-                    if (BufferedMessages.Count == 0)
-                    {
 #if NETSTANDARD2_0
-                        writeTask = Task.CompletedTask;
+                    writeTask = Task.CompletedTask;
 #else
-                        writeTask = default;
+                    writeTask = default;
 #endif
+                }
+                else
+                {
+                    // Copy messages to a new collection in lock for thread-safety.
+                    var bufferedMessageCopy = BufferedMessages.ToArray();
+                    writeTask = WriteBufferedMessages(call, requestStream, bufferedMessageCopy);
+                }
+            }
+
+            await writeTask.ConfigureAwait(false);
+
+            if (ClientStreamComplete)
+            {
+                await call.ClientStreamWriter!.CompleteAsync().ConfigureAwait(false);
+            }
+        });
+    }
+
+    private async ValueTask WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
+    {
+        for (var i = 0; i < bufferedMessages.Length; i++)
+        {
+            await call.WriteMessageAsync(requestStream, bufferedMessages[i], call.CancellationToken).ConfigureAwait(false);
+
+            // Flush stream to ensure messages are sent immediately.
+            await requestStream.FlushAsync(call.CancellationToken).ConfigureAwait(false);
+
+            OnBufferMessageWritten(i + 1);
+        }
+    }
+
+    protected virtual void OnBufferMessageWritten(int count)
+    {
+    }
+
+    protected abstract void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc);
+
+    public abstract Task ClientStreamCompleteAsync();
+
+    public abstract Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken);
+
+    protected CancellationTokenRegistration RegisterRetryCancellationToken(CancellationToken cancellationToken)
+    {
+        return cancellationToken.Register(
+            static state =>
+            {
+                var call = (RetryCallBase<TRequest, TResponse>)state!;
+
+                Log.CanceledRetry(call.Logger);
+                call.CancellationTokenSource.Cancel();
+            },
+            this);
+    }
+
+    protected bool IsDeadlineExceeded()
+    {
+        return Options.Deadline != null && Options.Deadline <= Channel.Clock.UtcNow;
+    }
+
+    protected int? GetRetryPushback(HttpResponseMessage? httpResponse)
+    {
+        // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#pushback
+        if (httpResponse != null)
+        {
+            var headerValue = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.RetryPushbackHeader);
+            if (headerValue != null)
+            {
+                Log.RetryPushbackReceived(Logger, headerValue);
+
+                // A non-integer value means the server wants retries to stop.
+                // Resolve non-integer value to a negative integer which also means stop.
+                return int.TryParse(headerValue, out var value) ? value : -1;
+            }
+        }
+
+        return null;
+    }
+
+    protected byte[] SerializePayload(GrpcCall<TRequest, TResponse> call, CallOptions callOptions, TRequest request)
+    {
+        var serializationContext = call.SerializationContext;
+        serializationContext.CallOptions = callOptions;
+        serializationContext.Initialize();
+
+        try
+        {
+            call.Method.RequestMarshaller.ContextualSerializer(request, serializationContext);
+
+            // Need to take a copy because the serialization context will returned a rented buffer.
+            return serializationContext.GetWrittenPayload().ToArray();
+        }
+        finally
+        {
+            serializationContext.Reset();
+        }
+    }
+
+    protected async ValueTask WriteNewMessage(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
+    {
+        // Serialize current message and add to the buffer.
+        ReadOnlyMemory<byte> messageData;
+
+        lock (Lock)
+        {
+            if (!BufferedCurrentMessage)
+            {
+                messageData = SerializePayload(call, callOptions, message);
+
+                // Don't buffer message data if the call has been commited.
+                if (!CommitedCallTask.IsCompletedSuccessfully())
+                {
+                    if (!TryAddToRetryBuffer(messageData))
+                    {
+                        CommitCall(call, CommitReason.BufferExceeded);
                     }
                     else
                     {
-                        // Copy messages to a new collection in lock for thread-safety.
-                        var bufferedMessageCopy = BufferedMessages.ToArray();
-                        writeTask = WriteBufferedMessages(call, requestStream, bufferedMessageCopy);
+                        BufferedCurrentMessage = true;
+
+                        Log.MessageAddedToBuffer(Logger, messageData.Length, CurrentCallBufferSize);
                     }
-                }
-
-                await writeTask.ConfigureAwait(false);
-
-                if (ClientStreamComplete)
-                {
-                    await call.ClientStreamWriter!.CompleteAsync().ConfigureAwait(false);
-                }
-            });
-        }
-
-        private async ValueTask WriteBufferedMessages(GrpcCall<TRequest, TResponse> call, Stream requestStream, ReadOnlyMemory<byte>[] bufferedMessages)
-        {
-            for (var i = 0; i < bufferedMessages.Length; i++)
-            {
-                await call.WriteMessageAsync(requestStream, bufferedMessages[i], call.CancellationToken).ConfigureAwait(false);
-
-                // Flush stream to ensure messages are sent immediately.
-                await requestStream.FlushAsync(call.CancellationToken).ConfigureAwait(false);
-
-                OnBufferMessageWritten(i + 1);
-            }
-        }
-
-        protected virtual void OnBufferMessageWritten(int count)
-        {
-        }
-
-        protected abstract void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc);
-
-        public abstract Task ClientStreamCompleteAsync();
-
-        public abstract Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken);
-
-        protected CancellationTokenRegistration RegisterRetryCancellationToken(CancellationToken cancellationToken)
-        {
-            return cancellationToken.Register(
-                static state =>
-                {
-                    var call = (RetryCallBase<TRequest, TResponse>)state!;
-
-                    Log.CanceledRetry(call.Logger);
-                    call.CancellationTokenSource.Cancel();
-                },
-                this);
-        }
-
-        protected bool IsDeadlineExceeded()
-        {
-            return Options.Deadline != null && Options.Deadline <= Channel.Clock.UtcNow;
-        }
-
-        protected int? GetRetryPushback(HttpResponseMessage? httpResponse)
-        {
-            // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#pushback
-            if (httpResponse != null)
-            {
-                var headerValue = GrpcProtocolHelpers.GetHeaderValue(httpResponse.Headers, GrpcProtocolConstants.RetryPushbackHeader);
-                if (headerValue != null)
-                {
-                    Log.RetryPushbackReceived(Logger, headerValue);
-
-                    // A non-integer value means the server wants retries to stop.
-                    // Resolve non-integer value to a negative integer which also means stop.
-                    return int.TryParse(headerValue, out var value) ? value : -1;
-                }
-            }
-
-            return null;
-        }
-
-        protected byte[] SerializePayload(GrpcCall<TRequest, TResponse> call, CallOptions callOptions, TRequest request)
-        {
-            var serializationContext = call.SerializationContext;
-            serializationContext.CallOptions = callOptions;
-            serializationContext.Initialize();
-
-            try
-            {
-                call.Method.RequestMarshaller.ContextualSerializer(request, serializationContext);
-
-                // Need to take a copy because the serialization context will returned a rented buffer.
-                return serializationContext.GetWrittenPayload().ToArray();
-            }
-            finally
-            {
-                serializationContext.Reset();
-            }
-        }
-
-        protected async ValueTask WriteNewMessage(GrpcCall<TRequest, TResponse> call, Stream writeStream, CallOptions callOptions, TRequest message)
-        {
-            // Serialize current message and add to the buffer.
-            ReadOnlyMemory<byte> messageData;
-
-            lock (Lock)
-            {
-                if (!BufferedCurrentMessage)
-                {
-                    messageData = SerializePayload(call, callOptions, message);
-
-                    // Don't buffer message data if the call has been commited.
-                    if (!CommitedCallTask.IsCompletedSuccessfully())
-                    {
-                        if (!TryAddToRetryBuffer(messageData))
-                        {
-                            CommitCall(call, CommitReason.BufferExceeded);
-                        }
-                        else
-                        {
-                            BufferedCurrentMessage = true;
-
-                            Log.MessageAddedToBuffer(Logger, messageData.Length, CurrentCallBufferSize);
-                        }
-                    }
-                }
-                else
-                {
-                    // There is a race between:
-                    // 1. A client stream starting for a new call. It will write all buffered messages, and
-                    // 2. Writing a new message here. The message may already have been buffered when the client
-                    //    stream started so we don't want to write it again.
-                    //
-                    // Check the client stream write count against the buffer message count to ensure all buffered
-                    // messages haven't already been written.
-                    if (call.MessagesWritten == BufferedMessages.Count)
-                    {
-                        return;
-                    }
-
-                    messageData = BufferedMessages[BufferedMessages.Count - 1];
-                }
-            }
-
-            await call.WriteMessageAsync(writeStream, messageData, callOptions.CancellationToken).ConfigureAwait(false);
-        }
-
-        protected void CommitCall(IGrpcCall<TRequest, TResponse> call, CommitReason commitReason)
-        {
-            lock (Lock)
-            {
-                if (!CommitedCallTask.IsCompletedSuccessfully())
-                {
-                    // The buffer size is verified in unit tests after calls are completed.
-                    // Clear the buffer before commiting call.
-                    ClearRetryBuffer();
-
-                    OnCommitCall(call);
-
-                    // Log before committing for unit tests.
-                    Log.CallCommited(Logger, commitReason);
-
-                    NewActiveCallTcs?.SetResult(null);
-                    _commitedCallTcs.SetResult(call);
-
-                    // If the commited call has finished and cleaned up then it is safe for
-                    // the wrapping retry call to clean up. This is required to unregister
-                    // from the cancellation token and avoid a memory leak.
-                    //
-                    // A commited call that has already cleaned up is likely a StatusGrpcCall.
-                    if (call.Disposed)
-                    {
-                        Cleanup();
-                    }
-                }
-            }
-        }
-
-        protected abstract void OnCommitCall(IGrpcCall<TRequest, TResponse> call);
-
-        protected bool HasClientStream()
-        {
-            return Method.Type == MethodType.ClientStreaming || Method.Type == MethodType.DuplexStreaming;
-        }
-
-        protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
-        {
-            Debug.Assert(Monitor.IsEntered(Lock), "Should be called with lock.");
-
-            if (NewActiveCallTcs != null)
-            {
-                // Run continuation synchronously so awaiters execute inside the lock
-                NewActiveCallTcs.SetResult(call);
-                NewActiveCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>(TaskCreationOptions.None);
-            }
-        }
-
-        Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
-        {
-            throw new NotSupportedException();
-        }
-
-        protected async Task<IGrpcCall<TRequest, TResponse>?> GetActiveCallUnsynchronizedAsync(IGrpcCall<TRequest, TResponse>? previousCall)
-        {
-            CompatibilityHelpers.Assert(NewActiveCallTcs != null);
-
-            var call = await NewActiveCallTcs.Task.ConfigureAwait(false);
-
-            Debug.Assert(Monitor.IsEntered(Lock));
-            if (call == null)
-            {
-                call = await CommitedCallTask.ConfigureAwait(false);
-            }
-
-            // Avoid infinite loop.
-            if (call == previousCall)
-            {
-                return null;
-            }
-
-            return call;
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (Disposed)
-            {
-                return;
-            }
-
-            Disposed = true;
-
-            if (disposing)
-            {
-                if (CommitedCallTask.IsCompletedSuccessfully())
-                {
-                    CommitedCallTask.Result.Dispose();
-                }
-
-                Cleanup();
-            }
-        }
-
-        protected void Cleanup()
-        {
-            _ctsRegistration?.Dispose();
-            _ctsRegistration = null;
-            CancellationTokenSource.Cancel();
-
-            ClearRetryBuffer();
-        }
-
-        internal bool TryAddToRetryBuffer(ReadOnlyMemory<byte> message)
-        {
-            lock (Lock)
-            {
-                var messageSize = message.Length;
-                if (CurrentCallBufferSize + messageSize > Channel.MaxRetryBufferPerCallSize)
-                {
-                    return false;
-                }
-                if (!Channel.TryAddToRetryBuffer(messageSize))
-                {
-                    return false;
-                }
-
-                CurrentCallBufferSize += messageSize;
-                BufferedMessages.Add(message);
-                return true;
-            }
-        }
-
-        internal void ClearRetryBuffer()
-        {
-            lock (Lock)
-            {
-                if (BufferedMessages.Count > 0)
-                {
-                    BufferedMessages.Clear();
-                    Channel.RemoveFromRetryBuffer(CurrentCallBufferSize);
-                    CurrentCallBufferSize = 0;
-                }
-            }
-        }
-
-        protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
-        {
-            return new StatusGrpcCall<TRequest, TResponse>(status, Channel);
-        }
-
-        protected void HandleUnexpectedError(Exception ex)
-        {
-            IGrpcCall<TRequest, TResponse> resolvedCall;
-            CommitReason commitReason;
-
-            // Cancellation token triggered by dispose could throw here.
-            if (ex is OperationCanceledException && CancellationTokenSource.IsCancellationRequested)
-            {
-                // Cancellation could have been caused by an exceeded deadline.
-                if (IsDeadlineExceeded())
-                {
-                    commitReason = CommitReason.DeadlineExceeded;
-                    // An exceeded deadline inbetween calls means there is no active call.
-                    // Create a fake call that returns exceeded deadline status to the app.
-                    resolvedCall = CreateStatusCall(GrpcProtocolConstants.DeadlineExceededStatus);
-                }
-                else
-                {
-                    commitReason = CommitReason.Canceled;
-                    resolvedCall = CreateStatusCall(Disposed ? GrpcProtocolConstants.DisposeCanceledStatus : GrpcProtocolConstants.ClientCanceledStatus);
                 }
             }
             else
             {
-                commitReason = CommitReason.UnexpectedError;
-                resolvedCall = CreateStatusCall(GrpcProtocolHelpers.CreateStatusFromException("Unexpected error during retry.", ex));
+                // There is a race between:
+                // 1. A client stream starting for a new call. It will write all buffered messages, and
+                // 2. Writing a new message here. The message may already have been buffered when the client
+                //    stream started so we don't want to write it again.
+                //
+                // Check the client stream write count against the buffer message count to ensure all buffered
+                // messages haven't already been written.
+                if (call.MessagesWritten == BufferedMessages.Count)
+                {
+                    return;
+                }
 
-                // Only log unexpected errors.
-                Log.ErrorRetryingCall(Logger, ex);
+                messageData = BufferedMessages[BufferedMessages.Count - 1];
+            }
+        }
+
+        await call.WriteMessageAsync(writeStream, messageData, callOptions.CancellationToken).ConfigureAwait(false);
+    }
+
+    protected void CommitCall(IGrpcCall<TRequest, TResponse> call, CommitReason commitReason)
+    {
+        lock (Lock)
+        {
+            if (!CommitedCallTask.IsCompletedSuccessfully())
+            {
+                // The buffer size is verified in unit tests after calls are completed.
+                // Clear the buffer before commiting call.
+                ClearRetryBuffer();
+
+                OnCommitCall(call);
+
+                // Log before committing for unit tests.
+                Log.CallCommited(Logger, commitReason);
+
+                NewActiveCallTcs?.SetResult(null);
+                _commitedCallTcs.SetResult(call);
+
+                // If the commited call has finished and cleaned up then it is safe for
+                // the wrapping retry call to clean up. This is required to unregister
+                // from the cancellation token and avoid a memory leak.
+                //
+                // A commited call that has already cleaned up is likely a StatusGrpcCall.
+                if (call.Disposed)
+                {
+                    Cleanup();
+                }
+            }
+        }
+    }
+
+    protected abstract void OnCommitCall(IGrpcCall<TRequest, TResponse> call);
+
+    protected bool HasClientStream()
+    {
+        return Method.Type == MethodType.ClientStreaming || Method.Type == MethodType.DuplexStreaming;
+    }
+
+    protected void SetNewActiveCallUnsynchronized(IGrpcCall<TRequest, TResponse> call)
+    {
+        Debug.Assert(Monitor.IsEntered(Lock), "Should be called with lock.");
+
+        if (NewActiveCallTcs != null)
+        {
+            // Run continuation synchronously so awaiters execute inside the lock
+            NewActiveCallTcs.SetResult(call);
+            NewActiveCallTcs = new TaskCompletionSource<IGrpcCall<TRequest, TResponse>?>(TaskCreationOptions.None);
+        }
+    }
+
+    Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    {
+        throw new NotSupportedException();
+    }
+
+    protected async Task<IGrpcCall<TRequest, TResponse>?> GetActiveCallUnsynchronizedAsync(IGrpcCall<TRequest, TResponse>? previousCall)
+    {
+        CompatibilityHelpers.Assert(NewActiveCallTcs != null);
+
+        var call = await NewActiveCallTcs.Task.ConfigureAwait(false);
+
+        Debug.Assert(Monitor.IsEntered(Lock));
+        if (call == null)
+        {
+            call = await CommitedCallTask.ConfigureAwait(false);
+        }
+
+        // Avoid infinite loop.
+        if (call == previousCall)
+        {
+            return null;
+        }
+
+        return call;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (Disposed)
+        {
+            return;
+        }
+
+        Disposed = true;
+
+        if (disposing)
+        {
+            if (CommitedCallTask.IsCompletedSuccessfully())
+            {
+                CommitedCallTask.Result.Dispose();
             }
 
-            CommitCall(resolvedCall, commitReason);
+            Cleanup();
         }
+    }
 
-        protected void OnStartingAttempt()
+    protected void Cleanup()
+    {
+        _ctsRegistration?.Dispose();
+        _ctsRegistration = null;
+        CancellationTokenSource.Cancel();
+
+        ClearRetryBuffer();
+    }
+
+    internal bool TryAddToRetryBuffer(ReadOnlyMemory<byte> message)
+    {
+        lock (Lock)
         {
-            Debug.Assert(Monitor.IsEntered(Lock));
+            var messageSize = message.Length;
+            if (CurrentCallBufferSize + messageSize > Channel.MaxRetryBufferPerCallSize)
+            {
+                return false;
+            }
+            if (!Channel.TryAddToRetryBuffer(messageSize))
+            {
+                return false;
+            }
 
-            AttemptCount++;
-            Log.StartingAttempt(Logger, AttemptCount);
+            CurrentCallBufferSize += messageSize;
+            BufferedMessages.Add(message);
+            return true;
         }
+    }
 
-        protected virtual void OnCancellation()
+    internal void ClearRetryBuffer()
+    {
+        lock (Lock)
         {
+            if (BufferedMessages.Count > 0)
+            {
+                BufferedMessages.Clear();
+                Channel.RemoveFromRetryBuffer(CurrentCallBufferSize);
+                CurrentCallBufferSize = 0;
+            }
+        }
+    }
+
+    protected StatusGrpcCall<TRequest, TResponse> CreateStatusCall(Status status)
+    {
+        return new StatusGrpcCall<TRequest, TResponse>(status, Channel);
+    }
+
+    protected void HandleUnexpectedError(Exception ex)
+    {
+        IGrpcCall<TRequest, TResponse> resolvedCall;
+        CommitReason commitReason;
+
+        // Cancellation token triggered by dispose could throw here.
+        if (ex is OperationCanceledException && CancellationTokenSource.IsCancellationRequested)
+        {
+            // Cancellation could have been caused by an exceeded deadline.
+            if (IsDeadlineExceeded())
+            {
+                commitReason = CommitReason.DeadlineExceeded;
+                // An exceeded deadline inbetween calls means there is no active call.
+                // Create a fake call that returns exceeded deadline status to the app.
+                resolvedCall = CreateStatusCall(GrpcProtocolConstants.DeadlineExceededStatus);
+            }
+            else
+            {
+                commitReason = CommitReason.Canceled;
+                resolvedCall = CreateStatusCall(Disposed ? GrpcProtocolConstants.DisposeCanceledStatus : GrpcProtocolConstants.ClientCanceledStatus);
+            }
+        }
+        else
+        {
+            commitReason = CommitReason.UnexpectedError;
+            resolvedCall = CreateStatusCall(GrpcProtocolHelpers.CreateStatusFromException("Unexpected error during retry.", ex));
+
+            // Only log unexpected errors.
+            Log.ErrorRetryingCall(Logger, ex);
         }
 
-        protected bool IsRetryThrottlingActive()
-        {
-            return Channel.RetryThrottling?.IsRetryThrottlingActive() ?? false;
-        }
+        CommitCall(resolvedCall, commitReason);
+    }
 
-        protected void RetryAttemptCallSuccess()
-        {
-            Channel.RetryThrottling?.CallSuccess();
-        }
+    protected void OnStartingAttempt()
+    {
+        Debug.Assert(Monitor.IsEntered(Lock));
 
-        protected void RetryAttemptCallFailure()
-        {
-            Channel.RetryThrottling?.CallFailure();
-        }
+        AttemptCount++;
+        Log.StartingAttempt(Logger, AttemptCount);
+    }
 
-        public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
-        {
-            throw new NotSupportedException();
-        }
+    protected virtual void OnCancellation()
+    {
+    }
 
-        public Exception CreateFailureStatusException(Status status)
-        {
-            throw new NotSupportedException();
-        }
+    protected bool IsRetryThrottlingActive()
+    {
+        return Channel.RetryThrottling?.IsRetryThrottlingActive() ?? false;
+    }
+
+    protected void RetryAttemptCallSuccess()
+    {
+        Channel.RetryThrottling?.CallSuccess();
+    }
+
+    protected void RetryAttemptCallFailure()
+    {
+        Channel.RetryThrottling?.CallFailure();
+    }
+
+    public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+    {
+        throw new NotSupportedException();
+    }
+
+    public Exception CreateFailureStatusException(Status status)
+    {
+        throw new NotSupportedException();
     }
 }

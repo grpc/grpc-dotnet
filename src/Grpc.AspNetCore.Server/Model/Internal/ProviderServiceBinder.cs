@@ -22,118 +22,117 @@ using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 using Microsoft.AspNetCore.Routing;
 
-namespace Grpc.AspNetCore.Server.Model.Internal
-{
-    internal class ProviderServiceBinder<
+namespace Grpc.AspNetCore.Server.Model.Internal;
+
+internal class ProviderServiceBinder<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-        TService> : ServiceBinderBase where TService : class
+    TService> : ServiceBinderBase where TService : class
+{
+    private readonly ServiceMethodProviderContext<TService> _context;
+    private readonly Type _declaringType;
+
+    internal ProviderServiceBinder(ServiceMethodProviderContext<TService> context, Type declaringType)
     {
-        private readonly ServiceMethodProviderContext<TService> _context;
-        private readonly Type _declaringType;
+        _context = context;
+        _declaringType = declaringType;
+    }
 
-        internal ProviderServiceBinder(ServiceMethodProviderContext<TService> context, Type declaringType)
+    public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
+    {
+        var (invoker, metadata) = CreateModelCore<ClientStreamingServerMethod<TService, TRequest, TResponse>>(
+            method.Name,
+            new[] { typeof(IAsyncStreamReader<TRequest>), typeof(ServerCallContext) });
+
+        _context.AddClientStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
+    }
+
+    public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
+    {
+        var (invoker, metadata) = CreateModelCore<DuplexStreamingServerMethod<TService, TRequest, TResponse>>(
+            method.Name,
+            new[] { typeof(IAsyncStreamReader<TRequest>), typeof(IServerStreamWriter<TResponse>), typeof(ServerCallContext) });
+
+        _context.AddDuplexStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
+    }
+
+    public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
+    {
+        var (invoker, metadata) = CreateModelCore<ServerStreamingServerMethod<TService, TRequest, TResponse>>(
+            method.Name,
+            new[] { typeof(TRequest), typeof(IServerStreamWriter<TResponse>), typeof(ServerCallContext) });
+
+        _context.AddServerStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
+    }
+
+    public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
+    {
+        var (invoker, metadata) = CreateModelCore<UnaryServerMethod<TService, TRequest, TResponse>>(
+            method.Name,
+            new[] { typeof(TRequest), typeof(ServerCallContext) });
+
+        _context.AddUnaryMethod<TRequest, TResponse>(method, metadata, invoker);
+    }
+
+    private (TDelegate invoker, List<object> metadata) CreateModelCore<TDelegate>(string methodName, Type[] methodParameters) where TDelegate : Delegate
+    {
+        var handlerMethod = GetMethod(methodName, methodParameters);
+
+        if (handlerMethod == null)
         {
-            _context = context;
-            _declaringType = declaringType;
+            throw new InvalidOperationException($"Could not find '{methodName}' on {typeof(TService)}.");
         }
 
-        public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ClientStreamingServerMethod<TRequest, TResponse> handler)
+        var invoker = (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), handlerMethod);
+
+        var metadata = new List<object>();
+        // Add type metadata first so it has a lower priority
+        metadata.AddRange(typeof(TService).GetCustomAttributes(inherit: true));
+        // Add method metadata last so it has a higher priority
+        metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
+
+        // Accepting CORS preflight means gRPC will allow requests with OPTIONS + preflight headers.
+        // If CORS middleware hasn't been configured then the request will reach gRPC handler.
+        // gRPC will return 405 response and log that CORS has not been configured.
+        metadata.Add(new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true));
+
+        return (invoker, metadata);
+    }
+
+    private MethodInfo? GetMethod(string methodName, Type[] methodParameters)
+    {
+        Type? currentType = typeof(TService);
+        while (currentType != null)
         {
-            var (invoker, metadata) = CreateModelCore<ClientStreamingServerMethod<TService, TRequest, TResponse>>(
-                method.Name,
-                new[] { typeof(IAsyncStreamReader<TRequest>), typeof(ServerCallContext) });
+            // Specify binding flags explicitly because we don't want to match static methods.
+            var matchingMethod = currentType.GetMethod(
+                methodName,
+                BindingFlags.Public | BindingFlags.Instance,
+                binder: null,
+                types: methodParameters,
+                modifiers: null);
 
-            _context.AddClientStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
-        }
-
-        public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, DuplexStreamingServerMethod<TRequest, TResponse> handler)
-        {
-            var (invoker, metadata) = CreateModelCore<DuplexStreamingServerMethod<TService, TRequest, TResponse>>(
-                method.Name,
-                new[] { typeof(IAsyncStreamReader<TRequest>), typeof(IServerStreamWriter<TResponse>), typeof(ServerCallContext) });
-
-            _context.AddDuplexStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
-        }
-
-        public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, ServerStreamingServerMethod<TRequest, TResponse> handler)
-        {
-            var (invoker, metadata) = CreateModelCore<ServerStreamingServerMethod<TService, TRequest, TResponse>>(
-                method.Name,
-                new[] { typeof(TRequest), typeof(IServerStreamWriter<TResponse>), typeof(ServerCallContext) });
-
-            _context.AddServerStreamingMethod<TRequest, TResponse>(method, metadata, invoker);
-        }
-
-        public override void AddMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, UnaryServerMethod<TRequest, TResponse> handler)
-        {
-            var (invoker, metadata) = CreateModelCore<UnaryServerMethod<TService, TRequest, TResponse>>(
-                method.Name,
-                new[] { typeof(TRequest), typeof(ServerCallContext) });
-
-            _context.AddUnaryMethod<TRequest, TResponse>(method, metadata, invoker);
-        }
-
-        private (TDelegate invoker, List<object> metadata) CreateModelCore<TDelegate>(string methodName, Type[] methodParameters) where TDelegate : Delegate
-        {
-            var handlerMethod = GetMethod(methodName, methodParameters);
-
-            if (handlerMethod == null)
+            if (matchingMethod == null)
             {
-                throw new InvalidOperationException($"Could not find '{methodName}' on {typeof(TService)}.");
+                return null;
             }
 
-            var invoker = (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), handlerMethod);
-
-            var metadata = new List<object>();
-            // Add type metadata first so it has a lower priority
-            metadata.AddRange(typeof(TService).GetCustomAttributes(inherit: true));
-            // Add method metadata last so it has a higher priority
-            metadata.AddRange(handlerMethod.GetCustomAttributes(inherit: true));
-
-            // Accepting CORS preflight means gRPC will allow requests with OPTIONS + preflight headers.
-            // If CORS middleware hasn't been configured then the request will reach gRPC handler.
-            // gRPC will return 405 response and log that CORS has not been configured.
-            metadata.Add(new HttpMethodMetadata(new[] { "POST" }, acceptCorsPreflight: true));
-
-            return (invoker, metadata);
-        }
-
-        private MethodInfo? GetMethod(string methodName, Type[] methodParameters)
-        {
-            Type? currentType = typeof(TService);
-            while (currentType != null)
+            // Validate that the method overrides the virtual method on the base service type.
+            // If there is a method with the same name it will hide the base method. Ignore it,
+            // and continue searching on the base type.
+            if (matchingMethod.IsVirtual)
             {
-                // Specify binding flags explicitly because we don't want to match static methods.
-                var matchingMethod = currentType.GetMethod(
-                    methodName,
-                    BindingFlags.Public | BindingFlags.Instance,
-                    binder: null,
-                    types: methodParameters,
-                    modifiers: null);
-
-                if (matchingMethod == null)
+                var baseDefinitionMethod = matchingMethod.GetBaseDefinition();
+                if (baseDefinitionMethod != null && baseDefinitionMethod.DeclaringType == _declaringType)
                 {
-                    return null;
+                    return matchingMethod;
                 }
-
-                // Validate that the method overrides the virtual method on the base service type.
-                // If there is a method with the same name it will hide the base method. Ignore it,
-                // and continue searching on the base type.
-                if (matchingMethod.IsVirtual)
-                {
-                    var baseDefinitionMethod = matchingMethod.GetBaseDefinition();
-                    if (baseDefinitionMethod != null && baseDefinitionMethod.DeclaringType == _declaringType)
-                    {
-                        return matchingMethod;
-                    }
-                }
-
-                currentType = currentType.BaseType;
             }
 
-            return null;
+            currentType = currentType.BaseType;
         }
+
+        return null;
     }
 }

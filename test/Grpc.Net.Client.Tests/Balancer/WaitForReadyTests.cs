@@ -38,123 +38,122 @@ using System.IO;
 using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Net.Client.Balancer;
 
-namespace Grpc.Net.Client.Tests.Balancer
+namespace Grpc.Net.Client.Tests.Balancer;
+
+[TestFixture]
+public class WaitForReadyTests
 {
-    [TestFixture]
-    public class WaitForReadyTests
+    [Test]
+    public async Task ResolverReturnsNoAddresses_CallWithWaitForReady_Wait()
     {
-        [Test]
-        public async Task ResolverReturnsNoAddresses_CallWithWaitForReady_Wait()
+        // Arrange
+        string? authority = null;
+        var testMessageHandler = TestHttpMessageHandler.Create(async request =>
         {
-            // Arrange
-            string? authority = null;
-            var testMessageHandler = TestHttpMessageHandler.Create(async request =>
-            {
-                authority = request.RequestUri!.Authority;
-                var reply = new HelloReply { Message = "Hello world" };
+            authority = request.RequestUri!.Authority;
+            var reply = new HelloReply { Message = "Hello world" };
 
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
 
-            var services = new ServiceCollection();
+        var services = new ServiceCollection();
 
-            var resolver = new TestResolver();
+        var resolver = new TestResolver();
 
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
 
-            var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
-
-            var responseTask = call.ResponseAsync;
-
-            Assert.IsFalse(responseTask.IsCompleted);
-            Assert.IsNull(authority);
-
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 81)
-            });
-
-            await responseTask.DefaultTimeout();
-            Assert.AreEqual("localhost:81", authority);
-        }
-
-        [Test]
-        public async Task ResolverReturnsNoAddresses_DeadlineWhileWaitForReady_Error()
+        var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
         {
-            // Arrange
-            var testMessageHandler = TestHttpMessageHandler.Create(async request =>
-            {
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
 
-            var services = new ServiceCollection();
-            var resolver = new TestResolver();
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
 
-            var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
+        var responseTask = call.ResponseAsync;
 
-            // Act
-            var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.2)).WithWaitForReady();
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest());
+        Assert.IsFalse(responseTask.IsCompleted);
+        Assert.IsNull(authority);
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-
-            Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
-            Assert.AreEqual(string.Empty, ex.Status.Detail);
-        }
-
-        [Test]
-        public async Task ResolverReturnsNoAddresses_DisposeWhileWaitForReady_Error()
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var testMessageHandler = TestHttpMessageHandler.Create(async request =>
-            {
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
+            new BalancerAddress("localhost", 81)
+        });
 
-            var services = new ServiceCollection();
-            var resolver = new TestResolver();
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+        await responseTask.DefaultTimeout();
+        Assert.AreEqual("localhost:81", authority);
+    }
 
-            var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
+    [Test]
+    public async Task ResolverReturnsNoAddresses_DeadlineWhileWaitForReady_Error()
+    {
+        // Arrange
+        var testMessageHandler = TestHttpMessageHandler.Create(async request =>
+        {
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
 
-            // Act
-            var callOptions = new CallOptions().WithWaitForReady();
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest());
+        var services = new ServiceCollection();
+        var resolver = new TestResolver();
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
 
-            var exTask = ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+        var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
 
-            call.Dispose();
+        // Act
+        var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(0.2)).WithWaitForReady();
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest());
 
-            var ex = await exTask.DefaultTimeout();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
-        }
+        Assert.AreEqual(StatusCode.DeadlineExceeded, ex.StatusCode);
+        Assert.AreEqual(string.Empty, ex.Status.Detail);
+    }
+
+    [Test]
+    public async Task ResolverReturnsNoAddresses_DisposeWhileWaitForReady_Error()
+    {
+        // Arrange
+        var testMessageHandler = TestHttpMessageHandler.Create(async request =>
+        {
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+
+        var services = new ServiceCollection();
+        var resolver = new TestResolver();
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+
+        var invoker = HttpClientCallInvokerFactory.Create(testMessageHandler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
+
+        // Act
+        var callOptions = new CallOptions().WithWaitForReady();
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, callOptions, new HelloRequest());
+
+        var exTask = ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
+
+        call.Dispose();
+
+        var ex = await exTask.DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
     }
 }
 

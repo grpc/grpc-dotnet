@@ -22,49 +22,48 @@ using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal.CallHandlers
-{
-    internal class UnaryServerCallHandler<
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
+
+internal class UnaryServerCallHandler<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-        TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
-        where TRequest : class
-        where TResponse : class
-        where TService : class
+    TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
+    where TService : class
+{
+    private readonly UnaryServerMethodInvoker<TService, TRequest, TResponse> _invoker;
+
+    public UnaryServerCallHandler(
+        UnaryServerMethodInvoker<TService, TRequest, TResponse> invoker,
+        ILoggerFactory loggerFactory)
+        : base(invoker, loggerFactory)
     {
-        private readonly UnaryServerMethodInvoker<TService, TRequest, TResponse> _invoker;
+        _invoker = invoker;
+    }
 
-        public UnaryServerCallHandler(
-            UnaryServerMethodInvoker<TService, TRequest, TResponse> invoker,
-            ILoggerFactory loggerFactory)
-            : base(invoker, loggerFactory)
+    protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+    {
+        var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
+
+        var response = await _invoker.Invoke(httpContext, serverCallContext, request);
+
+        if (response == null)
         {
-            _invoker = invoker;
+            // This is consistent with Grpc.Core when a null value is returned
+            throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
         }
 
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+        // Check if deadline exceeded while method was invoked. If it has then skip trying to write
+        // the response message because it will always fail.
+        // Note that the call is still going so the deadline could still be exceeded after this point.
+        if (serverCallContext.DeadlineManager?.IsDeadlineExceededStarted ?? false)
         {
-            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
-
-            var response = await _invoker.Invoke(httpContext, serverCallContext, request);
-
-            if (response == null)
-            {
-                // This is consistent with Grpc.Core when a null value is returned
-                throw new RpcException(new Status(StatusCode.Cancelled, "No message returned from method."));
-            }
-
-            // Check if deadline exceeded while method was invoked. If it has then skip trying to write
-            // the response message because it will always fail.
-            // Note that the call is still going so the deadline could still be exceeded after this point.
-            if (serverCallContext.DeadlineManager?.IsDeadlineExceededStarted ?? false)
-            {
-                return;
-            }
-
-            var responseBodyWriter = httpContext.Response.BodyWriter;
-            await responseBodyWriter.WriteSingleMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
+            return;
         }
+
+        var responseBodyWriter = httpContext.Response.BodyWriter;
+        await responseBodyWriter.WriteSingleMessageAsync(response, serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
     }
 }

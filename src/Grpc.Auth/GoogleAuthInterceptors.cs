@@ -23,85 +23,84 @@ using Google.Apis.Auth.OAuth2;
 using Grpc.Core;
 using Grpc.Core.Utils;
 
-namespace Grpc.Auth
+namespace Grpc.Auth;
+
+/// <summary>
+/// Factory methods to create authorization interceptors for Google credentials.
+/// <seealso cref="GoogleGrpcCredentials"/>
+/// </summary>
+public static class GoogleAuthInterceptors
 {
+    private const string AuthorizationHeader = "Authorization";
+    private const string Schema = "Bearer";
+
     /// <summary>
-    /// Factory methods to create authorization interceptors for Google credentials.
-    /// <seealso cref="GoogleGrpcCredentials"/>
+    /// Creates an <see cref="AsyncAuthInterceptor"/> that will obtain access token from any credential type that implements
+    /// <c>ITokenAccess</c>. (e.g. <c>GoogleCredential</c>).
     /// </summary>
-    public static class GoogleAuthInterceptors
+    /// <param name="credential">The credential to use to obtain access tokens.</param>
+    /// <returns>The interceptor.</returns>
+    public static AsyncAuthInterceptor FromCredential(ITokenAccess credential)
     {
-        private const string AuthorizationHeader = "Authorization";
-        private const string Schema = "Bearer";
-
-        /// <summary>
-        /// Creates an <see cref="AsyncAuthInterceptor"/> that will obtain access token from any credential type that implements
-        /// <c>ITokenAccess</c>. (e.g. <c>GoogleCredential</c>).
-        /// </summary>
-        /// <param name="credential">The credential to use to obtain access tokens.</param>
-        /// <returns>The interceptor.</returns>
-        public static AsyncAuthInterceptor FromCredential(ITokenAccess credential)
+        if (credential is ITokenAccessWithHeaders credentialWithHeaders)
         {
-            if (credential is ITokenAccessWithHeaders credentialWithHeaders)
-            {
-                return FromCredential(credentialWithHeaders);
-            }
-
-            return new AsyncAuthInterceptor(async (context, metadata) =>
-            {
-                var accessToken = await credential.GetAccessTokenForRequestAsync(context.ServiceUrl, CancellationToken.None).ConfigureAwait(false);
-                metadata.Add(CreateBearerTokenHeader(accessToken));
-            });
+            return FromCredential(credentialWithHeaders);
         }
 
-        /// <summary>
-        /// Creates an <see cref="AsyncAuthInterceptor"/> that will obtain access token and associated information
-        /// from any credential type that implements <see cref="ITokenAccessWithHeaders"/>
-        /// </summary>
-        /// <param name="credential">The credential to use to obtain access tokens.</param>
-        /// <returns>The interceptor.</returns>
-        public static AsyncAuthInterceptor FromCredential(ITokenAccessWithHeaders credential)
+        return new AsyncAuthInterceptor(async (context, metadata) =>
         {
-            return new AsyncAuthInterceptor(async (context, metadata) => 
+            var accessToken = await credential.GetAccessTokenForRequestAsync(context.ServiceUrl, CancellationToken.None).ConfigureAwait(false);
+            metadata.Add(CreateBearerTokenHeader(accessToken));
+        });
+    }
+
+    /// <summary>
+    /// Creates an <see cref="AsyncAuthInterceptor"/> that will obtain access token and associated information
+    /// from any credential type that implements <see cref="ITokenAccessWithHeaders"/>
+    /// </summary>
+    /// <param name="credential">The credential to use to obtain access tokens.</param>
+    /// <returns>The interceptor.</returns>
+    public static AsyncAuthInterceptor FromCredential(ITokenAccessWithHeaders credential)
+    {
+        return new AsyncAuthInterceptor(async (context, metadata) => 
+        {
+            AccessTokenWithHeaders tokenAndHeaders = await credential.GetAccessTokenWithHeadersForRequestAsync(context.ServiceUrl, CancellationToken.None).ConfigureAwait(false);
+            metadata.Add(CreateBearerTokenHeader(tokenAndHeaders.AccessToken));
+            foreach (var header in tokenAndHeaders.Headers)
             {
-                AccessTokenWithHeaders tokenAndHeaders = await credential.GetAccessTokenWithHeadersForRequestAsync(context.ServiceUrl, CancellationToken.None).ConfigureAwait(false);
-                metadata.Add(CreateBearerTokenHeader(tokenAndHeaders.AccessToken));
-                foreach (var header in tokenAndHeaders.Headers)
+                foreach (var headerValue in header.Value)
                 {
-                    foreach (var headerValue in header.Value)
-                    {
-                        metadata.Add(new Metadata.Entry(header.Key, headerValue));
-                    }
+                    metadata.Add(new Metadata.Entry(header.Key, headerValue));
                 }
-            });
-        }
+            }
+        });
+    }
 
-        /// <summary>
-        /// Creates an <see cref="AsyncAuthInterceptor"/> that will use given access token as authorization.
-        /// </summary>
-        /// <param name="accessToken">OAuth2 access token.</param>
-        /// <returns>The interceptor.</returns>
-        public static AsyncAuthInterceptor FromAccessToken(string accessToken)
+    /// <summary>
+    /// Creates an <see cref="AsyncAuthInterceptor"/> that will use given access token as authorization.
+    /// </summary>
+    /// <param name="accessToken">OAuth2 access token.</param>
+    /// <returns>The interceptor.</returns>
+    public static AsyncAuthInterceptor FromAccessToken(string accessToken)
+    {
+        GrpcPreconditions.CheckNotNull(accessToken);
+        return new AsyncAuthInterceptor((context, metadata) =>
         {
-            GrpcPreconditions.CheckNotNull(accessToken);
-            return new AsyncAuthInterceptor((context, metadata) =>
-            {
-                metadata.Add(CreateBearerTokenHeader(accessToken));
-                return GetCompletedTask();
-            });
-        }
+            metadata.Add(CreateBearerTokenHeader(accessToken));
+            return GetCompletedTask();
+        });
+    }
 
-        private static Metadata.Entry CreateBearerTokenHeader(string accessToken)
-        {
-            return new Metadata.Entry(AuthorizationHeader, Schema + " " + accessToken);
-        }
+    private static Metadata.Entry CreateBearerTokenHeader(string accessToken)
+    {
+        return new Metadata.Entry(AuthorizationHeader, Schema + " " + accessToken);
+    }
 
-        /// <summary>
-        /// Framework independent equivalent of <c>Task.CompletedTask</c>.
-        /// </summary>
-        private static Task GetCompletedTask()
-        {
-            return Task.CompletedTask;
-        }
+    /// <summary>
+    /// Framework independent equivalent of <c>Task.CompletedTask</c>.
+    /// </summary>
+    private static Task GetCompletedTask()
+    {
+        return Task.CompletedTask;
     }
 }

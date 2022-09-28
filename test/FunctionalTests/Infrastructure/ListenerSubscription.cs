@@ -17,40 +17,39 @@
 #endregion
 
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public class ListenerSubscription : IDisposable
 {
-    public class ListenerSubscription : IDisposable
+    private readonly TestEventListener _testEventListener;
+    private readonly TaskCompletionSource<object?> _tcs;
+
+    public ListenerSubscription(TestEventListener testEventListener, string counterName, long expectedValue)
     {
-        private readonly TestEventListener _testEventListener;
-        private readonly TaskCompletionSource<object?> _tcs;
-
-        public ListenerSubscription(TestEventListener testEventListener, string counterName, long expectedValue)
-        {
-            _tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _testEventListener = testEventListener;
-            CounterName = counterName;
-            ExpectedValue = expectedValue;
-        }
-
-        public Task Task => _tcs.Task;
-
-        public string CounterName { get; }
-        public long ExpectedValue { get; }
-
-        // Set the last value encountered for debugging purposes
-        public long? LastValue { get; internal set; }
-        public int CheckCount { get; internal set; }
-
-        public void Dispose()
-        {
-            _testEventListener.Unsubscribe(this);
-        }
-
-        internal void SetMatched()
-        {
-            _tcs.TrySetResult(null);
-        }
-
-        internal bool IsMatched => _tcs.Task.IsCompletedSuccessfully;
+        _tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _testEventListener = testEventListener;
+        CounterName = counterName;
+        ExpectedValue = expectedValue;
     }
+
+    public Task Task => _tcs.Task;
+
+    public string CounterName { get; }
+    public long ExpectedValue { get; }
+
+    // Set the last value encountered for debugging purposes
+    public long? LastValue { get; internal set; }
+    public int CheckCount { get; internal set; }
+
+    public void Dispose()
+    {
+        _testEventListener.Unsubscribe(this);
+    }
+
+    internal void SetMatched()
+    {
+        _tcs.TrySetResult(null);
+    }
+
+    internal bool IsMatched => _tcs.Task.IsCompletedSuccessfully;
 }

@@ -22,34 +22,33 @@ using Grpc.Tests.Shared;
 using Nested;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class NestedTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class NestedTests : FunctionalTestBase
+    [Test]
+    public async Task CallNestedService_SuccessResponse()
     {
-        [Test]
-        public async Task CallNestedService_SuccessResponse()
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Nested.NestedService/SayHello",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Nested.NestedService/SayHello",
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        // Assert
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
-            var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
-            Assert.AreEqual("Hello Nested: World", responseMessage.Message);
-            response.AssertTrailerStatus();
-        }
+        var responseMessage = MessageHelpers.AssertReadMessage<HelloReply>(await response.Content.ReadAsByteArrayAsync().DefaultTimeout());
+        Assert.AreEqual("Hello Nested: World", responseMessage.Message);
+        response.AssertTrailerStatus();
     }
 }

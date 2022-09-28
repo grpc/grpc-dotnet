@@ -20,81 +20,80 @@ using System.Net;
 using Grpc.Net.Client.Web.Internal;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Web.Tests
+namespace Grpc.Net.Client.Web.Tests;
+
+[TestFixture]
+public class GrpcWebRequestContentTests
 {
-    [TestFixture]
-    public class GrpcWebRequestContentTests
+    [Test]
+    public void ContentLength_InnerHasContentLength_GrpcWeb_UseValue()
     {
-        [Test]
-        public void ContentLength_InnerHasContentLength_GrpcWeb_UseValue()
+        // Arrange
+        var testHttpContext = new TestHttpContent() { ContentLength = 10 };
+        var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWeb);
+
+        // Act
+        var contentLength = content.Headers.ContentLength;
+
+        // Assert
+        Assert.AreEqual(10, contentLength);
+    }
+
+    [Test]
+    public void ContentLength_InnerHasContentLength_GrpcWebText_UseValue()
+    {
+        // Arrange
+        var testHttpContext = new TestHttpContent() { ContentLength = 10 };
+        var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWebText);
+
+        // Act
+        var contentLength = content.Headers.ContentLength;
+
+        // Assert
+        Assert.AreEqual(16, contentLength);
+    }
+
+    [Test]
+    public void ContentLength_InnerMissingContentLength_Null()
+    {
+        // Arrange
+        var testHttpContext = new TestHttpContent() { ContentLength = null };
+        var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWebText);
+
+        // Act
+        var contentLength = content.Headers.ContentLength;
+
+        // Assert
+        Assert.AreEqual(null, contentLength);
+    }
+
+    private class TestHttpContent : HttpContent
+    {
+        public bool Disposed { get; private set; }
+
+        public long? ContentLength { get; set; }
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
         {
-            // Arrange
-            var testHttpContext = new TestHttpContent() { ContentLength = 10 };
-            var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWeb);
-
-            // Act
-            var contentLength = content.Headers.ContentLength;
-
-            // Assert
-            Assert.AreEqual(10, contentLength);
+            throw new System.NotImplementedException();
         }
 
-        [Test]
-        public void ContentLength_InnerHasContentLength_GrpcWebText_UseValue()
+        protected override bool TryComputeLength(out long length)
         {
-            // Arrange
-            var testHttpContext = new TestHttpContent() { ContentLength = 10 };
-            var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWebText);
+            if (ContentLength != null)
+            {
+                length = ContentLength.GetValueOrDefault();
+                return true;
+            }
 
-            // Act
-            var contentLength = content.Headers.ContentLength;
-
-            // Assert
-            Assert.AreEqual(16, contentLength);
+            length = -1;
+            return false;
         }
 
-        [Test]
-        public void ContentLength_InnerMissingContentLength_Null()
+        protected override void Dispose(bool disposing)
         {
-            // Arrange
-            var testHttpContext = new TestHttpContent() { ContentLength = null };
-            var content = new GrpcWebRequestContent(testHttpContext, GrpcWebMode.GrpcWebText);
-
-            // Act
-            var contentLength = content.Headers.ContentLength;
-
-            // Assert
-            Assert.AreEqual(null, contentLength);
-        }
-
-        private class TestHttpContent : HttpContent
-        {
-            public bool Disposed { get; private set; }
-
-            public long? ContentLength { get; set; }
-
-            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-            {
-                throw new System.NotImplementedException();
-            }
-
-            protected override bool TryComputeLength(out long length)
-            {
-                if (ContentLength != null)
-                {
-                    length = ContentLength.GetValueOrDefault();
-                    return true;
-                }
-
-                length = -1;
-                return false;
-            }
-
-            protected override void Dispose(bool disposing)
-            {
-                Disposed = true;
-                base.Dispose(disposing);
-            }
+            Disposed = true;
+            base.Dispose(disposing);
         }
     }
 }

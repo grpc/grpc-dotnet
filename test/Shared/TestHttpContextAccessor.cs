@@ -18,15 +18,14 @@
 
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.Tests.Shared
-{
-    internal class TestHttpContextAccessor : IHttpContextAccessor
-    {
-        public TestHttpContextAccessor(HttpContext httpContext)
-        {
-            HttpContext = httpContext;
-        }
+namespace Grpc.Tests.Shared;
 
-        public HttpContext? HttpContext { get; set; }
+internal class TestHttpContextAccessor : IHttpContextAccessor
+{
+    public TestHttpContextAccessor(HttpContext httpContext)
+    {
+        HttpContext = httpContext;
     }
+
+    public HttpContext? HttpContext { get; set; }
 }

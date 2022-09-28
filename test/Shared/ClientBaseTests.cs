@@ -19,16 +19,15 @@
 using Grpc.Core;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class ClientBaseTests
 {
-    [TestFixture]
-    public class ClientBaseTests
+    [Test]
+    public void ClientBaseClass_ExplicitSetting_UsesClientBase()
     {
-        [Test]
-        public void ClientBaseClass_ExplicitSetting_UsesClientBase()
-        {
-            // Assert
-            Assert.True(typeof(Greet.Greeter.GreeterClient).IsSubclassOf(typeof(ClientBase)));
-        }
+        // Assert
+        Assert.True(typeof(Greet.Greeter.GreeterClient).IsSubclassOf(typeof(ClientBase)));
     }
 }

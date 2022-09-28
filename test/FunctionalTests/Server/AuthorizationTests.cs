@@ -22,82 +22,81 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class AuthorizationTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class AuthorizationTests : FunctionalTestBase
+    [Test]
+    public async Task CallAuthorizedServiceWithoutToken_Unauthorized()
     {
-        [Test]
-        public async Task CallAuthorizedServiceWithoutToken_Unauthorized()
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Authorize.AuthorizedGreeter/SayHello",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Authorize.AuthorizedGreeter/SayHello",
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 
-        [Test]
-        public async Task CallAuthorizedServiceWithToken_Success()
+    [Test]
+    public async Task CallAuthorizedServiceWithToken_Success()
+    {
+        // Arrange
+        var tokenResponse = await Fixture.Client.GetAsync("generateJwtToken").DefaultTimeout();
+        var token = await tokenResponse.Content.ReadAsStringAsync().DefaultTimeout();
+
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var tokenResponse = await Fixture.Client.GetAsync("generateJwtToken").DefaultTimeout();
-            var token = await tokenResponse.Content.ReadAsStringAsync().DefaultTimeout();
+            Name = "World"
+        };
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
+        httpRequest.Headers.Add("Authorization", $"Bearer {token}");
+        httpRequest.Content = new GrpcStreamContent(ms);
 
-            var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
-            httpRequest.Headers.Add("Authorization", $"Bearer {token}");
-            httpRequest.Content = new GrpcStreamContent(ms);
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
+        // Assert
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
+        Assert.AreEqual("Hello World", responseMessage.Message);
+        response.AssertTrailerStatus();
+    }
 
-            // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
-            Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertTrailerStatus();
-        }
+    [Test]
+    public async Task CallAuthorizedServiceWithInvalidToken_ReturnUnauthorized()
+    {
+        // Arrange
 
-        [Test]
-        public async Task CallAuthorizedServiceWithInvalidToken_ReturnUnauthorized()
+        var requestMessage = new HelloRequest
         {
-            // Arrange
+            Name = "World"
+        };
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
+        httpRequest.Headers.Add("Authorization", $"Bearer SomeInvalidTokenHere");
+        httpRequest.Content = new GrpcStreamContent(ms);
 
-            var httpRequest = GrpcHttpHelper.Create("Authorize.AuthorizedGreeter/SayHello");
-            httpRequest.Headers.Add("Authorization", $"Bearer SomeInvalidTokenHere");
-            httpRequest.Content = new GrpcStreamContent(ms);
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

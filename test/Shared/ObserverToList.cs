@@ -17,47 +17,46 @@
 #endregion
 
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+internal class ObserverToList<T> : IObserver<T>
 {
-    internal class ObserverToList<T> : IObserver<T>
+    public ObserverToList(List<T> output, Predicate<T>? filter = null, string? name = null)
     {
-        public ObserverToList(List<T> output, Predicate<T>? filter = null, string? name = null)
-        {
-            _output = output;
-            _output.Clear();
-            _filter = filter;
-            _name = name;
-        }
-
-        public bool Completed { get; private set; }
-
-        #region private
-        public void OnCompleted()
-        {
-            Completed = true;
-        }
-
-        public void OnError(Exception error)
-        {
-            throw new Exception("Error happened on IObserver", error);
-        }
-
-        public void OnNext(T value)
-        {
-            if (Completed)
-            {
-                throw new Exception("Observer completed.");
-            }
-
-            if (_filter == null || _filter(value))
-            {
-                _output.Add(value);
-            }
-        }
-
-        private readonly List<T> _output;
-        private readonly Predicate<T>? _filter;
-        private readonly string? _name;  // for debugging 
-        #endregion
+        _output = output;
+        _output.Clear();
+        _filter = filter;
+        _name = name;
     }
+
+    public bool Completed { get; private set; }
+
+    #region private
+    public void OnCompleted()
+    {
+        Completed = true;
+    }
+
+    public void OnError(Exception error)
+    {
+        throw new Exception("Error happened on IObserver", error);
+    }
+
+    public void OnNext(T value)
+    {
+        if (Completed)
+        {
+            throw new Exception("Observer completed.");
+        }
+
+        if (_filter == null || _filter(value))
+        {
+            _output.Add(value);
+        }
+    }
+
+    private readonly List<T> _output;
+    private readonly Predicate<T>? _filter;
+    private readonly string? _name;  // for debugging 
+    #endregion
 }

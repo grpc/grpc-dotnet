@@ -22,46 +22,45 @@ using Grpc.AspNetCore.Server.Model.Internal;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.AspNetCore.Builder
+namespace Microsoft.AspNetCore.Builder;
+
+/// <summary>
+/// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add gRPC service endpoints.
+/// </summary>
+public static class GrpcEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add gRPC service endpoints.
+    /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
     /// </summary>
-    public static class GrpcEndpointRouteBuilderExtensions
-    {
-        /// <summary>
-        /// Maps incoming requests to the specified <typeparamref name="TService"/> type.
-        /// </summary>
-        /// <typeparam name="TService">The service type to map requests to.</typeparam>
-        /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static GrpcServiceEndpointConventionBuilder MapGrpcService<
+    /// <typeparam name="TService">The service type to map requests to.</typeparam>
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <returns>A <see cref="GrpcServiceEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    public static GrpcServiceEndpointConventionBuilder MapGrpcService<
 #if NET5_0_OR_GREATER
-            [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-            TService>(this IEndpointRouteBuilder builder) where TService : class
+        TService>(this IEndpointRouteBuilder builder) where TService : class
+    {
+        if (builder == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            ValidateServicesRegistered(builder.ServiceProvider);
-
-            var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
-            var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
-
-            return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
+        ValidateServicesRegistered(builder.ServiceProvider);
+
+        var serviceRouteBuilder = builder.ServiceProvider.GetRequiredService<ServiceRouteBuilder<TService>>();
+        var endpointConventionBuilders = serviceRouteBuilder.Build(builder);
+
+        return new GrpcServiceEndpointConventionBuilder(endpointConventionBuilders);
+    }
+
+    private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
+    {
+        var marker = serviceProvider.GetService(typeof(GrpcMarkerService));
+        if (marker == null)
         {
-            var marker = serviceProvider.GetService(typeof(GrpcMarkerService));
-            if (marker == null)
-            {
-                throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
-                    "'IServiceCollection.AddGrpc' inside the call to 'ConfigureServices(...)' in the application startup code.");
-            }
+            throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
+                "'IServiceCollection.AddGrpc' inside the call to 'ConfigureServices(...)' in the application startup code.");
         }
     }
 }

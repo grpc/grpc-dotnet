@@ -23,206 +23,205 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class TrailerMetadataTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class TrailerMetadataTests : FunctionalTestBase
+    [Test]
+    public async Task GetTrailers_UnaryMethodSetStatusWithTrailers_TrailersAvailableInClient()
     {
-        [Test]
-        public async Task GetTrailers_UnaryMethodSetStatusWithTrailers_TrailersAvailableInClient()
+        Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
         {
-            Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
-            {
-                context.ResponseTrailers.Add(new Metadata.Entry("Name", "the value was empty"));
-                context.ResponseTrailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
-                context.Status = new Status(StatusCode.InvalidArgument, "Validation failed");
-                return Task.FromResult(new HelloReply());
-            }
-
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.Message == "Error reading message.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
-
-            var channel = CreateChannel();
-
-            var client = TestClientFactory.Create(channel, method);
-
-            // Act
-            var call = client.UnaryCall(new HelloRequest());
-
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-
-            // Assert
-            var trailers = call.GetTrailers();
-            Assert.AreEqual(2, trailers.Count);
-            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
-
-            Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
-            Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.AreEqual(2, ex.Trailers.Count);
-            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
+            context.ResponseTrailers.Add(new Metadata.Entry("Name", "the value was empty"));
+            context.ResponseTrailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
+            context.Status = new Status(StatusCode.InvalidArgument, "Validation failed");
+            return Task.FromResult(new HelloReply());
         }
 
-        [Test]
-        public async Task GetTrailers_UnaryMethodThrowsExceptionWithTrailers_TrailersAvailableInClient()
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+            if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.Message == "Error reading message.")
             {
-                var trailers = new Metadata();
-                trailers.Add(new Metadata.Entry("Name", "the value was empty"));
-                trailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
-                return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
+                return true;
             }
 
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.Message == "Error reading message.")
-                {
-                    return true;
-                }
+            return false;
+        });
 
-                return false;
-            });
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+        var channel = CreateChannel();
 
-            var channel = CreateChannel();
+        var client = TestClientFactory.Create(channel, method);
 
-            var client = TestClientFactory.Create(channel, method);
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
 
-            // Act
-            var call = client.UnaryCall(new HelloRequest());
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        // Assert
+        var trailers = call.GetTrailers();
+        Assert.AreEqual(2, trailers.Count);
+        Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+        Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
 
-            // Assert
-            var trailers = call.GetTrailers();
-            Assert.GreaterOrEqual(trailers.Count, 2);
-            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
+        Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
+        Assert.AreEqual("Validation failed", ex.Status.Detail);
+        Assert.AreEqual(2, ex.Trailers.Count);
+        Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+        Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
+    }
 
-            Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
-            Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.GreaterOrEqual(ex.Trailers.Count, 2);
-            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
-
-            AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
+    [Test]
+    public async Task GetTrailers_UnaryMethodThrowsExceptionWithTrailers_TrailersAvailableInClient()
+    {
+        Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+        {
+            var trailers = new Metadata();
+            trailers.Add(new Metadata.Entry("Name", "the value was empty"));
+            trailers.Add(new Metadata.Entry("grpc-status-details-bin", Encoding.UTF8.GetBytes("Hello world")));
+            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
         }
 
-        [Test]
-        public async Task GetTrailers_ServerStreamingMethodSetStatusWithTrailers_TrailersAvailableInClient()
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            async Task UnaryDeadlineExceeded(HelloRequest request, IAsyncStreamWriter<HelloReply> writer, ServerCallContext context)
+            if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.Message == "Error reading message.")
             {
-                await writer.WriteAsync(new HelloReply());
-
-                context.ResponseTrailers.Add(new Metadata.Entry("Name", "the value was empty"));
-                context.Status = new Status(StatusCode.InvalidArgument, "Validation failed");
+                return true;
             }
 
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.Message == "Error reading message.")
-                {
-                    return true;
-                }
+            return false;
+        });
 
-                return false;
-            });
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+        var channel = CreateChannel();
 
-            var channel = CreateChannel();
+        var client = TestClientFactory.Create(channel, method);
 
-            var client = TestClientFactory.Create(channel, method);
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
 
-            // Act
-            var call = client.ServerStreamingCall(new HelloRequest());
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
-            await call.ResponseStream.MoveNext().DefaultTimeout();
+        // Assert
+        var trailers = call.GetTrailers();
+        Assert.GreaterOrEqual(trailers.Count, 2);
+        Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+        Assert.AreEqual("Hello world", Encoding.UTF8.GetString(trailers.GetValueBytes("grpc-status-details-bin")!));
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+        Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
+        Assert.AreEqual("Validation failed", ex.Status.Detail);
+        Assert.GreaterOrEqual(ex.Trailers.Count, 2);
+        Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+        Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
 
-            // Assert
-            var trailers = call.GetTrailers();
-            Assert.AreEqual(1, trailers.Count);
-            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+        AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
+    }
 
-            Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
-            Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.AreEqual(1, ex.Trailers.Count);
-            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+    [Test]
+    public async Task GetTrailers_ServerStreamingMethodSetStatusWithTrailers_TrailersAvailableInClient()
+    {
+        async Task UnaryDeadlineExceeded(HelloRequest request, IAsyncStreamWriter<HelloReply> writer, ServerCallContext context)
+        {
+            await writer.WriteAsync(new HelloReply());
+
+            context.ResponseTrailers.Add(new Metadata.Entry("Name", "the value was empty"));
+            context.Status = new Status(StatusCode.InvalidArgument, "Validation failed");
         }
 
-        [Test]
-        public async Task GetTrailers_ServerStreamingMethodThrowsExceptionWithTrailers_TrailersAvailableInClient()
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            async Task UnaryDeadlineExceeded(HelloRequest request, IAsyncStreamWriter<HelloReply> writer, ServerCallContext context)
+            if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.Message == "Error reading message.")
             {
-                await writer.WriteAsync(new HelloReply());
-
-                var trailers = new Metadata();
-                trailers.Add(new Metadata.Entry("Name", "the value was empty"));
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers);
+                return true;
             }
 
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.Message == "Error reading message.")
-                {
-                    return true;
-                }
+            return false;
+        });
 
-                return false;
-            });
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
 
-            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+        var channel = CreateChannel();
 
-            var channel = CreateChannel();
+        var client = TestClientFactory.Create(channel, method);
 
-            var client = TestClientFactory.Create(channel, method);
+        // Act
+        var call = client.ServerStreamingCall(new HelloRequest());
 
-            // Act
-            var call = client.ServerStreamingCall(new HelloRequest());
+        await call.ResponseStream.MoveNext().DefaultTimeout();
 
-            await call.ResponseStream.MoveNext().DefaultTimeout();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+        // Assert
+        var trailers = call.GetTrailers();
+        Assert.AreEqual(1, trailers.Count);
+        Assert.AreEqual("the value was empty", trailers.GetValue("name"));
 
-            // Assert
-            var trailers = call.GetTrailers();
-            Assert.GreaterOrEqual(trailers.Count, 1);
-            Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+        Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
+        Assert.AreEqual("Validation failed", ex.Status.Detail);
+        Assert.AreEqual(1, ex.Trailers.Count);
+        Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+    }
 
-            Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
-            Assert.AreEqual("Validation failed", ex.Status.Detail);
-            Assert.GreaterOrEqual(ex.Trailers.Count, 1);
-            Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+    [Test]
+    public async Task GetTrailers_ServerStreamingMethodThrowsExceptionWithTrailers_TrailersAvailableInClient()
+    {
+        async Task UnaryDeadlineExceeded(HelloRequest request, IAsyncStreamWriter<HelloReply> writer, ServerCallContext context)
+        {
+            await writer.WriteAsync(new HelloReply());
 
-            AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
+            var trailers = new Metadata();
+            trailers.Add(new Metadata.Entry("Name", "the value was empty"));
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers);
         }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.Message == "Error reading message.")
+            {
+                return true;
+            }
+
+            return false;
+        });
+
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+
+        var channel = CreateChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.ServerStreamingCall(new HelloRequest());
+
+        await call.ResponseStream.MoveNext().DefaultTimeout();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+
+        // Assert
+        var trailers = call.GetTrailers();
+        Assert.GreaterOrEqual(trailers.Count, 1);
+        Assert.AreEqual("the value was empty", trailers.GetValue("name"));
+
+        Assert.AreEqual(StatusCode.InvalidArgument, ex.StatusCode);
+        Assert.AreEqual("Validation failed", ex.Status.Detail);
+        Assert.GreaterOrEqual(ex.Trailers.Count, 1);
+        Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
+
+        AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
     }
 }

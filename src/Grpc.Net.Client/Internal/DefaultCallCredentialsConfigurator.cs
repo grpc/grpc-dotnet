@@ -18,27 +18,26 @@
 
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
 {
-    internal class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
+    public AsyncAuthInterceptor? Interceptor { get; private set; }
+    public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
+
+    public void Reset()
     {
-        public AsyncAuthInterceptor? Interceptor { get; private set; }
-        public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
+        Interceptor = null;
+        Credentials = null;
+    }
 
-        public void Reset()
-        {
-            Interceptor = null;
-            Credentials = null;
-        }
+    public override void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor)
+    {
+        Interceptor = interceptor;
+    }
 
-        public override void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor)
-        {
-            Interceptor = interceptor;
-        }
-
-        public override void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials)
-        {
-            Credentials = credentials;
-        }
+    public override void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials)
+    {
+        Credentials = credentials;
     }
 }

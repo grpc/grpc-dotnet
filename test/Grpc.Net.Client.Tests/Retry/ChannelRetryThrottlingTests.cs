@@ -20,26 +20,25 @@ using Grpc.Net.Client.Internal.Retry;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Retry
+namespace Grpc.Net.Client.Tests.Retry;
+
+[TestFixture]
+public class ChannelRetryThrottlingTests
 {
-    [TestFixture]
-    public class ChannelRetryThrottlingTests
+    [Test]
+    public void IsRetryThrottlingActive_FailedAndSuccessCalls_ActivatedChanges()
     {
-        [Test]
-        public void IsRetryThrottlingActive_FailedAndSuccessCalls_ActivatedChanges()
-        {
-            var channelRetryThrottling = new ChannelRetryThrottling(maxTokens: 3, tokenRatio: 1.0, NullLoggerFactory.Instance);
+        var channelRetryThrottling = new ChannelRetryThrottling(maxTokens: 3, tokenRatio: 1.0, NullLoggerFactory.Instance);
 
-            Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
+        Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
 
-            channelRetryThrottling.CallFailure();
-            Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
+        channelRetryThrottling.CallFailure();
+        Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
 
-            channelRetryThrottling.CallFailure();
-            Assert.AreEqual(true, channelRetryThrottling.IsRetryThrottlingActive());
+        channelRetryThrottling.CallFailure();
+        Assert.AreEqual(true, channelRetryThrottling.IsRetryThrottlingActive());
 
-            channelRetryThrottling.CallSuccess();
-            Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
-        }
+        channelRetryThrottling.CallSuccess();
+        Assert.AreEqual(false, channelRetryThrottling.IsRetryThrottlingActive());
     }
 }

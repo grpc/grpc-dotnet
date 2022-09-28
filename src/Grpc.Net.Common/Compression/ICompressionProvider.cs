@@ -18,31 +18,30 @@
 
 using System.IO.Compression;
 
-namespace Grpc.Net.Compression
+namespace Grpc.Net.Compression;
+
+/// <summary>
+/// Provides a specific compression implementation to compress gRPC messages.
+/// </summary>
+public interface ICompressionProvider
 {
     /// <summary>
-    /// Provides a specific compression implementation to compress gRPC messages.
+    /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
     /// </summary>
-    public interface ICompressionProvider
-    {
-        /// <summary>
-        /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
-        /// </summary>
-        string EncodingName { get; }
+    string EncodingName { get; }
 
-        /// <summary>
-        /// Create a new compression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is written to.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        /// <returns>A stream used to compress data.</returns>
-        Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel);
+    /// <summary>
+    /// Create a new compression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is written to.</param>
+    /// <param name="compressionLevel">The compression level.</param>
+    /// <returns>A stream used to compress data.</returns>
+    Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel);
 
-        /// <summary>
-        /// Create a new decompression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is copied from.</param>
-        /// <returns>A stream used to decompress data.</returns>
-        Stream CreateDecompressionStream(Stream stream);
-    }
+    /// <summary>
+    /// Create a new decompression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is copied from.</param>
+    /// <returns>A stream used to decompress data.</returns>
+    Stream CreateDecompressionStream(Stream stream);
 }

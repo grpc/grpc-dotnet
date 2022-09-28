@@ -22,17 +22,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Client-side writable stream of messages with Close capability.
+/// </summary>
+/// <typeparam name="T">The message type.</typeparam>
+public interface IClientStreamWriter<in T> : IAsyncStreamWriter<T>
 {
     /// <summary>
-    /// Client-side writable stream of messages with Close capability.
+    /// Completes/closes the stream. Can only be called once there is no pending write. No writes should follow calling this.
     /// </summary>
-    /// <typeparam name="T">The message type.</typeparam>
-    public interface IClientStreamWriter<in T> : IAsyncStreamWriter<T>
-    {
-        /// <summary>
-        /// Completes/closes the stream. Can only be called once there is no pending write. No writes should follow calling this.
-        /// </summary>
-        Task CompleteAsync();
-    }
+    Task CompleteAsync();
 }

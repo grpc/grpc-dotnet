@@ -19,27 +19,26 @@
 using Grpc.Core;
 using Grpc.Shared;
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
+    where TRequest : class
+    where TResponse : class
 {
-    internal class RetryCallBaseClientStreamReader<TRequest, TResponse> : IAsyncStreamReader<TResponse>
-        where TRequest : class
-        where TResponse : class
+    private readonly RetryCallBase<TRequest, TResponse> _retryCallBase;
+
+    public RetryCallBaseClientStreamReader(RetryCallBase<TRequest, TResponse> retryCallBase)
     {
-        private readonly RetryCallBase<TRequest, TResponse> _retryCallBase;
+        _retryCallBase = retryCallBase;
+    }
 
-        public RetryCallBaseClientStreamReader(RetryCallBase<TRequest, TResponse> retryCallBase)
-        {
-            _retryCallBase = retryCallBase;
-        }
+    public TResponse Current => _retryCallBase.CommitedCallTask.IsCompletedSuccessfully()
+                ? _retryCallBase.CommitedCallTask.Result.ClientStreamReader!.Current
+                : default!;
 
-        public TResponse Current => _retryCallBase.CommitedCallTask.IsCompletedSuccessfully()
-                    ? _retryCallBase.CommitedCallTask.Result.ClientStreamReader!.Current
-                    : default!;
-
-        public async Task<bool> MoveNext(CancellationToken cancellationToken)
-        {
-            var call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
-            return await call.ClientStreamReader!.MoveNext(cancellationToken).ConfigureAwait(false);
-        }
+    public async Task<bool> MoveNext(CancellationToken cancellationToken)
+    {
+        var call = await _retryCallBase.CommitedCallTask.ConfigureAwait(false);
+        return await call.ClientStreamReader!.MoveNext(cancellationToken).ConfigureAwait(false);
     }
 }

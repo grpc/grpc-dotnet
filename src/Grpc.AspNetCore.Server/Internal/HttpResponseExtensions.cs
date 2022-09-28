@@ -18,25 +18,24 @@
 
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+internal static class HttpResponseExtensions
 {
-    internal static class HttpResponseExtensions
+    public static void ConsolidateTrailers(this HttpResponse httpResponse, HttpContextServerCallContext context)
     {
-        public static void ConsolidateTrailers(this HttpResponse httpResponse, HttpContextServerCallContext context)
+        var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(httpResponse);
+
+        if (context.HasResponseTrailers)
         {
-            var trailersDestination = GrpcProtocolHelpers.GetTrailersDestination(httpResponse);
-
-            if (context.HasResponseTrailers)
+            foreach (var trailer in context.ResponseTrailers)
             {
-                foreach (var trailer in context.ResponseTrailers)
-                {
-                    var value = (trailer.IsBinary) ? Convert.ToBase64String(trailer.ValueBytes) : trailer.Value;
-                    trailersDestination.Append(trailer.Key, value);
-                }
+                var value = (trailer.IsBinary) ? Convert.ToBase64String(trailer.ValueBytes) : trailer.Value;
+                trailersDestination.Append(trailer.Key, value);
             }
-
-            // Append status trailers, these overwrite any existing status trailers set via ServerCallContext.ResponseTrailers
-            GrpcProtocolHelpers.SetStatus(trailersDestination, context.Status);
         }
+
+        // Append status trailers, these overwrite any existing status trailers set via ServerCallContext.ResponseTrailers
+        GrpcProtocolHelpers.SetStatus(trailersDestination, context.Status);
     }
 }

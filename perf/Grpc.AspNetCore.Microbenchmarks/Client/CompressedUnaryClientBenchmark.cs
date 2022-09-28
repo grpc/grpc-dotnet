@@ -25,44 +25,43 @@ using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Client
+namespace Grpc.AspNetCore.Microbenchmarks.Client;
+
+public class CompressedUnaryClientBenchmark : UnaryClientBenchmarkBase
 {
-    public class CompressedUnaryClientBenchmark : UnaryClientBenchmarkBase
+    private readonly Metadata _compressionMetadata;
+
+    public CompressedUnaryClientBenchmark()
     {
-        private readonly Metadata _compressionMetadata;
-
-        public CompressedUnaryClientBenchmark()
+        ResponseCompressionAlgorithm = TestCompressionProvider.Name;
+        CompressionProviders = new List<ICompressionProvider>
         {
-            ResponseCompressionAlgorithm = TestCompressionProvider.Name;
-            CompressionProviders = new List<ICompressionProvider>
-            {
-                new TestCompressionProvider()
-            };
-            _compressionMetadata = new Metadata
-            {
-                { new Metadata.Entry("grpc-internal-encoding-request", TestCompressionProvider.Name) }
-            };
-        }
-
-        protected override byte[] GetMessageData(HelloReply message)
+            new TestCompressionProvider()
+        };
+        _compressionMetadata = new Metadata
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
+            { new Metadata.Entry("grpc-internal-encoding-request", TestCompressionProvider.Name) }
+        };
+    }
 
-            var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(
-                httpContext,
-                responseCompressionAlgorithm: ResponseCompressionAlgorithm,
-                compressionProviders: CompressionProviders);
+    protected override byte[] GetMessageData(HelloReply message)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Add(GrpcProtocolConstants.MessageAcceptEncodingHeader, TestCompressionProvider.Name);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, message, callContext);
-            return ms.ToArray();
-        }
+        var callContext = HttpContextServerCallContextHelper.CreateServerCallContext(
+            httpContext,
+            responseCompressionAlgorithm: ResponseCompressionAlgorithm,
+            compressionProviders: CompressionProviders);
 
-        [Benchmark]
-        public Task CompressedSayHelloAsync()
-        {
-            return InvokeSayHelloAsync(new CallOptions(headers: _compressionMetadata));
-        }
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, message, callContext);
+        return ms.ToArray();
+    }
+
+    [Benchmark]
+    public Task CompressedSayHelloAsync()
+    {
+        return InvokeSayHelloAsync(new CallOptions(headers: _compressionMetadata));
     }
 }

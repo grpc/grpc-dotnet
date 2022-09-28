@@ -22,55 +22,54 @@ using System.Net;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal.Http
+namespace Grpc.Net.Client.Internal.Http;
+
+internal class PushStreamContent<TRequest, TResponse> : HttpContent
+    where TRequest : class
+    where TResponse : class
 {
-    internal class PushStreamContent<TRequest, TResponse> : HttpContent
-        where TRequest : class
-        where TResponse : class
+    private readonly HttpContentClientStreamWriter<TRequest, TResponse> _streamWriter;
+    private readonly Func<Stream, ValueTask>? _startCallback;
+
+    public PushStreamContent(HttpContentClientStreamWriter<TRequest, TResponse> streamWriter)
     {
-        private readonly HttpContentClientStreamWriter<TRequest, TResponse> _streamWriter;
-        private readonly Func<Stream, ValueTask>? _startCallback;
-
-        public PushStreamContent(HttpContentClientStreamWriter<TRequest, TResponse> streamWriter)
-        {
-            Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
-            _streamWriter = streamWriter;
-        }
-
-        public PushStreamContent(
-            HttpContentClientStreamWriter<TRequest, TResponse> streamWriter,
-            Func<Stream, ValueTask>? startCallback) : this(streamWriter)
-        {
-            _startCallback = startCallback;
-        }
-
-        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-        {
-            // Immediately flush request stream to send headers
-            // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081
-            await stream.FlushAsync().ConfigureAwait(false);
-
-            if (_startCallback != null)
-            {
-                await _startCallback(stream).ConfigureAwait(false);
-            }
-
-            // Pass request stream to writer
-            _streamWriter.WriteStreamTcs.TrySetResult(stream);
-
-            // Wait for the writer to report it is complete
-            await _streamWriter.CompleteTcs.Task.ConfigureAwait(false);
-        }
-
-        protected override bool TryComputeLength(out long length)
-        {
-            // We can't know the length of the content being pushed to the output stream.
-            length = -1;
-            return false;
-        }
-
-        // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes.
-        // WARNING: Will run SerializeToStreamAsync again on .NET Framework.
-        internal Task PushComplete => ReadAsStreamAsync();
+        Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
+        _streamWriter = streamWriter;
     }
+
+    public PushStreamContent(
+        HttpContentClientStreamWriter<TRequest, TResponse> streamWriter,
+        Func<Stream, ValueTask>? startCallback) : this(streamWriter)
+    {
+        _startCallback = startCallback;
+    }
+
+    protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
+        // Immediately flush request stream to send headers
+        // https://github.com/dotnet/corefx/issues/39586#issuecomment-516210081
+        await stream.FlushAsync().ConfigureAwait(false);
+
+        if (_startCallback != null)
+        {
+            await _startCallback(stream).ConfigureAwait(false);
+        }
+
+        // Pass request stream to writer
+        _streamWriter.WriteStreamTcs.TrySetResult(stream);
+
+        // Wait for the writer to report it is complete
+        await _streamWriter.CompleteTcs.Task.ConfigureAwait(false);
+    }
+
+    protected override bool TryComputeLength(out long length)
+    {
+        // We can't know the length of the content being pushed to the output stream.
+        length = -1;
+        return false;
+    }
+
+    // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes.
+    // WARNING: Will run SerializeToStreamAsync again on .NET Framework.
+    internal Task PushComplete => ReadAsStreamAsync();
 }

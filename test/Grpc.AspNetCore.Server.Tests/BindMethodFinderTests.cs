@@ -21,33 +21,32 @@ using Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute;
 using Grpc.Shared.Server;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
-{
-    [TestFixture]
-    public class BindMethodFinderTests
-    {
-        [TestCase(typeof(GreeterWithAttributeService))]
-        [TestCase(typeof(GreeterWithAttributeServiceSubClass))]
-        [TestCase(typeof(GreeterWithAttributeServiceSubSubClass))]
-        [TestCase(typeof(GreeterWithoutAttributeService))]
-        [TestCase(typeof(GreeterWithoutAttributeServiceSubClass))]
-        [TestCase(typeof(GreeterWithoutAttributeServiceSubSubClass))]
-        public void GetBindMethodFallback(Type serviceType)
-        {
-            var methodInfo = BindMethodFinder.GetBindMethodFallback(serviceType);
-            Assert.IsNotNull(methodInfo);
-        }
+namespace Grpc.AspNetCore.Server.Tests;
 
-        [TestCase(typeof(GreeterWithAttributeService), true)]
-        [TestCase(typeof(GreeterWithAttributeServiceSubClass), true)]
-        [TestCase(typeof(GreeterWithAttributeServiceSubSubClass), true)]
-        [TestCase(typeof(GreeterWithoutAttributeService), false)]
-        [TestCase(typeof(GreeterWithoutAttributeServiceSubClass), false)]
-        [TestCase(typeof(GreeterWithoutAttributeServiceSubSubClass), false)]
-        public void GetBindMethodUsingAttribute(Type serviceType, bool foundMethod)
-        {
-            var methodInfo = BindMethodFinder.GetBindMethodUsingAttribute(serviceType);
-            Assert.AreEqual(foundMethod, methodInfo != null);
-        }
+[TestFixture]
+public class BindMethodFinderTests
+{
+    [TestCase(typeof(GreeterWithAttributeService))]
+    [TestCase(typeof(GreeterWithAttributeServiceSubClass))]
+    [TestCase(typeof(GreeterWithAttributeServiceSubSubClass))]
+    [TestCase(typeof(GreeterWithoutAttributeService))]
+    [TestCase(typeof(GreeterWithoutAttributeServiceSubClass))]
+    [TestCase(typeof(GreeterWithoutAttributeServiceSubSubClass))]
+    public void GetBindMethodFallback(Type serviceType)
+    {
+        var methodInfo = BindMethodFinder.GetBindMethodFallback(serviceType);
+        Assert.IsNotNull(methodInfo);
+    }
+
+    [TestCase(typeof(GreeterWithAttributeService), true)]
+    [TestCase(typeof(GreeterWithAttributeServiceSubClass), true)]
+    [TestCase(typeof(GreeterWithAttributeServiceSubSubClass), true)]
+    [TestCase(typeof(GreeterWithoutAttributeService), false)]
+    [TestCase(typeof(GreeterWithoutAttributeServiceSubClass), false)]
+    [TestCase(typeof(GreeterWithoutAttributeServiceSubSubClass), false)]
+    public void GetBindMethodUsingAttribute(Type serviceType, bool foundMethod)
+    {
+        var methodInfo = BindMethodFinder.GetBindMethodUsingAttribute(serviceType);
+        Assert.AreEqual(foundMethod, methodInfo != null);
     }
 }

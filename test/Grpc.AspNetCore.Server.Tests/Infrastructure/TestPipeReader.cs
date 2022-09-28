@@ -19,62 +19,61 @@
 using System.Buffers;
 using System.IO.Pipelines;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure;
+
+public class TestPipeReader : PipeReader
 {
-    public class TestPipeReader : PipeReader
+    private readonly PipeReader _pipeReader;
+    private ReadOnlySequence<byte> _currentBuffer;
+
+    public long Consumed { get; set; }
+    public long Examined { get; set; }
+
+    public TestPipeReader(PipeReader pipeReader)
     {
-        private readonly PipeReader _pipeReader;
-        private ReadOnlySequence<byte> _currentBuffer;
+        _pipeReader = pipeReader;
+    }
 
-        public long Consumed { get; set; }
-        public long Examined { get; set; }
+    public override void AdvanceTo(SequencePosition consumed)
+    {
+        Consumed += _currentBuffer.Slice(0, consumed).Length;
+        Examined = Consumed;
+        _pipeReader.AdvanceTo(consumed);
+    }
 
-        public TestPipeReader(PipeReader pipeReader)
-        {
-            _pipeReader = pipeReader;
-        }
+    public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+    {
+        Consumed += _currentBuffer.Slice(0, consumed).Length;
+        Examined = Consumed + _currentBuffer.Slice(0, examined).Length;
+        _pipeReader.AdvanceTo(consumed, examined);
+    }
 
-        public override void AdvanceTo(SequencePosition consumed)
-        {
-            Consumed += _currentBuffer.Slice(0, consumed).Length;
-            Examined = Consumed;
-            _pipeReader.AdvanceTo(consumed);
-        }
+    public override void CancelPendingRead()
+    {
+        _pipeReader.CancelPendingRead();
+    }
 
-        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
-        {
-            Consumed += _currentBuffer.Slice(0, consumed).Length;
-            Examined = Consumed + _currentBuffer.Slice(0, examined).Length;
-            _pipeReader.AdvanceTo(consumed, examined);
-        }
+    public override void Complete(Exception? exception = null)
+    {
+        _pipeReader.Complete(exception);
+    }
 
-        public override void CancelPendingRead()
-        {
-            _pipeReader.CancelPendingRead();
-        }
+    [Obsolete]
+    public override void OnWriterCompleted(Action<Exception?, object?> callback, object? state)
+    {
+        _pipeReader.OnWriterCompleted(callback, state);
+    }
 
-        public override void Complete(Exception? exception = null)
-        {
-            _pipeReader.Complete(exception);
-        }
+    public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await _pipeReader.ReadAsync(cancellationToken);
+        _currentBuffer = result.Buffer;
 
-        [Obsolete]
-        public override void OnWriterCompleted(Action<Exception?, object?> callback, object? state)
-        {
-            _pipeReader.OnWriterCompleted(callback, state);
-        }
+        return result;
+    }
 
-        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
-        {
-            var result = await _pipeReader.ReadAsync(cancellationToken);
-            _currentBuffer = result.Buffer;
-
-            return result;
-        }
-
-        public override bool TryRead(out ReadResult result)
-        {
-            return _pipeReader.TryRead(out result);
-        }
+    public override bool TryRead(out ReadResult result)
+    {
+        return _pipeReader.TryRead(out result);
     }
 }

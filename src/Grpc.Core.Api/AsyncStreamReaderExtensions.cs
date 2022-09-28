@@ -20,31 +20,30 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Extension methods for <see cref="IAsyncStreamReader{T}"/>.
+/// </summary>
+public static class AsyncStreamReaderExtensions
 {
     /// <summary>
-    /// Extension methods for <see cref="IAsyncStreamReader{T}"/>.
+    /// Advances the stream reader to the next element in the sequence, returning the result asynchronously.
     /// </summary>
-    public static class AsyncStreamReaderExtensions
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <param name="streamReader">The stream reader.</param>
+    /// <returns>
+    /// Task containing the result of the operation: true if the reader was successfully advanced
+    /// to the next element; false if the reader has passed the end of the sequence.
+    /// </returns>
+    public static Task<bool> MoveNext<T>(this IAsyncStreamReader<T> streamReader)
+        where T : class
     {
-        /// <summary>
-        /// Advances the stream reader to the next element in the sequence, returning the result asynchronously.
-        /// </summary>
-        /// <typeparam name="T">The message type.</typeparam>
-        /// <param name="streamReader">The stream reader.</param>
-        /// <returns>
-        /// Task containing the result of the operation: true if the reader was successfully advanced
-        /// to the next element; false if the reader has passed the end of the sequence.
-        /// </returns>
-        public static Task<bool> MoveNext<T>(this IAsyncStreamReader<T> streamReader)
-            where T : class
+        if (streamReader == null)
         {
-            if (streamReader == null)
-            {
-                throw new ArgumentNullException(nameof(streamReader));
-            }
-
-            return streamReader.MoveNext(CancellationToken.None);
+            throw new ArgumentNullException(nameof(streamReader));
         }
+
+        return streamReader.MoveNext(CancellationToken.None);
     }
 }

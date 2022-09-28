@@ -23,48 +23,47 @@ using Grpc.Shared;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+// TODO: Still need generic args?
+internal class PushUnaryContent<TRequest, TResponse> : HttpContent
+    where TRequest : class
+    where TResponse : class
 {
-    // TODO: Still need generic args?
-    internal class PushUnaryContent<TRequest, TResponse> : HttpContent
-        where TRequest : class
-        where TResponse : class
+    private readonly TRequest _request;
+    private readonly Func<TRequest, Stream, ValueTask> _startCallback;
+
+    public PushUnaryContent(TRequest request, Func<TRequest, Stream, ValueTask> startCallback)
     {
-        private readonly TRequest _request;
-        private readonly Func<TRequest, Stream, ValueTask> _startCallback;
+        _request = request;
+        _startCallback = startCallback;
+        Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
+    }
 
-        public PushUnaryContent(TRequest request, Func<TRequest, Stream, ValueTask> startCallback)
-        {
-            _request = request;
-            _startCallback = startCallback;
-            Headers.ContentType = GrpcProtocolConstants.GrpcContentTypeHeaderValue;
-        }
-
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-        {
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
 #pragma warning disable CA2012 // Use ValueTasks correctly
-            var writeMessageTask = _startCallback(_request, stream);
+        var writeMessageTask = _startCallback(_request, stream);
 #pragma warning restore CA2012 // Use ValueTasks correctly
-            if (writeMessageTask.IsCompletedSuccessfully())
-            {
-                GrpcEventSource.Log.MessageSent();
-                return Task.CompletedTask;
-            }
-
-            return WriteMessageCore(writeMessageTask);
-        }
-
-        private static async Task WriteMessageCore(ValueTask writeMessageTask)
+        if (writeMessageTask.IsCompletedSuccessfully())
         {
-            await writeMessageTask.ConfigureAwait(false);
             GrpcEventSource.Log.MessageSent();
+            return Task.CompletedTask;
         }
 
-        protected override bool TryComputeLength(out long length)
-        {
-            // We can't know the length of the content being pushed to the output stream.
-            length = -1;
-            return false;
-        }
+        return WriteMessageCore(writeMessageTask);
+    }
+
+    private static async Task WriteMessageCore(ValueTask writeMessageTask)
+    {
+        await writeMessageTask.ConfigureAwait(false);
+        GrpcEventSource.Log.MessageSent();
+    }
+
+    protected override bool TryComputeLength(out long length)
+    {
+        // We can't know the length of the content being pushed to the output stream.
+        length = -1;
+        return false;
     }
 }

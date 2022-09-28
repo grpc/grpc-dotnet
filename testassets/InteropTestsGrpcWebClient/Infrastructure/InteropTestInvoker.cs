@@ -19,54 +19,53 @@
 using Grpc.Shared.TestAssets;
 using Microsoft.JSInterop;
 
-namespace InteropTestsGrpcWebClient.Infrastructure
+namespace InteropTestsGrpcWebClient.Infrastructure;
+
+public class InteropTestInvoker
 {
-    public class InteropTestInvoker
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly Dictionary<string, string[]> _testNames;
+    private readonly ILogger<InteropTestInvoker> _logger;
+
+    public InteropTestInvoker(ILoggerFactory loggerFactory, Dictionary<string, string[]> testNames)
     {
-        private readonly ILoggerFactory _loggerFactory;
-        private readonly Dictionary<string, string[]> _testNames;
-        private readonly ILogger<InteropTestInvoker> _logger;
+        _loggerFactory = loggerFactory;
+        _testNames = testNames;
+        _logger = loggerFactory.CreateLogger<InteropTestInvoker>();
+    }
 
-        public InteropTestInvoker(ILoggerFactory loggerFactory, Dictionary<string, string[]> testNames)
+    [JSInvokable(nameof(GetTestNames))]
+    public string[] GetTestNames(string mode)
+    {
+        return _testNames
+            .Where(kvp => kvp.Value.Contains(mode))
+            .Select(kvp => kvp.Key)
+            .ToArray();
+    }
+
+    [JSInvokable(nameof(RunTestAsync))]
+    public async Task<string> RunTestAsync(string serverHost, int serverPort, string grpcWebMode, string testCase)
+    {
+        var clientOptions = new ClientOptions
         {
-            _loggerFactory = loggerFactory;
-            _testNames = testNames;
-            _logger = loggerFactory.CreateLogger<InteropTestInvoker>();
+            TestCase = testCase,
+            ServerHost = serverHost,
+            ServerPort = serverPort,
+            UseTls = false,
+            GrpcWebMode = grpcWebMode
+        };
+        var client = new InteropClient(clientOptions, _loggerFactory);
+
+        try
+        {
+            await client.Run();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, ex.Message);
+            return ex.ToString();
         }
 
-        [JSInvokable(nameof(GetTestNames))]
-        public string[] GetTestNames(string mode)
-        {
-            return _testNames
-                .Where(kvp => kvp.Value.Contains(mode))
-                .Select(kvp => kvp.Key)
-                .ToArray();
-        }
-
-        [JSInvokable(nameof(RunTestAsync))]
-        public async Task<string> RunTestAsync(string serverHost, int serverPort, string grpcWebMode, string testCase)
-        {
-            var clientOptions = new ClientOptions
-            {
-                TestCase = testCase,
-                ServerHost = serverHost,
-                ServerPort = serverPort,
-                UseTls = false,
-                GrpcWebMode = grpcWebMode
-            };
-            var client = new InteropClient(clientOptions, _loggerFactory);
-
-            try
-            {
-                await client.Run();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, ex.Message);
-                return ex.ToString();
-            }
-
-            return "Success";
-        }
+        return "Success";
     }
 }

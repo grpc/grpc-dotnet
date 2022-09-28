@@ -20,56 +20,55 @@ using BenchmarkWorkerWebsite;
 using Grpc.Core;
 using Grpc.Core.Utils;
 
-namespace Grpc.Testing
+namespace Grpc.Testing;
+
+// modified version of https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/WorkerServiceImpl.cs
+public class WorkerServiceImpl : WorkerService.WorkerServiceBase
 {
-    // modified version of https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/WorkerServiceImpl.cs
-    public class WorkerServiceImpl : WorkerService.WorkerServiceBase
+    readonly ILogger logger;
+
+    public WorkerServiceImpl(ILoggerFactory loggerFactory)
     {
-        readonly ILogger logger;
+        this.logger = loggerFactory.CreateLogger<WorkerServiceImpl>();
+    }
 
-        public WorkerServiceImpl(ILoggerFactory loggerFactory)
+    public override async Task RunServer(IAsyncStreamReader<ServerArgs> requestStream, IServerStreamWriter<ServerStatus> responseStream, ServerCallContext context)
+    {
+        GrpcPreconditions.CheckState(await requestStream.MoveNext());
+        var serverConfig = requestStream.Current.Setup;
+        var runner = ServerRunners.CreateStarted(serverConfig, logger);
+
+        await responseStream.WriteAsync(new ServerStatus
         {
-            this.logger = loggerFactory.CreateLogger<WorkerServiceImpl>();
-        }
+            Stats = runner.GetStats(false),
+            Port = runner.BoundPort,
+            Cores = Environment.ProcessorCount,
+        });
 
-        public override async Task RunServer(IAsyncStreamReader<ServerArgs> requestStream, IServerStreamWriter<ServerStatus> responseStream, ServerCallContext context)
+        while (await requestStream.MoveNext())
         {
-            GrpcPreconditions.CheckState(await requestStream.MoveNext());
-            var serverConfig = requestStream.Current.Setup;
-            var runner = ServerRunners.CreateStarted(serverConfig, logger);
-
+            var reset = requestStream.Current.Mark.Reset;
             await responseStream.WriteAsync(new ServerStatus
             {
-                Stats = runner.GetStats(false),
-                Port = runner.BoundPort,
-                Cores = Environment.ProcessorCount,
+                Stats = runner.GetStats(reset)
             });
-
-            while (await requestStream.MoveNext())
-            {
-                var reset = requestStream.Current.Mark.Reset;
-                await responseStream.WriteAsync(new ServerStatus
-                {
-                    Stats = runner.GetStats(reset)
-                });
-            }
-            await runner.StopAsync();
         }
+        await runner.StopAsync();
+    }
 
-        public override Task RunClient(IAsyncStreamReader<ClientArgs> requestStream, IServerStreamWriter<ClientStatus> responseStream, ServerCallContext context)
-        {
-            throw new NotImplementedException("Clients are not yet supported.");
-        }
+    public override Task RunClient(IAsyncStreamReader<ClientArgs> requestStream, IServerStreamWriter<ClientStatus> responseStream, ServerCallContext context)
+    {
+        throw new NotImplementedException("Clients are not yet supported.");
+    }
 
-        public override Task<CoreResponse> CoreCount(CoreRequest request, ServerCallContext context)
-        {
-            return Task.FromResult(new CoreResponse { Cores = Environment.ProcessorCount });
-        }
+    public override Task<CoreResponse> CoreCount(CoreRequest request, ServerCallContext context)
+    {
+        return Task.FromResult(new CoreResponse { Cores = Environment.ProcessorCount });
+    }
 
-        public override Task<Void> QuitWorker(Void request, ServerCallContext context)
-        {
-            Program.QuitWorker();
-            return Task.FromResult(new Void());
-        }
+    public override Task<Void> QuitWorker(Void request, ServerCallContext context)
+    {
+        Program.QuitWorker();
+        return Task.FromResult(new Void());
     }
 }

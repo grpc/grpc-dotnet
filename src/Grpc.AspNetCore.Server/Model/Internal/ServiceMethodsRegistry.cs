@@ -16,13 +16,12 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Model.Internal
+namespace Grpc.AspNetCore.Server.Model.Internal;
+
+/// <summary>
+/// A registry of all the service methods in the application.
+/// </summary>
+internal class ServiceMethodsRegistry
 {
-    /// <summary>
-    /// A registry of all the service methods in the application.
-    /// </summary>
-    internal class ServiceMethodsRegistry
-    {
-        public List<MethodModel> Methods { get; } = new List<MethodModel>();
-    }
+    public List<MethodModel> Methods { get; } = new List<MethodModel>();
 }

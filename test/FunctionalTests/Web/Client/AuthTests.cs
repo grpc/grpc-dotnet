@@ -24,115 +24,114 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web.Client
+namespace Grpc.AspNetCore.FunctionalTests.Web.Client;
+
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
+#endif
+public class AuthTests : GrpcWebFunctionalTestBase
 {
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
-#endif
-    public class AuthTests : GrpcWebFunctionalTestBase
+    public AuthTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
+     : base(grpcTestMode, endpointName)
     {
-        public AuthTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
-         : base(grpcTestMode, endpointName)
-        {
-        }
+    }
 
-        [Test]
-        public async Task SendUnauthenticatedRequest_UnauthenticatedErrorResponse()
-        {
-            using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
+    [Test]
+    public async Task SendUnauthenticatedRequest_UnauthenticatedErrorResponse()
+    {
+        using var httpEventListener = new HttpEventSourceListener(LoggerFactory);
 
-            SetExpectedErrorsFilter(writeContext =>
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            // This error can happen if the server returns an unauthorized response
+            // before the client has finished sending the request content.
+            if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
+                writeContext.EventId.Name == "ErrorSendingMessage" &&
+                writeContext.Exception is OperationCanceledException)
             {
-                // This error can happen if the server returns an unauthorized response
-                // before the client has finished sending the request content.
-                if (writeContext.LoggerName == "Grpc.Net.Client.Internal.GrpcCall" &&
-                    writeContext.EventId.Name == "ErrorSendingMessage" &&
-                    writeContext.Exception is OperationCanceledException)
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
-            // Arrage
-            var channel = CreateGrpcWebChannel();
-
-            var client = new AuthorizedGreeter.AuthorizedGreeterClient(channel);
-
-            // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloAsync(new HelloRequest { Name = "test" }).ResponseAsync).DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual(StatusCode.Unauthenticated, ex.StatusCode);
-
-            AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Unauthenticated', Message: 'Bad gRPC response. HTTP status code: 401'.");
-        }
-
-        [Test]
-        public async Task SendUnauthenticatedRequest_Success()
-        {
-            // Arrange
-            var tokenResponse = await Fixture.Client.GetAsync("generateJwtToken").DefaultTimeout();
-            var token = await tokenResponse.Content.ReadAsStringAsync().DefaultTimeout();
-
-            var channel = CreateGrpcWebChannel();
-
-            var client = new AuthorizedGreeter.AuthorizedGreeterClient(channel);
-
-            // Act
-            var metadata = new Metadata();
-            metadata.Add("Authorization", $"Bearer {token}");
-
-            var response = await client.SayHelloAsync(new HelloRequest { Name = "test" }, headers: metadata).ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("Hello test", response.Message);
-
-            Assert.AreEqual("testuser", response.Claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
-        }
-
-        [Test]
-        public async Task SendAuthHeader_ReceivedOnServer()
-        {
-            string? httpContextAuthorization = null;
-            string? metadataAuthorization = null;
-            Task<HelloReply> ReadAuthHeaderOnServer(HelloRequest request, ServerCallContext context)
-            {
-                httpContextAuthorization = context.GetHttpContext().Request.Headers[HeaderNames.Authorization];
-                metadataAuthorization = context.RequestHeaders.GetValue("authorization");
-
-                return Task.FromResult(new HelloReply());
+                return true;
             }
 
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReadAuthHeaderOnServer);
+            return false;
+        });
 
-            var channel = CreateGrpcWebChannel();
+        // Arrage
+        var channel = CreateGrpcWebChannel();
 
-            var client = TestClientFactory.Create(channel, method);
+        var client = new AuthorizedGreeter.AuthorizedGreeterClient(channel);
 
-            // Act
-            var metadata = new Metadata();
-            metadata.Add("Authorization", "123");
-            var call = client.UnaryCall(new HelloRequest(), new CallOptions(headers: metadata));
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloAsync(new HelloRequest { Name = "test" }).ResponseAsync).DefaultTimeout();
 
-            await call.ResponseAsync.DefaultTimeout();
+        // Assert
+        Assert.AreEqual(StatusCode.Unauthenticated, ex.StatusCode);
 
-            // Assert
-            Assert.AreEqual("123", httpContextAuthorization);
-            Assert.AreEqual("123", metadataAuthorization);
+        AssertHasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Unauthenticated', Message: 'Bad gRPC response. HTTP status code: 401'.");
+    }
+
+    [Test]
+    public async Task SendUnauthenticatedRequest_Success()
+    {
+        // Arrange
+        var tokenResponse = await Fixture.Client.GetAsync("generateJwtToken").DefaultTimeout();
+        var token = await tokenResponse.Content.ReadAsStringAsync().DefaultTimeout();
+
+        var channel = CreateGrpcWebChannel();
+
+        var client = new AuthorizedGreeter.AuthorizedGreeterClient(channel);
+
+        // Act
+        var metadata = new Metadata();
+        metadata.Add("Authorization", $"Bearer {token}");
+
+        var response = await client.SayHelloAsync(new HelloRequest { Name = "test" }, headers: metadata).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Hello test", response.Message);
+
+        Assert.AreEqual("testuser", response.Claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]);
+    }
+
+    [Test]
+    public async Task SendAuthHeader_ReceivedOnServer()
+    {
+        string? httpContextAuthorization = null;
+        string? metadataAuthorization = null;
+        Task<HelloReply> ReadAuthHeaderOnServer(HelloRequest request, ServerCallContext context)
+        {
+            httpContextAuthorization = context.GetHttpContext().Request.Headers[HeaderNames.Authorization];
+            metadataAuthorization = context.RequestHeaders.GetValue("authorization");
+
+            return Task.FromResult(new HelloReply());
         }
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReadAuthHeaderOnServer);
+
+        var channel = CreateGrpcWebChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var metadata = new Metadata();
+        metadata.Add("Authorization", "123");
+        var call = client.UnaryCall(new HelloRequest(), new CallOptions(headers: metadata));
+
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("123", httpContextAuthorization);
+        Assert.AreEqual("123", metadataAuthorization);
     }
 }

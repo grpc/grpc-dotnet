@@ -21,22 +21,21 @@ using System;
 using System.Diagnostics;
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer.Internal;
+
+internal class ErrorPicker : SubchannelPicker
 {
-    internal class ErrorPicker : SubchannelPicker
+    private readonly Status _status;
+
+    public ErrorPicker(Status status)
     {
-        private readonly Status _status;
+        Debug.Assert(status.StatusCode != StatusCode.OK, "Error status code must not be OK.");
+        _status = status;
+    }
 
-        public ErrorPicker(Status status)
-        {
-            Debug.Assert(status.StatusCode != StatusCode.OK, "Error status code must not be OK.");
-            _status = status;
-        }
-
-        public override PickResult Pick(PickContext context)
-        {
-            return PickResult.ForFailure(_status);
-        }
+    public override PickResult Pick(PickContext context)
+    {
+        return PickResult.ForFailure(_status);
     }
 }
 #endif

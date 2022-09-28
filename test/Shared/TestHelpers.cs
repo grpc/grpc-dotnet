@@ -18,63 +18,62 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+public static class TestHelpers
 {
-    public static class TestHelpers
+    public static Task WaitForCancellationAsync(this CancellationToken cancellationToken)
     {
-        public static Task WaitForCancellationAsync(this CancellationToken cancellationToken)
+        // Server abort doesn't happen inline.
+        // Wait for the token to be triggered to confirm abort has happened.
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        cancellationToken.Register(() => tcs.SetResult(null));
+        return tcs.Task;
+    }
+
+    public static string ResolvePath(string relativePath)
+    {
+        var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location)!, relativePath);
+
+        return resolvedPath;
+    }
+
+    public static Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null)
+    {
+        return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger);
+    }
+
+    public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null)
+    {
+        const int Retries = 10;
+
+        logger?.LogInformation("Start: " + message);
+
+        for (var i = 0; i < Retries; i++)
         {
-            // Server abort doesn't happen inline.
-            // Wait for the token to be triggered to confirm abort has happened.
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            cancellationToken.Register(() => tcs.SetResult(null));
-            return tcs.Task;
-        }
-
-        public static string ResolvePath(string relativePath)
-        {
-            var resolvedPath = Path.Combine(Path.GetDirectoryName(typeof(TestHelpers).Assembly.Location)!, relativePath);
-
-            return resolvedPath;
-        }
-
-        public static Task AssertIsTrueRetryAsync(Func<bool> assert, string message, ILogger? logger = null)
-        {
-            return AssertIsTrueRetryAsync(() => Task.FromResult(assert()), message, logger);
-        }
-
-        public static async Task AssertIsTrueRetryAsync(Func<Task<bool>> assert, string message, ILogger? logger = null)
-        {
-            const int Retries = 10;
-
-            logger?.LogInformation("Start: " + message);
-
-            for (var i = 0; i < Retries; i++)
+            if (i > 0)
             {
-                if (i > 0)
-                {
-                    await Task.Delay((i + 1) * (i + 1) * 10);
-                }
-
-                if (await assert())
-                {
-                    logger?.LogInformation("End: " + message);
-                    return;
-                }
+                await Task.Delay((i + 1) * (i + 1) * 10);
             }
 
-            throw new Exception($"Assert failed after {Retries} retries: {message}");
-        }
-
-        public static async Task RunParallel(int count, Func<int, Task> action)
-        {
-            var actionTasks = new Task[count];
-            for (var i = 0; i < actionTasks.Length; i++)
+            if (await assert())
             {
-                actionTasks[i] = action(i);
+                logger?.LogInformation("End: " + message);
+                return;
             }
-
-            await Task.WhenAll(actionTasks);
         }
+
+        throw new Exception($"Assert failed after {Retries} retries: {message}");
+    }
+
+    public static async Task RunParallel(int count, Func<int, Task> action)
+    {
+        var actionTasks = new Task[count];
+        for (var i = 0; i < actionTasks.Length; i++)
+        {
+            actionTasks[i] = action(i);
+        }
+
+        await Task.WhenAll(actionTasks);
     }
 }

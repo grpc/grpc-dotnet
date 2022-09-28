@@ -19,44 +19,43 @@
 using System.Globalization;
 using NUnit.Framework;
 
-namespace Grpc.Tests.Shared
-{
-    public static class ExceptionAssert
-    {
-        public static async Task<TException> ThrowsAsync<TException>(Func<Task> action, params string[] possibleMessages)
-            where TException : Exception
-        {
-            if (action == null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
+namespace Grpc.Tests.Shared;
 
-            try
+public static class ExceptionAssert
+{
+    public static async Task<TException> ThrowsAsync<TException>(Func<Task> action, params string[] possibleMessages)
+        where TException : Exception
+    {
+        if (action == null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        try
+        {
+            await action();
+        }
+        catch (TException ex)
+        {
+            if (possibleMessages == null || possibleMessages.Length == 0)
             {
-                await action();
+                return ex;
             }
-            catch (TException ex)
+            foreach (string possibleMessage in possibleMessages)
             {
-                if (possibleMessages == null || possibleMessages.Length == 0)
+                if (Assert.Equals(possibleMessage, ex.Message))
                 {
                     return ex;
                 }
-                foreach (string possibleMessage in possibleMessages)
-                {
-                    if (Assert.Equals(possibleMessage, ex.Message))
-                    {
-                        return ex;
-                    }
-                }
-
-                throw new Exception("Unexpected exception message." + Environment.NewLine + "Expected one of: " + string.Join(Environment.NewLine, possibleMessages) + Environment.NewLine + "Got: " + ex.Message + Environment.NewLine + Environment.NewLine + ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Exception of type {typeof(TException).Name} expected; got exception of type {ex.GetType().Name}.", ex);
             }
 
-            throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");
+            throw new Exception("Unexpected exception message." + Environment.NewLine + "Expected one of: " + string.Join(Environment.NewLine, possibleMessages) + Environment.NewLine + "Got: " + ex.Message + Environment.NewLine + Environment.NewLine + ex);
         }
+        catch (Exception ex)
+        {
+            throw new Exception($"Exception of type {typeof(TException).Name} expected; got exception of type {ex.GetType().Name}.", ex);
+        }
+
+        throw new Exception($"Exception of type {typeof(TException).Name} expected. No exception thrown.");
     }
 }

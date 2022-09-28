@@ -16,16 +16,15 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.HealthChecks
+namespace Grpc.AspNetCore.HealthChecks;
+
+/// <summary>
+/// Contains options for the gRPC health checks service.
+/// </summary>
+public sealed class GrpcHealthChecksOptions
 {
     /// <summary>
-    /// Contains options for the gRPC health checks service.
+    /// Gets a collection of service mappings used to map health results to gRPC health checks services.
     /// </summary>
-    public sealed class GrpcHealthChecksOptions
-    {
-        /// <summary>
-        /// Gets a collection of service mappings used to map health results to gRPC health checks services.
-        /// </summary>
-        public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
-    }
+    public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
 }

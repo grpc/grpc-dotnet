@@ -22,81 +22,80 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class MaxMessageSizeTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class MaxMessageSizeTests : FunctionalTestBase
+    [Test]
+    public async Task ReceivedMessageExceedsSize_ThrowError()
     {
-        [Test]
-        public async Task ReceivedMessageExceedsSize_ThrowError()
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.State.ToString() == "Error reading message." &&
+                GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.State.ToString() == "Error reading message." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Received message exceeds the maximum configured message size.")
-                {
-                    return true;
-                }
+                return true;
+            }
 
-                return false;
-            });
+            return false;
+        });
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World" + new string('!', 64 * 1024)
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHello",
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert
-            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
-
-            AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
-        }
-
-        [Test]
-        public async Task SentMessageExceedsSize_ThrowError()
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
+            Name = "World" + new string('!', 64 * 1024)
+        };
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Greet.Greeter/SayHello",
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert
+        response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+
+        AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Received message exceeds the maximum configured message size.");
+    }
+
+    [Test]
+    public async Task SentMessageExceedsSize_ThrowError()
+    {
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                writeContext.EventId.Name == "ErrorSendingMessage" &&
+                writeContext.State.ToString() == "Error sending message." &&
+                GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "ErrorSendingMessage" &&
-                    writeContext.State.ToString() == "Error sending message." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Sending message exceeds the maximum configured message size.")
-                {
-                    return true;
-                }
+                return true;
+            }
 
-                return false;
-            });
+            return false;
+        });
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHelloSendLargeReply",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Greet.Greeter/SayHelloSendLargeReply",
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Assert
-            response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
+        // Assert
+        response.AssertTrailerStatus(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
 
-            AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
-        }
+        AssertHasLogRpcConnectionError(StatusCode.ResourceExhausted, "Sending message exceeds the maximum configured message size.");
     }
 }

@@ -17,9 +17,8 @@
 #endregion
 
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects
+namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+
+public class CustomMetadata
 {
-    public class CustomMetadata
-    {
-    }
 }

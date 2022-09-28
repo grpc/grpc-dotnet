@@ -23,136 +23,135 @@ using Grpc.Core;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
 {
-    internal sealed class StatusGrpcCall<TRequest, TResponse> : IGrpcCall<TRequest, TResponse>
-        where TRequest : class
-        where TResponse : class
+    private readonly Status _status;
+    private readonly GrpcChannel _channel;
+    private IClientStreamWriter<TRequest>? _clientStreamWriter;
+    private IAsyncStreamReader<TResponse>? _clientStreamReader;
+
+    public IClientStreamWriter<TRequest>? ClientStreamWriter => _clientStreamWriter ??= new StatusClientStreamWriter(_status);
+    public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
+    public bool Disposed => true;
+
+    public StatusGrpcCall(Status status, GrpcChannel channel)
+    {
+        _status = status;
+        _channel = channel;
+    }
+
+    public void Dispose()
+    {
+    }
+
+    public Task<TResponse> GetResponseAsync()
+    {
+        return Task.FromException<TResponse>(new RpcException(_status));
+    }
+
+    public Task<Metadata> GetResponseHeadersAsync()
+    {
+        return Task.FromException<Metadata>(new RpcException(_status));
+    }
+
+    public Status GetStatus()
+    {
+        return _status;
+    }
+
+    public Metadata GetTrailers()
+    {
+        throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
+    }
+
+    public void StartClientStreaming()
+    {
+        throw new NotSupportedException();
+    }
+
+    public void StartDuplexStreaming()
+    {
+        throw new NotSupportedException();
+    }
+
+    public void StartServerStreaming(TRequest request)
+    {
+        throw new NotSupportedException();
+    }
+
+    public void StartUnary(TRequest request)
+    {
+        throw new NotSupportedException();
+    }
+
+    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    {
+        return Task.FromException(new RpcException(_status));
+    }
+
+    public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+    {
+        cancellationTokenRegistration = null;
+        return false;
+    }
+
+    public Exception CreateFailureStatusException(Status status)
+    {
+        if (_channel.ThrowOperationCanceledOnCancellation &&
+            (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
+        {
+            // Convert status response of DeadlineExceeded to OperationCanceledException when
+            // ThrowOperationCanceledOnCancellation is true.
+            // This avoids a race between the client-side timer and the server status throwing different
+            // errors on deadline exceeded.
+            return new OperationCanceledException();
+        }
+        else
+        {
+            return new RpcException(status);
+        }
+    }
+
+    private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>
     {
         private readonly Status _status;
-        private readonly GrpcChannel _channel;
-        private IClientStreamWriter<TRequest>? _clientStreamWriter;
-        private IAsyncStreamReader<TResponse>? _clientStreamReader;
 
-        public IClientStreamWriter<TRequest>? ClientStreamWriter => _clientStreamWriter ??= new StatusClientStreamWriter(_status);
-        public IAsyncStreamReader<TResponse>? ClientStreamReader => _clientStreamReader ??= new StatusStreamReader(_status);
-        public bool Disposed => true;
+        public WriteOptions? WriteOptions { get; set; }
 
-        public StatusGrpcCall(Status status, GrpcChannel channel)
+        public StatusClientStreamWriter(Status status)
         {
             _status = status;
-            _channel = channel;
         }
 
-        public void Dispose()
-        {
-        }
-
-        public Task<TResponse> GetResponseAsync()
-        {
-            return Task.FromException<TResponse>(new RpcException(_status));
-        }
-
-        public Task<Metadata> GetResponseHeadersAsync()
-        {
-            return Task.FromException<Metadata>(new RpcException(_status));
-        }
-
-        public Status GetStatus()
-        {
-            return _status;
-        }
-
-        public Metadata GetTrailers()
-        {
-            throw new InvalidOperationException("Can't get the call trailers because the call has not completed successfully.");
-        }
-
-        public void StartClientStreaming()
-        {
-            throw new NotSupportedException();
-        }
-
-        public void StartDuplexStreaming()
-        {
-            throw new NotSupportedException();
-        }
-
-        public void StartServerStreaming(TRequest request)
-        {
-            throw new NotSupportedException();
-        }
-
-        public void StartUnary(TRequest request)
-        {
-            throw new NotSupportedException();
-        }
-
-        public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+        public Task CompleteAsync()
         {
             return Task.FromException(new RpcException(_status));
         }
 
-        public bool TryRegisterCancellation(CancellationToken cancellationToken, [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration)
+        public Task WriteAsync(TRequest message)
         {
-            cancellationTokenRegistration = null;
-            return false;
+            return Task.FromException(new RpcException(_status));
+        }
+    }
+
+    private sealed class StatusStreamReader : IAsyncStreamReader<TResponse>
+    {
+        private readonly Status _status;
+
+        public TResponse Current { get; set; } = default!;
+
+        public StatusStreamReader(Status status)
+        {
+            _status = status;
         }
 
-        public Exception CreateFailureStatusException(Status status)
+        public Task<bool> MoveNext(CancellationToken cancellationToken)
         {
-            if (_channel.ThrowOperationCanceledOnCancellation &&
-                (status.StatusCode == StatusCode.DeadlineExceeded || status.StatusCode == StatusCode.Cancelled))
-            {
-                // Convert status response of DeadlineExceeded to OperationCanceledException when
-                // ThrowOperationCanceledOnCancellation is true.
-                // This avoids a race between the client-side timer and the server status throwing different
-                // errors on deadline exceeded.
-                return new OperationCanceledException();
-            }
-            else
-            {
-                return new RpcException(status);
-            }
-        }
-
-        private sealed class StatusClientStreamWriter : IClientStreamWriter<TRequest>
-        {
-            private readonly Status _status;
-
-            public WriteOptions? WriteOptions { get; set; }
-
-            public StatusClientStreamWriter(Status status)
-            {
-                _status = status;
-            }
-
-            public Task CompleteAsync()
-            {
-                return Task.FromException(new RpcException(_status));
-            }
-
-            public Task WriteAsync(TRequest message)
-            {
-                return Task.FromException(new RpcException(_status));
-            }
-        }
-
-        private sealed class StatusStreamReader : IAsyncStreamReader<TResponse>
-        {
-            private readonly Status _status;
-
-            public TResponse Current { get; set; } = default!;
-
-            public StatusStreamReader(Status status)
-            {
-                _status = status;
-            }
-
-            public Task<bool> MoveNext(CancellationToken cancellationToken)
-            {
-                return Task.FromException<bool>(new RpcException(_status));
-            }
+            return Task.FromException<bool>(new RpcException(_status));
         }
     }
 }

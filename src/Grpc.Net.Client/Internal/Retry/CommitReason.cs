@@ -17,19 +17,18 @@
 #endregion
 
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal enum CommitReason
 {
-    internal enum CommitReason
-    {
-        ResponseHeadersReceived,
-        FatalStatusCode,
-        ExceededAttemptCount,
-        DeadlineExceeded,
-        Throttled,
-        BufferExceeded,
-        PushbackStop,
-        UnexpectedError,
-        Canceled,
-        Drop
-    }
+    ResponseHeadersReceived,
+    FatalStatusCode,
+    ExceededAttemptCount,
+    DeadlineExceeded,
+    Throttled,
+    BufferExceeded,
+    PushbackStop,
+    UnexpectedError,
+    Canceled,
+    Drop
 }

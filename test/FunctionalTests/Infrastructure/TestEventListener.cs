@@ -20,106 +20,105 @@ using System.Diagnostics.Tracing;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
-{
-    /// <summary>
-    /// An eventer listener than listens to counter updates and provides a way to subscribe to expected values.
-    /// </summary>
-    public class TestEventListener : EventListener
-    {
-        private readonly object _lock = new object();
-        private readonly List<ListenerSubscription> _subscriptions;
-        private readonly ILogger _logger;
-        private readonly int _eventId;
-        private readonly EventSource _eventSource;
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
 
-        public TestEventListener(int eventId, ILoggerFactory loggerFactory, EventSource eventSource)
+/// <summary>
+/// An eventer listener than listens to counter updates and provides a way to subscribe to expected values.
+/// </summary>
+public class TestEventListener : EventListener
+{
+    private readonly object _lock = new object();
+    private readonly List<ListenerSubscription> _subscriptions;
+    private readonly ILogger _logger;
+    private readonly int _eventId;
+    private readonly EventSource _eventSource;
+
+    public TestEventListener(int eventId, ILoggerFactory loggerFactory, EventSource eventSource)
+    {
+        _eventId = eventId;
+        _eventSource = eventSource;
+        _subscriptions = new List<ListenerSubscription>();
+        _logger = loggerFactory.CreateLogger<TestEventListener>();
+    }
+
+    protected override void OnEventWritten(EventWrittenEventArgs eventData)
+    {
+        if (eventData.EventSource != _eventSource)
         {
-            _eventId = eventId;
-            _eventSource = eventSource;
-            _subscriptions = new List<ListenerSubscription>();
-            _logger = loggerFactory.CreateLogger<TestEventListener>();
+            return;
         }
 
-        protected override void OnEventWritten(EventWrittenEventArgs eventData)
+        // Subscriptions change on multiple threads so make a local copy
+        ListenerSubscription[]? subscriptions = null;
+        lock (_lock)
         {
-            if (eventData.EventSource != _eventSource)
-            {
-                return;
-            }
+            // Somehow OnEventWritten is being called when _subscriptions is null.
+            // I don't know how/why but if it is null then we can just exit the method.
+            subscriptions = _subscriptions?.ToArray();
+        }
 
-            // Subscriptions change on multiple threads so make a local copy
-            ListenerSubscription[]? subscriptions = null;
-            lock (_lock)
-            {
-                // Somehow OnEventWritten is being called when _subscriptions is null.
-                // I don't know how/why but if it is null then we can just exit the method.
-                subscriptions = _subscriptions?.ToArray();
-            }
+        if (subscriptions == null || subscriptions.Length == 0)
+        {
+            return;
+        }
 
-            if (subscriptions == null || subscriptions.Length == 0)
+        // The tests here run in parallel, capture the EventData that a test is explicitly
+        // looking for and not give back other tests' data.
+        if (eventData.EventId == _eventId && eventData.Payload != null)
+        {
+            var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
+            if (eventPayload.TryGetValue("Name", out var name) &&
+                eventPayload.TryGetValue("Mean", out var value))
             {
-                return;
-            }
-
-            // The tests here run in parallel, capture the EventData that a test is explicitly
-            // looking for and not give back other tests' data.
-            if (eventData.EventId == _eventId && eventData.Payload != null)
-            {
-                var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
-                if (eventPayload.TryGetValue("Name", out var name) &&
-                    eventPayload.TryGetValue("Mean", out var value))
+                foreach (var subscription in subscriptions)
                 {
-                    foreach (var subscription in subscriptions)
+                    if (subscription.CounterName == Convert.ToString(name, CultureInfo.InvariantCulture))
                     {
-                        if (subscription.CounterName == Convert.ToString(name, CultureInfo.InvariantCulture))
+                        subscription.CheckCount++;
+                        var currentValue = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+
+                        if (subscription.ExpectedValue == currentValue)
                         {
-                            subscription.CheckCount++;
-                            var currentValue = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                            _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} matched expected {subscription.ExpectedValue}.");
 
-                            if (subscription.ExpectedValue == currentValue)
+                            subscription.SetMatched();
+                            subscription.Dispose();
+                        }
+                        else
+                        {
+                            if (!subscription.IsMatched)
                             {
-                                _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} matched expected {subscription.ExpectedValue}.");
-
-                                subscription.SetMatched();
-                                subscription.Dispose();
-                            }
-                            else
-                            {
-                                if (!subscription.IsMatched)
+                                if (subscription.LastValue != currentValue || subscription.CheckCount % 1000 == 0)
                                 {
-                                    if (subscription.LastValue != currentValue || subscription.CheckCount % 1000 == 0)
-                                    {
-                                        _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} doesn't match expected {subscription.ExpectedValue}.");
-                                    }
+                                    _logger.LogDebug($"Check {subscription.CheckCount}: {subscription.CounterName} current value {currentValue} doesn't match expected {subscription.ExpectedValue}.");
                                 }
                             }
-
-                            // For debugging. Printed in message if subscription fails.
-                            subscription.LastValue = currentValue;
                         }
+
+                        // For debugging. Printed in message if subscription fails.
+                        subscription.LastValue = currentValue;
                     }
                 }
             }
         }
+    }
 
-        public ListenerSubscription Subscribe(string counterName, long expectedValue)
+    public ListenerSubscription Subscribe(string counterName, long expectedValue)
+    {
+        var subscription = new ListenerSubscription(this, counterName, expectedValue);
+        lock (_lock)
         {
-            var subscription = new ListenerSubscription(this, counterName, expectedValue);
-            lock (_lock)
-            {
-                _subscriptions.Add(subscription);
-            }
-
-            return subscription;
+            _subscriptions.Add(subscription);
         }
 
-        public void Unsubscribe(ListenerSubscription listenerSubscription)
+        return subscription;
+    }
+
+    public void Unsubscribe(ListenerSubscription listenerSubscription)
+    {
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                _subscriptions.Remove(listenerSubscription);
-            }
+            _subscriptions.Remove(listenerSubscription);
         }
     }
 }

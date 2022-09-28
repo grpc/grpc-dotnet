@@ -19,40 +19,39 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Grpc.Net.Client.Web.Internal
+namespace Grpc.Net.Client.Web.Internal;
+
+internal static class StreamHelpers
 {
-    internal static class StreamHelpers
-    {
-        /// <summary>
-        /// WriteAsync uses the best overload for the platform.
-        /// </summary>
+    /// <summary>
+    /// WriteAsync uses the best overload for the platform.
+    /// </summary>
 #if NETSTANDARD2_0
-        public static Task WriteAsync(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            return stream.WriteAsync(buffer, offset, count, cancellationToken);
-        }
+    public static Task WriteAsync(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return stream.WriteAsync(buffer, offset, count, cancellationToken);
+    }
 #else
-        public static ValueTask WriteAsync(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            return stream.WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
-        }
+    public static ValueTask WriteAsync(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        return stream.WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
+    }
 #endif
 
-        /// <summary>
-        /// ReadAsync uses the best overload for the platform. The data must be backed by an array.
-        /// </summary>
+    /// <summary>
+    /// ReadAsync uses the best overload for the platform. The data must be backed by an array.
+    /// </summary>
 #if NETSTANDARD2_0
-        public static Task<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
-        {
-            var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
-            Debug.Assert(success);
-            return stream.ReadAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);
-        }
-#else
-        public static ValueTask<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
-        {
-            return stream.ReadAsync(data, cancellationToken);
-        }
-#endif
+    public static Task<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
+    {
+        var success = MemoryMarshal.TryGetArray<byte>(data, out var segment);
+        Debug.Assert(success);
+        return stream.ReadAsync(segment.Array, segment.Offset, segment.Count, cancellationToken);
     }
+#else
+    public static ValueTask<int> ReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
+    {
+        return stream.ReadAsync(data, cancellationToken);
+    }
+#endif
 }

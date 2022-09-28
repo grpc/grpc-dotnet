@@ -22,13 +22,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// A writable stream of messages that is used in server-side handlers.
+/// </summary>
+public interface IServerStreamWriter<in T> : IAsyncStreamWriter<T>
 {
-    /// <summary>
-    /// A writable stream of messages that is used in server-side handlers.
-    /// </summary>
-    public interface IServerStreamWriter<in T> : IAsyncStreamWriter<T>
-    {
-        // TODO(jtattermusch): consider just using IAsyncStreamWriter instead of this interface.
-    }
+    // TODO(jtattermusch): consider just using IAsyncStreamWriter instead of this interface.
 }

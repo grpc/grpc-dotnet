@@ -18,51 +18,50 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+internal static class StatusCodeExtensions
 {
-    internal static class StatusCodeExtensions
+    public static string ToTrailerString(this StatusCode status)
     {
-        public static string ToTrailerString(this StatusCode status)
+        switch (status)
         {
-            switch (status)
-            {
-                case StatusCode.OK:
-                    return "0";
-                case StatusCode.Cancelled:
-                    return "1";
-                case StatusCode.Unknown:
-                    return "2";
-                case StatusCode.InvalidArgument:
-                    return "3";
-                case StatusCode.DeadlineExceeded:
-                    return "4";
-                case StatusCode.NotFound:
-                    return "5";
-                case StatusCode.AlreadyExists:
-                    return "6";
-                case StatusCode.PermissionDenied:
-                    return "7";
-                case StatusCode.ResourceExhausted:
-                    return "8";
-                case StatusCode.FailedPrecondition:
-                    return "9";
-                case StatusCode.Aborted:
-                    return "10";
-                case StatusCode.OutOfRange:
-                    return "11";
-                case StatusCode.Unimplemented:
-                    return "12";
-                case StatusCode.Internal:
-                    return "13";
-                case StatusCode.Unavailable:
-                    return "14";
-                case StatusCode.DataLoss:
-                    return "15";
-                case StatusCode.Unauthenticated:
-                    return "16";
-                default:
-                    return status.ToString("D");
-            }
+            case StatusCode.OK:
+                return "0";
+            case StatusCode.Cancelled:
+                return "1";
+            case StatusCode.Unknown:
+                return "2";
+            case StatusCode.InvalidArgument:
+                return "3";
+            case StatusCode.DeadlineExceeded:
+                return "4";
+            case StatusCode.NotFound:
+                return "5";
+            case StatusCode.AlreadyExists:
+                return "6";
+            case StatusCode.PermissionDenied:
+                return "7";
+            case StatusCode.ResourceExhausted:
+                return "8";
+            case StatusCode.FailedPrecondition:
+                return "9";
+            case StatusCode.Aborted:
+                return "10";
+            case StatusCode.OutOfRange:
+                return "11";
+            case StatusCode.Unimplemented:
+                return "12";
+            case StatusCode.Internal:
+                return "13";
+            case StatusCode.Unavailable:
+                return "14";
+            case StatusCode.DataLoss:
+                return "15";
+            case StatusCode.Unauthenticated:
+                return "16";
+            default:
+                return status.ToString("D");
         }
     }
 }

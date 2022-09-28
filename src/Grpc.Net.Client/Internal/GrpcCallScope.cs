@@ -19,59 +19,58 @@
 using System.Collections;
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal class GrpcCallScope : IReadOnlyList<KeyValuePair<string, object>>
 {
-    internal class GrpcCallScope : IReadOnlyList<KeyValuePair<string, object>>
+    private const string GrpcMethodTypeKey = "GrpcMethodType";
+    private const string GrpcUriKey = "GrpcUri";
+
+    private readonly MethodType _methodType;
+    private readonly Uri _uri;
+    private string? _cachedToString;
+
+    public GrpcCallScope(MethodType methodType, Uri uri)
     {
-        private const string GrpcMethodTypeKey = "GrpcMethodType";
-        private const string GrpcUriKey = "GrpcUri";
+        _methodType = methodType;
+        _uri = uri;
+    }
 
-        private readonly MethodType _methodType;
-        private readonly Uri _uri;
-        private string? _cachedToString;
-
-        public GrpcCallScope(MethodType methodType, Uri uri)
+    public KeyValuePair<string, object> this[int index]
+    {
+        get
         {
-            _methodType = methodType;
-            _uri = uri;
-        }
-
-        public KeyValuePair<string, object> this[int index]
-        {
-            get
+            switch (index)
             {
-                switch (index)
-                {
-                    case 0:
-                        return new KeyValuePair<string, object>(GrpcMethodTypeKey, _methodType);
-                    case 1:
-                        return new KeyValuePair<string, object>(GrpcUriKey, _uri);
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(index));
-                }
+                case 0:
+                    return new KeyValuePair<string, object>(GrpcMethodTypeKey, _methodType);
+                case 1:
+                    return new KeyValuePair<string, object>(GrpcUriKey, _uri);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index));
             }
         }
+    }
 
-        public int Count => 2;
+    public int Count => 2;
 
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+    public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+    {
+        for (var i = 0; i < Count; ++i)
         {
-            for (var i = 0; i < Count; ++i)
-            {
-                yield return this[i];
-            }
+            yield return this[i];
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public override string ToString()
+    {
+        if (_cachedToString == null)
+        {
+            _cachedToString = FormattableString.Invariant($"{GrpcMethodTypeKey}:{_methodType} {GrpcUriKey}:{_uri}");
         }
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public override string ToString()
-        {
-            if (_cachedToString == null)
-            {
-                _cachedToString = FormattableString.Invariant($"{GrpcMethodTypeKey}:{_methodType} {GrpcUriKey}:{_uri}");
-            }
-
-            return _cachedToString;
-        }
+        return _cachedToString;
     }
 }

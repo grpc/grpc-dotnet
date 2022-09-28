@@ -19,10 +19,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure;
+
+public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
 {
-    public class TestHttpResponseTrailersFeature : IHttpResponseTrailersFeature
-    {
-        public IHeaderDictionary Trailers { get; set; } = new HeaderDictionary();
-    }
+    public IHeaderDictionary Trailers { get; set; } = new HeaderDictionary();
 }

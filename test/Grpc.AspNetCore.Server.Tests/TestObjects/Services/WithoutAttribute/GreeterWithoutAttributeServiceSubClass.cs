@@ -16,9 +16,8 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute
+namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute;
+
+public class GreeterWithoutAttributeServiceSubClass : GreeterWithoutAttributeService
 {
-    public class GreeterWithoutAttributeServiceSubClass : GreeterWithoutAttributeService
-    {
-    }
 }

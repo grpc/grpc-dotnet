@@ -18,22 +18,21 @@
 
 using System.Diagnostics;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+public class ActivityReplacer : IDisposable
 {
-    public class ActivityReplacer : IDisposable
+    private readonly Activity _activity;
+
+    public ActivityReplacer(string activityName)
     {
-        private readonly Activity _activity;
+        _activity = new Activity(activityName);
+        _activity.Start();
+    }
 
-        public ActivityReplacer(string activityName)
-        {
-            _activity = new Activity(activityName);
-            _activity.Start();
-        }
-
-        public void Dispose()
-        {
-            Debug.Assert(Activity.Current == _activity);
-            _activity.Stop();
-        }
+    public void Dispose()
+    {
+        Debug.Assert(Activity.Current == _activity);
+        _activity.Stop();
     }
 }

@@ -16,13 +16,12 @@
 
 #endregion
 
-namespace InteropTestsNativeWebsite
+namespace InteropTestsNativeWebsite;
+
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
-        {
-            InteropServer.Run(args);
-        }
+        InteropServer.Run(args);
     }
 }

@@ -23,47 +23,46 @@ using System.Threading.Tasks;
 using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Asynchronous authentication interceptor for <see cref="CallCredentials"/>.
+/// </summary>
+/// <param name="context">The interceptor context.</param>
+/// <param name="metadata">Metadata to populate with entries that will be added to outgoing call's headers.</param>
+/// <returns></returns>
+public delegate Task AsyncAuthInterceptor(AuthInterceptorContext context, Metadata metadata);
+
+/// <summary>
+/// Context for an RPC being intercepted by <see cref="AsyncAuthInterceptor"/>.
+/// </summary>
+public class AuthInterceptorContext
 {
-    /// <summary>
-    /// Asynchronous authentication interceptor for <see cref="CallCredentials"/>.
-    /// </summary>
-    /// <param name="context">The interceptor context.</param>
-    /// <param name="metadata">Metadata to populate with entries that will be added to outgoing call's headers.</param>
-    /// <returns></returns>
-    public delegate Task AsyncAuthInterceptor(AuthInterceptorContext context, Metadata metadata);
+    readonly string serviceUrl;
+    readonly string methodName;
 
     /// <summary>
-    /// Context for an RPC being intercepted by <see cref="AsyncAuthInterceptor"/>.
+    /// Initializes a new instance of <c>AuthInterceptorContext</c>.
     /// </summary>
-    public class AuthInterceptorContext
+    public AuthInterceptorContext(string serviceUrl, string methodName)
     {
-        readonly string serviceUrl;
-        readonly string methodName;
+        this.serviceUrl = GrpcPreconditions.CheckNotNull(serviceUrl);
+        this.methodName = GrpcPreconditions.CheckNotNull(methodName);
+    }
 
-        /// <summary>
-        /// Initializes a new instance of <c>AuthInterceptorContext</c>.
-        /// </summary>
-        public AuthInterceptorContext(string serviceUrl, string methodName)
-        {
-            this.serviceUrl = GrpcPreconditions.CheckNotNull(serviceUrl);
-            this.methodName = GrpcPreconditions.CheckNotNull(methodName);
-        }
+    /// <summary>
+    /// The fully qualified service URL for the RPC being called.
+    /// </summary>
+    public string ServiceUrl
+    {
+        get { return serviceUrl; }
+    }
 
-        /// <summary>
-        /// The fully qualified service URL for the RPC being called.
-        /// </summary>
-        public string ServiceUrl
-        {
-            get { return serviceUrl; }
-        }
-
-        /// <summary>
-        /// The method name of the RPC being called.
-        /// </summary>
-        public string MethodName
-        {
-            get { return methodName; }
-        }
+    /// <summary>
+    /// The method name of the RPC being called.
+    /// </summary>
+    public string MethodName
+    {
+        get { return methodName; }
     }
 }

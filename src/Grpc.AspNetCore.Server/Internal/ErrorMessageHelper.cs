@@ -18,18 +18,17 @@
 
 using Grpc.Shared;
 
-namespace Grpc.AspNetCore.Server.Internal
-{
-    internal static class ErrorMessageHelper
-    {
-        internal static string BuildErrorMessage(string message, Exception exception, bool? includeExceptionDetails)
-        {
-            if (includeExceptionDetails ?? false)
-            {
-                return message + " " + CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(exception);
-            }
+namespace Grpc.AspNetCore.Server.Internal;
 
-            return message;
+internal static class ErrorMessageHelper
+{
+    internal static string BuildErrorMessage(string message, Exception exception, bool? includeExceptionDetails)
+    {
+        if (includeExceptionDetails ?? false)
+        {
+            return message + " " + CommonGrpcProtocolHelpers.ConvertToRpcExceptionMessage(exception);
         }
+
+        return message;
     }
 }

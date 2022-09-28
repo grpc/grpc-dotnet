@@ -21,90 +21,89 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web
+namespace Grpc.AspNetCore.FunctionalTests.Web;
+
+public enum GrpcTestMode
 {
-    public enum GrpcTestMode
+    Grpc,
+    GrpcWeb,
+    GrpcWebText
+}
+
+public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
+{
+    public GrpcTestMode GrpcTestMode { get; }
+    public TestServerEndpointName EndpointName { get; }
+
+    protected GrpcWebFunctionalTestBase(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
     {
-        Grpc,
-        GrpcWeb,
-        GrpcWebText
+        GrpcTestMode = grpcTestMode;
+        EndpointName = endpointName;
+
+#if NET6_0_OR_GREATER
+        if (endpointName == TestServerEndpointName.Http3WithTls &&
+            !RequireHttp3Attribute.IsSupported(out var message))
+        {
+            Assert.Ignore(message);
+        }
+#endif
     }
 
-    public abstract class GrpcWebFunctionalTestBase : FunctionalTestBase
+    protected HttpClient CreateGrpcWebClient()
     {
-        public GrpcTestMode GrpcTestMode { get; }
-        public TestServerEndpointName EndpointName { get; }
+        var grpcWebHandler = CreateGrpcWebHandlerCore();
 
-        protected GrpcWebFunctionalTestBase(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
+        return Fixture.CreateClient(EndpointName, grpcWebHandler);
+    }
+
+    protected (HttpMessageHandler handler, Uri address) CreateGrpcWebHandler()
+    {
+        var grpcWebHandler = CreateGrpcWebHandlerCore();
+
+        return Fixture.CreateHandler(EndpointName, grpcWebHandler);
+    }
+
+    private GrpcWebHandler? CreateGrpcWebHandlerCore()
+    {
+        Version protocol;
+
+        if (EndpointName == TestServerEndpointName.Http1)
         {
-            GrpcTestMode = grpcTestMode;
-            EndpointName = endpointName;
-
+            protocol = new Version(1, 1);
+        }
 #if NET6_0_OR_GREATER
-            if (endpointName == TestServerEndpointName.Http3WithTls &&
-                !RequireHttp3Attribute.IsSupported(out var message))
-            {
-                Assert.Ignore(message);
-            }
+        else if (EndpointName == TestServerEndpointName.Http3WithTls)
+        {
+            protocol = new Version(3, 0);
+        }
 #endif
-        }
-
-        protected HttpClient CreateGrpcWebClient()
+        else
         {
-            var grpcWebHandler = CreateGrpcWebHandlerCore();
-
-            return Fixture.CreateClient(EndpointName, grpcWebHandler);
+            protocol = new Version(2, 0);
         }
 
-        protected (HttpMessageHandler handler, Uri address) CreateGrpcWebHandler()
+        GrpcWebHandler? grpcWebHandler = null;
+        if (GrpcTestMode != GrpcTestMode.Grpc)
         {
-            var grpcWebHandler = CreateGrpcWebHandlerCore();
-
-            return Fixture.CreateHandler(EndpointName, grpcWebHandler);
+            var mode = GrpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
+            grpcWebHandler = new GrpcWebHandler(mode)
+            {
+                HttpVersion = protocol
+            };
         }
 
-        private GrpcWebHandler? CreateGrpcWebHandlerCore()
+        return grpcWebHandler;
+    }
+
+    protected GrpcChannel CreateGrpcWebChannel()
+    {
+        var httpClient = CreateGrpcWebClient();
+        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
         {
-            Version protocol;
+            HttpClient = httpClient,
+            LoggerFactory = LoggerFactory
+        });
 
-            if (EndpointName == TestServerEndpointName.Http1)
-            {
-                protocol = new Version(1, 1);
-            }
-#if NET6_0_OR_GREATER
-            else if (EndpointName == TestServerEndpointName.Http3WithTls)
-            {
-                protocol = new Version(3, 0);
-            }
-#endif
-            else
-            {
-                protocol = new Version(2, 0);
-            }
-
-            GrpcWebHandler? grpcWebHandler = null;
-            if (GrpcTestMode != GrpcTestMode.Grpc)
-            {
-                var mode = GrpcTestMode == GrpcTestMode.GrpcWeb ? GrpcWebMode.GrpcWeb : GrpcWebMode.GrpcWebText;
-                grpcWebHandler = new GrpcWebHandler(mode)
-                {
-                    HttpVersion = protocol
-                };
-            }
-
-            return grpcWebHandler;
-        }
-
-        protected GrpcChannel CreateGrpcWebChannel()
-        {
-            var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
-            {
-                HttpClient = httpClient,
-                LoggerFactory = LoggerFactory
-            });
-
-            return channel;
-        }
+        return channel;
     }
 }

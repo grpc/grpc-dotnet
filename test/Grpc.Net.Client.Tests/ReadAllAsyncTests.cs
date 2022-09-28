@@ -25,125 +25,84 @@ using NUnit.Framework;
 
 #if !NET472
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class ReadAllAsyncTests
 {
-    [TestFixture]
-    public class ReadAllAsyncTests
+    [Test]
+    public async Task ReadAllAsync_MultipleMessages_MessagesReceived()
     {
-        [Test]
-        public async Task ReadAllAsync_MultipleMessages_MessagesReceived()
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-
-            var messages = new List<string>();
-            await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout())
-            {
-                messages.Add(item.Message);
-            }
-
-            // Assert
-            Assert.AreEqual(2, messages.Count);
-            Assert.AreEqual("Hello world 1", messages[0]);
-            Assert.AreEqual("Hello world 2", messages[1]);
-        }
-
-        [Test]
-        public void ReadAllAsync_StreamReaderNull_ThrowArgumentNullException()
-        {
-            // Arrange
-            IAsyncStreamReader<int> reader = null!;
-
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => reader.ReadAllAsync());
-        }
-
-        [Test]
-        public async Task ReadAllAsync_CancelCallViaWithCancellation_ForEachExitedOnCancellation()
-        {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-            var cts = new CancellationTokenSource();
-
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-
-            var messages = new List<string>();
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
                 {
-                    await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout().WithCancellation(cts.Token))
-                    {
-                        messages.Add(item.Message);
-
-                        cts.Cancel();
-                    }
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
                 }).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(1, messages.Count);
-            Assert.AreEqual("Hello world 1", messages[0]);
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+        var messages = new List<string>();
+        await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout())
+        {
+            messages.Add(item.Message);
         }
 
-        [Test]
-        public async Task ReadAllAsync_CancelCallViaArgument_ForEachExitedOnCancellation()
+        // Assert
+        Assert.AreEqual(2, messages.Count);
+        Assert.AreEqual("Hello world 1", messages[0]);
+        Assert.AreEqual("Hello world 2", messages[1]);
+    }
+
+    [Test]
+    public void ReadAllAsync_StreamReaderNull_ThrowArgumentNullException()
+    {
+        // Arrange
+        IAsyncStreamReader<int> reader = null!;
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => reader.ReadAllAsync());
+    }
+
+    [Test]
+    public async Task ReadAllAsync_CancelCallViaWithCancellation_ForEachExitedOnCancellation()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
+                {
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
+                }).DefaultTimeout();
+
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+        var messages = new List<string>();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
             {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-            var cts = new CancellationTokenSource();
-
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-
-            var messages = new List<string>();
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
-            {
-                await foreach (var item in call.ResponseStream.ReadAllAsync(cts.Token).DefaultTimeout())
+                await foreach (var item in call.ResponseStream.ReadAllAsync().DefaultTimeout().WithCancellation(cts.Token))
                 {
                     messages.Add(item.Message);
 
@@ -151,129 +110,169 @@ namespace Grpc.Net.Client.Tests
                 }
             }).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(1, messages.Count);
-            Assert.AreEqual("Hello world 1", messages[0]);
-        }
+        // Assert
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(1, messages.Count);
+        Assert.AreEqual("Hello world 1", messages[0]);
+    }
 
-        [Test]
-        public async Task MoveNextAsync_MultipleMessages_MessagesReceived()
+    [Test]
+    public async Task ReadAllAsync_CancelCallViaArgument_ForEachExitedOnCancellation()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
+                {
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
+                }).DefaultTimeout();
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var cts = new CancellationTokenSource();
 
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
-            var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
-
-            // Assert
-            Assert.IsNull(enumerator.Current);
-
-            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
-            Assert.IsNotNull(enumerator.Current);
-            Assert.AreEqual("Hello world 1", enumerator.Current.Message);
-
-            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
-            Assert.IsNotNull(enumerator.Current);
-            Assert.AreEqual("Hello world 2", enumerator.Current.Message);
-
-            Assert.IsFalse(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
-        }
-
-        [Test]
-        public async Task MoveNextAsync_CancelCall_EnumeratorThrows()
+        var messages = new List<string>();
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            await foreach (var item in call.ResponseStream.ReadAllAsync(cts.Token).DefaultTimeout())
             {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
+                messages.Add(item.Message);
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
-            var cts = new CancellationTokenSource();
+                cts.Cancel();
+            }
+        }).DefaultTimeout();
 
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+        // Assert
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(1, messages.Count);
+        Assert.AreEqual("Hello world 1", messages[0]);
+    }
 
-            var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
-
-            // Assert
-            Assert.IsNull(enumerator.Current);
-
-            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
-            Assert.IsNotNull(enumerator.Current);
-            Assert.AreEqual("Hello world 1", enumerator.Current.Message);
-
-            cts.Cancel();
-
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-        }
-
-        [Test]
-        public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledOnCancellation_EnumeratorThrows()
+    [Test]
+    public async Task MoveNextAsync_MultipleMessages_MessagesReceived()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var streamContent = await ClientTestHelpers.CreateResponsesContent(
-                    new HelloReply
-                    {
-                        Message = "Hello world 1"
-                    },
-                    new HelloReply
-                    {
-                        Message = "Hello world 2"
-                    }).DefaultTimeout();
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
+                {
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
+                }).DefaultTimeout();
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
-            var cts = new CancellationTokenSource();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-            // Act
-            var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
-            var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
+        var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
 
-            // Assert
-            Assert.IsNull(enumerator.Current);
+        // Assert
+        Assert.IsNull(enumerator.Current);
 
-            Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
-            Assert.IsNotNull(enumerator.Current);
-            Assert.AreEqual("Hello world 1", enumerator.Current.Message);
+        Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.IsNotNull(enumerator.Current);
+        Assert.AreEqual("Hello world 1", enumerator.Current.Message);
 
-            cts.Cancel();
+        Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.IsNotNull(enumerator.Current);
+        Assert.AreEqual("Hello world 2", enumerator.Current.Message);
 
-            await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-        }
+        Assert.IsFalse(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+    }
+
+    [Test]
+    public async Task MoveNextAsync_CancelCall_EnumeratorThrows()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
+                {
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
+                }).DefaultTimeout();
+
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+
+        var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
+
+        // Assert
+        Assert.IsNull(enumerator.Current);
+
+        Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.IsNotNull(enumerator.Current);
+        Assert.AreEqual("Hello world 1", enumerator.Current.Message);
+
+        cts.Cancel();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task MoveNextAsync_CancelCall_ThrowOperationCanceledOnCancellation_EnumeratorThrows()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            var streamContent = await ClientTestHelpers.CreateResponsesContent(
+                new HelloReply
+                {
+                    Message = "Hello world 1"
+                },
+                new HelloReply
+                {
+                    Message = "Hello world 2"
+                }).DefaultTimeout();
+
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: o => o.ThrowOperationCanceledOnCancellation = true);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var call = invoker.AsyncServerStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest());
+
+        var enumerator = call.ResponseStream.ReadAllAsync().GetAsyncEnumerator();
+
+        // Assert
+        Assert.IsNull(enumerator.Current);
+
+        Assert.IsTrue(await enumerator.MoveNextAsync().AsTask().DefaultTimeout());
+        Assert.IsNotNull(enumerator.Current);
+        Assert.AreEqual("Hello world 1", enumerator.Current.Message);
+
+        cts.Cancel();
+
+        await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => enumerator.MoveNextAsync().AsTask()).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
     }
 }
 

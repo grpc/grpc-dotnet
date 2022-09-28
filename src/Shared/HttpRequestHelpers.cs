@@ -18,84 +18,83 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Grpc.Shared
+namespace Grpc.Shared;
+
+internal static class HttpRequestHelpers
 {
-    internal static class HttpRequestHelpers
+    public static bool TryGetOption<T>(this HttpRequestMessage requestMessage, string key, [NotNullWhen(true)] out T? value)
     {
-        public static bool TryGetOption<T>(this HttpRequestMessage requestMessage, string key, [NotNullWhen(true)] out T? value)
-        {
 #if NET5_0_OR_GREATER
-            return requestMessage.Options.TryGetValue(new HttpRequestOptionsKey<T>(key), out value!);
+        return requestMessage.Options.TryGetValue(new HttpRequestOptionsKey<T>(key), out value!);
 #else
-            if (requestMessage.Properties.TryGetValue(key, out var tempValue))
-            {
-                value = (T)tempValue!;
-                return true;
-            }
-            value = default;
-            return false;
-#endif
-        }
-
-        public static void SetOption<T>(this HttpRequestMessage requestMessage, string key, T value)
+        if (requestMessage.Properties.TryGetValue(key, out var tempValue))
         {
+            value = (T)tempValue!;
+            return true;
+        }
+        value = default;
+        return false;
+#endif
+    }
+
+    public static void SetOption<T>(this HttpRequestMessage requestMessage, string key, T value)
+    {
 #if NET5_0_OR_GREATER
-            requestMessage.Options.Set(new HttpRequestOptionsKey<T>(key), value);
+        requestMessage.Options.Set(new HttpRequestOptionsKey<T>(key), value);
 #else
-            requestMessage.Properties[key] = value;
+        requestMessage.Properties[key] = value;
 #endif
-        }
+    }
 
-        public static bool HasHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
+    public static bool HasHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
+    {
+        return GetHttpHandlerType(handler, handlerTypeName) != null;
+    }
+
+    public static HttpMessageHandler? GetHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
+    {
+        if (handler?.GetType().FullName == handlerTypeName)
         {
-            return GetHttpHandlerType(handler, handlerTypeName) != null;
+            return handler;
         }
 
-        public static HttpMessageHandler? GetHttpHandlerType(HttpMessageHandler handler, string handlerTypeName)
+        HttpMessageHandler? currentHandler = handler;
+        while (currentHandler is DelegatingHandler delegatingHandler)
         {
-            if (handler?.GetType().FullName == handlerTypeName)
+            currentHandler = delegatingHandler.InnerHandler;
+
+            if (currentHandler?.GetType().FullName == handlerTypeName)
             {
-                return handler;
+                return currentHandler;
             }
-
-            HttpMessageHandler? currentHandler = handler;
-            while (currentHandler is DelegatingHandler delegatingHandler)
-            {
-                currentHandler = delegatingHandler.InnerHandler;
-
-                if (currentHandler?.GetType().FullName == handlerTypeName)
-                {
-                    return currentHandler;
-                }
-            }
-
-            return null;
         }
 
-        public static bool HasHttpHandlerType<T>(HttpMessageHandler handler) where T : HttpMessageHandler
+        return null;
+    }
+
+    public static bool HasHttpHandlerType<T>(HttpMessageHandler handler) where T : HttpMessageHandler
+    {
+        return GetHttpHandlerType<T>(handler) != null;
+    }
+
+    public static T? GetHttpHandlerType<T>(HttpMessageHandler handler) where T : HttpMessageHandler
+    {
+        if (handler is T t)
         {
-            return GetHttpHandlerType<T>(handler) != null;
+            return t;
         }
 
-        public static T? GetHttpHandlerType<T>(HttpMessageHandler handler) where T : HttpMessageHandler
+        HttpMessageHandler? currentHandler = handler;
+        while (currentHandler is DelegatingHandler delegatingHandler)
         {
-            if (handler is T t)
+            currentHandler = delegatingHandler.InnerHandler;
+
+            if (currentHandler is T inner)
             {
-                return t;
+                return inner;
             }
-
-            HttpMessageHandler? currentHandler = handler;
-            while (currentHandler is DelegatingHandler delegatingHandler)
-            {
-                currentHandler = delegatingHandler.InnerHandler;
-
-                if (currentHandler is T inner)
-                {
-                    return inner;
-                }
-            }
-
-            return null;
         }
+
+        return null;
     }
 }

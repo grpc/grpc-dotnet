@@ -22,86 +22,85 @@ using Grpc.Dotnet.Cli.Internal;
 using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Commands;
+
+internal class AddUrlCommand : CommandBase
 {
-    internal class AddUrlCommand : CommandBase
+    public AddUrlCommand(IConsole console, string? projectPath, HttpClient httpClient)
+        : base(console, projectPath, httpClient) { }
+
+    // Internal for testing
+    internal AddUrlCommand(IConsole console, HttpClient client)
+        : base(console, client) { }
+
+    public static Command Create(HttpClient httpClient)
     {
-        public AddUrlCommand(IConsole console, string? projectPath, HttpClient httpClient)
-            : base(console, projectPath, httpClient) { }
+        var command = new Command(
+            name: "add-url",
+            description: CoreStrings.AddUrlCommandDescription);
 
-        // Internal for testing
-        internal AddUrlCommand(IConsole console, HttpClient client)
-            : base(console, client) { }
-
-        public static Command Create(HttpClient httpClient)
+        var projectOption = CommonOptions.ProjectOption();
+        var serviceOption = CommonOptions.ServiceOption();
+        var additionalImportDirsOption = CommonOptions.AdditionalImportDirsOption();
+        var accessOption = CommonOptions.AccessOption();
+        var outputOption = new Option<string>(
+            aliases: new[] { "-o", "--output" },
+            description: CoreStrings.OutputOptionDescription);
+        var urlArgument = new Argument<string>
         {
-            var command = new Command(
-                name: "add-url",
-                description: CoreStrings.AddUrlCommandDescription);
+            Name = "url",
+            Description = CoreStrings.AddUrlCommandArgumentDescription,
+            Arity = ArgumentArity.ExactlyOne
+        };
 
-            var projectOption = CommonOptions.ProjectOption();
-            var serviceOption = CommonOptions.ServiceOption();
-            var additionalImportDirsOption = CommonOptions.AdditionalImportDirsOption();
-            var accessOption = CommonOptions.AccessOption();
-            var outputOption = new Option<string>(
-                aliases: new[] { "-o", "--output" },
-                description: CoreStrings.OutputOptionDescription);
-            var urlArgument = new Argument<string>
+        command.AddOption(outputOption);
+        command.AddOption(projectOption);
+        command.AddOption(serviceOption);
+        command.AddOption(additionalImportDirsOption);
+        command.AddOption(accessOption);
+        command.AddArgument(urlArgument);
+
+        command.SetHandler<string, Services, Access, string?, string, string, InvocationContext, IConsole>(
+            async (project, services, access, additionalImportDirs, url, output, context, console) =>
             {
-                Name = "url",
-                Description = CoreStrings.AddUrlCommandArgumentDescription,
-                Arity = ArgumentArity.ExactlyOne
-            };
-
-            command.AddOption(outputOption);
-            command.AddOption(projectOption);
-            command.AddOption(serviceOption);
-            command.AddOption(additionalImportDirsOption);
-            command.AddOption(accessOption);
-            command.AddArgument(urlArgument);
-
-            command.SetHandler<string, Services, Access, string?, string, string, InvocationContext, IConsole>(
-                async (project, services, access, additionalImportDirs, url, output, context, console) =>
+                try
                 {
-                    try
+                    if (string.IsNullOrEmpty(output))
                     {
-                        if (string.IsNullOrEmpty(output))
-                        {
-                            throw new CLIToolException(CoreStrings.ErrorNoOutputProvided);
-                        }
-
-                        var command = new AddUrlCommand(console, project, httpClient);
-                        await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
-
-                        context.ExitCode = 0;
+                        throw new CLIToolException(CoreStrings.ErrorNoOutputProvided);
                     }
-                    catch (CLIToolException e)
-                    {
-                        console.LogError(e);
 
-                        context.ExitCode = -1;
-                    }
-                }, projectOption, serviceOption, accessOption, additionalImportDirsOption, urlArgument, outputOption);
+                    var command = new AddUrlCommand(console, project, httpClient);
+                    await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
 
-            return command;
-        }
+                    context.ExitCode = 0;
+                }
+                catch (CLIToolException e)
+                {
+                    console.LogError(e);
 
-        public async Task AddUrlAsync(Services services, Access access, string? additionalImportDirs, string url, string output)
+                    context.ExitCode = -1;
+                }
+            }, projectOption, serviceOption, accessOption, additionalImportDirsOption, urlArgument, outputOption);
+
+        return command;
+    }
+
+    public async Task AddUrlAsync(Services services, Access access, string? additionalImportDirs, string url, string output)
+    {
+        var resolvedServices = ResolveServices(services);
+        await EnsureNugetPackagesAsync(resolvedServices);
+
+        if (!IsUrl(url))
         {
-            var resolvedServices = ResolveServices(services);
-            await EnsureNugetPackagesAsync(resolvedServices);
-
-            if (!IsUrl(url))
-            {
-                throw new CLIToolException(CoreStrings.ErrorReferenceNotUrl);
-            }
-
-            await DownloadFileAsync(url, output);
-
-            Console.Log(CoreStrings.LogAddUrlReference, output, url);
-            AddProtobufReference(resolvedServices, additionalImportDirs, access, output, url);
-
-            Project.Save();
+            throw new CLIToolException(CoreStrings.ErrorReferenceNotUrl);
         }
+
+        await DownloadFileAsync(url, output);
+
+        Console.Log(CoreStrings.LogAddUrlReference, output, url);
+        AddProtobufReference(resolvedServices, additionalImportDirs, access, output, url);
+
+        Project.Save();
     }
 }

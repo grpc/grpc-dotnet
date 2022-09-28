@@ -16,9 +16,8 @@
 
 #endregion
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace FunctionalTestsWebsite.Infrastructure;
+
+public class DynamicService
 {
-    public class DynamicService
-    {
-    }
 }

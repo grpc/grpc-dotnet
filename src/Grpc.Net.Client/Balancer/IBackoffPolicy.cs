@@ -17,34 +17,33 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// An interface for specifying backoff duration.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public interface IBackoffPolicy
 {
     /// <summary>
-    /// An interface for specifying backoff duration.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Returns the next backoff duration.
     /// </summary>
-    public interface IBackoffPolicy
-    {
-        /// <summary>
-        /// Returns the next backoff duration.
-        /// </summary>
-        TimeSpan NextBackoff();
-    }
+    TimeSpan NextBackoff();
+}
 
+/// <summary>
+/// A factory for creating <see cref="IBackoffPolicy"/> instances.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public interface IBackoffPolicyFactory
+{
     /// <summary>
-    /// A factory for creating <see cref="IBackoffPolicy"/> instances.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Creates a backoff policy.
     /// </summary>
-    public interface IBackoffPolicyFactory
-    {
-        /// <summary>
-        /// Creates a backoff policy.
-        /// </summary>
-        IBackoffPolicy Create();
-    }
+    IBackoffPolicy Create();
 }
 #endif

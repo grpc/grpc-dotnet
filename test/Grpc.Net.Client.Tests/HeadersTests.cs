@@ -25,98 +25,97 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class HeadersTests
 {
-    [TestFixture]
-    public class HeadersTests
+    [Test]
+    public async Task AsyncUnaryCall_SendHeaders_RequestMessageContainsHeaders()
     {
-        [Test]
-        public async Task AsyncUnaryCall_SendHeaders_RequestMessageContainsHeaders()
+        // Arrange
+        HttpRequestMessage? httpRequestMessage = null;
+
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
+            httpRequestMessage = request;
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            HelloReply reply = new HelloReply
             {
-                httpRequestMessage = request;
+                Message = "Hello world"
+            };
 
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
 
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var headers = new Metadata();
+        headers.Add("custom", "ascii");
+        headers.Add("custom-bin", Encoding.UTF8.GetBytes("Hello world"));
 
-            var headers = new Metadata();
-            headers.Add("custom", "ascii");
-            headers.Add("custom-bin", Encoding.UTF8.GetBytes("Hello world"));
+        // Act
+        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
-            // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
+        // Assert
+        Assert.AreEqual("Hello world", rs.Message);
 
-            // Assert
-            Assert.AreEqual("Hello world", rs.Message);
+        Assert.IsNotNull(httpRequestMessage);
+        Assert.AreEqual("ascii", httpRequestMessage!.Headers.GetValues("custom").Single());
+        Assert.AreEqual("Hello world", Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestMessage.Headers.GetValues("custom-bin").Single())));
+    }
 
-            Assert.IsNotNull(httpRequestMessage);
-            Assert.AreEqual("ascii", httpRequestMessage!.Headers.GetValues("custom").Single());
-            Assert.AreEqual("Hello world", Encoding.UTF8.GetString(Convert.FromBase64String(httpRequestMessage.Headers.GetValues("custom-bin").Single())));
-        }
+    [Test]
+    public async Task AsyncUnaryCall_NoHeaders_RequestMessageHasNoHeaders()
+    {
+        // Arrange
+        HttpRequestMessage? httpRequestMessage = null;
 
-        [Test]
-        public async Task AsyncUnaryCall_NoHeaders_RequestMessageHasNoHeaders()
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            HttpRequestMessage? httpRequestMessage = null;
+            httpRequestMessage = request;
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            HelloReply reply = new HelloReply
             {
-                httpRequestMessage = request;
+                Message = "Hello world"
+            };
 
-                HelloReply reply = new HelloReply
-                {
-                    Message = "Hello world"
-                };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
 
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var headers = new Metadata();
 
-            var headers = new Metadata();
+        // Act
+        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
 
-            // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(headers: headers), new HelloRequest());
+        // Assert
+        Assert.AreEqual("Hello world", rs.Message);
 
-            // Assert
-            Assert.AreEqual("Hello world", rs.Message);
+        Assert.IsNotNull(httpRequestMessage);
 
-            Assert.IsNotNull(httpRequestMessage);
-
-            // User-Agent is always sent
-            Assert.AreEqual(0, httpRequestMessage!.Headers.Count(h =>
+        // User-Agent is always sent
+        Assert.AreEqual(0, httpRequestMessage!.Headers.Count(h =>
+        {
+            if (string.Equals(h.Key, "user-agent", StringComparison.OrdinalIgnoreCase))
             {
-                if (string.Equals(h.Key, "user-agent", StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                if (string.Equals(h.Key, "te", StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
+            if (string.Equals(h.Key, "te", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
 
-                if (string.Equals(h.Key, GrpcProtocolConstants.MessageAcceptEncodingHeader, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
+            if (string.Equals(h.Key, GrpcProtocolConstants.MessageAcceptEncodingHeader, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
 
-                return true;
-            }));
-        }
+            return true;
+        }));
     }
 }

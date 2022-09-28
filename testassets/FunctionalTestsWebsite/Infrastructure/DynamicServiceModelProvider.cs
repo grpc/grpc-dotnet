@@ -19,17 +19,16 @@
 using System.Diagnostics;
 using Grpc.AspNetCore.Server.Model;
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace FunctionalTestsWebsite.Infrastructure;
+
+public class DynamicServiceModelProvider : IServiceMethodProvider<DynamicService>
 {
-    public class DynamicServiceModelProvider : IServiceMethodProvider<DynamicService>
+    public Action<ServiceMethodProviderContext<DynamicService>>? CreateMethod { get; set; }
+
+    public void OnServiceMethodDiscovery(ServiceMethodProviderContext<DynamicService> context)
     {
-        public Action<ServiceMethodProviderContext<DynamicService>>? CreateMethod { get; set; }
+        Debug.Assert(CreateMethod != null);
 
-        public void OnServiceMethodDiscovery(ServiceMethodProviderContext<DynamicService> context)
-        {
-            Debug.Assert(CreateMethod != null);
-
-            CreateMethod(context);
-        }
+        CreateMethod(context);
     }
 }

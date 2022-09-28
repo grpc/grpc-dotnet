@@ -16,14 +16,13 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Web
+namespace Grpc.AspNetCore.Web;
+
+/// <summary>
+/// Identifies an endpoint that doesn't support gRPC-Web.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
+public sealed class DisableGrpcWebAttribute : Attribute, IGrpcWebEnabledMetadata
 {
-    /// <summary>
-    /// Identifies an endpoint that doesn't support gRPC-Web.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-    public sealed class DisableGrpcWebAttribute : Attribute, IGrpcWebEnabledMetadata
-    {
-        bool IGrpcWebEnabledMetadata.GrpcWebEnabled => false;
-    }
+    bool IGrpcWebEnabledMetadata.GrpcWebEnabled => false;
 }

@@ -23,245 +23,244 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class ClientStreamingMethodTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class ClientStreamingMethodTests : FunctionalTestBase
+    [Test]
+    public async Task MultipleMessagesThenClose_SuccessResponse()
     {
-        [Test]
-        public async Task MultipleMessagesThenClose_SuccessResponse()
-        {
-            // Arrange
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // Arrange
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new CounterRequest
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new CounterRequest
+        {
+            Count = 1
+        });
+
+        var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
+        httpRequest.Content = new PushStreamContent(
+            async s =>
             {
-                Count = 1
+                await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
+
+                await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
+
+                await tcs.Task.DefaultTimeout();
             });
 
-            var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
-            httpRequest.Content = new PushStreamContent(
-                async s =>
-                {
-                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
-                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
+        // Assert
+        Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-                    await tcs.Task.DefaultTimeout();
-                });
+        tcs.TrySetResult(null);
 
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+        var response = await responseTask.DefaultTimeout();
 
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+        var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
+        Assert.AreEqual(2, reply.Count);
+        response.AssertTrailerStatus();
+    }
 
-            tcs.TrySetResult(null);
-
-            var response = await responseTask.DefaultTimeout();
-
-            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
-            Assert.AreEqual(2, reply.Count);
-            response.AssertTrailerStatus();
-        }
-
-        [Test]
-        public async Task CompleteThenIncompleteMessage_ErrorResponse()
+    [Test]
+    public async Task CompleteThenIncompleteMessage_ErrorResponse()
+    {
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.State.ToString() == "Error reading message." &&
+                GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.State.ToString() == "Error reading message." &&
-                    GetRpcExceptionDetail(writeContext.Exception) == "Incomplete message.")
-                {
-                    return true;
-                }
+                return true;
+            }
 
-                return false;
+            return false;
+        });
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new CounterRequest
+        {
+            Count = 1
+        });
+
+        var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
+        httpRequest.Content = new PushStreamContent(
+            async s =>
+            {
+                // Complete message
+                await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
+
+                // Incomplete message and finish
+                await s.WriteAsync(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
             });
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new CounterRequest
-            {
-                Count = 1
-            });
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
-            var httpRequest = GrpcHttpHelper.Create("Count.Counter/AccumulateCount");
-            httpRequest.Content = new PushStreamContent(
-                async s =>
-                {
-                    // Complete message
-                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
+        // Assert
+        var response = await responseTask.DefaultTimeout();
 
-                    // Incomplete message and finish
-                    await s.WriteAsync(ms.ToArray().AsSpan().Slice(0, (int)ms.Length - 1).ToArray()).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
-                });
+        // Read to end of response so headers are available
+        await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
 
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+        response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
 
-            // Assert
-            var response = await responseTask.DefaultTimeout();
+        AssertHasLogRpcConnectionError(StatusCode.Internal, "Incomplete message.");
+    }
 
-            // Read to end of response so headers are available
-            await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
+    [Test]
+    public async Task ServerMethodReturnsNull_FailureResponse()
+    {
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
 
-            response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
-
-            AssertHasLogRpcConnectionError(StatusCode.Internal, "Incomplete message.");
-        }
-
-        [Test]
-        public async Task ServerMethodReturnsNull_FailureResponse()
+        var requestMessage = new CounterRequest
         {
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<Empty, CounterReply>((requestStream, context) => Task.FromResult<CounterReply>(null!));
+            Count = 1
+        };
 
-            var requestMessage = new CounterRequest
-            {
-                Count = 1
-            };
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
+        response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
 
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-            response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+        AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
+    }
 
-            AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
-        }
-
-        [Test]
-        public async Task ServerCancellationToken_ReturnsResponse()
+    [Test]
+    public async Task ServerCancellationToken_ReturnsResponse()
+    {
+        static async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
         {
-            static async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
+            var cts = new CancellationTokenSource();
+
+            var counter = 0;
+            while (true)
             {
-                var cts = new CancellationTokenSource();
-
-                var counter = 0;
-                while (true)
+                try
                 {
-                    try
-                    {
-                        var hasNext = await requestStream.MoveNext(cts.Token).DefaultTimeout();
+                    var hasNext = await requestStream.MoveNext(cts.Token).DefaultTimeout();
 
-                        if (!hasNext)
-                        {
-                            break;
-                        }
-                    }
-                    catch (TaskCanceledException)
+                    if (!hasNext)
                     {
                         break;
                     }
-
-                    counter += requestStream.Current.Count;
-
-                    if (counter >= 3)
-                    {
-                        cts.Cancel();
-                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
                 }
 
-                return new CounterReply { Count = counter };
+                counter += requestStream.Current.Count;
+
+                if (counter >= 3)
+                {
+                    cts.Cancel();
+                }
             }
 
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new CounterRequest
-            {
-                Count = 1
-            });
-
-            var requestStream = new MemoryStream();
-
-            var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Content = new PushStreamContent(
-                async s =>
-                {
-                    for (var i = 0; i < 10; i++)
-                    {
-                        await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-                        await s.FlushAsync().DefaultTimeout();
-                    }
-                });
-
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-
-            // Assert
-            var response = await responseTask.DefaultTimeout();
-            var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
-            Assert.AreEqual(3, reply.Count);
-            response.AssertTrailerStatus();
+            return new CounterReply { Count = counter };
         }
 
-        [Test]
-        public async Task StreamingEndsWithIncompleteMessage_ErrorResponse()
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new CounterRequest
         {
-            var counter = 0;
-            async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
-            {
-                while (await requestStream.MoveNext().DefaultTimeout())
-                {
-                    counter += requestStream.Current.Count;
-                }
+            Count = 1
+        });
 
-                return new CounterReply { Count = counter };
+        var requestStream = new MemoryStream();
+
+        var httpRequest = GrpcHttpHelper.Create(method.FullName);
+        httpRequest.Content = new PushStreamContent(
+            async s =>
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    await s.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+                    await s.FlushAsync().DefaultTimeout();
+                }
+            });
+
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+        // Assert
+        var response = await responseTask.DefaultTimeout();
+        var reply = await response.GetSuccessfulGrpcMessageAsync<CounterReply>().DefaultTimeout();
+        Assert.AreEqual(3, reply.Count);
+        response.AssertTrailerStatus();
+    }
+
+    [Test]
+    public async Task StreamingEndsWithIncompleteMessage_ErrorResponse()
+    {
+        var counter = 0;
+        async Task<CounterReply> AccumulateCount(IAsyncStreamReader<CounterRequest> requestStream, ServerCallContext context)
+        {
+            while (await requestStream.MoveNext().DefaultTimeout())
+            {
+                counter += requestStream.Current.Count;
             }
 
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName;
-            });
-
-            var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new CounterRequest
-            {
-                Count = 1
-            });
-
-            var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Content = new PushStreamContent(
-                async s =>
-                {
-                    var responseData = ms.ToArray();
-
-                    await s.WriteAsync(responseData).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
-
-                    await s.WriteAsync(responseData.AsMemory().Slice(0, responseData.Length - 1)).AsTask().DefaultTimeout();
-                    await s.FlushAsync().DefaultTimeout();
-                });
-
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-
-            // Assert
-            var response = await responseTask.DefaultTimeout();
-
-            response.AssertIsSuccessfulGrpcRequest();
-            response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
-
-            Assert.AreEqual(1, counter);
+            return new CounterReply { Count = counter };
         }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName;
+        });
+
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<CounterRequest, CounterReply>(AccumulateCount);
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new CounterRequest
+        {
+            Count = 1
+        });
+
+        var httpRequest = GrpcHttpHelper.Create(method.FullName);
+        httpRequest.Content = new PushStreamContent(
+            async s =>
+            {
+                var responseData = ms.ToArray();
+
+                await s.WriteAsync(responseData).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
+
+                await s.WriteAsync(responseData.AsMemory().Slice(0, responseData.Length - 1)).AsTask().DefaultTimeout();
+                await s.FlushAsync().DefaultTimeout();
+            });
+
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+        // Assert
+        var response = await responseTask.DefaultTimeout();
+
+        response.AssertIsSuccessfulGrpcRequest();
+        response.AssertTrailerStatus(StatusCode.Internal, "Incomplete message.");
+
+        Assert.AreEqual(1, counter);
     }
 }
