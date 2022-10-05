@@ -21,136 +21,135 @@ using Grpc.Core.Utils;
 using Grpc.Testing;
 
 // Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
-namespace QpsWorker.Infrastructure
+namespace QpsWorker.Infrastructure;
+
+/// <summary>
+/// Basic implementation of histogram based on grpc/support/histogram.h.
+/// </summary>
+public class Histogram
 {
-    /// <summary>
-    /// Basic implementation of histogram based on grpc/support/histogram.h.
-    /// </summary>
-    public class Histogram
+    private readonly object _myLock = new object();
+    private readonly double _multiplier;
+    private readonly double _oneOnLogMultiplier;
+    private readonly double _maxPossible;
+    private readonly uint[] _buckets;
+
+    private int _count;
+    private double _sum;
+    private double _sumOfSquares;
+    private double _min;
+    private double _max;
+
+    public Histogram(double resolution, double maxPossible)
     {
-        private readonly object _myLock = new object();
-        private readonly double _multiplier;
-        private readonly double _oneOnLogMultiplier;
-        private readonly double _maxPossible;
-        private readonly uint[] _buckets;
+        GrpcPreconditions.CheckArgument(resolution > 0);
+        GrpcPreconditions.CheckArgument(maxPossible > 0);
+        _maxPossible = maxPossible;
+        _multiplier = 1.0 + resolution;
+        _oneOnLogMultiplier = 1.0 / Math.Log(1.0 + resolution);
+        _buckets = new uint[FindBucket(maxPossible) + 1];
 
-        private int _count;
-        private double _sum;
-        private double _sumOfSquares;
-        private double _min;
-        private double _max;
+        ResetUnsafe();
+    }
 
-        public Histogram(double resolution, double maxPossible)
+    public void AddObservation(double value)
+    {
+        lock (_myLock)
         {
-            GrpcPreconditions.CheckArgument(resolution > 0);
-            GrpcPreconditions.CheckArgument(maxPossible > 0);
-            _maxPossible = maxPossible;
-            _multiplier = 1.0 + resolution;
-            _oneOnLogMultiplier = 1.0 / Math.Log(1.0 + resolution);
-            _buckets = new uint[FindBucket(maxPossible) + 1];
-
-            ResetUnsafe();
+            AddObservationUnsafe(value);
         }
+    }
 
-        public void AddObservation(double value)
+    /// <summary>
+    /// Gets snapshot of stats and optionally resets the histogram.
+    /// </summary>
+    public HistogramData GetSnapshot(bool reset = false)
+    {
+        lock (_myLock)
         {
-            lock (_myLock)
-            {
-                AddObservationUnsafe(value);
-            }
+            var histogramData = new HistogramData();
+            GetSnapshotUnsafe(histogramData, reset);
+            return histogramData;
         }
+    }
 
-        /// <summary>
-        /// Gets snapshot of stats and optionally resets the histogram.
-        /// </summary>
-        public HistogramData GetSnapshot(bool reset = false)
+    /// <summary>
+    /// Merges snapshot of stats into <c>mergeTo</c> and optionally resets the histogram.
+    /// </summary>
+    public void GetSnapshot(HistogramData mergeTo, bool reset)
+    {
+        lock (_myLock)
         {
-            lock (_myLock)
-            {
-                var histogramData = new HistogramData();
-                GetSnapshotUnsafe(histogramData, reset);
-                return histogramData;
-            }
+            GetSnapshotUnsafe(mergeTo, reset);
         }
+    }
 
-        /// <summary>
-        /// Merges snapshot of stats into <c>mergeTo</c> and optionally resets the histogram.
-        /// </summary>
-        public void GetSnapshot(HistogramData mergeTo, bool reset)
+    /// <summary>
+    /// Finds bucket index to which given observation should go.
+    /// </summary>
+    private int FindBucket(double value)
+    {
+        value = Math.Max(value, 1.0);
+        value = Math.Min(value, _maxPossible);
+        return (int)(Math.Log(value) * _oneOnLogMultiplier);
+    }
+
+    private void AddObservationUnsafe(double value)
+    {
+        _count++;
+        _sum += value;
+        _sumOfSquares += value * value;
+        _min = Math.Min(_min, value);
+        _max = Math.Max(_max, value);
+
+        _buckets[FindBucket(value)]++;
+    }
+
+    private void GetSnapshotUnsafe(HistogramData mergeTo, bool reset)
+    {
+        GrpcPreconditions.CheckArgument(mergeTo.Bucket.Count == 0 || mergeTo.Bucket.Count == _buckets.Length);
+        if (mergeTo.Count == 0)
         {
-            lock (_myLock)
-            {
-                GetSnapshotUnsafe(mergeTo, reset);
-            }
+            mergeTo.MinSeen = _min;
+            mergeTo.MaxSeen = _max;
         }
-
-        /// <summary>
-        /// Finds bucket index to which given observation should go.
-        /// </summary>
-        private int FindBucket(double value)
+        else
         {
-            value = Math.Max(value, 1.0);
-            value = Math.Min(value, _maxPossible);
-            return (int)(Math.Log(value) * _oneOnLogMultiplier);
+            mergeTo.MinSeen = Math.Min(mergeTo.MinSeen, _min);
+            mergeTo.MaxSeen = Math.Max(mergeTo.MaxSeen, _max);
         }
+        mergeTo.Count += _count;
+        mergeTo.Sum += _sum;
+        mergeTo.SumOfSquares += _sumOfSquares;
 
-        private void AddObservationUnsafe(double value)
+        if (mergeTo.Bucket.Count == 0)
         {
-            _count++;
-            _sum += value;
-            _sumOfSquares += value * value;
-            _min = Math.Min(_min, value);
-            _max = Math.Max(_max, value);
-
-            _buckets[FindBucket(value)]++;
+            mergeTo.Bucket.AddRange(_buckets);
         }
-
-        private void GetSnapshotUnsafe(HistogramData mergeTo, bool reset)
+        else
         {
-            GrpcPreconditions.CheckArgument(mergeTo.Bucket.Count == 0 || mergeTo.Bucket.Count == _buckets.Length);
-            if (mergeTo.Count == 0)
-            {
-                mergeTo.MinSeen = _min;
-                mergeTo.MaxSeen = _max;
-            }
-            else
-            {
-                mergeTo.MinSeen = Math.Min(mergeTo.MinSeen, _min);
-                mergeTo.MaxSeen = Math.Max(mergeTo.MaxSeen, _max);
-            }
-            mergeTo.Count += _count;
-            mergeTo.Sum += _sum;
-            mergeTo.SumOfSquares += _sumOfSquares;
-
-            if (mergeTo.Bucket.Count == 0)
-            {
-                mergeTo.Bucket.AddRange(_buckets);
-            }
-            else
-            {
-                for (int i = 0; i < _buckets.Length; i++)
-                {
-                    mergeTo.Bucket[i] += _buckets[i];
-                }
-            }
-
-            if (reset)
-            {
-                ResetUnsafe();
-            }
-        }
-
-        private void ResetUnsafe()
-        {
-            _count = 0;
-            _sum = 0;
-            _sumOfSquares = 0;
-            _min = double.PositiveInfinity;
-            _max = double.NegativeInfinity;
             for (int i = 0; i < _buckets.Length; i++)
             {
-                _buckets[i] = 0;
+                mergeTo.Bucket[i] += _buckets[i];
             }
+        }
+
+        if (reset)
+        {
+            ResetUnsafe();
+        }
+    }
+
+    private void ResetUnsafe()
+    {
+        _count = 0;
+        _sum = 0;
+        _sumOfSquares = 0;
+        _min = double.PositiveInfinity;
+        _max = double.NegativeInfinity;
+        for (int i = 0; i < _buckets.Length; i++)
+        {
+            _buckets[i] = 0;
         }
     }
 }

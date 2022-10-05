@@ -18,51 +18,50 @@
 
 using Grpc.AspNetCore.Web;
 
-namespace Microsoft.AspNetCore.Builder
+namespace Microsoft.AspNetCore.Builder;
+
+/// <summary>
+/// gRPC-Web extension methods for <see cref="IEndpointConventionBuilder"/>.
+/// </summary>
+public static class GrpcWebEndpointConventionBuilderExtensions
 {
     /// <summary>
-    /// gRPC-Web extension methods for <see cref="IEndpointConventionBuilder"/>.
+    /// Enables gRPC-Web for the endpoint(s).
     /// </summary>
-    public static class GrpcWebEndpointConventionBuilderExtensions
+    /// <param name="builder">The endpoint convention builder.</param>
+    /// <returns>The original convention builder parameter.</returns>
+    public static TBuilder EnableGrpcWeb<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
     {
-        /// <summary>
-        /// Enables gRPC-Web for the endpoint(s).
-        /// </summary>
-        /// <param name="builder">The endpoint convention builder.</param>
-        /// <returns>The original convention builder parameter.</returns>
-        public static TBuilder EnableGrpcWeb<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
+        if (builder == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            builder.Add(endpointBuilder =>
-            {
-                endpointBuilder.Metadata.Add(new EnableGrpcWebAttribute());
-            });
-
-            return builder;
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        /// <summary>
-        /// Disable gRPC-Web for the endpoint(s).
-        /// </summary>
-        /// <param name="builder">The endpoint convention builder.</param>
-        /// <returns>The original convention builder parameter.</returns>
-        public static TBuilder DisableGrpcWeb<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
+        builder.Add(endpointBuilder =>
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
+            endpointBuilder.Metadata.Add(new EnableGrpcWebAttribute());
+        });
 
-            builder.Add(endpointBuilder =>
-            {
-                endpointBuilder.Metadata.Add(new DisableGrpcWebAttribute());
-            });
+        return builder;
+    }
 
-            return builder;
+    /// <summary>
+    /// Disable gRPC-Web for the endpoint(s).
+    /// </summary>
+    /// <param name="builder">The endpoint convention builder.</param>
+    /// <returns>The original convention builder parameter.</returns>
+    public static TBuilder DisableGrpcWeb<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
+    {
+        if (builder == null)
+        {
+            throw new ArgumentNullException(nameof(builder));
         }
+
+        builder.Add(endpointBuilder =>
+        {
+            endpointBuilder.Metadata.Add(new DisableGrpcWebAttribute());
+        });
+
+        return builder;
     }
 }

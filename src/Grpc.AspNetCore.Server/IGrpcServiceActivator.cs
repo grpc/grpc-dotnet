@@ -19,29 +19,28 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server;
+
+/// <summary>
+/// A <typeparamref name="TGrpcService"/> activator abstraction.
+/// </summary>
+/// <typeparam name="TGrpcService">The service type.</typeparam>
+public interface IGrpcServiceActivator<
+#if NET5_0_OR_GREATER
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+    TGrpcService> where TGrpcService : class
 {
     /// <summary>
-    /// A <typeparamref name="TGrpcService"/> activator abstraction.
+    /// Creates a service.
     /// </summary>
-    /// <typeparam name="TGrpcService">The service type.</typeparam>
-    public interface IGrpcServiceActivator<
-#if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-        TGrpcService> where TGrpcService : class
-    {
-        /// <summary>
-        /// Creates a service.
-        /// </summary>
-        /// <param name="serviceProvider">The service provider.</param>
-        /// <returns>The created service.</returns>
-        GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider);
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <returns>The created service.</returns>
+    GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider);
 
-        /// <summary>
-        /// Releases the specified service.
-        /// </summary>
-        /// <param name="service">The service to release.</param>
-        ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
-    }
+    /// <summary>
+    /// Releases the specified service.
+    /// </summary>
+    /// <param name="service">The service to release.</param>
+    ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service);
 }

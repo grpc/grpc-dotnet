@@ -18,60 +18,59 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+internal class TestClient<TRequest, TResponse> : ClientBase
+    where TRequest : class
+    where TResponse : class
 {
-    internal class TestClient<TRequest, TResponse> : ClientBase
+    private readonly CallInvoker _callInvoker;
+    private readonly Method<TRequest, TResponse> _method;
+
+    public TestClient(CallInvoker callInvoker, Method<TRequest, TResponse> method)
+    {
+        _callInvoker = callInvoker;
+        _method = method;
+    }
+
+    public AsyncUnaryCall<TResponse> UnaryCall(TRequest request, CallOptions? callOptions = null)
+    {
+        return _callInvoker.AsyncUnaryCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions(), request);
+    }
+
+    public AsyncClientStreamingCall<TRequest, TResponse> ClientStreamingCall(CallOptions? callOptions = null)
+    {
+        return _callInvoker.AsyncClientStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions());
+    }
+
+    public AsyncServerStreamingCall<TResponse> ServerStreamingCall(TRequest request, CallOptions? callOptions = null)
+    {
+        return _callInvoker.AsyncServerStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions(), request);
+    }
+
+    public AsyncDuplexStreamingCall<TRequest, TResponse> DuplexStreamingCall(CallOptions? callOptions = null)
+    {
+        return _callInvoker.AsyncDuplexStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions());
+    }
+}
+
+internal static class TestClientFactory
+{
+    public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
+        ChannelBase channel,
+        Method<TRequest, TResponse> method)
         where TRequest : class
         where TResponse : class
     {
-        private readonly CallInvoker _callInvoker;
-        private readonly Method<TRequest, TResponse> _method;
-
-        public TestClient(CallInvoker callInvoker, Method<TRequest, TResponse> method)
-        {
-            _callInvoker = callInvoker;
-            _method = method;
-        }
-
-        public AsyncUnaryCall<TResponse> UnaryCall(TRequest request, CallOptions? callOptions = null)
-        {
-            return _callInvoker.AsyncUnaryCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions(), request);
-        }
-
-        public AsyncClientStreamingCall<TRequest, TResponse> ClientStreamingCall(CallOptions? callOptions = null)
-        {
-            return _callInvoker.AsyncClientStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions());
-        }
-
-        public AsyncServerStreamingCall<TResponse> ServerStreamingCall(TRequest request, CallOptions? callOptions = null)
-        {
-            return _callInvoker.AsyncServerStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions(), request);
-        }
-
-        public AsyncDuplexStreamingCall<TRequest, TResponse> DuplexStreamingCall(CallOptions? callOptions = null)
-        {
-            return _callInvoker.AsyncDuplexStreamingCall<TRequest, TResponse>(_method, string.Empty, callOptions ?? new CallOptions());
-        }
+        return new TestClient<TRequest, TResponse>(channel.CreateCallInvoker(), method);
     }
 
-    internal static class TestClientFactory
+    public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
+        CallInvoker callInvoker,
+        Method<TRequest, TResponse> method)
+        where TRequest : class
+        where TResponse : class
     {
-        public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
-            ChannelBase channel,
-            Method<TRequest, TResponse> method)
-            where TRequest : class
-            where TResponse : class
-        {
-            return new TestClient<TRequest, TResponse>(channel.CreateCallInvoker(), method);
-        }
-
-        public static TestClient<TRequest, TResponse> Create<TRequest, TResponse>(
-            CallInvoker callInvoker,
-            Method<TRequest, TResponse> method)
-            where TRequest : class
-            where TResponse : class
-        {
-            return new TestClient<TRequest, TResponse>(callInvoker, method);
-        }
+        return new TestClient<TRequest, TResponse>(callInvoker, method);
     }
 }

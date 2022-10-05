@@ -19,22 +19,21 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects
+namespace Grpc.AspNetCore.Server.Tests.TestObjects;
+
+public class TestEndpointRouteBuilder : IEndpointRouteBuilder
 {
-    public class TestEndpointRouteBuilder : IEndpointRouteBuilder
+    public TestEndpointRouteBuilder(IServiceProvider serviceProvider)
     {
-        public TestEndpointRouteBuilder(IServiceProvider serviceProvider)
-        {
-            ServiceProvider = serviceProvider;
-        }
+        ServiceProvider = serviceProvider;
+    }
 
-        public IServiceProvider ServiceProvider { get; set; }
+    public IServiceProvider ServiceProvider { get; set; }
 
-        public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
+    public ICollection<EndpointDataSource> DataSources { get; } = new List<EndpointDataSource>();
 
-        public IApplicationBuilder CreateApplicationBuilder()
-        {
-            throw new NotImplementedException();
-        }
+    public IApplicationBuilder CreateApplicationBuilder()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -16,38 +16,37 @@
 
 #endregion
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+public class TestHttpMessageHandler : HttpMessageHandler
 {
-    public class TestHttpMessageHandler : HttpMessageHandler
+    private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _sendAsync;
+
+    public TestHttpMessageHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
     {
-        private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _sendAsync;
+        _sendAsync = sendAsync;
+    }
 
-        public TestHttpMessageHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
+    public static TestHttpMessageHandler Create(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
+    {
+        var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        return new TestHttpMessageHandler(async (request, cancellationToken) =>
         {
-            _sendAsync = sendAsync;
-        }
+            using var registration = cancellationToken.Register(() => tcs.TrySetCanceled());
 
-        public static TestHttpMessageHandler Create(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
-        {
-            var tcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var result = await Task.WhenAny(sendAsync(request), tcs.Task);
+            return await result;
+        });
+    }
 
-            return new TestHttpMessageHandler(async (request, cancellationToken) =>
-            {
-                using var registration = cancellationToken.Register(() => tcs.TrySetCanceled());
+    public static TestHttpMessageHandler Create(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
+    {
+        return new TestHttpMessageHandler(sendAsync);
+    }
 
-                var result = await Task.WhenAny(sendAsync(request), tcs.Task);
-                return await result;
-            });
-        }
-
-        public static TestHttpMessageHandler Create(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> sendAsync)
-        {
-            return new TestHttpMessageHandler(sendAsync);
-        }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            return _sendAsync(request, cancellationToken);
-        }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        return _sendAsync(request, cancellationToken);
     }
 }

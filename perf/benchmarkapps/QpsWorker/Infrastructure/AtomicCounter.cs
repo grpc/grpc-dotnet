@@ -17,53 +17,52 @@
 #endregion
 
 // Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
-namespace QpsWorker.Infrastructure
+namespace QpsWorker.Infrastructure;
+
+internal class AtomicCounter
 {
-    internal class AtomicCounter
+    private long _counter = 0;
+
+    public AtomicCounter(long initialCount = 0)
     {
-        private long _counter = 0;
+        _counter = initialCount;
+    }
 
-        public AtomicCounter(long initialCount = 0)
-        {
-            _counter = initialCount;
-        }
+    public long Increment()
+    {
+        return Interlocked.Increment(ref _counter);
+    }
 
-        public long Increment()
+    public void IncrementIfNonzero(ref bool success)
+    {
+        long origValue = _counter;
+        while (true)
         {
-            return Interlocked.Increment(ref _counter);
-        }
-
-        public void IncrementIfNonzero(ref bool success)
-        {
-            long origValue = _counter;
-            while (true)
+            if (origValue == 0)
             {
-                if (origValue == 0)
-                {
-                    success = false;
-                    return;
-                }
-                long result = Interlocked.CompareExchange(ref _counter, origValue + 1, origValue);
-                if (result == origValue)
-                {
-                    success = true;
-                    return;
-                };
-                origValue = result;
+                success = false;
+                return;
             }
-        }
-
-        public long Decrement()
-        {
-            return Interlocked.Decrement(ref _counter);
-        }
-
-        public long Count
-        {
-            get
+            long result = Interlocked.CompareExchange(ref _counter, origValue + 1, origValue);
+            if (result == origValue)
             {
-                return Interlocked.Read(ref _counter);
-            }
+                success = true;
+                return;
+            };
+            origValue = result;
+        }
+    }
+
+    public long Decrement()
+    {
+        return Interlocked.Decrement(ref _counter);
+    }
+
+    public long Count
+    {
+        get
+        {
+            return Interlocked.Read(ref _counter);
         }
     }
 }

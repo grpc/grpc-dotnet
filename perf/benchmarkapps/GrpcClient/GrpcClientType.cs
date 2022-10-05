@@ -16,11 +16,10 @@
 
 #endregion
 
-namespace GrpcClient
+namespace GrpcClient;
+
+public enum GrpcClientType
 {
-    public enum GrpcClientType
-    {
-        GrpcCore,
-        GrpcNetClient
-    }
+    GrpcCore,
+    GrpcNetClient
 }

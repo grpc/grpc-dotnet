@@ -17,44 +17,43 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Specifies the location of the service bind method for a gRPC service.
+/// The bind method is typically generated code and is used to register a service's
+/// methods with the server on startup.
+/// 
+/// The bind method signature takes a <see cref="ServiceBinderBase"/> and an optional
+/// instance of the service base class, e.g. <c>static void BindService(ServiceBinderBase, GreeterService)</c>.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+public class BindServiceMethodAttribute : Attribute
 {
+    // Grpc.AspNetCore.Server uses reflection to find the bind service method.
+    // Grpc.AspNetCore.Server.Reflection uses reflection to find the descriptor property.
+    // DynamicallyAccessedMembersAttribute instructs the linker to never trim the members.
+    private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties;
+
     /// <summary>
-    /// Specifies the location of the service bind method for a gRPC service.
-    /// The bind method is typically generated code and is used to register a service's
-    /// methods with the server on startup.
-    /// 
-    /// The bind method signature takes a <see cref="ServiceBinderBase"/> and an optional
-    /// instance of the service base class, e.g. <c>static void BindService(ServiceBinderBase, GreeterService)</c>.
+    /// Initializes a new instance of the <see cref="BindServiceMethodAttribute"/> class.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-    public class BindServiceMethodAttribute : Attribute
+    /// <param name="bindType">The type the service bind method is defined on.</param>
+    /// <param name="bindMethodName">The name of the service bind method.</param>
+    public BindServiceMethodAttribute([DynamicallyAccessedMembers(ServiceBinderAccessibility)] Type bindType, string bindMethodName)
     {
-        // Grpc.AspNetCore.Server uses reflection to find the bind service method.
-        // Grpc.AspNetCore.Server.Reflection uses reflection to find the descriptor property.
-        // DynamicallyAccessedMembersAttribute instructs the linker to never trim the members.
-        private const DynamicallyAccessedMemberTypes ServiceBinderAccessibility = DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods | DynamicallyAccessedMemberTypes.PublicProperties;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BindServiceMethodAttribute"/> class.
-        /// </summary>
-        /// <param name="bindType">The type the service bind method is defined on.</param>
-        /// <param name="bindMethodName">The name of the service bind method.</param>
-        public BindServiceMethodAttribute([DynamicallyAccessedMembers(ServiceBinderAccessibility)] Type bindType, string bindMethodName)
-        {
-            BindType = bindType;
-            BindMethodName = bindMethodName;
-        }
-
-        /// <summary>
-        /// Gets the type the service bind method is defined on.
-        /// </summary>
-        [DynamicallyAccessedMembers(ServiceBinderAccessibility)]
-        public Type BindType { get; }
-
-        /// <summary>
-        /// Gets the name of the service bind method.
-        /// </summary>
-        public string BindMethodName { get; }
+        BindType = bindType;
+        BindMethodName = bindMethodName;
     }
+
+    /// <summary>
+    /// Gets the type the service bind method is defined on.
+    /// </summary>
+    [DynamicallyAccessedMembers(ServiceBinderAccessibility)]
+    public Type BindType { get; }
+
+    /// <summary>
+    /// Gets the name of the service bind method.
+    /// </summary>
+    public string BindMethodName { get; }
 }

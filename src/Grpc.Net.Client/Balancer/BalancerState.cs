@@ -20,37 +20,36 @@
 using System.Diagnostics;
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Represents the balancer state.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public sealed class BalancerState
 {
     /// <summary>
-    /// Represents the balancer state.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Initializes a new instance of the <see cref="BalancerState"/> class with the specified state.
     /// </summary>
-    public sealed class BalancerState
+    /// <param name="connectivityState">The connectivity state.</param>
+    /// <param name="picker">The subchannel picker.</param>
+    [DebuggerStepThrough]
+    public BalancerState(ConnectivityState connectivityState, SubchannelPicker picker)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BalancerState"/> class with the specified state.
-        /// </summary>
-        /// <param name="connectivityState">The connectivity state.</param>
-        /// <param name="picker">The subchannel picker.</param>
-        [DebuggerStepThrough]
-        public BalancerState(ConnectivityState connectivityState, SubchannelPicker picker)
-        {
-            ConnectivityState = connectivityState;
-            Picker = picker;
-        }
+        ConnectivityState = connectivityState;
+        Picker = picker;
+    }
 
-        /// <summary>
-        /// Gets the connectivity state.
-        /// </summary>
-        public ConnectivityState ConnectivityState { get; }
+    /// <summary>
+    /// Gets the connectivity state.
+    /// </summary>
+    public ConnectivityState ConnectivityState { get; }
 
-        /// <summary>
-        /// Gets the subchannel picker.
-        /// </summary>
-        public SubchannelPicker Picker { get; }
-}
+    /// <summary>
+    /// Gets the subchannel picker.
+    /// </summary>
+    public SubchannelPicker Picker { get; }
 }
 #endif

@@ -19,14 +19,13 @@
 using BenchmarkDotNet.Attributes;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Client
+namespace Grpc.AspNetCore.Microbenchmarks.Client;
+
+public class UnaryClientBenchmark : UnaryClientBenchmarkBase
 {
-    public class UnaryClientBenchmark : UnaryClientBenchmarkBase
+    [Benchmark]
+    public Task SayHelloAsync()
     {
-        [Benchmark]
-        public Task SayHelloAsync()
-        {
-            return InvokeSayHelloAsync(new CallOptions());
-        }
+        return InvokeSayHelloAsync(new CallOptions());
     }
 }

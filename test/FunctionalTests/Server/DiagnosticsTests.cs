@@ -22,38 +22,37 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class DiagnosticsTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class DiagnosticsTests : FunctionalTestBase
+    [Test]
+    public async Task HostActivityTags_ReturnedInTrailers_Success()
     {
-        [Test]
-        public async Task HostActivityTags_ReturnedInTrailers_Success()
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
-            httpRequest.Content = new GrpcStreamContent(ms);
-            httpRequest.Headers.Add("return-tags-trailers", "true");
+        var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
+        httpRequest.Content = new GrpcStreamContent(ms);
+        httpRequest.Headers.Add("return-tags-trailers", "true");
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
-            // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
-            Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertTrailerStatus();
+        // Assert
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
+        Assert.AreEqual("Hello World", responseMessage.Message);
+        response.AssertTrailerStatus();
 
-            var trailers = response.TrailingHeaders;
-            Assert.AreEqual("0", trailers.GetValues("grpc.status_code").Single());
-            Assert.AreEqual("/Greet.Greeter/SayHello", trailers.GetValues("grpc.method").Single());
-        }
+        var trailers = response.TrailingHeaders;
+        Assert.AreEqual("0", trailers.GetValues("grpc.status_code").Single());
+        Assert.AreEqual("/Greet.Greeter/SayHello", trailers.GetValues("grpc.method").Single());
     }
 }

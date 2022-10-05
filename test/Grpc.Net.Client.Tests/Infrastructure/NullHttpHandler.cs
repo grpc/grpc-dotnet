@@ -16,26 +16,25 @@
 
 #endregion
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.Net.Client.Tests.Infrastructure;
+
+public class NullHttpHandler : HttpMessageHandler
 {
-    public class NullHttpHandler : HttpMessageHandler
+    private bool _disposed;
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        private bool _disposed;
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        if (_disposed)
         {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(nameof(NullHttpHandler));
-            }
-
-            throw new NotImplementedException();
+            throw new ObjectDisposedException(nameof(NullHttpHandler));
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            _disposed = true;
-            base.Dispose(disposing);
-        }
+        throw new NotImplementedException();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }

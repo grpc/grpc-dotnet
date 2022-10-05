@@ -18,26 +18,25 @@
 
 using Grpc.AspNetCore.Server;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
+    where TGrpcService : class
 {
-    internal class TestGrpcServiceActivator<TGrpcService> : IGrpcServiceActivator<TGrpcService>
-        where TGrpcService : class
+    public readonly TGrpcService _service;
+
+    public TestGrpcServiceActivator(TGrpcService service)
     {
-        public readonly TGrpcService _service;
+        _service = service;
+    }
 
-        public TestGrpcServiceActivator(TGrpcService service)
-        {
-            _service = service;
-        }
+    public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
+    {
+        return new GrpcActivatorHandle<TGrpcService>(_service, created: false, state: null);
+    }
 
-        public GrpcActivatorHandle<TGrpcService> Create(IServiceProvider serviceProvider)
-        {
-            return new GrpcActivatorHandle<TGrpcService>(_service, created: false, state: null);
-        }
-
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
-        {
-            return default;
-        }
+    public ValueTask ReleaseAsync(GrpcActivatorHandle<TGrpcService> service)
+    {
+        return default;
     }
 }

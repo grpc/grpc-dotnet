@@ -19,25 +19,24 @@
 using Grpc.AspNetCore.Server;
 using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+internal class TestGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
 {
-    internal class TestGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
+    public readonly TInterceptor _interceptor;
+
+    public TestGrpcInterceptorActivator(TInterceptor service)
     {
-        public readonly TInterceptor _interceptor;
+        _interceptor = service;
+    }
 
-        public TestGrpcInterceptorActivator(TInterceptor service)
-        {
-            _interceptor = service;
-        }
+    public GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration)
+    {
+        return new GrpcActivatorHandle<Interceptor>(_interceptor, created: false, state: null);
+    }
 
-        public GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration)
-        {
-            return new GrpcActivatorHandle<Interceptor>(_interceptor, created: false, state: null);
-        }
-
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor)
-        {
-            return default;
-        }
+    public ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor)
+    {
+        return default;
     }
 }

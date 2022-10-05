@@ -19,79 +19,78 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal class ChannelRetryThrottling
 {
-    internal class ChannelRetryThrottling
+    private readonly object _lock = new object();
+    private readonly double _tokenRatio;
+    private readonly int _maxTokens;
+    private readonly ILogger<ChannelRetryThrottling> _logger;
+
+    private double _tokenCount;
+    private readonly double _tokenThreshold;
+    private bool _isRetryThrottlingActive;
+
+    public ChannelRetryThrottling(int maxTokens, double tokenRatio, ILoggerFactory loggerFactory)
     {
-        private readonly object _lock = new object();
-        private readonly double _tokenRatio;
-        private readonly int _maxTokens;
-        private readonly ILogger<ChannelRetryThrottling> _logger;
+        // Truncate token ratio to 3 decimal places
+        // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#validation-of-retrythrottling
+        _tokenRatio = Math.Truncate(tokenRatio * 1000) / 1000;
 
-        private double _tokenCount;
-        private readonly double _tokenThreshold;
-        private bool _isRetryThrottlingActive;
+        _maxTokens = maxTokens;
+        _tokenCount = maxTokens;
+        _tokenThreshold = _tokenCount / 2;
+        _logger = loggerFactory.CreateLogger<ChannelRetryThrottling>();
+    }
 
-        public ChannelRetryThrottling(int maxTokens, double tokenRatio, ILoggerFactory loggerFactory)
+    public bool IsRetryThrottlingActive()
+    {
+        lock (_lock)
         {
-            // Truncate token ratio to 3 decimal places
-            // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#validation-of-retrythrottling
-            _tokenRatio = Math.Truncate(tokenRatio * 1000) / 1000;
-
-            _maxTokens = maxTokens;
-            _tokenCount = maxTokens;
-            _tokenThreshold = _tokenCount / 2;
-            _logger = loggerFactory.CreateLogger<ChannelRetryThrottling>();
+            return _isRetryThrottlingActive;
         }
+    }
 
-        public bool IsRetryThrottlingActive()
+    public void CallSuccess()
+    {
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                return _isRetryThrottlingActive;
-            }
+            _tokenCount = Math.Min(_tokenCount + _tokenRatio, _maxTokens);
+            UpdateRetryThrottlingActive();
         }
+    }
 
-        public void CallSuccess()
+    public void CallFailure()
+    {
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                _tokenCount = Math.Min(_tokenCount + _tokenRatio, _maxTokens);
-                UpdateRetryThrottlingActive();
-            }
+            _tokenCount = Math.Max(_tokenCount - 1, 0);
+            UpdateRetryThrottlingActive();
         }
+    }
 
-        public void CallFailure()
+    private void UpdateRetryThrottlingActive()
+    {
+        Debug.Assert(Monitor.IsEntered(_lock));
+
+        var newRetryThrottlingActive = _tokenCount <= _tokenThreshold;
+
+        if (newRetryThrottlingActive != _isRetryThrottlingActive)
         {
-            lock (_lock)
-            {
-                _tokenCount = Math.Max(_tokenCount - 1, 0);
-                UpdateRetryThrottlingActive();
-            }
+            _isRetryThrottlingActive = newRetryThrottlingActive;
+            Log.RetryThrottlingActiveChanged(_logger, _isRetryThrottlingActive);
         }
+    }
 
-        private void UpdateRetryThrottlingActive()
+    private static class Log
+    {
+        private static readonly Action<ILogger, bool, Exception?> _retryThrottlingActiveChanged =
+            LoggerMessage.Define<bool>(LogLevel.Trace, new EventId(1, "RetryThrottlingActiveChanged"), "Retry throttling active state changed. New value: {RetryThrottlingActive}");
+
+        public static void RetryThrottlingActiveChanged(ILogger logger, bool isRetryThrottlingActive)
         {
-            Debug.Assert(Monitor.IsEntered(_lock));
-
-            var newRetryThrottlingActive = _tokenCount <= _tokenThreshold;
-
-            if (newRetryThrottlingActive != _isRetryThrottlingActive)
-            {
-                _isRetryThrottlingActive = newRetryThrottlingActive;
-                Log.RetryThrottlingActiveChanged(_logger, _isRetryThrottlingActive);
-            }
-        }
-
-        private static class Log
-        {
-            private static readonly Action<ILogger, bool, Exception?> _retryThrottlingActiveChanged =
-                LoggerMessage.Define<bool>(LogLevel.Trace, new EventId(1, "RetryThrottlingActiveChanged"), "Retry throttling active state changed. New value: {RetryThrottlingActive}");
-
-            public static void RetryThrottlingActiveChanged(ILogger logger, bool isRetryThrottlingActive)
-            {
-                _retryThrottlingActiveChanged(logger, isRetryThrottlingActive, null);
-            }
+            _retryThrottlingActiveChanged(logger, isRetryThrottlingActive, null);
         }
     }
 }

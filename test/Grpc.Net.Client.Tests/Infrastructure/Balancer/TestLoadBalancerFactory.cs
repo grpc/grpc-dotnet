@@ -21,24 +21,23 @@ using System;
 using System.Collections.Generic;
 using Grpc.Net.Client.Balancer;
 
-namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
+namespace Grpc.Net.Client.Tests.Infrastructure.Balancer;
+
+internal class TestLoadBalancerFactory : LoadBalancerFactory
 {
-    internal class TestLoadBalancerFactory : LoadBalancerFactory
+    private readonly Func<IChannelControlHelper, LoadBalancer> _onCreate;
+
+    public override string Name { get; }
+
+    public TestLoadBalancerFactory(string name, Func<IChannelControlHelper, LoadBalancer> onCreate)
     {
-        private readonly Func<IChannelControlHelper, LoadBalancer> _onCreate;
+        Name = name;
+        _onCreate = onCreate;
+    }
 
-        public override string Name { get; }
-
-        public TestLoadBalancerFactory(string name, Func<IChannelControlHelper, LoadBalancer> onCreate)
-        {
-            Name = name;
-            _onCreate = onCreate;
-        }
-
-        public override LoadBalancer Create(LoadBalancerOptions options)
-        {
-            return _onCreate(options.Controller);
-        }
+    public override LoadBalancer Create(LoadBalancerOptions options)
+    {
+        return _onCreate(options.Controller);
     }
 }
 #endif

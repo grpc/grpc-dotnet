@@ -20,27 +20,26 @@ using System.Net;
 using System.Net.Http.Headers;
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public class GrpcStreamContent : HttpContent
 {
-    public class GrpcStreamContent : HttpContent
+    private readonly Stream _content;
+
+    public GrpcStreamContent(Stream content, string contentType = GrpcProtocolConstants.GrpcContentType)
     {
-        private readonly Stream _content;
+        Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        _content = content;
+    }
 
-        public GrpcStreamContent(Stream content, string contentType = GrpcProtocolConstants.GrpcContentType)
-        {
-            Headers.ContentType = new MediaTypeHeaderValue(contentType);
-            _content = content;
-        }
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
+        return _content.CopyToAsync(stream);
+    }
 
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-        {
-            return _content.CopyToAsync(stream);
-        }
-
-        protected override bool TryComputeLength(out long length)
-        {
-            length = -1;
-            return false;
-        }
+    protected override bool TryComputeLength(out long length)
+    {
+        length = -1;
+        return false;
     }
 }

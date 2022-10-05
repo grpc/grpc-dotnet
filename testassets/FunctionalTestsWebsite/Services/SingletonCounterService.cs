@@ -20,28 +20,27 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using SingletonCount;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class SingletonCounterService : Counter.CounterBase, IDisposable
 {
-    public class SingletonCounterService : Counter.CounterBase, IDisposable
+    private readonly ILogger _logger;
+    private int _count;
+
+    public SingletonCounterService(ILoggerFactory loggerFactory)
     {
-        private readonly ILogger _logger;
-        private int _count;
+        _logger = loggerFactory.CreateLogger<CounterService>();
+    }
 
-        public SingletonCounterService(ILoggerFactory loggerFactory)
-        {
-            _logger = loggerFactory.CreateLogger<CounterService>();
-        }
+    public void Dispose()
+    {
+        // Set the count value to some arbitrary value. This should never happen in any case.
+        _count = int.MinValue;
+    }
 
-        public void Dispose()
-        {
-            // Set the count value to some arbitrary value. This should never happen in any case.
-            _count = int.MinValue;
-        }
-
-        public override Task<CounterReply> IncrementCount(Empty request, ServerCallContext context)
-        {
-            _logger.LogInformation("Incrementing count by 1");
-            return Task.FromResult(new CounterReply { Count = ++_count });
-        }
+    public override Task<CounterReply> IncrementCount(Empty request, ServerCallContext context)
+    {
+        _logger.LogInformation("Incrementing count by 1");
+        return Task.FromResult(new CounterReply { Count = ++_count });
     }
 }

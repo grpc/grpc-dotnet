@@ -26,143 +26,142 @@ using System.Threading;
 using Grpc.Net.Client.Balancer;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.FunctionalTests.Balancer
+namespace Grpc.AspNetCore.FunctionalTests.Balancer;
+
+public class LeastUsedBalancer : SubchannelsLoadBalancer
 {
-    public class LeastUsedBalancer : SubchannelsLoadBalancer
+    public LeastUsedBalancer(IChannelControlHelper controller, ILoggerFactory loggerFactory)
+        : base(controller, loggerFactory)
     {
-        public LeastUsedBalancer(IChannelControlHelper controller, ILoggerFactory loggerFactory)
-            : base(controller, loggerFactory)
+    }
+
+    protected override SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels)
+    {
+        return new LeastUsedPicker(readySubchannels);
+    }
+}
+
+internal class LeastUsedPicker : SubchannelPicker
+{
+    private static readonly BalancerAttributesKey<AtomicCounter> CounterKey = new BalancerAttributesKey<AtomicCounter>("ActiveRequestsCount");
+
+    // Internal for testing
+    internal readonly List<Subchannel> _subchannels;
+
+    public LeastUsedPicker(IReadOnlyList<Subchannel> subchannels)
+    {
+        // Ensure all subchannels have an associated counter.
+        foreach (var subchannel in subchannels)
         {
+            if (!subchannel.Attributes.TryGetValue(CounterKey, out _))
+            {
+                var counter = new AtomicCounter();
+                subchannel.Attributes.Set(CounterKey, counter);
+            }
         }
 
-        protected override SubchannelPicker CreatePicker(IReadOnlyList<Subchannel> readySubchannels)
+        _subchannels = subchannels.ToList();
+    }
+
+    public override PickResult Pick(PickContext context)
+    {
+        Subchannel? leastUsedSubchannel = null;
+        int? leastUsedCount = null;
+        AtomicCounter? leastUsedCounter = null;
+
+        foreach (var subchannel in _subchannels)
         {
-            return new LeastUsedPicker(readySubchannels);
+            if (!subchannel.Attributes.TryGetValue(CounterKey, out var counter))
+            {
+                throw new InvalidOperationException("All subchannels should have a counter.");
+            }
+
+            var currentCount = counter.Value;
+            if (leastUsedSubchannel == null || leastUsedCount > currentCount)
+            {
+                leastUsedSubchannel = subchannel;
+                leastUsedCount = currentCount;
+                leastUsedCounter = counter;
+            }
+        }
+
+        Debug.Assert(leastUsedSubchannel != null);
+        Debug.Assert(leastUsedCounter != null);
+
+        return PickResult.ForSubchannel(leastUsedSubchannel, new LeastUsedSubchannelTracker(leastUsedCounter));
+    }
+
+    public override string ToString()
+    {
+        return string.Join(", ", _subchannels.Select(s => s.ToString()));
+    }
+
+    private sealed class LeastUsedSubchannelTracker : ISubchannelCallTracker
+    {
+        private readonly AtomicCounter _counter;
+
+        public LeastUsedSubchannelTracker(AtomicCounter counter)
+        {
+            _counter = counter;
+        }
+
+        public void Complete(CompletionContext context)
+        {
+            _counter.Decrement();
+        }
+
+        public void Start()
+        {
+            _counter.Increment();
         }
     }
 
-    internal class LeastUsedPicker : SubchannelPicker
+    private sealed class AtomicCounter
     {
-        private static readonly BalancerAttributesKey<AtomicCounter> CounterKey = new BalancerAttributesKey<AtomicCounter>("ActiveRequestsCount");
+        private int _value;
 
-        // Internal for testing
-        internal readonly List<Subchannel> _subchannels;
-
-        public LeastUsedPicker(IReadOnlyList<Subchannel> subchannels)
+        /// <summary>
+        /// Gets the current value of the counter.
+        /// </summary>
+        public int Value
         {
-            // Ensure all subchannels have an associated counter.
-            foreach (var subchannel in subchannels)
-            {
-                if (!subchannel.Attributes.TryGetValue(CounterKey, out _))
-                {
-                    var counter = new AtomicCounter();
-                    subchannel.Attributes.Set(CounterKey, counter);
-                }
-            }
-
-            _subchannels = subchannels.ToList();
+            get => Volatile.Read(ref _value);
+            set => Volatile.Write(ref _value, value);
         }
 
-        public override PickResult Pick(PickContext context)
+        /// <summary>
+        /// Atomically increments the counter value by 1.
+        /// </summary>
+        public int Increment()
         {
-            Subchannel? leastUsedSubchannel = null;
-            int? leastUsedCount = null;
-            AtomicCounter? leastUsedCounter = null;
-
-            foreach (var subchannel in _subchannels)
-            {
-                if (!subchannel.Attributes.TryGetValue(CounterKey, out var counter))
-                {
-                    throw new InvalidOperationException("All subchannels should have a counter.");
-                }
-
-                var currentCount = counter.Value;
-                if (leastUsedSubchannel == null || leastUsedCount > currentCount)
-                {
-                    leastUsedSubchannel = subchannel;
-                    leastUsedCount = currentCount;
-                    leastUsedCounter = counter;
-                }
-            }
-
-            Debug.Assert(leastUsedSubchannel != null);
-            Debug.Assert(leastUsedCounter != null);
-
-            return PickResult.ForSubchannel(leastUsedSubchannel, new LeastUsedSubchannelTracker(leastUsedCounter));
+            return Interlocked.Increment(ref _value);
         }
 
-        public override string ToString()
+        /// <summary>
+        /// Atomically decrements the counter value by 1.
+        /// </summary>
+        public int Decrement()
         {
-            return string.Join(", ", _subchannels.Select(s => s.ToString()));
+            return Interlocked.Decrement(ref _value);
         }
 
-        private sealed class LeastUsedSubchannelTracker : ISubchannelCallTracker
+        /// <summary>
+        /// Atomically resets the counter value to 0.
+        /// </summary>
+        public void Reset()
         {
-            private readonly AtomicCounter _counter;
-
-            public LeastUsedSubchannelTracker(AtomicCounter counter)
-            {
-                _counter = counter;
-            }
-
-            public void Complete(CompletionContext context)
-            {
-                _counter.Decrement();
-            }
-
-            public void Start()
-            {
-                _counter.Increment();
-            }
-        }
-
-        private sealed class AtomicCounter
-        {
-            private int _value;
-
-            /// <summary>
-            /// Gets the current value of the counter.
-            /// </summary>
-            public int Value
-            {
-                get => Volatile.Read(ref _value);
-                set => Volatile.Write(ref _value, value);
-            }
-
-            /// <summary>
-            /// Atomically increments the counter value by 1.
-            /// </summary>
-            public int Increment()
-            {
-                return Interlocked.Increment(ref _value);
-            }
-
-            /// <summary>
-            /// Atomically decrements the counter value by 1.
-            /// </summary>
-            public int Decrement()
-            {
-                return Interlocked.Decrement(ref _value);
-            }
-
-            /// <summary>
-            /// Atomically resets the counter value to 0.
-            /// </summary>
-            public void Reset()
-            {
-                Interlocked.Exchange(ref _value, 0);
-            }
+            Interlocked.Exchange(ref _value, 0);
         }
     }
+}
 
-    public class LeastUsedBalancerFactory : LoadBalancerFactory
+public class LeastUsedBalancerFactory : LoadBalancerFactory
+{
+    public override string Name { get; } = "least_used";
+
+    public override LoadBalancer Create(LoadBalancerOptions options)
     {
-        public override string Name { get; } = "least_used";
-
-        public override LoadBalancer Create(LoadBalancerOptions options)
-        {
-            return new LeastUsedBalancer(options.Controller, options.LoggerFactory);
-        }
+        return new LeastUsedBalancer(options.Controller, options.LoggerFactory);
     }
 }
 #endif

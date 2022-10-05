@@ -20,50 +20,49 @@ using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server;
+
+/// <summary>
+/// Metadata for a gRPC method endpoint.
+/// </summary>
+public sealed class GrpcMethodMetadata
 {
     /// <summary>
-    /// Metadata for a gRPC method endpoint.
+    /// Creates a new instance of <see cref="GrpcMethodMetadata"/> with the provided service type and method.
     /// </summary>
-    public sealed class GrpcMethodMetadata
-    {
-        /// <summary>
-        /// Creates a new instance of <see cref="GrpcMethodMetadata"/> with the provided service type and method.
-        /// </summary>
-        /// <param name="serviceType">The implementing service type.</param>
-        /// <param name="method">The method representation.</param>
-        public GrpcMethodMetadata(
-#if NET5_0_OR_GREATER
-            [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
-#endif
-            Type serviceType,
-            IMethod method)
-        {
-            if (serviceType == null)
-            {
-                throw new ArgumentNullException(nameof(serviceType));
-            }
-
-            if (method == null)
-            {
-                throw new ArgumentNullException(nameof(method));
-            }
-
-            ServiceType = serviceType;
-            Method = method;
-        }
-
-        /// <summary>
-        /// Gets the implementing service type.
-        /// </summary>
+    /// <param name="serviceType">The implementing service type.</param>
+    /// <param name="method">The method representation.</param>
+    public GrpcMethodMetadata(
 #if NET5_0_OR_GREATER
         [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-        public Type ServiceType { get; }
+        Type serviceType,
+        IMethod method)
+    {
+        if (serviceType == null)
+        {
+            throw new ArgumentNullException(nameof(serviceType));
+        }
 
-        /// <summary>
-        /// Gets the method representation.
-        /// </summary>
-        public IMethod Method { get; }
+        if (method == null)
+        {
+            throw new ArgumentNullException(nameof(method));
+        }
+
+        ServiceType = serviceType;
+        Method = method;
     }
+
+    /// <summary>
+    /// Gets the implementing service type.
+    /// </summary>
+#if NET5_0_OR_GREATER
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+#endif
+    public Type ServiceType { get; }
+
+    /// <summary>
+    /// Gets the method representation.
+    /// </summary>
+    public IMethod Method { get; }
 }

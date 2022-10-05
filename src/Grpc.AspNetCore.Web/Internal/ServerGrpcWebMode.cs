@@ -16,14 +16,13 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Web.Internal
-{
-    internal readonly record struct ServerGrpcWebContext(ServerGrpcWebMode Request, ServerGrpcWebMode Response);
+namespace Grpc.AspNetCore.Web.Internal;
 
-    internal enum ServerGrpcWebMode
-    {
-        None,
-        GrpcWeb,
-        GrpcWebText
-    }
+internal readonly record struct ServerGrpcWebContext(ServerGrpcWebMode Request, ServerGrpcWebMode Response);
+
+internal enum ServerGrpcWebMode
+{
+    None,
+    GrpcWeb,
+    GrpcWebText
 }

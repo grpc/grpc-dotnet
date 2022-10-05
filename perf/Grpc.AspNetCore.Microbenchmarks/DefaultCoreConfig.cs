@@ -27,25 +27,24 @@ using BenchmarkDotNet.Toolchains.CsProj;
 using BenchmarkDotNet.Toolchains.DotNetCli;
 using BenchmarkDotNet.Validators;
 
-namespace Grpc.AspNetCore.Microbenchmarks
+namespace Grpc.AspNetCore.Microbenchmarks;
+
+internal class DefaultCoreConfig : ManualConfig
 {
-    internal class DefaultCoreConfig : ManualConfig
+    public DefaultCoreConfig()
     {
-        public DefaultCoreConfig()
-        {
-            AddLogger(ConsoleLogger.Default);
-            AddExporter(MarkdownExporter.GitHub);
+        AddLogger(ConsoleLogger.Default);
+        AddExporter(MarkdownExporter.GitHub);
 
-            AddDiagnoser(MemoryDiagnoser.Default);
-            AddColumn(StatisticColumn.OperationsPerSecond);
-            AddColumnProvider(DefaultColumnProviders.Instance);
+        AddDiagnoser(MemoryDiagnoser.Default);
+        AddColumn(StatisticColumn.OperationsPerSecond);
+        AddColumnProvider(DefaultColumnProviders.Instance);
 
-            AddValidator(JitOptimizationsValidator.FailOnError);
+        AddValidator(JitOptimizationsValidator.FailOnError);
 
-            AddJob(Job.Default
-                .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("net6.0", null, ".NET 6")))
-                .WithGcMode(new GcMode { Server = true })
-                .WithStrategy(RunStrategy.Throughput));
-        }
+        AddJob(Job.Default
+            .WithToolchain(CsProjCoreToolchain.From(new NetCoreAppSettings("net6.0", null, ".NET 6")))
+            .WithGcMode(new GcMode { Server = true })
+            .WithStrategy(RunStrategy.Throughput));
     }
 }

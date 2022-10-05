@@ -17,10 +17,9 @@
 #endregion
 
 
-namespace Grpc.Net.ClientFactory.Internal
+namespace Grpc.Net.ClientFactory.Internal;
+
+internal class GrpcClientMappingRegistry
 {
-    internal class GrpcClientMappingRegistry
-    {
-        public Dictionary<string, Type> NamedClientRegistrations { get; } = new Dictionary<string, Type>();
-    }
+    public Dictionary<string, Type> NamedClientRegistrations { get; } = new Dictionary<string, Type>();
 }

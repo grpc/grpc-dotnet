@@ -19,87 +19,86 @@
 using Grpc.Core;
 using Test;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class TesterService : Tester.TesterBase
 {
-    public class TesterService : Tester.TesterBase
+    private readonly ILogger _logger;
+
+    public TesterService(ILoggerFactory loggerFactory)
     {
-        private readonly ILogger _logger;
+        _logger = loggerFactory.CreateLogger<TesterService>();
+    }
 
-        public TesterService(ILoggerFactory loggerFactory)
+    public override Task<HelloReply> SayHelloUnary(HelloRequest request, ServerCallContext context)
+    {
+        _logger.LogInformation($"Sending hello to {request.Name}");
+        return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+    }
+
+    public override async Task<HelloReply> SayHelloUnaryError(HelloRequest request, ServerCallContext context)
+    {
+        await Task.Yield();
+
+        throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
+    }
+
+    public override async Task SayHelloServerStreaming(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        var i = 0;
+        while (!context.CancellationToken.IsCancellationRequested)
         {
-            _logger = loggerFactory.CreateLogger<TesterService>();
+            var message = $"How are you {request.Name}? {++i}";
+            _logger.LogInformation($"Sending greeting {message}.");
+
+            await responseStream.WriteAsync(new HelloReply { Message = message });
+
+            // Gotta look busy
+            await Task.Delay(1000);
+        }
+    }
+
+    public override async Task SayHelloServerStreamingError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        await responseStream.WriteAsync(new HelloReply());
+
+        throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
+    }
+
+    public override async Task<HelloReply> SayHelloClientStreaming(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
+    {
+        var names = new List<string>();
+
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            names.Add(message.Name);
         }
 
-        public override Task<HelloReply> SayHelloUnary(HelloRequest request, ServerCallContext context)
+        return new HelloReply { Message = "Hello " + string.Join(", ", names) };
+    }
+
+    public override async Task<HelloReply> SayHelloClientStreamingError(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
+    {
+        await Task.Yield();
+
+        throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
+    }
+
+    public override async Task SayHelloBidirectionalStreaming(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        await foreach (var message in requestStream.ReadAllAsync())
         {
-            _logger.LogInformation($"Sending hello to {request.Name}");
-            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+            await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
+        }
+    }
+
+    public override async Task SayHelloBidirectionalStreamingError(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+    {
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
         }
 
-        public override async Task<HelloReply> SayHelloUnaryError(HelloRequest request, ServerCallContext context)
-        {
-            await Task.Yield();
-
-            throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
-        }
-
-        public override async Task SayHelloServerStreaming(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            var i = 0;
-            while (!context.CancellationToken.IsCancellationRequested)
-            {
-                var message = $"How are you {request.Name}? {++i}";
-                _logger.LogInformation($"Sending greeting {message}.");
-
-                await responseStream.WriteAsync(new HelloReply { Message = message });
-
-                // Gotta look busy
-                await Task.Delay(1000);
-            }
-        }
-
-        public override async Task SayHelloServerStreamingError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            await responseStream.WriteAsync(new HelloReply());
-
-            throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
-        }
-
-        public override async Task<HelloReply> SayHelloClientStreaming(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
-        {
-            var names = new List<string>();
-
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                names.Add(message.Name);
-            }
-
-            return new HelloReply { Message = "Hello " + string.Join(", ", names) };
-        }
-
-        public override async Task<HelloReply> SayHelloClientStreamingError(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
-        {
-            await Task.Yield();
-
-            throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
-        }
-
-        public override async Task SayHelloBidirectionalStreaming(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
-            }
-        }
-
-        public override async Task SayHelloBidirectionalStreamingError(IAsyncStreamReader<HelloRequest> requestStream, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-        {
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                await responseStream.WriteAsync(new HelloReply { Message = "Hello " + message.Name });
-            }
-
-            throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
-        }
+        throw new RpcException(new Status(StatusCode.NotFound, string.Empty));
     }
 }

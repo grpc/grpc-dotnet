@@ -16,27 +16,26 @@
 
 #endregion
 
-namespace InteropTestsClientGrpcWeb
+namespace InteropTestsClientGrpcWeb;
+
+public class Startup
 {
-    public class Startup
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        if (env.IsDevelopment())
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-                app.UseWebAssemblyDebugging();
-            }
-
-            app.UseBlazorFrameworkFiles();
-            app.UseStaticFiles();
-
-            app.UseRouting();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapFallbackToFile("index.html");
-            });
+            app.UseDeveloperExceptionPage();
+            app.UseWebAssemblyDebugging();
         }
+
+        app.UseBlazorFrameworkFiles();
+        app.UseStaticFiles();
+
+        app.UseRouting();
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapFallbackToFile("index.html");
+        });
     }
 }

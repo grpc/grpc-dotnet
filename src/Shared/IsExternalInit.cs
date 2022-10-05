@@ -16,11 +16,10 @@
 
 #endregion
 
-namespace System.Runtime.CompilerServices
-{
+namespace System.Runtime.CompilerServices;
+
 #if NETCOREAPP3_0 || NETSTANDARD2_0_OR_GREATER
-    internal static class IsExternalInit
-    {
-    }
-#endif
+internal static class IsExternalInit
+{
 }
+#endif

@@ -20,34 +20,33 @@ using System;
 using Grpc.Core.Internal;
 using NUnit.Framework;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class ChannelCredentialsTest
 {
-    public class ChannelCredentialsTest
+    [Test]
+    public void InsecureCredentials_IsNonComposable()
     {
-        [Test]
-        public void InsecureCredentials_IsNonComposable()
-        {
-            Assert.IsFalse(ChannelCredentials.Insecure.IsComposable);
-        }
+        Assert.IsFalse(ChannelCredentials.Insecure.IsComposable);
+    }
 
-        [Test]
-        public void SecureCredentials_IsComposable()
-        {
-            Assert.IsTrue(ChannelCredentials.SecureSsl.IsComposable);
-        }
+    [Test]
+    public void SecureCredentials_IsComposable()
+    {
+        Assert.IsTrue(ChannelCredentials.SecureSsl.IsComposable);
+    }
 
-        [Test]
-        public void ChannelCredentials_CreateComposite()
-        {
-            var composite = ChannelCredentials.Create(new FakeChannelCredentials(true), new FakeCallCredentials());
-            Assert.IsFalse(composite.IsComposable);
+    [Test]
+    public void ChannelCredentials_CreateComposite()
+    {
+        var composite = ChannelCredentials.Create(new FakeChannelCredentials(true), new FakeCallCredentials());
+        Assert.IsFalse(composite.IsComposable);
 
-            Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(null, new FakeCallCredentials()));
-            Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(new FakeChannelCredentials(true), null));
+        Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(null, new FakeCallCredentials()));
+        Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(new FakeChannelCredentials(true), null));
 
-            // forbid composing non-composable
-            var ex = Assert.Throws(typeof(ArgumentException), () => ChannelCredentials.Create(new FakeChannelCredentials(false), new FakeCallCredentials()));
-            Assert.AreEqual("CallCredentials can't be composed with FakeChannelCredentials. CallCredentials must be used with secure channel credentials like SslCredentials.", ex.Message);
-        }
+        // forbid composing non-composable
+        var ex = Assert.Throws(typeof(ArgumentException), () => ChannelCredentials.Create(new FakeChannelCredentials(false), new FakeCallCredentials()));
+        Assert.AreEqual("CallCredentials can't be composed with FakeChannelCredentials. CallCredentials must be used with secure channel credentials like SslCredentials.", ex.Message);
     }
 }

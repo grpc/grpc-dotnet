@@ -16,15 +16,14 @@
 
 #endregion
 
-namespace Grpc.Dotnet.Cli.Options
+namespace Grpc.Dotnet.Cli.Options;
+
+internal enum Services
 {
-    internal enum Services
-    {
-        // Default is Both
-        Default = 0,
-        Both,
-        Server,
-        Client,
-        None
-    }
+    // Default is Both
+    Default = 0,
+    Both,
+    Server,
+    Client,
+    None
 }

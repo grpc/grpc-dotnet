@@ -16,10 +16,9 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+internal static class TestConstants
 {
-    internal static class TestConstants
-    {
-        public const string ServerCallHandlerTestName = "SERVER Grpc.AspNetCore.Server.ServerCallHandler";
-    }
+    public const string ServerCallHandlerTestName = "SERVER Grpc.AspNetCore.Server.ServerCallHandler";
 }

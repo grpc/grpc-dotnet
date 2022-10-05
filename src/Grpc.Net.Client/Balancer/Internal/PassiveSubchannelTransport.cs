@@ -25,67 +25,66 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer.Internal;
+
+/// <summary>
+/// Subchannel transport used when SocketsHttpHandler isn't configured.
+/// This transport will only be used when there is one address.
+/// It isn't able to correctly determine connectivity state.
+/// </summary>
+internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 {
-    /// <summary>
-    /// Subchannel transport used when SocketsHttpHandler isn't configured.
-    /// This transport will only be used when there is one address.
-    /// It isn't able to correctly determine connectivity state.
-    /// </summary>
-    internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
+    private readonly Subchannel _subchannel;
+    private BalancerAddress? _currentAddress;
+
+    public PassiveSubchannelTransport(Subchannel subchannel)
     {
-        private readonly Subchannel _subchannel;
-        private BalancerAddress? _currentAddress;
+        _subchannel = subchannel;
+    }
 
-        public PassiveSubchannelTransport(Subchannel subchannel)
-        {
-            _subchannel = subchannel;
-        }
+    public BalancerAddress? CurrentAddress => _currentAddress;
+    public TimeSpan? ConnectTimeout { get; }
 
-        public BalancerAddress? CurrentAddress => _currentAddress;
-        public TimeSpan? ConnectTimeout { get; }
+    public void Disconnect()
+    {
+        _currentAddress = null;
+        _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
+    }
 
-        public void Disconnect()
-        {
-            _currentAddress = null;
-            _subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
-        }
-
-        public
+    public
 #if !NETSTANDARD2_0
-            ValueTask<bool>
+        ValueTask<bool>
 #else
-            Task<bool>
+        Task<bool>
 #endif
-            TryConnectAsync(ConnectContext context)
-        {
-            Debug.Assert(_subchannel._addresses.Count == 1);
-            Debug.Assert(CurrentAddress == null);
+        TryConnectAsync(ConnectContext context)
+    {
+        Debug.Assert(_subchannel._addresses.Count == 1);
+        Debug.Assert(CurrentAddress == null);
 
-            var currentAddress = _subchannel._addresses[0];
+        var currentAddress = _subchannel._addresses[0];
 
-            _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Passively connecting.");
-            _currentAddress = currentAddress;
-            _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
+        _subchannel.UpdateConnectivityState(ConnectivityState.Connecting, "Passively connecting.");
+        _currentAddress = currentAddress;
+        _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
 #if !NETSTANDARD2_0
-            return new ValueTask<bool>(true);
+        return new ValueTask<bool>(true);
 #else
-            return Task.FromResult(true);
-#endif
-        }
-
-        public void Dispose()
-        {
-            _currentAddress = null;
-        }
-
-#if NET5_0_OR_GREATER
-        public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
-        {
-            throw new NotSupportedException();
-        }
+        return Task.FromResult(true);
 #endif
     }
+
+    public void Dispose()
+    {
+        _currentAddress = null;
+    }
+
+#if NET5_0_OR_GREATER
+    public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
+    {
+        throw new NotSupportedException();
+    }
+#endif
 }
 #endif

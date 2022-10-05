@@ -17,39 +17,38 @@
 #endregion
 
 
-namespace Grpc.Net.Client.Configuration
+namespace Grpc.Net.Client.Configuration;
+
+/// <summary>
+/// Base type for load balancer policy configuration.
+/// </summary>
+public class LoadBalancingConfig : ConfigObject
 {
+    // The policy names here match property names in in the service_config.proto
+    // https://github.com/grpc/grpc-proto/blob/ec886024c2f7b7f597ba89d5b7d60c3f94627b17/grpc/service_config/service_config.proto#L328-L373
+
     /// <summary>
-    /// Base type for load balancer policy configuration.
+    /// <c>pick_first</c> policy name.
     /// </summary>
-    public class LoadBalancingConfig : ConfigObject
+    public const string PickFirstPolicyName = "pick_first";
+
+    /// <summary>
+    /// <c>round_robin</c> policy name.
+    /// </summary>
+    public const string RoundRobinPolicyName = "round_robin";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoadBalancingConfig"/> class.
+    /// </summary>
+    public LoadBalancingConfig(string loadBalancingPolicyName)
     {
-        // The policy names here match property names in in the service_config.proto
-        // https://github.com/grpc/grpc-proto/blob/ec886024c2f7b7f597ba89d5b7d60c3f94627b17/grpc/service_config/service_config.proto#L328-L373
-
-        /// <summary>
-        /// <c>pick_first</c> policy name.
-        /// </summary>
-        public const string PickFirstPolicyName = "pick_first";
-
-        /// <summary>
-        /// <c>round_robin</c> policy name.
-        /// </summary>
-        public const string RoundRobinPolicyName = "round_robin";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LoadBalancingConfig"/> class.
-        /// </summary>
-        public LoadBalancingConfig(string loadBalancingPolicyName)
-        {
-            Inner[loadBalancingPolicyName] = new Dictionary<string, object>();
-        }
-
-        internal LoadBalancingConfig(IDictionary<string, object> inner) : base(inner) { }
-
-        /// <summary>
-        /// Gets the load balancer policy name.
-        /// </summary>
-        public string PolicyName => Inner.Keys.Single();
+        Inner[loadBalancingPolicyName] = new Dictionary<string, object>();
     }
+
+    internal LoadBalancingConfig(IDictionary<string, object> inner) : base(inner) { }
+
+    /// <summary>
+    /// Gets the load balancer policy name.
+    /// </summary>
+    public string PolicyName => Inner.Keys.Single();
 }

@@ -26,62 +26,61 @@ using Grpc.Net.Client;
 using Grpc.Net.Compression;
 using Grpc.Tests.Shared;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Client
+namespace Grpc.AspNetCore.Microbenchmarks.Client;
+
+public class UnaryClientBenchmarkBase
 {
-    public class UnaryClientBenchmarkBase
+    protected List<ICompressionProvider>? CompressionProviders { get; set; }
+    protected string? ResponseCompressionAlgorithm { get; set; }
+
+    private Greeter.GreeterClient? _client;
+    private string? _content;
+
+    [GlobalSetup]
+    public void GlobalSetup()
     {
-        protected List<ICompressionProvider>? CompressionProviders { get; set; }
-        protected string? ResponseCompressionAlgorithm { get; set; }
+        _content =
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
+            "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
+            "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
+            "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
+            "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate.";
 
-        private Greeter.GreeterClient? _client;
-        private string? _content;
+        var requestMessage = GetMessageData(new HelloReply { Message = _content });
 
-        [GlobalSetup]
-        public void GlobalSetup()
+        var handler = TestHttpMessageHandler.Create(async r =>
         {
-            _content =
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed at ligula nec orci placerat mollis. " +
-                "Interdum et malesuada fames ac ante ipsum primis in faucibus. Ut aliquet non nunc id lobortis. " +
-                "In tincidunt ac sapien sit amet consequat. Interdum et malesuada fames ac ante ipsum primis in faucibus. " +
-                "Duis vel tristique ipsum, eget hendrerit justo. Donec accumsan, purus quis cursus auctor, sapien nisi " +
-                "lacinia ligula, ut vehicula lorem augue vel est. Vestibulum finibus ornare vulputate.";
+            await r.Content!.CopyToAsync(Stream.Null);
 
-            var requestMessage = GetMessageData(new HelloReply { Message = _content });
+            var content = new ByteArrayContent(requestMessage);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
 
-            var handler = TestHttpMessageHandler.Create(async r =>
-            {
-                await r.Content!.CopyToAsync(Stream.Null);
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcEncoding: ResponseCompressionAlgorithm);
+        });
 
-                var content = new ByteArrayContent(requestMessage);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, content, grpcEncoding: ResponseCompressionAlgorithm);
-            });
-
-            var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                HttpHandler = handler,
-                CompressionProviders = CompressionProviders
-            });
-
-            _client = new Greeter.GreeterClient(channel);
-        }
-
-        protected virtual byte[] GetMessageData(HelloReply message)
+        var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
         {
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, message);
-            return ms.ToArray();
-        }
+            HttpHandler = handler,
+            CompressionProviders = CompressionProviders
+        });
 
-        protected async Task InvokeSayHelloAsync(CallOptions options)
+        _client = new Greeter.GreeterClient(channel);
+    }
+
+    protected virtual byte[] GetMessageData(HelloReply message)
+    {
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, message);
+        return ms.ToArray();
+    }
+
+    protected async Task InvokeSayHelloAsync(CallOptions options)
+    {
+        var response = await _client!.SayHelloAsync(new HelloRequest { Name = _content }, options).ResponseAsync;
+
+        if (response.Message != _content)
         {
-            var response = await _client!.SayHelloAsync(new HelloRequest { Name = _content }, options).ResponseAsync;
-
-            if (response.Message != _content)
-            {
-                throw new InvalidOperationException("Unexpected result.");
-            }
+            throw new InvalidOperationException("Unexpected result.");
         }
     }
 }

@@ -23,55 +23,54 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using Tests.FunctionalTests.Helpers;
 
-namespace Grpc.AspNetCore.FunctionalTests.TestServer
+namespace Grpc.AspNetCore.FunctionalTests.TestServer;
+
+public class FunctionalTestBase
 {
-    public class FunctionalTestBase
+    private GrpcChannel? _channel;
+    private IDisposable? _testContext;
+
+    protected GrpcTestFixture<Startup> Fixture { get; private set; } = default!;
+
+    protected ILoggerFactory LoggerFactory => Fixture.LoggerFactory;
+
+    protected GrpcChannel Channel => _channel ??= CreateChannel();
+
+    protected GrpcChannel CreateChannel()
     {
-        private GrpcChannel? _channel;
-        private IDisposable? _testContext;
-
-        protected GrpcTestFixture<Startup> Fixture { get; private set; } = default!;
-
-        protected ILoggerFactory LoggerFactory => Fixture.LoggerFactory;
-
-        protected GrpcChannel Channel => _channel ??= CreateChannel();
-
-        protected GrpcChannel CreateChannel()
+        return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, new GrpcChannelOptions
         {
-            return GrpcChannel.ForAddress(Fixture.Client.BaseAddress!, new GrpcChannelOptions
-            {
-                LoggerFactory = LoggerFactory,
-                HttpClient = Fixture.Client
-            });
-        }
+            LoggerFactory = LoggerFactory,
+            HttpClient = Fixture.Client
+        });
+    }
 
-        protected virtual void ConfigureServices(IServiceCollection services)
-        {
-        }
+    protected virtual void ConfigureServices(IServiceCollection services)
+    {
+    }
 
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            Fixture = new GrpcTestFixture<Startup>(ConfigureServices);
-        }
+    [OneTimeSetUp]
+    public void OneTimeSetUp()
+    {
+        Fixture = new GrpcTestFixture<Startup>(ConfigureServices);
+    }
 
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            Fixture.Dispose();
-        }
+    [OneTimeTearDown]
+    public void OneTimeTearDown()
+    {
+        Fixture.Dispose();
+    }
 
-        [SetUp]
-        public void SetUp()
-        {
-            _testContext = Fixture.GetTestContext();
-        }
+    [SetUp]
+    public void SetUp()
+    {
+        _testContext = Fixture.GetTestContext();
+    }
 
-        [TearDown]
-        public void TearDown()
-        {
-            _testContext?.Dispose();
-            _channel = null;
-        }
+    [TearDown]
+    public void TearDown()
+    {
+        _testContext?.Dispose();
+        _channel = null;
     }
 }

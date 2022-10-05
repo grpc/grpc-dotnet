@@ -21,33 +21,32 @@ using System.Globalization;
 using Grpc.Core;
 using Race;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class RacerService : Racer.RacerBase
 {
-    public class RacerService : Racer.RacerBase
+    public override async Task ReadySetGo(IAsyncStreamReader<RaceMessage> requestStream, IServerStreamWriter<RaceMessage> responseStream, ServerCallContext context)
     {
-        public override async Task ReadySetGo(IAsyncStreamReader<RaceMessage> requestStream, IServerStreamWriter<RaceMessage> responseStream, ServerCallContext context)
+        var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration")!, CultureInfo.InvariantCulture);
+
+        // Read incoming messages in a background task
+        RaceMessage? lastMessageReceived = null;
+        var readTask = Task.Run(async () =>
         {
-            var raceDuration = TimeSpan.Parse(context.RequestHeaders.GetValue("race-duration")!, CultureInfo.InvariantCulture);
-
-            // Read incoming messages in a background task
-            RaceMessage? lastMessageReceived = null;
-            var readTask = Task.Run(async () =>
+            while (await requestStream.MoveNext())
             {
-                while (await requestStream.MoveNext())
-                {
-                    lastMessageReceived = requestStream.Current;
-                }
-            });
-
-            // Write outgoing messages until timer is complete
-            var sw = Stopwatch.StartNew();
-            var sent = 0;
-            while (sw.Elapsed < raceDuration)
-            {
-                await responseStream.WriteAsync(new RaceMessage { Count = ++sent });
+                lastMessageReceived = requestStream.Current;
             }
+        });
 
-            await readTask;
+        // Write outgoing messages until timer is complete
+        var sw = Stopwatch.StartNew();
+        var sent = 0;
+        while (sw.Elapsed < raceDuration)
+        {
+            await responseStream.WriteAsync(new RaceMessage { Count = ++sent });
         }
+
+        await readTask;
     }
 }

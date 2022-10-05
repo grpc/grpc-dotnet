@@ -21,41 +21,40 @@ using Grpc.Shared.Server;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.Server.Internal.CallHandlers
-{
-    internal class ServerStreamingServerCallHandler<
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
+
+internal class ServerStreamingServerCallHandler<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-        TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
-        where TRequest : class
-        where TResponse : class
-        where TService : class
+    TService, TRequest, TResponse> : ServerCallHandlerBase<TService, TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
+    where TService : class
+{
+    private readonly ServerStreamingServerMethodInvoker<TService, TRequest, TResponse> _invoker;
+
+    public ServerStreamingServerCallHandler(
+        ServerStreamingServerMethodInvoker<TService, TRequest, TResponse> invoker,
+        ILoggerFactory loggerFactory)
+        : base(invoker, loggerFactory)
     {
-        private readonly ServerStreamingServerMethodInvoker<TService, TRequest, TResponse> _invoker;
+        _invoker = invoker;
+    }
 
-        public ServerStreamingServerCallHandler(
-            ServerStreamingServerMethodInvoker<TService, TRequest, TResponse> invoker,
-            ILoggerFactory loggerFactory)
-            : base(invoker, loggerFactory)
+    protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+    {
+        // Decode request
+        var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
+
+        var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
+        try
         {
-            _invoker = invoker;
+            await _invoker.Invoke(httpContext, serverCallContext, request, streamWriter);
         }
-
-        protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
+        finally
         {
-            // Decode request
-            var request = await httpContext.Request.BodyReader.ReadSingleMessageAsync<TRequest>(serverCallContext, MethodInvoker.Method.RequestMarshaller.ContextualDeserializer);
-
-            var streamWriter = new HttpContextStreamWriter<TResponse>(serverCallContext, MethodInvoker.Method.ResponseMarshaller.ContextualSerializer);
-            try
-            {
-                await _invoker.Invoke(httpContext, serverCallContext, request, streamWriter);
-            }
-            finally
-            {
-                streamWriter.Complete();
-            }
+            streamWriter.Complete();
         }
     }
 }

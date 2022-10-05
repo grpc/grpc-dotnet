@@ -34,84 +34,83 @@ using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Balancer
+namespace Grpc.AspNetCore.FunctionalTests.Balancer;
+
+[TestFixture]
+public class LeastUsedBalancerTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class LeastUsedBalancerTests : FunctionalTestBase
+    [Test]
+    public async Task UnaryCall_MultipleCalls_RoundRobin()
     {
-        [Test]
-        public async Task UnaryCall_MultipleCalls_RoundRobin()
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Ignore errors
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return true;
-            });
+            return true;
+        });
 
-            SyncPoint? syncPoint = null;
-            string? host = null;
-            async Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        SyncPoint? syncPoint = null;
+        string? host = null;
+        async Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            host = context.Host;
+            if (syncPoint != null)
             {
-                host = context.Host;
-                if (syncPoint != null)
-                {
-                    await syncPoint.WaitToContinue();
-                }
-
-                return new HelloReply { Message = request.Name };
+                await syncPoint.WaitToContinue();
             }
 
-            // Arrange
-            using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-            using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
-
-            var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new LoadBalancingConfig("least_used"), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
-
-            await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(
-                Logger,
-                channel,
-                expectedCount: 2,
-                getPickerSubchannels: picker => (picker as LeastUsedPicker)?._subchannels.ToArray() ?? Array.Empty<Subchannel>()).DefaultTimeout();
-
-            var client = TestClientFactory.Create(channel, endpoint1.Method);
-
-            // Act
-            var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
-            // Assert
-            Assert.AreEqual("Balancer", reply.Message);
-            Assert.AreEqual("127.0.0.1:50051", host);
-
-            // Act
-            reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
-            // Assert
-            Assert.AreEqual("Balancer", reply.Message);
-            Assert.AreEqual("127.0.0.1:50051", host);
-
-            // Act
-            var sp1 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            var pendingCall1 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
-            // Assert
-            await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            Assert.AreEqual("127.0.0.1:50051", host);
-
-            // Act
-            var sp2 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            var pendingCall2 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
-            // Assert
-            await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            Assert.AreEqual("127.0.0.1:50052", host);
-
-            // Act
-            var sp3 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            var pendingCall3 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
-            // Assert
-            await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            Assert.AreEqual("127.0.0.1:50051", host);
-
-            sp1.Continue();
-            sp2.Continue();
-            sp3.Continue();
+            return new HelloReply { Message = request.Name };
         }
+
+        // Arrange
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod));
+
+        var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new LoadBalancingConfig("least_used"), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
+
+        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(
+            Logger,
+            channel,
+            expectedCount: 2,
+            getPickerSubchannels: picker => (picker as LeastUsedPicker)?._subchannels.ToArray() ?? Array.Empty<Subchannel>()).DefaultTimeout();
+
+        var client = TestClientFactory.Create(channel, endpoint1.Method);
+
+        // Act
+        var reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+        // Assert
+        Assert.AreEqual("Balancer", reply.Message);
+        Assert.AreEqual("127.0.0.1:50051", host);
+
+        // Act
+        reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+        // Assert
+        Assert.AreEqual("Balancer", reply.Message);
+        Assert.AreEqual("127.0.0.1:50051", host);
+
+        // Act
+        var sp1 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var pendingCall1 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
+        // Assert
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+        Assert.AreEqual("127.0.0.1:50051", host);
+
+        // Act
+        var sp2 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var pendingCall2 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
+        // Assert
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+        Assert.AreEqual("127.0.0.1:50052", host);
+
+        // Act
+        var sp3 = syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var pendingCall3 = client.UnaryCall(new HelloRequest { Name = "Balancer" });
+        // Assert
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+        Assert.AreEqual("127.0.0.1:50051", host);
+
+        sp1.Continue();
+        sp2.Continue();
+        sp3.Continue();
     }
 }
 #endif

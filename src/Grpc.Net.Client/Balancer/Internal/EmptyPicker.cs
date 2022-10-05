@@ -17,23 +17,22 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer.Internal;
+
+internal sealed class EmptyPicker : SubchannelPicker
 {
-    internal sealed class EmptyPicker : SubchannelPicker
+    public static readonly EmptyPicker Instance = new EmptyPicker();
+
+    private readonly PickResult _pickResult;
+
+    private EmptyPicker()
     {
-        public static readonly EmptyPicker Instance = new EmptyPicker();
+        _pickResult = PickResult.ForQueue();
+    }
 
-        private readonly PickResult _pickResult;
-
-        private EmptyPicker()
-        {
-            _pickResult = PickResult.ForQueue();
-        }
-
-        public override PickResult Pick(PickContext context)
-        {
-            return _pickResult;
-        }
+    public override PickResult Pick(PickContext context)
+    {
+        return _pickResult;
     }
 }
 #endif

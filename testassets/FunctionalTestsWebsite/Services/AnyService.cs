@@ -20,34 +20,33 @@ using Any;
 using Grpc.Core;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
-namespace FunctionalTestsWebsite.Services
-{
-    public class AnyService : Any.AnyService.AnyServiceBase
-    {
-        public override Task<AnyMessageResponse> DoAny(AnyMessage request, ServerCallContext context)
-        {
-            AnyMessageResponse anyMessageResponse;
-            switch (request.TypeUrl)
-            {
-                case "type.googleapis.com/any.AnyProductRequest":
-                    var product = request.Unpack<AnyProductRequest>();
-                    anyMessageResponse = new AnyMessageResponse
-                    {
-                        Message = $"{product.Quantity} x {product.Name}"
-                    };
-                    break;
-                case "type.googleapis.com/any.AnyUserRequest":
-                    var user = request.Unpack<AnyUserRequest>();
-                    anyMessageResponse = new AnyMessageResponse
-                    {
-                        Message = $"{user.Name} - {(user.Enabled ? "Enabled" : "Disabled")}"
-                    };
-                    break;
-                default:
-                    throw new InvalidOperationException("Unexpected type URL.");
-            }
+namespace FunctionalTestsWebsite.Services;
 
-            return Task.FromResult(anyMessageResponse);
+public class AnyService : Any.AnyService.AnyServiceBase
+{
+    public override Task<AnyMessageResponse> DoAny(AnyMessage request, ServerCallContext context)
+    {
+        AnyMessageResponse anyMessageResponse;
+        switch (request.TypeUrl)
+        {
+            case "type.googleapis.com/any.AnyProductRequest":
+                var product = request.Unpack<AnyProductRequest>();
+                anyMessageResponse = new AnyMessageResponse
+                {
+                    Message = $"{product.Quantity} x {product.Name}"
+                };
+                break;
+            case "type.googleapis.com/any.AnyUserRequest":
+                var user = request.Unpack<AnyUserRequest>();
+                anyMessageResponse = new AnyMessageResponse
+                {
+                    Message = $"{user.Name} - {(user.Enabled ? "Enabled" : "Disabled")}"
+                };
+                break;
+            default:
+                throw new InvalidOperationException("Unexpected type URL.");
         }
+
+        return Task.FromResult(anyMessageResponse);
     }
 }

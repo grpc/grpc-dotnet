@@ -28,52 +28,51 @@ using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+internal class TestResolver : PollingResolver
 {
-    internal class TestResolver : PollingResolver
+    private readonly Func<Task>? _onRefreshAsync;
+    private readonly TaskCompletionSource<object?> _hasResolvedTcs;
+    private ResolverResult? _result;
+
+    public Task HasResolvedTask => _hasResolvedTcs.Task;
+
+    public TestResolver(ILoggerFactory loggerFactory) : this(loggerFactory, null)
     {
-        private readonly Func<Task>? _onRefreshAsync;
-        private readonly TaskCompletionSource<object?> _hasResolvedTcs;
-        private ResolverResult? _result;
+    }
 
-        public Task HasResolvedTask => _hasResolvedTcs.Task;
+    public TestResolver(ILoggerFactory? loggerFactory = null, Func<Task>? onRefreshAsync = null) : base(loggerFactory ?? NullLoggerFactory.Instance)
+    {
+        _onRefreshAsync = onRefreshAsync;
+        _hasResolvedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
-        public TestResolver(ILoggerFactory loggerFactory) : this(loggerFactory, null)
+    public void UpdateAddresses(List<BalancerAddress> addresses, ServiceConfig? serviceConfig = null, Status? serviceConfigStatus = null)
+    {
+        UpdateResult(ResolverResult.ForResult(addresses, serviceConfig, serviceConfigStatus));
+    }
+
+    public void UpdateError(Status status)
+    {
+        UpdateResult(ResolverResult.ForFailure(status));
+    }
+
+    public void UpdateResult(ResolverResult result)
+    {
+        _result = result;
+        Listener?.Invoke(result);
+    }
+
+    protected override async Task ResolveAsync(CancellationToken cancellationToken)
+    {
+        if (_onRefreshAsync != null)
         {
+            await _onRefreshAsync();
         }
 
-        public TestResolver(ILoggerFactory? loggerFactory = null, Func<Task>? onRefreshAsync = null) : base(loggerFactory ?? NullLoggerFactory.Instance)
-        {
-            _onRefreshAsync = onRefreshAsync;
-            _hasResolvedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-
-        public void UpdateAddresses(List<BalancerAddress> addresses, ServiceConfig? serviceConfig = null, Status? serviceConfigStatus = null)
-        {
-            UpdateResult(ResolverResult.ForResult(addresses, serviceConfig, serviceConfigStatus));
-        }
-
-        public void UpdateError(Status status)
-        {
-            UpdateResult(ResolverResult.ForFailure(status));
-        }
-
-        public void UpdateResult(ResolverResult result)
-        {
-            _result = result;
-            Listener?.Invoke(result);
-        }
-
-        protected override async Task ResolveAsync(CancellationToken cancellationToken)
-        {
-            if (_onRefreshAsync != null)
-            {
-                await _onRefreshAsync();
-            }
-
-            Listener(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null, serviceConfigStatus: null));
-            _hasResolvedTcs.TrySetResult(null);
-        }
+        Listener(_result ?? ResolverResult.ForResult(Array.Empty<BalancerAddress>(), serviceConfig: null, serviceConfigStatus: null));
+        _hasResolvedTcs.TrySetResult(null);
     }
 }
 #endif

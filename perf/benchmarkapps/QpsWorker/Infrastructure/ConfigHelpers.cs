@@ -16,18 +16,17 @@
 
 #endregion
 
-namespace QpsWorker.Infrastructure
-{
-    public static class ConfigHelpers
-    {
-        public static IConfigurationRoot GetConfiguration()
-        {
-            var configRoot = new ConfigurationBuilder()
-                .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-                .AddCommandLine(Environment.GetCommandLineArgs())
-                .Build();
+namespace QpsWorker.Infrastructure;
 
-            return configRoot;
-        }
+public static class ConfigHelpers
+{
+    public static IConfigurationRoot GetConfiguration()
+    {
+        var configRoot = new ConfigurationBuilder()
+            .AddEnvironmentVariables(prefix: "ASPNETCORE_")
+            .AddCommandLine(Environment.GetCommandLineArgs())
+            .Build();
+
+        return configRoot;
     }
 }

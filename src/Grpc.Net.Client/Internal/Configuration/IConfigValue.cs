@@ -16,10 +16,9 @@
 
 #endregion
 
-namespace Grpc.Net.Client.Internal.Configuration
+namespace Grpc.Net.Client.Internal.Configuration;
+
+internal interface IConfigValue
 {
-    internal interface IConfigValue
-    {
-        object Inner { get; }
-    }
+    object Inner { get; }
 }

@@ -19,56 +19,55 @@
 using System.Reflection;
 using Grpc.Core;
 
-namespace Grpc.Shared.TestAssets
+namespace Grpc.Shared.TestAssets;
+
+/// <summary>
+/// SSL Credentials for testing.
+/// </summary>
+public static class TestCredentials
 {
-    /// <summary>
-    /// SSL Credentials for testing.
-    /// </summary>
-    public static class TestCredentials
+    public const string DefaultHostOverride = "foo.test.google.fr";
+
+    public static string ClientCertAuthorityPath
     {
-        public const string DefaultHostOverride = "foo.test.google.fr";
-
-        public static string ClientCertAuthorityPath
+        get
         {
-            get
-            {
-                return GetPath("data/ca.pem");
-            }
+            return GetPath("data/ca.pem");
         }
+    }
 
-        public static string ServerCertChainPath
+    public static string ServerCertChainPath
+    {
+        get
         {
-            get
-            {
-                return GetPath("data/server1.pem");
-            }
+            return GetPath("data/server1.pem");
         }
+    }
 
-        public static string ServerPrivateKeyPath
+    public static string ServerPrivateKeyPath
+    {
+        get
         {
-            get
-            {
-                return GetPath("data/server1.key");
-            }
+            return GetPath("data/server1.key");
         }
+    }
 
-        public static SslCredentials CreateSslCredentials()
-        {
-            return new SslCredentials(File.ReadAllText(ClientCertAuthorityPath));
-        }
+    public static SslCredentials CreateSslCredentials()
+    {
+        return new SslCredentials(File.ReadAllText(ClientCertAuthorityPath));
+    }
 
-        public static SslServerCredentials CreateSslServerCredentials()
-        {
-            var keyCertPair = new KeyCertificatePair(
-                File.ReadAllText(ServerCertChainPath),
-                File.ReadAllText(ServerPrivateKeyPath));
-            return new SslServerCredentials(new[] { keyCertPair });
-        }
+    public static SslServerCredentials CreateSslServerCredentials()
+    {
+        var keyCertPair = new KeyCertificatePair(
+            File.ReadAllText(ServerCertChainPath),
+            File.ReadAllText(ServerPrivateKeyPath));
+        return new SslServerCredentials(new[] { keyCertPair });
+    }
 
-        private static string GetPath(string relativePath)
-        {
-            var assemblyDir = Path.GetDirectoryName(typeof(TestCredentials).GetTypeInfo().Assembly.Location);
-            return Path.Combine(assemblyDir!, relativePath);
-        }
+    private static string GetPath(string relativePath)
+    {
+        var assemblyDir = Path.GetDirectoryName(typeof(TestCredentials).GetTypeInfo().Assembly.Location);
+        return Path.Combine(assemblyDir!, relativePath);
     }
 }

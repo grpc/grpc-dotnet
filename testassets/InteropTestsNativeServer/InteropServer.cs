@@ -21,60 +21,59 @@ using Grpc.Core;
 using Grpc.Core.Logging;
 using Grpc.Testing;
 
-namespace InteropTestsNativeWebsite
+namespace InteropTestsNativeWebsite;
+
+public class InteropServer
 {
-    public class InteropServer
+    private class ServerOptions
     {
-        private class ServerOptions
-        {
-            [Option("port", Default = 8070)]
-            public int Port { get; set; }
+        [Option("port", Default = 8070)]
+        public int Port { get; set; }
 
-            // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
-            [Option("use_tls", Default = false)]
-            public bool? UseTls { get; set; }
-        }
+        // Deliberately using nullable bool type to allow --use_tls=true syntax (as opposed to --use_tls)
+        [Option("use_tls", Default = false)]
+        public bool? UseTls { get; set; }
+    }
 
-        readonly ServerOptions options;
+    readonly ServerOptions options;
 
-        private InteropServer(ServerOptions options)
-        {
-            this.options = options;
-        }
+    private InteropServer(ServerOptions options)
+    {
+        this.options = options;
+    }
 
-        public static void Run(string[] args)
-        {
-            GrpcEnvironment.SetLogger(new ConsoleLogger());
-            var parserResult = Parser.Default.ParseArguments<ServerOptions>(args)
-                .WithNotParsed(errors => Environment.Exit(1))
-                .WithParsed(options =>
-                {
-                    var interopServer = new InteropServer(options);
-                    interopServer.Run();
-                });
-        }
-
-        private void Run()
-        {
-            var server = new Server
+    public static void Run(string[] args)
+    {
+        GrpcEnvironment.SetLogger(new ConsoleLogger());
+        var parserResult = Parser.Default.ParseArguments<ServerOptions>(args)
+            .WithNotParsed(errors => Environment.Exit(1))
+            .WithParsed(options =>
             {
-                Services = { TestService.BindService(new TestServiceImpl()) }
-            };
+                var interopServer = new InteropServer(options);
+                interopServer.Run();
+            });
+    }
 
-            string host = "0.0.0.0";
-            int port = options.Port;
-            if (options.UseTls ?? false)
-            {
-                server.Ports.Add(host, port, TestCredentials.CreateSslServerCredentials());
-            }
-            else
-            {
-                server.Ports.Add(host, options.Port, ServerCredentials.Insecure);
-            }
-            Console.WriteLine($"Running server on {host}:{port}");
-            server.Start();
+    private void Run()
+    {
+        var server = new Server
+        {
+            Services = { TestService.BindService(new TestServiceImpl()) }
+        };
 
-            server.ShutdownTask.Wait();
+        string host = "0.0.0.0";
+        int port = options.Port;
+        if (options.UseTls ?? false)
+        {
+            server.Ports.Add(host, port, TestCredentials.CreateSslServerCredentials());
         }
+        else
+        {
+            server.Ports.Add(host, options.Port, ServerCredentials.Insecure);
+        }
+        Console.WriteLine($"Running server on {host}:{port}");
+        server.Start();
+
+        server.ShutdownTask.Wait();
     }
 }

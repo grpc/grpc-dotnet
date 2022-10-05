@@ -17,16 +17,15 @@
 #endregion
 
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects
-{
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class CustomAttribute : Attribute
-    {
-        public CustomAttribute(string value)
-        {
-            Value = value;
-        }
+namespace Grpc.AspNetCore.Server.Tests.TestObjects;
 
-        public string Value { get; }
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public class CustomAttribute : Attribute
+{
+    public CustomAttribute(string value)
+    {
+        Value = value;
     }
+
+    public string Value { get; }
 }

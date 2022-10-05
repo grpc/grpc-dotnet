@@ -20,19 +20,18 @@ using BenchmarkDotNet.Attributes;
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
-{
-    public class DeadlineUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
-    {
-        protected override void SetupHttpContext(HttpContext httpContext)
-        {
-            httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1H";
-        }
+namespace Grpc.AspNetCore.Microbenchmarks.Server;
 
-        [Benchmark]
-        public Task DeadlineHandleCallAsync()
-        {
-            return InvokeUnaryRequestAsync();
-        }
+public class DeadlineUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+{
+    protected override void SetupHttpContext(HttpContext httpContext)
+    {
+        httpContext.Request.Headers[GrpcProtocolConstants.TimeoutHeader] = "1H";
+    }
+
+    [Benchmark]
+    public Task DeadlineHandleCallAsync()
+    {
+        return InvokeUnaryRequestAsync();
     }
 }

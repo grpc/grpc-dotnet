@@ -18,52 +18,51 @@
 
 using Grpc.Net.Client.Configuration;
 
-namespace Grpc.Net.Client.Internal.Configuration
+namespace Grpc.Net.Client.Internal.Configuration;
+
+internal sealed class ConfigProperty<TValue, TInner> where TValue : IConfigValue
 {
-    internal sealed class ConfigProperty<TValue, TInner> where TValue : IConfigValue
+    private TValue? _value;
+    private readonly Func<TInner?, TValue?> _valueFactory;
+    private readonly string _key;
+
+    public ConfigProperty(Func<TInner?, TValue?> valueFactory, string key)
     {
-        private TValue? _value;
-        private readonly Func<TInner?, TValue?> _valueFactory;
-        private readonly string _key;
+        _value = default;
+        _valueFactory = valueFactory;
+        _key = key;
+    }
 
-        public ConfigProperty(Func<TInner?, TValue?> valueFactory, string key)
+    public TValue? GetValue(ConfigObject inner)
+    {
+        if (_value == null)
         {
-            _value = default;
-            _valueFactory = valueFactory;
-            _key = key;
-        }
-
-        public TValue? GetValue(ConfigObject inner)
-        {
-            if (_value == null)
+            // Multiple threads can get a property at the same time. We want this to be safe.
+            // Because a value could be lazily initialized, lock to ensure multiple threads
+            // don't try to update the underlying dictionary at the same time.
+            lock (this)
             {
-                // Multiple threads can get a property at the same time. We want this to be safe.
-                // Because a value could be lazily initialized, lock to ensure multiple threads
-                // don't try to update the underlying dictionary at the same time.
-                lock (this)
+                // Double-check locking.
+                if (_value == null)
                 {
-                    // Double-check locking.
-                    if (_value == null)
-                    {
-                        var innerValue = inner.GetValue<TInner>(_key);
-                        _value = _valueFactory(innerValue);
+                    var innerValue = inner.GetValue<TInner>(_key);
+                    _value = _valueFactory(innerValue);
 
-                        if (_value != null && innerValue == null)
-                        {
-                            // Set newly created value
-                            SetValue(inner, _value);
-                        }
+                    if (_value != null && innerValue == null)
+                    {
+                        // Set newly created value
+                        SetValue(inner, _value);
                     }
                 }
             }
-
-            return _value;
         }
 
-        public void SetValue(ConfigObject inner, TValue? value)
-        {
-            _value = value;
-            inner.SetValue(_key, _value?.Inner);
-        }
+        return _value;
+    }
+
+    public void SetValue(ConfigObject inner, TValue? value)
+    {
+        _value = value;
+        inner.SetValue(_key, _value?.Inner);
     }
 }

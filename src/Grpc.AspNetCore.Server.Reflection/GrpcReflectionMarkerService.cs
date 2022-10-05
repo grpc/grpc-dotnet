@@ -16,14 +16,13 @@
 
 #endregion
 
-namespace Microsoft.Extensions.DependencyInjection
-{
-    /// <summary>
-    /// A marker class used to determine if all the required gRPC reflection services were added
-    /// to the <see cref="IServiceCollection"/>.
-    /// </summary>
-    internal class GrpcReflectionMarkerService
-    {
+namespace Microsoft.Extensions.DependencyInjection;
 
-    }
+/// <summary>
+/// A marker class used to determine if all the required gRPC reflection services were added
+/// to the <see cref="IServiceCollection"/>.
+/// </summary>
+internal class GrpcReflectionMarkerService
+{
+
 }

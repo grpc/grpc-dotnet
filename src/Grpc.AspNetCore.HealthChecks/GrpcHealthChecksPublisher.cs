@@ -21,45 +21,44 @@ using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.HealthChecks
+namespace Grpc.AspNetCore.HealthChecks;
+
+internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
 {
-    internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
+    private readonly HealthServiceImpl _healthService;
+    private readonly GrpcHealthChecksOptions _options;
+
+    public GrpcHealthChecksPublisher(HealthServiceImpl healthService, IOptions<GrpcHealthChecksOptions> options)
     {
-        private readonly HealthServiceImpl _healthService;
-        private readonly GrpcHealthChecksOptions _options;
+        _healthService = healthService;
+        _options = options.Value;
+    }
 
-        public GrpcHealthChecksPublisher(HealthServiceImpl healthService, IOptions<GrpcHealthChecksOptions> options)
+    public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
+    {
+        foreach (var registration in _options.Services)
         {
-            _healthService = healthService;
-            _options = options.Value;
-        }
+            var filteredResults = report.Entries
+                .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
+                .Where(registration.Predicate);
 
-        public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
-        {
-            foreach (var registration in _options.Services)
+            var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
+            foreach (var result in filteredResults)
             {
-                var filteredResults = report.Entries
-                    .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
-                    .Where(registration.Predicate);
-
-                var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
-                foreach (var result in filteredResults)
+                if (result.Status == HealthStatus.Unhealthy)
                 {
-                    if (result.Status == HealthStatus.Unhealthy)
-                    {
-                        resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
+                    resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
 
-                        // No point continuing to check statuses.
-                        break;
-                    }
-                    
-                    resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
+                    // No point continuing to check statuses.
+                    break;
                 }
-
-                _healthService.SetStatus(registration.Name, resolvedStatus);
+                
+                resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
             }
 
-            return Task.CompletedTask;
+            _healthService.SetStatus(registration.Name, resolvedStatus);
         }
+
+        return Task.CompletedTask;
     }
 }

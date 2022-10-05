@@ -17,10 +17,9 @@
 #endregion
 
 
-namespace Grpc.Dotnet.Cli.Internal
+namespace Grpc.Dotnet.Cli.Internal;
+
+internal class CLIToolException : Exception
 {
-    internal class CLIToolException : Exception
-    {
-        public CLIToolException(string message) : base(message) { }
-    }
+    public CLIToolException(string message) : base(message) { }
 }

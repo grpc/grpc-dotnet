@@ -19,34 +19,33 @@
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 
-namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
+namespace Grpc.Net.Client.Tests.Infrastructure.Balancer;
+
+internal class TestLoadBalancer : LoadBalancer
 {
-    internal class TestLoadBalancer : LoadBalancer
+    private readonly LoadBalancer _innerLoadBalancer;
+
+    public TestLoadBalancer(LoadBalancer innerLoadBalancer)
     {
-        private readonly LoadBalancer _innerLoadBalancer;
+        _innerLoadBalancer = innerLoadBalancer;
+    }
 
-        public TestLoadBalancer(LoadBalancer innerLoadBalancer)
-        {
-            _innerLoadBalancer = innerLoadBalancer;
-        }
+    public bool Disposed { get; private set; }
 
-        public bool Disposed { get; private set; }
+    public override void UpdateChannelState(ChannelState state)
+    {
+        _innerLoadBalancer.UpdateChannelState(state);
+    }
 
-        public override void UpdateChannelState(ChannelState state)
-        {
-            _innerLoadBalancer.UpdateChannelState(state);
-        }
+    public override void RequestConnection()
+    {
+    }
 
-        public override void RequestConnection()
-        {
-        }
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
 
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            Disposed = true;
-        }
+        Disposed = true;
     }
 }
 #endif

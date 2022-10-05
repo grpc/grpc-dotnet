@@ -18,66 +18,65 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+/// <summary>
+/// Attaches a log sink to a logger factory and captures all log messages.
+/// Disposing the scope will verify only expected errors were logged.
+/// </summary>
+public class VerifyNoErrorsScope : IDisposable
 {
-    /// <summary>
-    /// Attaches a log sink to a logger factory and captures all log messages.
-    /// Disposing the scope will verify only expected errors were logged.
-    /// </summary>
-    public class VerifyNoErrorsScope : IDisposable
+    private readonly IDisposable? _wrappedDisposable;
+    private readonly LogSinkProvider _sink;
+
+    public Func<LogRecord, bool>? ExpectedErrorsFilter { get; set; }
+    public ILoggerFactory LoggerFactory { get; }
+
+    public VerifyNoErrorsScope(ILoggerFactory? loggerFactory = null, IDisposable? wrappedDisposable = null, Func<LogRecord, bool>? expectedErrorsFilter = null)
     {
-        private readonly IDisposable? _wrappedDisposable;
-        private readonly LogSinkProvider _sink;
+        _wrappedDisposable = wrappedDisposable;
+        ExpectedErrorsFilter = expectedErrorsFilter;
+        _sink = new LogSinkProvider();
 
-        public Func<LogRecord, bool>? ExpectedErrorsFilter { get; set; }
-        public ILoggerFactory LoggerFactory { get; }
+        LoggerFactory = loggerFactory ?? new LoggerFactory();
+        LoggerFactory.AddProvider(_sink);
+    }
 
-        public VerifyNoErrorsScope(ILoggerFactory? loggerFactory = null, IDisposable? wrappedDisposable = null, Func<LogRecord, bool>? expectedErrorsFilter = null)
+    public IList<LogRecord> Logs => _sink.GetLogs();
+
+    public void ClearLogs() => _sink.ClearLogs();
+
+    public void Dispose()
+    {
+        _wrappedDisposable?.Dispose();
+
+        var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error).ToList();
+
+        if (results.Count > 0 && ExpectedErrorsFilter != null)
         {
-            _wrappedDisposable = wrappedDisposable;
-            ExpectedErrorsFilter = expectedErrorsFilter;
-            _sink = new LogSinkProvider();
-
-            LoggerFactory = loggerFactory ?? new LoggerFactory();
-            LoggerFactory.AddProvider(_sink);
+            results = results.Where(w => !ExpectedErrorsFilter(w)).ToList();
         }
 
-        public IList<LogRecord> Logs => _sink.GetLogs();
-
-        public void ClearLogs() => _sink.ClearLogs();
-
-        public void Dispose()
+        if (results.Count > 0)
         {
-            _wrappedDisposable?.Dispose();
-
-            var results = _sink.GetLogs().Where(w => w.LogLevel >= LogLevel.Error).ToList();
-
-            if (results.Count > 0 && ExpectedErrorsFilter != null)
+            string errorMessage = $"{results.Count} error(s) logged.";
+            errorMessage += Environment.NewLine;
+            errorMessage += string.Join(Environment.NewLine, results.Select(record =>
             {
-                results = results.Where(w => !ExpectedErrorsFilter(w)).ToList();
-            }
-
-            if (results.Count > 0)
-            {
-                string errorMessage = $"{results.Count} error(s) logged.";
-                errorMessage += Environment.NewLine;
-                errorMessage += string.Join(Environment.NewLine, results.Select(record =>
+                string lineMessage = record.LoggerName + " - " + record.EventId.ToString() + " - " + record.Formatter(record.State, record.Exception);
+                if (record.Exception != null)
                 {
-                    string lineMessage = record.LoggerName + " - " + record.EventId.ToString() + " - " + record.Formatter(record.State, record.Exception);
-                    if (record.Exception != null)
-                    {
-                        lineMessage += Environment.NewLine;
-                        lineMessage += "===================";
-                        lineMessage += Environment.NewLine;
-                        lineMessage += record.Exception;
-                        lineMessage += Environment.NewLine;
-                        lineMessage += "===================";
-                    }
-                    return lineMessage;
-                }));
+                    lineMessage += Environment.NewLine;
+                    lineMessage += "===================";
+                    lineMessage += Environment.NewLine;
+                    lineMessage += record.Exception;
+                    lineMessage += Environment.NewLine;
+                    lineMessage += "===================";
+                }
+                return lineMessage;
+            }));
 
-                throw new Exception(errorMessage);
-            }
+            throw new Exception(errorMessage);
         }
     }
 }

@@ -36,334 +36,333 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Balancer
+namespace Grpc.Net.Client.Tests.Balancer;
+
+[TestFixture]
+public class RoundRobinBalancerTests
 {
-    [TestFixture]
-    public class RoundRobinBalancerTests
+    [Test]
+    public async Task ChangeAddresses_HasReadySubchannel_OldSubchannelShutdown()
     {
-        [Test]
-        public async Task ChangeAddresses_HasReadySubchannel_OldSubchannelShutdown()
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var transportFactory = new TestSubchannelTransportFactory();
+        services.AddSingleton<TestResolver>();
+        services.AddSingleton<ResolverFactory, TestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
 
-            var transportFactory = new TestSubchannelTransportFactory();
-            services.AddSingleton<TestResolver>();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-            var serviceProvider = services.BuildServiceProvider();
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
-
-            var resolver = serviceProvider.GetRequiredService<TestResolver>();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync().DefaultTimeout();
-
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-
-            // Wait for TryConnect to be called so state is connected
-            await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 81)
-            });
-            Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
-
-            var newSubchannels = channel.ConnectionManager.GetSubchannels();
-            CollectionAssert.AreNotEqual(subchannels, newSubchannels);
-            Assert.AreEqual(1, newSubchannels.Count);
-
-            Assert.AreEqual(1, newSubchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), newSubchannels[0]._addresses[0].EndPoint);
-
-            await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
-        }
-
-        [Test]
-        public async Task ResolverError_HasReadySubchannel_SubchannelUnchanged()
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            new BalancerAddress("localhost", 80)
+        });
 
-            var transportFactory = new TestSubchannelTransportFactory();
-            services.AddSingleton<TestResolver>();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-            var serviceProvider = services.BuildServiceProvider();
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync().DefaultTimeout();
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            var resolver = serviceProvider.GetRequiredService<TestResolver>();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync().DefaultTimeout();
+        // Wait for TryConnect to be called so state is connected
+        await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-
-            // Wait for TryConnect to be called so state is connected
-            await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            // Existing channel continutes to run
-            var newSubchannels = channel.ConnectionManager.GetSubchannels();
-            CollectionAssert.AreEqual(subchannels, newSubchannels);
-            Assert.AreEqual(1, newSubchannels.Count);
-
-            await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
-        }
-
-        [Test]
-        public async Task ResolverError_HasFailedSubchannel_SubchannelShutdown()
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
-            services.AddSingleton<TestResolver>();
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
-            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-            var serviceProvider = services.BuildServiceProvider();
+            new BalancerAddress("localhost", 81)
+        });
+        Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
+        var newSubchannels = channel.ConnectionManager.GetSubchannels();
+        CollectionAssert.AreNotEqual(subchannels, newSubchannels);
+        Assert.AreEqual(1, newSubchannels.Count);
 
-            var resolver = serviceProvider.GetRequiredService<TestResolver>();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        Assert.AreEqual(1, newSubchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 81), newSubchannels[0]._addresses[0].EndPoint);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            _ = channel.ConnectAsync();
+        await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
+    }
 
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
+    [Test]
+    public async Task ResolverError_HasReadySubchannel_SubchannelUnchanged()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        var transportFactory = new TestSubchannelTransportFactory();
+        services.AddSingleton<TestResolver>();
+        services.AddSingleton<ResolverFactory, TestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
 
-            await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
-
-            resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
-            Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
-
-            var pickContext = new PickContext { Request = new HttpRequestMessage() };
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await channel.ConnectionManager.PickAsync(pickContext, waitForReady: false, CancellationToken.None)).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
-            Assert.AreEqual("Error!", ex.Status.Detail);
-            Assert.AreEqual("Test exception!", ex.Status.DebugException!.Message);
-        }
-
-        [Test]
-        public async Task HasSubchannels_SubchannelStatusChanges_RefreshResolver()
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
 
-            ILogger? logger = null;
-            SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-
-            var connectState = ConnectivityState.Ready;
-
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                logger.LogInformation($"Transport factory returning state: {connectState}");
-                return Task.FromResult(connectState);
-            });
-            services.AddSingleton<TestResolver>(s =>
-            {
-                return new TestResolver(
-                    s.GetRequiredService<ILoggerFactory>(),
-                    async () =>
-                    {
-                        logger.LogInformation("Resolver waiting to continue.");
-                        await syncPoint.WaitToContinue().DefaultTimeout();
-
-                        logger.LogInformation("Resolver creating new sync point.");
-                        syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-                    });
-            });
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-            var serviceProvider = services.BuildServiceProvider();
-
-            logger = serviceProvider.GetRequiredService<ILogger<RoundRobinBalancerTests>>();
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
-
-            var resolver = serviceProvider.GetRequiredService<TestResolver>();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-
-            logger.LogInformation("Client connecting");
-            var connectTask = channel.ConnectAsync();
-
-            // Assert
-            syncPoint!.Continue();
-            logger.LogInformation("Client waiting for connect to complete.");
-            await connectTask.DefaultTimeout();
-
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-
-            await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            logger.LogInformation("Transport factory updating state.");
-            connectState = ConnectivityState.TransientFailure;
-            transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
-
-            // Transport will refresh resolver after some failures
-            logger.LogInformation("Waiting for sync point in resolver.");
-            await syncPoint!.WaitForSyncPoint().DefaultTimeout();
-            syncPoint.Continue();
-        }
-
-        [Test]
-        public async Task HasSubchannels_ResolverRefresh_MatchingSubchannelUnchanged()
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            new BalancerAddress("localhost", 80)
+        });
 
-            SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync().DefaultTimeout();
 
-            var connectState = ConnectivityState.Ready;
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(connectState));
-            services.AddSingleton<TestResolver>(s =>
-            {
-                return new TestResolver(
-                    s.GetRequiredService<ILoggerFactory>(),
-                    async () =>
-                    {
-                        await syncPoint.WaitToContinue().DefaultTimeout();
-                        syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-                    });
-            });
-            services.AddSingleton<ResolverFactory, TestResolverFactory>();
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-            var serviceProvider = services.BuildServiceProvider();
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
+        // Wait for TryConnect to be called so state is connected
+        await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            var resolver = serviceProvider.GetRequiredService<TestResolver>();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80),
-                new BalancerAddress("localhost", 81)
-            });
+        resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            var connectTask = channel.ConnectAsync();
+        // Existing channel continutes to run
+        var newSubchannels = channel.ConnectionManager.GetSubchannels();
+        CollectionAssert.AreEqual(subchannels, newSubchannels);
+        Assert.AreEqual(1, newSubchannels.Count);
 
-            // Assert
-            syncPoint!.Continue();
-            await connectTask.DefaultTimeout();
+        await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
+    }
 
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(2, subchannels.Count);
+    [Test]
+    public async Task ResolverError_HasFailedSubchannel_SubchannelShutdown()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        services.AddSingleton<TestResolver>();
+        services.AddSingleton<ResolverFactory, TestResolverFactory>();
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(1, subchannels[1]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[1]._addresses[0].EndPoint);
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
 
-            // Preserved because port 81 is in both refresh results
-            var preservedSubchannel = subchannels[1];
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
 
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 81),
-                new BalancerAddress("localhost", 82)
-            });
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        _ = channel.ConnectAsync();
 
-            subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(2, subchannels.Count);
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(1, subchannels[1]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 82), subchannels[1]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
-            Assert.AreSame(preservedSubchannel, subchannels[0]);
-        }
+        await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
+
+        resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
+        Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
+
+        var pickContext = new PickContext { Request = new HttpRequestMessage() };
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await channel.ConnectionManager.PickAsync(pickContext, waitForReady: false, CancellationToken.None)).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+        Assert.AreEqual("Error!", ex.Status.Detail);
+        Assert.AreEqual("Test exception!", ex.Status.DebugException!.Message);
+    }
+
+    [Test]
+    public async Task HasSubchannels_SubchannelStatusChanges_RefreshResolver()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        ILogger? logger = null;
+        SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+        var connectState = ConnectivityState.Ready;
+
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            logger.LogInformation($"Transport factory returning state: {connectState}");
+            return Task.FromResult(connectState);
+        });
+        services.AddSingleton<TestResolver>(s =>
+        {
+            return new TestResolver(
+                s.GetRequiredService<ILoggerFactory>(),
+                async () =>
+                {
+                    logger.LogInformation("Resolver waiting to continue.");
+                    await syncPoint.WaitToContinue().DefaultTimeout();
+
+                    logger.LogInformation("Resolver creating new sync point.");
+                    syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+                });
+        });
+        services.AddSingleton<ResolverFactory, TestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
+
+        logger = serviceProvider.GetRequiredService<ILogger<RoundRobinBalancerTests>>();
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
+
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+
+        logger.LogInformation("Client connecting");
+        var connectTask = channel.ConnectAsync();
+
+        // Assert
+        syncPoint!.Continue();
+        logger.LogInformation("Client waiting for connect to complete.");
+        await connectTask.DefaultTimeout();
+
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
+
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+
+        await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+
+        logger.LogInformation("Transport factory updating state.");
+        connectState = ConnectivityState.TransientFailure;
+        transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
+
+        // Transport will refresh resolver after some failures
+        logger.LogInformation("Waiting for sync point in resolver.");
+        await syncPoint!.WaitForSyncPoint().DefaultTimeout();
+        syncPoint.Continue();
+    }
+
+    [Test]
+    public async Task HasSubchannels_ResolverRefresh_MatchingSubchannelUnchanged()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        SyncPoint? syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+
+        var connectState = ConnectivityState.Ready;
+
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(connectState));
+        services.AddSingleton<TestResolver>(s =>
+        {
+            return new TestResolver(
+                s.GetRequiredService<ILoggerFactory>(),
+                async () =>
+                {
+                    await syncPoint.WaitToContinue().DefaultTimeout();
+                    syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+                });
+        });
+        services.AddSingleton<ResolverFactory, TestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceConfig = new ServiceConfig { LoadBalancingConfigs = { new RoundRobinConfig() } },
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
+
+        var resolver = serviceProvider.GetRequiredService<TestResolver>();
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80),
+            new BalancerAddress("localhost", 81)
+        });
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        var connectTask = channel.ConnectAsync();
+
+        // Assert
+        syncPoint!.Continue();
+        await connectTask.DefaultTimeout();
+
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(2, subchannels.Count);
+
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[1]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[1]._addresses[0].EndPoint);
+
+        // Preserved because port 81 is in both refresh results
+        var preservedSubchannel = subchannels[1];
+
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 81),
+            new BalancerAddress("localhost", 82)
+        });
+
+        subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(2, subchannels.Count);
+
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[1]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 82), subchannels[1]._addresses[0].EndPoint);
+
+        Assert.AreSame(preservedSubchannel, subchannels[0]);
     }
 }
 #endif

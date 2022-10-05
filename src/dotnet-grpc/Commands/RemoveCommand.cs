@@ -23,62 +23,61 @@ using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
 using Microsoft.Build.Evaluation;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Commands;
+
+internal class RemoveCommand : CommandBase
 {
-    internal class RemoveCommand : CommandBase
+    public RemoveCommand(IConsole console, string? projectPath, HttpClient httpClient)
+        : base(console, projectPath, httpClient) { }
+
+    public static Command Create(HttpClient httpClient)
     {
-        public RemoveCommand(IConsole console, string? projectPath, HttpClient httpClient)
-            : base(console, projectPath, httpClient) { }
+        var command = new Command(
+            name: "remove",
+            description: CoreStrings.RemoveCommandDescription);
 
-        public static Command Create(HttpClient httpClient)
+        var projectOption = CommonOptions.ProjectOption();
+        var referencesArgument = new Argument<string[]>
         {
-            var command = new Command(
-                name: "remove",
-                description: CoreStrings.RemoveCommandDescription);
+            Name = "references",
+            Description = CoreStrings.RemoveCommandArgumentDescription,
+            Arity = ArgumentArity.OneOrMore
+        };
+        
+        command.AddOption(projectOption);
+        command.AddArgument(referencesArgument);
 
-            var projectOption = CommonOptions.ProjectOption();
-            var referencesArgument = new Argument<string[]>
+        command.SetHandler<string, string[], InvocationContext, IConsole>(
+            (project, references, context, console) =>
             {
-                Name = "references",
-                Description = CoreStrings.RemoveCommandArgumentDescription,
-                Arity = ArgumentArity.OneOrMore
-            };
-            
-            command.AddOption(projectOption);
-            command.AddArgument(referencesArgument);
-
-            command.SetHandler<string, string[], InvocationContext, IConsole>(
-                (project, references, context, console) =>
+                try
                 {
-                    try
-                    {
-                        var command = new RemoveCommand(console, project, httpClient);
-                        command.Remove(references);
+                    var command = new RemoveCommand(console, project, httpClient);
+                    command.Remove(references);
 
-                        context.ExitCode = 0;
-                    }
-                    catch (CLIToolException e)
-                    {
-                        console.LogError(e);
+                    context.ExitCode = 0;
+                }
+                catch (CLIToolException e)
+                {
+                    console.LogError(e);
 
-                        context.ExitCode = -1;
-                    }
-                }, projectOption, referencesArgument);
+                    context.ExitCode = -1;
+                }
+            }, projectOption, referencesArgument);
 
-            return command;
-        }
+        return command;
+    }
 
-        public void Remove(string[] references)
+    public void Remove(string[] references)
+    {
+        var items = ResolveReferences(references);
+
+        foreach (var item in items)
         {
-            var items = ResolveReferences(references);
-
-            foreach (var item in items)
-            {
-                Console.Log(CoreStrings.LogRemoveReference, item.UnevaluatedInclude);
-                Project.RemoveItem(item);
-            }
-
-            Project.Save();
+            Console.Log(CoreStrings.LogRemoveReference, item.UnevaluatedInclude);
+            Project.RemoveItem(item);
         }
+
+        Project.Save();
     }
 }

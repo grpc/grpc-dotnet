@@ -23,91 +23,90 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.Extensions.DependencyInjection
+namespace Microsoft.Extensions.DependencyInjection;
+
+/// <summary>
+/// Extension methods for configuring an <see cref="IHttpClientBuilder"/>.
+/// </summary>
+public static class GrpcServerHttpClientBuilderExtensions
 {
     /// <summary>
-    /// Extension methods for configuring an <see cref="IHttpClientBuilder"/>.
+    /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
+    /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
     /// </summary>
-    public static class GrpcServerHttpClientBuilderExtensions
+    /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+    /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+    public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder)
     {
-        /// <summary>
-        /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
-        /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
-        /// </summary>
-        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
-        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
-        public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder)
+        if (builder == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            EnableCallContextPropagationCore(builder, new GrpcContextPropagationOptions());
-
-            return builder;
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        /// <summary>
-        /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
-        /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
-        /// </summary>
-        /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
-        /// <param name="configureOptions">An <see cref="Action{GrpcContextPropagationOptions}"/> to configure the provided <see cref="GrpcContextPropagationOptions"/>.</param>
-        /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
-        public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder, Action<GrpcContextPropagationOptions> configureOptions)
+        EnableCallContextPropagationCore(builder, new GrpcContextPropagationOptions());
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the server to propagate a call's <see cref="ServerCallContext.CancellationToken"/> and
+    /// <see cref="ServerCallContext.Deadline"/> onto the gRPC client.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHttpClientBuilder"/>.</param>
+    /// <param name="configureOptions">An <see cref="Action{GrpcContextPropagationOptions}"/> to configure the provided <see cref="GrpcContextPropagationOptions"/>.</param>
+    /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
+    public static IHttpClientBuilder EnableCallContextPropagation(this IHttpClientBuilder builder, Action<GrpcContextPropagationOptions> configureOptions)
+    {
+        if (builder == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            if (configureOptions == null)
-            {
-                throw new ArgumentNullException(nameof(configureOptions));
-            }
-
-            var options = new GrpcContextPropagationOptions();
-            configureOptions(options);
-            EnableCallContextPropagationCore(builder, options);
-
-            return builder;
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        private static void EnableCallContextPropagationCore(IHttpClientBuilder builder, GrpcContextPropagationOptions options)
+        if (configureOptions == null)
         {
-            ValidateGrpcClient(builder);
-
-            builder.Services.AddHttpContextAccessor();
-            builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, o =>
-            {
-                o.InterceptorRegistrations.Add(new InterceptorRegistration(
-                    InterceptorScope.Channel,
-                    s =>
-                    {
-                        var accessor = s.GetRequiredService<IHttpContextAccessor>();
-                        var logger = s.GetRequiredService<ILogger<ContextPropagationInterceptor>>();
-                        return new ContextPropagationInterceptor(options, accessor, logger);
-                    }));
-            });
+            throw new ArgumentNullException(nameof(configureOptions));
         }
 
-        private static void ValidateGrpcClient(IHttpClientBuilder builder)
+        var options = new GrpcContextPropagationOptions();
+        configureOptions(options);
+        EnableCallContextPropagationCore(builder, options);
+
+        return builder;
+    }
+
+    private static void EnableCallContextPropagationCore(IHttpClientBuilder builder, GrpcContextPropagationOptions options)
+    {
+        ValidateGrpcClient(builder);
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, o =>
         {
-            // Validate the builder is for a gRPC client
-            foreach (var service in builder.Services)
-            {
-                if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+            o.InterceptorRegistrations.Add(new InterceptorRegistration(
+                InterceptorScope.Channel,
+                s =>
                 {
-                    // Builder is from AddGrpcClient if options have been configured with the same name
-                    if (service.ImplementationInstance is ConfigureNamedOptions<GrpcClientFactoryOptions> namedOptions && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
-                    {
-                        return;
-                    }
+                    var accessor = s.GetRequiredService<IHttpContextAccessor>();
+                    var logger = s.GetRequiredService<ILogger<ContextPropagationInterceptor>>();
+                    return new ContextPropagationInterceptor(options, accessor, logger);
+                }));
+        });
+    }
+
+    private static void ValidateGrpcClient(IHttpClientBuilder builder)
+    {
+        // Validate the builder is for a gRPC client
+        foreach (var service in builder.Services)
+        {
+            if (service.ServiceType == typeof(IConfigureOptions<GrpcClientFactoryOptions>))
+            {
+                // Builder is from AddGrpcClient if options have been configured with the same name
+                if (service.ImplementationInstance is ConfigureNamedOptions<GrpcClientFactoryOptions> namedOptions && string.Equals(builder.Name, namedOptions.Name, StringComparison.Ordinal))
+                {
+                    return;
                 }
             }
-
-            throw new InvalidOperationException($"{nameof(EnableCallContextPropagation)} must be used with a gRPC client.");
         }
+
+        throw new InvalidOperationException($"{nameof(EnableCallContextPropagation)} must be used with a gRPC client.");
     }
 }

@@ -16,27 +16,26 @@
 
 #endregion
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace FunctionalTestsWebsite.Infrastructure;
+
+public abstract class ValueProvider
 {
-    public abstract class ValueProvider
-    {
-        private int _value;
+    private int _value;
 
-        public int GetNext()
-        {
-            return ++_value;
-        }
-    }
-
-    public class TransientValueProvider : ValueProvider
+    public int GetNext()
     {
+        return ++_value;
     }
+}
 
-    public class ScopedValueProvider : ValueProvider
-    {
-    }
+public class TransientValueProvider : ValueProvider
+{
+}
 
-    public class SingletonValueProvider : ValueProvider
-    {
-    }
+public class ScopedValueProvider : ValueProvider
+{
+}
+
+public class SingletonValueProvider : ValueProvider
+{
 }

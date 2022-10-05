@@ -22,84 +22,83 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.FunctionalTests.Helpers;
+
+public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception? exception);
+
+public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
 {
-    public delegate void LogMessage(LogLevel logLevel, string categoryName, EventId eventId, string message, Exception? exception);
+    private readonly TestServer _server;
+    private readonly IHost _host;
 
-    public class GrpcTestFixture<TStartup> : IDisposable where TStartup : class
+    public event LogMessage? LoggedMessage;
+
+    public GrpcTestFixture() : this(null) { }
+
+    public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices)
     {
-        private readonly TestServer _server;
-        private readonly IHost _host;
-
-        public event LogMessage? LoggedMessage;
-
-        public GrpcTestFixture() : this(null) { }
-
-        public GrpcTestFixture(Action<IServiceCollection>? initialConfigureServices)
+        LoggerFactory = new LoggerFactory();
+        LoggerFactory.AddProvider(new ForwardingLoggerProvider((logLevel, category, eventId, message, exception) =>
         {
-            LoggerFactory = new LoggerFactory();
-            LoggerFactory.AddProvider(new ForwardingLoggerProvider((logLevel, category, eventId, message, exception) =>
-            {
-                LoggedMessage?.Invoke(logLevel, category, eventId, message, exception);
-            }));
+            LoggedMessage?.Invoke(logLevel, category, eventId, message, exception);
+        }));
 
-            var builder = new HostBuilder()
-                .ConfigureServices(services =>
-                {
-                    initialConfigureServices?.Invoke(services);
-                    services.AddSingleton<ILoggerFactory>(LoggerFactory);
-                })
-                .ConfigureWebHostDefaults(webHost =>
-                {
-                    webHost
-                        .UseTestServer()
-                        .UseStartup<TStartup>();
-                });
-            _host = builder.Start();
-            _server = _host.GetTestServer();
+        var builder = new HostBuilder()
+            .ConfigureServices(services =>
+            {
+                initialConfigureServices?.Invoke(services);
+                services.AddSingleton<ILoggerFactory>(LoggerFactory);
+            })
+            .ConfigureWebHostDefaults(webHost =>
+            {
+                webHost
+                    .UseTestServer()
+                    .UseStartup<TStartup>();
+            });
+        _host = builder.Start();
+        _server = _host.GetTestServer();
 
 #if !NET5_0
-            // Need to set the response version to 2.0.
-            // Required because of this TestServer issue - https://github.com/aspnet/AspNetCore/issues/16940
-            var handler = new ResponseVersionHandler();
-            handler.InnerHandler = _server.CreateHandler();
+        // Need to set the response version to 2.0.
+        // Required because of this TestServer issue - https://github.com/aspnet/AspNetCore/issues/16940
+        var handler = new ResponseVersionHandler();
+        handler.InnerHandler = _server.CreateHandler();
 #else
-            var handler = _server.CreateHandler();
+        var handler = _server.CreateHandler();
 #endif
 
-            var client = new HttpClient(handler);
-            client.BaseAddress = new Uri("http://localhost");
+        var client = new HttpClient(handler);
+        client.BaseAddress = new Uri("http://localhost");
 
-            Client = client;
-        }
+        Client = client;
+    }
 
-        public LoggerFactory LoggerFactory { get; }
+    public LoggerFactory LoggerFactory { get; }
 
-        public HttpClient Client { get; }
+    public HttpClient Client { get; }
 
-        public void Dispose()
-        {
-            Client.Dispose();
-            _host.Dispose();
-            _server.Dispose();
-        }
+    public void Dispose()
+    {
+        Client.Dispose();
+        _host.Dispose();
+        _server.Dispose();
+    }
 
 #if !NET5_0
-        private class ResponseVersionHandler : DelegatingHandler
+    private class ResponseVersionHandler : DelegatingHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                var response = await base.SendAsync(request, cancellationToken);
-                response.Version = request.Version;
+            var response = await base.SendAsync(request, cancellationToken);
+            response.Version = request.Version;
 
-                return response;
-            }
+            return response;
         }
+    }
 #endif
 
-        public IDisposable GetTestContext()
-        {
-            return new GrpcTestContext<TStartup>(this);
-        }
+    public IDisposable GetTestContext()
+    {
+        return new GrpcTestContext<TStartup>(this);
     }
 }

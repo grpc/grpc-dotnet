@@ -29,494 +29,493 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using AnyMessage = Google.Protobuf.WellKnownTypes.Any;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class UnaryMethodTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class UnaryMethodTests : FunctionalTestBase
+    [Test]
+    public async Task SendValidRequest_SuccessResponse()
     {
-        [Test]
-        public async Task SendValidRequest_SuccessResponse()
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHello",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Greet.Greeter/SayHello",
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
-            Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertTrailerStatus();
-        }
+        // Assert
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
+        Assert.AreEqual("Hello World", responseMessage.Message);
+        response.AssertTrailerStatus();
+    }
 
-        [Test]
-        public async Task StreamedMessage_SuccessResponseAfterMessageReceived()
+    [Test]
+    public async Task StreamedMessage_SuccessResponseAfterMessageReceived()
+    {
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var streamingContent = new StreamingContent();
-            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
-            httpRequest.Content = streamingContent;
+        var streamingContent = new StreamingContent();
+        var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
+        httpRequest.Content = streamingContent;
 
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+        // Assert
+        Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
 
-            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
-            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-            streamingContent.Complete();
+        var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+        await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+        streamingContent.Complete();
 
-            var response = await responseTask.DefaultTimeout();
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
+        var response = await responseTask.DefaultTimeout();
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
 
-            Assert.AreEqual("Hello World", responseMessage.Message);
-        }
+        Assert.AreEqual("Hello World", responseMessage.Message);
+    }
 
-        [Test]
-        public async Task AdditionalDataAfterStreamedMessage_ErrorResponse()
+    [Test]
+    public async Task AdditionalDataAfterStreamedMessage_ErrorResponse()
+    {
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                writeContext.EventId.Name == "ErrorReadingMessage" &&
+                writeContext.State.ToString() == "Error reading message.")
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                    writeContext.EventId.Name == "ErrorReadingMessage" &&
-                    writeContext.State.ToString() == "Error reading message.")
-                {
-                    return true;
-                }
-
-                return false;
-            });
-
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            var streamingContent = new StreamingContent();
-            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
-            httpRequest.Content = streamingContent;
-
-            // Act
-            var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
-
-            // Assert
-            Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
-
-            var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
-            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-            await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
-            streamingContent.Complete();
-
-            var response = await responseTask.DefaultTimeout();
-
-            // Read to end of response so headers are available
-            await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
-
-            response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
-
-            AssertHasLogRpcConnectionError(StatusCode.Internal, "Additional data after the message received.");
-        }
-
-        [Test]
-        public async Task SendHeadersTwice_ThrowsException()
-        {
-            static async Task<HelloReply> ReturnHeadersTwice(HelloRequest request, ServerCallContext context)
-            {
-                await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
-
-                await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
-
-                return new HelloReply { Message = "Should never reach here" };
+                return true;
             }
 
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                       writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
-                       writeContext.Exception!.Message == "Response headers can only be sent once per call.";
-            });
+            return false;
+        });
 
-            var requestMessage = new HelloRequest
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        var streamingContent = new StreamingContent();
+        var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHello");
+        httpRequest.Content = streamingContent;
+
+        // Act
+        var responseTask = Fixture.Client.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+
+        // Assert
+        Assert.IsFalse(responseTask.IsCompleted, "Server should wait for client to finish streaming");
+
+        var requestStream = await streamingContent.GetRequestStreamAsync().DefaultTimeout();
+        await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+        await requestStream.WriteAsync(ms.ToArray()).AsTask().DefaultTimeout();
+        streamingContent.Complete();
+
+        var response = await responseTask.DefaultTimeout();
+
+        // Read to end of response so headers are available
+        await response.Content.CopyToAsync(new MemoryStream()).DefaultTimeout();
+
+        response.AssertTrailerStatus(StatusCode.Internal, "Additional data after the message received.");
+
+        AssertHasLogRpcConnectionError(StatusCode.Internal, "Additional data after the message received.");
+    }
+
+    [Test]
+    public async Task SendHeadersTwice_ThrowsException()
+    {
+        static async Task<HelloReply> ReturnHeadersTwice(HelloRequest request, ServerCallContext context)
+        {
+            await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
+
+            await context.WriteResponseHeadersAsync(Metadata.Empty).DefaultTimeout();
+
+            return new HelloReply { Message = "Should never reach here" };
+        }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                   writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                   writeContext.State.ToString() == "Error when executing service method 'ReturnHeadersTwice'." &&
+                   writeContext.Exception!.Message == "Response headers can only be sent once per call.";
+        });
+
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
+
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
+
+        response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Response headers can only be sent once per call.");
+    }
+
+    [Test]
+    public async Task ServerMethodReturnsNull_FailureResponse()
+    {
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
+            (requestStream, context) => Task.FromResult<HelloReply>(null!));
+
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
+
+        response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+
+        AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
+    }
+
+    [Test]
+    public async Task ServerMethodThrowsExceptionWithTrailers_FailureResponse()
+    {
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
+        {
+            var trailers = new Metadata
             {
-                Name = "World"
+                new Metadata.Entry("test-trailer", "A value!")
             };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
+        });
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(ReturnHeadersTwice, nameof(ReturnHeadersTwice));
-
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-
-            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Response headers can only be sent once per call.");
-        }
-
-        [Test]
-        public async Task ServerMethodReturnsNull_FailureResponse()
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(
-                (requestStream, context) => Task.FromResult<HelloReply>(null!));
+            Name = "World"
+        };
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
 
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
+        response.AssertTrailerStatus(StatusCode.Unknown, "User error");
+        // Trailer is written to the header because this is a Trailers-Only response
+        Assert.AreEqual("A value!", response.Headers.GetValues("test-trailer").Single());
 
-            response.AssertTrailerStatus(StatusCode.Cancelled, "No message returned from method.");
+        AssertHasLogRpcConnectionError(StatusCode.Unknown, "User error");
+    }
 
-            AssertHasLogRpcConnectionError(StatusCode.Cancelled, "No message returned from method.");
-        }
-
-        [Test]
-        public async Task ServerMethodThrowsExceptionWithTrailers_FailureResponse()
+    [Test]
+    public async Task ServerMethodThrowsNonRpcException_FailureResponse()
+    {
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
-            {
-                var trailers = new Metadata
-                {
-                    new Metadata.Entry("test-trailer", "A value!")
-                };
+            return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                   writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                   writeContext.State.ToString() == "Error when executing service method 'GrpcErrorMethod'." &&
+                   writeContext.Exception!.Message == "Non RPC exception.";
+        });
 
-                return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.Unknown, "User error"), trailers));
-            });
-
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-
-            response.AssertTrailerStatus(StatusCode.Unknown, "User error");
-            // Trailer is written to the header because this is a Trailers-Only response
-            Assert.AreEqual("A value!", response.Headers.GetValues("test-trailer").Single());
-
-            AssertHasLogRpcConnectionError(StatusCode.Unknown, "User error");
-        }
-
-        [Test]
-        public async Task ServerMethodThrowsNonRpcException_FailureResponse()
+        var ex = new InvalidOperationException("Non RPC exception.");
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
         {
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                       writeContext.State.ToString() == "Error when executing service method 'GrpcErrorMethod'." &&
-                       writeContext.Exception!.Message == "Non RPC exception.";
-            });
+            return Task.FromException<HelloReply>(ex);
+        }, "GrpcErrorMethod");
 
-            var ex = new InvalidOperationException("Non RPC exception.");
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
-            {
-                return Task.FromException<HelloReply>(ex);
-            }, "GrpcErrorMethod");
-
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-
-            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Non RPC exception.");
-
-            AssertHasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'GrpcErrorMethod'.", e => e == ex);
-        }
-
-        [Test]
-        public async Task ValidRequest_ReturnContextInfoInTrailers()
+        var requestMessage = new HelloRequest
         {
-            static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
-            {
-                context.ResponseTrailers.Add("Test-Method", context.Method);
-                context.ResponseTrailers.Add("Test-Peer", context.Peer);
-                context.ResponseTrailers.Add("Test-Host", context.Host);
+            Name = "World"
+        };
 
-                return Task.FromResult(new Empty());
-            }
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Arrange
-            var requestMessage = new Empty();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
+        response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. InvalidOperationException: Non RPC exception.");
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        AssertHasLog(LogLevel.Error, "ErrorExecutingServiceMethod", "Error when executing service method 'GrpcErrorMethod'.", e => e == ex);
+    }
 
-            // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>().DefaultTimeout();
-            Assert.IsNotNull(responseMessage);
-
-            var methodParts = response.TrailingHeaders.GetValues("Test-Method").Single().Split('/', StringSplitOptions.RemoveEmptyEntries);
-            var serviceName = methodParts[0];
-            var methodName = methodParts[1];
-
-            Assert.AreEqual("DynamicService", serviceName);
-            Assert.IsTrue(Guid.TryParse(methodName, out var _));
-
-            Assert.IsTrue(response.TrailingHeaders.TryGetValues("Test-Peer", out _));
-            Assert.AreEqual(Fixture.Client.BaseAddress!.Authority, response.TrailingHeaders.GetValues("Test-Host").Single());
-        }
-
-        [Test]
-        public async Task ThrowErrorInNonAsyncMethod_StatusMessageReturned()
+    [Test]
+    public async Task ValidRequest_ReturnContextInfoInTrailers()
+    {
+        static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
         {
-            static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
-            {
-                throw new Exception("Test!");
-            }
+            context.ResponseTrailers.Add("Test-Method", context.Method);
+            context.ResponseTrailers.Add("Test-Peer", context.Peer);
+            context.ResponseTrailers.Add("Test-Host", context.Host);
 
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
-                       writeContext.EventId.Name == "ErrorExecutingServiceMethod";
-            });
-
-            // Arrange
-            var requestMessage = new Empty();
-
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
-
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                method.FullName,
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert
-            response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. Exception: Test!");
+            return Task.FromResult(new Empty());
         }
 
-        [Test]
-        public async Task SingletonService_PrivateFieldsPreservedBetweenCalls()
+        // Arrange
+        var requestMessage = new Empty();
+
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
+
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<Empty>().DefaultTimeout();
+        Assert.IsNotNull(responseMessage);
+
+        var methodParts = response.TrailingHeaders.GetValues("Test-Method").Single().Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var serviceName = methodParts[0];
+        var methodName = methodParts[1];
+
+        Assert.AreEqual("DynamicService", serviceName);
+        Assert.IsTrue(Guid.TryParse(methodName, out var _));
+
+        Assert.IsTrue(response.TrailingHeaders.TryGetValues("Test-Peer", out _));
+        Assert.AreEqual(Fixture.Client.BaseAddress!.Authority, response.TrailingHeaders.GetValues("Test-Host").Single());
+    }
+
+    [Test]
+    public async Task ThrowErrorInNonAsyncMethod_StatusMessageReturned()
+    {
+        static Task<Empty> ReturnContextInfoInTrailers(Empty request, ServerCallContext context)
         {
-            // Arrange 1
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new Empty());
-
-            // Act 1
-            var response = await Fixture.Client.PostAsync(
-                "singleton_count.Counter/IncrementCount",
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert 1
-            var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
-            Assert.AreEqual(1, total.Count);
-            response.AssertTrailerStatus();
-
-            // Arrange 2
-            ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, new Empty());
-
-            // Act 2
-            response = await Fixture.Client.PostAsync(
-                "singleton_count.Counter/IncrementCount",
-                new GrpcStreamContent(ms)).DefaultTimeout();
-
-            // Assert 2
-            total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
-            Assert.AreEqual(2, total.Count);
-            response.AssertTrailerStatus();
+            throw new Exception("Test!");
         }
 
-        [TestCase(null, "Content-Type is missing from the request.")]
-        [TestCase("application/json", "Content-Type 'application/json' is not supported.")]
-        [TestCase("application/binary", "Content-Type 'application/binary' is not supported.")]
-        public async Task InvalidContentType_Return415Response(string contentType, string responseMessage)
+        SetExpectedErrorsFilter(writeContext =>
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            return writeContext.LoggerName == TestConstants.ServerCallHandlerTestName &&
+                   writeContext.EventId.Name == "ErrorExecutingServiceMethod";
+        });
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-            var streamContent = new StreamContent(ms);
-            streamContent.Headers.ContentType = contentType != null ? new MediaTypeHeaderValue(contentType) : null;
+        // Arrange
+        var requestMessage = new Empty();
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHello",
-                streamContent).DefaultTimeout();
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<Empty, Empty>(ReturnContextInfoInTrailers);
 
-            response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
-        }
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            method.FullName,
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-        [Test]
-        public async Task InvalidProtocol_Return426Response()
+        // Assert
+        response.AssertTrailerStatus(StatusCode.Unknown, "Exception was thrown by handler. Exception: Test!");
+    }
+
+    [Test]
+    public async Task SingletonService_PrivateFieldsPreservedBetweenCalls()
+    {
+        // Arrange 1
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new Empty());
+
+        // Act 1
+        var response = await Fixture.Client.PostAsync(
+            "singleton_count.Counter/IncrementCount",
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert 1
+        var total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
+        Assert.AreEqual(1, total.Count);
+        response.AssertTrailerStatus();
+
+        // Arrange 2
+        ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, new Empty());
+
+        // Act 2
+        response = await Fixture.Client.PostAsync(
+            "singleton_count.Counter/IncrementCount",
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert 2
+        total = await response.GetSuccessfulGrpcMessageAsync<SingletonCount.CounterReply>().DefaultTimeout();
+        Assert.AreEqual(2, total.Count);
+        response.AssertTrailerStatus();
+    }
+
+    [TestCase(null, "Content-Type is missing from the request.")]
+    [TestCase("application/json", "Content-Type 'application/json' is not supported.")]
+    [TestCase("application/binary", "Content-Type 'application/binary' is not supported.")]
+    public async Task InvalidContentType_Return415Response(string contentType, string responseMessage)
+    {
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-            var streamContent = new StreamContent(ms);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+        var streamContent = new StreamContent(ms);
+        streamContent.Headers.ContentType = contentType != null ? new MediaTypeHeaderValue(contentType) : null;
 
-            var client = Fixture.CreateClient(TestServerEndpointName.Http1);
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Greet.Greeter/SayHello",
+            streamContent).DefaultTimeout();
 
-            // Act
-            var response = await client.PostAsync(
-                "Greet.Greeter/SayHello",
-                streamContent).DefaultTimeout();
+        // Assert
+        Assert.AreEqual(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.UpgradeRequired, response.StatusCode);
+        response.AssertTrailerStatus(StatusCode.Internal, responseMessage);
+    }
 
-            var upgradeValue = response.Headers.Upgrade.Single();
-            Assert.AreEqual("HTTP", upgradeValue.Name);
-            Assert.AreEqual("2", upgradeValue.Version);
-
-            response.AssertTrailerStatus(StatusCode.Internal, "Request protocol 'HTTP/1.1' is not supported.");
-        }
-
-        [TestCase("application/grpc")]
-        [TestCase("APPLICATION/GRPC")]
-        [TestCase("application/grpc+proto")]
-        [TestCase("APPLICATION/GRPC+PROTO")]
-        [TestCase("application/grpc+json")] // Accept any message format. A Method+marshaller may have been set that reads and writes JSON
-        [TestCase("application/grpc; param=one")]
-        public async Task ValidContentType_ReturnValidResponse(string contentType)
+    [Test]
+    public async Task InvalidProtocol_Return426Response()
+    {
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
-            var streamContent = new StreamContent(ms);
-            streamContent.Headers.ContentType = contentType != null ? MediaTypeHeaderValue.Parse(contentType) : null;
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+        var streamContent = new StreamContent(ms);
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/grpc");
 
-            // Act
-            var response = await Fixture.Client.PostAsync(
-                "Greet.Greeter/SayHello",
-                streamContent).DefaultTimeout();
+        var client = Fixture.CreateClient(TestServerEndpointName.Http1);
 
-            // Assert
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
-            Assert.AreEqual("Hello World", responseMessage.Message);
-            response.AssertTrailerStatus();
-        }
+        // Act
+        var response = await client.PostAsync(
+            "Greet.Greeter/SayHello",
+            streamContent).DefaultTimeout();
 
-        [Test]
-        public async Task AnyRequest_SuccessResponse()
+        // Assert
+        Assert.AreEqual(HttpStatusCode.UpgradeRequired, response.StatusCode);
+
+        var upgradeValue = response.Headers.Upgrade.Single();
+        Assert.AreEqual("HTTP", upgradeValue.Name);
+        Assert.AreEqual("2", upgradeValue.Version);
+
+        response.AssertTrailerStatus(StatusCode.Internal, "Request protocol 'HTTP/1.1' is not supported.");
+    }
+
+    [TestCase("application/grpc")]
+    [TestCase("APPLICATION/GRPC")]
+    [TestCase("application/grpc+proto")]
+    [TestCase("APPLICATION/GRPC+PROTO")]
+    [TestCase("application/grpc+json")] // Accept any message format. A Method+marshaller may have been set that reads and writes JSON
+    [TestCase("application/grpc; param=one")]
+    public async Task ValidContentType_ReturnValidResponse(string contentType)
+    {
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange 1
-            IMessage requestMessage = AnyMessage.Pack(new AnyProductRequest
-            {
-                Name = "Headlight fluid",
-                Quantity = 2
-            });
+            Name = "World"
+        };
 
-            var ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+        var streamContent = new StreamContent(ms);
+        streamContent.Headers.ContentType = contentType != null ? MediaTypeHeaderValue.Parse(contentType) : null;
 
-            // Act 1
-            var response = await Fixture.Client.PostAsync(
-                "any.AnyService/DoAny",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.PostAsync(
+            "Greet.Greeter/SayHello",
+            streamContent).DefaultTimeout();
 
-            // Assert 1
-            var responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
-            Assert.AreEqual("2 x Headlight fluid", responseMessage.Message);
-            response.AssertTrailerStatus();
+        // Assert
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<HelloReply>().DefaultTimeout();
+        Assert.AreEqual("Hello World", responseMessage.Message);
+        response.AssertTrailerStatus();
+    }
 
-            // Arrange 2
-            requestMessage = AnyMessage.Pack(new AnyUserRequest
-            {
-                Name = "Arnie Admin",
-                Enabled = true
-            });
+    [Test]
+    public async Task AnyRequest_SuccessResponse()
+    {
+        // Arrange 1
+        IMessage requestMessage = AnyMessage.Pack(new AnyProductRequest
+        {
+            Name = "Headlight fluid",
+            Quantity = 2
+        });
 
-            ms = new MemoryStream();
-            MessageHelpers.WriteMessage(ms, requestMessage);
+        var ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
 
-            // Act 2
-            response = await Fixture.Client.PostAsync(
-                "any.AnyService/DoAny",
-                new GrpcStreamContent(ms)).DefaultTimeout();
+        // Act 1
+        var response = await Fixture.Client.PostAsync(
+            "any.AnyService/DoAny",
+            new GrpcStreamContent(ms)).DefaultTimeout();
 
-            // Assert 2
-            responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
-            Assert.AreEqual("Arnie Admin - Enabled", responseMessage.Message);
-            response.AssertTrailerStatus();
-        }
+        // Assert 1
+        var responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
+        Assert.AreEqual("2 x Headlight fluid", responseMessage.Message);
+        response.AssertTrailerStatus();
+
+        // Arrange 2
+        requestMessage = AnyMessage.Pack(new AnyUserRequest
+        {
+            Name = "Arnie Admin",
+            Enabled = true
+        });
+
+        ms = new MemoryStream();
+        MessageHelpers.WriteMessage(ms, requestMessage);
+
+        // Act 2
+        response = await Fixture.Client.PostAsync(
+            "any.AnyService/DoAny",
+            new GrpcStreamContent(ms)).DefaultTimeout();
+
+        // Assert 2
+        responseMessage = await response.GetSuccessfulGrpcMessageAsync<AnyMessageResponse>().DefaultTimeout();
+        Assert.AreEqual("Arnie Admin - Enabled", responseMessage.Message);
+        response.AssertTrailerStatus();
     }
 }

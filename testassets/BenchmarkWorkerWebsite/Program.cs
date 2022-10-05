@@ -18,36 +18,35 @@
 
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-namespace BenchmarkWorkerWebsite
+namespace BenchmarkWorkerWebsite;
+
+public class Program
 {
-    public class Program
+    static readonly CancellationTokenSource QuitWorkerCts = new CancellationTokenSource();
+    public static async Task Main(string[] args)
     {
-        static readonly CancellationTokenSource QuitWorkerCts = new CancellationTokenSource();
-        public static async Task Main(string[] args)
-        {
-            await CreateHostBuilder(args).Build().RunAsync(QuitWorkerCts.Token);
-        }
-
-        public static void QuitWorker()
-        {
-            QuitWorkerCts.Cancel();
-        }
-
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.ConfigureKestrel((context, options) =>
-                    {
-                        // Port on which to listen to commands from QpsDriver
-                        int driverPort = context.Configuration.GetValue<int>("driver_port", 50053);
-
-                        options.ListenAnyIP(driverPort, listenOptions =>
-                        {
-                            listenOptions.Protocols = HttpProtocols.Http2;
-                        });
-                    });
-                    webBuilder.UseStartup<Startup>();
-                });
+        await CreateHostBuilder(args).Build().RunAsync(QuitWorkerCts.Token);
     }
+
+    public static void QuitWorker()
+    {
+        QuitWorkerCts.Cancel();
+    }
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.ConfigureKestrel((context, options) =>
+                {
+                    // Port on which to listen to commands from QpsDriver
+                    int driverPort = context.Configuration.GetValue<int>("driver_port", 50053);
+
+                    options.ListenAnyIP(driverPort, listenOptions =>
+                    {
+                        listenOptions.Protocols = HttpProtocols.Http2;
+                    });
+                });
+                webBuilder.UseStartup<Startup>();
+            });
 }

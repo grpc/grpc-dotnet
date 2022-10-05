@@ -18,16 +18,15 @@
 
 using Grpc.AspNetCore.Server.Model;
 
-namespace QpsWorker.Infrastructure
+namespace QpsWorker.Infrastructure;
+
+internal class GenericServiceMethodProvider : IServiceMethodProvider<GenericService>
 {
-    internal class GenericServiceMethodProvider : IServiceMethodProvider<GenericService>
+    public void OnServiceMethodDiscovery(ServiceMethodProviderContext<GenericService> context)
     {
-        public void OnServiceMethodDiscovery(ServiceMethodProviderContext<GenericService> context)
-        {
-            context.AddDuplexStreamingMethod(
-                GenericService.StreamingCallMethod,
-                new List<object>(),
-                GenericService.DuplexStreamingServerMethod);
-        }
+        context.AddDuplexStreamingMethod(
+            GenericService.StreamingCallMethod,
+            new List<object>(),
+            GenericService.DuplexStreamingServerMethod);
     }
 }

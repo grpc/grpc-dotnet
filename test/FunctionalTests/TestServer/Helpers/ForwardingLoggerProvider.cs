@@ -18,53 +18,52 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Tests.FunctionalTests.Helpers
+namespace Tests.FunctionalTests.Helpers;
+
+internal class ForwardingLoggerProvider : ILoggerProvider
 {
-    internal class ForwardingLoggerProvider : ILoggerProvider
+    private readonly LogMessage _logAction;
+
+    public ForwardingLoggerProvider(LogMessage logAction)
     {
+        _logAction = logAction;
+    }
+
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new ForwardingLogger(categoryName, _logAction);
+    }
+
+    public void Dispose()
+    {
+    }
+
+    internal class ForwardingLogger : ILogger
+    {
+        private readonly string _categoryName;
         private readonly LogMessage _logAction;
 
-        public ForwardingLoggerProvider(LogMessage logAction)
+        public ForwardingLogger(string categoryName, LogMessage logAction)
         {
+            _categoryName = categoryName;
             _logAction = logAction;
         }
 
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new ForwardingLogger(categoryName, _logAction);
-        }
-
-        public void Dispose()
-        {
-        }
-
-        internal class ForwardingLogger : ILogger
-        {
-            private readonly string _categoryName;
-            private readonly LogMessage _logAction;
-
-            public ForwardingLogger(string categoryName, LogMessage logAction)
-            {
-                _categoryName = categoryName;
-                _logAction = logAction;
-            }
-
 #pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
-            public IDisposable BeginScope<TState>(TState state)
-            {
-                return null!;
-            }
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return null!;
+        }
 #pragma warning restore CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
 
-            public bool IsEnabled(LogLevel logLevel)
-            {
-                return true;
-            }
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return true;
+        }
 
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-            {
-                _logAction(logLevel, _categoryName, eventId, formatter(state, exception), exception);
-            }
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            _logAction(logLevel, _categoryName, eventId, formatter(state, exception), exception);
         }
     }
 }

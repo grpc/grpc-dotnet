@@ -21,16 +21,15 @@ using Google.Protobuf;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Tests.Shared;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
-{
-    internal static class MessageHelpers
-    {
-        public static void WriteMessage<T>(Stream stream, T message, HttpContextServerCallContext? callContext = null)
-            where T : class, IMessage
-        {
-            var pipeWriter = PipeWriter.Create(stream);
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
 
-            PipeExtensions.WriteStreamedMessageAsync(pipeWriter, message, callContext ?? HttpContextServerCallContextHelper.CreateServerCallContext(), (r, c) => c.Complete(r.ToByteArray())).GetAwaiter().GetResult();
-        }
+internal static class MessageHelpers
+{
+    public static void WriteMessage<T>(Stream stream, T message, HttpContextServerCallContext? callContext = null)
+        where T : class, IMessage
+    {
+        var pipeWriter = PipeWriter.Create(stream);
+
+        PipeExtensions.WriteStreamedMessageAsync(pipeWriter, message, callContext ?? HttpContextServerCallContextHelper.CreateServerCallContext(), (r, c) => c.Complete(r.ToByteArray())).GetAwaiter().GetResult();
     }
 }

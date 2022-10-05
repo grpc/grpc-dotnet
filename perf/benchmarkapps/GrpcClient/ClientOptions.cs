@@ -18,27 +18,26 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace GrpcClient
+namespace GrpcClient;
+
+public class ClientOptions
 {
-    public class ClientOptions
-    {
-        public Uri? Url { get; set; }
+    public Uri? Url { get; set; }
 #if NET5_0_OR_GREATER
-        public string? UdsFileName { get; set; }
+    public string? UdsFileName { get; set; }
 #endif
-        public int Connections { get; set; }
-        public int Warmup { get; set; }
-        public int Duration { get; set; }
-        public int? CallCount { get; set; }
-        public string? Scenario { get; set; }
-        public bool Latency { get; set; }
-        public string? Protocol { get; set; }
-        public bool EnableCertAuth { get; set; }
-        public LogLevel LogLevel { get; set; }
-        public int RequestSize { get; set; }
-        public int ResponseSize { get; set; }
-        public GrpcClientType GrpcClientType { get; set; }
-        public int Streams { get; set; }
-        public int Deadline { get; set; }
-    }
+    public int Connections { get; set; }
+    public int Warmup { get; set; }
+    public int Duration { get; set; }
+    public int? CallCount { get; set; }
+    public string? Scenario { get; set; }
+    public bool Latency { get; set; }
+    public string? Protocol { get; set; }
+    public bool EnableCertAuth { get; set; }
+    public LogLevel LogLevel { get; set; }
+    public int RequestSize { get; set; }
+    public int ResponseSize { get; set; }
+    public GrpcClientType GrpcClientType { get; set; }
+    public int Streams { get; set; }
+    public int Deadline { get; set; }
 }

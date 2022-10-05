@@ -16,15 +16,14 @@
 
 #endregion
 
-namespace FunctionalTestsWebsite.Infrastructure
-{
-    public class IncrementingCounter
-    {
-        public void Increment(int amount)
-        {
-            Count += amount;
-        }
+namespace FunctionalTestsWebsite.Infrastructure;
 
-        public int Count { get; private set; }
+public class IncrementingCounter
+{
+    public void Increment(int amount)
+    {
+        Count += amount;
     }
+
+    public int Count { get; private set; }
 }

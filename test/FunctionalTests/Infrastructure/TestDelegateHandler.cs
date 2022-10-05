@@ -17,26 +17,25 @@
 #endregion
 
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public class TestDelegateHandler : DelegatingHandler
 {
-    public class TestDelegateHandler : DelegatingHandler
+    public TestDelegateHandler(Action<HttpRequestMessage>? requestAction = null, Action<HttpResponseMessage>? responseAction = null)
     {
-        public TestDelegateHandler(Action<HttpRequestMessage>? requestAction = null, Action<HttpResponseMessage>? responseAction = null)
-        {
-            RequestAction = requestAction;
-            ResponseAction = responseAction;
-        }
+        RequestAction = requestAction;
+        ResponseAction = responseAction;
+    }
 
-        public Action<HttpRequestMessage>? RequestAction { get; }
-        public Action<HttpResponseMessage>? ResponseAction { get; }
+    public Action<HttpRequestMessage>? RequestAction { get; }
+    public Action<HttpResponseMessage>? ResponseAction { get; }
 
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            RequestAction?.Invoke(request);
-            var response = await base.SendAsync(request, cancellationToken);
-            ResponseAction?.Invoke(response);
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        RequestAction?.Invoke(request);
+        var response = await base.SendAsync(request, cancellationToken);
+        ResponseAction?.Invoke(response);
 
-            return response;
-        }
+        return response;
     }
 }

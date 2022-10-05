@@ -18,22 +18,21 @@
 
 using System.Collections.Generic;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Base class for objects that can consume configuration from <c>CallCredentials</c> objects.
+/// Note: experimental API that can change or be removed without any prior notice.
+/// </summary>
+public abstract class CallCredentialsConfiguratorBase
 {
     /// <summary>
-    /// Base class for objects that can consume configuration from <c>CallCredentials</c> objects.
-    /// Note: experimental API that can change or be removed without any prior notice.
+    /// Consumes configuration for composite call credentials.
     /// </summary>
-    public abstract class CallCredentialsConfiguratorBase
-    {
-        /// <summary>
-        /// Consumes configuration for composite call credentials.
-        /// </summary>
-        public abstract void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials);
+    public abstract void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials);
 
-        /// <summary>
-        /// Consumes configuration for call credentials created from <c>AsyncAuthInterceptor</c>
-        /// </summary>
-        public abstract void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor);
-    }
+    /// <summary>
+    /// Consumes configuration for call credentials created from <c>AsyncAuthInterceptor</c>
+    /// </summary>
+    public abstract void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor);
 }

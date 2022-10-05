@@ -18,146 +18,145 @@
 
 using System.Buffers;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+// Potentially remove in the future when https://github.com/dotnet/corefx/issues/31804 is implemented
+internal class ReadOnlySequenceStream : Stream
 {
-    // Potentially remove in the future when https://github.com/dotnet/corefx/issues/31804 is implemented
-    internal class ReadOnlySequenceStream : Stream
+    private static readonly Task<int> TaskOfZero = Task.FromResult(0);
+
+    private Task<int>? _lastReadTask;
+    private readonly ReadOnlySequence<byte> _readOnlySequence;
+    private SequencePosition _position;
+
+    public ReadOnlySequenceStream(ReadOnlySequence<byte> readOnlySequence)
     {
-        private static readonly Task<int> TaskOfZero = Task.FromResult(0);
+        _readOnlySequence = readOnlySequence;
+        _position = readOnlySequence.Start;
+    }
 
-        private Task<int>? _lastReadTask;
-        private readonly ReadOnlySequence<byte> _readOnlySequence;
-        private SequencePosition _position;
+    public override bool CanRead => true;
 
-        public ReadOnlySequenceStream(ReadOnlySequence<byte> readOnlySequence)
+    public override bool CanSeek => true;
+
+    public override bool CanWrite => false;
+
+    public override long Length => _readOnlySequence.Length;
+
+    public override long Position
+    {
+        get => _readOnlySequence.Slice(0, _position).Length;
+        set
         {
-            _readOnlySequence = readOnlySequence;
-            _position = readOnlySequence.Start;
+            _position = _readOnlySequence.GetPosition(value, _readOnlySequence.Start);
+        }
+    }
+
+    public override void Flush()
+    {
+    }
+
+    public override Task FlushAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        var remaining = _readOnlySequence.Slice(_position);
+        var toCopy = remaining.Slice(0, Math.Min(count, remaining.Length));
+        _position = toCopy.End;
+        toCopy.CopyTo(buffer.AsSpan(offset, count));
+        return (int)toCopy.Length;
+    }
+
+    public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytesRead = Read(buffer, offset, count);
+        if (bytesRead == 0)
+        {
+            return TaskOfZero;
         }
 
-        public override bool CanRead => true;
-
-        public override bool CanSeek => true;
-
-        public override bool CanWrite => false;
-
-        public override long Length => _readOnlySequence.Length;
-
-        public override long Position
+        if (_lastReadTask?.Result == bytesRead)
         {
-            get => _readOnlySequence.Slice(0, _position).Length;
-            set
-            {
-                _position = _readOnlySequence.GetPosition(value, _readOnlySequence.Start);
-            }
+            return _lastReadTask;
         }
-
-        public override void Flush()
+        else
         {
+            return _lastReadTask = Task.FromResult(bytesRead);
         }
+    }
 
-        public override Task FlushAsync(CancellationToken cancellationToken)
+    public override int ReadByte()
+    {
+        var remaining = _readOnlySequence.Slice(_position);
+        if (remaining.Length > 0)
         {
-            return Task.CompletedTask;
+            var result = remaining.First.Span[0];
+            _position = _readOnlySequence.GetPosition(1, _position);
+            return result;
         }
-
-        public override int Read(byte[] buffer, int offset, int count)
+        else
         {
-            var remaining = _readOnlySequence.Slice(_position);
-            var toCopy = remaining.Slice(0, Math.Min(count, remaining.Length));
-            _position = toCopy.End;
-            toCopy.CopyTo(buffer.AsSpan(offset, count));
-            return (int)toCopy.Length;
+            return -1;
         }
+    }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        SequencePosition relativeTo;
+        switch (origin)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var bytesRead = Read(buffer, offset, count);
-            if (bytesRead == 0)
-            {
-                return TaskOfZero;
-            }
-
-            if (_lastReadTask?.Result == bytesRead)
-            {
-                return _lastReadTask;
-            }
-            else
-            {
-                return _lastReadTask = Task.FromResult(bytesRead);
-            }
-        }
-
-        public override int ReadByte()
-        {
-            var remaining = _readOnlySequence.Slice(_position);
-            if (remaining.Length > 0)
-            {
-                var result = remaining.First.Span[0];
-                _position = _readOnlySequence.GetPosition(1, _position);
-                return result;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            SequencePosition relativeTo;
-            switch (origin)
-            {
-                case SeekOrigin.Begin:
+            case SeekOrigin.Begin:
+                relativeTo = _readOnlySequence.Start;
+                break;
+            case SeekOrigin.Current:
+                if (offset >= 0)
+                {
+                    relativeTo = _position;
+                }
+                else
+                {
                     relativeTo = _readOnlySequence.Start;
-                    break;
-                case SeekOrigin.Current:
-                    if (offset >= 0)
-                    {
-                        relativeTo = _position;
-                    }
-                    else
-                    {
-                        relativeTo = _readOnlySequence.Start;
-                        offset += Position;
-                    }
+                    offset += Position;
+                }
 
-                    break;
-                case SeekOrigin.End:
-                    if (offset >= 0)
-                    {
-                        relativeTo = _readOnlySequence.End;
-                    }
-                    else
-                    {
-                        relativeTo = _readOnlySequence.Start;
-                        offset += Position;
-                    }
+                break;
+            case SeekOrigin.End:
+                if (offset >= 0)
+                {
+                    relativeTo = _readOnlySequence.End;
+                }
+                else
+                {
+                    relativeTo = _readOnlySequence.Start;
+                    offset += Position;
+                }
 
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(origin));
-            }
-
-            _position = _readOnlySequence.GetPosition(offset, relativeTo);
-            return Position;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(origin));
         }
 
-        public override void SetLength(long value) => throw new NotSupportedException();
+        _position = _readOnlySequence.GetPosition(offset, relativeTo);
+        return Position;
+    }
 
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
 
-        public override void WriteByte(byte value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public override void WriteByte(byte value) => throw new NotSupportedException();
 
-        public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+    {
+        foreach (var segment in _readOnlySequence)
         {
-            foreach (var segment in _readOnlySequence)
-            {
-                await destination.WriteAsync(segment, cancellationToken).ConfigureAwait(false);
-            }
+            await destination.WriteAsync(segment, cancellationToken).ConfigureAwait(false);
         }
     }
 }

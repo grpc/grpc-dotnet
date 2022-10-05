@@ -21,29 +21,28 @@ using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
-{
-    [TestFixture]
-    public class PipeExtensionsPipelinesTests : PipeExtensionsTestsBase
-    {
-        private static readonly Marshaller<TestData> PipelineMarshaller = new Marshaller<TestData>(
-            (TestData data, SerializationContext c) =>
-            {
-                c.SetPayloadLength(data.Span.Length);
-                var bufferWriter = c.GetBufferWriter();
-                bufferWriter.Write(data.Span);
-                c.Complete();
-            },
-            (DeserializationContext c) =>
-            {
-                var sequence = c.PayloadAsReadOnlySequence();
-                if (sequence.IsSingleSegment)
-                {
-                    return new TestData(sequence.First);
-                }
-                return new TestData(sequence.ToArray());
-            });
+namespace Grpc.AspNetCore.Server.Tests;
 
-        protected override Marshaller<TestData> TestDataMarshaller => PipelineMarshaller;
-    }
+[TestFixture]
+public class PipeExtensionsPipelinesTests : PipeExtensionsTestsBase
+{
+    private static readonly Marshaller<TestData> PipelineMarshaller = new Marshaller<TestData>(
+        (TestData data, SerializationContext c) =>
+        {
+            c.SetPayloadLength(data.Span.Length);
+            var bufferWriter = c.GetBufferWriter();
+            bufferWriter.Write(data.Span);
+            c.Complete();
+        },
+        (DeserializationContext c) =>
+        {
+            var sequence = c.PayloadAsReadOnlySequence();
+            if (sequence.IsSingleSegment)
+            {
+                return new TestData(sequence.First);
+            }
+            return new TestData(sequence.ToArray());
+        });
+
+    protected override Marshaller<TestData> TestDataMarshaller => PipelineMarshaller;
 }

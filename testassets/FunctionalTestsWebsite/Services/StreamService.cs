@@ -20,88 +20,87 @@ using Google.Protobuf;
 using Grpc.Core;
 using Streaming;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class StreamService : Streaming.StreamService.StreamServiceBase
 {
-    public class StreamService : Streaming.StreamService.StreamServiceBase
+    private readonly ILogger _logger;
+
+    public StreamService(ILoggerFactory loggerFactory)
     {
-        private readonly ILogger _logger;
+        _logger = loggerFactory.CreateLogger<StreamService>();
+    }
 
-        public StreamService(ILoggerFactory loggerFactory)
+    public override async Task BufferAllData(
+        IAsyncStreamReader<DataMessage> requestStream,
+        IServerStreamWriter<DataMessage> responseStream,
+        ServerCallContext context)
+    {
+        // Read data into MemoryStream
+        var ms = new MemoryStream();
+        await foreach (var message in requestStream.ReadAllAsync())
         {
-            _logger = loggerFactory.CreateLogger<StreamService>();
+            ms.Write(message.Data.Span);
+            _logger.LogInformation($"Received {ms.Length} bytes");
         }
 
-        public override async Task BufferAllData(
-            IAsyncStreamReader<DataMessage> requestStream,
-            IServerStreamWriter<DataMessage> responseStream,
-            ServerCallContext context)
+        // Write back to client in batches
+        var data = ms.ToArray();
+        var sent = 0;
+        while (sent < data.Length)
         {
-            // Read data into MemoryStream
-            var ms = new MemoryStream();
-            await foreach (var message in requestStream.ReadAllAsync())
+            const int BatchSize = 1024 * 64; // 64 KB
+
+            var writeCount = Math.Min(data.Length - sent, BatchSize);
+            await responseStream.WriteAsync(new DataMessage
             {
-                ms.Write(message.Data.Span);
-                _logger.LogInformation($"Received {ms.Length} bytes");
-            }
+                Data = ByteString.CopyFrom(data, sent, writeCount)
+            });
 
-            // Write back to client in batches
-            var data = ms.ToArray();
-            var sent = 0;
-            while (sent < data.Length)
+            sent += writeCount;
+            _logger.LogInformation($"Sent {sent} bytes");
+        }
+    }
+
+
+    public override async Task EchoAllData(
+        IAsyncStreamReader<DataMessage> requestStream,
+        IServerStreamWriter<DataMessage> responseStream,
+        ServerCallContext context)
+    {
+        var flushHeaders = context.RequestHeaders.Get("flush-headers") != null;
+        if (flushHeaders)
+        {
+            await context.WriteResponseHeadersAsync(new Metadata());
+        }
+
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            await responseStream.WriteAsync(new DataMessage
             {
-                const int BatchSize = 1024 * 64; // 64 KB
+                Data = message.Data
+            });
+        }
+    }
 
-                var writeCount = Math.Min(data.Length - sent, BatchSize);
-                await responseStream.WriteAsync(new DataMessage
-                {
-                    Data = ByteString.CopyFrom(data, sent, writeCount)
-                });
+    public override async Task<DataComplete> ClientStreamedData(
+        IAsyncStreamReader<DataMessage> requestStream,
+        ServerCallContext context)
+    {
+        var total = 0L;
+        await foreach (var message in requestStream.ReadAllAsync())
+        {
+            total += message.Data.Length;
 
-                sent += writeCount;
-                _logger.LogInformation($"Sent {sent} bytes");
+            if (message.ServerDelayMilliseconds > 0)
+            {
+                await Task.Delay(message.ServerDelayMilliseconds);
             }
         }
 
-
-        public override async Task EchoAllData(
-            IAsyncStreamReader<DataMessage> requestStream,
-            IServerStreamWriter<DataMessage> responseStream,
-            ServerCallContext context)
+        return new DataComplete
         {
-            var flushHeaders = context.RequestHeaders.Get("flush-headers") != null;
-            if (flushHeaders)
-            {
-                await context.WriteResponseHeadersAsync(new Metadata());
-            }
-
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                await responseStream.WriteAsync(new DataMessage
-                {
-                    Data = message.Data
-                });
-            }
-        }
-
-        public override async Task<DataComplete> ClientStreamedData(
-            IAsyncStreamReader<DataMessage> requestStream,
-            ServerCallContext context)
-        {
-            var total = 0L;
-            await foreach (var message in requestStream.ReadAllAsync())
-            {
-                total += message.Data.Length;
-
-                if (message.ServerDelayMilliseconds > 0)
-                {
-                    await Task.Delay(message.ServerDelayMilliseconds);
-                }
-            }
-
-            return new DataComplete
-            {
-                Size = total
-            };
-        }
+            Size = total
+        };
     }
 }

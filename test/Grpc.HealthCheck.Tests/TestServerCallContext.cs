@@ -20,36 +20,35 @@ using System.Threading.Tasks;
 
 using Grpc.Core;
 
-namespace Grpc.HealthCheck.Tests
+namespace Grpc.HealthCheck.Tests;
+
+internal class TestServerCallContext : ServerCallContext
 {
-    internal class TestServerCallContext : ServerCallContext
+    private readonly CancellationToken _cancellationToken;
+
+    public TestServerCallContext(CancellationToken cancellationToken)
     {
-        private readonly CancellationToken _cancellationToken;
+        _cancellationToken = cancellationToken;
+    }
 
-        public TestServerCallContext(CancellationToken cancellationToken)
-        {
-            _cancellationToken = cancellationToken;
-        }
+    protected override string MethodCore { get; }
+    protected override string HostCore { get; }
+    protected override string PeerCore { get; }
+    protected override DateTime DeadlineCore { get; }
+    protected override Metadata RequestHeadersCore { get; }
+    protected override CancellationToken CancellationTokenCore => _cancellationToken;
+    protected override Metadata ResponseTrailersCore { get; }
+    protected override Status StatusCore { get; set; }
+    protected override WriteOptions WriteOptionsCore { get; set; }
+    protected override AuthContext AuthContextCore { get; }
 
-        protected override string MethodCore { get; }
-        protected override string HostCore { get; }
-        protected override string PeerCore { get; }
-        protected override DateTime DeadlineCore { get; }
-        protected override Metadata RequestHeadersCore { get; }
-        protected override CancellationToken CancellationTokenCore => _cancellationToken;
-        protected override Metadata ResponseTrailersCore { get; }
-        protected override Status StatusCore { get; set; }
-        protected override WriteOptions WriteOptionsCore { get; set; }
-        protected override AuthContext AuthContextCore { get; }
+    protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
+    {
+        throw new NotImplementedException();
+    }
 
-        protected override ContextPropagationToken CreatePropagationTokenCore(ContextPropagationOptions options)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
-        {
-            throw new NotImplementedException();
-        }
+    protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
+    {
+        throw new NotImplementedException();
     }
 }

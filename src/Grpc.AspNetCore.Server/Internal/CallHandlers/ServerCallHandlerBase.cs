@@ -25,143 +25,142 @@ using Microsoft.AspNetCore.Server.Kestrel.Core.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 
-namespace Grpc.AspNetCore.Server.Internal.CallHandlers
-{
-    internal abstract class ServerCallHandlerBase<
+namespace Grpc.AspNetCore.Server.Internal.CallHandlers;
+
+internal abstract class ServerCallHandlerBase<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
+    [DynamicallyAccessedMembers(GrpcProtocolConstants.ServiceAccessibility)]
 #endif
-        TService, TRequest, TResponse>
-        where TService : class
-        where TRequest : class
-        where TResponse : class
+    TService, TRequest, TResponse>
+    where TService : class
+    where TRequest : class
+    where TResponse : class
+{
+    private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
+
+    protected ServerMethodInvokerBase<TService, TRequest, TResponse> MethodInvoker { get; }
+    protected ILogger Logger { get; }
+
+    protected ServerCallHandlerBase(
+        ServerMethodInvokerBase<TService, TRequest, TResponse> methodInvoker,
+        ILoggerFactory loggerFactory)
     {
-        private const string LoggerName = "Grpc.AspNetCore.Server.ServerCallHandler";
+        MethodInvoker = methodInvoker;
+        Logger = loggerFactory.CreateLogger(LoggerName);
+    }
 
-        protected ServerMethodInvokerBase<TService, TRequest, TResponse> MethodInvoker { get; }
-        protected ILogger Logger { get; }
-
-        protected ServerCallHandlerBase(
-            ServerMethodInvokerBase<TService, TRequest, TResponse> methodInvoker,
-            ILoggerFactory loggerFactory)
+    public Task HandleCallAsync(HttpContext httpContext)
+    {
+        if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
         {
-            MethodInvoker = methodInvoker;
-            Logger = loggerFactory.CreateLogger(LoggerName);
+            return ProcessInvalidContentTypeRequest(httpContext, error);
         }
 
-        public Task HandleCallAsync(HttpContext httpContext)
-        {
-            if (GrpcProtocolHelpers.IsInvalidContentType(httpContext, out var error))
-            {
-                return ProcessInvalidContentTypeRequest(httpContext, error);
-            }
-
-            if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol)
+        if (!GrpcProtocolConstants.IsHttp2(httpContext.Request.Protocol)
 #if NET6_0_OR_GREATER
-                && !GrpcProtocolConstants.IsHttp3(httpContext.Request.Protocol)
+            && !GrpcProtocolConstants.IsHttp3(httpContext.Request.Protocol)
 #endif
-                )
-            {
-                return ProcessNonHttp2Request(httpContext);
-            }
-
-            var serverCallContext = new HttpContextServerCallContext(httpContext, MethodInvoker.Options, typeof(TRequest), typeof(TResponse), Logger);
-            httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
-
-            GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
-
-            try
-            {
-                serverCallContext.Initialize();
-
-                var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
-
-                if (handleCallTask.IsCompletedSuccessfully)
-                {
-                    return serverCallContext.EndCallAsync();
-                }
-                else
-                {
-                    return AwaitHandleCall(serverCallContext, MethodInvoker.Method, handleCallTask);
-                }
-            }
-            catch (Exception ex)
-            {
-                return serverCallContext.ProcessHandlerErrorAsync(ex, MethodInvoker.Method.Name);
-            }
-
-            static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
-            {
-                try
-                {
-                    await handleCall;
-                    await serverCallContext.EndCallAsync();
-                }
-                catch (Exception ex)
-                {
-                    await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
-                }
-            }
+            )
+        {
+            return ProcessNonHttp2Request(httpContext);
         }
 
-        protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
+        var serverCallContext = new HttpContextServerCallContext(httpContext, MethodInvoker.Options, typeof(TRequest), typeof(TResponse), Logger);
+        httpContext.Features.Set<IServerCallContextFeature>(serverCallContext);
 
-        /// <summary>
-        /// This should only be called from client streaming calls
-        /// </summary>
-        /// <param name="httpContext"></param>
-        protected void DisableMinRequestBodyDataRateAndMaxRequestBodySize(HttpContext httpContext)
+        GrpcProtocolHelpers.AddProtocolHeaders(httpContext.Response);
+
+        try
         {
-            var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
-            if (minRequestBodyDataRateFeature != null)
+            serverCallContext.Initialize();
+
+            var handleCallTask = HandleCallAsyncCore(httpContext, serverCallContext);
+
+            if (handleCallTask.IsCompletedSuccessfully)
             {
-                minRequestBodyDataRateFeature.MinDataRate = null;
-            }
-
-            var maxRequestBodySizeFeature = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
-            if (maxRequestBodySizeFeature != null)
-            {
-                if (!maxRequestBodySizeFeature.IsReadOnly)
-                {
-                    maxRequestBodySizeFeature.MaxRequestBodySize = null;
-                }
-                else
-                {
-                    // IsReadOnly could be true if middleware has already started reading the request body
-                    // In that case we can't disable the max request body size for the request stream
-                    GrpcServerLog.UnableToDisableMaxRequestBodySize(Logger);
-                }
-            }
-        }
-
-        private Task ProcessNonHttp2Request(HttpContext httpContext)
-        {
-            GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
-
-            var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
-            GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
-            httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
-            return Task.CompletedTask;
-        }
-
-        private Task ProcessInvalidContentTypeRequest(HttpContext httpContext, string error)
-        {
-            // This might be a CORS preflight request and CORS middleware hasn't been configured
-            if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
-            {
-                GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
-
-                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status405MethodNotAllowed, StatusCode.Internal, "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
-                httpContext.Response.Headers[HeaderNames.Allow] = HttpMethods.Post;
-                return Task.CompletedTask;
+                return serverCallContext.EndCallAsync();
             }
             else
             {
-                GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
-
-                GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
-                return Task.CompletedTask;
+                return AwaitHandleCall(serverCallContext, MethodInvoker.Method, handleCallTask);
             }
+        }
+        catch (Exception ex)
+        {
+            return serverCallContext.ProcessHandlerErrorAsync(ex, MethodInvoker.Method.Name);
+        }
+
+        static async Task AwaitHandleCall(HttpContextServerCallContext serverCallContext, Method<TRequest, TResponse> method, Task handleCall)
+        {
+            try
+            {
+                await handleCall;
+                await serverCallContext.EndCallAsync();
+            }
+            catch (Exception ex)
+            {
+                await serverCallContext.ProcessHandlerErrorAsync(ex, method.Name);
+            }
+        }
+    }
+
+    protected abstract Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext);
+
+    /// <summary>
+    /// This should only be called from client streaming calls
+    /// </summary>
+    /// <param name="httpContext"></param>
+    protected void DisableMinRequestBodyDataRateAndMaxRequestBodySize(HttpContext httpContext)
+    {
+        var minRequestBodyDataRateFeature = httpContext.Features.Get<IHttpMinRequestBodyDataRateFeature>();
+        if (minRequestBodyDataRateFeature != null)
+        {
+            minRequestBodyDataRateFeature.MinDataRate = null;
+        }
+
+        var maxRequestBodySizeFeature = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (maxRequestBodySizeFeature != null)
+        {
+            if (!maxRequestBodySizeFeature.IsReadOnly)
+            {
+                maxRequestBodySizeFeature.MaxRequestBodySize = null;
+            }
+            else
+            {
+                // IsReadOnly could be true if middleware has already started reading the request body
+                // In that case we can't disable the max request body size for the request stream
+                GrpcServerLog.UnableToDisableMaxRequestBodySize(Logger);
+            }
+        }
+    }
+
+    private Task ProcessNonHttp2Request(HttpContext httpContext)
+    {
+        GrpcServerLog.UnsupportedRequestProtocol(Logger, httpContext.Request.Protocol);
+
+        var protocolError = $"Request protocol '{httpContext.Request.Protocol}' is not supported.";
+        GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status426UpgradeRequired, StatusCode.Internal, protocolError);
+        httpContext.Response.Headers[HeaderNames.Upgrade] = GrpcProtocolConstants.Http2Protocol;
+        return Task.CompletedTask;
+    }
+
+    private Task ProcessInvalidContentTypeRequest(HttpContext httpContext, string error)
+    {
+        // This might be a CORS preflight request and CORS middleware hasn't been configured
+        if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
+        {
+            GrpcServerLog.UnhandledCorsPreflightRequest(Logger);
+
+            GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status405MethodNotAllowed, StatusCode.Internal, "Unhandled CORS preflight request received. CORS may not be configured correctly in the application.");
+            httpContext.Response.Headers[HeaderNames.Allow] = HttpMethods.Post;
+            return Task.CompletedTask;
+        }
+        else
+        {
+            GrpcServerLog.UnsupportedRequestContentType(Logger, httpContext.Request.ContentType);
+
+            GrpcProtocolHelpers.BuildHttpErrorResponse(httpContext.Response, StatusCodes.Status415UnsupportedMediaType, StatusCode.Internal, error);
+            return Task.CompletedTask;
         }
     }
 }

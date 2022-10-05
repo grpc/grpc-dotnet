@@ -24,90 +24,89 @@ using Grpc.Net.Client.Web;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web.Client
+namespace Grpc.AspNetCore.FunctionalTests.Web.Client;
+
+public class ConnectionTests : FunctionalTestBase
 {
-    public class ConnectionTests : FunctionalTestBase
+    private HttpClient CreateGrpcWebClient(TestServerEndpointName endpointName, Version? version)
     {
-        private HttpClient CreateGrpcWebClient(TestServerEndpointName endpointName, Version? version)
+        GrpcWebHandler grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb);
+        grpcWebHandler.HttpVersion = version;
+
+        return Fixture.CreateClient(endpointName, grpcWebHandler);
+    }
+
+    private GrpcChannel CreateGrpcWebChannel(TestServerEndpointName endpointName, Version? version)
+    {
+        var httpClient = CreateGrpcWebClient(endpointName, version);
+        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
         {
-            GrpcWebHandler grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb);
-            grpcWebHandler.HttpVersion = version;
+            HttpClient = httpClient,
+            LoggerFactory = LoggerFactory
+        });
 
-            return Fixture.CreateClient(endpointName, grpcWebHandler);
-        }
+        return channel;
+    }
 
-        private GrpcChannel CreateGrpcWebChannel(TestServerEndpointName endpointName, Version? version)
-        {
-            var httpClient = CreateGrpcWebClient(endpointName, version);
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
-            {
-                HttpClient = httpClient,
-                LoggerFactory = LoggerFactory
-            });
-
-            return channel;
-        }
-
-        [TestCase(TestServerEndpointName.Http1, "2.0", false)]
-        [TestCase(TestServerEndpointName.Http1, "1.1", true)]
-        [TestCase(TestServerEndpointName.Http1, null, false)]
-        [TestCase(TestServerEndpointName.Http2, "2.0", true)]
-        [TestCase(TestServerEndpointName.Http2, "1.1", false)]
-        [TestCase(TestServerEndpointName.Http2, null, true)]
+    [TestCase(TestServerEndpointName.Http1, "2.0", false)]
+    [TestCase(TestServerEndpointName.Http1, "1.1", true)]
+    [TestCase(TestServerEndpointName.Http1, null, false)]
+    [TestCase(TestServerEndpointName.Http2, "2.0", true)]
+    [TestCase(TestServerEndpointName.Http2, "1.1", false)]
+    [TestCase(TestServerEndpointName.Http2, null, true)]
 #if NET5_0_OR_GREATER
-        // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
-        // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
-        [TestCase(TestServerEndpointName.Http1WithTls, "2.0", false)]
+    // Specifing HTTP/2 doesn't work when the server is using TLS with HTTP/1.1
+    // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
+    [TestCase(TestServerEndpointName.Http1WithTls, "2.0", false)]
 #else
-        [TestCase(TestServerEndpointName.Http1WithTls, "2.0", true)]
+    [TestCase(TestServerEndpointName.Http1WithTls, "2.0", true)]
 #endif
-        [TestCase(TestServerEndpointName.Http1WithTls, "1.1", true)]
-        [TestCase(TestServerEndpointName.Http1WithTls, null, true)]
-        [TestCase(TestServerEndpointName.Http2WithTls, "2.0", true)]
+    [TestCase(TestServerEndpointName.Http1WithTls, "1.1", true)]
+    [TestCase(TestServerEndpointName.Http1WithTls, null, true)]
+    [TestCase(TestServerEndpointName.Http2WithTls, "2.0", true)]
 #if NET5_0_OR_GREATER
-        // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
-        // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
-        [TestCase(TestServerEndpointName.Http2WithTls, "1.1", true)]
+    // Specifing HTTP/1.1 does work when the server is using TLS with HTTP/2
+    // Caused by using HttpVersionPolicy.RequestVersionOrHigher setting
+    [TestCase(TestServerEndpointName.Http2WithTls, "1.1", true)]
 #else
-        [TestCase(TestServerEndpointName.Http2WithTls, "1.1", false)]
+    [TestCase(TestServerEndpointName.Http2WithTls, "1.1", false)]
 #endif
-        [TestCase(TestServerEndpointName.Http2WithTls, null, true)]
+    [TestCase(TestServerEndpointName.Http2WithTls, null, true)]
 #if NET6_0_OR_GREATER
-        [TestCase(TestServerEndpointName.Http3WithTls, null, true)]
+    [TestCase(TestServerEndpointName.Http3WithTls, null, true)]
 #endif
-        public async Task SendValidRequest_WithConnectionOptions(TestServerEndpointName endpointName, string? version, bool success)
+    public async Task SendValidRequest_WithConnectionOptions(TestServerEndpointName endpointName, string? version, bool success)
+    {
+#if NET6_0_OR_GREATER
+        if (endpointName == TestServerEndpointName.Http3WithTls &&
+            !RequireHttp3Attribute.IsSupported(out var message))
         {
-#if NET6_0_OR_GREATER
-            if (endpointName == TestServerEndpointName.Http3WithTls &&
-                !RequireHttp3Attribute.IsSupported(out var message))
-            {
-                Assert.Ignore(message);
-            }
+            Assert.Ignore(message);
+        }
 #endif
 
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                return !success;
-            });
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return !success;
+        });
 
-            // Arrage
-            Version.TryParse(version, out var v);
-            var channel = CreateGrpcWebChannel(endpointName, v);
+        // Arrage
+        Version.TryParse(version, out var v);
+        var channel = CreateGrpcWebChannel(endpointName, v);
 
-            var client = new EchoService.EchoServiceClient(channel);
+        var client = new EchoService.EchoServiceClient(channel);
 
-            // Act
-            var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync.DefaultTimeout();
+        // Act
+        var call = client.EchoAsync(new EchoRequest { Message = "test" }).ResponseAsync.DefaultTimeout();
 
-            // Assert
-            if (success)
-            {
-                Assert.AreEqual("test", (await call.DefaultTimeout()).Message);
-            }
-            else
-            {
-                await ExceptionAssert.ThrowsAsync<RpcException>(async () => await call).DefaultTimeout();
-            }
+        // Assert
+        if (success)
+        {
+            Assert.AreEqual("test", (await call.DefaultTimeout()).Message);
+        }
+        else
+        {
+            await ExceptionAssert.ThrowsAsync<RpcException>(async () => await call).DefaultTimeout();
         }
     }
 }

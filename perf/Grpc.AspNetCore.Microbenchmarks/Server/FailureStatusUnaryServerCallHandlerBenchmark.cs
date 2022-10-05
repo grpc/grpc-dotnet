@@ -19,20 +19,19 @@
 using BenchmarkDotNet.Attributes;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
-{
-    public class FailureStatusUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
-    {
-        public FailureStatusUnaryServerCallHandlerBenchmark()
-        {
-            Method = (service, request, context) => throw new RpcException(Status.DefaultCancelled);
-            ExpectedStatus = "1";
-        }
+namespace Grpc.AspNetCore.Microbenchmarks.Server;
 
-        [Benchmark]
-        public Task HandleCallAsync()
-        {
-            return InvokeUnaryRequestAsync();
-        }
+public class FailureStatusUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+{
+    public FailureStatusUnaryServerCallHandlerBenchmark()
+    {
+        Method = (service, request, context) => throw new RpcException(Status.DefaultCancelled);
+        ExpectedStatus = "1";
+    }
+
+    [Benchmark]
+    public Task HandleCallAsync()
+    {
+        return InvokeUnaryRequestAsync();
     }
 }

@@ -22,111 +22,110 @@ using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Evaluation;
 using NUnit.Framework;
 
-namespace Grpc.Dotnet.Cli.Tests
+namespace Grpc.Dotnet.Cli.Tests;
+
+[TestFixture]
+public class ListCommandTests : TestBase
 {
-    [TestFixture]
-    public class ListCommandTests : TestBase
+    [Test]
+    public async Task Commandline_List_ListsReferences()
     {
-        [Test]
-        public async Task Commandline_List_ListsReferences()
+        var currentDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        try
         {
-            var currentDir = Directory.GetCurrentDirectory();
-            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            // Arrange
+            var testConsole = new TestConsole();
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
+            var parser = Program.BuildParser(CreateClient());
 
-            try
-            {
-                // Arrange
-                var testConsole = new TestConsole();
-                new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
-                var parser = Program.BuildParser(CreateClient());
+            // Act
+            var result = await parser.InvokeAsync($"list -p {tempDir}", testConsole);
 
-                // Act
-                var result = await parser.InvokeAsync($"list -p {tempDir}", testConsole);
+            // Assert
+            Assert.AreEqual(0, result, testConsole.Error.ToString());
 
-                // Assert
-                Assert.AreEqual(0, result, testConsole.Error.ToString());
+            var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
+            project.ReevaluateIfNecessary();
 
-                var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
-                project.ReevaluateIfNecessary();
+            var output = testConsole.Out.ToString()!;
+            var lines = output.Split(Environment.NewLine);
 
-                var output = testConsole.Out.ToString()!;
-                var lines = output.Split(Environment.NewLine);
+            // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
+            AssertContains(lines[0], "Protobuf Reference");
+            AssertContains(lines[0], "Service Type");
+            AssertContains(lines[0], "Source URL");
+            AssertContains(lines[0], "Access");
 
-                // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
-                AssertContains(lines[0], "Protobuf Reference");
-                AssertContains(lines[0], "Service Type");
-                AssertContains(lines[0], "Source URL");
-                AssertContains(lines[0], "Access");
+            // Second line is the reference to
+            //<Protobuf Include="Proto/a.proto">
+            //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+            //</Protobuf>
+            Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
-                // Second line is the reference to
-                //<Protobuf Include="Proto/a.proto">
-                //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
-                //</Protobuf>
-                Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
-
-                // Third line is the reference to
-                //<Protobuf Include="Proto/b.proto" Access="Internal"/>
-                Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
-            }
-            finally
-            {
-                // Cleanup
-                Directory.Delete(tempDir, true);
-            }
+            // Third line is the reference to
+            //<Protobuf Include="Proto/b.proto" Access="Internal"/>
+            Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
         }
-
-        [Test]
-        public void List_ListsReferences()
+        finally
         {
-            var currentDir = Directory.GetCurrentDirectory();
-            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-
-            try
-            {
-                // Arrange
-                var testConsole = new TestConsole();
-                new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
-
-                // Act
-                Directory.SetCurrentDirectory(tempDir);
-                var command = new ListCommand(testConsole, null, CreateClient());
-
-                Assert.IsNotNull(command.Project);
-                Assert.AreEqual("test.csproj", Path.GetFileName(command.Project.FullPath));
-
-                command.List();
-
-                // Assert
-                var output = testConsole.Out.ToString()!;
-                var lines = output.Split(Environment.NewLine);
-
-                // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
-                AssertContains(lines[0], "Protobuf Reference");
-                AssertContains(lines[0], "Service Type");
-                AssertContains(lines[0], "Source URL");
-                AssertContains(lines[0], "Access");
-
-                // Second line is the reference to
-                //<Protobuf Include="Proto/a.proto">
-                //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
-                //</Protobuf>
-                Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
-
-                // Third line is the reference to
-                //<Protobuf Include="Proto/b.proto" Access="Internal"/>
-                Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
-            }
-            finally
-            {
-                // Cleanup
-                Directory.SetCurrentDirectory(currentDir);
-                Directory.Delete(tempDir, true);
-            }
+            // Cleanup
+            Directory.Delete(tempDir, true);
         }
+    }
 
-        private void AssertContains(string source, string s)
+    [Test]
+    public void List_ListsReferences()
+    {
+        var currentDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+
+        try
         {
-            Assert.True(source.Contains(s), $"Source '{source}' does not contain '{s}'.");
+            // Arrange
+            var testConsole = new TestConsole();
+            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "MultipleReferences")).CopyTo(tempDir);
+
+            // Act
+            Directory.SetCurrentDirectory(tempDir);
+            var command = new ListCommand(testConsole, null, CreateClient());
+
+            Assert.IsNotNull(command.Project);
+            Assert.AreEqual("test.csproj", Path.GetFileName(command.Project.FullPath));
+
+            command.List();
+
+            // Assert
+            var output = testConsole.Out.ToString()!;
+            var lines = output.Split(Environment.NewLine);
+
+            // First line is the heading and should conatin Protobuf Reference, Service Type, Source URL, Access
+            AssertContains(lines[0], "Protobuf Reference");
+            AssertContains(lines[0], "Service Type");
+            AssertContains(lines[0], "Source URL");
+            AssertContains(lines[0], "Access");
+
+            // Second line is the reference to
+            //<Protobuf Include="Proto/a.proto">
+            //  <SourceUrl>https://contoso.com/greet.proto</SourceUrl>
+            //</Protobuf>
+            Assert.AreEqual(new string[] { "Proto/a.proto", "Both", "https://contoso.com/greet.proto" }, lines[1].Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+            // Third line is the reference to
+            //<Protobuf Include="Proto/b.proto" Access="Internal"/>
+            Assert.AreEqual(new string[] { "Proto/b.proto", "Both", "Internal" }, lines[2].Split(' ', StringSplitOptions.RemoveEmptyEntries));
         }
+        finally
+        {
+            // Cleanup
+            Directory.SetCurrentDirectory(currentDir);
+            Directory.Delete(tempDir, true);
+        }
+    }
+
+    private void AssertContains(string source, string s)
+    {
+        Assert.True(source.Contains(s), $"Source '{source}' does not contain '{s}'.");
     }
 }

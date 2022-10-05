@@ -27,185 +27,184 @@ using Grpc.Gateway.Testing;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests.Web
+namespace Grpc.AspNetCore.Server.Tests.Web;
+
+[TestFixture]
+public class PipeExtensionsBase64Tests
 {
-    [TestFixture]
-    public class PipeExtensionsBase64Tests
+    private static readonly Marshaller<EchoRequest> MarshallerEchoRequest = Marshallers.Create(arg => arg.ToByteArray(), EchoRequest.Parser.ParseFrom);
+    private static readonly Marshaller<EchoResponse> MarshallerEchoResponse = Marshallers.Create(arg => arg.ToByteArray(), EchoResponse.Parser.ParseFrom);
+
+    [Test]
+    public async Task ReadSingleMessageAsync_EmptyMessage_ReturnNoData()
     {
-        private static readonly Marshaller<EchoRequest> MarshallerEchoRequest = Marshallers.Create(arg => arg.ToByteArray(), EchoRequest.Parser.ParseFrom);
-        private static readonly Marshaller<EchoResponse> MarshallerEchoResponse = Marshallers.Create(arg => arg.ToByteArray(), EchoResponse.Parser.ParseFrom);
+        // Arrange
+        var base64 = Convert.ToBase64String(
+            new byte[]
+            {
+                0x00, // compression = 0
+                0x00,
+                0x00,
+                0x00,
+                0x00, // length = 0
+            });
 
-        [Test]
-        public async Task ReadSingleMessageAsync_EmptyMessage_ReturnNoData()
-        {
-            // Arrange
-            var base64 = Convert.ToBase64String(
-                new byte[]
-                {
-                    0x00, // compression = 0
-                    0x00,
-                    0x00,
-                    0x00,
-                    0x00, // length = 0
-                });
+        var data = Encoding.UTF8.GetBytes(base64);
+        var ms = new MemoryStream(data);
 
-            var data = Encoding.UTF8.GetBytes(base64);
-            var ms = new MemoryStream(data);
+        var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
 
-            var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
+        // Act
+        var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualDeserializer);
 
-            // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualDeserializer);
+        // Assert
+        Assert.AreEqual(string.Empty, messageData.Message);
+        Assert.AreEqual(5, pipeReader.Consumed);
+    }
 
-            // Assert
-            Assert.AreEqual(string.Empty, messageData.Message);
-            Assert.AreEqual(5, pipeReader.Consumed);
-        }
+    [Test]
+    public async Task ReadSingleMessageAsync_SmallMessage_Success()
+    {
+        // Arrange
+        var data = Encoding.UTF8.GetBytes("AAAAAAYKBHRlc3Q=");
+        var ms = new MemoryStream(data);
 
-        [Test]
-        public async Task ReadSingleMessageAsync_SmallMessage_Success()
-        {
-            // Arrange
-            var data = Encoding.UTF8.GetBytes("AAAAAAYKBHRlc3Q=");
-            var ms = new MemoryStream(data);
+        var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
 
-            var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
+        // Act
+        var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualDeserializer);
 
-            // Act
-            var messageData = await pipeReader.ReadSingleMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualDeserializer);
+        // Assert
+        Assert.AreEqual("test", messageData.Message);
+        Assert.AreEqual(11, pipeReader.Consumed);
+    }
 
-            // Assert
-            Assert.AreEqual("test", messageData.Message);
-            Assert.AreEqual(11, pipeReader.Consumed);
-        }
+    [Test]
+    public async Task ReadStreamMessageAsync_MultipleMessages_Success()
+    {
+        // Arrange
+        var data = Encoding.UTF8.GetBytes("AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=");
+        var ms = new MemoryStream(data);
 
-        [Test]
-        public async Task ReadStreamMessageAsync_MultipleMessages_Success()
-        {
-            // Arrange
-            var data = Encoding.UTF8.GetBytes("AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=");
-            var ms = new MemoryStream(data);
+        var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
 
-            var pipeReader = new TestPipeReader(new Base64PipeReader(PipeReader.Create(ms)));
+        // Act 1
+        var messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 1
-            var messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 1
+        Assert.AreEqual("test", messageData!.Message);
+        Assert.AreEqual(11, pipeReader.Consumed);
 
-            // Assert 1
-            Assert.AreEqual("test", messageData!.Message);
-            Assert.AreEqual(11, pipeReader.Consumed);
+        // Act 2
+        messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 2
-            messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 2
+        Assert.AreEqual("test", messageData!.Message);
+        Assert.AreEqual(22, pipeReader.Consumed);
 
-            // Assert 2
-            Assert.AreEqual("test", messageData!.Message);
-            Assert.AreEqual(22, pipeReader.Consumed);
+        // Act 3
+        messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 3
-            messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 3
+        Assert.AreEqual("test", messageData!.Message);
+        Assert.AreEqual(33, pipeReader.Consumed);
 
-            // Assert 3
-            Assert.AreEqual("test", messageData!.Message);
-            Assert.AreEqual(33, pipeReader.Consumed);
+        // Act 4
+        messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 4
-            messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 4
+        Assert.AreEqual("test", messageData!.Message);
+        Assert.AreEqual(44, pipeReader.Consumed);
 
-            // Assert 4
-            Assert.AreEqual("test", messageData!.Message);
-            Assert.AreEqual(44, pipeReader.Consumed);
+        // Act 5
+        messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 5
-            messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 5
+        Assert.AreEqual("test", messageData!.Message);
+        Assert.AreEqual(55, pipeReader.Consumed);
 
-            // Assert 5
-            Assert.AreEqual("test", messageData!.Message);
-            Assert.AreEqual(55, pipeReader.Consumed);
+        // Act 6
+        messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
 
-            // Act 6
-            messageData = await pipeReader.ReadStreamMessageAsync(HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoResponse.ContextualDeserializer);
+        // Assert 6
+        Assert.IsNull(messageData);
+    }
 
-            // Assert 6
-            Assert.IsNull(messageData);
-        }
+    [Test]
+    public async Task WriteSingleMessageAsync_NoFlush_WriteNoData()
+    {
+        // Arrange
+        var ms = new MemoryStream();
+        var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
-        [Test]
-        public async Task WriteSingleMessageAsync_NoFlush_WriteNoData()
-        {
-            // Arrange
-            var ms = new MemoryStream();
-            var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
+        // Act
+        await pipeWriter.WriteSingleMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
-            // Act
-            await pipeWriter.WriteSingleMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+        // Assert
+        var messageData = ms.ToArray();
+        Assert.AreEqual(0, messageData.Length);
+    }
 
-            // Assert
-            var messageData = ms.ToArray();
-            Assert.AreEqual(0, messageData.Length);
-        }
+    [Test]
+    public async Task WriteStreamedMessageAsync_EmptyMessage_WriteMessageWithNoData()
+    {
+        // Arrange
+        var ms = new MemoryStream();
+        var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
-        [Test]
-        public async Task WriteStreamedMessageAsync_EmptyMessage_WriteMessageWithNoData()
-        {
-            // Arrange
-            var ms = new MemoryStream();
-            var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
+        // Act
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest(), HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
-            // Act
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest(), HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+        // Assert
+        var base64 = Encoding.UTF8.GetString(ms.ToArray());
+        var messageData = Convert.FromBase64String(base64);
 
-            // Assert
-            var base64 = Encoding.UTF8.GetString(ms.ToArray());
-            var messageData = Convert.FromBase64String(base64);
+        CollectionAssert.AreEqual(
+            new byte[]
+            {
+                0x00, // compression = 0
+                0x00,
+                0x00,
+                0x00,
+                0x00, // length = 0
+            },
+            messageData);
+    }
 
-            CollectionAssert.AreEqual(
-                new byte[]
-                {
-                    0x00, // compression = 0
-                    0x00,
-                    0x00,
-                    0x00,
-                    0x00, // length = 0
-                },
-                messageData);
-        }
+    [Test]
+    public async Task WriteStreamedMessageAsync_MultipleMessagesWithFlush_WriteMessagesAsSegments()
+    {
+        // Arrange
+        var ms = new MemoryStream();
+        var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
 
-        [Test]
-        public async Task WriteStreamedMessageAsync_MultipleMessagesWithFlush_WriteMessagesAsSegments()
-        {
-            // Arrange
-            var ms = new MemoryStream();
-            var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
+        // Act
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
 
-            // Act
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(), MarshallerEchoRequest.ContextualSerializer);
+        // Assert
+        var base64 = Encoding.UTF8.GetString(ms.ToArray());
+        Assert.AreEqual("AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=", base64);
+    }
 
-            // Assert
-            var base64 = Encoding.UTF8.GetString(ms.ToArray());
-            Assert.AreEqual("AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=AAAAAAYKBHRlc3Q=", base64);
-        }
+    [Test]
+    public async Task WriteStreamedMessageAsync_MultipleMessagesNoFlush_WriteMessages()
+    {
+        // Arrange
+        var ms = new MemoryStream();
+        var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
+        var writeOptions = new WriteOptions(WriteFlags.BufferHint);
 
-        [Test]
-        public async Task WriteStreamedMessageAsync_MultipleMessagesNoFlush_WriteMessages()
-        {
-            // Arrange
-            var ms = new MemoryStream();
-            var pipeWriter = new Base64PipeWriter(PipeWriter.Create(ms));
-            var writeOptions = new WriteOptions(WriteFlags.BufferHint);
+        // Act
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
+        await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
 
-            // Act
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
-            await pipeWriter.WriteStreamedMessageAsync(new EchoRequest { Message = "test" }, HttpContextServerCallContextHelper.CreateServerCallContext(writeOptions: writeOptions), MarshallerEchoRequest.ContextualSerializer);
+        pipeWriter.Complete();
 
-            pipeWriter.Complete();
-
-            // Assert
-            var base64 = Encoding.UTF8.GetString(ms.ToArray());
-            Assert.AreEqual("AAAAAAYKBHRlc3QAAAAABgoEdGVzdAAAAAAGCgR0ZXN0", base64);
-        }
+        // Assert
+        var base64 = Encoding.UTF8.GetString(ms.ToArray());
+        Assert.AreEqual("AAAAAAYKBHRlc3QAAAAABgoEdGVzdAAAAAAGCgR0ZXN0", base64);
     }
 }

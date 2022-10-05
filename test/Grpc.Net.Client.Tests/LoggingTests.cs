@@ -24,61 +24,60 @@ using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class LoggingTests
 {
-    [TestFixture]
-    public class LoggingTests
+    [Test]
+    public async Task AsyncUnaryCall_Success_LogToFactory()
     {
-        [Test]
-        public async Task AsyncUnaryCall_Success_LogToFactory()
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+            // Trigger request stream serialization
+            await request.Content!.ReadAsStreamAsync().DefaultTimeout();
+
+            var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply
             {
-                // Trigger request stream serialization
-                await request.Content!.ReadAsStreamAsync().DefaultTimeout();
+                Message = "Hello world"
+            }).DefaultTimeout();
 
-                var streamContent = await ClientTestHelpers.CreateResponseContent(new HelloReply
-                {
-                    Message = "Hello world"
-                }).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
 
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
 
-            var testSink = new TestSink();
-            var loggerFactory = new TestLoggerFactory(testSink, true);
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
 
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
+        // Act
+        var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
 
-            // Act
-            var rs = await invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        // Assert
+        Assert.AreEqual("Hello world", rs.Message);
 
-            // Assert
-            Assert.AreEqual("Hello world", rs.Message);
+        var log = testSink.Writes.Single(w => w.EventId.Name == "StartingCall");
+        Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: 'https://localhost/ServiceName/MethodName'.", log.State.ToString());
+        AssertScope(log);
 
-            var log = testSink.Writes.Single(w => w.EventId.Name == "StartingCall");
-            Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: 'https://localhost/ServiceName/MethodName'.", log.State.ToString());
-            AssertScope(log);
+        log = testSink.Writes.Single(w => w.EventId.Name == "SendingMessage");
+        Assert.AreEqual("Sending message.", log.State.ToString());
+        AssertScope(log);
 
-            log = testSink.Writes.Single(w => w.EventId.Name == "SendingMessage");
-            Assert.AreEqual("Sending message.", log.State.ToString());
-            AssertScope(log);
+        log = testSink.Writes.Single(w => w.EventId.Name == "ReadingMessage");
+        Assert.AreEqual("Reading message.", log.State.ToString());
+        AssertScope(log);
 
-            log = testSink.Writes.Single(w => w.EventId.Name == "ReadingMessage");
-            Assert.AreEqual("Reading message.", log.State.ToString());
-            AssertScope(log);
+        log = testSink.Writes.Single(w => w.EventId.Name == "FinishedCall");
+        Assert.AreEqual("Finished gRPC call.", log.State.ToString());
+        AssertScope(log);
 
-            log = testSink.Writes.Single(w => w.EventId.Name == "FinishedCall");
-            Assert.AreEqual("Finished gRPC call.", log.State.ToString());
-            AssertScope(log);
-
-            static void AssertScope(WriteContext log)
-            {
-                var scope = (IReadOnlyList<KeyValuePair<string, object>>)log.Scope;
-                Assert.AreEqual(MethodType.Unary, scope[0].Value);
-                Assert.AreEqual(new Uri("/ServiceName/MethodName", UriKind.Relative), scope[1].Value);
-            }
+        static void AssertScope(WriteContext log)
+        {
+            var scope = (IReadOnlyList<KeyValuePair<string, object>>)log.Scope;
+            Assert.AreEqual(MethodType.Unary, scope[0].Value);
+            Assert.AreEqual(new Uri("/ServiceName/MethodName", UriKind.Relative), scope[1].Value);
         }
     }
 }

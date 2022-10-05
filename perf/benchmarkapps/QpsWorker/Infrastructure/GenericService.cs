@@ -18,37 +18,36 @@
 
 using Grpc.Core;
 
-namespace QpsWorker.Infrastructure
+namespace QpsWorker.Infrastructure;
+
+public class GenericService
 {
-    public class GenericService
+    private readonly static Marshaller<byte[]> ByteArrayMarshaller = new Marshaller<byte[]>((b) => b, (b) => b);
+
+    public readonly static Method<byte[], byte[]> StreamingCallMethod = new Method<byte[], byte[]>(
+        MethodType.DuplexStreaming,
+        "grpc.testing.BenchmarkService",
+        "StreamingCall",
+        ByteArrayMarshaller,
+        ByteArrayMarshaller
+    );
+
+    public static async Task DuplexStreamingServerMethod(
+        GenericService service,
+        IAsyncStreamReader<byte[]> requestStream,
+        IServerStreamWriter<byte[]> responseStream,
+        ServerCallContext serverCallContext)
     {
-        private readonly static Marshaller<byte[]> ByteArrayMarshaller = new Marshaller<byte[]>((b) => b, (b) => b);
-
-        public readonly static Method<byte[], byte[]> StreamingCallMethod = new Method<byte[], byte[]>(
-            MethodType.DuplexStreaming,
-            "grpc.testing.BenchmarkService",
-            "StreamingCall",
-            ByteArrayMarshaller,
-            ByteArrayMarshaller
-        );
-
-        public static async Task DuplexStreamingServerMethod(
-            GenericService service,
-            IAsyncStreamReader<byte[]> requestStream,
-            IServerStreamWriter<byte[]> responseStream,
-            ServerCallContext serverCallContext)
+        await foreach (var request in requestStream.ReadAllAsync())
         {
-            await foreach (var request in requestStream.ReadAllAsync())
-            {
-                await responseStream.WriteAsync(service.Response);
-            }
+            await responseStream.WriteAsync(service.Response);
         }
+    }
 
-        public byte[] Response { get; }
+    public byte[] Response { get; }
 
-        public GenericService(int responseSize)
-        {
-            Response = new byte[responseSize];
-        }
+    public GenericService(int responseSize)
+    {
+        Response = new byte[responseSize];
     }
 }

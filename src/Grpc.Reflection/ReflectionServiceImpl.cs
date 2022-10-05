@@ -25,136 +25,135 @@ using Grpc.Core.Utils;
 using Grpc.Reflection.V1Alpha;
 using Google.Protobuf.Reflection;
 
-namespace Grpc.Reflection
+namespace Grpc.Reflection;
+
+/// <summary>
+/// Implementation of server reflection service.
+/// </summary>
+public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionBase
 {
+    readonly List<string> services;
+    readonly SymbolRegistry symbolRegistry;
+
     /// <summary>
-    /// Implementation of server reflection service.
+    /// Creates a new instance of <c>ReflectionServiceIml</c>.
     /// </summary>
-    public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.ServerReflectionBase
+    public ReflectionServiceImpl(IEnumerable<string> services, SymbolRegistry symbolRegistry)
     {
-        readonly List<string> services;
-        readonly SymbolRegistry symbolRegistry;
+        this.services = new List<string>(services);
+        this.symbolRegistry = symbolRegistry;
+    }
 
-        /// <summary>
-        /// Creates a new instance of <c>ReflectionServiceIml</c>.
-        /// </summary>
-        public ReflectionServiceImpl(IEnumerable<string> services, SymbolRegistry symbolRegistry)
+    /// <summary>
+    /// Creates a new instance of <c>ReflectionServiceIml</c>.
+    /// </summary>
+    public ReflectionServiceImpl(IEnumerable<ServiceDescriptor> serviceDescriptors)
+    {
+        this.services = new List<string>(serviceDescriptors.Select((serviceDescriptor) => serviceDescriptor.FullName));
+        this.symbolRegistry = SymbolRegistry.FromFiles(serviceDescriptors.Select((serviceDescriptor) => serviceDescriptor.File));
+    }
+
+    /// <summary>
+    /// Creates a new instance of <c>ReflectionServiceIml</c>.
+    /// </summary>
+    public ReflectionServiceImpl(params ServiceDescriptor[] serviceDescriptors) : this((IEnumerable<ServiceDescriptor>) serviceDescriptors)
+    {
+    }
+
+    /// <summary>
+    /// Processes a stream of server reflection requests.
+    /// </summary>
+    public override async Task ServerReflectionInfo(IAsyncStreamReader<ServerReflectionRequest> requestStream, IServerStreamWriter<ServerReflectionResponse> responseStream, ServerCallContext context)
+    {
+        while (await requestStream.MoveNext().ConfigureAwait(false))
         {
-            this.services = new List<string>(services);
-            this.symbolRegistry = symbolRegistry;
+            var response = ProcessRequest(requestStream.Current);
+            await responseStream.WriteAsync(response).ConfigureAwait(false);
+        }
+    }
+
+    ServerReflectionResponse ProcessRequest(ServerReflectionRequest request)
+    {
+        switch (request.MessageRequestCase)
+        {
+            case ServerReflectionRequest.MessageRequestOneofCase.FileByFilename:
+                return FileByFilename(request.FileByFilename);
+            case ServerReflectionRequest.MessageRequestOneofCase.FileContainingSymbol:
+                return FileContainingSymbol(request.FileContainingSymbol);
+            case ServerReflectionRequest.MessageRequestOneofCase.ListServices:
+                return ListServices();
+            case ServerReflectionRequest.MessageRequestOneofCase.AllExtensionNumbersOfType:
+            case ServerReflectionRequest.MessageRequestOneofCase.FileContainingExtension:
+            default:
+                return CreateErrorResponse(StatusCode.Unimplemented, "Request type not supported by C# reflection service.");
+        }
+    }
+
+    ServerReflectionResponse FileByFilename(string filename)
+    {
+        FileDescriptor file = symbolRegistry.FileByName(filename);
+        if (file == null)
+        {
+            return CreateErrorResponse(StatusCode.NotFound, "File not found.");
         }
 
-        /// <summary>
-        /// Creates a new instance of <c>ReflectionServiceIml</c>.
-        /// </summary>
-        public ReflectionServiceImpl(IEnumerable<ServiceDescriptor> serviceDescriptors)
+        var transitiveDependencies = new HashSet<FileDescriptor>();
+        CollectTransitiveDependencies(file, transitiveDependencies);
+
+        return new ServerReflectionResponse
         {
-            this.services = new List<string>(serviceDescriptors.Select((serviceDescriptor) => serviceDescriptor.FullName));
-            this.symbolRegistry = SymbolRegistry.FromFiles(serviceDescriptors.Select((serviceDescriptor) => serviceDescriptor.File));
+            FileDescriptorResponse = new FileDescriptorResponse { FileDescriptorProto = { transitiveDependencies.Select((d) => d.SerializedData) } }
+        };
+    }
+
+    ServerReflectionResponse FileContainingSymbol(string symbol)
+    {
+        FileDescriptor file = symbolRegistry.FileContainingSymbol(symbol);
+        if (file == null)
+        {
+            return CreateErrorResponse(StatusCode.NotFound, "Symbol not found.");
         }
 
-        /// <summary>
-        /// Creates a new instance of <c>ReflectionServiceIml</c>.
-        /// </summary>
-        public ReflectionServiceImpl(params ServiceDescriptor[] serviceDescriptors) : this((IEnumerable<ServiceDescriptor>) serviceDescriptors)
+        var transitiveDependencies = new HashSet<FileDescriptor>();
+        CollectTransitiveDependencies(file, transitiveDependencies);
+
+        return new ServerReflectionResponse
         {
+            FileDescriptorResponse = new FileDescriptorResponse { FileDescriptorProto = { transitiveDependencies.Select((d) => d.SerializedData) } }
+        };
+    }
+
+    ServerReflectionResponse ListServices()
+    {
+        var serviceResponses = new ListServiceResponse();
+        foreach (string serviceName in services)
+        {
+            serviceResponses.Service.Add(new ServiceResponse { Name = serviceName });
         }
 
-        /// <summary>
-        /// Processes a stream of server reflection requests.
-        /// </summary>
-        public override async Task ServerReflectionInfo(IAsyncStreamReader<ServerReflectionRequest> requestStream, IServerStreamWriter<ServerReflectionResponse> responseStream, ServerCallContext context)
+        return new ServerReflectionResponse
         {
-            while (await requestStream.MoveNext().ConfigureAwait(false))
-            {
-                var response = ProcessRequest(requestStream.Current);
-                await responseStream.WriteAsync(response).ConfigureAwait(false);
-            }
-        }
+            ListServicesResponse = serviceResponses
+        };
+    }
 
-        ServerReflectionResponse ProcessRequest(ServerReflectionRequest request)
+    ServerReflectionResponse CreateErrorResponse(StatusCode status, string message)
+    {
+        return new ServerReflectionResponse
         {
-            switch (request.MessageRequestCase)
-            {
-                case ServerReflectionRequest.MessageRequestOneofCase.FileByFilename:
-                    return FileByFilename(request.FileByFilename);
-                case ServerReflectionRequest.MessageRequestOneofCase.FileContainingSymbol:
-                    return FileContainingSymbol(request.FileContainingSymbol);
-                case ServerReflectionRequest.MessageRequestOneofCase.ListServices:
-                    return ListServices();
-                case ServerReflectionRequest.MessageRequestOneofCase.AllExtensionNumbersOfType:
-                case ServerReflectionRequest.MessageRequestOneofCase.FileContainingExtension:
-                default:
-                    return CreateErrorResponse(StatusCode.Unimplemented, "Request type not supported by C# reflection service.");
-            }
-        }
+            ErrorResponse = new ErrorResponse { ErrorCode = (int) status, ErrorMessage = message }
+        };
+    }
 
-        ServerReflectionResponse FileByFilename(string filename)
+    void CollectTransitiveDependencies(FileDescriptor descriptor, HashSet<FileDescriptor> pool)
+    {
+        pool.Add(descriptor);
+        foreach (var dependency in descriptor.Dependencies)
         {
-            FileDescriptor file = symbolRegistry.FileByName(filename);
-            if (file == null)
+            if (pool.Add(dependency))
             {
-                return CreateErrorResponse(StatusCode.NotFound, "File not found.");
-            }
-
-            var transitiveDependencies = new HashSet<FileDescriptor>();
-            CollectTransitiveDependencies(file, transitiveDependencies);
-
-            return new ServerReflectionResponse
-            {
-                FileDescriptorResponse = new FileDescriptorResponse { FileDescriptorProto = { transitiveDependencies.Select((d) => d.SerializedData) } }
-            };
-        }
-
-        ServerReflectionResponse FileContainingSymbol(string symbol)
-        {
-            FileDescriptor file = symbolRegistry.FileContainingSymbol(symbol);
-            if (file == null)
-            {
-                return CreateErrorResponse(StatusCode.NotFound, "Symbol not found.");
-            }
-
-            var transitiveDependencies = new HashSet<FileDescriptor>();
-            CollectTransitiveDependencies(file, transitiveDependencies);
-
-            return new ServerReflectionResponse
-            {
-                FileDescriptorResponse = new FileDescriptorResponse { FileDescriptorProto = { transitiveDependencies.Select((d) => d.SerializedData) } }
-            };
-        }
-
-        ServerReflectionResponse ListServices()
-        {
-            var serviceResponses = new ListServiceResponse();
-            foreach (string serviceName in services)
-            {
-                serviceResponses.Service.Add(new ServiceResponse { Name = serviceName });
-            }
-
-            return new ServerReflectionResponse
-            {
-                ListServicesResponse = serviceResponses
-            };
-        }
-
-        ServerReflectionResponse CreateErrorResponse(StatusCode status, string message)
-        {
-            return new ServerReflectionResponse
-            {
-                ErrorResponse = new ErrorResponse { ErrorCode = (int) status, ErrorMessage = message }
-            };
-        }
-
-        void CollectTransitiveDependencies(FileDescriptor descriptor, HashSet<FileDescriptor> pool)
-        {
-            pool.Add(descriptor);
-            foreach (var dependency in descriptor.Dependencies)
-            {
-                if (pool.Add(dependency))
-                {
-                    // descriptors cannot have circular dependencies
-                    CollectTransitiveDependencies(dependency, pool);
-                }
+                // descriptors cannot have circular dependencies
+                CollectTransitiveDependencies(dependency, pool);
             }
         }
     }

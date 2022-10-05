@@ -20,59 +20,58 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace Grpc.Net.Compression
+namespace Grpc.Net.Compression;
+
+/// <summary>
+/// Deflate compression provider.
+/// </summary>
+public sealed class DeflateCompressionProvider : ICompressionProvider
 {
+    private readonly CompressionLevel _defaultCompressionLevel;
+
     /// <summary>
-    /// Deflate compression provider.
+    /// Initializes a new instance of the <see cref="DeflateCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
     /// </summary>
-    public sealed class DeflateCompressionProvider : ICompressionProvider
+    /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
+    public DeflateCompressionProvider(CompressionLevel defaultCompressionLevel)
     {
-        private readonly CompressionLevel _defaultCompressionLevel;
+        _defaultCompressionLevel = defaultCompressionLevel;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DeflateCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
-        /// </summary>
-        /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
-        public DeflateCompressionProvider(CompressionLevel defaultCompressionLevel)
-        {
-            _defaultCompressionLevel = defaultCompressionLevel;
-        }
+    /// <summary>
+    /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
+    /// </summary>
+    public string EncodingName => "deflate";
 
-        /// <summary>
-        /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
-        /// </summary>
-        public string EncodingName => "deflate";
+    /// <summary>
+    /// Create a new compression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is written to.</param>
+    /// <param name="compressionLevel">The compression level.</param>
+    /// <returns>A stream used to compress data.</returns>
+    public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
+    {
+        // As described in RFC 2616, the deflate content-coding is actually
+        // the "zlib" format (RFC 1950) in combination with the "deflate"
+        // compression algrithm (RFC 1951).  So while potentially
+        // counterintuitive based on naming, this needs to use ZLibStream
+        // rather than DeflateStream.
+        return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
+    }
 
-        /// <summary>
-        /// Create a new compression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is written to.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        /// <returns>A stream used to compress data.</returns>
-        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
-        {
-            // As described in RFC 2616, the deflate content-coding is actually
-            // the "zlib" format (RFC 1950) in combination with the "deflate"
-            // compression algrithm (RFC 1951).  So while potentially
-            // counterintuitive based on naming, this needs to use ZLibStream
-            // rather than DeflateStream.
-            return new ZLibStream(stream, compressionLevel ?? _defaultCompressionLevel);
-        }
-
-        /// <summary>
-        /// Create a new decompression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is copied from.</param>
-        /// <returns>A stream used to decompress data.</returns>
-        public Stream CreateDecompressionStream(Stream stream)
-        {
-            // As described in RFC 2616, the deflate content-coding is actually
-            // the "zlib" format (RFC 1950) in combination with the "deflate"
-            // compression algrithm (RFC 1951).  So while potentially
-            // counterintuitive based on naming, this needs to use ZLibStream
-            // rather than DeflateStream.
-            return new ZLibStream(stream, CompressionMode.Decompress);
-        }
+    /// <summary>
+    /// Create a new decompression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is copied from.</param>
+    /// <returns>A stream used to decompress data.</returns>
+    public Stream CreateDecompressionStream(Stream stream)
+    {
+        // As described in RFC 2616, the deflate content-coding is actually
+        // the "zlib" format (RFC 1950) in combination with the "deflate"
+        // compression algrithm (RFC 1951).  So while potentially
+        // counterintuitive based on naming, this needs to use ZLibStream
+        // rather than DeflateStream.
+        return new ZLibStream(stream, CompressionMode.Decompress);
     }
 }
 #endif

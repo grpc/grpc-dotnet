@@ -18,16 +18,15 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server;
+
+/// <summary>
+/// Provides access to the gRPC server call context for the current HTTP request.
+/// </summary>
+public interface IServerCallContextFeature
 {
     /// <summary>
-    /// Provides access to the gRPC server call context for the current HTTP request.
+    /// Gets the gRPC server call context for the current HTTP request.
     /// </summary>
-    public interface IServerCallContextFeature
-    {
-        /// <summary>
-        /// Gets the gRPC server call context for the current HTTP request.
-        /// </summary>
-        ServerCallContext ServerCallContext { get; }
-    }
+    ServerCallContext ServerCallContext { get; }
 }

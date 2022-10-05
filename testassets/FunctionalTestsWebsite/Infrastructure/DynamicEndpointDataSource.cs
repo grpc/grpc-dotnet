@@ -18,47 +18,46 @@
 
 using Microsoft.Extensions.Primitives;
 
-namespace FunctionalTestsWebsite.Infrastructure
+namespace FunctionalTestsWebsite.Infrastructure;
+
+/// <summary>
+/// This endpoint data source can be modified and will raise a change token event.
+/// It can be used to add new endpoints after the application has started.
+/// </summary>
+public class DynamicEndpointDataSource : EndpointDataSource
 {
-    /// <summary>
-    /// This endpoint data source can be modified and will raise a change token event.
-    /// It can be used to add new endpoints after the application has started.
-    /// </summary>
-    public class DynamicEndpointDataSource : EndpointDataSource
+    private readonly List<Endpoint> _endpoints = new List<Endpoint>();
+    private CancellationTokenSource? _cts;
+    private CancellationChangeToken? _cct;
+
+    public override IReadOnlyList<Endpoint> Endpoints => _endpoints;
+
+    public override IChangeToken GetChangeToken()
     {
-        private readonly List<Endpoint> _endpoints = new List<Endpoint>();
-        private CancellationTokenSource? _cts;
-        private CancellationChangeToken? _cct;
-
-        public override IReadOnlyList<Endpoint> Endpoints => _endpoints;
-
-        public override IChangeToken GetChangeToken()
+        if (_cts == null)
         {
-            if (_cts == null)
-            {
-                _cts = new CancellationTokenSource();
-            }
-            if (_cct == null)
-            {
-                _cct = new CancellationChangeToken(_cts.Token);
-            }
-
-            return _cct;
+            _cts = new CancellationTokenSource();
+        }
+        if (_cct == null)
+        {
+            _cct = new CancellationChangeToken(_cts.Token);
         }
 
-        public void AddEndpoints(IEnumerable<Endpoint> endpoints)
+        return _cct;
+    }
+
+    public void AddEndpoints(IEnumerable<Endpoint> endpoints)
+    {
+        _endpoints.AddRange(endpoints);
+
+        if (_cts != null)
         {
-            _endpoints.AddRange(endpoints);
+            var localCts = _cts;
 
-            if (_cts != null)
-            {
-                var localCts = _cts;
+            _cts = null;
+            _cct = null;
 
-                _cts = null;
-                _cct = null;
-
-                localCts.Cancel();
-            }
+            localCts.Cancel();
         }
     }
 }

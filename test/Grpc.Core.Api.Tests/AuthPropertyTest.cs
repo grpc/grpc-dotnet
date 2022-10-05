@@ -19,49 +19,48 @@
 using System;
 using NUnit.Framework;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class AuthPropertyTest
 {
-    public class AuthPropertyTest
+    [Test]
+    public void Create_NameIsNotNull()
     {
-        [Test]
-        public void Create_NameIsNotNull()
-        {
-            Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create(null, new byte[0]));
-            Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe(null, new byte[0]));
-        }
+        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create(null, new byte[0]));
+        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe(null, new byte[0]));
+    }
 
-        [Test]
-        public void Create_ValueIsNotNull()
-        {
-            Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create("abc", null));
-            Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe("abc", null));
-        }
+    [Test]
+    public void Create_ValueIsNotNull()
+    {
+        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create("abc", null));
+        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe("abc", null));
+    }
 
-        [Test]
-        public void Create()
-        {
-            var valueBytes = new byte[] { 68, 69, 70 };
-            var authProperty = AuthProperty.Create("abc", valueBytes);
+    [Test]
+    public void Create()
+    {
+        var valueBytes = new byte[] { 68, 69, 70 };
+        var authProperty = AuthProperty.Create("abc", valueBytes);
 
-            Assert.AreEqual("abc", authProperty.Name);
-            Assert.AreNotSame(valueBytes, authProperty.ValueBytesUnsafe);
-            CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytes);
-            CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytesUnsafe);
-            Assert.AreEqual("DEF", authProperty.Value);
-        }
+        Assert.AreEqual("abc", authProperty.Name);
+        Assert.AreNotSame(valueBytes, authProperty.ValueBytesUnsafe);
+        CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytes);
+        CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytesUnsafe);
+        Assert.AreEqual("DEF", authProperty.Value);
+    }
 
-        [Test]
-        public void CreateUnsafe()
-        {
-            var valueBytes = new byte[] { 68, 69, 70 };
-            var authProperty = AuthProperty.CreateUnsafe("abc", valueBytes);
+    [Test]
+    public void CreateUnsafe()
+    {
+        var valueBytes = new byte[] { 68, 69, 70 };
+        var authProperty = AuthProperty.CreateUnsafe("abc", valueBytes);
 
-            Assert.AreEqual("abc", authProperty.Name);
-            Assert.AreSame(valueBytes, authProperty.ValueBytesUnsafe);
-            Assert.AreNotSame(valueBytes, authProperty.ValueBytes);
-            CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytes);
-            CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytesUnsafe);
-            Assert.AreEqual("DEF", authProperty.Value);
-        }
+        Assert.AreEqual("abc", authProperty.Name);
+        Assert.AreSame(valueBytes, authProperty.ValueBytesUnsafe);
+        Assert.AreNotSame(valueBytes, authProperty.ValueBytes);
+        CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytes);
+        CollectionAssert.AreEqual(valueBytes, authProperty.ValueBytesUnsafe);
+        Assert.AreEqual("DEF", authProperty.Value);
     }
 }

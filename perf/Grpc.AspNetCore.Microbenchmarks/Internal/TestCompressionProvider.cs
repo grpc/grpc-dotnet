@@ -19,49 +19,48 @@
 using System.IO.Compression;
 using Grpc.Net.Compression;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+public class TestCompressionProvider : ICompressionProvider
 {
-    public class TestCompressionProvider : ICompressionProvider
+    public const string Name = "test-provider";
+
+    public string EncodingName => Name;
+
+    public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
     {
-        public const string Name = "test-provider";
+        return new WrapperStream(stream);
+    }
 
-        public string EncodingName => Name;
+    public Stream CreateDecompressionStream(Stream stream)
+    {
+        return new WrapperStream(stream);
+    }
 
-        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
+    // Returned stream is disposed. Wrapper leaves the inner stream open.
+    private class WrapperStream : Stream
+    {
+        private readonly Stream _innerStream;
+
+        public WrapperStream(Stream innerStream)
         {
-            return new WrapperStream(stream);
+            _innerStream = innerStream;
         }
 
-        public Stream CreateDecompressionStream(Stream stream)
+        public override bool CanRead => _innerStream.CanRead;
+        public override bool CanSeek => _innerStream.CanSeek;
+        public override bool CanWrite => _innerStream.CanWrite;
+        public override long Length => _innerStream.Length;
+        public override long Position
         {
-            return new WrapperStream(stream);
+            get => _innerStream.Position;
+            set => _innerStream.Position = value;
         }
 
-        // Returned stream is disposed. Wrapper leaves the inner stream open.
-        private class WrapperStream : Stream
-        {
-            private readonly Stream _innerStream;
-
-            public WrapperStream(Stream innerStream)
-            {
-                _innerStream = innerStream;
-            }
-
-            public override bool CanRead => _innerStream.CanRead;
-            public override bool CanSeek => _innerStream.CanSeek;
-            public override bool CanWrite => _innerStream.CanWrite;
-            public override long Length => _innerStream.Length;
-            public override long Position
-            {
-                get => _innerStream.Position;
-                set => _innerStream.Position = value;
-            }
-
-            public override void Flush() => _innerStream.Flush();
-            public override int Read(byte[] buffer, int offset, int count) => _innerStream.Read(buffer, offset, count);
-            public override long Seek(long offset, SeekOrigin origin) => _innerStream.Seek(offset, origin);
-            public override void SetLength(long value) => _innerStream.SetLength(value);
-            public override void Write(byte[] buffer, int offset, int count) => _innerStream.Write(buffer, offset, count);
-        }
+        public override void Flush() => _innerStream.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _innerStream.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _innerStream.Seek(offset, origin);
+        public override void SetLength(long value) => _innerStream.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) => _innerStream.Write(buffer, offset, count);
     }
 }

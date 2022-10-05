@@ -19,42 +19,41 @@
 using Grpc.AspNetCore.Web.Internal;
 using Microsoft.Extensions.Options;
 
-namespace Microsoft.AspNetCore.Builder
+namespace Microsoft.AspNetCore.Builder;
+
+/// <summary>
+/// Provides extension methods for <see cref="IApplicationBuilder"/> to add gRPC-Web middleware.
+/// </summary>
+public static class GrpcWebApplicationBuilderExtensions
 {
     /// <summary>
-    /// Provides extension methods for <see cref="IApplicationBuilder"/> to add gRPC-Web middleware.
+    /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
     /// </summary>
-    public static class GrpcWebApplicationBuilderExtensions
+    /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
+    /// <returns>A reference to this instance after the operation has completed.</returns>
+    public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder)
     {
-        /// <summary>
-        /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
-        /// </summary>
-        /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
-        /// <returns>A reference to this instance after the operation has completed.</returns>
-        public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder)
+        return builder.UseGrpcWeb(new GrpcWebOptions());
+    }
+
+    /// <summary>
+    /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
+    /// <param name="options">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
+    /// <returns>A reference to this instance after the operation has completed.</returns>
+    public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder, GrpcWebOptions options)
+    {
+        if (builder == null)
         {
-            return builder.UseGrpcWeb(new GrpcWebOptions());
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        /// <summary>
-        /// Adds gRPC-Web middleware to the specified <see cref="IApplicationBuilder"/>.
-        /// </summary>
-        /// <param name="builder">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
-        /// <param name="options">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
-        /// <returns>A reference to this instance after the operation has completed.</returns>
-        public static IApplicationBuilder UseGrpcWeb(this IApplicationBuilder builder, GrpcWebOptions options)
+        if (options == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            return builder.UseMiddleware<GrpcWebMiddleware>(Options.Create(options));
+            throw new ArgumentNullException(nameof(options));
         }
+
+        return builder.UseMiddleware<GrpcWebMiddleware>(Options.Create(options));
     }
 }
