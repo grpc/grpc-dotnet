@@ -639,7 +639,7 @@ class Program
 
         var client = new BenchmarkService.BenchmarkServiceClient(_channels[connectionId]);
         var callOptions = CreateCallOptions();
-        callOptions.WithCancellationToken(cts.Token);
+        callOptions = callOptions.WithCancellationToken(cts.Token);
         using var call = client.StreamingFromServer(CreateSimpleRequest(), callOptions);
 
         while (!cts.IsCancellationRequested)
