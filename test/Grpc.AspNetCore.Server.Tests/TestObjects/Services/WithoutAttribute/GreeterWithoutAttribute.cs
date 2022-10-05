@@ -18,51 +18,50 @@
 
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute
+namespace Grpc.AspNetCore.Server.Tests.TestObjects.Services.WithoutAttribute;
+
+public static partial class GreeterWithoutAttribute
 {
-    public static partial class GreeterWithoutAttribute
+    const string __ServiceName = "Greet.Greeter";
+
+    static readonly Marshaller<global::Greet.HelloRequest> __Marshaller_Greet_HelloRequest = Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Greet.HelloRequest.Parser.ParseFrom);
+    static readonly Marshaller<global::Greet.HelloReply> __Marshaller_Greet_HelloReply = Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Greet.HelloReply.Parser.ParseFrom);
+
+    static readonly Method<global::Greet.HelloRequest, global::Greet.HelloReply> __Method_SayHello = new Method<global::Greet.HelloRequest, global::Greet.HelloReply>(
+        MethodType.Unary,
+        __ServiceName,
+        "SayHello",
+        __Marshaller_Greet_HelloRequest,
+        __Marshaller_Greet_HelloReply);
+
+    static readonly Method<global::Greet.HelloRequest, global::Greet.HelloReply> __Method_SayHellos = new Method<global::Greet.HelloRequest, global::Greet.HelloReply>(
+        MethodType.ServerStreaming,
+        __ServiceName,
+        "SayHellos",
+        __Marshaller_Greet_HelloRequest,
+        __Marshaller_Greet_HelloReply);
+
+    public abstract partial class GreeterBase
     {
-        const string __ServiceName = "Greet.Greeter";
-
-        static readonly Marshaller<global::Greet.HelloRequest> __Marshaller_Greet_HelloRequest = Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Greet.HelloRequest.Parser.ParseFrom);
-        static readonly Marshaller<global::Greet.HelloReply> __Marshaller_Greet_HelloReply = Marshallers.Create((arg) => global::Google.Protobuf.MessageExtensions.ToByteArray(arg), global::Greet.HelloReply.Parser.ParseFrom);
-
-        static readonly Method<global::Greet.HelloRequest, global::Greet.HelloReply> __Method_SayHello = new Method<global::Greet.HelloRequest, global::Greet.HelloReply>(
-            MethodType.Unary,
-            __ServiceName,
-            "SayHello",
-            __Marshaller_Greet_HelloRequest,
-            __Marshaller_Greet_HelloReply);
-
-        static readonly Method<global::Greet.HelloRequest, global::Greet.HelloReply> __Method_SayHellos = new Method<global::Greet.HelloRequest, global::Greet.HelloReply>(
-            MethodType.ServerStreaming,
-            __ServiceName,
-            "SayHellos",
-            __Marshaller_Greet_HelloRequest,
-            __Marshaller_Greet_HelloReply);
-
-        public abstract partial class GreeterBase
+        public virtual global::System.Threading.Tasks.Task<global::Greet.HelloReply> SayHello(global::Greet.HelloRequest request, ServerCallContext context)
         {
-            public virtual global::System.Threading.Tasks.Task<global::Greet.HelloReply> SayHello(global::Greet.HelloRequest request, ServerCallContext context)
-            {
-                throw new RpcException(new Status(StatusCode.Unimplemented, ""));
-            }
-
-            public virtual global::System.Threading.Tasks.Task SayHellos(global::Greet.HelloRequest request, IServerStreamWriter<global::Greet.HelloReply> responseStream, ServerCallContext context)
-            {
-                throw new RpcException(new Status(StatusCode.Unimplemented, ""));
-            }
+            throw new RpcException(new Status(StatusCode.Unimplemented, ""));
         }
 
-        public static ServerServiceDefinition BindService(GreeterBase serviceImpl)
+        public virtual global::System.Threading.Tasks.Task SayHellos(global::Greet.HelloRequest request, IServerStreamWriter<global::Greet.HelloReply> responseStream, ServerCallContext context)
         {
-            throw new NotImplementedException();
+            throw new RpcException(new Status(StatusCode.Unimplemented, ""));
         }
+    }
 
-        public static void BindService(ServiceBinderBase serviceBinder, GreeterBase serviceImpl)
-        {
-            serviceBinder.AddMethod(__Method_SayHello, (UnaryServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
-            serviceBinder.AddMethod(__Method_SayHellos, (ServerStreamingServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
-        }
+    public static ServerServiceDefinition BindService(GreeterBase serviceImpl)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static void BindService(ServiceBinderBase serviceBinder, GreeterBase serviceImpl)
+    {
+        serviceBinder.AddMethod(__Method_SayHello, (UnaryServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
+        serviceBinder.AddMethod(__Method_SayHellos, (ServerStreamingServerMethod<global::Greet.HelloRequest, global::Greet.HelloReply>)null!);
     }
 }

@@ -20,65 +20,64 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core.Interceptors;
 
-namespace Grpc.AspNetCore.Server
+namespace Grpc.AspNetCore.Server;
+
+/// <summary>
+/// Represents the pipeline of interceptors to be invoked when processing a gRPC call.
+/// </summary>
+public class InterceptorCollection : Collection<InterceptorRegistration>
 {
     /// <summary>
-    /// Represents the pipeline of interceptors to be invoked when processing a gRPC call.
+    /// Add an interceptor to the end of the pipeline.
     /// </summary>
-    public class InterceptorCollection : Collection<InterceptorRegistration>
+    /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
+    /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
+    public void Add<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
+#endif
+        TInterceptor>(params object[] args) where TInterceptor : Interceptor
     {
-        /// <summary>
-        /// Add an interceptor to the end of the pipeline.
-        /// </summary>
-        /// <typeparam name="TInterceptor">The interceptor type.</typeparam>
-        /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
-        public void Add<
+        Add(typeof(TInterceptor), args);
+    }
+
+    /// <summary>
+    /// Add an interceptor to the end of the pipeline.
+    /// </summary>
+    /// <param name="interceptorType">The interceptor type.</param>
+    /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
+    public void Add(
 #if NET5_0_OR_GREATER
-            [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
+        [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
 #endif
-            TInterceptor>(params object[] args) where TInterceptor : Interceptor
+        Type interceptorType, params object[] args)
+    {
+        if (interceptorType == null)
         {
-            Add(typeof(TInterceptor), args);
+            throw new ArgumentNullException(nameof(interceptorType));
+        }
+        if (!interceptorType.IsSubclassOf(typeof(Interceptor)))
+        {
+            throw new ArgumentException($"Type must inherit from {typeof(Interceptor).FullName}.", nameof(interceptorType));
         }
 
-        /// <summary>
-        /// Add an interceptor to the end of the pipeline.
-        /// </summary>
-        /// <param name="interceptorType">The interceptor type.</param>
-        /// <param name="args">The list of arguments to pass to the interceptor constructor when creating an instance.</param>
-        public void Add(
-#if NET5_0_OR_GREATER
-            [DynamicallyAccessedMembers(InterceptorRegistration.InterceptorAccessibility)]
-#endif
-            Type interceptorType, params object[] args)
-        {
-            if (interceptorType == null)
-            {
-                throw new ArgumentNullException(nameof(interceptorType));
-            }
-            if (!interceptorType.IsSubclassOf(typeof(Interceptor)))
-            {
-                throw new ArgumentException($"Type must inherit from {typeof(Interceptor).FullName}.", nameof(interceptorType));
-            }
+        Add(new InterceptorRegistration(interceptorType, args));
+    }
 
-            Add(new InterceptorRegistration(interceptorType, args));
+    /// <summary>
+    /// Append a set of interceptor registrations to the end of the pipeline.
+    /// </summary>
+    /// <param name="registrations">The set of interceptor registrations to add.</param>
+    internal void AddRange(IEnumerable<InterceptorRegistration> registrations)
+    {
+        if (registrations == null)
+        {
+            throw new ArgumentNullException(nameof(registrations));
         }
 
-        /// <summary>
-        /// Append a set of interceptor registrations to the end of the pipeline.
-        /// </summary>
-        /// <param name="registrations">The set of interceptor registrations to add.</param>
-        internal void AddRange(IEnumerable<InterceptorRegistration> registrations)
+        foreach (var interceptorRegistration in registrations)
         {
-            if (registrations == null)
-            {
-                throw new ArgumentNullException(nameof(registrations));
-            }
-
-            foreach (var interceptorRegistration in registrations)
-            {
-                Add(interceptorRegistration);
-            }
+            Add(interceptorRegistration);
         }
     }
 }

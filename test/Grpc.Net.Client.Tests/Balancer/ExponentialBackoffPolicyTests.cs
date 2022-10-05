@@ -22,76 +22,75 @@ using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Balancer
+namespace Grpc.Net.Client.Tests.Balancer;
+
+[TestFixture]
+public class ExponentialBackoffPolicyTests
 {
-    [TestFixture]
-    public class ExponentialBackoffPolicyTests
+    [Test]
+    public void InitialBackoffTicks_FirstCall_ReturnsConfiguredValue()
     {
-        [Test]
-        public void InitialBackoffTicks_FirstCall_ReturnsConfiguredValue()
-        {
-            var policy = new ExponentialBackoffPolicy(
-                new TestRandomGenerator(),
-                initialBackoffTicks: 10,
-                maxBackoffTicks: 2000);
+        var policy = new ExponentialBackoffPolicy(
+            new TestRandomGenerator(),
+            initialBackoffTicks: 10,
+            maxBackoffTicks: 2000);
 
-            Assert.AreEqual(TimeSpan.FromTicks(10), policy.NextBackoff());
-            Assert.AreEqual(TimeSpan.FromTicks(16), policy.NextBackoff());
+        Assert.AreEqual(TimeSpan.FromTicks(10), policy.NextBackoff());
+        Assert.AreEqual(TimeSpan.FromTicks(16), policy.NextBackoff());
+    }
+
+    [Test]
+    public void MaxBackoffTicks_MultipleCalls_ReachesLimit()
+    {
+        var policy = new ExponentialBackoffPolicy(
+            new TestRandomGenerator(),
+            initialBackoffTicks: 10,
+            maxBackoffTicks: 2000);
+
+        for (var i = 0; i < 50; i++)
+        {
+            if (policy.NextBackoff() == TimeSpan.FromTicks(2000))
+            {
+                break;
+            }
         }
 
-        [Test]
-        public void MaxBackoffTicks_MultipleCalls_ReachesLimit()
+        Assert.AreEqual(TimeSpan.FromTicks(2000), policy.NextBackoff());
+    }
+
+    [Test]
+    public void MaxBackoffTicks_Int32MaxValueWithJitter_ReturnsUpToInt32PlusMaxJitter()
+    {
+        const long MaximumWithJitter = (long)(int.MaxValue + int.MaxValue * ExponentialBackoffPolicy.Jitter);
+
+        var policy = new ExponentialBackoffPolicy(
+            new TestRandomGenerator() { DoubleResult = 1 },
+            initialBackoffTicks: 1,
+            maxBackoffTicks: int.MaxValue);
+
+        for (var i = 0; i < 1000; i++)
         {
-            var policy = new ExponentialBackoffPolicy(
-                new TestRandomGenerator(),
-                initialBackoffTicks: 10,
-                maxBackoffTicks: 2000);
+            var backoff = policy.NextBackoff();
 
-            for (var i = 0; i < 50; i++)
-            {
-                if (policy.NextBackoff() == TimeSpan.FromTicks(2000))
-                {
-                    break;
-                }
-            }
-
-            Assert.AreEqual(TimeSpan.FromTicks(2000), policy.NextBackoff());
+            Assert.Greater(backoff.Ticks, 0);
+            Assert.LessOrEqual(backoff.Ticks, MaximumWithJitter);
         }
 
-        [Test]
-        public void MaxBackoffTicks_Int32MaxValueWithJitter_ReturnsUpToInt32PlusMaxJitter()
+        Assert.AreEqual(policy.NextBackoff(), TimeSpan.FromTicks(MaximumWithJitter));
+    }
+
+    private class TestRandomGenerator : IRandomGenerator
+    {
+        public double DoubleResult { get; set; } = 0.5;
+
+        public int Next(int minValue, int maxValue)
         {
-            const long MaximumWithJitter = (long)(int.MaxValue + int.MaxValue * ExponentialBackoffPolicy.Jitter);
-
-            var policy = new ExponentialBackoffPolicy(
-                new TestRandomGenerator() { DoubleResult = 1 },
-                initialBackoffTicks: 1,
-                maxBackoffTicks: int.MaxValue);
-
-            for (var i = 0; i < 1000; i++)
-            {
-                var backoff = policy.NextBackoff();
-
-                Assert.Greater(backoff.Ticks, 0);
-                Assert.LessOrEqual(backoff.Ticks, MaximumWithJitter);
-            }
-
-            Assert.AreEqual(policy.NextBackoff(), TimeSpan.FromTicks(MaximumWithJitter));
+            return 0;
         }
 
-        private class TestRandomGenerator : IRandomGenerator
+        public double NextDouble()
         {
-            public double DoubleResult { get; set; } = 0.5;
-
-            public int Next(int minValue, int maxValue)
-            {
-                return 0;
-            }
-
-            public double NextDouble()
-            {
-                return DoubleResult;
-            }
+            return DoubleResult;
         }
     }
 }

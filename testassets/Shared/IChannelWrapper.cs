@@ -19,44 +19,43 @@
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Grpc.Shared.TestAssets
+namespace Grpc.Shared.TestAssets;
+
+public interface IChannelWrapper
 {
-    public interface IChannelWrapper
+    ChannelBase Channel { get; }
+    Task ShutdownAsync();
+}
+
+public class GrpcChannelWrapper : IChannelWrapper
+{
+    public ChannelBase Channel { get; }
+
+    public GrpcChannelWrapper(GrpcChannel channel)
     {
-        ChannelBase Channel { get; }
-        Task ShutdownAsync();
+        Channel = channel;
     }
 
-    public class GrpcChannelWrapper : IChannelWrapper
+    public Task ShutdownAsync()
     {
-        public ChannelBase Channel { get; }
-
-        public GrpcChannelWrapper(GrpcChannel channel)
-        {
-            Channel = channel;
-        }
-
-        public Task ShutdownAsync()
-        {
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
+}
 
 #if !BLAZOR_WASM
-    public class CoreChannelWrapper : IChannelWrapper
+public class CoreChannelWrapper : IChannelWrapper
+{
+    private readonly Channel _channel;
+    public ChannelBase Channel => _channel;
+
+    public CoreChannelWrapper(Channel channel)
     {
-        private readonly Channel _channel;
-        public ChannelBase Channel => _channel;
-
-        public CoreChannelWrapper(Channel channel)
-        {
-            _channel = channel;
-        }
-
-        public Task ShutdownAsync()
-        {
-            return _channel.ShutdownAsync();
-        }
+        _channel = channel;
     }
-#endif
+
+    public Task ShutdownAsync()
+    {
+        return _channel.ShutdownAsync();
+    }
 }
+#endif

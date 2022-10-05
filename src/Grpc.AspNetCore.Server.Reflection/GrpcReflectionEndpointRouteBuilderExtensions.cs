@@ -20,39 +20,38 @@ using Grpc.Reflection;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.AspNetCore.Builder
+namespace Microsoft.AspNetCore.Builder;
+
+/// <summary>
+/// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add gRPC service endpoints.
+/// </summary>
+public static class GrpcReflectionEndpointRouteBuilderExtensions
 {
     /// <summary>
-    /// Provides extension methods for <see cref="IEndpointRouteBuilder"/> to add gRPC service endpoints.
+    /// Maps incoming requests to the gRPC reflection service.
+    /// This service can be queried to discover the gRPC services on the server.
     /// </summary>
-    public static class GrpcReflectionEndpointRouteBuilderExtensions
+    /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
+    /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
+    public static IEndpointConventionBuilder MapGrpcReflectionService(this IEndpointRouteBuilder builder)
     {
-        /// <summary>
-        /// Maps incoming requests to the gRPC reflection service.
-        /// This service can be queried to discover the gRPC services on the server.
-        /// </summary>
-        /// <param name="builder">The <see cref="IEndpointRouteBuilder"/> to add the route to.</param>
-        /// <returns>An <see cref="IEndpointConventionBuilder"/> for endpoints associated with the service.</returns>
-        public static IEndpointConventionBuilder MapGrpcReflectionService(this IEndpointRouteBuilder builder)
+        if (builder == null)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            ValidateServicesRegistered(builder.ServiceProvider);
-
-            return builder.MapGrpcService<ReflectionServiceImpl>();
+            throw new ArgumentNullException(nameof(builder));
         }
 
-        private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
+        ValidateServicesRegistered(builder.ServiceProvider);
+
+        return builder.MapGrpcService<ReflectionServiceImpl>();
+    }
+
+    private static void ValidateServicesRegistered(IServiceProvider serviceProvider)
+    {
+        var marker = serviceProvider.GetService(typeof(GrpcReflectionMarkerService));
+        if (marker == null)
         {
-            var marker = serviceProvider.GetService(typeof(GrpcReflectionMarkerService));
-            if (marker == null)
-            {
-                throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
-                    "'IServiceCollection.AddGrpcReflection()' inside the call to 'ConfigureServices(...)' in the application startup code.");
-            }
+            throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
+                "'IServiceCollection.AddGrpcReflection()' inside the call to 'ConfigureServices(...)' in the application startup code.");
         }
     }
 }

@@ -21,56 +21,55 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using Unimplemented;
 
-namespace Client
+namespace Client;
+
+public class Program
 {
-    public class Program
+    static async Task<int> Main(string[] args)
     {
-        static async Task<int> Main(string[] args)
+        try
         {
-            try
+            if (args.Length != 1 || !int.TryParse(args[0], out var port))
             {
-                if (args.Length != 1 || !int.TryParse(args[0], out var port))
-                {
-                    throw new Exception("Port must be passed as an argument.");
-                }
-
-                using var channel = GrpcChannel.ForAddress($"http://localhost:{port}");
-                await CallGreeter(channel);
-                await CallUnimplemented(channel);
-
-                Console.WriteLine("Shutting down");
-                return 0;
+                throw new Exception("Port must be passed as an argument.");
             }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex.ToString());
-                return 1;
-            }
+
+            using var channel = GrpcChannel.ForAddress($"http://localhost:{port}");
+            await CallGreeter(channel);
+            await CallUnimplemented(channel);
+
+            Console.WriteLine("Shutting down");
+            return 0;
         }
-
-        private static async Task CallGreeter(GrpcChannel channel)
+        catch (Exception ex)
         {
-            var client = new Greeter.GreeterClient(channel);
-
-            var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-            Console.WriteLine("Greeting: " + reply.Message);
+            Console.Error.WriteLine(ex.ToString());
+            return 1;
         }
+    }
 
-        private static async Task CallUnimplemented(GrpcChannel channel)
+    private static async Task CallGreeter(GrpcChannel channel)
+    {
+        var client = new Greeter.GreeterClient(channel);
+
+        var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+        Console.WriteLine("Greeting: " + reply.Message);
+    }
+
+    private static async Task CallUnimplemented(GrpcChannel channel)
+    {
+        var client = new UnimplementedService.UnimplementedServiceClient(channel);
+
+        var reply = client.DuplexData();
+
+        try
         {
-            var client = new UnimplementedService.UnimplementedServiceClient(channel);
-
-            var reply = client.DuplexData();
-
-            try
-            {
-                await reply.ResponseStream.MoveNext();
-                throw new Exception("Expected error status.");
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unimplemented)
-            {
-                Console.WriteLine("Unimplemented status correctly returned.");
-            }
+            await reply.ResponseStream.MoveNext();
+            throw new Exception("Expected error status.");
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Unimplemented)
+        {
+            Console.WriteLine("Unimplemented status correctly returned.");
         }
     }
 }

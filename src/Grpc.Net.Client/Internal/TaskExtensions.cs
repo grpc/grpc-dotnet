@@ -16,36 +16,35 @@
 
 #endregion
 
-namespace Grpc.Net.Client.Internal
-{
-    internal static class TaskExtensions
-    {
-        private static readonly Action<Task> IgnoreTaskContinuation = t => { _ = t.Exception; };
+namespace Grpc.Net.Client.Internal;
 
-        /// <summary>
-        /// Observes and ignores a potential exception on a given Task.
-        /// If a Task fails and throws an exception which is never observed, it will be caught by the .NET finalizer thread.
-        /// This function awaits the given task and if the exception is thrown, it observes this exception and simply ignores it.
-        /// This will prevent the escalation of this exception to the .NET finalizer thread.
-        /// </summary>
-        /// <param name="task">The task to be ignored.</param>
-        public static void ObserveException(this Task task)
+internal static class TaskExtensions
+{
+    private static readonly Action<Task> IgnoreTaskContinuation = t => { _ = t.Exception; };
+
+    /// <summary>
+    /// Observes and ignores a potential exception on a given Task.
+    /// If a Task fails and throws an exception which is never observed, it will be caught by the .NET finalizer thread.
+    /// This function awaits the given task and if the exception is thrown, it observes this exception and simply ignores it.
+    /// This will prevent the escalation of this exception to the .NET finalizer thread.
+    /// </summary>
+    /// <param name="task">The task to be ignored.</param>
+    public static void ObserveException(this Task task)
+    {
+        if (task.IsCompleted)
         {
-            if (task.IsCompleted)
+            if (task.IsFaulted)
             {
-                if (task.IsFaulted)
-                {
-                    _ = task.Exception;
-                }
+                _ = task.Exception;
             }
-            else
-            {
-                task.ContinueWith(
-                    IgnoreTaskContinuation,
-                    CancellationToken.None,
-                    TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default);
-            }
+        }
+        else
+        {
+            task.ContinueWith(
+                IgnoreTaskContinuation,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
     }
 }

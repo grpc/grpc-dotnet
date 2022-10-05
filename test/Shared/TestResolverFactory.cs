@@ -20,28 +20,27 @@
 using System;
 using Grpc.Net.Client.Balancer;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+internal class TestResolverFactory : ResolverFactory
 {
-    internal class TestResolverFactory : ResolverFactory
+    private readonly Func<ResolverOptions, TestResolver> _createResolver;
+
+    public override string Name { get; } = "test";
+
+    public TestResolverFactory(TestResolver resolver)
     {
-        private readonly Func<ResolverOptions, TestResolver> _createResolver;
+        _createResolver = o => resolver;
+    }
 
-        public override string Name { get; } = "test";
+    public TestResolverFactory(Func<ResolverOptions, TestResolver> createResolver)
+    {
+        _createResolver = createResolver;
+    }
 
-        public TestResolverFactory(TestResolver resolver)
-        {
-            _createResolver = o => resolver;
-        }
-
-        public TestResolverFactory(Func<ResolverOptions, TestResolver> createResolver)
-        {
-            _createResolver = createResolver;
-        }
-
-        public override Resolver Create(ResolverOptions options)
-        {
-            return _createResolver(options);
-        }
+    public override Resolver Create(ResolverOptions options)
+    {
+        return _createResolver(options);
     }
 }
 #endif

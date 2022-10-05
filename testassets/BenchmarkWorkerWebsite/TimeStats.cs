@@ -19,59 +19,58 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace BenchmarkWorkerWebsite
+namespace BenchmarkWorkerWebsite;
+
+// Copied from https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/TimeStats.cs
+public class TimeStats
 {
-    // Copied from https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/TimeStats.cs
-    public class TimeStats
+    readonly object myLock = new object();
+    DateTime lastWallClock;
+    TimeSpan lastUserTime;
+    TimeSpan lastPrivilegedTime;
+
+    public TimeStats()
     {
-        readonly object myLock = new object();
-        DateTime lastWallClock;
-        TimeSpan lastUserTime;
-        TimeSpan lastPrivilegedTime;
+        lastWallClock = DateTime.UtcNow;
+        lastUserTime = Process.GetCurrentProcess().UserProcessorTime;
+        lastPrivilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
+    }
 
-        public TimeStats()
+    public Snapshot GetSnapshot(bool reset)
+    {
+        lock (myLock)
         {
-            lastWallClock = DateTime.UtcNow;
-            lastUserTime = Process.GetCurrentProcess().UserProcessorTime;
-            lastPrivilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
+            var wallClock = DateTime.UtcNow;
+            var userTime = Process.GetCurrentProcess().UserProcessorTime;
+            var privilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
+            var snapshot = new Snapshot(wallClock - lastWallClock, userTime - lastUserTime, privilegedTime - lastPrivilegedTime);
+
+            if (reset)
+            {
+                lastWallClock = wallClock;
+                lastUserTime = userTime;
+                lastPrivilegedTime = privilegedTime;
+            }
+            return snapshot;
+        }
+    }
+
+    public class Snapshot
+    {
+        public TimeSpan WallClockTime { get; }
+        public TimeSpan UserProcessorTime { get; }
+        public TimeSpan PrivilegedProcessorTime { get; }
+
+        public Snapshot(TimeSpan wallClockTime, TimeSpan userProcessorTime, TimeSpan privilegedProcessorTime)
+        {
+            this.WallClockTime = wallClockTime;
+            this.UserProcessorTime = userProcessorTime;
+            this.PrivilegedProcessorTime = privilegedProcessorTime;
         }
 
-        public Snapshot GetSnapshot(bool reset)
+        public override string ToString()
         {
-            lock (myLock)
-            {
-                var wallClock = DateTime.UtcNow;
-                var userTime = Process.GetCurrentProcess().UserProcessorTime;
-                var privilegedTime = Process.GetCurrentProcess().PrivilegedProcessorTime;
-                var snapshot = new Snapshot(wallClock - lastWallClock, userTime - lastUserTime, privilegedTime - lastPrivilegedTime);
-
-                if (reset)
-                {
-                    lastWallClock = wallClock;
-                    lastUserTime = userTime;
-                    lastPrivilegedTime = privilegedTime;
-                }
-                return snapshot;
-            }
-        }
-
-        public class Snapshot
-        {
-            public TimeSpan WallClockTime { get; }
-            public TimeSpan UserProcessorTime { get; }
-            public TimeSpan PrivilegedProcessorTime { get; }
-
-            public Snapshot(TimeSpan wallClockTime, TimeSpan userProcessorTime, TimeSpan privilegedProcessorTime)
-            {
-                this.WallClockTime = wallClockTime;
-                this.UserProcessorTime = userProcessorTime;
-                this.PrivilegedProcessorTime = privilegedProcessorTime;
-            }
-
-            public override string ToString()
-            {
-                return string.Format(CultureInfo.InvariantCulture, "[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
-            }
+            return string.Format(CultureInfo.InvariantCulture, "[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
         }
     }
 }

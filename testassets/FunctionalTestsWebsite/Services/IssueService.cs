@@ -19,18 +19,17 @@
 using Grpc.Core;
 using Issue;
 
-namespace FunctionalTestsWebsite.Services
-{
-    public class IssueService : Issue.IssueService.IssueServiceBase
-    {
-        public override Task<GetLibraryResponse> GetLibrary(GetLibraryRequest request, ServerCallContext context)
-        {
-            GetLibraryResponse response = new GetLibraryResponse();
-            response.UserId = request.UserId;
-            response.SearchTerm = request.SearchTerm;
-            response.Carriers.AddRange(request.Carriers);
+namespace FunctionalTestsWebsite.Services;
 
-            return Task.FromResult(response);
-        }
+public class IssueService : Issue.IssueService.IssueServiceBase
+{
+    public override Task<GetLibraryResponse> GetLibrary(GetLibraryRequest request, ServerCallContext context)
+    {
+        GetLibraryResponse response = new GetLibraryResponse();
+        response.UserId = request.UserId;
+        response.SearchTerm = request.SearchTerm;
+        response.Carriers.AddRange(request.Carriers);
+
+        return Task.FromResult(response);
     }
 }

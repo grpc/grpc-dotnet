@@ -24,205 +24,204 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web.Server
+namespace Grpc.AspNetCore.FunctionalTests.Web.Server;
+
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
+#endif
+public class DeadlineTests : GrpcWebFunctionalTestBase
 {
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
-#endif
-    public class DeadlineTests : GrpcWebFunctionalTestBase
+    public DeadlineTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
+     : base(grpcTestMode, endpointName)
     {
-        public DeadlineTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
-         : base(grpcTestMode, endpointName)
-        {
-        }
+    }
 
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task UnaryMethodDeadlineExceeded(bool throwErrorOnCancellation)
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task UnaryMethodDeadlineExceeded(bool throwErrorOnCancellation)
+    {
+        async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
         {
-            async Task<HelloReply> WaitUntilDeadline(HelloRequest request, ServerCallContext context)
+            try
             {
-                try
-                {
-                    await Task.Delay(1000, context.CancellationToken);
-                }
-                catch (OperationCanceledException) when (!throwErrorOnCancellation)
-                {
-                    // nom nom nom
-                }
-
-                return new HelloReply();
+                await Task.Delay(1000, context.CancellationToken);
+            }
+            catch (OperationCanceledException) when (!throwErrorOnCancellation)
+            {
+                // nom nom nom
             }
 
-            SetExpectedErrorsFilter(writeContext =>
+            return new HelloReply();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
             {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                // Deadline happened before write
+                if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                    writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline-True'.")
                 {
-                    // Deadline happened before write
-                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WaitUntilDeadline-True'.")
-                    {
-                        return true;
-                    }
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, $"{nameof(WaitUntilDeadline)}-{throwErrorOnCancellation}");
+
+        var grpcWebClient = CreateGrpcWebClient();
+
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
+
+        var requestStream = new MemoryStream();
+        MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+        var httpRequest = GrpcHttpHelper.Create(method.FullName);
+        httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "300m");
+        httpRequest.Content = new GrpcStreamContent(requestStream);
+
+        try
+        {
+            // Act
+            var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
+
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
+        }
+        catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+        {
+            // Ignore exception from deadline abort
+        }
+    }
+
+    [Test]
+    public async Task WriteMessageAfterDeadline()
+    {
+        static async Task WriteUntilError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
+        {
+            var i = 0;
+            var message = $"How are you {request.Name}? {i}";
+            await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
+
+            i++;
+
+            while (!context.CancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(50);
+            }
+
+            message = $"How are you {request.Name}? {i}";
+            await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
+        }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+            {
+                // Deadline happened before write
+                if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
+                    writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                    writeContext.Exception!.Message == "Can't write the message because the request is complete.")
+                {
+                    return true;
                 }
 
-                return false;
-            });
+                // Deadline happened during write (error raised from pipeline writer)
+                if (writeContext.Exception is InvalidOperationException &&
+                    writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                {
+                    return true;
+                }
+            }
 
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(WaitUntilDeadline, $"{nameof(WaitUntilDeadline)}-{throwErrorOnCancellation}");
+            return false;
+        });
 
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
+
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
+
+        var requestStream = new MemoryStream();
+        MessageHelpers.WriteMessage(requestStream, requestMessage);
+
+        var httpRequest = GrpcHttpHelper.Create(method.FullName);
+        httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
+        httpRequest.Content = new GrpcStreamContent(requestStream);
+
+        try
+        {
+            // Act
             var grpcWebClient = CreateGrpcWebClient();
+            var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
 
-            var requestMessage = new HelloRequest
+            // Assert
+            response.AssertIsSuccessfulGrpcRequest();
+
+            var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
+            var pipeReader = PipeReader.Create(responseStream);
+
+            var messageCount = 0;
+
+            var readTask = Task.Run(async () =>
             {
-                Name = "World"
-            };
-
-            var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, requestMessage);
-
-            var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "300m");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
-
-            try
-            {
-                // Act
-                var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
-
-                // Assert
-                response.AssertIsSuccessfulGrpcRequest();
-                response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-            }
-            catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
-            {
-                // Ignore exception from deadline abort
-            }
-        }
-
-        [Test]
-        public async Task WriteMessageAfterDeadline()
-        {
-            static async Task WriteUntilError(HelloRequest request, IServerStreamWriter<HelloReply> responseStream, ServerCallContext context)
-            {
-                var i = 0;
-                var message = $"How are you {request.Name}? {i}";
-                await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
-
-                i++;
-
-                while (!context.CancellationToken.IsCancellationRequested)
+                while (true)
                 {
-                    await Task.Delay(50);
-                }
+                    var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
 
-                message = $"How are you {request.Name}? {i}";
-                await responseStream.WriteAsync(new HelloReply { Message = message }).DefaultTimeout();
-            }
-
-            // Arrange
-            SetExpectedErrorsFilter(writeContext =>
-            {
-                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
-                {
-                    // Deadline happened before write
-                    if (writeContext.EventId.Name == "ErrorExecutingServiceMethod" &&
-                        writeContext.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                        writeContext.Exception!.Message == "Can't write the message because the request is complete.")
+                    if (greeting != null)
                     {
-                        return true;
+                        Assert.AreEqual($"How are you World? {messageCount}", greeting.Message);
+                        messageCount++;
                     }
-
-                    // Deadline happened during write (error raised from pipeline writer)
-                    if (writeContext.Exception is InvalidOperationException &&
-                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                    else
                     {
-                        return true;
+                        break;
                     }
                 }
 
-                return false;
             });
 
-            var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(WriteUntilError, nameof(WriteUntilError));
+            await readTask.DefaultTimeout();
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
-
-            var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, requestMessage);
-
-            var httpRequest = GrpcHttpHelper.Create(method.FullName);
-            httpRequest.Headers.Add(GrpcProtocolConstants.TimeoutHeader, "200m");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
-
-            try
-            {
-                // Act
-                var grpcWebClient = CreateGrpcWebClient();
-                var response = await grpcWebClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead).DefaultTimeout();
-
-                // Assert
-                response.AssertIsSuccessfulGrpcRequest();
-
-                var responseStream = await response.Content.ReadAsStreamAsync().DefaultTimeout();
-                var pipeReader = PipeReader.Create(responseStream);
-
-                var messageCount = 0;
-
-                var readTask = Task.Run(async () =>
-                {
-                    while (true)
-                    {
-                        var greeting = await MessageHelpers.AssertReadStreamMessageAsync<HelloReply>(pipeReader).DefaultTimeout();
-
-                        if (greeting != null)
-                        {
-                            Assert.AreEqual($"How are you World? {messageCount}", greeting.Message);
-                            messageCount++;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                });
-
-                await readTask.DefaultTimeout();
-
-                Assert.AreNotEqual(0, messageCount);
-                response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
-            }
-            catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
-            {
-                // Ignore exception from deadline abort
-            }
-
-            // The server has completed the response but is still running
-            // Allow time for the server to complete
-            await TestHelpers.AssertIsTrueRetryAsync(() =>
-            {
-                var errorLogged = Logs.Any(r =>
-                    r.EventId.Name == "ErrorExecutingServiceMethod" &&
-                    r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
-                    (r.Exception!.Message == "Can't write the message because the request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
-
-                return errorLogged;
-            }, "Expected error not thrown.").DefaultTimeout();
+            Assert.AreNotEqual(0, messageCount);
+            response.AssertTrailerStatus(StatusCode.DeadlineExceeded, "Deadline Exceeded");
         }
+        catch (Exception ex) when (Net.Client.Internal.GrpcProtocolHelpers.ResolveRpcExceptionStatusCode(ex) == StatusCode.Cancelled)
+        {
+            // Ignore exception from deadline abort
+        }
+
+        // The server has completed the response but is still running
+        // Allow time for the server to complete
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            var errorLogged = Logs.Any(r =>
+                r.EventId.Name == "ErrorExecutingServiceMethod" &&
+                r.State.ToString() == "Error when executing service method 'WriteUntilError'." &&
+                (r.Exception!.Message == "Can't write the message because the request is complete." || r.Exception!.Message == "Writing is not allowed after writer was completed."));
+
+            return errorLogged;
+        }, "Expected error not thrown.").DefaultTimeout();
     }
 }

@@ -22,62 +22,61 @@ using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Evaluation;
 using NUnit.Framework;
 
-namespace Grpc.Dotnet.Cli.Tests
+namespace Grpc.Dotnet.Cli.Tests;
+
+[TestFixture]
+public class RemoveCommandTests : TestBase
 {
-    [TestFixture]
-    public class RemoveCommandTests : TestBase
+    [Test]
+    [NonParallelizable]
+    public async Task Commandline_Remove_RemovesReferences()
     {
-        [Test]
-        [NonParallelizable]
-        public async Task Commandline_Remove_RemovesReferences()
-        {
-            // Arrange
-            var currentDir = Directory.GetCurrentDirectory();
-            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            var testConsole = new TestConsole();
-            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
+        // Arrange
+        var currentDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var testConsole = new TestConsole();
+        new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
 
-            var parser = Program.BuildParser(CreateClient());
+        var parser = Program.BuildParser(CreateClient());
 
-            // Act
-            var result = await parser.InvokeAsync($"remove -p {tempDir} {Path.Combine("Proto", "a.proto")}", testConsole);
+        // Act
+        var result = await parser.InvokeAsync($"remove -p {tempDir} {Path.Combine("Proto", "a.proto")}", testConsole);
 
-            // Assert
-            Assert.AreEqual(0, result, testConsole.Error.ToString());
+        // Assert
+        Assert.AreEqual(0, result, testConsole.Error.ToString());
 
-            var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
-            project.ReevaluateIfNecessary();
+        var project = ProjectCollection.GlobalProjectCollection.LoadedProjects.Single(p => p.DirectoryPath == tempDir);
+        project.ReevaluateIfNecessary();
 
-            var protoRefs = project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(0, protoRefs.Count);
-            Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "Proto", "a.proto")));
+        var protoRefs = project.GetItems(CommandBase.ProtobufElement);
+        Assert.AreEqual(0, protoRefs.Count);
+        Assert.True(File.Exists(Path.Combine(project.DirectoryPath, "Proto", "a.proto")));
 
-            // Cleanup
-            Directory.Delete(tempDir, true);
-        }
+        // Cleanup
+        Directory.Delete(tempDir, true);
+    }
 
-        [Test]
-        [NonParallelizable]
-        public void Remove_RemovesReferences()
-        {
-            // Arrange
-            var currentDir = Directory.GetCurrentDirectory();
-            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
+    [Test]
+    [NonParallelizable]
+    public void Remove_RemovesReferences()
+    {
+        // Arrange
+        var currentDir = Directory.GetCurrentDirectory();
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        new DirectoryInfo(Path.Combine(currentDir, "TestAssets", "ProjectWithReference")).CopyTo(tempDir);
 
-            // Act
-            Directory.SetCurrentDirectory(tempDir);
-            var command = new RemoveCommand(new TestConsole(), null, CreateClient());
-            command.Remove(new[] { Path.Combine("Proto", "a.proto") });
+        // Act
+        Directory.SetCurrentDirectory(tempDir);
+        var command = new RemoveCommand(new TestConsole(), null, CreateClient());
+        command.Remove(new[] { Path.Combine("Proto", "a.proto") });
 
-            // Assert
-            var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
-            Assert.AreEqual(0, protoRefs.Count);
-            Assert.True(File.Exists(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto")));
+        // Assert
+        var protoRefs = command.Project.GetItems(CommandBase.ProtobufElement);
+        Assert.AreEqual(0, protoRefs.Count);
+        Assert.True(File.Exists(Path.Combine(command.Project.DirectoryPath, "Proto", "a.proto")));
 
-            // Cleanup
-            Directory.SetCurrentDirectory(currentDir);
-            Directory.Delete(tempDir, true);
-        }
+        // Cleanup
+        Directory.SetCurrentDirectory(currentDir);
+        Directory.Delete(tempDir, true);
     }
 }

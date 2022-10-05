@@ -20,20 +20,19 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using static Greet.SecondGreeter;
 
-namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory
+namespace Grpc.AspNetCore.Server.Tests.HttpClientFactory;
+
+internal class TestSecondGreeterClient : SecondGreeterClient
 {
-    internal class TestSecondGreeterClient : SecondGreeterClient
+    private readonly CallInvoker _callInvoker;
+
+    public TestSecondGreeterClient(CallInvoker callInvoker) : base(callInvoker)
     {
-        private readonly CallInvoker _callInvoker;
+        _callInvoker = callInvoker;
+    }
 
-        public TestSecondGreeterClient(CallInvoker callInvoker) : base(callInvoker)
-        {
-            _callInvoker = callInvoker;
-        }
-
-        public HttpClientCallInvoker GetCallInvoker()
-        {
-            return (HttpClientCallInvoker)_callInvoker;
-        }
+    public HttpClientCallInvoker GetCallInvoker()
+    {
+        return (HttpClientCallInvoker)_callInvoker;
     }
 }

@@ -16,33 +16,32 @@
 
 #endregion
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Verification context for VerifyPeerCallback.
+/// Note: experimental API that can change or be removed without any prior notice.
+/// </summary>
+public class VerifyPeerContext
 {
     /// <summary>
-    /// Verification context for VerifyPeerCallback.
-    /// Note: experimental API that can change or be removed without any prior notice.
+    /// Initializes a new instance of the <see cref="T:Grpc.Core.VerifyPeerContext"/> class.
     /// </summary>
-    public class VerifyPeerContext
+    /// <param name="targetName">The target name of the peer.</param>
+    /// <param name="peerPem">The PEM encoded certificate of the peer.</param>
+    internal VerifyPeerContext(string targetName, string peerPem)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="T:Grpc.Core.VerifyPeerContext"/> class.
-        /// </summary>
-        /// <param name="targetName">The target name of the peer.</param>
-        /// <param name="peerPem">The PEM encoded certificate of the peer.</param>
-        internal VerifyPeerContext(string targetName, string peerPem)
-        {
-            this.TargetName = targetName;
-            this.PeerPem = peerPem;
-        }
-
-        /// <summary>
-        /// The target name of the peer.
-        /// </summary>
-        public string TargetName { get; }
-
-        /// <summary>
-        /// The PEM encoded certificate of the peer.
-        /// </summary>
-        public string PeerPem { get; }
+        this.TargetName = targetName;
+        this.PeerPem = peerPem;
     }
+
+    /// <summary>
+    /// The target name of the peer.
+    /// </summary>
+    public string TargetName { get; }
+
+    /// <summary>
+    /// The PEM encoded certificate of the peer.
+    /// </summary>
+    public string PeerPem { get; }
 }

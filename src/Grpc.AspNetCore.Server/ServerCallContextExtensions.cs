@@ -19,48 +19,47 @@
 using Grpc.AspNetCore.Server.Internal;
 using Microsoft.AspNetCore.Http;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Extension methods for ServerCallContext.
+/// </summary>
+public static class ServerCallContextExtensions
 {
+    internal const string HttpContextKey = "__HttpContext";
+
     /// <summary>
-    /// Extension methods for ServerCallContext.
+    /// Retrieve the <see cref="HttpContext"/> from the a call's <see cref="ServerCallContext"/>.
+    /// The HttpContext is only available when gRPC services are hosted by ASP.NET Core. An error will be
+    /// thrown if this method is used outside of ASP.NET Core.
+    /// Note that read-only usage of HttpContext is recommended as changes to the HttpContext are not synchronized
+    /// with the ServerCallContext.
     /// </summary>
-    public static class ServerCallContextExtensions
+    /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
+    /// <returns>The call's <see cref="HttpContext"/>.</returns>
+    public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
     {
-        internal const string HttpContextKey = "__HttpContext";
-
-        /// <summary>
-        /// Retrieve the <see cref="HttpContext"/> from the a call's <see cref="ServerCallContext"/>.
-        /// The HttpContext is only available when gRPC services are hosted by ASP.NET Core. An error will be
-        /// thrown if this method is used outside of ASP.NET Core.
-        /// Note that read-only usage of HttpContext is recommended as changes to the HttpContext are not synchronized
-        /// with the ServerCallContext.
-        /// </summary>
-        /// <param name="serverCallContext">The <see cref="ServerCallContext"/>.</param>
-        /// <returns>The call's <see cref="HttpContext"/>.</returns>
-        public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
+        if (serverCallContext == null)
         {
-            if (serverCallContext == null)
-            {
-                throw new ArgumentNullException(nameof(serverCallContext));
-            }
-
-            // Attempt to quickly get HttpContext from known call context type.
-            if (serverCallContext is HttpContextServerCallContext httpContextServerCallContext)
-            {
-                return httpContextServerCallContext.HttpContext;
-            }
-
-            // Fallback to getting HttpContext from user state.
-            // This is to support custom gRPC invokers that replace the default server call context.
-            // They must place the HttpContext in UserState with the `__HttpContext` key.
-            if (serverCallContext.UserState != null &&
-                serverCallContext.UserState.TryGetValue(HttpContextKey, out var c) &&
-                c is HttpContext httpContext)
-            {
-                return httpContext;
-            }
-
-            throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by ASP.NET Core.");
+            throw new ArgumentNullException(nameof(serverCallContext));
         }
+
+        // Attempt to quickly get HttpContext from known call context type.
+        if (serverCallContext is HttpContextServerCallContext httpContextServerCallContext)
+        {
+            return httpContextServerCallContext.HttpContext;
+        }
+
+        // Fallback to getting HttpContext from user state.
+        // This is to support custom gRPC invokers that replace the default server call context.
+        // They must place the HttpContext in UserState with the `__HttpContext` key.
+        if (serverCallContext.UserState != null &&
+            serverCallContext.UserState.TryGetValue(HttpContextKey, out var c) &&
+            c is HttpContext httpContext)
+        {
+            return httpContext;
+        }
+
+        throw new InvalidOperationException("Could not get HttpContext from ServerCallContext. HttpContext can only be accessed when gRPC services are hosted by ASP.NET Core.");
     }
 }

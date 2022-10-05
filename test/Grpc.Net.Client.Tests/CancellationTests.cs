@@ -25,129 +25,128 @@ using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class CancellationTests
 {
-    [TestFixture]
-    public class CancellationTests
+    [Test]
+    public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
     {
-        [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseThrowsCancelledStatus()
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var responseTask = call.ResponseAsync;
+        Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
+
+        cts.Cancel();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var responseHeadersTask = call.ResponseHeadersAsync;
+        Assert.IsFalse(responseHeadersTask.IsCompleted, "Headers not returned until client stream is complete.");
+
+        cts.Cancel();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseThrowsCancelledStatus()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var responseTask = call.ResponseAsync;
+        Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
+
+        cts.Cancel();
+
+        var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseHeadersThrowsCancelledStatus()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var responseHeadersTask = call.ResponseHeadersAsync;
+        Assert.IsFalse(responseHeadersTask.IsCompleted, "Headers not returned until client stream is complete.");
+
+        cts.Cancel();
+
+        var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseHeadersTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+        Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
+    }
+
+    [Test]
+    public void AsyncClientStreamingCall_CancellationDuringSend_TrailersThrowsInvalidOperation()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
+
+        // Act
+        var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        cts.Cancel();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
+
+        Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    private static HttpClientCallInvoker CreateTimedoutCallInvoker<TRequest, TResponse>(Action<GrpcChannelOptions>? configure = null)
+        where TRequest : class
+        where TResponse : class
+    {
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
+            var content = (PushStreamContent<TRequest, TResponse>)request.Content!;
+            await content.PushComplete.DefaultTimeout();
 
-            // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-
-            // Assert
-            var responseTask = call.ResponseAsync;
-            Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
-
-            cts.Cancel();
-
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
-        }
-
-        [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ResponseHeadersThrowsCancelledStatus()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
-
-            // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-
-            // Assert
-            var responseHeadersTask = call.ResponseHeadersAsync;
-            Assert.IsFalse(responseHeadersTask.IsCompleted, "Headers not returned until client stream is complete.");
-
-            cts.Cancel();
-
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseHeadersTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
-        }
-
-        [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseThrowsCancelledStatus()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
-
-            // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-
-            // Assert
-            var responseTask = call.ResponseAsync;
-            Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
-
-            cts.Cancel();
-
-            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
-        }
-
-        [Test]
-        public async Task AsyncClientStreamingCall_CancellationDuringSend_ThrowOperationCanceledOnCancellation_ResponseHeadersThrowsCancelledStatus()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>(configure: o => o.ThrowOperationCanceledOnCancellation = true);
-
-            // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-
-            // Assert
-            var responseHeadersTask = call.ResponseHeadersAsync;
-            Assert.IsFalse(responseHeadersTask.IsCompleted, "Headers not returned until client stream is complete.");
-
-            cts.Cancel();
-
-            var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseHeadersTask).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-            Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
-        }
-
-        [Test]
-        public void AsyncClientStreamingCall_CancellationDuringSend_TrailersThrowsInvalidOperation()
-        {
-            // Arrange
-            var cts = new CancellationTokenSource();
-            var invoker = CreateTimedoutCallInvoker<HelloRequest, HelloReply>();
-
-            // Act
-            var call = invoker.AsyncClientStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-
-            // Assert
-            cts.Cancel();
-
-            var ex = Assert.Throws<InvalidOperationException>(() => call.GetTrailers())!;
-
-            Assert.AreEqual("Can't get the call trailers because the call has not completed successfully.", ex.Message);
-            Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
-        }
-
-        private static HttpClientCallInvoker CreateTimedoutCallInvoker<TRequest, TResponse>(Action<GrpcChannelOptions>? configure = null)
-            where TRequest : class
-            where TResponse : class
-        {
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var content = (PushStreamContent<TRequest, TResponse>)request.Content!;
-                await content.PushComplete.DefaultTimeout();
-
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: configure);
-            return invoker;
-        }
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, configure: configure);
+        return invoker;
     }
 }

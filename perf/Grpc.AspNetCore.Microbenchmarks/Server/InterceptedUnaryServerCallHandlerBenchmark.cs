@@ -20,20 +20,19 @@ using BenchmarkDotNet.Attributes;
 using Grpc.AspNetCore.Microbenchmarks.Internal;
 using Grpc.AspNetCore.Server;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Server
-{
-    public class InterceptedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
-    {
-        public InterceptedUnaryServerCallHandlerBenchmark()
-        {
-            Interceptors = new InterceptorCollection();
-            Interceptors.Add<UnaryAwaitInterceptor>();
-        }
+namespace Grpc.AspNetCore.Microbenchmarks.Server;
 
-        [Benchmark]
-        public Task InterceptedHandleCallAsync()
-        {
-            return InvokeUnaryRequestAsync();
-        }
+public class InterceptedUnaryServerCallHandlerBenchmark : UnaryServerCallHandlerBenchmarkBase
+{
+    public InterceptedUnaryServerCallHandlerBenchmark()
+    {
+        Interceptors = new InterceptorCollection();
+        Interceptors.Add<UnaryAwaitInterceptor>();
+    }
+
+    [Benchmark]
+    public Task InterceptedHandleCallAsync()
+    {
+        return InvokeUnaryRequestAsync();
     }
 }

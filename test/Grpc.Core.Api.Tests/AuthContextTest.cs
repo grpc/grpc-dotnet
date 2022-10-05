@@ -22,50 +22,49 @@ using NUnit.Framework;
 using Grpc.Core;
 using System.Linq;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class AuthContextTest
 {
-    public class AuthContextTest
+    [Test]
+    public void EmptyContext()
     {
-        [Test]
-        public void EmptyContext()
-        {
-            var context = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
-            Assert.IsFalse(context.IsPeerAuthenticated);
-            Assert.IsNull(context.PeerIdentityPropertyName);
-            Assert.AreEqual(0, context.PeerIdentity.Count());
-            Assert.AreEqual(0, context.Properties.Count());
-            Assert.AreEqual(0, context.FindPropertiesByName("nonexistent").Count());
-        }
+        var context = new AuthContext(null, new Dictionary<string, List<AuthProperty>>());
+        Assert.IsFalse(context.IsPeerAuthenticated);
+        Assert.IsNull(context.PeerIdentityPropertyName);
+        Assert.AreEqual(0, context.PeerIdentity.Count());
+        Assert.AreEqual(0, context.Properties.Count());
+        Assert.AreEqual(0, context.FindPropertiesByName("nonexistent").Count());
+    }
 
-        [Test]
-        public void AuthenticatedContext()
+    [Test]
+    public void AuthenticatedContext()
+    {
+        var property1 = AuthProperty.Create("abc", new byte[] { 68, 69, 70 });
+        var context = new AuthContext("some_identity", new Dictionary<string, List<AuthProperty>>
         {
-            var property1 = AuthProperty.Create("abc", new byte[] { 68, 69, 70 });
-            var context = new AuthContext("some_identity", new Dictionary<string, List<AuthProperty>>
-            {
-                {"some_identity", new List<AuthProperty> {property1}}
-            });
-            Assert.IsTrue(context.IsPeerAuthenticated);
-            Assert.AreEqual("some_identity", context.PeerIdentityPropertyName);
-            Assert.AreEqual(1, context.PeerIdentity.Count());
-        }
+            {"some_identity", new List<AuthProperty> {property1}}
+        });
+        Assert.IsTrue(context.IsPeerAuthenticated);
+        Assert.AreEqual("some_identity", context.PeerIdentityPropertyName);
+        Assert.AreEqual(1, context.PeerIdentity.Count());
+    }
 
-        [Test]
-        public void FindPropertiesByName()
+    [Test]
+    public void FindPropertiesByName()
+    {
+        var property1 = AuthProperty.Create("abc", new byte[] {68, 69, 70});
+        var property2 = AuthProperty.Create("abc", new byte[] {71, 72, 73 });
+        var property3 = AuthProperty.Create("abc", new byte[] {});
+        var context = new AuthContext(null, new Dictionary<string, List<AuthProperty>>
         {
-            var property1 = AuthProperty.Create("abc", new byte[] {68, 69, 70});
-            var property2 = AuthProperty.Create("abc", new byte[] {71, 72, 73 });
-            var property3 = AuthProperty.Create("abc", new byte[] {});
-            var context = new AuthContext(null, new Dictionary<string, List<AuthProperty>>
-            {
-                {"existent", new List<AuthProperty> {property1, property2}},
-                {"foobar", new List<AuthProperty> {property3}},
-            });
-            Assert.AreEqual(3, context.Properties.Count());
-            Assert.AreEqual(0, context.FindPropertiesByName("nonexistent").Count());
+            {"existent", new List<AuthProperty> {property1, property2}},
+            {"foobar", new List<AuthProperty> {property3}},
+        });
+        Assert.AreEqual(3, context.Properties.Count());
+        Assert.AreEqual(0, context.FindPropertiesByName("nonexistent").Count());
 
-            var existentProperties = new List<AuthProperty>(context.FindPropertiesByName("existent"));
-            Assert.AreEqual(2, existentProperties.Count);
-        }
+        var existentProperties = new List<AuthProperty>(context.FindPropertiesByName("existent"));
+        Assert.AreEqual(2, existentProperties.Count);
     }
 }

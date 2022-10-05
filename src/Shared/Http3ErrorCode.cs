@@ -16,26 +16,25 @@
 
 #endregion
 
-namespace Grpc.Shared
+namespace Grpc.Shared;
+
+internal enum Http3ErrorCode : long
 {
-    internal enum Http3ErrorCode : long
-    {
-        H3_NO_ERROR = 0x100,
-        H3_GENERAL_PROTOCOL_ERROR = 0x101,
-        H3_INTERNAL_ERROR = 0x102,
-        H3_STREAM_CREATION_ERROR = 0x103,
-        H3_CLOSED_CRITICAL_STREAM = 0x104,
-        H3_FRAME_UNEXPECTED = 0x105,
-        H3_FRAME_ERROR = 0x106,
-        H3_EXCESSIVE_LOAD = 0x107,
-        H3_ID_ERROR = 0x108,
-        H3_SETTINGS_ERROR = 0x109,
-        H3_MISSING_SETTINGS = 0x10a,
-        H3_REQUEST_REJECTED = 0x10b,
-        H3_REQUEST_CANCELLED = 0x10c,
-        H3_REQUEST_INCOMPLETE = 0x10d,
-        H3_MESSAGE_ERROR = 0x10e,
-        H3_CONNECT_ERROR = 0x10f,
-        H3_VERSION_FALLBACK = 0x110,
-    }
+    H3_NO_ERROR = 0x100,
+    H3_GENERAL_PROTOCOL_ERROR = 0x101,
+    H3_INTERNAL_ERROR = 0x102,
+    H3_STREAM_CREATION_ERROR = 0x103,
+    H3_CLOSED_CRITICAL_STREAM = 0x104,
+    H3_FRAME_UNEXPECTED = 0x105,
+    H3_FRAME_ERROR = 0x106,
+    H3_EXCESSIVE_LOAD = 0x107,
+    H3_ID_ERROR = 0x108,
+    H3_SETTINGS_ERROR = 0x109,
+    H3_MISSING_SETTINGS = 0x10a,
+    H3_REQUEST_REJECTED = 0x10b,
+    H3_REQUEST_CANCELLED = 0x10c,
+    H3_REQUEST_INCOMPLETE = 0x10d,
+    H3_MESSAGE_ERROR = 0x10e,
+    H3_CONNECT_ERROR = 0x10f,
+    H3_VERSION_FALLBACK = 0x110,
 }

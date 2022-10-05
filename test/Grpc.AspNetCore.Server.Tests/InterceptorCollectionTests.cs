@@ -19,101 +19,100 @@
 using Grpc.Core.Interceptors;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.Server.Tests;
+
+[TestFixture]
+public class InterceptorCollectionTests
 {
-    [TestFixture]
-    public class InterceptorCollectionTests
+    [Test]
+    public void Add_NonGeneric_AddedToCollection()
     {
-        [Test]
-        public void Add_NonGeneric_AddedToCollection()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            interceptors.Add(typeof(TestInterceptor));
+        // Act
+        interceptors.Add(typeof(TestInterceptor));
 
-            // Assert
-            Assert.AreEqual(1, interceptors.Count);
-            Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
-            Assert.AreEqual(0, interceptors[0].Arguments.Count);
-        }
+        // Assert
+        Assert.AreEqual(1, interceptors.Count);
+        Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
+        Assert.AreEqual(0, interceptors[0].Arguments.Count);
+    }
 
-        [Test]
-        public void Add_NonGenericInterceptorBaseType_ThrowError()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+    [Test]
+    public void Add_NonGenericInterceptorBaseType_ThrowError()
+    {
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add(typeof(Interceptor)))!;
+        // Act
+        var ex = Assert.Throws<ArgumentException>(() => interceptors.Add(typeof(Interceptor)))!;
 
-            // Assert
-            Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);
+    }
 
-        [Test]
-        public void Add_Generic_AddedToCollection()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+    [Test]
+    public void Add_Generic_AddedToCollection()
+    {
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            interceptors.Add<TestInterceptor>();
+        // Act
+        interceptors.Add<TestInterceptor>();
 
-            // Assert
-            Assert.AreEqual(1, interceptors.Count);
-            Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
-            Assert.AreEqual(0, interceptors[0].Arguments.Count);
-        }
+        // Assert
+        Assert.AreEqual(1, interceptors.Count);
+        Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
+        Assert.AreEqual(0, interceptors[0].Arguments.Count);
+    }
 
-        [Test]
-        public void Add_GenericInterceptorBaseType_AddedToCollection()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+    [Test]
+    public void Add_GenericInterceptorBaseType_AddedToCollection()
+    {
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            var ex = Assert.Throws<ArgumentException>(() => interceptors.Add<Interceptor>())!;
+        // Act
+        var ex = Assert.Throws<ArgumentException>(() => interceptors.Add<Interceptor>())!;
 
-            // Assert
-            Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual("Type must inherit from Grpc.Core.Interceptors.Interceptor. (Parameter 'interceptorType')", ex.Message);
+    }
 
-        [Test]
-        public void Add_NonGenericWithArgs_AddedToCollection()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+    [Test]
+    public void Add_NonGenericWithArgs_AddedToCollection()
+    {
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            interceptors.Add(typeof(TestInterceptor), "Arg");
+        // Act
+        interceptors.Add(typeof(TestInterceptor), "Arg");
 
-            // Assert
-            Assert.AreEqual(1, interceptors.Count);
-            Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
-            Assert.AreEqual(1, interceptors[0].Arguments.Count);
-            Assert.AreEqual("Arg", interceptors[0].Arguments[0]);
-        }
+        // Assert
+        Assert.AreEqual(1, interceptors.Count);
+        Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
+        Assert.AreEqual(1, interceptors[0].Arguments.Count);
+        Assert.AreEqual("Arg", interceptors[0].Arguments[0]);
+    }
 
-        [Test]
-        public void Add_GenericWithArgs_AddedToCollection()
-        {
-            // Arrange
-            var interceptors = new InterceptorCollection();
+    [Test]
+    public void Add_GenericWithArgs_AddedToCollection()
+    {
+        // Arrange
+        var interceptors = new InterceptorCollection();
 
-            // Act
-            interceptors.Add<TestInterceptor>("Arg");
+        // Act
+        interceptors.Add<TestInterceptor>("Arg");
 
-            // Assert
-            Assert.AreEqual(1, interceptors.Count);
-            Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
-            Assert.AreEqual(1, interceptors[0].Arguments.Count);
-            Assert.AreEqual("Arg", interceptors[0].Arguments[0]);
-        }
+        // Assert
+        Assert.AreEqual(1, interceptors.Count);
+        Assert.AreEqual(typeof(TestInterceptor), interceptors[0].Type);
+        Assert.AreEqual(1, interceptors[0].Arguments.Count);
+        Assert.AreEqual("Arg", interceptors[0].Arguments[0]);
+    }
 
-        private class TestInterceptor : Interceptor
-        {
-        }
+    private class TestInterceptor : Interceptor
+    {
     }
 }

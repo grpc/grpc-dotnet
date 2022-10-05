@@ -17,74 +17,73 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer.Internal;
+
+/// <summary>
+/// An abstraction for subchannels to create a transport and connect to the server.
+/// This abstraction allows the connection to be customized. Used in unit tests.
+/// Might be made public in the future to support using load balancing with non-socket transports.
+/// </summary>
+internal interface ISubchannelTransport : IDisposable
 {
-    /// <summary>
-    /// An abstraction for subchannels to create a transport and connect to the server.
-    /// This abstraction allows the connection to be customized. Used in unit tests.
-    /// Might be made public in the future to support using load balancing with non-socket transports.
-    /// </summary>
-    internal interface ISubchannelTransport : IDisposable
-    {
-        BalancerAddress? CurrentAddress { get; }
-        TimeSpan? ConnectTimeout { get; }
+    BalancerAddress? CurrentAddress { get; }
+    TimeSpan? ConnectTimeout { get; }
 
 #if NET5_0_OR_GREATER
-        ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
+    ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken);
 #endif
 
 #if !NETSTANDARD2_0
-        ValueTask<bool>
+    ValueTask<bool>
 #else
-        Task<bool>
+    Task<bool>
 #endif
-            TryConnectAsync(ConnectContext context);
+        TryConnectAsync(ConnectContext context);
 
-        void Disconnect();
-    }
+    void Disconnect();
+}
 
-    internal sealed class ConnectContext
+internal sealed class ConnectContext
+{
+    private readonly CancellationTokenSource _cts;
+    private readonly CancellationToken _token;
+    private bool _disposed;
+
+    // This flag allows the transport to determine why the cancellation token was canceled.
+    // - Explicit cancellation, e.g. the channel was disposed.
+    // - Connection timeout, e.g. SocketsHttpHandler.ConnectTimeout was exceeded.
+    public bool IsConnectCanceled { get; private set; }
+
+    public CancellationToken CancellationToken => _token;
+
+    public ConnectContext(TimeSpan connectTimeout)
     {
-        private readonly CancellationTokenSource _cts;
-        private readonly CancellationToken _token;
-        private bool _disposed;
+        _cts = new CancellationTokenSource(connectTimeout);
 
-        // This flag allows the transport to determine why the cancellation token was canceled.
-        // - Explicit cancellation, e.g. the channel was disposed.
-        // - Connection timeout, e.g. SocketsHttpHandler.ConnectTimeout was exceeded.
-        public bool IsConnectCanceled { get; private set; }
-
-        public CancellationToken CancellationToken => _token;
-
-        public ConnectContext(TimeSpan connectTimeout)
-        {
-            _cts = new CancellationTokenSource(connectTimeout);
-
-            // Take a copy of the token to avoid ObjectDisposedException when accessing _cts.Token after CTS is disposed.
-            _token = _cts.Token;
-        }
-
-        public void CancelConnect()
-        {
-            // Check disposed because CTS.Cancel throws if the CTS is disposed.
-            if (!_disposed)
-            {
-                IsConnectCanceled = true;
-                _cts.Cancel();
-            }
-        }
-
-        public void Dispose()
-        {
-            // Dispose the CTS because it could be created with an internal timer.
-            _cts.Dispose();
-            _disposed = true;
-        }
+        // Take a copy of the token to avoid ObjectDisposedException when accessing _cts.Token after CTS is disposed.
+        _token = _cts.Token;
     }
 
-    internal interface ISubchannelTransportFactory
+    public void CancelConnect()
     {
-        ISubchannelTransport Create(Subchannel subchannel);
+        // Check disposed because CTS.Cancel throws if the CTS is disposed.
+        if (!_disposed)
+        {
+            IsConnectCanceled = true;
+            _cts.Cancel();
+        }
     }
+
+    public void Dispose()
+    {
+        // Dispose the CTS because it could be created with an internal timer.
+        _cts.Dispose();
+        _disposed = true;
+    }
+}
+
+internal interface ISubchannelTransportFactory
+{
+    ISubchannelTransport Create(Subchannel subchannel);
 }
 #endif

@@ -19,39 +19,38 @@
 using System.IO.Pipelines;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+public class TestResponseBodyFeature : IHttpResponseBodyFeature
 {
-    public class TestResponseBodyFeature : IHttpResponseBodyFeature
+    private readonly Task _startAsyncTask;
+
+    public TestResponseBodyFeature(PipeWriter writer, Task? startAsyncTask = null)
     {
-        private readonly Task _startAsyncTask;
+        Writer = writer;
+        _startAsyncTask = startAsyncTask ?? Task.CompletedTask;
+    }
 
-        public TestResponseBodyFeature(PipeWriter writer, Task? startAsyncTask = null)
-        {
-            Writer = writer;
-            _startAsyncTask = startAsyncTask ?? Task.CompletedTask;
-        }
+    public PipeWriter Writer { get; }
+    public Stream Stream => throw new NotImplementedException();
 
-        public PipeWriter Writer { get; }
-        public Stream Stream => throw new NotImplementedException();
+    public Task CompleteAsync()
+    {
+        throw new NotImplementedException();
+    }
 
-        public Task CompleteAsync()
-        {
-            throw new NotImplementedException();
-        }
+    public void DisableBuffering()
+    {
+        throw new NotImplementedException();
+    }
 
-        public void DisableBuffering()
-        {
-            throw new NotImplementedException();
-        }
+    public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
-        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken = default)
-        {
-            return _startAsyncTask;
-        }
+    public Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        return _startAsyncTask;
     }
 }

@@ -20,21 +20,20 @@ using Grpc.AspNetCore.Server.Tests.TestObjects;
 using Grpc.Core;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
-{
-    [TestFixture]
-    public class PipeExtensionsByteArrayTests : PipeExtensionsTestsBase
-    {
-        private static readonly Marshaller<TestData> ByteArrayMarshaller = new Marshaller<TestData>(
-            (TestData data, SerializationContext c) =>
-            {
-                c.Complete(data.Span.ToArray());
-            },
-            (DeserializationContext c) =>
-            {
-                return new TestData(c.PayloadAsNewBuffer().AsMemory());
-            });
+namespace Grpc.AspNetCore.Server.Tests;
 
-        protected override Marshaller<TestData> TestDataMarshaller => ByteArrayMarshaller;
-    }
+[TestFixture]
+public class PipeExtensionsByteArrayTests : PipeExtensionsTestsBase
+{
+    private static readonly Marshaller<TestData> ByteArrayMarshaller = new Marshaller<TestData>(
+        (TestData data, SerializationContext c) =>
+        {
+            c.Complete(data.Span.ToArray());
+        },
+        (DeserializationContext c) =>
+        {
+            return new TestData(c.PayloadAsNewBuffer().AsMemory());
+        });
+
+    protected override Marshaller<TestData> TestDataMarshaller => ByteArrayMarshaller;
 }

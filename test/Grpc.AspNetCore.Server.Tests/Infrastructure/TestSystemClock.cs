@@ -18,15 +18,14 @@
 
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
-{
-    public class TestSystemClock : ISystemClock
-    {
-        public TestSystemClock(DateTime utcNow)
-        {
-            UtcNow = utcNow;
-        }
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure;
 
-        public DateTime UtcNow { get; set; }
+public class TestSystemClock : ISystemClock
+{
+    public TestSystemClock(DateTime utcNow)
+    {
+        UtcNow = utcNow;
     }
+
+    public DateTime UtcNow { get; set; }
 }

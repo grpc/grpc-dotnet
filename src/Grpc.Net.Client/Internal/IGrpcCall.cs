@@ -23,35 +23,34 @@ using Grpc.Core;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal interface IGrpcCall<TRequest, TResponse> : IDisposable
+    where TRequest : class
+    where TResponse : class
 {
-    internal interface IGrpcCall<TRequest, TResponse> : IDisposable
-        where TRequest : class
-        where TResponse : class
-    {
-        Task<TResponse> GetResponseAsync();
-        Task<Metadata> GetResponseHeadersAsync();
-        Status GetStatus();
-        Metadata GetTrailers();
+    Task<TResponse> GetResponseAsync();
+    Task<Metadata> GetResponseHeadersAsync();
+    Status GetStatus();
+    Metadata GetTrailers();
 
-        IClientStreamWriter<TRequest>? ClientStreamWriter { get; }
-        IAsyncStreamReader<TResponse>? ClientStreamReader { get; }
+    IClientStreamWriter<TRequest>? ClientStreamWriter { get; }
+    IAsyncStreamReader<TResponse>? ClientStreamReader { get; }
 
-        void StartUnary(TRequest request);
-        void StartClientStreaming();
-        void StartServerStreaming(TRequest request);
-        void StartDuplexStreaming();
+    void StartUnary(TRequest request);
+    void StartClientStreaming();
+    void StartServerStreaming(TRequest request);
+    void StartDuplexStreaming();
 
-        Task WriteClientStreamAsync<TState>(
-            Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
-            TState state);
+    Task WriteClientStreamAsync<TState>(
+        Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
+        TState state);
 
-        Exception CreateFailureStatusException(Status status);
+    Exception CreateFailureStatusException(Status status);
 
-        bool TryRegisterCancellation(
-            CancellationToken cancellationToken,
-            [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration);
+    bool TryRegisterCancellation(
+        CancellationToken cancellationToken,
+        [NotNullWhen(true)] out CancellationTokenRegistration? cancellationTokenRegistration);
 
-        bool Disposed { get; }
-    }
+    bool Disposed { get; }
 }

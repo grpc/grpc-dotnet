@@ -16,10 +16,9 @@
 
 #endregion
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal interface ISystemClock
 {
-    internal interface ISystemClock
-    {
-        DateTime UtcNow { get; }
-    }
+    DateTime UtcNow { get; }
 }

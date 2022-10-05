@@ -22,262 +22,261 @@ using Grpc.Net.Client.Web.Internal;
 using Grpc.Shared;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Web.Tests
+namespace Grpc.Net.Client.Web.Tests;
+
+[TestFixture]
+public class GrpcWebHandlerTests
 {
-    [TestFixture]
-    public class GrpcWebHandlerTests
+    [Test]
+    public async Task HttpVersion_Unset_HttpRequestMessageVersionUnchanged()
     {
-        [Test]
-        public async Task HttpVersion_Unset_HttpRequestMessageVersionUnchanged()
+        // Arrange
+        var request = new HttpRequestMessage
         {
-            // Arrange
-            var request = new HttpRequestMessage
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
-            {
-                InnerHandler = testHttpHandler
-            };
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
-
-            // Act
-            var response = await messageInvoker.SendAsync(request, CancellationToken.None);
-
-            // Assert
-            Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, testHttpHandler.Request!.Version);
-            Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
-        }
-
-        [Test]
-        public async Task HttpVersion_Set_HttpRequestMessageVersionChanged()
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
         {
-            // Arrange
-            var request = new HttpRequestMessage
-            {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
-            {
-                InnerHandler = testHttpHandler,
-                HttpVersion = HttpVersion.Version11
-            };
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+            InnerHandler = testHttpHandler
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 
-            // Act
-            var response = await messageInvoker.SendAsync(request, CancellationToken.None);
+        // Act
+        var response = await messageInvoker.SendAsync(request, CancellationToken.None);
 
-            // Assert
-            Assert.AreEqual(HttpVersion.Version11, testHttpHandler.Request!.Version);
-            Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
-        }
+        // Assert
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, testHttpHandler.Request!.Version);
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
+    }
 
-        [Test]
-        public async Task GrpcWebMode_GrpcWebText_AcceptHeaderAdded()
+    [Test]
+    public async Task HttpVersion_Set_HttpRequestMessageVersionChanged()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
         {
-            // Arrange
-            var request = new HttpRequestMessage
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText)
-            {
-                InnerHandler = testHttpHandler
-            };
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
-
-            // Act
-            await messageInvoker.SendAsync(request, CancellationToken.None);
-
-            // Assert
-            Assert.IsTrue(testHttpHandler.Request!.Headers.TryGetValues("Accept", out var values));
-            Assert.AreEqual(GrpcWebProtocolConstants.GrpcWebTextContentType, values!.Single());
-        }
-
-        [Test]
-        public async Task SendAsync_GrpcCall_ResponseStreamingPropertySet()
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
         {
-            // Arrange
-            var request = new HttpRequestMessage
-            {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+            InnerHandler = testHttpHandler,
+            HttpVersion = HttpVersion.Version11
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 
-            // Act
-            await messageInvoker.SendAsync(request, CancellationToken.None);
+        // Act
+        var response = await messageInvoker.SendAsync(request, CancellationToken.None);
 
-            // Assert
-            Assert.AreEqual(true, testHttpHandler.WebAssemblyEnableStreamingResponse);
-        }
+        // Assert
+        Assert.AreEqual(HttpVersion.Version11, testHttpHandler.Request!.Version);
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
+    }
 
-        [Test]
-        public async Task SendAsync_GrpcCallInBrowser_UserAgentFixed()
+    [Test]
+    public async Task GrpcWebMode_GrpcWebText_AcceptHeaderAdded()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
         {
-            // Arrange
-            var request = new HttpRequestMessage
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            request.Headers.TryAddWithoutValidation("User-Agent", "TestUserAgent");
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
-            grpcWebHandler.OperatingSystem = new TestOperatingSystem
-            {
-                IsBrowser = true
-            };
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
-
-            // Act
-            await messageInvoker.SendAsync(request, CancellationToken.None);
-
-            // Assert
-            Assert.AreEqual(false, testHttpHandler.RequestHeaders!.TryGetValues("user-agent", out _));
-            Assert.AreEqual(true, testHttpHandler.RequestHeaders!.TryGetValues("x-user-agent", out var values));
-            Assert.AreEqual("TestUserAgent", values!.Single());
-        }
-
-        [Test]
-        public async Task SendAsync_NonGrpcCall_ResponseStreamingPropertyNotSet()
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText)
         {
-            // Arrange
-            var request = new HttpRequestMessage
-            {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/text") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler();
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+            InnerHandler = testHttpHandler
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 
-            // Act
-            await messageInvoker.SendAsync(request, CancellationToken.None);
+        // Act
+        await messageInvoker.SendAsync(request, CancellationToken.None);
 
-            // Assert
-            Assert.AreEqual(null, testHttpHandler.WebAssemblyEnableStreamingResponse);
-        }
+        // Assert
+        Assert.IsTrue(testHttpHandler.Request!.Headers.TryGetValues("Accept", out var values));
+        Assert.AreEqual(GrpcWebProtocolConstants.GrpcWebTextContentType, values!.Single());
+    }
 
-        [Test]
-        public async Task SendAsync_GrpcCallWithTrailers_TrailersSet()
+    [Test]
+    public async Task SendAsync_GrpcCall_ResponseStreamingPropertySet()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
         {
-            // Arrange
-            var data = Convert.FromBase64String("AAAAAACAAAAAEA0KZ3JwYy1zdGF0dXM6IDA=");
-            var request = new HttpRequestMessage
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+        // Act
+        await messageInvoker.SendAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.AreEqual(true, testHttpHandler.WebAssemblyEnableStreamingResponse);
+    }
+
+    [Test]
+    public async Task SendAsync_GrpcCallInBrowser_UserAgentFixed()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
+        {
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                ResponseContent = new ByteArrayContent(data)
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc-web") }
-                }
-            };
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        request.Headers.TryAddWithoutValidation("User-Agent", "TestUserAgent");
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+        grpcWebHandler.OperatingSystem = new TestOperatingSystem
+        {
+            IsBrowser = true
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 
-            // Act
-            var response = await messageInvoker.SendAsync(request, CancellationToken.None);
-            await response.Content.ReadAsByteArrayAsync();
+        // Act
+        await messageInvoker.SendAsync(request, CancellationToken.None);
 
-            var trailingHeaders = response.TrailingHeaders();
-            Assert.AreEqual(1, trailingHeaders.Count());
-            Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
-        }
+        // Assert
+        Assert.AreEqual(false, testHttpHandler.RequestHeaders!.TryGetValues("user-agent", out _));
+        Assert.AreEqual(true, testHttpHandler.RequestHeaders!.TryGetValues("x-user-agent", out var values));
+        Assert.AreEqual("TestUserAgent", values!.Single());
+    }
+
+    [Test]
+    public async Task SendAsync_NonGrpcCall_ResponseStreamingPropertyNotSet()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
+        {
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
+            {
+                Headers = { ContentType = new MediaTypeHeaderValue("application/text") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler();
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+        // Act
+        await messageInvoker.SendAsync(request, CancellationToken.None);
+
+        // Assert
+        Assert.AreEqual(null, testHttpHandler.WebAssemblyEnableStreamingResponse);
+    }
+
+    [Test]
+    public async Task SendAsync_GrpcCallWithTrailers_TrailersSet()
+    {
+        // Arrange
+        var data = Convert.FromBase64String("AAAAAACAAAAAEA0KZ3JwYy1zdGF0dXM6IDA=");
+        var request = new HttpRequestMessage
+        {
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
+            {
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler
+        {
+            ResponseContent = new ByteArrayContent(data)
+            {
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc-web") }
+            }
+        };
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, testHttpHandler);
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+
+        // Act
+        var response = await messageInvoker.SendAsync(request, CancellationToken.None);
+        await response.Content.ReadAsByteArrayAsync();
+
+        var trailingHeaders = response.TrailingHeaders();
+        Assert.AreEqual(1, trailingHeaders.Count());
+        Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
+    }
 
 #if NET472
-        [Test]
-        public async Task HttpVersion_UnsetOnNetFramework_HttpRequestMessageVersion11()
+    [Test]
+    public async Task HttpVersion_UnsetOnNetFramework_HttpRequestMessageVersion11()
+    {
+        // Arrange
+        var request = new HttpRequestMessage
         {
-            // Arrange
-            var request = new HttpRequestMessage
+            Version = GrpcWebProtocolConstants.Http2Version,
+            Content = new ByteArrayContent(Array.Empty<byte>())
             {
-                Version = GrpcWebProtocolConstants.Http2Version,
-                Content = new ByteArrayContent(Array.Empty<byte>())
-                {
-                    Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
-                }
-            };
-            var testHttpHandler = new TestHttpHandler()
-            {
-                InnerHandler = new HttpClientHandler()
-            };
-            var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
-            {
-                InnerHandler = testHttpHandler
-            };
-            var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
+                Headers = { ContentType = new MediaTypeHeaderValue("application/grpc") }
+            }
+        };
+        var testHttpHandler = new TestHttpHandler()
+        {
+            InnerHandler = new HttpClientHandler()
+        };
+        var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb)
+        {
+            InnerHandler = testHttpHandler
+        };
+        var messageInvoker = new HttpMessageInvoker(grpcWebHandler);
 
-            // Act
-            var response = await messageInvoker.SendAsync(request, CancellationToken.None);
+        // Act
+        var response = await messageInvoker.SendAsync(request, CancellationToken.None);
 
-            // Assert
-            Assert.AreEqual(HttpVersion.Version11, testHttpHandler.Request!.Version);
-            Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
-        }
+        // Assert
+        Assert.AreEqual(HttpVersion.Version11, testHttpHandler.Request!.Version);
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Version, response.Version);
+    }
 #endif
 
-        private class TestOperatingSystem : IOperatingSystem
+    private class TestOperatingSystem : IOperatingSystem
+    {
+        public bool IsBrowser { get; set; }
+    }
+
+    private class TestHttpHandler : DelegatingHandler
+    {
+        public HttpContent? ResponseContent { get; set; }
+
+        public HttpRequestMessage? Request { get; private set; }
+        public bool? WebAssemblyEnableStreamingResponse { get; private set; }
+        public HttpRequestHeaders? RequestHeaders { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            public bool IsBrowser { get; set; }
-        }
-
-        private class TestHttpHandler : DelegatingHandler
-        {
-            public HttpContent? ResponseContent { get; set; }
-
-            public HttpRequestMessage? Request { get; private set; }
-            public bool? WebAssemblyEnableStreamingResponse { get; private set; }
-            public HttpRequestHeaders? RequestHeaders { get; private set; }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            Request = request;
+            RequestHeaders = request.Headers;
+            if (request.TryGetOption<bool>(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
             {
-                Request = request;
-                RequestHeaders = request.Headers;
-                if (request.TryGetOption<bool>(GrpcWebHandler.WebAssemblyEnableStreamingResponseKey, out var enableStreaming))
-                {
-                    WebAssemblyEnableStreamingResponse = enableStreaming;
-                }
-
-                return Task.FromResult(new HttpResponseMessage()
-                {
-                    Version = request.Version,
-                    Content = ResponseContent,
-                    RequestMessage = request
-                });
+                WebAssemblyEnableStreamingResponse = enableStreaming;
             }
+
+            return Task.FromResult(new HttpResponseMessage()
+            {
+                Version = request.Version,
+                Content = ResponseContent,
+                RequestMessage = request
+            });
         }
     }
 }

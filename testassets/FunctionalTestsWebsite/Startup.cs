@@ -29,189 +29,188 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
-namespace FunctionalTestsWebsite
+namespace FunctionalTestsWebsite;
+
+public class Startup
 {
-    public class Startup
+    // This method gets called by the runtime. Use this method to add services to the container.
+    // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+    public void ConfigureServices(IServiceCollection services)
     {
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
-        public void ConfigureServices(IServiceCollection services)
+        services
+            .AddGrpc(options =>
+            {
+                options.EnableDetailedErrors = true;
+            })
+            .AddServiceOptions<GreeterService>(options =>
+            {
+                options.MaxSendMessageSize = 64 * 1024;
+                options.MaxReceiveMessageSize = 64 * 1024;
+            })
+            .AddServiceOptions<CompressionService>(options =>
+            {
+                options.ResponseCompressionAlgorithm = "gzip";
+            });
+        services.AddHttpContextAccessor();
+
+        services
+            .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator })
+            .EnableCallContextPropagation();
+
+        services.AddAuthorization(options =>
         {
-            services
-                .AddGrpc(options =>
-                {
-                    options.EnableDetailedErrors = true;
-                })
-                .AddServiceOptions<GreeterService>(options =>
-                {
-                    options.MaxSendMessageSize = 64 * 1024;
-                    options.MaxReceiveMessageSize = 64 * 1024;
-                })
-                .AddServiceOptions<CompressionService>(options =>
-                {
-                    options.ResponseCompressionAlgorithm = "gzip";
-                });
-            services.AddHttpContextAccessor();
-
-            services
-                .AddGrpcClient<Greeter.GreeterClient>((s, o) => { o.Address = GetCurrentAddress(s); })
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator })
-                .EnableCallContextPropagation();
-
-            services.AddAuthorization(options =>
+            options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
             {
-                options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
-                {
-                    policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-                    policy.RequireClaim(ClaimTypes.Name);
-                });
+                policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+                policy.RequireClaim(ClaimTypes.Name);
             });
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters =
-                        new TokenValidationParameters
-                        {
-                            ValidateAudience = false,
-                            ValidateIssuer = false,
-                            ValidateActor = false,
-                            ValidateLifetime = true,
-                            IssuerSigningKey = SecurityKey
-                        };
-                });
-
-            services.AddCors(o =>
+        });
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
-                o.AddPolicy("FunctionalTests", builder =>
-                {
-                    builder.AllowAnyOrigin();
-                    builder.AllowAnyMethod();
-                    builder.AllowAnyHeader();
-                    builder.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
-                });
+                options.TokenValidationParameters =
+                    new TokenValidationParameters
+                    {
+                        ValidateAudience = false,
+                        ValidateIssuer = false,
+                        ValidateActor = false,
+                        ValidateLifetime = true,
+                        IssuerSigningKey = SecurityKey
+                    };
             });
 
-            services.AddScoped<IncrementingCounter>();
-
-            services.AddSingleton<SingletonValueProvider>();
-            services.AddTransient<TransientValueProvider>();
-            services.AddScoped<ScopedValueProvider>();
-
-            // When the site is run from the test project these types will be injected
-            // This will add a default types if the site is run standalone
-            services.TryAddSingleton<DynamicEndpointDataSource>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IServiceMethodProvider<DynamicService>, DynamicServiceModelProvider>());
-
-            // Add a Singleton service
-            services.AddSingleton<SingletonCounterService>();
-
-            services.AddSingleton<HealthServiceImpl>(s =>
+        services.AddCors(o =>
+        {
+            o.AddPolicy("FunctionalTests", builder =>
             {
-                var service = new HealthServiceImpl();
-                service.SetStatus("", Grpc.Health.V1.HealthCheckResponse.Types.ServingStatus.Serving);
-                return service;
+                builder.AllowAnyOrigin();
+                builder.AllowAnyMethod();
+                builder.AllowAnyHeader();
+                builder.WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
             });
+        });
 
-            static Uri GetCurrentAddress(IServiceProvider serviceProvider)
+        services.AddScoped<IncrementingCounter>();
+
+        services.AddSingleton<SingletonValueProvider>();
+        services.AddTransient<TransientValueProvider>();
+        services.AddScoped<ScopedValueProvider>();
+
+        // When the site is run from the test project these types will be injected
+        // This will add a default types if the site is run standalone
+        services.TryAddSingleton<DynamicEndpointDataSource>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IServiceMethodProvider<DynamicService>, DynamicServiceModelProvider>());
+
+        // Add a Singleton service
+        services.AddSingleton<SingletonCounterService>();
+
+        services.AddSingleton<HealthServiceImpl>(s =>
+        {
+            var service = new HealthServiceImpl();
+            service.SetStatus("", Grpc.Health.V1.HealthCheckResponse.Types.ServingStatus.Serving);
+            return service;
+        });
+
+        static Uri GetCurrentAddress(IServiceProvider serviceProvider)
+        {
+            // Get the address of the current server from the request
+            var context = serviceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
+            if (context == null)
             {
-                // Get the address of the current server from the request
-                var context = serviceProvider.GetRequiredService<IHttpContextAccessor>()?.HttpContext;
-                if (context == null)
-                {
-                    throw new InvalidOperationException("Could not get HttpContext.");
-                }
-
-                return new Uri($"{context.Request.Scheme}://{context.Request.Host.Value}");
+                throw new InvalidOperationException("Could not get HttpContext.");
             }
+
+            return new Uri($"{context.Request.Scheme}://{context.Request.Host.Value}");
         }
+    }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app)
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app)
+    {
+        var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Startup));
+        app.Use(async (context, next) =>
         {
-            var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Startup));
-            app.Use(async (context, next) =>
+            // Allow a call to specify a deadline, without enabling deadline timer on server.
+            if (context.Request.Headers.TryGetValue("remove-deadline", out var value) &&
+                bool.TryParse(value.ToString(), out var remove) && remove)
             {
-                // Allow a call to specify a deadline, without enabling deadline timer on server.
-                if (context.Request.Headers.TryGetValue("remove-deadline", out var value) &&
-                    bool.TryParse(value.ToString(), out var remove) && remove)
-                {
-                    logger.LogInformation("Removing grpc-timeout header.");
-                    context.Request.Headers.Remove("grpc-timeout");
-                }
+                logger.LogInformation("Removing grpc-timeout header.");
+                context.Request.Headers.Remove("grpc-timeout");
+            }
 
-                await next();
-            });
+            await next();
+        });
 
-            app.Use(async (context, next) =>
+        app.Use(async (context, next) =>
+        {
+            // Allow a call to specify activity tags are returned as trailers.
+            if (context.Request.Headers.TryGetValue("return-tags-trailers", out var value) &&
+                bool.TryParse(value.ToString(), out var remove) && remove)
             {
-                // Allow a call to specify activity tags are returned as trailers.
-                if (context.Request.Headers.TryGetValue("return-tags-trailers", out var value) &&
-                    bool.TryParse(value.ToString(), out var remove) && remove)
-                {
-                    logger.LogInformation("Replacing activity.");
+                logger.LogInformation("Replacing activity.");
 
-                    // Replace the activity to check that tags are added to the host activity.
-                    using (new ActivityReplacer("GrpcFunctionalTests"))
-                    {
-                        await next();
-                    }
-
-                    logger.LogInformation("Adding tags to trailers.");
-
-                    foreach (var tag in Activity.Current!.Tags)
-                    {
-                        context.Response.AppendTrailer(tag.Key, tag.Value);
-                    }
-                }
-                else
+                // Replace the activity to check that tags are added to the host activity.
+                using (new ActivityReplacer("GrpcFunctionalTests"))
                 {
                     await next();
                 }
-            });
 
-            app.UseRouting();
+                logger.LogInformation("Adding tags to trailers.");
 
-            app.UseAuthorization();
-            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
-            app.UseCors();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapGrpcService<SecondGreeterService>().RequireCors("FunctionalTests");
-                endpoints.MapGrpcService<ChatterService>();
-                endpoints.MapGrpcService<CounterService>();
-                endpoints.MapGrpcService<AuthorizedGreeter>();
-                endpoints.MapGrpcService<LifetimeService>();
-                endpoints.MapGrpcService<SingletonCounterService>();
-                endpoints.MapGrpcService<NestedService>();
-                endpoints.MapGrpcService<CompressionService>();
-                endpoints.MapGrpcService<AnyService>();
-                endpoints.MapGrpcService<GreeterService>();
-                endpoints.MapGrpcService<StreamService>();
-                endpoints.MapGrpcService<RacerService>();
-                endpoints.MapGrpcService<EchoService>();
-                endpoints.MapGrpcService<IssueService>();
-                endpoints.MapGrpcService<TesterService>();
-                endpoints.MapGrpcService<HealthServiceImpl>();
-
-                endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
-
-                endpoints.MapGet("/generateJwtToken", context =>
+                foreach (var tag in Activity.Current!.Tags)
                 {
-                    return context.Response.WriteAsync(GenerateJwtToken());
-                });
-            });
-        }
+                    context.Response.AppendTrailer(tag.Key, tag.Value);
+                }
+            }
+            else
+            {
+                await next();
+            }
+        });
 
-        private string GenerateJwtToken()
+        app.UseRouting();
+
+        app.UseAuthorization();
+        app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+        app.UseCors();
+
+        app.UseEndpoints(endpoints =>
         {
-            var claims = new[] { new Claim(ClaimTypes.Name, "testuser") };
-            var credentials = new SigningCredentials(SecurityKey, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken("FunctionalTestServer", "FunctionalTests", claims, expires: DateTime.Now.AddSeconds(5), signingCredentials: credentials);
-            return JwtTokenHandler.WriteToken(token);
-        }
+            endpoints.MapGrpcService<SecondGreeterService>().RequireCors("FunctionalTests");
+            endpoints.MapGrpcService<ChatterService>();
+            endpoints.MapGrpcService<CounterService>();
+            endpoints.MapGrpcService<AuthorizedGreeter>();
+            endpoints.MapGrpcService<LifetimeService>();
+            endpoints.MapGrpcService<SingletonCounterService>();
+            endpoints.MapGrpcService<NestedService>();
+            endpoints.MapGrpcService<CompressionService>();
+            endpoints.MapGrpcService<AnyService>();
+            endpoints.MapGrpcService<GreeterService>();
+            endpoints.MapGrpcService<StreamService>();
+            endpoints.MapGrpcService<RacerService>();
+            endpoints.MapGrpcService<EchoService>();
+            endpoints.MapGrpcService<IssueService>();
+            endpoints.MapGrpcService<TesterService>();
+            endpoints.MapGrpcService<HealthServiceImpl>();
 
-        private readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
-        private readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
+            endpoints.DataSources.Add(endpoints.ServiceProvider.GetRequiredService<DynamicEndpointDataSource>());
+
+            endpoints.MapGet("/generateJwtToken", context =>
+            {
+                return context.Response.WriteAsync(GenerateJwtToken());
+            });
+        });
     }
+
+    private string GenerateJwtToken()
+    {
+        var claims = new[] { new Claim(ClaimTypes.Name, "testuser") };
+        var credentials = new SigningCredentials(SecurityKey, SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken("FunctionalTestServer", "FunctionalTests", claims, expires: DateTime.Now.AddSeconds(5), signingCredentials: credentials);
+        return JwtTokenHandler.WriteToken(token);
+    }
+
+    private readonly JwtSecurityTokenHandler JwtTokenHandler = new JwtSecurityTokenHandler();
+    private readonly SymmetricSecurityKey SecurityKey = new SymmetricSecurityKey(Guid.NewGuid().ToByteArray());
 }

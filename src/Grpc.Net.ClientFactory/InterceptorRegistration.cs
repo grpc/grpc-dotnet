@@ -18,32 +18,31 @@
 
 using Grpc.Core.Interceptors;
 
-namespace Grpc.Net.ClientFactory
+namespace Grpc.Net.ClientFactory;
+
+/// <summary>
+/// Representation of a registration of an <see cref="Interceptor"/> in the client pipeline.
+/// </summary>
+public class InterceptorRegistration
 {
     /// <summary>
-    /// Representation of a registration of an <see cref="Interceptor"/> in the client pipeline.
+    /// Initializes a new instance of the <see cref="InterceptorRegistration"/> class.
     /// </summary>
-    public class InterceptorRegistration
+    /// <param name="scope">The scope of the interceptor.</param>
+    /// <param name="creator">A delegate that is used to create an <see cref="Interceptor"/>.</param>
+    public InterceptorRegistration(InterceptorScope scope, Func<IServiceProvider, Interceptor> creator)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="InterceptorRegistration"/> class.
-        /// </summary>
-        /// <param name="scope">The scope of the interceptor.</param>
-        /// <param name="creator">A delegate that is used to create an <see cref="Interceptor"/>.</param>
-        public InterceptorRegistration(InterceptorScope scope, Func<IServiceProvider, Interceptor> creator)
-        {
-            Scope = scope;
-            Creator = creator;
-        }
-
-        /// <summary>
-        /// Gets the scope of the interceptor.
-        /// </summary>
-        public InterceptorScope Scope { get; }
-
-        /// <summary>
-        /// Gets a delegate that is used to create an <see cref="Interceptor"/>.
-        /// </summary>
-        public Func<IServiceProvider, Interceptor> Creator { get; }
+        Scope = scope;
+        Creator = creator;
     }
+
+    /// <summary>
+    /// Gets the scope of the interceptor.
+    /// </summary>
+    public InterceptorScope Scope { get; }
+
+    /// <summary>
+    /// Gets a delegate that is used to create an <see cref="Interceptor"/>.
+    /// </summary>
+    public Func<IServiceProvider, Interceptor> Creator { get; }
 }

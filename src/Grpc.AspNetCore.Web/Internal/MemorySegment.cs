@@ -18,25 +18,24 @@
 
 using System.Buffers;
 
-namespace Grpc.AspNetCore.Web.Internal
+namespace Grpc.AspNetCore.Web.Internal;
+
+internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
 {
-    internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
+    public MemorySegment(ReadOnlyMemory<T> memory)
     {
-        public MemorySegment(ReadOnlyMemory<T> memory)
+        Memory = memory;
+    }
+
+    public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
+    {
+        var segment = new MemorySegment<T>(memory)
         {
-            Memory = memory;
-        }
+            RunningIndex = RunningIndex + Memory.Length
+        };
 
-        public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
-        {
-            var segment = new MemorySegment<T>(memory)
-            {
-                RunningIndex = RunningIndex + Memory.Length
-            };
+        Next = segment;
 
-            Next = segment;
-
-            return segment;
-        }
+        return segment;
     }
 }

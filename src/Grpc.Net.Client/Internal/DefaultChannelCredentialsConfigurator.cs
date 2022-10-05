@@ -18,43 +18,42 @@
 
 using Grpc.Core;
 
-namespace Grpc.Net.Client.Internal
+namespace Grpc.Net.Client.Internal;
+
+internal sealed class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
 {
-    internal sealed class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
+    public bool? IsSecure { get; private set; }
+    public List<CallCredentials>? CallCredentials { get; private set; }
+
+    public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
     {
-        public bool? IsSecure { get; private set; }
-        public List<CallCredentials>? CallCredentials { get; private set; }
+        channelCredentials.InternalPopulateConfiguration(this, state);
 
-        public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
+        if (callCredentials != null)
         {
-            channelCredentials.InternalPopulateConfiguration(this, state);
-
-            if (callCredentials != null)
+            if (CallCredentials == null)
             {
-                if (CallCredentials == null)
-                {
-                    CallCredentials = new List<CallCredentials>();
-                }
-
-                CallCredentials.Add(callCredentials);
-            }
-        }
-
-        public override void SetInsecureCredentials(object state) => IsSecure = false;
-
-        public override void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback)
-        {
-            if (!string.IsNullOrEmpty(rootCertificates) ||
-                keyCertificatePair != null ||
-                verifyPeerCallback != null)
-            {
-                throw new InvalidOperationException(
-                    $"{nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}. " +
-                    $"{nameof(GrpcChannel)} uses HttpClient to make gRPC calls and HttpClient automatically loads root certificates from the operating system certificate store. " +
-                    $"Client certificates should be configured on HttpClient. See https://aka.ms/aspnet/grpc/certauth for details.");
+                CallCredentials = new List<CallCredentials>();
             }
 
-            IsSecure = true;
+            CallCredentials.Add(callCredentials);
         }
+    }
+
+    public override void SetInsecureCredentials(object state) => IsSecure = false;
+
+    public override void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback)
+    {
+        if (!string.IsNullOrEmpty(rootCertificates) ||
+            keyCertificatePair != null ||
+            verifyPeerCallback != null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(SslCredentials)} with non-null arguments is not supported by {nameof(GrpcChannel)}. " +
+                $"{nameof(GrpcChannel)} uses HttpClient to make gRPC calls and HttpClient automatically loads root certificates from the operating system certificate store. " +
+                $"Client certificates should be configured on HttpClient. See https://aka.ms/aspnet/grpc/certauth for details.");
+        }
+
+        IsSecure = true;
     }
 }

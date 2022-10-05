@@ -18,27 +18,26 @@
 
 using Grpc.Testing;
 
-namespace BenchmarkWorkerWebsite
+namespace BenchmarkWorkerWebsite;
+
+// copied from https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/IServerRunner.cs
+public interface IServerRunner
 {
-    // copied from https://github.com/grpc/grpc/blob/master/src/csharp/Grpc.IntegrationTesting/IServerRunner.cs
-    public interface IServerRunner
-    {
-        /// <summary>
-        /// Port on which the server is listening.
-        /// </summary>
-        int BoundPort { get; }
+    /// <summary>
+    /// Port on which the server is listening.
+    /// </summary>
+    int BoundPort { get; }
 
-        /// <summary>
-        /// Gets server stats.
-        /// </summary>
-        /// <returns>The stats.</returns>
-        ServerStats GetStats(bool reset);
+    /// <summary>
+    /// Gets server stats.
+    /// </summary>
+    /// <returns>The stats.</returns>
+    ServerStats GetStats(bool reset);
 
-        /// <summary>
-        /// Asynchronously stops the server.
-        /// </summary>
-        /// <returns>Task that finishes when server has shutdown.</returns>
-        Task StopAsync();
-    }
-
+    /// <summary>
+    /// Asynchronously stops the server.
+    /// </summary>
+    /// <returns>Task that finishes when server has shutdown.</returns>
+    Task StopAsync();
 }
+

@@ -19,11 +19,10 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace System.Runtime.CompilerServices
+namespace System.Runtime.CompilerServices;
+
+// Required for init properties in netstandard2.0
+[ExcludeFromCodeCoverage, DebuggerNonUserCode]
+internal static class IsExternalInit
 {
-    // Required for init properties in netstandard2.0
-    [ExcludeFromCodeCoverage, DebuggerNonUserCode]
-    internal static class IsExternalInit
-    {
-    }
 }

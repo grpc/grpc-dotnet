@@ -23,73 +23,72 @@ using Grpc.Dotnet.Cli.Options;
 using Grpc.Dotnet.Cli.Properties;
 using Microsoft.Build.Evaluation;
 
-namespace Grpc.Dotnet.Cli.Commands
+namespace Grpc.Dotnet.Cli.Commands;
+
+internal class RefreshCommand : CommandBase
 {
-    internal class RefreshCommand : CommandBase
+    public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
+        : base(console, projectPath, httpClient) { }
+
+    // Internal for testing
+    public RefreshCommand(IConsole console, HttpClient client)
+        : base(console, client) { }
+
+    public static Command Create(HttpClient httpClient)
     {
-        public RefreshCommand(IConsole console, string? projectPath, HttpClient httpClient)
-            : base(console, projectPath, httpClient) { }
+        var command = new Command(
+            name: "refresh",
+            description: CoreStrings.RefreshCommandDescription);
 
-        // Internal for testing
-        public RefreshCommand(IConsole console, HttpClient client)
-            : base(console, client) { }
-
-        public static Command Create(HttpClient httpClient)
+        var projectOption = CommonOptions.ProjectOption();
+        var dryRunOption = new Option<bool>(
+            aliases: new[] { "--dry-run" },
+            description: CoreStrings.DryRunOptionDescription
+            );
+        var referencesArgument = new Argument<string[]>
         {
-            var command = new Command(
-                name: "refresh",
-                description: CoreStrings.RefreshCommandDescription);
+            Name = "references",
+            Description = CoreStrings.RefreshCommandArgumentDescription,
+            Arity = ArgumentArity.ZeroOrMore
+        };
 
-            var projectOption = CommonOptions.ProjectOption();
-            var dryRunOption = new Option<bool>(
-                aliases: new[] { "--dry-run" },
-                description: CoreStrings.DryRunOptionDescription
-                );
-            var referencesArgument = new Argument<string[]>
+        command.AddOption(projectOption);
+        command.AddOption(dryRunOption);
+        command.AddArgument(referencesArgument);
+
+        command.SetHandler<string, bool, string[], InvocationContext, IConsole>(
+            async (project, dryRun, references, context, console) =>
             {
-                Name = "references",
-                Description = CoreStrings.RefreshCommandArgumentDescription,
-                Arity = ArgumentArity.ZeroOrMore
-            };
-
-            command.AddOption(projectOption);
-            command.AddOption(dryRunOption);
-            command.AddArgument(referencesArgument);
-
-            command.SetHandler<string, bool, string[], InvocationContext, IConsole>(
-                async (project, dryRun, references, context, console) =>
+                try
                 {
-                    try
-                    {
-                        var command = new RefreshCommand(console, project, httpClient);
-                        await command.RefreshAsync(dryRun, references);
+                    var command = new RefreshCommand(console, project, httpClient);
+                    await command.RefreshAsync(dryRun, references);
 
-                        context.ExitCode = 0;
-                    }
-                    catch (CLIToolException e)
-                    {
-                        console.LogError(e);
-
-                        context.ExitCode = -1;
-                    }
-                }, projectOption, dryRunOption, referencesArgument);
-
-            return command;
-        }
-
-        public async Task RefreshAsync(bool dryRun, string[] references)
-        {
-            var refsToRefresh = references == null || references.Length == 0 ? Project.GetItems(ProtobufElement).Where(p => p.HasMetadata(SourceUrlElement)) : ResolveReferences(references);
-
-            foreach (var reference in refsToRefresh)
-            {
-                if (!reference.HasMetadata(SourceUrlElement))
-                {
-                    continue;
+                    context.ExitCode = 0;
                 }
+                catch (CLIToolException e)
+                {
+                    console.LogError(e);
 
-                await DownloadFileAsync(reference.GetMetadataValue(SourceUrlElement), reference.UnevaluatedInclude, dryRun);
+                    context.ExitCode = -1;
+                }
+            }, projectOption, dryRunOption, referencesArgument);
+
+        return command;
+    }
+
+    public async Task RefreshAsync(bool dryRun, string[] references)
+    {
+        var refsToRefresh = references == null || references.Length == 0 ? Project.GetItems(ProtobufElement).Where(p => p.HasMetadata(SourceUrlElement)) : ResolveReferences(references);
+
+        foreach (var reference in refsToRefresh)
+        {
+            if (!reference.HasMetadata(SourceUrlElement))
+            {
+                continue;
             }
+
+            await DownloadFileAsync(reference.GetMetadataValue(SourceUrlElement), reference.UnevaluatedInclude, dryRun);
         }
     }
 }

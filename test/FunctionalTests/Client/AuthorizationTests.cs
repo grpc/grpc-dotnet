@@ -25,112 +25,111 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Client
+namespace Grpc.AspNetCore.FunctionalTests.Client;
+
+[TestFixture]
+public class AuthorizationTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class AuthorizationTests : FunctionalTestBase
+    [Test]
+    public async Task Client_CallCredentials_RoundtripToken()
     {
-        [Test]
-        public async Task Client_CallCredentials_RoundtripToken()
+        // Arrange
+        string? authorization = null;
+        Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
         {
-            // Arrange
-            string? authorization = null;
-            Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
-            {
-                authorization = context.RequestHeaders.GetValue("authorization");
+            authorization = context.RequestHeaders.GetValue("authorization");
 
-                return Task.FromResult(new HelloReply());
+            return Task.FromResult(new HelloReply());
+        }
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
+
+        var token = "token!";
+        var credentials = CallCredentials.FromInterceptor((context, metadata) =>
+        {
+            if (!string.IsNullOrEmpty(token))
+            {
+                metadata.Add("Authorization", $"Bearer {token}");
             }
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
+            return Task.CompletedTask;
+        });
 
-            var token = "token!";
-            var credentials = CallCredentials.FromInterceptor((context, metadata) =>
+        var options = new GrpcChannelOptions
+        {
+            LoggerFactory = LoggerFactory,
+            Credentials = ChannelCredentials.Create(new SslCredentials(), credentials),
+            HttpHandler = new HttpClientHandler
             {
-                if (!string.IsNullOrEmpty(token))
-                {
-                    metadata.Add("Authorization", $"Bearer {token}");
-                }
-                return Task.CompletedTask;
-            });
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            }
+        };
 
-            var options = new GrpcChannelOptions
+        var channel = GrpcChannel.ForAddress(Fixture.GetUrl(TestServerEndpointName.Http2WithTls), options);
+        var client = TestClientFactory.Create<HelloRequest, HelloReply>(channel, method);
+
+        var call = client.UnaryCall(new HelloRequest { Name = "world" });
+
+        // Act
+        await call.ResponseAsync.DefaultTimeout();
+
+
+        Assert.AreEqual("Bearer token!", authorization);
+    }
+
+    [Test]
+    public async Task ClientFactory_CallCredentials_RoundtripToken()
+    {
+        // Arrange
+        string? authorization = null;
+        Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
+        {
+            authorization = context.RequestHeaders.GetValue("authorization");
+
+            return Task.FromResult(new HelloReply());
+        }
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
+
+        var token = "token!";
+        var credentials = CallCredentials.FromInterceptor((context, metadata) =>
+        {
+            if (!string.IsNullOrEmpty(token))
             {
-                LoggerFactory = LoggerFactory,
-                Credentials = ChannelCredentials.Create(new SslCredentials(), credentials),
-                HttpHandler = new HttpClientHandler
+                metadata.Add("Authorization", $"Bearer {token}");
+            }
+            return Task.CompletedTask;
+        });
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
+        serviceCollection
+            .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
+            {
+                options.Address = Fixture.GetUrl(TestServerEndpointName.Http2WithTls);
+            })
+            .ConfigureChannel(channel =>
+            {
+                channel.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials);
+            })
+            .ConfigureGrpcClientCreator(invoker =>
+            {
+                return TestClientFactory.Create(invoker, method);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                return new HttpClientHandler
                 {
                     ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                }
-            };
-
-            var channel = GrpcChannel.ForAddress(Fixture.GetUrl(TestServerEndpointName.Http2WithTls), options);
-            var client = TestClientFactory.Create<HelloRequest, HelloReply>(channel, method);
-
-            var call = client.UnaryCall(new HelloRequest { Name = "world" });
-
-            // Act
-            await call.ResponseAsync.DefaultTimeout();
-
-
-            Assert.AreEqual("Bearer token!", authorization);
-        }
-
-        [Test]
-        public async Task ClientFactory_CallCredentials_RoundtripToken()
-        {
-            // Arrange
-            string? authorization = null;
-            Task<HelloReply> UnaryTelemetryHeader(HelloRequest request, ServerCallContext context)
-            {
-                authorization = context.RequestHeaders.GetValue("authorization");
-
-                return Task.FromResult(new HelloReply());
-            }
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryTelemetryHeader);
-
-            var token = "token!";
-            var credentials = CallCredentials.FromInterceptor((context, metadata) =>
-            {
-                if (!string.IsNullOrEmpty(token))
-                {
-                    metadata.Add("Authorization", $"Bearer {token}");
-                }
-                return Task.CompletedTask;
+                };
             });
+        var services = serviceCollection.BuildServiceProvider();
 
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
-            serviceCollection
-                .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
-                {
-                    options.Address = Fixture.GetUrl(TestServerEndpointName.Http2WithTls);
-                })
-                .ConfigureChannel(channel =>
-                {
-                    channel.Credentials = ChannelCredentials.Create(new SslCredentials(), credentials);
-                })
-                .ConfigureGrpcClientCreator(invoker =>
-                {
-                    return TestClientFactory.Create(invoker, method);
-                })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                    };
-                });
-            var services = serviceCollection.BuildServiceProvider();
+        var client = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
 
-            var client = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
+        // Act
+        var call = client.UnaryCall(new HelloRequest { Name = "world" });
 
-            // Act
-            var call = client.UnaryCall(new HelloRequest { Name = "world" });
+        await call.ResponseAsync.DefaultTimeout();
 
-            await call.ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("Bearer token!", authorization);
-        }
+        // Assert
+        Assert.AreEqual("Bearer token!", authorization);
     }
 }

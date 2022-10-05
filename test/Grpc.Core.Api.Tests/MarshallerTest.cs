@@ -29,74 +29,73 @@ using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 using NUnit.Framework;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class MarshallerTest
 {
-    public class MarshallerTest
+    [Test]
+    public void ContextualSerializerEmulation()
     {
-        [Test]
-        public void ContextualSerializerEmulation()
+        Func<string, byte[]> simpleSerializer = System.Text.Encoding.UTF8.GetBytes;
+        Func<byte[], string> simpleDeserializer = System.Text.Encoding.UTF8.GetString;
+        var marshaller = new Marshaller<string>(simpleSerializer,
+                                                simpleDeserializer);
+
+        Assert.AreSame(simpleSerializer, marshaller.Serializer);
+        Assert.AreSame(simpleDeserializer, marshaller.Deserializer);
+
+        // test that emulated contextual serializer and deserializer work
+        string origMsg = "abc";
+        var serializationContext = new FakeSerializationContext();
+        marshaller.ContextualSerializer(origMsg, serializationContext);
+
+        var deserializationContext = new FakeDeserializationContext(serializationContext.Payload);
+        Assert.AreEqual(origMsg, marshaller.ContextualDeserializer(deserializationContext));
+    }
+
+    [Test]
+    public void SimpleSerializerEmulation()
+    {
+        Action<string, SerializationContext> contextualSerializer = (str, context) =>
         {
-            Func<string, byte[]> simpleSerializer = System.Text.Encoding.UTF8.GetBytes;
-            Func<byte[], string> simpleDeserializer = System.Text.Encoding.UTF8.GetString;
-            var marshaller = new Marshaller<string>(simpleSerializer,
-                                                    simpleDeserializer);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(str);
+            context.Complete(bytes);
+        };
+        Func<DeserializationContext, string> contextualDeserializer = (context) =>
+        {
+            return System.Text.Encoding.UTF8.GetString(context.PayloadAsNewBuffer());
+        };
+        var marshaller = new Marshaller<string>(contextualSerializer, contextualDeserializer);
 
-            Assert.AreSame(simpleSerializer, marshaller.Serializer);
-            Assert.AreSame(simpleDeserializer, marshaller.Deserializer);
+        Assert.AreSame(contextualSerializer, marshaller.ContextualSerializer);
+        Assert.AreSame(contextualDeserializer, marshaller.ContextualDeserializer);
+        Assert.Throws(typeof(NotImplementedException), () => marshaller.Serializer("abc"));
+        Assert.Throws(typeof(NotImplementedException), () => marshaller.Deserializer(new byte[] {1, 2, 3}));
+    }
 
-            // test that emulated contextual serializer and deserializer work
-            string origMsg = "abc";
-            var serializationContext = new FakeSerializationContext();
-            marshaller.ContextualSerializer(origMsg, serializationContext);
+    class FakeSerializationContext : SerializationContext
+    {
+        public byte[] Payload;
+        public override void Complete(byte[] payload)
+        {
+            this.Payload = payload;
+        }
+    }
 
-            var deserializationContext = new FakeDeserializationContext(serializationContext.Payload);
-            Assert.AreEqual(origMsg, marshaller.ContextualDeserializer(deserializationContext));
+    class FakeDeserializationContext : DeserializationContext
+    {
+        public byte[] payload;
+
+        public FakeDeserializationContext(byte[] payload)
+        {
+            this.payload = payload;
         }
 
-        [Test]
-        public void SimpleSerializerEmulation()
+        public override int PayloadLength => payload.Length;
+
+        public override byte[] PayloadAsNewBuffer()
         {
-            Action<string, SerializationContext> contextualSerializer = (str, context) =>
-            {
-                var bytes = System.Text.Encoding.UTF8.GetBytes(str);
-                context.Complete(bytes);
-            };
-            Func<DeserializationContext, string> contextualDeserializer = (context) =>
-            {
-                return System.Text.Encoding.UTF8.GetString(context.PayloadAsNewBuffer());
-            };
-            var marshaller = new Marshaller<string>(contextualSerializer, contextualDeserializer);
-
-            Assert.AreSame(contextualSerializer, marshaller.ContextualSerializer);
-            Assert.AreSame(contextualDeserializer, marshaller.ContextualDeserializer);
-            Assert.Throws(typeof(NotImplementedException), () => marshaller.Serializer("abc"));
-            Assert.Throws(typeof(NotImplementedException), () => marshaller.Deserializer(new byte[] {1, 2, 3}));
-        }
-
-        class FakeSerializationContext : SerializationContext
-        {
-            public byte[] Payload;
-            public override void Complete(byte[] payload)
-            {
-                this.Payload = payload;
-            }
-        }
-
-        class FakeDeserializationContext : DeserializationContext
-        {
-            public byte[] payload;
-
-            public FakeDeserializationContext(byte[] payload)
-            {
-                this.payload = payload;
-            }
-
-            public override int PayloadLength => payload.Length;
-
-            public override byte[] PayloadAsNewBuffer()
-            {
-                return payload;
-            }
+            return payload;
         }
     }
 }

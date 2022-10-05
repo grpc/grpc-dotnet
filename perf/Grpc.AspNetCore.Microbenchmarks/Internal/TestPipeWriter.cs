@@ -18,58 +18,57 @@
 
 using System.IO.Pipelines;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+public class TestPipeWriter : PipeWriter
 {
-    public class TestPipeWriter : PipeWriter
+    // huge buffer that should be large enough for writing any content
+    private readonly byte[] _buffer = new byte[10000];
+
+    public bool ForceAsync { get; set; }
+
+    public override void Advance(int bytes)
     {
-        // huge buffer that should be large enough for writing any content
-        private readonly byte[] _buffer = new byte[10000];
+    }
 
-        public bool ForceAsync { get; set; }
+    public override Memory<byte> GetMemory(int sizeHint = 0)
+    {
+        return _buffer;
+    }
 
-        public override void Advance(int bytes)
+    public override Span<byte> GetSpan(int sizeHint = 0)
+    {
+        return _buffer;
+    }
+
+    [Obsolete]
+    public override void OnReaderCompleted(Action<Exception, object> callback, object? state)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void CancelPendingFlush()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void Complete(Exception? exception = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = new CancellationToken())
+    {
+        if (!ForceAsync)
         {
+            return default;
         }
 
-        public override Memory<byte> GetMemory(int sizeHint = 0)
-        {
-            return _buffer;
-        }
+        return new ValueTask<FlushResult>(ForceAsyncResult());
+    }
 
-        public override Span<byte> GetSpan(int sizeHint = 0)
-        {
-            return _buffer;
-        }
-
-        [Obsolete]
-        public override void OnReaderCompleted(Action<Exception, object> callback, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void CancelPendingFlush()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Complete(Exception? exception = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = new CancellationToken())
-        {
-            if (!ForceAsync)
-            {
-                return default;
-            }
-
-            return new ValueTask<FlushResult>(ForceAsyncResult());
-        }
-
-        public async Task<FlushResult> ForceAsyncResult()
-        {
-            return await Task.FromResult<FlushResult>(default).ForceAsync();
-        }
+    public async Task<FlushResult> ForceAsyncResult()
+    {
+        return await Task.FromResult<FlushResult>(default).ForceAsync();
     }
 }

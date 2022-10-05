@@ -19,40 +19,39 @@
 using System.CommandLine;
 using Grpc.Dotnet.Cli.Properties;
 
-namespace Grpc.Dotnet.Cli.Options
+namespace Grpc.Dotnet.Cli.Options;
+
+internal static class CommonOptions
 {
-    internal static class CommonOptions
+    public static Option ProjectOption()
     {
-        public static Option ProjectOption()
-        {
-            var o = new Option<string>(
-                aliases: new[] { "-p", "--project" },
-                description: CoreStrings.ProjectOptionDescription);
-            return o;
-        }
+        var o = new Option<string>(
+            aliases: new[] { "-p", "--project" },
+            description: CoreStrings.ProjectOptionDescription);
+        return o;
+    }
 
-        public static Option ServiceOption()
-        {
-            var o = new Option<Services>(
-                aliases: new[] { "-s", "--services" },
-                description: CoreStrings.ServiceOptionDescription);
-            return o;
-        }
+    public static Option ServiceOption()
+    {
+        var o = new Option<Services>(
+            aliases: new[] { "-s", "--services" },
+            description: CoreStrings.ServiceOptionDescription);
+        return o;
+    }
 
-        public static Option AccessOption()
-        {
-            var o = new Option<Access>(
-                aliases: new[] { "--access" },
-                description: CoreStrings.AccessOptionDescription);
-            return o;
-        }
+    public static Option AccessOption()
+    {
+        var o = new Option<Access>(
+            aliases: new[] { "--access" },
+            description: CoreStrings.AccessOptionDescription);
+        return o;
+    }
 
-        public static Option AdditionalImportDirsOption()
-        {
-            var o = new Option<string>(
-                aliases: new[] { "-i", "--additional-import-dirs" },
-                description: CoreStrings.AdditionalImportDirsOption);
-            return o;
-        }
+    public static Option AdditionalImportDirsOption()
+    {
+        var o = new Option<string>(
+            aliases: new[] { "-i", "--additional-import-dirs" },
+            description: CoreStrings.AdditionalImportDirsOption);
+        return o;
     }
 }

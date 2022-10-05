@@ -29,319 +29,318 @@ using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.ClientFactory.Tests
+namespace Grpc.AspNetCore.Server.ClientFactory.Tests;
+
+[TestFixture]
+public class DefaultGrpcClientFactoryTests
 {
-    [TestFixture]
-    public class DefaultGrpcClientFactoryTests
+    [Test]
+    public void CreateClient_Default_DefaultInvokerSet()
     {
-        [Test]
-        public void CreateClient_Default_DefaultInvokerSet()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("http://localhost"))
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
-            // Assert
-            Assert.IsInstanceOf(typeof(HttpMessageInvoker), client.CallInvoker.Channel.HttpInvoker);
-        }
+        // Assert
+        Assert.IsInstanceOf(typeof(HttpMessageInvoker), client.CallInvoker.Channel.HttpInvoker);
+    }
 
-        [Test]
-        public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
-        {
-            // Arrange
-            var address = new Uri("http://localhost");
+    [Test]
+    public void CreateClient_MatchingConfigurationBasedOnTypeName_ReturnConfiguration()
+    {
+        // Arrange
+        var address = new Uri("http://localhost");
 
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services
-                .AddGrpcClient<TestGreeterClient>(o => o.Address = address)
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+        var services = new ServiceCollection();
+        services.AddOptions();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = address)
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient));
 
-            // Assert
-            Assert.IsNotNull(client);
-            Assert.AreEqual(address, client.CallInvoker.Channel.Address);
-        }
+        // Assert
+        Assert.IsNotNull(client);
+        Assert.AreEqual(address, client.CallInvoker.Channel.Address);
+    }
 
-        [Test]
-        public void CreateClient_MatchingConfigurationBasedOnCustomName_ReturnConfiguration()
-        {
-            // Arrange
-            var address = new Uri("http://localhost");
+    [Test]
+    public void CreateClient_MatchingConfigurationBasedOnCustomName_ReturnConfiguration()
+    {
+        // Arrange
+        var address = new Uri("http://localhost");
 
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services
-                .AddGrpcClient<TestGreeterClient>("Custom", o => o.Address = address)
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+        var services = new ServiceCollection();
+        services.AddOptions();
+        services
+            .AddGrpcClient<TestGreeterClient>("Custom", o => o.Address = address)
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var client = clientFactory.CreateClient<TestGreeterClient>("Custom");
+        // Act
+        var client = clientFactory.CreateClient<TestGreeterClient>("Custom");
 
-            // Assert
-            Assert.IsNotNull(client);
-            Assert.AreEqual(address, client.CallInvoker.Channel.Address);
-        }
+        // Assert
+        Assert.IsNotNull(client);
+        Assert.AreEqual(address, client.CallInvoker.Channel.Address);
+    }
 
-        [Test]
-        public void CreateClient_NoMatchingConfiguration_ThrowError()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services
-                .AddGrpcClient<TestGreeterClient>()
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+    [Test]
+    public void CreateClient_NoMatchingConfiguration_ThrowError()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddOptions();
+        services
+            .AddGrpcClient<TestGreeterClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"))!;
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("Test"))!;
 
-            // Assert
-            Assert.AreEqual("No gRPC client configured with name 'Test'.", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual("No gRPC client configured with name 'Test'.", ex.Message);
+    }
 
-        [Test]
-        public void CreateClient_NoAddress_ThrowError()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<Greeter.GreeterClient>()
-                .ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
+    [Test]
+    public void CreateClient_NoAddress_ThrowError()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<Greeter.GreeterClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => new NullHttpHandler());
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("CustomName"))!;
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<Greeter.GreeterClient>("CustomName"))!;
 
-            // Assert
-            Assert.AreEqual(@"Could not resolve the address for gRPC client 'CustomName'. Set an address when registering the client: services.AddGrpcClient<GreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual(@"Could not resolve the address for gRPC client 'CustomName'. Set an address when registering the client: services.AddGrpcClient<GreeterClient>(o => o.Address = new Uri(""https://localhost:5001""))", ex.Message);
+    }
 
-        [Test]
-        public void CreateClient_ConfigureHttpClient_ThrowError()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<TestGreeterClient>()
-                .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"))
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return new NullHttpHandler();
-                });
+    [Test]
+    public void CreateClient_ConfigureHttpClient_ThrowError()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>()
+            .ConfigureHttpClient(options => options.BaseAddress = new Uri("http://contoso"))
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                return new NullHttpHandler();
+            });
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
 
-            // Assert
-            Assert.AreEqual("The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name 'TestGreeterClient'.", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual("The ConfigureHttpClient method is not supported when creating gRPC clients. Unable to create client with name 'TestGreeterClient'.", ex.Message);
+    }
 
 #if NET472
-        [Test]
-        public void CreateClient_NoPrimaryHandlerNetStandard_ThrowError()
-        {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"));
+    [Test]
+    public void CreateClient_NoPrimaryHandlerNetStandard_ThrowError()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"));
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
 
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
 
-            // Act
-            var ex = Assert.Throws<PlatformNotSupportedException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
+        // Act
+        var ex = Assert.Throws<PlatformNotSupportedException>(() => clientFactory.CreateClient<TestGreeterClient>(nameof(TestGreeterClient)))!;
 
-            // Assert
-            Assert.AreEqual(@"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. An HTTP provider must be specified using GrpcChannelOptions.HttpHandler.The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. See https://aka.ms/aspnet/grpc/netstandard for details.", ex.Message);
-        }
+        // Assert
+        Assert.AreEqual(@"gRPC requires extra configuration on .NET implementations that don't support gRPC over HTTP/2. An HTTP provider must be specified using GrpcChannelOptions.HttpHandler.The configured HTTP provider must either support HTTP/2 or be configured to use gRPC-Web. See https://aka.ms/aspnet/grpc/netstandard for details.", ex.Message);
+    }
 #endif
 
 #if NET5_0_OR_GREATER
-        [Test]
-        public void CreateClient_NoPrimaryHandlerNet5OrLater_SocketsHttpHandlerConfigured()
+    [Test]
+    public void CreateClient_NoPrimaryHandlerNet5OrLater_SocketsHttpHandlerConfigured()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"))
+            .SetHandlerLifetime(TimeSpan.FromSeconds(10));
+
+        var serviceProvider = services.BuildServiceProvider(validateScopes: true);
+
+        var clientFactory = CreateGrpcClientFactory(serviceProvider);
+
+        // Act
+        var handlerFactory = serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>();
+        var handler = handlerFactory.CreateHandler(nameof(TestGreeterClient));
+
+        // Assert
+        SocketsHttpHandler? socketsHttpHandler = null;
+        HttpMessageHandler? currentHandler = handler;
+        while (currentHandler is DelegatingHandler delegatingHandler)
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<TestGreeterClient>(o => o.Address = new Uri("https://localhost"))
-                .SetHandlerLifetime(TimeSpan.FromSeconds(10));
+            currentHandler = delegatingHandler.InnerHandler;
 
-            var serviceProvider = services.BuildServiceProvider(validateScopes: true);
-
-            var clientFactory = CreateGrpcClientFactory(serviceProvider);
-
-            // Act
-            var handlerFactory = serviceProvider.GetRequiredService<IHttpMessageHandlerFactory>();
-            var handler = handlerFactory.CreateHandler(nameof(TestGreeterClient));
-
-            // Assert
-            SocketsHttpHandler? socketsHttpHandler = null;
-            HttpMessageHandler? currentHandler = handler;
-            while (currentHandler is DelegatingHandler delegatingHandler)
+            if (currentHandler is SocketsHttpHandler s)
             {
-                currentHandler = delegatingHandler.InnerHandler;
-
-                if (currentHandler is SocketsHttpHandler s)
-                {
-                    socketsHttpHandler = s;
-                    break;
-                }
+                socketsHttpHandler = s;
+                break;
             }
-
-            Assert.IsNotNull(socketsHttpHandler);
-            Assert.AreEqual(true, socketsHttpHandler!.EnableMultipleHttp2Connections);
-            Assert.AreEqual(TimeSpan.FromSeconds(10), socketsHttpHandler!.PooledConnectionLifetime);
         }
+
+        Assert.IsNotNull(socketsHttpHandler);
+        Assert.AreEqual(true, socketsHttpHandler!.EnableMultipleHttp2Connections);
+        Assert.AreEqual(TimeSpan.FromSeconds(10), socketsHttpHandler!.PooledConnectionLifetime);
+    }
 #endif
 
-        [Test]
-        public async Task CreateClient_LoggingSetup_ClientLogsToTestSink()
+    [Test]
+    public async Task CreateClient_LoggingSetup_ClientLogsToTestSink()
+    {
+        // Arrange
+        var testSink = new TestSink();
+
+        var services = new ServiceCollection();
+        var clientBuilder = services
+            .AddGrpcClient<TestGreeterClient>("contoso", options =>
+            {
+                options.Address = new Uri("http://contoso");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+        services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
+
+        var provider = services.BuildServiceProvider(validateScopes: true);
+
+        // Act
+        var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
+
+        var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
+
+        var response = await contosoClient.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
+
+        Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "StartingCall"));
+    }
+
+    [Test]
+    public void CreateClient_MultipleNamedClients_ReturnMatchingClient()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services
+            .AddGrpcClient<TestGreeterClient>("contoso", options =>
+            {
+                options.Address = new Uri("http://contoso");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+        services
+            .AddGrpcClient<TestGreeterClient>("adventureworks", options =>
+            {
+                options.Address = new Uri("http://adventureworks");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
+
+        var provider = services.BuildServiceProvider(validateScopes: true);
+
+        // Act
+        var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
+
+        var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
+        var adventureworksClient = clientFactory.CreateClient<TestGreeterClient>("adventureworks");
+
+        // Assert
+        Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
+        Assert.AreEqual("http://adventureworks", adventureworksClient.CallInvoker.Channel.Address.OriginalString);
+    }
+
+    internal class TestGreeterClient : Greeter.GreeterClient
+    {
+        public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
         {
-            // Arrange
-            var testSink = new TestSink();
-
-            var services = new ServiceCollection();
-            var clientBuilder = services
-                .AddGrpcClient<TestGreeterClient>("contoso", options =>
-                {
-                    options.Address = new Uri("http://contoso");
-                })
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
-            services.AddLogging(configure => configure.SetMinimumLevel(LogLevel.Trace));
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, TestLoggerProvider>(s => new TestLoggerProvider(testSink, true)));
-
-            var provider = services.BuildServiceProvider(validateScopes: true);
-
-            // Act
-            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
-
-            var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
-
-            var response = await contosoClient.SayHelloAsync(new HelloRequest()).ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
-
-            Assert.IsTrue(testSink.Writes.Any(w => w.EventId.Name == "StartingCall"));
+            CallInvoker = (HttpClientCallInvoker)callInvoker;
         }
 
-        [Test]
-        public void CreateClient_MultipleNamedClients_ReturnMatchingClient()
+        public new HttpClientCallInvoker CallInvoker { get; }
+    }
+
+    public sealed class TestLoggerProvider : ILoggerProvider
+    {
+        private readonly Func<LogLevel, bool> _filter;
+
+        public TestLoggerProvider(TestSink testSink, bool isEnabled) :
+            this(testSink, _ => isEnabled)
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services
-                .AddGrpcClient<TestGreeterClient>("contoso", options =>
-                {
-                    options.Address = new Uri("http://contoso");
-                })
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
-            services
-                .AddGrpcClient<TestGreeterClient>("adventureworks", options =>
-                {
-                    options.Address = new Uri("http://adventureworks");
-                })
-                .ConfigurePrimaryHttpMessageHandler(() => ClientTestHelpers.CreateTestMessageHandler(new HelloReply()));
-
-            var provider = services.BuildServiceProvider(validateScopes: true);
-
-            // Act
-            var clientFactory = provider.GetRequiredService<GrpcClientFactory>();
-
-            var contosoClient = clientFactory.CreateClient<TestGreeterClient>("contoso");
-            var adventureworksClient = clientFactory.CreateClient<TestGreeterClient>("adventureworks");
-
-            // Assert
-            Assert.AreEqual("http://contoso", contosoClient.CallInvoker.Channel.Address.OriginalString);
-            Assert.AreEqual("http://adventureworks", adventureworksClient.CallInvoker.Channel.Address.OriginalString);
         }
 
-        internal class TestGreeterClient : Greeter.GreeterClient
+        public TestLoggerProvider(TestSink testSink, Func<LogLevel, bool> filter)
         {
-            public TestGreeterClient(CallInvoker callInvoker) : base(callInvoker)
-            {
-                CallInvoker = (HttpClientCallInvoker)callInvoker;
-            }
-
-            public new HttpClientCallInvoker CallInvoker { get; }
+            Sink = testSink;
+            _filter = filter;
         }
 
-        public sealed class TestLoggerProvider : ILoggerProvider
+        public TestSink Sink { get; }
+
+        public bool DisposeCalled { get; private set; }
+
+        public ILogger CreateLogger(string categoryName)
         {
-            private readonly Func<LogLevel, bool> _filter;
-
-            public TestLoggerProvider(TestSink testSink, bool isEnabled) :
-                this(testSink, _ => isEnabled)
-            {
-            }
-
-            public TestLoggerProvider(TestSink testSink, Func<LogLevel, bool> filter)
-            {
-                Sink = testSink;
-                _filter = filter;
-            }
-
-            public TestSink Sink { get; }
-
-            public bool DisposeCalled { get; private set; }
-
-            public ILogger CreateLogger(string categoryName)
-            {
-                return new TestLogger(categoryName, Sink, _filter);
-            }
-
-            public void Dispose()
-            {
-                DisposeCalled = true;
-            }
+            return new TestLogger(categoryName, Sink, _filter);
         }
 
-        private class NullHttpHandler : DelegatingHandler
+        public void Dispose()
         {
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                return Task.FromResult(new HttpResponseMessage());
-            }
+            DisposeCalled = true;
         }
+    }
 
-        private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
+    private class NullHttpHandler : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return new DefaultGrpcClientFactory(
-                serviceProvider,
-                serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
-                serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
+            return Task.FromResult(new HttpResponseMessage());
         }
+    }
+
+    private static DefaultGrpcClientFactory CreateGrpcClientFactory(ServiceProvider serviceProvider)
+    {
+        return new DefaultGrpcClientFactory(
+            serviceProvider,
+            serviceProvider.GetRequiredService<GrpcCallInvokerFactory>(),
+            serviceProvider.GetRequiredService<IOptionsMonitor<GrpcClientFactoryOptions>>());
     }
 }

@@ -20,90 +20,89 @@ using System;
 using System.Text;
 using Grpc.Core.Utils;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// A property of an <see cref="AuthContext"/>.
+/// Note: experimental API that can change or be removed without any prior notice.
+/// </summary>
+public class AuthProperty
 {
-    /// <summary>
-    /// A property of an <see cref="AuthContext"/>.
-    /// Note: experimental API that can change or be removed without any prior notice.
-    /// </summary>
-    public class AuthProperty
+    static readonly Encoding EncodingUTF8 = System.Text.Encoding.UTF8;
+    string name;
+    byte[] valueBytes;
+    string? lazyValue;
+
+    private AuthProperty(string name, byte[] valueBytes)
     {
-        static readonly Encoding EncodingUTF8 = System.Text.Encoding.UTF8;
-        string name;
-        byte[] valueBytes;
-        string? lazyValue;
+        this.name = GrpcPreconditions.CheckNotNull(name);
+        this.valueBytes = GrpcPreconditions.CheckNotNull(valueBytes);
+    }
 
-        private AuthProperty(string name, byte[] valueBytes)
+    /// <summary>
+    /// Gets the name of the property.
+    /// </summary>
+    public string Name
+    {
+        get
         {
-            this.name = GrpcPreconditions.CheckNotNull(name);
-            this.valueBytes = GrpcPreconditions.CheckNotNull(valueBytes);
+            return name;
         }
+    }
 
-        /// <summary>
-        /// Gets the name of the property.
-        /// </summary>
-        public string Name
+    /// <summary>
+    /// Gets the string value of the property.
+    /// </summary>
+    public string Value
+    {
+        get
         {
-            get
-            {
-                return name;
-            }
+            return lazyValue ?? (lazyValue = EncodingUTF8.GetString(this.valueBytes));
         }
+    }
 
-        /// <summary>
-        /// Gets the string value of the property.
-        /// </summary>
-        public string Value
+    /// <summary>
+    /// Gets the binary value of the property.
+    /// </summary>
+    public byte[] ValueBytes
+    {
+        get
         {
-            get
-            {
-                return lazyValue ?? (lazyValue = EncodingUTF8.GetString(this.valueBytes));
-            }
-        }
-
-        /// <summary>
-        /// Gets the binary value of the property.
-        /// </summary>
-        public byte[] ValueBytes
-        {
-            get
-            {
-                var valueCopy = new byte[valueBytes.Length];
-                Buffer.BlockCopy(valueBytes, 0, valueCopy, 0, valueBytes.Length);
-                return valueCopy;
-            }
-        }
-
-        /// <summary>
-        /// Creates an instance of <c>AuthProperty</c>.
-        /// </summary>
-        /// <param name="name">the name</param>
-        /// <param name="valueBytes">the binary value of the property</param>
-        public static AuthProperty Create(string name, byte[] valueBytes)
-        {
-            GrpcPreconditions.CheckNotNull(valueBytes);
             var valueCopy = new byte[valueBytes.Length];
             Buffer.BlockCopy(valueBytes, 0, valueCopy, 0, valueBytes.Length);
-            return new AuthProperty(name, valueCopy);
+            return valueCopy;
         }
+    }
 
-        /// <summary>
-        /// Gets the binary value of the property (without making a defensive copy).
-        /// </summary>
-        internal byte[] ValueBytesUnsafe
-        {
-            get
-            {
-                return valueBytes;
-            }
-        }
+    /// <summary>
+    /// Creates an instance of <c>AuthProperty</c>.
+    /// </summary>
+    /// <param name="name">the name</param>
+    /// <param name="valueBytes">the binary value of the property</param>
+    public static AuthProperty Create(string name, byte[] valueBytes)
+    {
+        GrpcPreconditions.CheckNotNull(valueBytes);
+        var valueCopy = new byte[valueBytes.Length];
+        Buffer.BlockCopy(valueBytes, 0, valueCopy, 0, valueBytes.Length);
+        return new AuthProperty(name, valueCopy);
+    }
 
-        /// <summary>
-        /// Creates and instance of <c>AuthProperty</c> without making a defensive copy of <c>valueBytes</c>.
-        /// </summary>
-        internal static AuthProperty CreateUnsafe(string name, byte[] valueBytes)
+    /// <summary>
+    /// Gets the binary value of the property (without making a defensive copy).
+    /// </summary>
+    internal byte[] ValueBytesUnsafe
+    {
+        get
         {
-            return new AuthProperty(name, valueBytes);
+            return valueBytes;
         }
+    }
+
+    /// <summary>
+    /// Creates and instance of <c>AuthProperty</c> without making a defensive copy of <c>valueBytes</c>.
+    /// </summary>
+    internal static AuthProperty CreateUnsafe(string name, byte[] valueBytes)
+    {
+        return new AuthProperty(name, valueBytes);
     }
 }

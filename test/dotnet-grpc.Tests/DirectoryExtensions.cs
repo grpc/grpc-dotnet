@@ -16,26 +16,25 @@
 
 #endregion
 
-namespace Grpc.Dotnet.Cli.Tests
+namespace Grpc.Dotnet.Cli.Tests;
+
+public static class DirectoryExtensions
 {
-    public static class DirectoryExtensions
+    public static void CopyTo(this DirectoryInfo source, string destination)
     {
-        public static void CopyTo(this DirectoryInfo source, string destination)
+        if (!Directory.Exists(destination))
         {
-            if (!Directory.Exists(destination))
-            {
-                Directory.CreateDirectory(destination);
-            }
+            Directory.CreateDirectory(destination);
+        }
 
-            foreach (var dir in source.GetDirectories())
-            {
-                dir.CopyTo(Path.Combine(destination, dir.Name));
-            }
+        foreach (var dir in source.GetDirectories())
+        {
+            dir.CopyTo(Path.Combine(destination, dir.Name));
+        }
 
-            foreach (var file in source.GetFiles())
-            {
-                file.CopyTo(Path.Combine(destination, file.Name));
-            }
+        foreach (var file in source.GetFiles())
+        {
+            file.CopyTo(Path.Combine(destination, file.Name));
         }
     }
 }

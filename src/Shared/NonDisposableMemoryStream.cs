@@ -16,14 +16,13 @@
 
 #endregion
 
-namespace Grpc.Shared
+namespace Grpc.Shared;
+
+internal sealed class NonDisposableMemoryStream : MemoryStream
 {
-    internal sealed class NonDisposableMemoryStream : MemoryStream
+    protected override void Dispose(bool disposing)
     {
-        protected override void Dispose(bool disposing)
-        {
-            // Ignore dispose from wrapping compression stream.
-            // If MemoryStream is disposed then Length isn't available.
-        }
+        // Ignore dispose from wrapping compression stream.
+        // If MemoryStream is disposed then Length isn't available.
     }
 }

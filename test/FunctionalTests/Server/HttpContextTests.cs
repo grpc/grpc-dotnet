@@ -22,65 +22,64 @@ using Grpc.Core;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class HttpContextTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class HttpContextTests : FunctionalTestBase
+    [Test]
+    public async Task HttpContextAccessor_ReturnContextInTrailer()
     {
-        [Test]
-        public async Task HttpContextAccessor_ReturnContextInTrailer()
+        // Arrange
+        var requestMessage = new HelloRequest
         {
-            // Arrange
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+            Name = "World"
+        };
 
-            var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, requestMessage);
+        var requestStream = new MemoryStream();
+        MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+        var httpRequest = GrpcHttpHelper.Create("Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra");
+        httpRequest.Content = new GrpcStreamContent(requestStream);
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-            response.AssertTrailerStatus();
-            Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
-        }
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
+        response.AssertTrailerStatus();
+        Assert.AreEqual("/Greet.Greeter/SayHelloWithHttpContextAccessor?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
+    }
 
-        [Test]
-        public async Task HttpContextExtensionMethod_ReturnContextInTrailer()
+    [Test]
+    public async Task HttpContextExtensionMethod_ReturnContextInTrailer()
+    {
+        // Arrange
+        var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
         {
-            // Arrange
-            var url = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>((request, context) =>
-            {
-                var httpContext = context.GetHttpContext();
-                context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
+            var httpContext = context.GetHttpContext();
+            context.ResponseTrailers.Add("Test-HttpContext-PathAndQueryString", httpContext.Request.Path + httpContext.Request.QueryString);
 
-                return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
-            });
+            return Task.FromResult(new HelloReply { Message = "Hello " + request.Name });
+        });
 
-            var requestMessage = new HelloRequest
-            {
-                Name = "World"
-            };
+        var requestMessage = new HelloRequest
+        {
+            Name = "World"
+        };
 
-            var requestStream = new MemoryStream();
-            MessageHelpers.WriteMessage(requestStream, requestMessage);
+        var requestStream = new MemoryStream();
+        MessageHelpers.WriteMessage(requestStream, requestMessage);
 
-            var httpRequest = GrpcHttpHelper.Create($"{url.FullName}?query=extra");
-            httpRequest.Content = new GrpcStreamContent(requestStream);
+        var httpRequest = GrpcHttpHelper.Create($"{url.FullName}?query=extra");
+        httpRequest.Content = new GrpcStreamContent(requestStream);
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequest).DefaultTimeout();
 
-            // Assert
-            response.AssertIsSuccessfulGrpcRequest();
-            response.AssertTrailerStatus();
-            Assert.AreEqual($"{url.FullName}?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
-        }
+        // Assert
+        response.AssertIsSuccessfulGrpcRequest();
+        response.AssertTrailerStatus();
+        Assert.AreEqual($"{url.FullName}?query=extra", response.TrailingHeaders.GetValues("Test-HttpContext-PathAndQueryString").Single());
     }
 }

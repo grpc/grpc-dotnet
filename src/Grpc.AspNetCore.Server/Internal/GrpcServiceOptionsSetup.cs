@@ -20,50 +20,49 @@ using System.IO.Compression;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Options;
 
-namespace Grpc.AspNetCore.Server.Internal
-{
-    internal class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
-    {
-        // Default to no send limit and 4mb receive limit.
-        // Matches the gRPC C impl defaults
-        // https://github.com/grpc/grpc/blob/977df7208a6e3f9a62a6369af5cd6e4b69b4fdec/include/grpc/impl/codegen/grpc_types.h#L413-L416
-        internal const int DefaultReceiveMaxMessageSize = 4 * 1024 * 1024;
+namespace Grpc.AspNetCore.Server.Internal;
 
-        public void Configure(GrpcServiceOptions options)
+internal class GrpcServiceOptionsSetup : IConfigureOptions<GrpcServiceOptions>
+{
+    // Default to no send limit and 4mb receive limit.
+    // Matches the gRPC C impl defaults
+    // https://github.com/grpc/grpc/blob/977df7208a6e3f9a62a6369af5cd6e4b69b4fdec/include/grpc/impl/codegen/grpc_types.h#L413-L416
+    internal const int DefaultReceiveMaxMessageSize = 4 * 1024 * 1024;
+
+    public void Configure(GrpcServiceOptions options)
+    {
+        if (!options._maxReceiveMessageSizeConfigured)
         {
-            if (!options._maxReceiveMessageSizeConfigured)
-            {
-                // Only default MaxReceiveMessageSize if it was not configured
-                options._maxReceiveMessageSize = DefaultReceiveMaxMessageSize;
-            }
-            if (options._compressionProviders == null || options._compressionProviders.Count == 0)
-            {
-                options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
+            // Only default MaxReceiveMessageSize if it was not configured
+            options._maxReceiveMessageSize = DefaultReceiveMaxMessageSize;
+        }
+        if (options._compressionProviders == null || options._compressionProviders.Count == 0)
+        {
+            options.CompressionProviders.Add(new GzipCompressionProvider(CompressionLevel.Fastest));
 #if NET6_0_OR_GREATER
-                options.CompressionProviders.Add(new DeflateCompressionProvider(CompressionLevel.Fastest));
+            options.CompressionProviders.Add(new DeflateCompressionProvider(CompressionLevel.Fastest));
 #endif
-            }
         }
     }
+}
 
-    internal class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService : class
+internal class GrpcServiceOptionsSetup<TService> : IConfigureOptions<GrpcServiceOptions<TService>> where TService : class
+{
+    private readonly GrpcServiceOptions _options;
+
+    public GrpcServiceOptionsSetup(IOptions<GrpcServiceOptions> options)
     {
-        private readonly GrpcServiceOptions _options;
+        _options = options.Value;
+    }
 
-        public GrpcServiceOptionsSetup(IOptions<GrpcServiceOptions> options)
-        {
-            _options = options.Value;
-        }
-
-        public void Configure(GrpcServiceOptions<TService> options)
-        {
-            options.MaxReceiveMessageSize = _options.MaxReceiveMessageSize;
-            options.MaxSendMessageSize = _options.MaxSendMessageSize;
-            options.EnableDetailedErrors = _options.EnableDetailedErrors;
-            options.ResponseCompressionAlgorithm = _options.ResponseCompressionAlgorithm;
-            options.ResponseCompressionLevel = _options.ResponseCompressionLevel;
-            options.CompressionProviders = _options.CompressionProviders;
-            options.IgnoreUnknownServices = _options.IgnoreUnknownServices;
-        }
+    public void Configure(GrpcServiceOptions<TService> options)
+    {
+        options.MaxReceiveMessageSize = _options.MaxReceiveMessageSize;
+        options.MaxSendMessageSize = _options.MaxSendMessageSize;
+        options.EnableDetailedErrors = _options.EnableDetailedErrors;
+        options.ResponseCompressionAlgorithm = _options.ResponseCompressionAlgorithm;
+        options.ResponseCompressionLevel = _options.ResponseCompressionLevel;
+        options.CompressionProviders = _options.CompressionProviders;
+        options.IgnoreUnknownServices = _options.IgnoreUnknownServices;
     }
 }

@@ -19,13 +19,12 @@
 using Chat;
 using Grpc.Core;
 
-namespace Grpc.AspNetCore.Microbenchmarks.Internal
+namespace Grpc.AspNetCore.Microbenchmarks.Internal;
+
+public class TestService
 {
-    public class TestService
+    public virtual Task<ChatMessage> SayHello(ChatMessage request, ServerCallContext context)
     {
-        public virtual Task<ChatMessage> SayHello(ChatMessage request, ServerCallContext context)
-        {
-            return Task.FromResult(new ChatMessage { Message = "Hello " + request.Name });
-        }
+        return Task.FromResult(new ChatMessage { Message = "Hello " + request.Name });
     }
 }

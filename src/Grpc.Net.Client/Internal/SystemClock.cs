@@ -17,12 +17,11 @@
 #endregion
 
 
-namespace Grpc.Net.Client.Internal
-{
-    internal sealed class SystemClock : ISystemClock
-    {
-        public static readonly SystemClock Instance = new SystemClock();
+namespace Grpc.Net.Client.Internal;
 
-        public DateTime UtcNow => DateTime.UtcNow;
-    }
+internal sealed class SystemClock : ISystemClock
+{
+    public static readonly SystemClock Instance = new SystemClock();
+
+    public DateTime UtcNow => DateTime.UtcNow;
 }

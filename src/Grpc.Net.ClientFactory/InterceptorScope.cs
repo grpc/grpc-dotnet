@@ -18,20 +18,19 @@
 
 using Grpc.Core.Interceptors;
 
-namespace Grpc.Net.ClientFactory
+namespace Grpc.Net.ClientFactory;
+
+/// <summary>
+/// Specifies the scope of an <see cref="Interceptor"/>.
+/// </summary>
+public enum InterceptorScope
 {
     /// <summary>
-    /// Specifies the scope of an <see cref="Interceptor"/>.
+    /// Specifies that the <see cref="Interceptor"/> will be resolved when a channel is created.
     /// </summary>
-    public enum InterceptorScope
-    {
-        /// <summary>
-        /// Specifies that the <see cref="Interceptor"/> will be resolved when a channel is created.
-        /// </summary>
-        Channel,
-        /// <summary>
-        /// Specifies that the <see cref="Interceptor"/> will be resolved every time a client instance is created.
-        /// </summary>
-        Client
-    }
+    Channel,
+    /// <summary>
+    /// Specifies that the <see cref="Interceptor"/> will be resolved every time a client instance is created.
+    /// </summary>
+    Client
 }

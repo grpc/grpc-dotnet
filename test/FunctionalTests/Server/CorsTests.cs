@@ -21,74 +21,73 @@ using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Tests.Shared;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Server
+namespace Grpc.AspNetCore.FunctionalTests.Server;
+
+[TestFixture]
+public class CorsTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class CorsTests : FunctionalTestBase
+    [Test]
+    public async Task PreflightRequest_UnsupportedMethod_Return405()
     {
-        [Test]
-        public async Task PreflightRequest_UnsupportedMethod_Return405()
-        {
-            // Arrange
-            var httpRequestMessage = CreateRequestMessage("Greet.Greeter/SayHello");
+        // Arrange
+        var httpRequestMessage = CreateRequestMessage("Greet.Greeter/SayHello");
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
-            Assert.AreEqual("POST", response.Content.Headers.Allow.Single());
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.AreEqual("POST", response.Content.Headers.Allow.Single());
+    }
 
-        [Test]
-        public async Task PreflightRequest_SupportedMethod_Return405()
-        {
-            // Arrange
-            var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/SayHello");
+    [Test]
+    public async Task PreflightRequest_SupportedMethod_Return405()
+    {
+        // Arrange
+        var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/SayHello");
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
-            Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+    }
 
-        [Test]
-        public async Task PreflightRequest_UnimplementedSupportedMethod_Return405()
-        {
-            // Arrange
-            var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/ThisIsNotImplemented");
+    [Test]
+    public async Task PreflightRequest_UnimplementedSupportedMethod_Return405()
+    {
+        // Arrange
+        var httpRequestMessage = CreateRequestMessage("Greet.SecondGreeter/ThisIsNotImplemented");
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
-            Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+    }
 
-        [Test]
-        public async Task PreflightRequest_UnimplementedSupportedService_Return405()
-        {
-            // Arrange
-            var httpRequestMessage = CreateRequestMessage("ThisIsNotImplemented/SayHello");
+    [Test]
+    public async Task PreflightRequest_UnimplementedSupportedService_Return405()
+    {
+        // Arrange
+        var httpRequestMessage = CreateRequestMessage("ThisIsNotImplemented/SayHello");
 
-            // Act
-            var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
+        // Act
+        var response = await Fixture.Client.SendAsync(httpRequestMessage).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
-            Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
-        }
+        // Assert
+        Assert.AreEqual(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.AreEqual("POST", response.Headers.GetValues("Access-Control-Allow-Methods").Single());
+    }
 
-        private static HttpRequestMessage CreateRequestMessage(string path)
-        {
-            var httpRequestMessage = GrpcHttpHelper.Create(path, HttpMethod.Options);
-            httpRequestMessage.Headers.Add("Origin", "http://localhost");
-            httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
+    private static HttpRequestMessage CreateRequestMessage(string path)
+    {
+        var httpRequestMessage = GrpcHttpHelper.Create(path, HttpMethod.Options);
+        httpRequestMessage.Headers.Add("Origin", "http://localhost");
+        httpRequestMessage.Headers.Add("Access-Control-Request-Method", "POST");
 
-            return httpRequestMessage;
-        }
+        return httpRequestMessage;
     }
 }

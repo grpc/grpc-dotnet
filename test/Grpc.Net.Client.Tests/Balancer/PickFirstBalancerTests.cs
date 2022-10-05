@@ -38,553 +38,552 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests.Balancer
+namespace Grpc.Net.Client.Tests.Balancer;
+
+[TestFixture]
+public class PickFirstBalancerTests
 {
-    [TestFixture]
-    public class PickFirstBalancerTests
+    [Test]
+    public async Task ChangeAddresses_HasReadySubchannel_OldSubchannelShutdown()
     {
-        [Test]
-        public async Task ChangeAddresses_HasReadySubchannel_OldSubchannelShutdown()
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            new BalancerAddress("localhost", 80)
+        });
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
 
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync();
-
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 81) });
-
-            var newSubchannels = channel.ConnectionManager.GetSubchannels();
-            CollectionAssert.AreEqual(subchannels, newSubchannels);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-        }
-
-        [Test]
-        public async Task ResolverError_HasReadySubchannel_SubchannelUnchanged()
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync();
 
-            var transportFactory = new TestSubchannelTransportFactory();
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync().DefaultTimeout();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 81) });
 
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
+        var newSubchannels = channel.ConnectionManager.GetSubchannels();
+        CollectionAssert.AreEqual(subchannels, newSubchannels);
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+    }
 
-            // Wait for TryConnect to be called so state is connected
-            await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+    [Test]
+    public async Task ResolverError_HasReadySubchannel_SubchannelUnchanged()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-            resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
 
-            // Existing channel continutes to run
-            var newSubchannels = channel.ConnectionManager.GetSubchannels();
-            CollectionAssert.AreEqual(subchannels, newSubchannels);
-            Assert.AreEqual(1, newSubchannels.Count);
+        var transportFactory = new TestSubchannelTransportFactory();
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
-            await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
-        }
-
-        [Test]
-        public async Task ResolverError_HasFailedSubchannel_SubchannelShutdown()
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync().DefaultTimeout();
 
-            var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            _ = channel.ConnectAsync();
+        // Wait for TryConnect to be called so state is connected
+        await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
+        resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
+        // Existing channel continutes to run
+        var newSubchannels = channel.ConnectionManager.GetSubchannels();
+        CollectionAssert.AreEqual(subchannels, newSubchannels);
+        Assert.AreEqual(1, newSubchannels.Count);
 
-            resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
-            Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
+        await channel.ConnectionManager.PickAsync(new PickContext { Request = new HttpRequestMessage() }, waitForReady: false, CancellationToken.None).AsTask().DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, newSubchannels[0].State);
+    }
 
-            var pickContext = new PickContext { Request = new HttpRequestMessage() };
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await channel.ConnectionManager.PickAsync(pickContext, waitForReady: false, CancellationToken.None)).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
-            Assert.AreEqual("Error!", ex.Status.Detail);
-            Assert.AreEqual("Test exception!", ex.Status.DebugException!.Message);
-        }
+    [Test]
+    public async Task ResolverError_HasFailedSubchannel_SubchannelShutdown()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-        [Test]
-        public async Task RequestConnection_InitialConnectionFails_ExponentialBackoff()
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            new BalancerAddress("localhost", 80)
+        });
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
-            SyncPoint syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-            var connectivityState = ConnectivityState.TransientFailure;
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
-            {
-                await syncPoint.WaitToContinue();
-                return connectivityState;
-            }));
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            var connectTask = channel.ConnectAsync();
-
-            // First connection fails
-            await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            syncPoint.Continue();
-            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
-
-            // TODO
-            //Assert.IsFalse(connectTask.IsCompleted);
-
-            // Second connection succeeds
-            await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            connectivityState = ConnectivityState.Ready;
-            syncPoint.Continue();
-
-            await connectTask.DefaultTimeout();
-
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
-
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-        }
-
-        [Test]
-        public async Task RequestConnection_InitialConnectionEnds_EntersIdleState()
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress>
-            {
-                new BalancerAddress("localhost", 80)
-            });
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        _ = channel.ConnectAsync();
 
-            var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                transportConnectCount++;
-                return Task.FromResult(ConnectivityState.Ready);
-            });
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(ConnectivityState.TransientFailure, subchannels[0].State);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
+        resolver.UpdateError(new Status(StatusCode.Internal, "Error!", new Exception("Test exception!")));
+        Assert.AreEqual(ConnectivityState.Shutdown, subchannels[0].State);
 
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync();
+        var pickContext = new PickContext { Request = new HttpRequestMessage() };
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () => await channel.ConnectionManager.PickAsync(pickContext, waitForReady: false, CancellationToken.None)).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
+        Assert.AreEqual("Error!", ex.Status.Detail);
+        Assert.AreEqual("Test exception!", ex.Status.DebugException!.Message);
+    }
 
-            // Assert
-            var subchannels = channel.ConnectionManager.GetSubchannels();
-            Assert.AreEqual(1, subchannels.Count);
+    [Test]
+    public async Task RequestConnection_InitialConnectionFails_ExponentialBackoff()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-            Assert.AreEqual(1, subchannels[0]._addresses.Count);
-            Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
-            Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
-
-            var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
-
-            transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
-
-            await stateChangedTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Idle, channel.State);
-
-            Assert.AreEqual(1, transportConnectCount);
-        }
-
-        [Test]
-        public async Task RequestConnection_IdleConnectionConnectAsync_StateToReady()
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            new BalancerAddress("localhost", 80)
+        });
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+        SyncPoint syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var connectivityState = ConnectivityState.TransientFailure;
 
-            var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                transportConnectCount++;
-                return Task.FromResult(ConnectivityState.Ready);
-            });
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync().DefaultTimeout();
-
-            transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
-
-            Assert.AreEqual(ConnectivityState.Idle, channel.State);
-
-            var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
-
-            await channel.ConnectAsync().DefaultTimeout();
-
-            await stateChangedTask.DefaultTimeout();
-
-            Assert.AreEqual(2, transportConnectCount);
-        }
-
-        [Test]
-        public async Task RequestConnection_IdleConnectionPick_StateToReady()
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
+            await syncPoint.WaitToContinue();
+            return connectivityState;
+        }));
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
-
-            var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                transportConnectCount++;
-                return Task.FromResult(ConnectivityState.Ready);
-            });
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = services.BuildServiceProvider(),
-                HttpHandler = handler
-            };
-
-            // Act
-            var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-            await channel.ConnectAsync();
-
-            transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
-            Assert.AreEqual(ConnectivityState.Idle, channel.State);
-
-            var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
-
-            var pick = await channel.ConnectionManager.PickAsync(
-                new PickContext { Request = new HttpRequestMessage() },
-                waitForReady: false,
-                CancellationToken.None).AsTask().DefaultTimeout();
-
-            await stateChangedTask.DefaultTimeout();
-            Assert.AreEqual(ConnectivityState.Ready, channel.State);
-            Assert.AreEqual(2, transportConnectCount);
-            Assert.AreEqual("localhost", pick.Address.EndPoint.Host);
-            Assert.AreEqual(80, pick.Address.EndPoint.Port);
-        }
-
-        [Test]
-        public async Task UnaryCall_TransportConnecting_OnePickStarted()
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
         {
-            // Arrange
-            var services = new ServiceCollection();
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
 
-            var testSink = new TestSink();
-            services.AddLogging(b =>
-            {
-                b.AddProvider(new TestLoggerProvider(testSink));
-            });
-            services.AddNUnitLogger();
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        var connectTask = channel.ConnectAsync();
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+        // First connection fails
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+        syncPoint.Continue();
+        syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
 
-            ILogger? logger = null;
+        // TODO
+        //Assert.IsFalse(connectTask.IsCompleted);
 
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                transportConnectCount++;
+        // Second connection succeeds
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+        connectivityState = ConnectivityState.Ready;
+        syncPoint.Continue();
 
-                logger.LogInformation("Connect count: " + transportConnectCount);
-                if (transportConnectCount == 2)
-                {
-                    tcs.SetResult(null);
-                }
+        await connectTask.DefaultTimeout();
 
-                return Task.FromResult(ConnectivityState.Connecting);
-            });
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
 
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+    }
 
-            var serviceProvider = services.BuildServiceProvider();
-            logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+    [Test]
+    public async Task RequestConnection_InitialConnectionEnds_EntersIdleState()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
-
-            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
-            await tcs.Task.DefaultTimeout();
-
-            // Assert
-            var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
-            Assert.AreEqual(1, pickStartedCount);
-        }
-
-        [Test]
-        public async Task UnaryCall_TransportConnecting_ErrorAfterTransientFailure()
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress>
         {
-            // Arrange
-            var services = new ServiceCollection();
+            new BalancerAddress("localhost", 80)
+        });
 
-            var testSink = new TestSink();
-            services.AddLogging(b =>
-            {
-                b.AddProvider(new TestLoggerProvider(testSink));
-            });
-            services.AddNUnitLogger();
-
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
-
-            ILogger? logger = null;
-
-            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var transportConnectCount = 0;
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
-            {
-                transportConnectCount++;
-
-                logger.LogInformation("Connect count: " + transportConnectCount);
-                if (transportConnectCount == 2)
-                {
-                    tcs.SetResult(null);
-                }
-
-                return Task.FromResult(ConnectivityState.Connecting);
-            });
-
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
-
-            var serviceProvider = services.BuildServiceProvider();
-            logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
-
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
-
-            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
-
-            _ = invoker.Channel.ConnectAsync();
-
-            // Act
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
-            await tcs.Task.DefaultTimeout();
-
-            // Assert
-            var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
-            Assert.AreEqual(1, pickStartedCount);
-
-            transportFactory.Transports.Single().UpdateState(ConnectivityState.TransientFailure, new Status(StatusCode.Unavailable, "An error"));
-
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
-            Assert.AreEqual("An error", ex.Status.Detail);
-        }
-
-        [Test]
-        public async Task DeadlineExceeded_MultipleCalls_CallsWaitForDeadline()
+        var transportConnectCount = 0;
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
-            // Arrange
-            var services = new ServiceCollection();
+            transportConnectCount++;
+            return Task.FromResult(ConnectivityState.Ready);
+        });
 
-            var testSink = new TestSink();
-            services.AddLogging(b =>
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync();
+
+        // Assert
+        var subchannels = channel.ConnectionManager.GetSubchannels();
+        Assert.AreEqual(1, subchannels.Count);
+
+        Assert.AreEqual(1, subchannels[0]._addresses.Count);
+        Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
+        Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
+
+        var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
+
+        transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
+
+        await stateChangedTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Idle, channel.State);
+
+        Assert.AreEqual(1, transportConnectCount);
+    }
+
+    [Test]
+    public async Task RequestConnection_IdleConnectionConnectAsync_StateToReady()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        var transportConnectCount = 0;
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            transportConnectCount++;
+            return Task.FromResult(ConnectivityState.Ready);
+        });
+
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync().DefaultTimeout();
+
+        transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
+
+        Assert.AreEqual(ConnectivityState.Idle, channel.State);
+
+        var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+
+        await channel.ConnectAsync().DefaultTimeout();
+
+        await stateChangedTask.DefaultTimeout();
+
+        Assert.AreEqual(2, transportConnectCount);
+    }
+
+    [Test]
+    public async Task RequestConnection_IdleConnectionPick_StateToReady()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        var transportConnectCount = 0;
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            transportConnectCount++;
+            return Task.FromResult(ConnectivityState.Ready);
+        });
+
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
+
+        // Act
+        var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        await channel.ConnectAsync();
+
+        transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
+        Assert.AreEqual(ConnectivityState.Idle, channel.State);
+
+        var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+
+        var pick = await channel.ConnectionManager.PickAsync(
+            new PickContext { Request = new HttpRequestMessage() },
+            waitForReady: false,
+            CancellationToken.None).AsTask().DefaultTimeout();
+
+        await stateChangedTask.DefaultTimeout();
+        Assert.AreEqual(ConnectivityState.Ready, channel.State);
+        Assert.AreEqual(2, transportConnectCount);
+        Assert.AreEqual("localhost", pick.Address.EndPoint.Host);
+        Assert.AreEqual(80, pick.Address.EndPoint.Port);
+    }
+
+    [Test]
+    public async Task UnaryCall_TransportConnecting_OnePickStarted()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        var testSink = new TestSink();
+        services.AddLogging(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+        });
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        ILogger? logger = null;
+
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transportConnectCount = 0;
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            transportConnectCount++;
+
+            logger.LogInformation("Connect count: " + transportConnectCount);
+            if (transportConnectCount == 2)
             {
-                b.AddProvider(new TestLoggerProvider(testSink));
-            });
-            services.AddNUnitLogger();
+                tcs.SetResult(null);
+            }
 
-            var resolver = new TestResolver();
-            resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+            return Task.FromResult(ConnectivityState.Connecting);
+        });
 
-            var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var serviceProvider = services.BuildServiceProvider();
+        logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
+
+        var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
+
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions().WithWaitForReady(), new HelloRequest());
+        await tcs.Task.DefaultTimeout();
+
+        // Assert
+        var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
+        Assert.AreEqual(1, pickStartedCount);
+    }
+
+    [Test]
+    public async Task UnaryCall_TransportConnecting_ErrorAfterTransientFailure()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        var testSink = new TestSink();
+        services.AddLogging(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+        });
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        ILogger? logger = null;
+
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transportConnectCount = 0;
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            transportConnectCount++;
+
+            logger.LogInformation("Connect count: " + transportConnectCount);
+            if (transportConnectCount == 2)
             {
-                return Task.FromResult(ConnectivityState.Connecting);
-            });
+                tcs.SetResult(null);
+            }
 
-            services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
-            services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+            return Task.FromResult(ConnectivityState.Connecting);
+        });
 
-            var serviceProvider = services.BuildServiceProvider();
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
-            var handler = new TestHttpMessageHandler((r, ct) => default!);
-            var channelOptions = new GrpcChannelOptions
-            {
-                Credentials = ChannelCredentials.Insecure,
-                ServiceProvider = serviceProvider,
-                HttpHandler = handler
-            };
+        var serviceProvider = services.BuildServiceProvider();
+        logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
 
-            var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
-            {
-                o.Credentials = ChannelCredentials.Insecure;
-                o.ServiceProvider = services.BuildServiceProvider();
-            });
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
 
-            // Act 1
-            var call1 = invoker.AsyncUnaryCall(
-                ClientTestHelpers.ServiceMethod,
-                string.Empty,
-                new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
-                new HelloRequest());
+        var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
 
-            // Assert 1
-            var ex1 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call1.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.DeadlineExceeded, ex1.StatusCode);
+        _ = invoker.Channel.ConnectAsync();
 
-            // Act 2
-            var call2 = invoker.AsyncUnaryCall(
-                ClientTestHelpers.ServiceMethod,
-                string.Empty,
-                new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
-                new HelloRequest());
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        await tcs.Task.DefaultTimeout();
 
-            // Assert 2
-            var ex2 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call2.ResponseAsync).DefaultTimeout();
-            Assert.AreEqual(StatusCode.DeadlineExceeded, ex2.StatusCode);
-        }
+        // Assert
+        var pickStartedCount = testSink.Writes.Count(w => w.EventId.Name == "PickStarted");
+        Assert.AreEqual(1, pickStartedCount);
+
+        transportFactory.Transports.Single().UpdateState(ConnectivityState.TransientFailure, new Status(StatusCode.Unavailable, "An error"));
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
+        Assert.AreEqual("An error", ex.Status.Detail);
+    }
+
+    [Test]
+    public async Task DeadlineExceeded_MultipleCalls_CallsWaitForDeadline()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        var testSink = new TestSink();
+        services.AddLogging(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+        });
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        var transportFactory = new TestSubchannelTransportFactory((s, c) =>
+        {
+            return Task.FromResult(ConnectivityState.Connecting);
+        });
+
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var handler = new TestHttpMessageHandler((r, ct) => default!);
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
+
+        var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
+
+        // Act 1
+        var call1 = invoker.AsyncUnaryCall(
+            ClientTestHelpers.ServiceMethod,
+            string.Empty,
+            new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
+            new HelloRequest());
+
+        // Assert 1
+        var ex1 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call1.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.DeadlineExceeded, ex1.StatusCode);
+
+        // Act 2
+        var call2 = invoker.AsyncUnaryCall(
+            ClientTestHelpers.ServiceMethod,
+            string.Empty,
+            new CallOptions(deadline: DateTime.UtcNow.Add(TimeSpan.FromSeconds(0.1))),
+            new HelloRequest());
+
+        // Assert 2
+        var ex2 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call2.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.DeadlineExceeded, ex2.StatusCode);
     }
 }
 #endif

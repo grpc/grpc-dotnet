@@ -18,24 +18,23 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Grpc.Net.ClientFactory
+namespace Grpc.Net.ClientFactory;
+
+/// <summary>
+/// A factory abstraction for a component that can create gRPC client instances with custom
+/// configuration for a given logical name.
+/// </summary>
+public abstract class GrpcClientFactory
 {
     /// <summary>
-    /// A factory abstraction for a component that can create gRPC client instances with custom
-    /// configuration for a given logical name.
+    /// Create a gRPC client instance for the specified <typeparamref name="TClient"/> and configuration name.
     /// </summary>
-    public abstract class GrpcClientFactory
-    {
-        /// <summary>
-        /// Create a gRPC client instance for the specified <typeparamref name="TClient"/> and configuration name.
-        /// </summary>
-        /// <typeparam name="TClient">The gRPC client type.</typeparam>
-        /// <param name="name">The configuration name.</param>
-        /// <returns>A gRPC client instance.</returns>
-        public abstract TClient CreateClient<
+    /// <typeparam name="TClient">The gRPC client type.</typeparam>
+    /// <param name="name">The configuration name.</param>
+    /// <returns>A gRPC client instance.</returns>
+    public abstract TClient CreateClient<
 #if NET5_0_OR_GREATER
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 #endif
-            TClient>(string name) where TClient : class;
-    }
+        TClient>(string name) where TClient : class;
 }

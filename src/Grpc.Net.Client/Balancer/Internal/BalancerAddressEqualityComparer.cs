@@ -21,36 +21,35 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Grpc.Net.Client.Balancer.Internal
+namespace Grpc.Net.Client.Balancer.Internal;
+
+internal class BalancerAddressEqualityComparer : IEqualityComparer<BalancerAddress>
 {
-    internal class BalancerAddressEqualityComparer : IEqualityComparer<BalancerAddress>
+    internal static readonly BalancerAddressEqualityComparer Instance = new BalancerAddressEqualityComparer();
+
+    public bool Equals(BalancerAddress? x, BalancerAddress? y)
     {
-        internal static readonly BalancerAddressEqualityComparer Instance = new BalancerAddressEqualityComparer();
-
-        public bool Equals(BalancerAddress? x, BalancerAddress? y)
+        if (ReferenceEquals(x, y))
         {
-            if (ReferenceEquals(x, y))
-            {
-                return true;
-            }
-
-            if (x == null || y == null)
-            {
-                return false;
-            }
-
-            if (!x.EndPoint.Equals(y.EndPoint))
-            {
-                return false;
-            }
-
             return true;
         }
 
-        public int GetHashCode([DisallowNull] BalancerAddress obj)
+        if (x == null || y == null)
         {
-            throw new NotSupportedException();
+            return false;
         }
+
+        if (!x.EndPoint.Equals(y.EndPoint))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public int GetHashCode([DisallowNull] BalancerAddress obj)
+    {
+        throw new NotSupportedException();
     }
 }
 #endif

@@ -25,66 +25,65 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.Server.Tests;
+
+[TestFixture]
+public class HttpContextStreamReaderTests
 {
-    [TestFixture]
-    public class HttpContextStreamReaderTests
+    [Test]
+    public void MoveNext_AlreadyCancelledToken_CancelReturnImmediately()
     {
-        [Test]
-        public void MoveNext_AlreadyCancelledToken_CancelReturnImmediately()
+        // Arrange
+        var ms = new SyncPointMemoryStream();
+
+        var httpContext = new DefaultHttpContext();
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
+        var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
+
+        // Act
+        var nextTask = reader.MoveNext(new CancellationToken(true));
+
+        // Assert
+        Assert.IsTrue(nextTask.IsCompleted);
+        Assert.IsTrue(nextTask.IsCanceled);
+    }
+
+    [Test]
+    public async Task MoveNext_TokenCancelledDuringMoveNext_CancelTask()
+    {
+        // Arrange
+        var ms = new SyncPointMemoryStream();
+
+        var testSink = new TestSink();
+        var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
+        var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, logger: testLoggerFactory.CreateLogger("Test"));
+        var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
+
+        var cts = new CancellationTokenSource();
+
+        var nextTask = reader.MoveNext(cts.Token);
+
+        Assert.IsFalse(nextTask.IsCompleted);
+        Assert.IsFalse(nextTask.IsCanceled);
+
+        cts.Cancel();
+
+        try
         {
-            // Arrange
-            var ms = new SyncPointMemoryStream();
-
-            var httpContext = new DefaultHttpContext();
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext);
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
-
-            // Act
-            var nextTask = reader.MoveNext(new CancellationToken(true));
-
-            // Assert
-            Assert.IsTrue(nextTask.IsCompleted);
-            Assert.IsTrue(nextTask.IsCanceled);
+            await nextTask;
+            Assert.Fail();
+        }
+        catch (TaskCanceledException)
+        {
         }
 
-        [Test]
-        public async Task MoveNext_TokenCancelledDuringMoveNext_CancelTask()
-        {
-            // Arrange
-            var ms = new SyncPointMemoryStream();
+        Assert.IsTrue(nextTask.IsCompleted);
+        Assert.IsTrue(nextTask.IsCanceled);
 
-            var testSink = new TestSink();
-            var testLoggerFactory = new TestLoggerFactory(testSink, enabled: true);
-
-            var httpContext = new DefaultHttpContext();
-            httpContext.Features.Set<IRequestBodyPipeFeature>(new TestRequestBodyPipeFeature(PipeReader.Create(ms)));
-            var serverCallContext = HttpContextServerCallContextHelper.CreateServerCallContext(httpContext, logger: testLoggerFactory.CreateLogger("Test"));
-            var reader = new HttpContextStreamReader<HelloReply>(serverCallContext, MessageHelpers.ServiceMethod.ResponseMarshaller.ContextualDeserializer);
-
-            var cts = new CancellationTokenSource();
-
-            var nextTask = reader.MoveNext(cts.Token);
-
-            Assert.IsFalse(nextTask.IsCompleted);
-            Assert.IsFalse(nextTask.IsCanceled);
-
-            cts.Cancel();
-
-            try
-            {
-                await nextTask;
-                Assert.Fail();
-            }
-            catch (TaskCanceledException)
-            {
-            }
-
-            Assert.IsTrue(nextTask.IsCompleted);
-            Assert.IsTrue(nextTask.IsCanceled);
-
-            Assert.AreEqual(1, testSink.Writes.Count);
-            Assert.AreEqual("ReadingMessage", testSink.Writes.First().EventId.Name);
-        }
+        Assert.AreEqual(1, testSink.Writes.Count);
+        Assert.AreEqual("ReadingMessage", testSink.Writes.First().EventId.Name);
     }
 }

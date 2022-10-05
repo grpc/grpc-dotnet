@@ -19,28 +19,27 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Grpc.AspNetCore.Server.Tests.Infrastructure
+namespace Grpc.AspNetCore.Server.Tests.Infrastructure;
+
+public class TestHttpResponseFeature : IHttpResponseFeature
 {
-    public class TestHttpResponseFeature : IHttpResponseFeature
+    public List<(Func<object, Task> callback, object state)> StartingCallbacks { get; }
+        = new List<(Func<object, Task> callback, object state)>();
+
+    public Stream Body { get; set; } = Stream.Null;
+    public bool HasStarted { get; }
+    public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
+    public string? ReasonPhrase { get; set; } = string.Empty;
+    public int StatusCode { get; set; }
+
+    public void OnCompleted(Func<object, Task> callback, object state)
     {
-        public List<(Func<object, Task> callback, object state)> StartingCallbacks { get; }
-            = new List<(Func<object, Task> callback, object state)>();
-
-        public Stream Body { get; set; } = Stream.Null;
-        public bool HasStarted { get; }
-        public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
-        public string? ReasonPhrase { get; set; } = string.Empty;
-        public int StatusCode { get; set; }
-
-        public void OnCompleted(Func<object, Task> callback, object state)
-        {
-        }
-
-        public void OnStarting(Func<object, Task> callback, object state)
-        {
-            StartingCallbacks.Add((callback, state));
-        }
-
-        public int StartingCallbackCount => StartingCallbacks.Count;
     }
+
+    public void OnStarting(Func<object, Task> callback, object state)
+    {
+        StartingCallbacks.Add((callback, state));
+    }
+
+    public int StartingCallbackCount => StartingCallbacks.Count;
 }

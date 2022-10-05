@@ -20,46 +20,45 @@ using System.Diagnostics.CodeAnalysis;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.Net.ClientFactory.Internal
-{
-    // Should be registered as a singleton, so it that it can act as a cache for the Activator.
-    internal class DefaultClientActivator<
+namespace Grpc.Net.ClientFactory.Internal;
+
+// Should be registered as a singleton, so it that it can act as a cache for the Activator.
+internal class DefaultClientActivator<
 #if NET5_0_OR_GREATER
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
 #endif
-        TClient> where TClient : class
+    TClient> where TClient : class
+{
+    private static readonly Func<ObjectFactory> _createActivator = static () => ActivatorUtilities.CreateFactory(typeof(TClient), new Type[] { typeof(CallInvoker), });
+
+    private readonly IServiceProvider _services;
+    private ObjectFactory? _activator;
+    private bool _initialized;
+    private object? _lock;
+
+    public DefaultClientActivator(IServiceProvider services)
     {
-        private static readonly Func<ObjectFactory> _createActivator = static () => ActivatorUtilities.CreateFactory(typeof(TClient), new Type[] { typeof(CallInvoker), });
+        _services = services ?? throw new ArgumentNullException(nameof(services));
+    }
 
-        private readonly IServiceProvider _services;
-        private ObjectFactory? _activator;
-        private bool _initialized;
-        private object? _lock;
-
-        public DefaultClientActivator(IServiceProvider services)
+    public ObjectFactory Activator
+    {
+        get
         {
-            _services = services ?? throw new ArgumentNullException(nameof(services));
-        }
+            var activator = LazyInitializer.EnsureInitialized(
+                ref _activator,
+                ref _initialized,
+                ref _lock,
+                _createActivator);
 
-        public ObjectFactory Activator
-        {
-            get
-            {
-                var activator = LazyInitializer.EnsureInitialized(
-                    ref _activator,
-                    ref _initialized,
-                    ref _lock,
-                    _createActivator);
-
-                // TODO(JamesNK): Compiler thinks activator is nullable
-                // Possibly remove in the future when compiler is fixed
-                return activator!;
-            }
+            // TODO(JamesNK): Compiler thinks activator is nullable
+            // Possibly remove in the future when compiler is fixed
+            return activator!;
         }
+    }
 
-        public TClient CreateClient(CallInvoker callInvoker)
-        {
-            return (TClient)Activator(_services, new object[] { callInvoker });
-        }
+    public TClient CreateClient(CallInvoker callInvoker)
+    {
+        return (TClient)Activator(_services, new object[] { callInvoker });
     }
 }

@@ -20,55 +20,54 @@
 using System.Diagnostics;
 using System.Net;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Represents a balancer address.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public sealed class BalancerAddress
 {
+    private BalancerAttributes? _attributes;
+
     /// <summary>
-    /// Represents a balancer address.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified <see cref="DnsEndPoint"/>.
     /// </summary>
-    public sealed class BalancerAddress
+    /// <param name="endPoint">The end point.</param>
+    [DebuggerStepThrough]
+    public BalancerAddress(DnsEndPoint endPoint)
     {
-        private BalancerAttributes? _attributes;
+        EndPoint = endPoint;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified <see cref="DnsEndPoint"/>.
-        /// </summary>
-        /// <param name="endPoint">The end point.</param>
-        [DebuggerStepThrough]
-        public BalancerAddress(DnsEndPoint endPoint)
-        {
-            EndPoint = endPoint;
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified host and port.
+    /// </summary>
+    /// <param name="host">The host.</param>
+    /// <param name="port">The port.</param>
+    [DebuggerStepThrough]
+    public BalancerAddress(string host, int port) : this(new DnsEndPoint(host, port))
+    {
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BalancerAddress"/> class with the specified host and port.
-        /// </summary>
-        /// <param name="host">The host.</param>
-        /// <param name="port">The port.</param>
-        [DebuggerStepThrough]
-        public BalancerAddress(string host, int port) : this(new DnsEndPoint(host, port))
-        {
-        }
+    /// <summary>
+    /// Gets the address <see cref="DnsEndPoint"/>.
+    /// </summary>
+    public DnsEndPoint EndPoint { get; }
 
-        /// <summary>
-        /// Gets the address <see cref="DnsEndPoint"/>.
-        /// </summary>
-        public DnsEndPoint EndPoint { get; }
+    /// <summary>
+    /// Gets the address attributes.
+    /// </summary>
+    public BalancerAttributes Attributes => _attributes ??= new BalancerAttributes();
 
-        /// <summary>
-        /// Gets the address attributes.
-        /// </summary>
-        public BalancerAttributes Attributes => _attributes ??= new BalancerAttributes();
-
-        /// <summary>
-        /// Returns a string that reprsents the address.
-        /// </summary>
-        public override string ToString()
-        {
-            return $"{EndPoint.Host}:{EndPoint.Port}";
-        }
+    /// <summary>
+    /// Returns a string that reprsents the address.
+    /// </summary>
+    public override string ToString()
+    {
+        return $"{EndPoint.Host}:{EndPoint.Port}";
     }
 }
 #endif

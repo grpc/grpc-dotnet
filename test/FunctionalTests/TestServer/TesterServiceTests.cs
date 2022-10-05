@@ -21,193 +21,192 @@ using Grpc.Tests.Shared;
 using NUnit.Framework;
 using Test;
 
-namespace Grpc.AspNetCore.FunctionalTests.TestServer
+namespace Grpc.AspNetCore.FunctionalTests.TestServer;
+
+[TestFixture]
+public class TesterServiceTests : FunctionalTestBase
 {
-    [TestFixture]
-    public class TesterServiceTests : FunctionalTestBase
+    [Test]
+    public async Task UnaryTest_Success()
     {
-        [Test]
-        public async Task UnaryTest_Success()
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        // Act
+        var response = await client.SayHelloUnaryAsync(new HelloRequest { Name = "Joe" }).ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("Hello Joe", response.Message);
+    }
+
+    [Test]
+    public async Task UnaryTest_Error()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloUnaryErrorAsync(new HelloRequest { Name = "Joe" }).ResponseAsync).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+    }
+
+    [Test]
+    public async Task ClientStreamingTest_Success()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        var names = new[] { "James", "Jo", "Lee" };
+        HelloReply response;
+
+        // Act
+        using (var call = client.SayHelloClientStreaming())
         {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            // Act
-            var response = await client.SayHelloUnaryAsync(new HelloRequest { Name = "Joe" }).ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("Hello Joe", response.Message);
-        }
-
-        [Test]
-        public async Task UnaryTest_Error()
-        {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => client.SayHelloUnaryErrorAsync(new HelloRequest { Name = "Joe" }).ResponseAsync).DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
-        }
-
-        [Test]
-        public async Task ClientStreamingTest_Success()
-        {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            var names = new[] { "James", "Jo", "Lee" };
-            HelloReply response;
-
-            // Act
-            using (var call = client.SayHelloClientStreaming())
+            foreach (var name in names)
             {
-                foreach (var name in names)
-                {
-                    await call.RequestStream.WriteAsync(new HelloRequest { Name = name }).DefaultTimeout();
-                    await Task.Delay(50);
-                }
-                await call.RequestStream.CompleteAsync().DefaultTimeout();
-
-                response = await call.ResponseAsync.DefaultTimeout();
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = name }).DefaultTimeout();
+                await Task.Delay(50);
             }
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual("Hello James, Jo, Lee", response.Message);
+            response = await call.ResponseAsync.DefaultTimeout();
         }
 
-        [Test]
-        public async Task ClientStreamingTest_Error()
+        // Assert
+        Assert.AreEqual("Hello James, Jo, Lee", response.Message);
+    }
+
+    [Test]
+    public async Task ClientStreamingTest_Error()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        // Act
+        using var call = client.SayHelloClientStreamingError();
+
+        var ex = await ExceptionAssert.ThrowsAsync<Exception>(async () =>
         {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            // Act
-            using var call = client.SayHelloClientStreamingError();
-
-            var ex = await ExceptionAssert.ThrowsAsync<Exception>(async () =>
+            while (true)
             {
-                while (true)
-                {
-                    await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name!" }).DefaultTimeout();
-                    await Task.Delay(50);
-                }
-            }).DefaultTimeout();
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = "Name!" }).DefaultTimeout();
+                await Task.Delay(50);
+            }
+        }).DefaultTimeout();
 
-            // Assert
-            Assert.IsTrue(ex is InvalidOperationException || ex is RpcException);
-            Assert.AreEqual(StatusCode.NotFound, call.GetStatus().StatusCode);
-        }
+        // Assert
+        Assert.IsTrue(ex is InvalidOperationException || ex is RpcException);
+        Assert.AreEqual(StatusCode.NotFound, call.GetStatus().StatusCode);
+    }
 
-        [Test]
-        public async Task ServerStreamingTest_Success()
+    [Test]
+    public async Task ServerStreamingTest_Success()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        var cts = new CancellationTokenSource();
+        var hasMessages = false;
+        var callCancelled = false;
+
+        // Act
+        using (var call = client.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, cancellationToken: cts.Token))
         {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            var cts = new CancellationTokenSource();
-            var hasMessages = false;
-            var callCancelled = false;
-
-            // Act
-            using (var call = client.SayHelloServerStreaming(new HelloRequest { Name = "Joe" }, cancellationToken: cts.Token))
+            try
             {
-                try
+                await foreach (var message in call.ResponseStream.ReadAllAsync().DefaultTimeout())
                 {
-                    await foreach (var message in call.ResponseStream.ReadAllAsync().DefaultTimeout())
-                    {
-                        hasMessages = true;
-                        cts.Cancel();
-                    }
-                }
-                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
-                {
-                    callCancelled = true;
+                    hasMessages = true;
+                    cts.Cancel();
                 }
             }
-
-            // Assert
-            Assert.IsTrue(hasMessages);
-            Assert.IsTrue(callCancelled);
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled)
+            {
+                callCancelled = true;
+            }
         }
 
-        [Test]
-        public async Task ServerStreamingTest_Throw()
+        // Assert
+        Assert.IsTrue(hasMessages);
+        Assert.IsTrue(callCancelled);
+    }
+
+    [Test]
+    public async Task ServerStreamingTest_Throw()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        // Act
+        using var call = client.SayHelloServerStreamingError(new HelloRequest { Name = "Joe" });
+
+        // Assert
+        Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+
+        Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+    }
+
+    [Test]
+    public async Task BidirectionStreamingTest_Success()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        var names = new[] { "James", "Jo", "Lee" };
+        var messages = new List<string>();
+
+        // Act
+        using (var call = client.SayHelloBidirectionalStreaming())
         {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
+            foreach (var name in names)
+            {
+                await call.RequestStream.WriteAsync(new HelloRequest { Name = name }).DefaultTimeout();
 
-            // Act
-            using var call = client.SayHelloServerStreamingError(new HelloRequest { Name = "Joe" });
+                Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+                messages.Add(call.ResponseStream.Current.Message);
+            }
 
-            // Assert
-            Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
 
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
-
-            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+            Assert.IsFalse(await call.ResponseStream.MoveNext().DefaultTimeout());
         }
 
-        [Test]
-        public async Task BidirectionStreamingTest_Success()
-        {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
+        // Assert
+        Assert.AreEqual(3, messages.Count);
+        Assert.AreEqual("Hello James", messages[0]);
+    }
 
+    [Test]
+    public async Task BidirectionStreamingTest_Error()
+    {
+        // Arrange
+        var client = new Tester.TesterClient(Channel);
+
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+        {
             var names = new[] { "James", "Jo", "Lee" };
-            var messages = new List<string>();
 
-            // Act
-            using (var call = client.SayHelloBidirectionalStreaming())
+            using (var call = client.SayHelloBidirectionalStreamingError())
             {
                 foreach (var name in names)
                 {
                     await call.RequestStream.WriteAsync(new HelloRequest { Name = name }).DefaultTimeout();
 
                     Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
-                    messages.Add(call.ResponseStream.Current.Message);
                 }
 
                 await call.RequestStream.CompleteAsync().DefaultTimeout();
 
                 Assert.IsFalse(await call.ResponseStream.MoveNext().DefaultTimeout());
             }
+        }).DefaultTimeout();
 
-            // Assert
-            Assert.AreEqual(3, messages.Count);
-            Assert.AreEqual("Hello James", messages[0]);
-        }
-
-        [Test]
-        public async Task BidirectionStreamingTest_Error()
-        {
-            // Arrange
-            var client = new Tester.TesterClient(Channel);
-
-            // Act
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
-            {
-                var names = new[] { "James", "Jo", "Lee" };
-
-                using (var call = client.SayHelloBidirectionalStreamingError())
-                {
-                    foreach (var name in names)
-                    {
-                        await call.RequestStream.WriteAsync(new HelloRequest { Name = name }).DefaultTimeout();
-
-                        Assert.IsTrue(await call.ResponseStream.MoveNext().DefaultTimeout());
-                    }
-
-                    await call.RequestStream.CompleteAsync().DefaultTimeout();
-
-                    Assert.IsFalse(await call.ResponseStream.MoveNext().DefaultTimeout());
-                }
-            }).DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
-        }
+        // Assert
+        Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
     }
 }

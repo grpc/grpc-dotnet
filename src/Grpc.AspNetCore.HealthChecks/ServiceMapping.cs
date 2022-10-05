@@ -16,32 +16,31 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.HealthChecks
+namespace Grpc.AspNetCore.HealthChecks;
+
+/// <summary>
+/// Represents the mapping of health check results to a service exposed by the gRPC health checks API.
+/// </summary>
+public sealed class ServiceMapping
 {
     /// <summary>
-    /// Represents the mapping of health check results to a service exposed by the gRPC health checks API.
+    /// Creates a new instance of <see cref="ServiceMapping"/>.
     /// </summary>
-    public sealed class ServiceMapping
+    /// <param name="name">The service name.</param>
+    /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
+    public ServiceMapping(string name, Func<HealthResult, bool> predicate)
     {
-        /// <summary>
-        /// Creates a new instance of <see cref="ServiceMapping"/>.
-        /// </summary>
-        /// <param name="name">The service name.</param>
-        /// <param name="predicate">The predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.</param>
-        public ServiceMapping(string name, Func<HealthResult, bool> predicate)
-        {
-            Name = name;
-            Predicate = predicate;
-        }
-
-        /// <summary>
-        /// Gets the service name.
-        /// </summary>
-        public string Name { get; }
-
-        /// <summary>
-        /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.
-        /// </summary>
-        public Func<HealthResult, bool> Predicate { get; }
+        Name = name;
+        Predicate = predicate;
     }
+
+    /// <summary>
+    /// Gets the service name.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the predicate used to filter <see cref="HealthResult"/> instances. These results determine service health.
+    /// </summary>
+    public Func<HealthResult, bool> Predicate { get; }
 }

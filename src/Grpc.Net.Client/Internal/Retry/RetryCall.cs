@@ -21,163 +21,96 @@ using Grpc.Core;
 using Grpc.Shared;
 using Log = Grpc.Net.Client.Internal.Retry.RetryCallBaseLog;
 
-namespace Grpc.Net.Client.Internal.Retry
+namespace Grpc.Net.Client.Internal.Retry;
+
+internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, TResponse>
+    where TRequest : class
+    where TResponse : class
 {
-    internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, TResponse>
-        where TRequest : class
-        where TResponse : class
+    // Getting logger name from generic type is slow. Cached copy.
+    private const string LoggerName = "Grpc.Net.Client.Internal.RetryCall";
+
+    private readonly RetryPolicyInfo _retryPolicy;
+
+    private int _nextRetryDelayMilliseconds;
+
+    private GrpcCall<TRequest, TResponse>? _activeCall;
+
+    public RetryCall(RetryPolicyInfo retryPolicy, GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options)
+        : base(channel, method, options, LoggerName, retryPolicy.MaxAttempts)
     {
-        // Getting logger name from generic type is slow. Cached copy.
-        private const string LoggerName = "Grpc.Net.Client.Internal.RetryCall";
+        _retryPolicy = retryPolicy;
 
-        private readonly RetryPolicyInfo _retryPolicy;
+        _nextRetryDelayMilliseconds = Convert.ToInt32(retryPolicy.InitialBackoff.TotalMilliseconds);
+    }
 
-        private int _nextRetryDelayMilliseconds;
+    private int CalculateNextRetryDelay()
+    {
+        var nextMilliseconds = _nextRetryDelayMilliseconds * _retryPolicy.BackoffMultiplier;
+        nextMilliseconds = Math.Min(nextMilliseconds, _retryPolicy.MaxBackoff.TotalMilliseconds);
 
-        private GrpcCall<TRequest, TResponse>? _activeCall;
+        return Convert.ToInt32(nextMilliseconds);
+    }
 
-        public RetryCall(RetryPolicyInfo retryPolicy, GrpcChannel channel, Method<TRequest, TResponse> method, CallOptions options)
-            : base(channel, method, options, LoggerName, retryPolicy.MaxAttempts)
+    private CommitReason? EvaluateRetry(Status status, int? retryPushbackMilliseconds)
+    {
+        if (IsDeadlineExceeded())
         {
-            _retryPolicy = retryPolicy;
-
-            _nextRetryDelayMilliseconds = Convert.ToInt32(retryPolicy.InitialBackoff.TotalMilliseconds);
+            return CommitReason.DeadlineExceeded;
         }
 
-        private int CalculateNextRetryDelay()
+        if (IsRetryThrottlingActive())
         {
-            var nextMilliseconds = _nextRetryDelayMilliseconds * _retryPolicy.BackoffMultiplier;
-            nextMilliseconds = Math.Min(nextMilliseconds, _retryPolicy.MaxBackoff.TotalMilliseconds);
-
-            return Convert.ToInt32(nextMilliseconds);
+            return CommitReason.Throttled;
         }
 
-        private CommitReason? EvaluateRetry(Status status, int? retryPushbackMilliseconds)
+        if (AttemptCount >= MaxRetryAttempts)
         {
-            if (IsDeadlineExceeded())
-            {
-                return CommitReason.DeadlineExceeded;
-            }
-
-            if (IsRetryThrottlingActive())
-            {
-                return CommitReason.Throttled;
-            }
-
-            if (AttemptCount >= MaxRetryAttempts)
-            {
-                return CommitReason.ExceededAttemptCount;
-            }
-
-            if (retryPushbackMilliseconds != null)
-            {
-                if (retryPushbackMilliseconds >= 0)
-                {
-                    return null;
-                }
-                else
-                {
-                    return CommitReason.PushbackStop;
-                }
-            }
-
-            if (!_retryPolicy.RetryableStatusCodes.Contains(status.StatusCode))
-            {
-                return CommitReason.FatalStatusCode;
-            }
-
-            return null;
+            return CommitReason.ExceededAttemptCount;
         }
 
-        private async Task StartRetry(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
+        if (retryPushbackMilliseconds != null)
         {
-            Log.StartingRetryWorker(Logger);
-
-            try
+            if (retryPushbackMilliseconds >= 0)
             {
-                // This is the main retry loop. It will:
-                // 1. Check the result of the active call was successful.
-                // 2. If it was unsuccessful then evaluate if the call can be retried.
-                // 3. If it can be retried then start a new active call and begin again.
-                while (true)
+                return null;
+            }
+            else
+            {
+                return CommitReason.PushbackStop;
+            }
+        }
+
+        if (!_retryPolicy.RetryableStatusCodes.Contains(status.StatusCode))
+        {
+            return CommitReason.FatalStatusCode;
+        }
+
+        return null;
+    }
+
+    private async Task StartRetry(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
+    {
+        Log.StartingRetryWorker(Logger);
+
+        try
+        {
+            // This is the main retry loop. It will:
+            // 1. Check the result of the active call was successful.
+            // 2. If it was unsuccessful then evaluate if the call can be retried.
+            // 3. If it can be retried then start a new active call and begin again.
+            while (true)
+            {
+                GrpcCall<TRequest, TResponse> currentCall;
+                lock (Lock)
                 {
-                    GrpcCall<TRequest, TResponse> currentCall;
-                    lock (Lock)
-                    {
-                        // Start new call.
-                        OnStartingAttempt();
+                    // Start new call.
+                    OnStartingAttempt();
 
-                        currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
-                        startCallFunc(currentCall);
+                    currentCall = _activeCall = HttpClientCallInvoker.CreateGrpcCall<TRequest, TResponse>(Channel, Method, Options, AttemptCount);
+                    startCallFunc(currentCall);
 
-                        SetNewActiveCallUnsynchronized(currentCall);
-
-                        if (CommitedCallTask.IsCompletedSuccessfully())
-                        {
-                            // Call has already been commited. This could happen if written messages exceed
-                            // buffer limits, which causes the call to immediately become commited and to clear buffers.
-                            return;
-                        }
-                    }
-
-                    Status? responseStatus;
-
-                    HttpResponseMessage? httpResponse = null;
-                    try
-                    {
-                        httpResponse = await currentCall.HttpResponseTask.ConfigureAwait(false);
-                        responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
-                    }
-                    catch (RpcException ex)
-                    {
-                        // A "drop" result from the load balancer should immediately stop the call,
-                        // including ignoring the retry policy.
-                        var dropValue = ex.Trailers.GetValue(GrpcProtocolConstants.DropRequestTrailer);
-                        if (dropValue != null && bool.TryParse(dropValue, out var isDrop) && isDrop)
-                        {
-                            CommitCall(currentCall, CommitReason.Drop);
-                            return;
-                        }
-
-                        currentCall.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
-                    }
-                    catch (Exception ex)
-                    {
-                        currentCall.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
-                    }
-
-                    CancellationTokenSource.Token.ThrowIfCancellationRequested();
-
-                    // Check to see the response returned from the server makes the call commited.
-                    // 1. Null status code indicates the headers were valid and a "Response-Headers" response
-                    //    was received from the server.
-                    // 2. An OK response status at this point means a streaming call completed without
-                    //    sending any messages to the client.
-                    //
-                    // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
-                    if (responseStatus == null)
-                    {
-                        // Headers were returned. We're commited.
-                        CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
-
-                        responseStatus = await currentCall.CallTask.ConfigureAwait(false);
-                        if (responseStatus.Value.StatusCode == StatusCode.OK)
-                        {
-                            RetryAttemptCallSuccess();
-                        }
-
-                        // Commited so exit retry loop.
-                        return;
-                    }
-                    else if (IsSuccessfulStreamingCall(responseStatus.Value, currentCall))
-                    {
-                        // Headers were returned. We're commited.
-                        CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
-                        RetryAttemptCallSuccess();
-
-                        // Commited so exit retry loop.
-                        return;
-                    }
+                    SetNewActiveCallUnsynchronized(currentCall);
 
                     if (CommitedCallTask.IsCompletedSuccessfully())
                     {
@@ -185,203 +118,269 @@ namespace Grpc.Net.Client.Internal.Retry
                         // buffer limits, which causes the call to immediately become commited and to clear buffers.
                         return;
                     }
+                }
 
-                    var status = responseStatus.Value;
-                    var retryPushbackMS = GetRetryPushback(httpResponse);
+                Status? responseStatus;
 
-                    // Failures only count towards retry throttling if they have a known, retriable status.
-                    // This stops non-transient statuses, e.g. INVALID_ARGUMENT, from triggering throttling.
-                    if (_retryPolicy.RetryableStatusCodes.Contains(status.StatusCode) ||
-                        retryPushbackMS < 0)
+                HttpResponseMessage? httpResponse = null;
+                try
+                {
+                    httpResponse = await currentCall.HttpResponseTask.ConfigureAwait(false);
+                    responseStatus = GrpcCall.ValidateHeaders(httpResponse, out _);
+                }
+                catch (RpcException ex)
+                {
+                    // A "drop" result from the load balancer should immediately stop the call,
+                    // including ignoring the retry policy.
+                    var dropValue = ex.Trailers.GetValue(GrpcProtocolConstants.DropRequestTrailer);
+                    if (dropValue != null && bool.TryParse(dropValue, out var isDrop) && isDrop)
                     {
-                        RetryAttemptCallFailure();
+                        CommitCall(currentCall, CommitReason.Drop);
+                        return;
                     }
 
-                    var result = EvaluateRetry(status, retryPushbackMS);
-                    Log.RetryEvaluated(Logger, status.StatusCode, AttemptCount, result == null);
+                    currentCall.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
+                }
+                catch (Exception ex)
+                {
+                    currentCall.ResolveException(GrpcCall<TRequest, TResponse>.ErrorStartingCallMessage, ex, out responseStatus, out _);
+                }
 
-                    if (result == null)
+                CancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                // Check to see the response returned from the server makes the call commited.
+                // 1. Null status code indicates the headers were valid and a "Response-Headers" response
+                //    was received from the server.
+                // 2. An OK response status at this point means a streaming call completed without
+                //    sending any messages to the client.
+                //
+                // https://github.com/grpc/proposal/blob/master/A6-client-retries.md#when-retries-are-valid
+                if (responseStatus == null)
+                {
+                    // Headers were returned. We're commited.
+                    CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
+
+                    responseStatus = await currentCall.CallTask.ConfigureAwait(false);
+                    if (responseStatus.Value.StatusCode == StatusCode.OK)
                     {
-                        TimeSpan delayDuration;
-                        if (retryPushbackMS != null)
-                        {
-                            delayDuration = TimeSpan.FromMilliseconds(retryPushbackMS.Value);
-                            _nextRetryDelayMilliseconds = retryPushbackMS.Value;
-                        }
-                        else
-                        {
-                            delayDuration = TimeSpan.FromMilliseconds(Channel.GetRandomNumber(0, Convert.ToInt32(_nextRetryDelayMilliseconds)));
-                        }
+                        RetryAttemptCallSuccess();
+                    }
 
-                        Log.StartingRetryDelay(Logger, delayDuration);
-                        await Task.Delay(delayDuration, CancellationTokenSource.Token).ConfigureAwait(false);
+                    // Commited so exit retry loop.
+                    return;
+                }
+                else if (IsSuccessfulStreamingCall(responseStatus.Value, currentCall))
+                {
+                    // Headers were returned. We're commited.
+                    CommitCall(currentCall, CommitReason.ResponseHeadersReceived);
+                    RetryAttemptCallSuccess();
 
-                        _nextRetryDelayMilliseconds = CalculateNextRetryDelay();
+                    // Commited so exit retry loop.
+                    return;
+                }
 
-                        // Check if dispose was called on call.
-                        CancellationTokenSource.Token.ThrowIfCancellationRequested();
+                if (CommitedCallTask.IsCompletedSuccessfully())
+                {
+                    // Call has already been commited. This could happen if written messages exceed
+                    // buffer limits, which causes the call to immediately become commited and to clear buffers.
+                    return;
+                }
 
-                        // Clean up the failed call.
-                        currentCall.Dispose();
+                var status = responseStatus.Value;
+                var retryPushbackMS = GetRetryPushback(httpResponse);
+
+                // Failures only count towards retry throttling if they have a known, retriable status.
+                // This stops non-transient statuses, e.g. INVALID_ARGUMENT, from triggering throttling.
+                if (_retryPolicy.RetryableStatusCodes.Contains(status.StatusCode) ||
+                    retryPushbackMS < 0)
+                {
+                    RetryAttemptCallFailure();
+                }
+
+                var result = EvaluateRetry(status, retryPushbackMS);
+                Log.RetryEvaluated(Logger, status.StatusCode, AttemptCount, result == null);
+
+                if (result == null)
+                {
+                    TimeSpan delayDuration;
+                    if (retryPushbackMS != null)
+                    {
+                        delayDuration = TimeSpan.FromMilliseconds(retryPushbackMS.Value);
+                        _nextRetryDelayMilliseconds = retryPushbackMS.Value;
                     }
                     else
                     {
-                        // Handle the situation where the call failed with a non-deadline status, but retry
-                        // didn't happen because of deadline exceeded.
-                        IGrpcCall<TRequest, TResponse> resolvedCall = (IsDeadlineExceeded() && !(currentCall.CallTask.IsCompletedSuccessfully() && currentCall.CallTask.Result.StatusCode == StatusCode.DeadlineExceeded))
-                            ? CreateStatusCall(GrpcProtocolConstants.DeadlineExceededStatus)
-                            : currentCall;
-
-                        // Can't retry.
-                        // Signal public API exceptions that they should finish throwing and then exit the retry loop.
-                        CommitCall(resolvedCall, result.Value);
-                        return;
+                        delayDuration = TimeSpan.FromMilliseconds(Channel.GetRandomNumber(0, Convert.ToInt32(_nextRetryDelayMilliseconds)));
                     }
+
+                    Log.StartingRetryDelay(Logger, delayDuration);
+                    await Task.Delay(delayDuration, CancellationTokenSource.Token).ConfigureAwait(false);
+
+                    _nextRetryDelayMilliseconds = CalculateNextRetryDelay();
+
+                    // Check if dispose was called on call.
+                    CancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                    // Clean up the failed call.
+                    currentCall.Dispose();
+                }
+                else
+                {
+                    // Handle the situation where the call failed with a non-deadline status, but retry
+                    // didn't happen because of deadline exceeded.
+                    IGrpcCall<TRequest, TResponse> resolvedCall = (IsDeadlineExceeded() && !(currentCall.CallTask.IsCompletedSuccessfully() && currentCall.CallTask.Result.StatusCode == StatusCode.DeadlineExceeded))
+                        ? CreateStatusCall(GrpcProtocolConstants.DeadlineExceededStatus)
+                        : currentCall;
+
+                    // Can't retry.
+                    // Signal public API exceptions that they should finish throwing and then exit the retry loop.
+                    CommitCall(resolvedCall, result.Value);
+                    return;
                 }
             }
-            catch (Exception ex)
+        }
+        catch (Exception ex)
+        {
+            HandleUnexpectedError(ex);
+        }
+        finally
+        {
+            if (CommitedCallTask.IsCompletedSuccessfully())
             {
-                HandleUnexpectedError(ex);
+                if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
+                {
+                    // Wait until the commited call is finished and then clean up retry call.
+                    await call.CallTask.ConfigureAwait(false);
+                    Cleanup();
+                }
+            }
+
+            Log.StoppingRetryWorker(Logger);
+        }
+    }
+
+    private static bool IsSuccessfulStreamingCall(Status responseStatus, GrpcCall<TRequest, TResponse> call)
+    {
+        if (responseStatus.StatusCode != StatusCode.OK)
+        {
+            return false;
+        }
+
+        return call.Method.Type == MethodType.ServerStreaming || call.Method.Type == MethodType.DuplexStreaming;
+    }
+
+    protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
+    {
+        _activeCall = null;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        lock (Lock)
+        {
+            base.Dispose(disposing);
+
+            _activeCall?.Dispose();
+        }
+    }
+
+    protected override void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
+    {
+        _ = StartRetry(startCallFunc);
+    }
+
+    public override Task ClientStreamCompleteAsync()
+    {
+        ClientStreamComplete = true;
+
+        return DoClientStreamActionAsync(async call =>
+        {
+            await call.ClientStreamWriter!.CompleteAsync().ConfigureAwait(false);
+        });
+    }
+
+    public override async Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken)
+    {
+        using var registration = (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
+            ? RegisterRetryCancellationToken(cancellationToken)
+            : default;
+
+        // The retry client stream writer prevents multiple threads from reaching here.
+        await DoClientStreamActionAsync(async call =>
+        {
+            CompatibilityHelpers.Assert(call.ClientStreamWriter != null);
+
+            if (ClientStreamWriteOptions != null)
+            {
+                call.ClientStreamWriter.WriteOptions = ClientStreamWriteOptions;
+            }
+
+            call.TryRegisterCancellation(cancellationToken, out var registration);
+            try
+            {
+                await call.WriteClientStreamAsync(WriteNewMessage, message).ConfigureAwait(false);
             }
             finally
             {
-                if (CommitedCallTask.IsCompletedSuccessfully())
-                {
-                    if (CommitedCallTask.Result is GrpcCall<TRequest, TResponse> call)
-                    {
-                        // Wait until the commited call is finished and then clean up retry call.
-                        await call.CallTask.ConfigureAwait(false);
-                        Cleanup();
-                    }
-                }
-
-                Log.StoppingRetryWorker(Logger);
+                registration?.Dispose();
             }
-        }
-
-        private static bool IsSuccessfulStreamingCall(Status responseStatus, GrpcCall<TRequest, TResponse> call)
-        {
-            if (responseStatus.StatusCode != StatusCode.OK)
-            {
-                return false;
-            }
-
-            return call.Method.Type == MethodType.ServerStreaming || call.Method.Type == MethodType.DuplexStreaming;
-        }
-
-        protected override void OnCommitCall(IGrpcCall<TRequest, TResponse> call)
-        {
-            _activeCall = null;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            lock (Lock)
-            {
-                base.Dispose(disposing);
-
-                _activeCall?.Dispose();
-            }
-        }
-
-        protected override void StartCore(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
-        {
-            _ = StartRetry(startCallFunc);
-        }
-
-        public override Task ClientStreamCompleteAsync()
-        {
-            ClientStreamComplete = true;
-
-            return DoClientStreamActionAsync(async call =>
-            {
-                await call.ClientStreamWriter!.CompleteAsync().ConfigureAwait(false);
-            });
-        }
-
-        public override async Task ClientStreamWriteAsync(TRequest message, CancellationToken cancellationToken)
-        {
-            using var registration = (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
-                ? RegisterRetryCancellationToken(cancellationToken)
-                : default;
-
-            // The retry client stream writer prevents multiple threads from reaching here.
-            await DoClientStreamActionAsync(async call =>
-            {
-                CompatibilityHelpers.Assert(call.ClientStreamWriter != null);
-
-                if (ClientStreamWriteOptions != null)
-                {
-                    call.ClientStreamWriter.WriteOptions = ClientStreamWriteOptions;
-                }
-
-                call.TryRegisterCancellation(cancellationToken, out var registration);
-                try
-                {
-                    await call.WriteClientStreamAsync(WriteNewMessage, message).ConfigureAwait(false);
-                }
-                finally
-                {
-                    registration?.Dispose();
-                }
-
-                lock (Lock)
-                {
-                    BufferedCurrentMessage = false;
-                }
-
-                if (ClientStreamComplete)
-                {
-                    await call.ClientStreamWriter.CompleteAsync().ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
-        }
-
-        private async Task DoClientStreamActionAsync(Func<IGrpcCall<TRequest, TResponse>, Task> action)
-        {
-            // During a client streaming or bidirectional streaming call the app will call
-            // WriteAsync and CompleteAsync on the call request stream. If the call fails then
-            // an error will be thrown from those methods.
-            //
-            // The logic here will get the active call, apply the app action to the request stream.
-            // If there is an error we wait for the new active call and then run the user action on it again.
-            // Keep going until either the action succeeds, or there is no new active call
-            // because of exceeded attempts, non-retry status code or retry throttling.
-
-            var call = await GetActiveCallAsync(previousCall: null).ConfigureAwait(false);
-            while (true)
-            {
-                try
-                {
-                    await action(call!).ConfigureAwait(false);
-                    return;
-                }
-                catch
-                {
-                    call = await GetActiveCallAsync(previousCall: call).ConfigureAwait(false);
-                    if (call == null)
-                    {
-                        throw;
-                    }
-                }
-            }
-        }
-
-        private Task<IGrpcCall<TRequest, TResponse>?> GetActiveCallAsync(IGrpcCall<TRequest, TResponse>? previousCall)
-        {
-            Debug.Assert(NewActiveCallTcs != null);
 
             lock (Lock)
             {
-                // Return currently active call if there is one, and its not the previous call.
-                if (_activeCall != null && previousCall != _activeCall)
-                {
-                    return Task.FromResult<IGrpcCall<TRequest, TResponse>?>(_activeCall);
-                }
-
-                // Wait to see whether new call will be made
-                return GetActiveCallUnsynchronizedAsync(previousCall);
+                BufferedCurrentMessage = false;
             }
+
+            if (ClientStreamComplete)
+            {
+                await call.ClientStreamWriter.CompleteAsync().ConfigureAwait(false);
+            }
+        }).ConfigureAwait(false);
+    }
+
+    private async Task DoClientStreamActionAsync(Func<IGrpcCall<TRequest, TResponse>, Task> action)
+    {
+        // During a client streaming or bidirectional streaming call the app will call
+        // WriteAsync and CompleteAsync on the call request stream. If the call fails then
+        // an error will be thrown from those methods.
+        //
+        // The logic here will get the active call, apply the app action to the request stream.
+        // If there is an error we wait for the new active call and then run the user action on it again.
+        // Keep going until either the action succeeds, or there is no new active call
+        // because of exceeded attempts, non-retry status code or retry throttling.
+
+        var call = await GetActiveCallAsync(previousCall: null).ConfigureAwait(false);
+        while (true)
+        {
+            try
+            {
+                await action(call!).ConfigureAwait(false);
+                return;
+            }
+            catch
+            {
+                call = await GetActiveCallAsync(previousCall: call).ConfigureAwait(false);
+                if (call == null)
+                {
+                    throw;
+                }
+            }
+        }
+    }
+
+    private Task<IGrpcCall<TRequest, TResponse>?> GetActiveCallAsync(IGrpcCall<TRequest, TResponse>? previousCall)
+    {
+        Debug.Assert(NewActiveCallTcs != null);
+
+        lock (Lock)
+        {
+            // Return currently active call if there is one, and its not the previous call.
+            if (_activeCall != null && previousCall != _activeCall)
+            {
+                return Task.FromResult<IGrpcCall<TRequest, TResponse>?>(_activeCall);
+            }
+
+            // Wait to see whether new call will be made
+            return GetActiveCallUnsynchronizedAsync(previousCall);
         }
     }
 }

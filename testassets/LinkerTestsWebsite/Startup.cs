@@ -18,30 +18,29 @@
 
 using Grpc.AspNetCore.Server;
 
-namespace Server
+namespace Server;
+
+public class Startup
 {
-    public class Startup
+    public void ConfigureServices(IServiceCollection services)
     {
-        public void ConfigureServices(IServiceCollection services)
-        {
-            typeof(GrpcServiceOptions).GetMethod("name");
+        typeof(GrpcServiceOptions).GetMethod("name");
 
-            services.AddGrpc();
+        services.AddGrpc();
+    }
+
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    {
+        if (env.IsDevelopment())
+        {
+            app.UseDeveloperExceptionPage();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        app.UseRouting();
+
+        app.UseEndpoints(endpoints =>
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseRouting();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapGrpcService<GreeterService>();
-            });
-        }
+            endpoints.MapGrpcService<GreeterService>();
+        });
     }
 }

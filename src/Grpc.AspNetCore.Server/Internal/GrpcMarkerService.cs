@@ -18,13 +18,12 @@
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+/// <summary>
+/// A marker class used to determine if all the required gRPC services were added
+/// to the <see cref="IServiceCollection"/>.
+/// </summary>
+internal class GrpcMarkerService
 {
-    /// <summary>
-    /// A marker class used to determine if all the required gRPC services were added
-    /// to the <see cref="IServiceCollection"/>.
-    /// </summary>
-    internal class GrpcMarkerService
-    {
-    }
 }

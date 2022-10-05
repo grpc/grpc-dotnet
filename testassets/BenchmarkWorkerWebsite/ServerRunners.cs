@@ -22,171 +22,170 @@ using Grpc.Shared.TestAssets;
 using Grpc.Testing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-namespace BenchmarkWorkerWebsite
+namespace BenchmarkWorkerWebsite;
+
+/// <summary>
+/// Helper methods to start server runners for performance testing.
+/// </summary>
+public class ServerRunners
 {
     /// <summary>
-    /// Helper methods to start server runners for performance testing.
+    /// Creates a started server runner.
     /// </summary>
-    public class ServerRunners
+    public static IServerRunner CreateStarted(ServerConfig config, ILogger logger)
     {
-        /// <summary>
-        /// Creates a started server runner.
-        /// </summary>
-        public static IServerRunner CreateStarted(ServerConfig config, ILogger logger)
+        logger.LogInformation("ServerConfig: {0}", config);
+
+        var hostBuilder = Host.CreateDefaultBuilder();
+
+        if (config.AsyncServerThreads != 0)
         {
-            logger.LogInformation("ServerConfig: {0}", config);
+            logger.LogWarning("ServerConfig.AsyncServerThreads is not supported for C#. Ignoring the value");
+        }
+        if (config.CoreLimit != 0)
+        {
+            logger.LogWarning("ServerConfig.CoreLimit is not supported for C#. Ignoring the value");
+        }
+        if (config.CoreList.Count > 0)
+        {
+            logger.LogWarning("ServerConfig.CoreList is not supported for C#. Ignoring the value");
+        }
+        if (config.ChannelArgs.Count > 0)
+        {
+            logger.LogWarning("ServerConfig.ChannelArgs is not supported for C#. Ignoring the value");
+        }
 
-            var hostBuilder = Host.CreateDefaultBuilder();
+        int port = config.Port;
+        if (port == 0)
+        {
+            // TODO(jtattermusch): add support for port autoselection
+            port = 50055;
+            logger.LogWarning("Grpc.AspNetCore server doesn't support autoselecting of listening port. Setting port explictly to " + port);
+        }
 
-            if (config.AsyncServerThreads != 0)
+        hostBuilder.ConfigureWebHostDefaults(webHostBuilder =>
+        {
+            webHostBuilder.ConfigureKestrel((context, options) =>
             {
-                logger.LogWarning("ServerConfig.AsyncServerThreads is not supported for C#. Ignoring the value");
-            }
-            if (config.CoreLimit != 0)
-            {
-                logger.LogWarning("ServerConfig.CoreLimit is not supported for C#. Ignoring the value");
-            }
-            if (config.CoreList.Count > 0)
-            {
-                logger.LogWarning("ServerConfig.CoreList is not supported for C#. Ignoring the value");
-            }
-            if (config.ChannelArgs.Count > 0)
-            {
-                logger.LogWarning("ServerConfig.ChannelArgs is not supported for C#. Ignoring the value");
-            }
-
-            int port = config.Port;
-            if (port == 0)
-            {
-                // TODO(jtattermusch): add support for port autoselection
-                port = 50055;
-                logger.LogWarning("Grpc.AspNetCore server doesn't support autoselecting of listening port. Setting port explictly to " + port);
-            }
-
-            hostBuilder.ConfigureWebHostDefaults(webHostBuilder =>
-            {
-                webHostBuilder.ConfigureKestrel((context, options) =>
+                options.ListenAnyIP(port, listenOptions =>
                 {
-                    options.ListenAnyIP(port, listenOptions =>
-                    {
-                        // TODO(jtattermusch): use TLS if config.SecurityParams != null
-                        listenOptions.Protocols = HttpProtocols.Http2;
-                    });
+                    // TODO(jtattermusch): use TLS if config.SecurityParams != null
+                    listenOptions.Protocols = HttpProtocols.Http2;
                 });
-
-                if (config.ServerType == ServerType.AsyncServer)
-                {
-                    GrpcPreconditions.CheckArgument(config.PayloadConfig == null,
-                        "ServerConfig.PayloadConfig shouldn't be set for BenchmarkService based server.");
-                    webHostBuilder.UseStartup<BenchmarkServiceStartup>();
-                }
-                else if (config.ServerType == ServerType.AsyncGenericServer)
-                {
-                    var genericService = new GenericServiceImpl(config.PayloadConfig.BytebufParams.RespSize);
-                    // TODO(jtattermusch): use startup with given generic service
-                    throw new ArgumentException("Generice service is not yet implemented.");
-                }
-                else
-                {
-                    throw new ArgumentException("Unsupported ServerType");
-                }
             });
 
-            // Don't log requests handled by the benchmarking service
-            hostBuilder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
+            if (config.ServerType == ServerType.AsyncServer)
+            {
+                GrpcPreconditions.CheckArgument(config.PayloadConfig == null,
+                    "ServerConfig.PayloadConfig shouldn't be set for BenchmarkService based server.");
+                webHostBuilder.UseStartup<BenchmarkServiceStartup>();
+            }
+            else if (config.ServerType == ServerType.AsyncGenericServer)
+            {
+                var genericService = new GenericServiceImpl(config.PayloadConfig.BytebufParams.RespSize);
+                // TODO(jtattermusch): use startup with given generic service
+                throw new ArgumentException("Generice service is not yet implemented.");
+            }
+            else
+            {
+                throw new ArgumentException("Unsupported ServerType");
+            }
+        });
 
-            var webHost = hostBuilder.Build();
-            webHost.Start();
-            return new ServerRunnerImpl(webHost, logger, port);
+        // Don't log requests handled by the benchmarking service
+        hostBuilder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
+
+        var webHost = hostBuilder.Build();
+        webHost.Start();
+        return new ServerRunnerImpl(webHost, logger, port);
+    }
+
+    private class BenchmarkServiceStartup
+    {
+        // This method gets called by the runtime. Use this method to add services to the container.
+        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddGrpc();
         }
 
-        private class BenchmarkServiceStartup
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app)
         {
-            // This method gets called by the runtime. Use this method to add services to the container.
-            // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
-            public void ConfigureServices(IServiceCollection services)
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
             {
-                services.AddGrpc();
-            }
-
-            // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-            public void Configure(IApplicationBuilder app)
-            {
-                app.UseRouting();
-                app.UseEndpoints(endpoints =>
-                {
-                    endpoints.MapGrpcService<BenchmarkServiceImpl>();
-                });
-            }
-        }
-
-        private class GenericServiceImpl
-        {
-            readonly byte[] response;
-
-            public GenericServiceImpl(int responseSize)
-            {
-                this.response = new byte[responseSize];
-            }
-
-            /// <summary>
-            /// Generic streaming call handler.
-            /// </summary>
-            public async Task StreamingCall(IAsyncStreamReader<byte[]> requestStream, IServerStreamWriter<byte[]> responseStream, ServerCallContext context)
-            {
-                await requestStream.ForEachAsync(async request =>
-                {
-                    await responseStream.WriteAsync(response);
-                });
-            }
+                endpoints.MapGrpcService<BenchmarkServiceImpl>();
+            });
         }
     }
 
-    /// <summary>
-    /// Server runner.
-    /// </summary>
-    public class ServerRunnerImpl : IServerRunner
+    private class GenericServiceImpl
     {
-        readonly IHost host;
-        readonly ILogger logger;
-        readonly int boundPort;
-        readonly TimeStats timeStats = new TimeStats();
+        readonly byte[] response;
 
-        public ServerRunnerImpl(IHost host, ILogger logger, int boundPort)
+        public GenericServiceImpl(int responseSize)
         {
-            this.host = host;
-            this.logger = logger;
-            this.boundPort = boundPort;
+            this.response = new byte[responseSize];
         }
 
-        public int BoundPort => boundPort;
-
         /// <summary>
-        /// Gets server stats.
+        /// Generic streaming call handler.
         /// </summary>
-        /// <returns>The stats.</returns>
-        public ServerStats GetStats(bool reset)
+        public async Task StreamingCall(IAsyncStreamReader<byte[]> requestStream, IServerStreamWriter<byte[]> responseStream, ServerCallContext context)
         {
-            var timeSnapshot = timeStats.GetSnapshot(reset);
-
-            logger.LogInformation("[ServerRunner.GetStats] GC collection counts: gen0 {0}, gen1 {1}, gen2 {2}, (seconds since last reset {3})",
-                GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2), timeSnapshot.WallClockTime.TotalSeconds);
-
-            return new ServerStats
+            await requestStream.ForEachAsync(async request =>
             {
-                TimeElapsed = timeSnapshot.WallClockTime.TotalSeconds,
-                TimeUser = timeSnapshot.UserProcessorTime.TotalSeconds,
-                TimeSystem = timeSnapshot.PrivilegedProcessorTime.TotalSeconds
-            };
+                await responseStream.WriteAsync(response);
+            });
         }
+    }
+}
 
-        /// <summary>
-        /// Asynchronously stops the server.
-        /// </summary>
-        /// <returns>Task that finishes when server has shutdown.</returns>
-        public Task StopAsync()
+/// <summary>
+/// Server runner.
+/// </summary>
+public class ServerRunnerImpl : IServerRunner
+{
+    readonly IHost host;
+    readonly ILogger logger;
+    readonly int boundPort;
+    readonly TimeStats timeStats = new TimeStats();
+
+    public ServerRunnerImpl(IHost host, ILogger logger, int boundPort)
+    {
+        this.host = host;
+        this.logger = logger;
+        this.boundPort = boundPort;
+    }
+
+    public int BoundPort => boundPort;
+
+    /// <summary>
+    /// Gets server stats.
+    /// </summary>
+    /// <returns>The stats.</returns>
+    public ServerStats GetStats(bool reset)
+    {
+        var timeSnapshot = timeStats.GetSnapshot(reset);
+
+        logger.LogInformation("[ServerRunner.GetStats] GC collection counts: gen0 {0}, gen1 {1}, gen2 {2}, (seconds since last reset {3})",
+            GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2), timeSnapshot.WallClockTime.TotalSeconds);
+
+        return new ServerStats
         {
-            return host.StopAsync();
-        }
+            TimeElapsed = timeSnapshot.WallClockTime.TotalSeconds,
+            TimeUser = timeSnapshot.UserProcessorTime.TotalSeconds,
+            TimeSystem = timeSnapshot.PrivilegedProcessorTime.TotalSeconds
+        };
+    }
+
+    /// <summary>
+    /// Asynchronously stops the server.
+    /// </summary>
+    /// <returns>Task that finishes when server has shutdown.</returns>
+    public Task StopAsync()
+    {
+        return host.StopAsync();
     }
 }

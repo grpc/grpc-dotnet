@@ -24,29 +24,28 @@ using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 using NUnit.Framework;
 
-namespace Grpc.Core.Tests
+namespace Grpc.Core.Tests;
+
+public class VersionInfoTest
 {
-    public class VersionInfoTest
+    [Test]
+    public void VersionInfoMatchesAssemblyProperties()
     {
-        [Test]
-        public void VersionInfoMatchesAssemblyProperties()
-        {
-            var assembly = typeof(Status).Assembly;  // the Grpc.Core.Api assembly
+        var assembly = typeof(Status).Assembly;  // the Grpc.Core.Api assembly
 
-            var assemblyVersion = assembly.GetName().Version.ToString();
-            Assert.AreEqual(VersionInfo.CurrentAssemblyVersion, assemblyVersion);
+        var assemblyVersion = assembly.GetName().Version.ToString();
+        Assert.AreEqual(VersionInfo.CurrentAssemblyVersion, assemblyVersion);
 
-            string assemblyFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
-            string assemblyFileVersionFromAttribute = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
-            Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersion);
-            Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersionFromAttribute);
+        string assemblyFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
+        string assemblyFileVersionFromAttribute = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+        Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersion);
+        Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersionFromAttribute);
 
-            string productVersion = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
-            string informationalVersionFromAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-            Assert.AreEqual(productVersion, informationalVersionFromAttribute);
-            // grpc-dotnet appends commit SHA to the product version (e.g. "2.45.0-dev+e30038495bd26b812b6684049353c045d1049d3c")
-            string productVersionWithoutCommitSha = productVersion.Split('+')[0];
-            Assert.AreEqual(VersionInfo.CurrentVersion, productVersionWithoutCommitSha);
-        }
+        string productVersion = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
+        string informationalVersionFromAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+        Assert.AreEqual(productVersion, informationalVersionFromAttribute);
+        // grpc-dotnet appends commit SHA to the product version (e.g. "2.45.0-dev+e30038495bd26b812b6684049353c045d1049d3c")
+        string productVersionWithoutCommitSha = productVersion.Split('+')[0];
+        Assert.AreEqual(VersionInfo.CurrentVersion, productVersionWithoutCommitSha);
     }
 }

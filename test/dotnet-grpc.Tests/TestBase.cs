@@ -21,27 +21,27 @@ using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
 using NUnit.Framework;
 
-namespace Grpc.Dotnet.Cli.Tests
+namespace Grpc.Dotnet.Cli.Tests;
+
+public class TestBase
 {
-    public class TestBase
+    internal const string SourceUrl = "https://contoso.com/greet.proto";
+
+    [OneTimeSetUp]
+    public void OneTimeInitialize()
     {
-        internal const string SourceUrl = "https://contoso.com/greet.proto";
-
-        [OneTimeSetUp]
-        public void OneTimeInitialize()
+        if (!MSBuildLocator.IsRegistered)
         {
-            if (!MSBuildLocator.IsRegistered)
-            {
-                MSBuildLocator.RegisterDefaults();
-            }
+            MSBuildLocator.RegisterDefaults();
         }
+    }
 
-        protected HttpClient CreateClient()
+    protected HttpClient CreateClient()
+    {
+        var content = new Dictionary<string, string>()
         {
-            var content = new Dictionary<string, string>()
             {
-                {
-                    SourceUrl,
+                SourceUrl,
 @"// Copyright 2019 The gRPC Authors
 //
 // Licensed under the Apache License, Version 2.0 (the ""License"");
@@ -76,37 +76,36 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
 }"
-                },
-                // Dummy entry for package version file
-                { CommandBase.PackageVersionUrl, "" }
-            };
+            },
+            // Dummy entry for package version file
+            { CommandBase.PackageVersionUrl, "" }
+        };
 
-            return CreateClient(content);
+        return CreateClient(content);
+    }
+
+    protected HttpClient CreateClient(Dictionary<string, string> content)
+    {
+        return new HttpClient(new TestMessageHandler(content));
+    }
+
+    private class TestMessageHandler : HttpMessageHandler
+    {
+        private readonly Dictionary<string, string> _contentDictionary;
+
+        public TestMessageHandler(Dictionary<string, string> contentDictionary)
+        {
+            _contentDictionary = contentDictionary;
         }
 
-        protected HttpClient CreateClient(Dictionary<string, string> content)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return new HttpClient(new TestMessageHandler(content));
-        }
-
-        private class TestMessageHandler : HttpMessageHandler
-        {
-            private readonly Dictionary<string, string> _contentDictionary;
-
-            public TestMessageHandler(Dictionary<string, string> contentDictionary)
+            var requestUriString = request.RequestUri!.ToString();
+            Assert.Contains(requestUriString, _contentDictionary.Keys);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                _contentDictionary = contentDictionary;
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                var requestUriString = request.RequestUri!.ToString();
-                Assert.Contains(requestUriString, _contentDictionary.Keys);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(_contentDictionary[requestUriString])
-                });
-            }
+                Content = new StringContent(_contentDictionary[requestUriString])
+            });
         }
     }
 }

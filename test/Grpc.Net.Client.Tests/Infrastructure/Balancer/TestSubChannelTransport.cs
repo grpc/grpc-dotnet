@@ -26,68 +26,67 @@ using Grpc.Core;
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 
-namespace Grpc.Net.Client.Tests.Infrastructure.Balancer
+namespace Grpc.Net.Client.Tests.Infrastructure.Balancer;
+
+internal class TestSubchannelTransport : ISubchannelTransport
 {
-    internal class TestSubchannelTransport : ISubchannelTransport
+    private ConnectivityState _state = ConnectivityState.Idle;
+
+    private readonly TaskCompletionSource<object?> _connectTcs;
+    private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
+
+    public Subchannel Subchannel { get; }
+
+    public BalancerAddress? CurrentAddress { get; private set; }
+    public TimeSpan? ConnectTimeout { get; }
+
+    public Task TryConnectTask => _connectTcs.Task;
+
+    public TestSubchannelTransport(Subchannel subchannel, Func<CancellationToken, Task<ConnectivityState>>? onTryConnect)
     {
-        private ConnectivityState _state = ConnectivityState.Idle;
+        Subchannel = subchannel;
+        _onTryConnect = onTryConnect;
+        _connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
-        private readonly TaskCompletionSource<object?> _connectTcs;
-        private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
+    public void UpdateState(ConnectivityState state, Status? status = null)
+    {
+        _state = state;
+        Subchannel.UpdateConnectivityState(_state, status ?? Status.DefaultSuccess);
+    }
 
-        public Subchannel Subchannel { get; }
+    public void Dispose()
+    {
+    }
 
-        public BalancerAddress? CurrentAddress { get; private set; }
-        public TimeSpan? ConnectTimeout { get; }
+    public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
+    {
+        return new ValueTask<Stream>(new MemoryStream());
+    }
 
-        public Task TryConnectTask => _connectTcs.Task;
+    public void Disconnect()
+    {
+        CurrentAddress = null;
+        Subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
+    }
 
-        public TestSubchannelTransport(Subchannel subchannel, Func<CancellationToken, Task<ConnectivityState>>? onTryConnect)
-        {
-            Subchannel = subchannel;
-            _onTryConnect = onTryConnect;
-            _connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-
-        public void UpdateState(ConnectivityState state, Status? status = null)
-        {
-            _state = state;
-            Subchannel.UpdateConnectivityState(_state, status ?? Status.DefaultSuccess);
-        }
-
-        public void Dispose()
-        {
-        }
-
-        public ValueTask<Stream> GetStreamAsync(BalancerAddress address, CancellationToken cancellationToken)
-        {
-            return new ValueTask<Stream>(new MemoryStream());
-        }
-
-        public void Disconnect()
-        {
-            CurrentAddress = null;
-            Subchannel.UpdateConnectivityState(ConnectivityState.Idle, "Disconnected.");
-        }
-
-        public async
+    public async
 #if !NET472
-            ValueTask<bool>
+        ValueTask<bool>
 #else
-            Task<bool>
+        Task<bool>
 #endif
-            TryConnectAsync(ConnectContext context)
-        {
-            var newState = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
+        TryConnectAsync(ConnectContext context)
+    {
+        var newState = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
 
-            CurrentAddress = Subchannel._addresses[0];
-            var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
-            Subchannel.UpdateConnectivityState(newState, newStatus);
+        CurrentAddress = Subchannel._addresses[0];
+        var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
+        Subchannel.UpdateConnectivityState(newState, newStatus);
 
-            _connectTcs.TrySetResult(null);
+        _connectTcs.TrySetResult(null);
 
-            return newState == ConnectivityState.Ready;
-        }
+        return newState == ConnectivityState.Ready;
     }
 }
 #endif

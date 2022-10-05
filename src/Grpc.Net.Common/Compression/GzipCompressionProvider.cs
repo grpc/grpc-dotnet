@@ -18,48 +18,47 @@
 
 using System.IO.Compression;
 
-namespace Grpc.Net.Compression
+namespace Grpc.Net.Compression;
+
+/// <summary>
+/// GZIP compression provider.
+/// </summary>
+public sealed class GzipCompressionProvider : ICompressionProvider
 {
+    private readonly CompressionLevel _defaultCompressionLevel;
+
     /// <summary>
-    /// GZIP compression provider.
+    /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
     /// </summary>
-    public sealed class GzipCompressionProvider : ICompressionProvider
+    /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
+    public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
     {
-        private readonly CompressionLevel _defaultCompressionLevel;
+        _defaultCompressionLevel = defaultCompressionLevel;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="GzipCompressionProvider"/> class with the specified <see cref="CompressionLevel"/>.
-        /// </summary>
-        /// <param name="defaultCompressionLevel">The default compression level to use when compressing data.</param>
-        public GzipCompressionProvider(CompressionLevel defaultCompressionLevel)
-        {
-            _defaultCompressionLevel = defaultCompressionLevel;
-        }
+    /// <summary>
+    /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
+    /// </summary>
+    public string EncodingName => "gzip";
 
-        /// <summary>
-        /// The encoding name used in the 'grpc-encoding' and 'grpc-accept-encoding' request and response headers.
-        /// </summary>
-        public string EncodingName => "gzip";
+    /// <summary>
+    /// Create a new compression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is written to.</param>
+    /// <param name="compressionLevel">The compression level.</param>
+    /// <returns>A stream used to compress data.</returns>
+    public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
+    {
+        return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
+    }
 
-        /// <summary>
-        /// Create a new compression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is written to.</param>
-        /// <param name="compressionLevel">The compression level.</param>
-        /// <returns>A stream used to compress data.</returns>
-        public Stream CreateCompressionStream(Stream stream, CompressionLevel? compressionLevel)
-        {
-            return new GZipStream(stream, compressionLevel ?? _defaultCompressionLevel, leaveOpen: true);
-        }
-
-        /// <summary>
-        /// Create a new decompression stream.
-        /// </summary>
-        /// <param name="stream">The stream that compressed data is copied from.</param>
-        /// <returns>A stream used to decompress data.</returns>
-        public Stream CreateDecompressionStream(Stream stream)
-        {
-            return new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
-        }
+    /// <summary>
+    /// Create a new decompression stream.
+    /// </summary>
+    /// <param name="stream">The stream that compressed data is copied from.</param>
+    /// <returns>A stream used to decompress data.</returns>
+    public Stream CreateDecompressionStream(Stream stream)
+    {
+        return new GZipStream(stream, CompressionMode.Decompress, leaveOpen: true);
     }
 }

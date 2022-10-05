@@ -19,31 +19,30 @@
 #if SUPPORT_LOAD_BALANCING
 using System.Diagnostics;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Represents the key used to get and set <see cref="BalancerAttributes"/> values.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+/// <typeparam name="TValue">The value type.</typeparam>
+public readonly struct BalancerAttributesKey<TValue>
 {
     /// <summary>
-    /// Represents the key used to get and set <see cref="BalancerAttributes"/> values.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
+    /// Gets the key.
     /// </summary>
-    /// <typeparam name="TValue">The value type.</typeparam>
-    public readonly struct BalancerAttributesKey<TValue>
-    {
-        /// <summary>
-        /// Gets the key.
-        /// </summary>
-        public string Key { get; }
+    public string Key { get; }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="BalancerAttributesKey{TValue}"/> struct with the specified key.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        [DebuggerStepThrough]
-        public BalancerAttributesKey(string key)
-        {
-            Key = key;
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BalancerAttributesKey{TValue}"/> struct with the specified key.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    [DebuggerStepThrough]
+    public BalancerAttributesKey(string key)
+    {
+        Key = key;
     }
 }
 #endif

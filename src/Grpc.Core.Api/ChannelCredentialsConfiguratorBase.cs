@@ -18,27 +18,26 @@
 
 using System.Collections.Generic;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Base class for objects that can consume configuration from <c>CallCredentials</c> objects.
+/// Note: experimental API that can change or be removed without any prior notice.
+/// </summary>
+public abstract class ChannelCredentialsConfiguratorBase
 {
     /// <summary>
-    /// Base class for objects that can consume configuration from <c>CallCredentials</c> objects.
-    /// Note: experimental API that can change or be removed without any prior notice.
+    /// Configures the credentials to use insecure credentials.
     /// </summary>
-    public abstract class ChannelCredentialsConfiguratorBase
-    {
-        /// <summary>
-        /// Configures the credentials to use insecure credentials.
-        /// </summary>
-        public abstract void SetInsecureCredentials(object state);
+    public abstract void SetInsecureCredentials(object state);
 
-        /// <summary>
-        /// Configures the credentials to use <c>SslCredentials</c>.
-        /// </summary>
-        public abstract void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback);
+    /// <summary>
+    /// Configures the credentials to use <c>SslCredentials</c>.
+    /// </summary>
+    public abstract void SetSslCredentials(object state, string? rootCertificates, KeyCertificatePair? keyCertificatePair, VerifyPeerCallback? verifyPeerCallback);
 
-        /// <summary>
-        /// Configures the credentials to use composite channel credentials (a composite of channel credentials and call credentials).
-        /// </summary>
-        public abstract void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials);
-    }
+    /// <summary>
+    /// Configures the credentials to use composite channel credentials (a composite of channel credentials and call credentials).
+    /// </summary>
+    public abstract void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials);
 }

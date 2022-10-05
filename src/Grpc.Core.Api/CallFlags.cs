@@ -18,28 +18,27 @@
 
 using System;
 
-namespace Grpc.Core.Internal
+namespace Grpc.Core.Internal;
+
+/// <summary>
+/// Flags to enable special call behaviors (client-side only).
+/// </summary>
+[Flags]
+internal enum CallFlags
 {
     /// <summary>
-    /// Flags to enable special call behaviors (client-side only).
+    /// The call is idempotent (retrying the call doesn't change the outcome of the operation).
     /// </summary>
-    [Flags]
-    internal enum CallFlags
-    {
-        /// <summary>
-        /// The call is idempotent (retrying the call doesn't change the outcome of the operation).
-        /// </summary>
-        IdempotentRequest = 0x10,
+    IdempotentRequest = 0x10,
 
-        /// <summary>
-        /// If channel is in <c>ChannelState.TransientFailure</c>, attempt waiting for the channel to recover
-        /// instead of failing the call immediately.
-        /// </summary>
-        WaitForReady = 0x20,
+    /// <summary>
+    /// If channel is in <c>ChannelState.TransientFailure</c>, attempt waiting for the channel to recover
+    /// instead of failing the call immediately.
+    /// </summary>
+    WaitForReady = 0x20,
 
-        /// <summary>
-        /// The call is cacheable. gRPC is free to use GET verb */
-        /// </summary>
-        CacheableRequest = 0x40
-    }
+    /// <summary>
+    /// The call is cacheable. gRPC is free to use GET verb */
+    /// </summary>
+    CacheableRequest = 0x40
 }

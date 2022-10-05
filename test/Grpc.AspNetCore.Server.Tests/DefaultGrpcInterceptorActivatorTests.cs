@@ -22,243 +22,242 @@ using Grpc.Tests.Shared;
 using Moq;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.Server.Tests
+namespace Grpc.AspNetCore.Server.Tests;
+
+[TestFixture]
+public class DefaultGrpcInterceptorActivatorTests
 {
-    [TestFixture]
-    public class DefaultGrpcInterceptorActivatorTests
+    public class GrpcInterceptor : Interceptor
     {
-        public class GrpcInterceptor : Interceptor
-        {
-            public GrpcInterceptor() { }
+        public GrpcInterceptor() { }
 
-            public bool Disposed { get; private set; }
-            public void Dispose() => Disposed = true;
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    public class GrpcIntArgumentInterceptor : Interceptor
+    {
+        public GrpcIntArgumentInterceptor() { }
+
+        public GrpcIntArgumentInterceptor(int x)
+        {
+            X = x;
         }
 
-        public class GrpcIntArgumentInterceptor : Interceptor
-        {
-            public GrpcIntArgumentInterceptor() { }
+        public int X { get; }
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
 
-            public GrpcIntArgumentInterceptor(int x)
+    public class GrpcIntMutexArgumentInterceptor : Interceptor
+    {
+        public GrpcIntMutexArgumentInterceptor(int x, Mutex mutex)
+        {
+            X = x;
+            Mutex = mutex;
+        }
+
+        public int X { get; }
+        public Mutex Mutex { get; }
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
+    }
+
+    public class DisposableGrpcInterceptor : Interceptor, IDisposable
+    {
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    public class AsyncDisposableGrpcInterceptor : DisposableGrpcInterceptor, IAsyncDisposable
+    {
+        public bool AsyncDisposed { get; private set; }
+        public ValueTask DisposeAsync()
+        {
+            AsyncDisposed = true;
+            return default;
+        }
+    }
+
+    [Test]
+    public void Create_NotResolvedFromServiceProvider_CreatedByActivator()
+    {
+        // Arrange
+        var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
+
+        // Act
+        var handle = activator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<GrpcInterceptor>());
+
+        // Assert
+        Assert.NotNull(handle.Instance);
+        Assert.IsTrue(handle.Created);
+    }
+
+    [Test]
+    public void Create_ResolvedFromServiceProvider_NotCreatedByActivator()
+    {
+        // Arrange
+        var interceptor = new GrpcInterceptor();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider
+            .Setup(sp => sp.GetService(typeof(GrpcInterceptor)))
+            .Returns(interceptor);
+        var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
+
+        // Act
+        var handle = activator.Create(mockServiceProvider.Object, CreateRegistration<GrpcInterceptor>());
+
+        // Assert
+        Assert.AreSame(handle.Instance, interceptor);
+        Assert.IsFalse(handle.Created);
+    }
+
+    [Test]
+    public void Create_ServiceRegistrationAndExplicitArgs_CreatedByActivator()
+    {
+        // Arrange
+        var interceptor = new GrpcIntArgumentInterceptor();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider
+            .Setup(sp => sp.GetService(typeof(GrpcIntArgumentInterceptor)))
+            .Returns(interceptor);
+
+        // Act
+        var handle = new DefaultGrpcInterceptorActivator<GrpcIntArgumentInterceptor>().Create(
+            mockServiceProvider.Object,
+            CreateRegistration<GrpcIntArgumentInterceptor>(10));
+
+        // Assert
+        Assert.AreNotSame(interceptor, handle.Instance);
+        Assert.AreEqual(10, ((GrpcIntArgumentInterceptor)handle.Instance).X);
+        Assert.IsTrue(handle.Created);
+    }
+
+    [Test]
+    public void Create_ExplicitArgsAndServiceArgs_CreatedByActivatorWithServiceArgsResolved()
+    {
+        var mutex = new Mutex();
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider
+            .Setup(sp => sp.GetService(typeof(Mutex)))
+            .Returns(mutex);
+
+        var handle = new DefaultGrpcInterceptorActivator<GrpcIntMutexArgumentInterceptor>().Create(
+            mockServiceProvider.Object,
+            CreateRegistration<GrpcIntMutexArgumentInterceptor>(10));
+
+        Assert.AreEqual(10, ((GrpcIntMutexArgumentInterceptor)handle.Instance).X);
+        Assert.AreEqual(mutex, ((GrpcIntMutexArgumentInterceptor)handle.Instance).Mutex);
+        Assert.IsTrue(handle.Created);
+    }
+
+    [Test]
+    public async Task Release_DisposableResolvedFromServiceProvider_DisposeNotCalled()
+    {
+        // Arrange
+        var mockServiceProvider = new Mock<IServiceProvider>();
+        mockServiceProvider
+            .Setup(sp => sp.GetService(typeof(DisposableGrpcInterceptor)))
+            .Returns(() =>
             {
-                X = x;
-            }
+                return new DisposableGrpcInterceptor();
+            });
 
-            public int X { get; }
-            public bool Disposed { get; private set; }
-            public void Dispose() => Disposed = true;
-        }
+        var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
+        var interceptorHandle = interceptorActivator.Create(mockServiceProvider.Object, CreateRegistration<DisposableGrpcInterceptor>());
+        var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
 
-        public class GrpcIntMutexArgumentInterceptor : Interceptor
-        {
-            public GrpcIntMutexArgumentInterceptor(int x, Mutex mutex)
-            {
-                X = x;
-                Mutex = mutex;
-            }
+        // Act
+        await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
-            public int X { get; }
-            public Mutex Mutex { get; }
-            public bool Disposed { get; private set; }
+        // Assert
+        Assert.False(interceptorInstance.Disposed);
+    }
 
-            public void Dispose() => Disposed = true;
-        }
+    [Test]
+    public async Task Release_DisposableCreatedByActivator_DisposeCalled()
+    {
+        // Arrange
+        var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
+        var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<DisposableGrpcInterceptor>());
+        var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
 
-        public class DisposableGrpcInterceptor : Interceptor, IDisposable
-        {
-            public bool Disposed { get; private set; }
-            public void Dispose() => Disposed = true;
-        }
+        // Act
+        await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
-        public class AsyncDisposableGrpcInterceptor : DisposableGrpcInterceptor, IAsyncDisposable
-        {
-            public bool AsyncDisposed { get; private set; }
-            public ValueTask DisposeAsync()
-            {
-                AsyncDisposed = true;
-                return default;
-            }
-        }
+        // Assert
+        Assert.True(interceptorInstance.Disposed);
+    }
 
-        [Test]
-        public void Create_NotResolvedFromServiceProvider_CreatedByActivator()
-        {
-            // Arrange
-            var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
+    [Test]
+    public async Task Release_AsyncDisposableCreatedByActivator_AsyncDisposeCalled()
+    {
+        // Arrange
+        var interceptorActivator = new DefaultGrpcInterceptorActivator<AsyncDisposableGrpcInterceptor>();
+        var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<AsyncDisposableGrpcInterceptor>());
+        var interceptorInstance = (AsyncDisposableGrpcInterceptor)interceptorHandle.Instance;
 
-            // Act
-            var handle = activator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<GrpcInterceptor>());
+        // Act
+        await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
-            // Assert
-            Assert.NotNull(handle.Instance);
-            Assert.IsTrue(handle.Created);
-        }
+        // Assert
+        Assert.False(interceptorInstance.Disposed);
+        Assert.True(interceptorInstance.AsyncDisposed);
+    }
 
-        [Test]
-        public void Create_ResolvedFromServiceProvider_NotCreatedByActivator()
-        {
-            // Arrange
-            var interceptor = new GrpcInterceptor();
-            var mockServiceProvider = new Mock<IServiceProvider>();
-            mockServiceProvider
-                .Setup(sp => sp.GetService(typeof(GrpcInterceptor)))
-                .Returns(interceptor);
-            var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
+    [Test]
+    public async Task Release_MultipleDisposableCreatedByActivator_DisposeCalled()
+    {
+        // Arrange
+        var interceptorRegistration = CreateRegistration<DisposableGrpcInterceptor>();
 
-            // Act
-            var handle = activator.Create(mockServiceProvider.Object, CreateRegistration<GrpcInterceptor>());
+        var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
+        var interceptorHandle1 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
+        var interceptorHandle2 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
+        var interceptorHandle3 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
 
-            // Assert
-            Assert.AreSame(handle.Instance, interceptor);
-            Assert.IsFalse(handle.Created);
-        }
+        // Act
+        await interceptorActivator.ReleaseAsync(interceptorHandle3).AsTask().DefaultTimeout();
+        await interceptorActivator.ReleaseAsync(interceptorHandle2).AsTask().DefaultTimeout();
+        await interceptorActivator.ReleaseAsync(interceptorHandle1).AsTask().DefaultTimeout();
 
-        [Test]
-        public void Create_ServiceRegistrationAndExplicitArgs_CreatedByActivator()
-        {
-            // Arrange
-            var interceptor = new GrpcIntArgumentInterceptor();
-            var mockServiceProvider = new Mock<IServiceProvider>();
-            mockServiceProvider
-                .Setup(sp => sp.GetService(typeof(GrpcIntArgumentInterceptor)))
-                .Returns(interceptor);
+        // Assert
+        Assert.True(((DisposableGrpcInterceptor)interceptorHandle1.Instance).Disposed);
+        Assert.True(((DisposableGrpcInterceptor)interceptorHandle2.Instance).Disposed);
+        Assert.True(((DisposableGrpcInterceptor)interceptorHandle3.Instance).Disposed);
+    }
 
-            // Act
-            var handle = new DefaultGrpcInterceptorActivator<GrpcIntArgumentInterceptor>().Create(
-                mockServiceProvider.Object,
-                CreateRegistration<GrpcIntArgumentInterceptor>(10));
+    [Test]
+    public async Task Release_NonDisposableCreatedByActivator_DisposeNotCalled()
+    {
+        // Arrange
+        var interceptorActivator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
+        var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<GrpcInterceptor>());
+        var interceptorInstance = (GrpcInterceptor)interceptorHandle.Instance;
 
-            // Assert
-            Assert.AreNotSame(interceptor, handle.Instance);
-            Assert.AreEqual(10, ((GrpcIntArgumentInterceptor)handle.Instance).X);
-            Assert.IsTrue(handle.Created);
-        }
+        // Act
+        await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
 
-        [Test]
-        public void Create_ExplicitArgsAndServiceArgs_CreatedByActivatorWithServiceArgsResolved()
-        {
-            var mutex = new Mutex();
-            var mockServiceProvider = new Mock<IServiceProvider>();
-            mockServiceProvider
-                .Setup(sp => sp.GetService(typeof(Mutex)))
-                .Returns(mutex);
+        // Assert
+        Assert.False(interceptorInstance.Disposed);
+    }
 
-            var handle = new DefaultGrpcInterceptorActivator<GrpcIntMutexArgumentInterceptor>().Create(
-                mockServiceProvider.Object,
-                CreateRegistration<GrpcIntMutexArgumentInterceptor>(10));
+    [Test]
+    public async Task Release_NullInterceptor_ThrowError()
+    {
+        // Arrange
+        var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
 
-            Assert.AreEqual(10, ((GrpcIntMutexArgumentInterceptor)handle.Instance).X);
-            Assert.AreEqual(mutex, ((GrpcIntMutexArgumentInterceptor)handle.Instance).Mutex);
-            Assert.IsTrue(handle.Created);
-        }
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<ArgumentException>(() => activator.ReleaseAsync(new GrpcActivatorHandle<Interceptor>(null!, true, state: null)).AsTask()).DefaultTimeout();
 
-        [Test]
-        public async Task Release_DisposableResolvedFromServiceProvider_DisposeNotCalled()
-        {
-            // Arrange
-            var mockServiceProvider = new Mock<IServiceProvider>();
-            mockServiceProvider
-                .Setup(sp => sp.GetService(typeof(DisposableGrpcInterceptor)))
-                .Returns(() =>
-                {
-                    return new DisposableGrpcInterceptor();
-                });
+        // Assert
+        Assert.AreEqual("interceptor", ex.ParamName);
+    }
 
-            var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
-            var interceptorHandle = interceptorActivator.Create(mockServiceProvider.Object, CreateRegistration<DisposableGrpcInterceptor>());
-            var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
-
-            // Act
-            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
-
-            // Assert
-            Assert.False(interceptorInstance.Disposed);
-        }
-
-        [Test]
-        public async Task Release_DisposableCreatedByActivator_DisposeCalled()
-        {
-            // Arrange
-            var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
-            var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<DisposableGrpcInterceptor>());
-            var interceptorInstance = (DisposableGrpcInterceptor)interceptorHandle.Instance;
-
-            // Act
-            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
-
-            // Assert
-            Assert.True(interceptorInstance.Disposed);
-        }
-
-        [Test]
-        public async Task Release_AsyncDisposableCreatedByActivator_AsyncDisposeCalled()
-        {
-            // Arrange
-            var interceptorActivator = new DefaultGrpcInterceptorActivator<AsyncDisposableGrpcInterceptor>();
-            var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<AsyncDisposableGrpcInterceptor>());
-            var interceptorInstance = (AsyncDisposableGrpcInterceptor)interceptorHandle.Instance;
-
-            // Act
-            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
-
-            // Assert
-            Assert.False(interceptorInstance.Disposed);
-            Assert.True(interceptorInstance.AsyncDisposed);
-        }
-
-        [Test]
-        public async Task Release_MultipleDisposableCreatedByActivator_DisposeCalled()
-        {
-            // Arrange
-            var interceptorRegistration = CreateRegistration<DisposableGrpcInterceptor>();
-
-            var interceptorActivator = new DefaultGrpcInterceptorActivator<DisposableGrpcInterceptor>();
-            var interceptorHandle1 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
-            var interceptorHandle2 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
-            var interceptorHandle3 = interceptorActivator.Create(Mock.Of<IServiceProvider>(), interceptorRegistration);
-
-            // Act
-            await interceptorActivator.ReleaseAsync(interceptorHandle3).AsTask().DefaultTimeout();
-            await interceptorActivator.ReleaseAsync(interceptorHandle2).AsTask().DefaultTimeout();
-            await interceptorActivator.ReleaseAsync(interceptorHandle1).AsTask().DefaultTimeout();
-
-            // Assert
-            Assert.True(((DisposableGrpcInterceptor)interceptorHandle1.Instance).Disposed);
-            Assert.True(((DisposableGrpcInterceptor)interceptorHandle2.Instance).Disposed);
-            Assert.True(((DisposableGrpcInterceptor)interceptorHandle3.Instance).Disposed);
-        }
-
-        [Test]
-        public async Task Release_NonDisposableCreatedByActivator_DisposeNotCalled()
-        {
-            // Arrange
-            var interceptorActivator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
-            var interceptorHandle = interceptorActivator.Create(Mock.Of<IServiceProvider>(), CreateRegistration<GrpcInterceptor>());
-            var interceptorInstance = (GrpcInterceptor)interceptorHandle.Instance;
-
-            // Act
-            await interceptorActivator.ReleaseAsync(interceptorHandle).AsTask().DefaultTimeout();
-
-            // Assert
-            Assert.False(interceptorInstance.Disposed);
-        }
-
-        [Test]
-        public async Task Release_NullInterceptor_ThrowError()
-        {
-            // Arrange
-            var activator = new DefaultGrpcInterceptorActivator<GrpcInterceptor>();
-
-            // Act
-            var ex = await ExceptionAssert.ThrowsAsync<ArgumentException>(() => activator.ReleaseAsync(new GrpcActivatorHandle<Interceptor>(null!, true, state: null)).AsTask()).DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("interceptor", ex.ParamName);
-        }
-
-        private static InterceptorRegistration CreateRegistration<TInterceptor>(params object[] args)
-        {
-            return new InterceptorRegistration(typeof(TInterceptor), args ?? Array.Empty<object>());
-        }
+    private static InterceptorRegistration CreateRegistration<TInterceptor>(params object[] args)
+    {
+        return new InterceptorRegistration(typeof(TInterceptor), args ?? Array.Empty<object>());
     }
 }

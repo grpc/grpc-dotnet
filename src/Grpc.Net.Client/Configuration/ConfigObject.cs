@@ -18,49 +18,48 @@
 
 using Grpc.Net.Client.Internal.Configuration;
 
-namespace Grpc.Net.Client.Configuration
+namespace Grpc.Net.Client.Configuration;
+
+/// <summary>
+/// Represents a configuration object. Implementations provide strongly typed wrappers over
+/// collections of untyped values.
+/// </summary>
+public abstract class ConfigObject : IConfigValue
 {
     /// <summary>
-    /// Represents a configuration object. Implementations provide strongly typed wrappers over
-    /// collections of untyped values.
+    /// Gets the underlying configuration values.
     /// </summary>
-    public abstract class ConfigObject : IConfigValue
+    public IDictionary<string, object> Inner { get; }
+
+    internal ConfigObject() : this(new Dictionary<string, object>())
     {
-        /// <summary>
-        /// Gets the underlying configuration values.
-        /// </summary>
-        public IDictionary<string, object> Inner { get; }
+    }
 
-        internal ConfigObject() : this(new Dictionary<string, object>())
+    internal ConfigObject(IDictionary<string, object> inner)
+    {
+        Inner = inner;
+    }
+
+    object IConfigValue.Inner => Inner;
+
+    internal T? GetValue<T>(string key)
+    {
+        if (Inner.TryGetValue(key, out var value))
         {
+            return (T?)value;
         }
+        return default;
+    }
 
-        internal ConfigObject(IDictionary<string, object> inner)
+    internal void SetValue<T>(string key, T? value)
+    {
+        if (value == null)
         {
-            Inner = inner;
+            Inner.Remove(key);
         }
-
-        object IConfigValue.Inner => Inner;
-
-        internal T? GetValue<T>(string key)
+        else
         {
-            if (Inner.TryGetValue(key, out var value))
-            {
-                return (T?)value;
-            }
-            return default;
-        }
-
-        internal void SetValue<T>(string key, T? value)
-        {
-            if (value == null)
-            {
-                Inner.Remove(key);
-            }
-            else
-            {
-                Inner[key] = value;
-            }
+            Inner[key] = value;
         }
     }
 }

@@ -19,15 +19,14 @@
 using Grpc.Testing;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GrpcAspNetCoreServer.Controllers
+namespace GrpcAspNetCoreServer.Controllers;
+
+[Route("api/[controller]")]
+public class BenchmarkController : Controller
 {
-    [Route("api/[controller]")]
-    public class BenchmarkController : Controller
+    [HttpPost("unary")]
+    public SimpleResponse Post([FromBody] SimpleRequest request)
     {
-        [HttpPost("unary")]
-        public SimpleResponse Post([FromBody] SimpleRequest request)
-        {
-            return BenchmarkServiceImpl.CreateResponse(request);
-        }
+        return BenchmarkServiceImpl.CreateResponse(request);
     }
 }

@@ -19,22 +19,21 @@
 using Grpc.AspNetCore.Server;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.Tests.Shared
+namespace Grpc.Tests.Shared;
+
+internal static class ServicesHelpers
 {
-    internal static class ServicesHelpers
+    public static ServiceCollection CreateServices(
+        Action<GrpcServiceOptions>? configureGrpc = null,
+        Action<IGrpcServerBuilder>? configureGrpcService = null)
     {
-        public static ServiceCollection CreateServices(
-            Action<GrpcServiceOptions>? configureGrpc = null,
-            Action<IGrpcServerBuilder>? configureGrpcService = null)
-        {
-            var services = new ServiceCollection();
+        var services = new ServiceCollection();
 
-            services.AddLogging();
+        services.AddLogging();
 
-            var serverBuilder = services.AddGrpc(configureGrpc ?? (o => { }));
-            configureGrpcService?.Invoke(serverBuilder);
+        var serverBuilder = services.AddGrpc(configureGrpc ?? (o => { }));
+        configureGrpcService?.Invoke(serverBuilder);
 
-            return services;
-        }
+        return services;
     }
 }

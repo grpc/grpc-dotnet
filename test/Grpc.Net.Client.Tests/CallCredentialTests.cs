@@ -27,213 +27,212 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 
-namespace Grpc.Net.Client.Tests
+namespace Grpc.Net.Client.Tests;
+
+[TestFixture]
+public class CallCredentialTests
 {
-    [TestFixture]
-    public class CallCredentialTests
+    [Test]
+    public async Task CallCredentialsWithHttps_WhenAsyncAuthInterceptorThrow_ShouldThrow()
     {
-        [Test]
-        public async Task CallCredentialsWithHttps_WhenAsyncAuthInterceptorThrow_ShouldThrow()
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            var services = new ServiceCollection();
-            services.AddNUnitLogger();
-            var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
 
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
+        // Act
+        var expectedException = new Exception("Some AsyncAuthInterceptor Exception");
 
-            // Act
-            var expectedException = new Exception("Some AsyncAuthInterceptor Exception");
-
-            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
-            {
-                return Task.FromException(expectedException);
-            });
-
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-
-            // Assert
-            Assert.AreSame(expectedException, ex.Status.DebugException);
-        }
-
-        [Test]
-        public async Task CallCredentialsWithHttps_MetadataOnRequest()
+        var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
         {
-            // Arrange
-            string? authorizationValue = null;
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                authorizationValue = request.Headers.GetValues("authorization").Single();
+            return Task.FromException(expectedException);
+        });
 
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
-            // Act
-            var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
-            {
-                // The operation is asynchronous to ensure delegate is awaited
-                await Task.Delay(50);
-                metadata.Add("authorization", "SECRET_TOKEN");
-            });
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            await call.ResponseAsync.DefaultTimeout();
+        // Assert
+        Assert.AreSame(expectedException, ex.Status.DebugException);
+    }
 
-            // Assert
-            Assert.AreEqual("SECRET_TOKEN", authorizationValue);
-        }
-
-        [Test]
-        public async Task CallCredentialsWithHttp_NoMetadataOnRequest()
+    [Test]
+    public async Task CallCredentialsWithHttps_MetadataOnRequest()
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            bool? hasAuthorizationValue = null;
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                hasAuthorizationValue = request.Headers.TryGetValues("authorization", out _);
+            authorizationValue = request.Headers.GetValues("authorization").Single();
 
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            }, new Uri("http://localhost"));
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
-            var testSink = new TestSink();
-            var loggerFactory = new TestLoggerFactory(testSink, true);
-
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
-
-            // Act
-            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
-            {
-                metadata.Add("authorization", "SECRET_TOKEN");
-                return Task.CompletedTask;
-            });
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            await call.ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual(false, hasAuthorizationValue);
-
-            var log = testSink.Writes.Single(w => w.EventId.Name == "CallCredentialsNotUsed");
-            Assert.AreEqual("The configured CallCredentials were not used because the call does not use TLS.", log.State.ToString());
-        }
-
-        [Test]
-        public async Task CallCredentialsWithHttp_UnsafeUseInsecureChannelCallCredentials_MetadataOnRequest()
+        // Act
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
         {
-            // Arrange
-            string? authorizationValue = null;
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                authorizationValue = request.Headers.GetValues("authorization").Single();
+            // The operation is asynchronous to ensure delegate is awaited
+            await Task.Delay(50);
+            metadata.Add("authorization", "SECRET_TOKEN");
+        });
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
 
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            }, new Uri("http://localhost"));
-            var invoker = HttpClientCallInvokerFactory.Create(
-                httpClient,
-                configure: o => o.UnsafeUseInsecureChannelCallCredentials = true);
+        // Assert
+        Assert.AreEqual("SECRET_TOKEN", authorizationValue);
+    }
 
-            // Act
-            var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
-            {
-                // The operation is asynchronous to ensure delegate is awaited
-                await Task.Delay(50);
-                metadata.Add("authorization", "SECRET_TOKEN");
-            });
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            await call.ResponseAsync.DefaultTimeout();
-
-            // Assert
-            Assert.AreEqual("SECRET_TOKEN", authorizationValue);
-        }
-
-        [Test]
-        public async Task CompositeCallCredentialsWithHttps_MetadataOnRequest()
+    [Test]
+    public async Task CallCredentialsWithHttp_NoMetadataOnRequest()
+    {
+        // Arrange
+        bool? hasAuthorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
         {
-            // Arrange
-            HttpRequestHeaders? requestHeaders = null;
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                requestHeaders = request.Headers;
+            hasAuthorizationValue = request.Headers.TryGetValues("authorization", out _);
 
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            });
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri("http://localhost"));
 
-            var first = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
-            {
-                metadata.Add("first_authorization", "FIRST_SECRET_TOKEN");
-                return Task.CompletedTask;
-            }));
-            var second = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
-            {
-                metadata.Add("second_authorization", "SECOND_SECRET_TOKEN");
-                return Task.CompletedTask;
-            }));
-            var third = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
-            {
-                metadata.Add("third_authorization", "THIRD_SECRET_TOKEN");
-                return Task.CompletedTask;
-            }));
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
 
-            // Act
-            var callCredentials = CallCredentials.Compose(first, second, third);
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            await call.ResponseAsync.DefaultTimeout();
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
 
-            // Assert
-            Assert.AreEqual("FIRST_SECRET_TOKEN", requestHeaders!.GetValues("first_authorization").Single());
-            Assert.AreEqual("SECOND_SECRET_TOKEN", requestHeaders!.GetValues("second_authorization").Single());
-            Assert.AreEqual("THIRD_SECRET_TOKEN", requestHeaders!.GetValues("third_authorization").Single());
-        }
-
-        [Test]
-        [TestCase("https://somehost", "https://somehost/ServiceName")]
-        [TestCase("https://somehost/", "https://somehost/ServiceName")]
-        [TestCase("https://somehost:443", "https://somehost/ServiceName")]
-        [TestCase("https://somehost:443/", "https://somehost/ServiceName")]
-        [TestCase("https://somehost:1234", "https://somehost:1234/ServiceName")]
-        [TestCase("https://foo.bar:443", "https://foo.bar/ServiceName")]
-        [TestCase("https://foo.bar:443/abc/xyz", "https://foo.bar/abc/xyz/ServiceName")]
-        public async Task CallCredentials_AuthContextPopulated(string target, string expectedServiceUrl)
+        // Act
+        var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
         {
-            // Arrange
-            var httpClient = ClientTestHelpers.CreateTestClient(async request =>
-            {
-                var reply = new HelloReply { Message = "Hello world" };
-                var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
-            }, new Uri(target));
-            var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+            metadata.Add("authorization", "SECRET_TOKEN");
+            return Task.CompletedTask;
+        });
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
 
-            // Act
-            string? serviceUrl = null;
-            string? methodName = null;
-            var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
-            {
-                serviceUrl = context.ServiceUrl;
-                methodName = context.MethodName;
-                return Task.CompletedTask;
-            });
-            var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-            await call.ResponseAsync.DefaultTimeout();
+        // Assert
+        Assert.AreEqual(false, hasAuthorizationValue);
 
-            // Assert
-            Assert.AreEqual(expectedServiceUrl, serviceUrl);
-            Assert.AreEqual("MethodName", ClientTestHelpers.ServiceMethod.Name);
-        }
+        var log = testSink.Writes.Single(w => w.EventId.Name == "CallCredentialsNotUsed");
+        Assert.AreEqual("The configured CallCredentials were not used because the call does not use TLS.", log.State.ToString());
+    }
+
+    [Test]
+    public async Task CallCredentialsWithHttp_UnsafeUseInsecureChannelCallCredentials_MetadataOnRequest()
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            authorizationValue = request.Headers.GetValues("authorization").Single();
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri("http://localhost"));
+        var invoker = HttpClientCallInvokerFactory.Create(
+            httpClient,
+            configure: o => o.UnsafeUseInsecureChannelCallCredentials = true);
+
+        // Act
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+        {
+            // The operation is asynchronous to ensure delegate is awaited
+            await Task.Delay(50);
+            metadata.Add("authorization", "SECRET_TOKEN");
+        });
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("SECRET_TOKEN", authorizationValue);
+    }
+
+    [Test]
+    public async Task CompositeCallCredentialsWithHttps_MetadataOnRequest()
+    {
+        // Arrange
+        HttpRequestHeaders? requestHeaders = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            requestHeaders = request.Headers;
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        var first = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+        {
+            metadata.Add("first_authorization", "FIRST_SECRET_TOKEN");
+            return Task.CompletedTask;
+        }));
+        var second = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+        {
+            metadata.Add("second_authorization", "SECOND_SECRET_TOKEN");
+            return Task.CompletedTask;
+        }));
+        var third = CallCredentials.FromInterceptor(new AsyncAuthInterceptor((context, metadata) =>
+        {
+            metadata.Add("third_authorization", "THIRD_SECRET_TOKEN");
+            return Task.CompletedTask;
+        }));
+
+        // Act
+        var callCredentials = CallCredentials.Compose(first, second, third);
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("FIRST_SECRET_TOKEN", requestHeaders!.GetValues("first_authorization").Single());
+        Assert.AreEqual("SECOND_SECRET_TOKEN", requestHeaders!.GetValues("second_authorization").Single());
+        Assert.AreEqual("THIRD_SECRET_TOKEN", requestHeaders!.GetValues("third_authorization").Single());
+    }
+
+    [Test]
+    [TestCase("https://somehost", "https://somehost/ServiceName")]
+    [TestCase("https://somehost/", "https://somehost/ServiceName")]
+    [TestCase("https://somehost:443", "https://somehost/ServiceName")]
+    [TestCase("https://somehost:443/", "https://somehost/ServiceName")]
+    [TestCase("https://somehost:1234", "https://somehost:1234/ServiceName")]
+    [TestCase("https://foo.bar:443", "https://foo.bar/ServiceName")]
+    [TestCase("https://foo.bar:443/abc/xyz", "https://foo.bar/abc/xyz/ServiceName")]
+    public async Task CallCredentials_AuthContextPopulated(string target, string expectedServiceUrl)
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri(target));
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        string? serviceUrl = null;
+        string? methodName = null;
+        var callCredentials = CallCredentials.FromInterceptor((context, metadata) =>
+        {
+            serviceUrl = context.ServiceUrl;
+            methodName = context.MethodName;
+            return Task.CompletedTask;
+        });
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(expectedServiceUrl, serviceUrl);
+        Assert.AreEqual("MethodName", ClientTestHelpers.ServiceMethod.Name);
     }
 }

@@ -18,22 +18,21 @@
 
 using System.Runtime.InteropServices;
 
-namespace Grpc.Net.Client.Web.Internal
+namespace Grpc.Net.Client.Web.Internal;
+
+internal interface IOperatingSystem
 {
-    internal interface IOperatingSystem
+    bool IsBrowser { get; }
+}
+
+internal class OperatingSystem : IOperatingSystem
+{
+    public static readonly OperatingSystem Instance = new OperatingSystem();
+
+    public bool IsBrowser { get; }
+
+    private OperatingSystem()
     {
-        bool IsBrowser { get; }
-    }
-
-    internal class OperatingSystem : IOperatingSystem
-    {
-        public static readonly OperatingSystem Instance = new OperatingSystem();
-
-        public bool IsBrowser { get; }
-
-        private OperatingSystem()
-        {
-            IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));
-        }
+        IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));
     }
 }

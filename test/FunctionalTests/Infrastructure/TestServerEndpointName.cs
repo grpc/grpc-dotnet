@@ -16,19 +16,18 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public enum TestServerEndpointName
 {
-    public enum TestServerEndpointName
-    {
-        Http2,
-        Http1,
-        Http2WithTls,
-        Http1WithTls,
+    Http2,
+    Http1,
+    Http2WithTls,
+    Http1WithTls,
 #if NET5_0_OR_GREATER
-        UnixDomainSocket,
+    UnixDomainSocket,
 #endif
 #if NET6_0_OR_GREATER
-        Http3WithTls,
+    Http3WithTls,
 #endif
-    }
 }

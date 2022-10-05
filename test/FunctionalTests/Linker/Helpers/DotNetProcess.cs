@@ -19,102 +19,101 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace Grpc.AspNetCore.FunctionalTests.Linker.Helpers
+namespace Grpc.AspNetCore.FunctionalTests.Linker.Helpers;
+
+public class DotNetProcess : IDisposable
 {
-    public class DotNetProcess : IDisposable
+    private readonly TaskCompletionSource<object?> _exitedTcs;
+    private readonly StringBuilder _output;
+    private readonly object _outputLock = new object();
+
+    protected Process Process { get; }
+
+    public DotNetProcess()
     {
-        private readonly TaskCompletionSource<object?> _exitedTcs;
-        private readonly StringBuilder _output;
-        private readonly object _outputLock = new object();
+        _output = new StringBuilder();
 
-        protected Process Process { get; }
-
-        public DotNetProcess()
+        Process = new Process();
+        Process.StartInfo = new ProcessStartInfo
         {
-            _output = new StringBuilder();
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            FileName = @"dotnet"
+        };
+        Process.EnableRaisingEvents = true;
+        Process.Exited += Process_Exited;
+        Process.OutputDataReceived += Process_OutputDataReceived;
+        Process.ErrorDataReceived += Process_ErrorDataReceived;
 
-            Process = new Process();
-            Process.StartInfo = new ProcessStartInfo
-            {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                FileName = @"dotnet"
-            };
-            Process.EnableRaisingEvents = true;
-            Process.Exited += Process_Exited;
-            Process.OutputDataReceived += Process_OutputDataReceived;
-            Process.ErrorDataReceived += Process_ErrorDataReceived;
+        _exitedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
-            _exitedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
+    public Task WaitForExitAsync() => _exitedTcs.Task;
+    public int ExitCode => Process.ExitCode;
+    public bool HasExited => Process.HasExited;
 
-        public Task WaitForExitAsync() => _exitedTcs.Task;
-        public int ExitCode => Process.ExitCode;
-        public bool HasExited => Process.HasExited;
+    public void Start(string arguments)
+    {
+        Process.StartInfo.Arguments = arguments;
+        Process.Start();
 
-        public void Start(string arguments)
+        Process.BeginOutputReadLine();
+        Process.BeginErrorReadLine();
+    }
+
+    public string GetOutput()
+    {
+        lock (_outputLock)
         {
-            Process.StartInfo.Arguments = arguments;
-            Process.Start();
-
-            Process.BeginOutputReadLine();
-            Process.BeginErrorReadLine();
+            return _output.ToString();
         }
+    }
 
-        public string GetOutput()
+    private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+    {
+        var data = e.Data;
+        if (data != null)
         {
             lock (_outputLock)
             {
-                return _output.ToString();
+                _output.AppendLine(data);
             }
         }
+    }
 
-        private void Process_OutputDataReceived(object sender, DataReceivedEventArgs e)
+    private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+    {
+        var data = e.Data;
+        if (data != null)
         {
-            var data = e.Data;
-            if (data != null)
+            lock (_outputLock)
             {
-                lock (_outputLock)
-                {
-                    _output.AppendLine(data);
-                }
+                _output.AppendLine("ERROR: " + data);
             }
         }
+    }
 
-        private void Process_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+    private void Process_Exited(object? sender, EventArgs e)
+    {
+        _exitedTcs.TrySetResult(null);
+    }
+
+    public void Dispose()
+    {
+        try
         {
-            var data = e.Data;
-            if (data != null)
+            if (!Process.HasExited)
             {
-                lock (_outputLock)
-                {
-                    _output.AppendLine("ERROR: " + data);
-                }
+                Process.Kill(entireProcessTree: true);
             }
         }
-
-        private void Process_Exited(object? sender, EventArgs e)
+        catch
         {
-            _exitedTcs.TrySetResult(null);
+            // Ignore error
         }
 
-        public void Dispose()
-        {
-            try
-            {
-                if (!Process.HasExited)
-                {
-                    Process.Kill(entireProcessTree: true);
-                }
-            }
-            catch
-            {
-                // Ignore error
-            }
-
-            Process.Dispose();
-        }
+        Process.Dispose();
     }
 }

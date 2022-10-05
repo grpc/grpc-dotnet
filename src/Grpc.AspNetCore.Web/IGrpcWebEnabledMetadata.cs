@@ -16,16 +16,15 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Web
+namespace Grpc.AspNetCore.Web;
+
+/// <summary>
+/// Represents gRPC-Web metadata used during request processing.
+/// </summary>
+public interface IGrpcWebEnabledMetadata
 {
     /// <summary>
-    /// Represents gRPC-Web metadata used during request processing.
+    /// Gets a flag indicating whether gRPC-Web is enabled.
     /// </summary>
-    public interface IGrpcWebEnabledMetadata
-    {
-        /// <summary>
-        /// Gets a flag indicating whether gRPC-Web is enabled.
-        /// </summary>
-        bool GrpcWebEnabled { get; }
-    }
+    bool GrpcWebEnabled { get; }
 }

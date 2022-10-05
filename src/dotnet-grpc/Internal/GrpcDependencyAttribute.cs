@@ -17,24 +17,23 @@
 #endregion
 
 
-namespace Grpc.Dotnet.Cli.Internal
-{
-    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-    internal class GrpcDependencyAttribute : Attribute
-    {
-        public GrpcDependencyAttribute(string name, string version, string privateAssets, string applicableServices, string? applicableToWeb = null)
-        {
-            Name = name;
-            Version = version;
-            PrivateAssets = privateAssets;
-            ApplicableServices = applicableServices;
-            ApplicableToWeb = applicableToWeb;
-        }
+namespace Grpc.Dotnet.Cli.Internal;
 
-        public string Name { get; }
-        public string Version { get; }
-        public string PrivateAssets { get; }
-        public string ApplicableServices { get; }
-        public string? ApplicableToWeb { get; }
+[AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
+internal class GrpcDependencyAttribute : Attribute
+{
+    public GrpcDependencyAttribute(string name, string version, string privateAssets, string applicableServices, string? applicableToWeb = null)
+    {
+        Name = name;
+        Version = version;
+        PrivateAssets = privateAssets;
+        ApplicableServices = applicableServices;
+        ApplicableToWeb = applicableToWeb;
     }
+
+    public string Name { get; }
+    public string Version { get; }
+    public string PrivateAssets { get; }
+    public string ApplicableServices { get; }
+    public string? ApplicableToWeb { get; }
 }

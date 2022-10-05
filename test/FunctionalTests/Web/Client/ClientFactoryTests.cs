@@ -24,73 +24,72 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web.Client
+namespace Grpc.AspNetCore.FunctionalTests.Web.Client;
+
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
+#endif
+public class ClientFactoryTests : GrpcWebFunctionalTestBase
 {
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
-#endif
-    public class ClientFactoryTests : GrpcWebFunctionalTestBase
+    public ClientFactoryTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
+     : base(grpcTestMode, endpointName)
     {
-        public ClientFactoryTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
-         : base(grpcTestMode, endpointName)
-        {
-        }
+    }
 
-        [Test]
-        public async Task CreateMultipleClientsAndSendValidRequest_SuccessResponse()
+    [Test]
+    public async Task CreateMultipleClientsAndSendValidRequest_SuccessResponse()
+    {
+        // Arrange
+        Task<HelloReply> UnaryCall(HelloRequest request, ServerCallContext context)
         {
-            // Arrange
-            Task<HelloReply> UnaryCall(HelloRequest request, ServerCallContext context)
+            return Task.FromResult(new HelloReply { Message = $"Hello {request.Name}" });
+        }
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCall);
+
+        var clientHandlerResult = CreateGrpcWebHandler();
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
+        serviceCollection
+            .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
             {
-                return Task.FromResult(new HelloReply { Message = $"Hello {request.Name}" });
-            }
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCall);
+                options.Address = Fixture.GetUrl(EndpointName);
+            })
+            .ConfigureGrpcClientCreator(invoker =>
+            {
+                return TestClientFactory.Create(invoker, method);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                return CreateGrpcWebHandler().handler;
+            });
+        var services = serviceCollection.BuildServiceProvider();
 
-            var clientHandlerResult = CreateGrpcWebHandler();
+        // Act 1
+        var client1 = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
+        var call1 = client1.UnaryCall(new HelloRequest { Name = "world" });
+        var response1 = await call1.ResponseAsync.DefaultTimeout();
 
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<ILoggerFactory>(LoggerFactory);
-            serviceCollection
-                .AddGrpcClient<TestClient<HelloRequest, HelloReply>>(options =>
-                {
-                    options.Address = Fixture.GetUrl(EndpointName);
-                })
-                .ConfigureGrpcClientCreator(invoker =>
-                {
-                    return TestClientFactory.Create(invoker, method);
-                })
-                .ConfigurePrimaryHttpMessageHandler(() =>
-                {
-                    return CreateGrpcWebHandler().handler;
-                });
-            var services = serviceCollection.BuildServiceProvider();
+        // Assert 1
+        Assert.AreEqual("Hello world", response1.Message);
 
-            // Act 1
-            var client1 = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
-            var call1 = client1.UnaryCall(new HelloRequest { Name = "world" });
-            var response1 = await call1.ResponseAsync.DefaultTimeout();
+        // Act 2
+        var client2 = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
+        var call2 = client2.UnaryCall(new HelloRequest { Name = "world" });
+        var response2 = await call2.ResponseAsync.DefaultTimeout();
 
-            // Assert 1
-            Assert.AreEqual("Hello world", response1.Message);
-
-            // Act 2
-            var client2 = services.GetRequiredService<TestClient<HelloRequest, HelloReply>>();
-            var call2 = client2.UnaryCall(new HelloRequest { Name = "world" });
-            var response2 = await call2.ResponseAsync.DefaultTimeout();
-
-            // Assert 2
-            Assert.AreEqual("Hello world", response2.Message);
-        }
+        // Assert 2
+        Assert.AreEqual("Hello world", response2.Message);
     }
 }

@@ -19,51 +19,50 @@
 using Grpc.Core.Interceptors;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+internal sealed class DefaultGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
 {
-    internal sealed class DefaultGrpcInterceptorActivator<TInterceptor> : IGrpcInterceptorActivator<TInterceptor> where TInterceptor : Interceptor
+    public GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration)
     {
-        public GrpcActivatorHandle<Interceptor> Create(IServiceProvider serviceProvider, InterceptorRegistration interceptorRegistration)
+        if (interceptorRegistration.Arguments.Count == 0)
         {
-            if (interceptorRegistration.Arguments.Count == 0)
+            var globalInterceptor = serviceProvider.GetService<TInterceptor>();
+            if (globalInterceptor != null)
             {
-                var globalInterceptor = serviceProvider.GetService<TInterceptor>();
-                if (globalInterceptor != null)
-                {
-                    return new GrpcActivatorHandle<Interceptor>(globalInterceptor, created: false, state: null);
-                }
+                return new GrpcActivatorHandle<Interceptor>(globalInterceptor, created: false, state: null);
             }
-
-            // Cache factory on registration
-            var factory = interceptorRegistration.GetFactory();
-
-            var interceptor = (TInterceptor)factory(serviceProvider, interceptorRegistration._args);
-
-            return new GrpcActivatorHandle<Interceptor>(interceptor, created: true, state: null);
         }
 
-        public ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor)
+        // Cache factory on registration
+        var factory = interceptorRegistration.GetFactory();
+
+        var interceptor = (TInterceptor)factory(serviceProvider, interceptorRegistration._args);
+
+        return new GrpcActivatorHandle<Interceptor>(interceptor, created: true, state: null);
+    }
+
+    public ValueTask ReleaseAsync(GrpcActivatorHandle<Interceptor> interceptor)
+    {
+        if (interceptor.Instance == null)
         {
-            if (interceptor.Instance == null)
-            {
-                throw new ArgumentException("Interceptor instance is null.", nameof(interceptor));
-            }
-
-            if (interceptor.Created)
-            {
-                if (interceptor.Instance is IAsyncDisposable asyncDisposableInterceptor)
-                {
-                    return asyncDisposableInterceptor.DisposeAsync();
-                }
-
-                if (interceptor.Instance is IDisposable disposableInterceptor)
-                {
-                    disposableInterceptor.Dispose();
-                    return default;
-                }
-            }
-
-            return default;
+            throw new ArgumentException("Interceptor instance is null.", nameof(interceptor));
         }
+
+        if (interceptor.Created)
+        {
+            if (interceptor.Instance is IAsyncDisposable asyncDisposableInterceptor)
+            {
+                return asyncDisposableInterceptor.DisposeAsync();
+            }
+
+            if (interceptor.Instance is IDisposable disposableInterceptor)
+            {
+                disposableInterceptor.Dispose();
+                return default;
+            }
+        }
+
+        return default;
     }
 }

@@ -22,47 +22,46 @@ using System.Collections.Generic;
 using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 
-namespace Grpc.Core
+namespace Grpc.Core;
+
+/// <summary>
+/// Key certificate pair (in PEM encoding).
+/// </summary>
+public sealed class KeyCertificatePair
 {
+    readonly string certificateChain;
+    readonly string privateKey;
+
     /// <summary>
-    /// Key certificate pair (in PEM encoding).
+    /// Creates a new certificate chain - private key pair.
     /// </summary>
-    public sealed class KeyCertificatePair
+    /// <param name="certificateChain">PEM encoded certificate chain.</param>
+    /// <param name="privateKey">PEM encoded private key.</param>
+    public KeyCertificatePair(string certificateChain, string privateKey)
     {
-        readonly string certificateChain;
-        readonly string privateKey;
+        this.certificateChain = GrpcPreconditions.CheckNotNull(certificateChain, "certificateChain");
+        this.privateKey = GrpcPreconditions.CheckNotNull(privateKey, "privateKey");
+    }
 
-        /// <summary>
-        /// Creates a new certificate chain - private key pair.
-        /// </summary>
-        /// <param name="certificateChain">PEM encoded certificate chain.</param>
-        /// <param name="privateKey">PEM encoded private key.</param>
-        public KeyCertificatePair(string certificateChain, string privateKey)
+    /// <summary>
+    /// PEM encoded certificate chain.
+    /// </summary>
+    public string CertificateChain
+    {
+        get
         {
-            this.certificateChain = GrpcPreconditions.CheckNotNull(certificateChain, "certificateChain");
-            this.privateKey = GrpcPreconditions.CheckNotNull(privateKey, "privateKey");
+            return certificateChain;
         }
+    }
 
-        /// <summary>
-        /// PEM encoded certificate chain.
-        /// </summary>
-        public string CertificateChain
+    /// <summary>
+    /// PEM encoded private key.
+    /// </summary>
+    public string PrivateKey
+    {
+        get
         {
-            get
-            {
-                return certificateChain;
-            }
-        }
-
-        /// <summary>
-        /// PEM encoded private key.
-        /// </summary>
-        public string PrivateKey
-        {
-            get
-            {
-                return privateKey;
-            }
+            return privateKey;
         }
     }
 }

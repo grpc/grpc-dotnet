@@ -23,33 +23,32 @@ using System.CommandLine.Parsing;
 using Grpc.Dotnet.Cli.Commands;
 using Microsoft.Build.Locator;
 
-namespace Grpc.Dotnet.Cli
+namespace Grpc.Dotnet.Cli;
+
+public class Program
 {
-    public class Program
+    public static Task<int> Main(string[] args)
     {
-        public static Task<int> Main(string[] args)
-        {
-            MSBuildLocator.RegisterDefaults();
+        MSBuildLocator.RegisterDefaults();
 
-            var parser = BuildParser(new HttpClient());
-            var result = parser.Parse(args);
+        var parser = BuildParser(new HttpClient());
+        var result = parser.Parse(args);
 
-            return result.InvokeAsync(new SystemConsole());
-        }
+        return result.InvokeAsync(new SystemConsole());
+    }
 
-        internal static Parser BuildParser(HttpClient client)
-        {
-            var root = new RootCommand();
-            root.AddCommand(AddFileCommand.Create(client));
-            root.AddCommand(AddUrlCommand.Create(client));
-            root.AddCommand(RefreshCommand.Create(client));
-            root.AddCommand(RemoveCommand.Create(client));
-            root.AddCommand(ListCommand.Create(client));
+    internal static Parser BuildParser(HttpClient client)
+    {
+        var root = new RootCommand();
+        root.AddCommand(AddFileCommand.Create(client));
+        root.AddCommand(AddUrlCommand.Create(client));
+        root.AddCommand(RefreshCommand.Create(client));
+        root.AddCommand(RemoveCommand.Create(client));
+        root.AddCommand(ListCommand.Create(client));
 
-            var parser = new CommandLineBuilder(root)
-                .UseDefaults()
-                .Build();
-            return parser;
-        }
+        var parser = new CommandLineBuilder(root)
+            .UseDefaults()
+            .Build();
+        return parser;
     }
 }

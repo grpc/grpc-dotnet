@@ -19,42 +19,41 @@
 using Chat;
 using Grpc.Core;
 
-namespace FunctionalTestsWebsite.Services
+namespace FunctionalTestsWebsite.Services;
+
+public class ChatterService : Chatter.ChatterBase
 {
-    public class ChatterService : Chatter.ChatterBase
+    private static readonly HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
+
+    public override Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
     {
-        private static readonly HashSet<IServerStreamWriter<ChatMessage>> _subscribers = new HashSet<IServerStreamWriter<ChatMessage>>();
+        return ChatCore(requestStream, responseStream);
+    }
 
-        public override Task Chat(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream, ServerCallContext context)
+    public static async Task ChatCore(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream)
+    {
+        if (!await requestStream.MoveNext())
         {
-            return ChatCore(requestStream, responseStream);
+            // No messages so don't register and just exit.
+            return;
         }
 
-        public static async Task ChatCore(IAsyncStreamReader<ChatMessage> requestStream, IServerStreamWriter<ChatMessage> responseStream)
+        // Warning, the following is very racy
+        _subscribers.Add(responseStream);
+
+        do
         {
-            if (!await requestStream.MoveNext())
-            {
-                // No messages so don't register and just exit.
-                return;
-            }
+            await BroadcastMessageAsync(requestStream.Current);
+        } while (await requestStream.MoveNext());
 
-            // Warning, the following is very racy
-            _subscribers.Add(responseStream);
+        _subscribers.Remove(responseStream);
+    }
 
-            do
-            {
-                await BroadcastMessageAsync(requestStream.Current);
-            } while (await requestStream.MoveNext());
-
-            _subscribers.Remove(responseStream);
-        }
-
-        private static async Task BroadcastMessageAsync(ChatMessage message)
+    private static async Task BroadcastMessageAsync(ChatMessage message)
+    {
+        foreach (var subscriber in _subscribers)
         {
-            foreach (var subscriber in _subscribers)
-            {
-                await subscriber.WriteAsync(message);
-            }
+            await subscriber.WriteAsync(message);
         }
     }
 }

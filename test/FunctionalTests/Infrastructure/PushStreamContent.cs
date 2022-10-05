@@ -20,31 +20,30 @@ using System.Net;
 using System.Net.Http.Headers;
 using Grpc.AspNetCore.Server.Internal;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+internal class PushStreamContent : HttpContent
 {
-    internal class PushStreamContent : HttpContent
+    private readonly Func<Stream, Task> _onStreamAvailable;
+
+    public PushStreamContent(Func<Stream, Task> onStreamAvailable, MediaTypeHeaderValue? mediaType = null)
     {
-        private readonly Func<Stream, Task> _onStreamAvailable;
-
-        public PushStreamContent(Func<Stream, Task> onStreamAvailable, MediaTypeHeaderValue? mediaType = null)
-        {
-            _onStreamAvailable = onStreamAvailable;
-            Headers.ContentType = mediaType ?? new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
-        }
-
-        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
-        {
-            return _onStreamAvailable(stream);
-        }
-
-        protected override bool TryComputeLength(out long length)
-        {
-            // We can't know the length of the content being pushed to the output stream.
-            length = -1;
-            return false;
-        }
-
-        // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes
-        internal Task PushComplete => ReadAsStreamAsync();
+        _onStreamAvailable = onStreamAvailable;
+        Headers.ContentType = mediaType ?? new MediaTypeHeaderValue(GrpcProtocolConstants.GrpcContentType);
     }
+
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+    {
+        return _onStreamAvailable(stream);
+    }
+
+    protected override bool TryComputeLength(out long length)
+    {
+        // We can't know the length of the content being pushed to the output stream.
+        length = -1;
+        return false;
+    }
+
+    // Hacky. ReadAsStreamAsync does not complete until SerializeToStreamAsync finishes
+    internal Task PushComplete => ReadAsStreamAsync();
 }

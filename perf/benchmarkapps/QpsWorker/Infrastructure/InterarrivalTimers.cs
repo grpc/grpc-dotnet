@@ -17,105 +17,104 @@
 #endregion
 
 // Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
-namespace QpsWorker.Infrastructure
+namespace QpsWorker.Infrastructure;
+
+public interface IInterarrivalTimer
 {
-    public interface IInterarrivalTimer
-    {
-        void WaitForNext();
+    void WaitForNext();
 
-        Task WaitForNextAsync();
+    Task WaitForNextAsync();
+}
+
+/// <summary>
+/// Interarrival timer that doesn't wait at all.
+/// </summary>
+public class ClosedLoopInterarrivalTimer : IInterarrivalTimer
+{
+    public ClosedLoopInterarrivalTimer()
+    {
+    }
+
+    public void WaitForNext()
+    {
+        // NOP
+    }
+
+    public Task WaitForNextAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Interarrival timer that generates Poisson process load.
+/// </summary>
+public class PoissonInterarrivalTimer : IInterarrivalTimer
+{
+    private readonly ExponentialDistribution _exponentialDistribution;
+    private DateTime? _lastEventTime;
+
+    public PoissonInterarrivalTimer(double offeredLoad)
+    {
+        _exponentialDistribution = new ExponentialDistribution(new Random(), offeredLoad);
+        _lastEventTime = DateTime.UtcNow;
+    }
+
+    public void WaitForNext()
+    {
+        var waitDuration = GetNextWaitDuration();
+        int millisTimeout = (int) Math.Round(waitDuration.TotalMilliseconds);
+        if (millisTimeout > 0)
+        {
+            // TODO(jtattermusch): probably only works well for a relatively low interarrival rate
+            Thread.Sleep(millisTimeout);
+        }
+    }
+
+    public async Task WaitForNextAsync()
+    {
+        var waitDuration = GetNextWaitDuration();
+        int millisTimeout = (int) Math.Round(waitDuration.TotalMilliseconds);
+        if (millisTimeout > 0)
+        {
+            // TODO(jtattermusch): probably only works well for a relatively low interarrival rate
+            await Task.Delay(millisTimeout);
+        }
+    }
+
+    private TimeSpan GetNextWaitDuration()
+    {
+        if (!_lastEventTime.HasValue)
+        {
+            _lastEventTime = DateTime.Now;
+        }
+
+        var origLastEventTime = _lastEventTime.Value;
+        _lastEventTime = origLastEventTime + TimeSpan.FromSeconds(_exponentialDistribution.Next());
+        return _lastEventTime.Value - origLastEventTime;
     }
 
     /// <summary>
-    /// Interarrival timer that doesn't wait at all.
+    /// Exp generator.
     /// </summary>
-    public class ClosedLoopInterarrivalTimer : IInterarrivalTimer
+    private class ExponentialDistribution
     {
-        public ClosedLoopInterarrivalTimer()
+        private readonly Random _random;
+        private readonly double _lambda;
+        private readonly double _lambdaReciprocal;
+
+        public ExponentialDistribution(Random random, double lambda)
         {
+            _random = random;
+            _lambda = lambda;
+            _lambdaReciprocal = 1.0 / lambda;
         }
 
-        public void WaitForNext()
+        public double Next()
         {
-            // NOP
-        }
-
-        public Task WaitForNextAsync()
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// Interarrival timer that generates Poisson process load.
-    /// </summary>
-    public class PoissonInterarrivalTimer : IInterarrivalTimer
-    {
-        private readonly ExponentialDistribution _exponentialDistribution;
-        private DateTime? _lastEventTime;
-
-        public PoissonInterarrivalTimer(double offeredLoad)
-        {
-            _exponentialDistribution = new ExponentialDistribution(new Random(), offeredLoad);
-            _lastEventTime = DateTime.UtcNow;
-        }
-
-        public void WaitForNext()
-        {
-            var waitDuration = GetNextWaitDuration();
-            int millisTimeout = (int) Math.Round(waitDuration.TotalMilliseconds);
-            if (millisTimeout > 0)
-            {
-                // TODO(jtattermusch): probably only works well for a relatively low interarrival rate
-                Thread.Sleep(millisTimeout);
-            }
-        }
-
-        public async Task WaitForNextAsync()
-        {
-            var waitDuration = GetNextWaitDuration();
-            int millisTimeout = (int) Math.Round(waitDuration.TotalMilliseconds);
-            if (millisTimeout > 0)
-            {
-                // TODO(jtattermusch): probably only works well for a relatively low interarrival rate
-                await Task.Delay(millisTimeout);
-            }
-        }
-
-        private TimeSpan GetNextWaitDuration()
-        {
-            if (!_lastEventTime.HasValue)
-            {
-                _lastEventTime = DateTime.Now;
-            }
-
-            var origLastEventTime = _lastEventTime.Value;
-            _lastEventTime = origLastEventTime + TimeSpan.FromSeconds(_exponentialDistribution.Next());
-            return _lastEventTime.Value - origLastEventTime;
-        }
-
-        /// <summary>
-        /// Exp generator.
-        /// </summary>
-        private class ExponentialDistribution
-        {
-            private readonly Random _random;
-            private readonly double _lambda;
-            private readonly double _lambdaReciprocal;
-
-            public ExponentialDistribution(Random random, double lambda)
-            {
-                _random = random;
-                _lambda = lambda;
-                _lambdaReciprocal = 1.0 / lambda;
-            }
-
-            public double Next()
-            {
-                double uniform = _random.NextDouble();
-                // Use 1.0-uni above to avoid NaN if uni is 0
-                return _lambdaReciprocal * (-Math.Log(1.0 - uniform));
-            }
+            double uniform = _random.NextDouble();
+            // Use 1.0-uni above to avoid NaN if uni is 0
+            return _lambdaReciprocal * (-Math.Log(1.0 - uniform));
         }
     }
 }

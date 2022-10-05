@@ -24,60 +24,59 @@ using Grpc.Core;
 using Grpc.Health.V1;
 using NUnit.Framework;
 
-namespace Grpc.HealthCheck.Tests
+namespace Grpc.HealthCheck.Tests;
+
+/// <summary>
+/// Health client talks to health server.
+/// </summary>
+public class HealthClientServerTest
 {
-    /// <summary>
-    /// Health client talks to health server.
-    /// </summary>
-    public class HealthClientServerTest
+    const string Host = "localhost";
+    Server server;
+    Channel channel;
+    Grpc.Health.V1.Health.HealthClient client;
+    Grpc.HealthCheck.HealthServiceImpl serviceImpl;
+
+    [OneTimeSetUp]
+    public void Init()
     {
-        const string Host = "localhost";
-        Server server;
-        Channel channel;
-        Grpc.Health.V1.Health.HealthClient client;
-        Grpc.HealthCheck.HealthServiceImpl serviceImpl;
+        serviceImpl = new HealthServiceImpl();
 
-        [OneTimeSetUp]
-        public void Init()
+        // Disable SO_REUSEPORT to prevent https://github.com/grpc/grpc/issues/10755
+        server = new Server(new[] { new ChannelOption(ChannelOptions.SoReuseport, 0) })
         {
-            serviceImpl = new HealthServiceImpl();
+            Services = { Grpc.Health.V1.Health.BindService(serviceImpl) },
+            Ports = { { Host, ServerPort.PickUnused, ServerCredentials.Insecure } }
+        };
+        server.Start();
+        channel = new Channel(Host, server.Ports.Single().BoundPort, ChannelCredentials.Insecure);
 
-            // Disable SO_REUSEPORT to prevent https://github.com/grpc/grpc/issues/10755
-            server = new Server(new[] { new ChannelOption(ChannelOptions.SoReuseport, 0) })
-            {
-                Services = { Grpc.Health.V1.Health.BindService(serviceImpl) },
-                Ports = { { Host, ServerPort.PickUnused, ServerCredentials.Insecure } }
-            };
-            server.Start();
-            channel = new Channel(Host, server.Ports.Single().BoundPort, ChannelCredentials.Insecure);
-
-            client = new Grpc.Health.V1.Health.HealthClient(channel);
-        }
-
-        [OneTimeTearDown]
-        public void Cleanup()
-        {
-            channel.ShutdownAsync().Wait();
-
-            server.ShutdownAsync().Wait();
-        }
-
-        [Test]
-        public void ServiceIsRunning()
-        {
-            serviceImpl.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
-
-            var response = client.Check(new HealthCheckRequest { Service = "" });
-            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
-        }
-
-        [Test]
-        public void ServiceDoesntExist()
-        {
-            var ex = Assert.Throws<RpcException>(() => client.Check(new HealthCheckRequest { Service = "nonexistent.service" }));
-            Assert.AreEqual(StatusCode.NotFound, ex.Status.StatusCode);
-        }
-
-        // TODO(jtattermusch): add test with timeout once timeouts are supported
+        client = new Grpc.Health.V1.Health.HealthClient(channel);
     }
+
+    [OneTimeTearDown]
+    public void Cleanup()
+    {
+        channel.ShutdownAsync().Wait();
+
+        server.ShutdownAsync().Wait();
+    }
+
+    [Test]
+    public void ServiceIsRunning()
+    {
+        serviceImpl.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
+
+        var response = client.Check(new HealthCheckRequest { Service = "" });
+        Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
+    }
+
+    [Test]
+    public void ServiceDoesntExist()
+    {
+        var ex = Assert.Throws<RpcException>(() => client.Check(new HealthCheckRequest { Service = "nonexistent.service" }));
+        Assert.AreEqual(StatusCode.NotFound, ex.Status.StatusCode);
+    }
+
+    // TODO(jtattermusch): add test with timeout once timeouts are supported
 }

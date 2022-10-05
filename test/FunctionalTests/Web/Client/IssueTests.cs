@@ -23,62 +23,61 @@ using Grpc.Tests.Shared;
 using Issue;
 using NUnit.Framework;
 
-namespace Grpc.AspNetCore.FunctionalTests.Web.Client
+namespace Grpc.AspNetCore.FunctionalTests.Web.Client;
+
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
+#endif
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
+#if NET6_0_OR_GREATER
+[TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
+#endif
+public class IssueTests : GrpcWebFunctionalTestBase
 {
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWeb, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http1)]
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.GrpcWebText, TestServerEndpointName.Http3WithTls)]
-#endif
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http2)]
-#if NET6_0_OR_GREATER
-    [TestFixture(GrpcTestMode.Grpc, TestServerEndpointName.Http3WithTls)]
-#endif
-    public class IssueTests : GrpcWebFunctionalTestBase
+    public IssueTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
+     : base(grpcTestMode, endpointName)
     {
-        public IssueTests(GrpcTestMode grpcTestMode, TestServerEndpointName endpointName)
-         : base(grpcTestMode, endpointName)
+    }
+
+    // https://github.com/grpc/grpc-dotnet/issues/752
+    [Test]
+    public async Task SendLargeRequest_SuccessResponse()
+    {
+        // Arrage
+        var httpClient = CreateGrpcWebClient();
+        var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
         {
+            HttpClient = httpClient,
+            LoggerFactory = LoggerFactory
+        });
+
+        var client = new IssueService.IssueServiceClient(channel);
+        var request = new GetLibraryRequest();
+        request.UserId = "admin";
+        request.SearchTerm = string.Empty;
+        for (var i = 0; i < 4096; i++)
+        {
+            request.Carriers.Add(i.ToString(CultureInfo.InvariantCulture));
         }
 
-        // https://github.com/grpc/grpc-dotnet/issues/752
-        [Test]
-        public async Task SendLargeRequest_SuccessResponse()
+        try
         {
-            // Arrage
-            var httpClient = CreateGrpcWebClient();
-            var channel = GrpcChannel.ForAddress(httpClient.BaseAddress!, new GrpcChannelOptions
-            {
-                HttpClient = httpClient,
-                LoggerFactory = LoggerFactory
-            });
+            // Act
+            var response = await client.GetLibraryAsync(request).ResponseAsync.DefaultTimeout();
 
-            var client = new IssueService.IssueServiceClient(channel);
-            var request = new GetLibraryRequest();
-            request.UserId = "admin";
-            request.SearchTerm = string.Empty;
-            for (var i = 0; i < 4096; i++)
-            {
-                request.Carriers.Add(i.ToString(CultureInfo.InvariantCulture));
-            }
-
-            try
-            {
-                // Act
-                var response = await client.GetLibraryAsync(request).ResponseAsync.DefaultTimeout();
-
-                // Assert
-                Assert.AreEqual("admin", response.UserId);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error for {GrpcTestMode}-{EndpointName}", ex);
-            }
+            // Assert
+            Assert.AreEqual("admin", response.UserId);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error for {GrpcTestMode}-{EndpointName}", ex);
         }
     }
 }

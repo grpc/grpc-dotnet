@@ -16,14 +16,13 @@
 
 #endregion
 
-namespace Grpc.AspNetCore.Server.Internal
-{
-    internal static class GrpcServerConstants
-    {
-        internal const string HostActivityName = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
-        internal const string HostActivityChanged = HostActivityName + ".Changed";
+namespace Grpc.AspNetCore.Server.Internal;
 
-        internal const string ActivityStatusCodeTag = "grpc.status_code";
-        internal const string ActivityMethodTag = "grpc.method";
-    }
+internal static class GrpcServerConstants
+{
+    internal const string HostActivityName = "Microsoft.AspNetCore.Hosting.HttpRequestIn";
+    internal const string HostActivityChanged = HostActivityName + ".Changed";
+
+    internal const string ActivityStatusCodeTag = "grpc.status_code";
+    internal const string ActivityMethodTag = "grpc.method";
 }

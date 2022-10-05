@@ -16,12 +16,11 @@
 
 #endregion
 
-namespace Grpc.Dotnet.Cli.Options
+namespace Grpc.Dotnet.Cli.Options;
+
+internal enum Access
 {
-    internal enum Access
-    {
-        // Default is Public
-        Public = 0,
-        Internal
-    }
+    // Default is Public
+    Public = 0,
+    Internal
 }

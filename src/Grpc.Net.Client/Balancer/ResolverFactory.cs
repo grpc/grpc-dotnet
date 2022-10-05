@@ -21,36 +21,35 @@ using System;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
-namespace Grpc.Net.Client.Balancer
+namespace Grpc.Net.Client.Balancer;
+
+/// <summary>
+/// Factory for creating new <see cref="Resolver"/> instances. A factory is used when the
+/// target address <see cref="Uri"/> scheme matches the factory name.
+/// <para>
+/// Note: Experimental API that can change or be removed without any prior notice.
+/// </para>
+/// </summary>
+public abstract class ResolverFactory
 {
-    /// <summary>
-    /// Factory for creating new <see cref="Resolver"/> instances. A factory is used when the
-    /// target address <see cref="Uri"/> scheme matches the factory name.
-    /// <para>
-    /// Note: Experimental API that can change or be removed without any prior notice.
-    /// </para>
-    /// </summary>
-    public abstract class ResolverFactory
-    {
 #if SUPPORT_LOAD_BALANCING
-        internal static readonly ResolverFactory[] KnownLoadResolverFactories = new ResolverFactory[]
-        {
-            new DnsResolverFactory(Timeout.InfiniteTimeSpan)
-        };
+    internal static readonly ResolverFactory[] KnownLoadResolverFactories = new ResolverFactory[]
+    {
+        new DnsResolverFactory(Timeout.InfiniteTimeSpan)
+    };
 #endif
 
-        /// <summary>
-        /// Gets the resolver factory name. A factory is used when the target <see cref="Uri"/> scheme
-        /// matches the factory name.
-        /// </summary>
-        public abstract string Name { get; }
+    /// <summary>
+    /// Gets the resolver factory name. A factory is used when the target <see cref="Uri"/> scheme
+    /// matches the factory name.
+    /// </summary>
+    public abstract string Name { get; }
 
-        /// <summary>
-        /// Creates a new <see cref="Resolver"/> with the specified options.
-        /// </summary>
-        /// <param name="options">Options for creating a <see cref="Resolver"/>.</param>
-        /// <returns>A new <see cref="Resolver"/>.</returns>
-        public abstract Resolver Create(ResolverOptions options);
-    }
+    /// <summary>
+    /// Creates a new <see cref="Resolver"/> with the specified options.
+    /// </summary>
+    /// <param name="options">Options for creating a <see cref="Resolver"/>.</param>
+    /// <returns>A new <see cref="Resolver"/>.</returns>
+    public abstract Resolver Create(ResolverOptions options);
 }
 #endif

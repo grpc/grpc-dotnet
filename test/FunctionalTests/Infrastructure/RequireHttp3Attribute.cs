@@ -20,40 +20,39 @@ using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal;
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+public class RequireHttp3Attribute : NUnitAttribute, IApplyToTest
 {
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class RequireHttp3Attribute : NUnitAttribute, IApplyToTest
+    public void ApplyToTest(NUnit.Framework.Internal.Test test)
     {
-        public void ApplyToTest(NUnit.Framework.Internal.Test test)
+        if (test.RunState == RunState.NotRunnable)
         {
-            if (test.RunState == RunState.NotRunnable)
-            {
-                return;
-            }
-
-            if (IsSupported(out var message))
-            {
-                return;
-            }
-
-            test.RunState = RunState.Ignored;
-            test.Properties.Set(PropertyNames.SkipReason, message!);
+            return;
         }
 
-        public static bool IsSupported(out string? message)
+        if (IsSupported(out var message))
         {
-            var osVersion = Environment.OSVersion;
-            if (osVersion.Platform == PlatformID.Win32NT &&
-                osVersion.Version.Major >= 10 &&
-                osVersion.Version.Build >= 22000)
-            {
-                message = null;
-                return true;
-            }
-
-            message = "HTTP/3 requires Windows 11 or later.";
-            return false;
+            return;
         }
+
+        test.RunState = RunState.Ignored;
+        test.Properties.Set(PropertyNames.SkipReason, message!);
+    }
+
+    public static bool IsSupported(out string? message)
+    {
+        var osVersion = Environment.OSVersion;
+        if (osVersion.Platform == PlatformID.Win32NT &&
+            osVersion.Version.Major >= 10 &&
+            osVersion.Version.Build >= 22000)
+        {
+            message = null;
+            return true;
+        }
+
+        message = "HTTP/3 requires Windows 11 or later.";
+        return false;
     }
 }

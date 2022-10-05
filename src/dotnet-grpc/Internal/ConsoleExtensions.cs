@@ -19,23 +19,22 @@
 using System.CommandLine;
 using System.Globalization;
 
-namespace Grpc.Dotnet.Cli.Internal
+namespace Grpc.Dotnet.Cli.Internal;
+
+internal static class ConsoleExtensions
 {
-    internal static class ConsoleExtensions
+    public static void Log(this IConsole console, string formatString, params string[] args)
     {
-        public static void Log(this IConsole console, string formatString, params string[] args)
-        {
-            console.Out.Write(string.Format(CultureInfo.CurrentCulture, formatString, args) + Environment.NewLine);
-        }
+        console.Out.Write(string.Format(CultureInfo.CurrentCulture, formatString, args) + Environment.NewLine);
+    }
 
-        public static void LogWarning(this IConsole console, string formatString, params string[] args)
-        {
-            console.Out.Write(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args) + Environment.NewLine);
-        }
+    public static void LogWarning(this IConsole console, string formatString, params string[] args)
+    {
+        console.Out.Write(string.Format(CultureInfo.CurrentCulture, $"Warning: {formatString}", args) + Environment.NewLine);
+    }
 
-        public static void LogError(this IConsole console, Exception e)
-        {
-            console.Error.Write($"Error: {e.Message}" + Environment.NewLine);
-        }
+    public static void LogError(this IConsole console, Exception e)
+    {
+        console.Error.Write($"Error: {e.Message}" + Environment.NewLine);
     }
 }

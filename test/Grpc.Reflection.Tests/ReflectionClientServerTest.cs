@@ -25,116 +25,115 @@ using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
 using NUnit.Framework;
 
-namespace Grpc.Reflection.Tests
+namespace Grpc.Reflection.Tests;
+
+/// <summary>
+/// Reflection client talks to reflection server.
+/// </summary>
+public class ReflectionClientServerTest
 {
-    /// <summary>
-    /// Reflection client talks to reflection server.
-    /// </summary>
-    public class ReflectionClientServerTest
+    const string Host = "localhost";
+    Server server;
+    Channel channel;
+    ServerReflection.ServerReflectionClient client;
+    ReflectionServiceImpl serviceImpl;
+
+    [OneTimeSetUp]
+    public void Init()
     {
-        const string Host = "localhost";
-        Server server;
-        Channel channel;
-        ServerReflection.ServerReflectionClient client;
-        ReflectionServiceImpl serviceImpl;
+        serviceImpl = new ReflectionServiceImpl(ServerReflection.Descriptor);
 
-        [OneTimeSetUp]
-        public void Init()
+        // Disable SO_REUSEPORT to prevent https://github.com/grpc/grpc/issues/10755
+        server = new Server(new[] { new ChannelOption(ChannelOptions.SoReuseport, 0) })
         {
-            serviceImpl = new ReflectionServiceImpl(ServerReflection.Descriptor);
+            Services = { ServerReflection.BindService(serviceImpl) },
+            Ports = { { Host, ServerPort.PickUnused, ServerCredentials.Insecure } }
+        };
+        server.Start();
+        channel = new Channel(Host, server.Ports.Single().BoundPort, ChannelCredentials.Insecure);
 
-            // Disable SO_REUSEPORT to prevent https://github.com/grpc/grpc/issues/10755
-            server = new Server(new[] { new ChannelOption(ChannelOptions.SoReuseport, 0) })
-            {
-                Services = { ServerReflection.BindService(serviceImpl) },
-                Ports = { { Host, ServerPort.PickUnused, ServerCredentials.Insecure } }
-            };
-            server.Start();
-            channel = new Channel(Host, server.Ports.Single().BoundPort, ChannelCredentials.Insecure);
+        client = new ServerReflection.ServerReflectionClient(channel);
+    }
 
-            client = new ServerReflection.ServerReflectionClient(channel);
-        }
+    [OneTimeTearDown]
+    public void Cleanup()
+    {
+        channel.ShutdownAsync().Wait();
+        server.ShutdownAsync().Wait();
+    }
 
-        [OneTimeTearDown]
-        public void Cleanup()
+    [Test]
+    public async Task FileByFilename_NotFound()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            channel.ShutdownAsync().Wait();
-            server.ShutdownAsync().Wait();
-        }
+            FileByFilename = "somepackage/nonexistent.proto"
+        });
+        Assert.AreEqual((int)StatusCode.NotFound, response.ErrorResponse.ErrorCode);
+    }
 
-        [Test]
-        public async Task FileByFilename_NotFound()
+    [Test]
+    public async Task FileByFilename()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                FileByFilename = "somepackage/nonexistent.proto"
-            });
-            Assert.AreEqual((int)StatusCode.NotFound, response.ErrorResponse.ErrorCode);
-        }
+            FileByFilename = "grpc/reflection/v1alpha/reflection.proto"
+        });
+        Assert.AreEqual(1, response.FileDescriptorResponse.FileDescriptorProto.Count);
+        Assert.AreEqual(ReflectionReflection.Descriptor.SerializedData, response.FileDescriptorResponse.FileDescriptorProto[0]);
+    }
 
-        [Test]
-        public async Task FileByFilename()
+    [Test]
+    public async Task FileContainingSymbol()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                FileByFilename = "grpc/reflection/v1alpha/reflection.proto"
-            });
-            Assert.AreEqual(1, response.FileDescriptorResponse.FileDescriptorProto.Count);
-            Assert.AreEqual(ReflectionReflection.Descriptor.SerializedData, response.FileDescriptorResponse.FileDescriptorProto[0]);
-        }
+            FileContainingSymbol = "grpc.reflection.v1alpha.ServerReflection"
+        });
+        Assert.AreEqual(1, response.FileDescriptorResponse.FileDescriptorProto.Count);
+        Assert.AreEqual(ReflectionReflection.Descriptor.SerializedData, response.FileDescriptorResponse.FileDescriptorProto[0]);
+    }
 
-        [Test]
-        public async Task FileContainingSymbol()
+    [Test]
+    public async Task FileContainingSymbol_NotFound()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                FileContainingSymbol = "grpc.reflection.v1alpha.ServerReflection"
-            });
-            Assert.AreEqual(1, response.FileDescriptorResponse.FileDescriptorProto.Count);
-            Assert.AreEqual(ReflectionReflection.Descriptor.SerializedData, response.FileDescriptorResponse.FileDescriptorProto[0]);
-        }
+            FileContainingSymbol = "somepackage.Nonexistent"
+        });
+        Assert.AreEqual((int)StatusCode.NotFound, response.ErrorResponse.ErrorCode);
+    }
 
-        [Test]
-        public async Task FileContainingSymbol_NotFound()
+    [Test]
+    public async Task ListServices()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                FileContainingSymbol = "somepackage.Nonexistent"
-            });
-            Assert.AreEqual((int)StatusCode.NotFound, response.ErrorResponse.ErrorCode);
-        }
+            ListServices = ""
+        });
+        Assert.AreEqual(1, response.ListServicesResponse.Service.Count);
+        Assert.AreEqual(ServerReflection.Descriptor.FullName, response.ListServicesResponse.Service[0].Name);
+    }
 
-        [Test]
-        public async Task ListServices()
+    [Test]
+    public async Task FileContainingExtension()
+    {
+        var response = await SingleRequestAsync(new ServerReflectionRequest
         {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                ListServices = ""
-            });
-            Assert.AreEqual(1, response.ListServicesResponse.Service.Count);
-            Assert.AreEqual(ServerReflection.Descriptor.FullName, response.ListServicesResponse.Service[0].Name);
-        }
+            FileContainingExtension = new ExtensionRequest()
+        });
+        Assert.AreEqual((int)StatusCode.Unimplemented, response.ErrorResponse.ErrorCode);
+    }
 
-        [Test]
-        public async Task FileContainingExtension()
-        {
-            var response = await SingleRequestAsync(new ServerReflectionRequest
-            {
-                FileContainingExtension = new ExtensionRequest()
-            });
-            Assert.AreEqual((int)StatusCode.Unimplemented, response.ErrorResponse.ErrorCode);
-        }
+    private async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionRequest request)
+    {
+        var call = client.ServerReflectionInfo();
+        await call.RequestStream.WriteAsync(request);
+        Assert.IsTrue(await call.ResponseStream.MoveNext());
 
-        private async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionRequest request)
-        {
-            var call = client.ServerReflectionInfo();
-            await call.RequestStream.WriteAsync(request);
-            Assert.IsTrue(await call.ResponseStream.MoveNext());
-
-            var response = call.ResponseStream.Current;
-            await call.RequestStream.CompleteAsync();
-            Assert.IsFalse(await call.ResponseStream.MoveNext());
-            return response;
-        }
+        var response = call.ResponseStream.Current;
+        await call.RequestStream.CompleteAsync();
+        Assert.IsFalse(await call.ResponseStream.MoveNext());
+        return response;
     }
 }

@@ -19,68 +19,67 @@
 using Grpc.Core;
 using Grpc.Shared;
 
-namespace Grpc.AspNetCore.Server.Internal
+namespace Grpc.AspNetCore.Server.Internal;
+
+internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
 {
-    internal class HttpContextStreamReader<TRequest> : IAsyncStreamReader<TRequest> where TRequest : class
+    private readonly HttpContextServerCallContext _serverCallContext;
+    private readonly Func<DeserializationContext, TRequest> _deserializer;
+    private bool _completed;
+
+    public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
     {
-        private readonly HttpContextServerCallContext _serverCallContext;
-        private readonly Func<DeserializationContext, TRequest> _deserializer;
-        private bool _completed;
+        _serverCallContext = serverCallContext;
+        _deserializer = deserializer;
+    }
 
-        public HttpContextStreamReader(HttpContextServerCallContext serverCallContext, Func<DeserializationContext, TRequest> deserializer)
+    public TRequest Current { get; private set; } = default!;
+
+    public void Dispose() { }
+
+    public Task<bool> MoveNext(CancellationToken cancellationToken)
+    {
+        async Task<bool> MoveNextAsync(ValueTask<TRequest?> readStreamTask)
         {
-            _serverCallContext = serverCallContext;
-            _deserializer = deserializer;
+            return ProcessPayload(await readStreamTask);
         }
 
-        public TRequest Current { get; private set; } = default!;
-
-        public void Dispose() { }
-
-        public Task<bool> MoveNext(CancellationToken cancellationToken)
+        if (cancellationToken.IsCancellationRequested)
         {
-            async Task<bool> MoveNextAsync(ValueTask<TRequest?> readStreamTask)
-            {
-                return ProcessPayload(await readStreamTask);
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return Task.FromCanceled<bool>(cancellationToken);
-            }
-
-            if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
-            {
-                return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
-            }
-
-            var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
-            if (!request.IsCompletedSuccessfully)
-            {
-                return MoveNextAsync(request);
-            }
-
-            return ProcessPayload(request.Result)
-                ? CommonGrpcProtocolHelpers.TrueTask
-                : CommonGrpcProtocolHelpers.FalseTask;
+            return Task.FromCanceled<bool>(cancellationToken);
         }
 
-        private bool ProcessPayload(TRequest? request)
+        if (_completed || _serverCallContext.CancellationToken.IsCancellationRequested)
         {
-            // Stream is complete
-            if (request == null)
-            {
-                Current = null!;
-                return false;
-            }
-
-            Current = request;
-            return true;
+            return Task.FromException<bool>(new InvalidOperationException("Can't read messages after the request is complete."));
         }
 
-        public void Complete()
+        var request = _serverCallContext.HttpContext.Request.BodyReader.ReadStreamMessageAsync(_serverCallContext, _deserializer, cancellationToken);
+        if (!request.IsCompletedSuccessfully)
         {
-            _completed = true;
+            return MoveNextAsync(request);
         }
+
+        return ProcessPayload(request.Result)
+            ? CommonGrpcProtocolHelpers.TrueTask
+            : CommonGrpcProtocolHelpers.FalseTask;
+    }
+
+    private bool ProcessPayload(TRequest? request)
+    {
+        // Stream is complete
+        if (request == null)
+        {
+            Current = null!;
+            return false;
+        }
+
+        Current = request;
+        return true;
+    }
+
+    public void Complete()
+    {
+        _completed = true;
     }
 }

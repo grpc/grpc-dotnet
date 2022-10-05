@@ -20,51 +20,50 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
 
-namespace Grpc.Net.Client.Tests.Infrastructure
+namespace Grpc.Net.Client.Tests.Infrastructure;
+
+internal static class StreamSerializationHelper
 {
-    internal static class StreamSerializationHelper
+    public static Task<TResponse?> ReadMessageAsync<TResponse>(
+        Stream responseStream,
+        //ILogger logger,
+        Func<DeserializationContext, TResponse> deserializer,
+        string grpcEncoding,
+        int? maximumMessageSize,
+        Dictionary<string, ICompressionProvider> compressionProviders,
+        bool singleMessage,
+        CancellationToken cancellationToken)
+        where TResponse : class
     {
-        public static Task<TResponse?> ReadMessageAsync<TResponse>(
-            Stream responseStream,
-            //ILogger logger,
-            Func<DeserializationContext, TResponse> deserializer,
-            string grpcEncoding,
-            int? maximumMessageSize,
-            Dictionary<string, ICompressionProvider> compressionProviders,
-            bool singleMessage,
-            CancellationToken cancellationToken)
-            where TResponse : class
+        var tempChannel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
         {
-            var tempChannel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                MaxReceiveMessageSize = maximumMessageSize,
-                CompressionProviders = compressionProviders?.Values.ToList(),
-                HttpHandler = new NullHttpHandler()
-            });
+            MaxReceiveMessageSize = maximumMessageSize,
+            CompressionProviders = compressionProviders?.Values.ToList(),
+            HttpHandler = new NullHttpHandler()
+        });
 
-            var tempCall = new TestGrpcCall(new CallOptions(), tempChannel, typeof(TResponse));
+        var tempCall = new TestGrpcCall(new CallOptions(), tempChannel, typeof(TResponse));
 
-            var task = responseStream.ReadMessageAsync(tempCall, deserializer, grpcEncoding, singleMessage, cancellationToken);
+        var task = responseStream.ReadMessageAsync(tempCall, deserializer, grpcEncoding, singleMessage, cancellationToken);
 
 #if !NET472
-            return task.AsTask();
+        return task.AsTask();
 #else
-            return task;
+        return task;
 #endif
-        }
+    }
 
-        private class TestGrpcCall : GrpcCall
+    private class TestGrpcCall : GrpcCall
+    {
+        private readonly Type _type;
+
+        public TestGrpcCall(CallOptions options, GrpcChannel channel, Type type) : base(options, channel)
         {
-            private readonly Type _type;
-
-            public TestGrpcCall(CallOptions options, GrpcChannel channel, Type type) : base(options, channel)
-            {
-                _type = type;
-            }
-
-            public override Type RequestType => _type;
-            public override Type ResponseType => _type;
-            public override CancellationToken CancellationToken { get; }
+            _type = type;
         }
+
+        public override Type RequestType => _type;
+        public override Type ResponseType => _type;
+        public override CancellationToken CancellationToken { get; }
     }
 }

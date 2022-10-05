@@ -17,19 +17,18 @@
 #endregion
 
 
-namespace Grpc.AspNetCore.FunctionalTests.Infrastructure
+namespace Grpc.AspNetCore.FunctionalTests.Infrastructure;
+
+public static class GrpcHttpHelper
 {
-    public static class GrpcHttpHelper
+    public static HttpRequestMessage Create(string url, HttpMethod? method = null)
     {
-        public static HttpRequestMessage Create(string url, HttpMethod? method = null)
-        {
-            var request = new HttpRequestMessage(method ?? HttpMethod.Post, url);
-            request.Version = new Version(2, 0);
+        var request = new HttpRequestMessage(method ?? HttpMethod.Post, url);
+        request.Version = new Version(2, 0);
 #if NET5_0_OR_GREATER
-            request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
 #endif
 
-            return request;
-        }
+        return request;
     }
 }
