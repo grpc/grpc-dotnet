@@ -35,11 +35,13 @@ service Greeter {
   }
 }
 
+// SayHello request message.
 message HelloRequest {
   // Name to say hello to.
   string name = 1;
 }
 
+// SayHelloStream request message.
 message HelloRequestCount {
   // Name to say hello to.
   string name = 1;
@@ -47,6 +49,7 @@ message HelloRequestCount {
   int32 count = 2;
 }
 
+// SayHello response message.
 message HelloReply {
   // Hello reply message.
   string message = 1;

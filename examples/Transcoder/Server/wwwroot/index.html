@@ -38,60 +38,60 @@
             <h5 class="mb-3">Try it now</h5>
             <ul class="nav nav-tabs" id="myTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="get-tab" data-bs-toggle="tab" data-bs-target="#get" type="button" role="tab" aria-controls="home" aria-selected="true">GET</button>
+                    <button class="nav-link active" id="unary-tab" data-bs-toggle="tab" data-bs-target="#unary" type="button" role="tab" aria-controls="home" aria-selected="true">Basic GET</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="post-tab" data-bs-toggle="tab" data-bs-target="#post" type="button" role="tab" aria-controls="profile" aria-selected="false">POST</button>
+                    <button class="nav-link" id="stream-tab" data-bs-toggle="tab" data-bs-target="#stream" type="button" role="tab" aria-controls="profile" aria-selected="false">Streaming</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="swagger-tab" data-bs-toggle="tab" data-bs-target="#swagger" type="button" role="tab" aria-controls="profile" aria-selected="false">Swagger</button>
+                    <button class="nav-link" id="openapi-tab" data-bs-toggle="tab" data-bs-target="#openapi" type="button" role="tab" aria-controls="profile" aria-selected="false">OpenAPI</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="source-tab" data-bs-toggle="tab" data-bs-target="#source" type="button" role="tab" aria-controls="contact" aria-selected="false">View source</button>
                 </li>
             </ul>
             <div class="tab-content" id="myTabContent">
-                <div class="tab-pane fade show active" id="get" role="tabpanel" aria-labelledby="get-tab">
-                    <form id="sendGet">
+                <div class="tab-pane fade show active" id="unary" role="tabpanel" aria-labelledby="unary-tab">
+                    <form id="sendUnary">
                         <p>
-                            Send a GET request to the Greeter gRPC service. The name is sent as a URL parameter.
+                            Send a unary request to the Greeter gRPC service. The name is sent as a URL parameter.
                         </p>
                         <div class="row gx-2 align-items-center">
                             <div class="col-auto">
                                 <label class="visually-hidden" for="inlineFormInput">Hello</label>
-                                <input type="text" class="form-control mb-2" id="nameGet" placeholder="Hello" required>
+                                <input type="text" class="form-control mb-2" id="nameUnary" placeholder="Hello" required>
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-primary mb-2">Send</button>
                             </div>
                         </div>
                     </form>
-                    <div class="alert alert-success" role="alert" id="resultGet"></div>
+                    <div class="alert alert-success" role="alert" id="resultUnary"></div>
                 </div>
-                <div class="tab-pane fade" id="post" role="tabpanel" aria-labelledby="post-tab">
-                    <form id="sendPost">
+                <div class="tab-pane fade" id="stream" role="tabpanel" aria-labelledby="stream-tab">
+                    <form id="sendStream">
                         <p>
                             Send a POST request to the Greeter gRPC service. JSON is sent in the request body.
                         </p>
                         <div class="row gx-2 align-items-center">
                             <div class="col-auto">
                                 <label class="visually-hidden" for="inlineFormInput">Hello</label>
-                                <input type="text" class="form-control mb-2" id="namePost" placeholder="Hello" required>
+                                <input type="text" class="form-control mb-2" id="nameStream" placeholder="Hello" required>
                             </div>
                             <div class="col-auto">
                                 <label class="visually-hidden" for="inlineFormInput">Count</label>
-                                <input type="number" class="form-control mb-2" id="countPost" placeholder="Count" required>
+                                <input type="number" class="form-control mb-2" id="countStream" placeholder="Count" required>
                             </div>
                             <div class="col-auto">
                                 <button type="submit" class="btn btn-primary mb-2">Send</button>
                             </div>
                         </div>
                     </form>
-                    <div class="alert alert-success" role="alert" id="resultPost"></div>
+                    <div class="alert alert-success" role="alert" id="resultStream"></div>
                 </div>
-                <div class="tab-pane fade" id="swagger" role="tabpanel" aria-labelledby="swagger-tab">
+                <div class="tab-pane fade" id="openapi" role="tabpanel" aria-labelledby="openapi-tab">
                     <p>
-                        View OpenAPI schema generated by Swagger and send requests with Swagger UI.
+                        View OpenAPI schema generated by Swashbuckle and send requests with Swagger UI.
                     </p>
                     <p>
                         <a href="/swagger" target="_blank">Open Swagger UI</a>
@@ -118,18 +118,18 @@
     </div>
     <script type="text/javascript" src="/lib/bootstrap/dist/bootstrap.bundle.min.js"></script>
     <script type="text/javascript">
-        var nameGetInput = document.getElementById('nameGet');
-        var getForm = document.getElementById('sendGet');
-        var resultGetText = document.getElementById('resultGet');
+        var nameUnaryInput = document.getElementById('nameUnary');
+        var unaryForm = document.getElementById('sendUnary');
+        var resultUnaryText = document.getElementById('resultUnary');
 
-        getForm.addEventListener('submit', function (event) {
-            if (getForm.checkValidity()) {
-                resultGetText.innerHTML = '';
+        unaryForm.addEventListener('submit', function (event) {
+            if (unaryForm.checkValidity()) {
+                resultUnaryText.innerHTML = '';
 
-                var url = '/v1/greeter/' + encodeURIComponent(nameGetInput.value);
+                var url = '/v1/greeter/' + encodeURIComponent(nameUnaryInput.value);
                 fetch(url).then(function (response) {
                     response.text().then(function (data) {
-                        resultGetText.innerHTML = `<h6>Request</h6>
+                        resultUnaryText.innerHTML = `<h6>Request</h6>
 <p><code>GET ${url}</code></p>
 <h6>Response</h6>
 <p><code>HTTP/1.1 ${response.status} ${getReasonPhrase(response.status)}</code></p>
@@ -144,16 +144,16 @@
             event.stopPropagation();
         }, false);
 
-        var namePostInput = document.getElementById('namePost');
-        var countPostInput = document.getElementById('countPost');
-        var postForm = document.getElementById('sendPost');
-        var resultPostText = document.getElementById('resultPost');
+        var nameStreamInput = document.getElementById('nameStream');
+        var countStreamInput = document.getElementById('countStream');
+        var streamForm = document.getElementById('sendStream');
+        var resultStreamText = document.getElementById('resultStream');
 
-        postForm.addEventListener('submit', function (event) {
-            resultPostText.innerHTML = '';
+        streamForm.addEventListener('submit', function (event) {
+            resultStreamText.innerHTML = '';
 
             var url = '/v1/greeter';
-            var content = JSON.stringify({ name: namePostInput.value, count: parseInt(countPostInput.value) });
+            var content = JSON.stringify({ name: nameStreamInput.value, count: parseInt(countStreamInput.value) });
             fetch(url, {
                 method: 'POST',
                 headers: {
@@ -170,7 +170,7 @@
                 while (!done) {
                     ({ value, done } = await reader.read());
                     if (done) {
-                        displayData(resultPostText, url, content, response, values, true);
+                        displayData(resultStreamText, url, content, response, values, true);
                         break;
                     }
                     buffer += decoder.decode(value, { stream: true });
@@ -178,7 +178,7 @@
                     var lines = buffer.split(/[\r\n]/);
                     buffer = lines.pop();
                     values.push(...lines);
-                    displayData(resultPostText, url, content, response, values, false);
+                    displayData(resultStreamText, url, content, response, values, false);
                 }
             });
 
