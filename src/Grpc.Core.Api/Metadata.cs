@@ -338,7 +338,7 @@ public sealed class Metadata : IList<Metadata.Entry>
             {
                 if (valueBytes == null)
                 {
-                    return EncodingASCII.GetBytes(value);
+                    return EncodingASCII.GetBytes(value!);
                 }
 
                 // defensive copy to guarantee immutability
@@ -391,7 +391,7 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// </summary>
         internal byte[] GetSerializedValueUnsafe()
         {
-            return valueBytes ?? EncodingASCII.GetBytes(value);
+            return valueBytes ?? EncodingASCII.GetBytes(value!);
         }
 
         internal bool KeyEqualsIgnoreCase(string key)
