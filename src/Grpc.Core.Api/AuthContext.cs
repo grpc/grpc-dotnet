@@ -101,7 +101,7 @@ public class AuthContext
     /// </summary>
     public IEnumerable<AuthProperty> FindPropertiesByName(string propertyName)
     {
-        List<AuthProperty> result;
+        List<AuthProperty>? result;
         if (!properties.TryGetValue(propertyName, out result))
         {
             return Enumerable.Empty<AuthProperty>();
