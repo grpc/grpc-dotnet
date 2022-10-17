@@ -41,23 +41,24 @@ internal class ListCommand : CommandBase
 
         command.AddOption(projectOption);
 
-        command.SetHandler<string, InvocationContext, IConsole>(
-            (project, context, console) =>
+        command.SetHandler(
+            (context) =>
             {
+                var project = context.ParseResult.GetValueForOption(projectOption);
                 try
                 {
-                    var command = new ListCommand(console, project, httpClient);
+                    var command = new ListCommand(context.Console, project, httpClient);
                     command.List();
 
                     context.ExitCode = 0;
                 }
                 catch (CLIToolException e)
                 {
-                    console.LogError(e);
+                    context.Console.LogError(e);
 
                     context.ExitCode = -1;
                 }
-            }, projectOption);
+            });
 
         return command;
     }

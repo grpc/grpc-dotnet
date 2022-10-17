@@ -23,7 +23,7 @@ namespace Grpc.Dotnet.Cli.Options;
 
 internal static class CommonOptions
 {
-    public static Option ProjectOption()
+    public static Option<string> ProjectOption()
     {
         var o = new Option<string>(
             aliases: new[] { "-p", "--project" },
@@ -31,7 +31,7 @@ internal static class CommonOptions
         return o;
     }
 
-    public static Option ServiceOption()
+    public static Option<Services> ServiceOption()
     {
         var o = new Option<Services>(
             aliases: new[] { "-s", "--services" },
@@ -39,7 +39,7 @@ internal static class CommonOptions
         return o;
     }
 
-    public static Option AccessOption()
+    public static Option<Access> AccessOption()
     {
         var o = new Option<Access>(
             aliases: new[] { "--access" },
@@ -47,7 +47,7 @@ internal static class CommonOptions
         return o;
     }
 
-    public static Option AdditionalImportDirsOption()
+    public static Option<string> AdditionalImportDirsOption()
     {
         var o = new Option<string>(
             aliases: new[] { "-i", "--additional-import-dirs" },

@@ -56,23 +56,27 @@ internal class RefreshCommand : CommandBase
         command.AddOption(dryRunOption);
         command.AddArgument(referencesArgument);
 
-        command.SetHandler<string, bool, string[], InvocationContext, IConsole>(
-            async (project, dryRun, references, context, console) =>
+        command.SetHandler(
+            async (context) =>
             {
+                var project = context.ParseResult.GetValueForOption(projectOption);
+                var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
+                var references = context.ParseResult.GetValueForArgument(referencesArgument);
+                
                 try
                 {
-                    var command = new RefreshCommand(console, project, httpClient);
+                    var command = new RefreshCommand(context.Console, project, httpClient);
                     await command.RefreshAsync(dryRun, references);
 
                     context.ExitCode = 0;
                 }
                 catch (CLIToolException e)
                 {
-                    console.LogError(e);
+                    context.Console.LogError(e);
 
                     context.ExitCode = -1;
                 }
-            }, projectOption, dryRunOption, referencesArgument);
+            });
 
         return command;
     }
