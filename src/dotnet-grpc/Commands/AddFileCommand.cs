@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using Grpc.Dotnet.Cli.Internal;
@@ -53,23 +54,29 @@ internal class AddFileCommand : CommandBase
         command.AddOption(additionalImportDirsOption);
         command.AddArgument(filesArgument);
 
-        command.SetHandler<string, Services, Access, string?, string[], InvocationContext, IConsole>(
-            async (project, services, access, additionalImportDirs, files, context, console) =>
+        command.SetHandler(
+            async (context) =>
             {
+                var project = context.ParseResult.GetValueForOption(projectOption);
+                var services = context.ParseResult.GetValueForOption(serviceOption);
+                var access = context.ParseResult.GetValueForOption(accessOption);
+                var additionalImportDirs = context.ParseResult.GetValueForOption(additionalImportDirsOption);
+                var files = context.ParseResult.GetValueForArgument(filesArgument);
+
                 try
                 {
-                    var command = new AddFileCommand(console, project, httpClient);
+                    var command = new AddFileCommand(context.Console, project, httpClient);
                     await command.AddFileAsync(services, access, additionalImportDirs, files);
 
                     context.ExitCode = 0;
                 }
                 catch (CLIToolException e)
                 {
-                    console.LogError(e);
+                    context.Console.LogError(e);
 
                     context.ExitCode = -1;
                 }
-            }, projectOption, serviceOption, accessOption, additionalImportDirsOption, filesArgument);
+            });
 
         return command;
     }

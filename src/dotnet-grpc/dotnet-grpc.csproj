@@ -4,7 +4,7 @@
     <PackageTags>gRPC RPC CLI</PackageTags>
 
     <IsGrpcPublishedPackage>true</IsGrpcPublishedPackage>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
 
     <OutputType>exe</OutputType>
     <PackAsTool>true</PackAsTool>
@@ -15,7 +15,7 @@
     <NoWarn>$(NoWarn);CA2007</NoWarn>
 
     <!-- The roll forward policy is set to LatestMajor to allow rolling forward to latest major and minor
-      version of the runtime even if requested major (netcoreapp3.0) is present. This ensures that the runtime
+      version of the runtime even if requested major (netcoreapp3.1) is present. This ensures that the runtime
       contains assemblies that are equal or newer than neede by the SDK assemblies resolved by the MSBuild locator.
       See https://github.com/dotnet/designs/blob/main/accepted/2019/runtime-binding.md#rollforward for details-->
     <RollForward>LatestMajor</RollForward>
