@@ -60,9 +60,16 @@ internal class AddUrlCommand : CommandBase
         command.AddOption(accessOption);
         command.AddArgument(urlArgument);
 
-        command.SetHandler<string, Services, Access, string?, string, string, InvocationContext, IConsole>(
-            async (project, services, access, additionalImportDirs, url, output, context, console) =>
+        command.SetHandler(
+            async (context) =>
             {
+                var project = context.ParseResult.GetValueForOption(projectOption);
+                var services = context.ParseResult.GetValueForOption(serviceOption);
+                var access = context.ParseResult.GetValueForOption(accessOption);
+                var additionalImportDirs = context.ParseResult.GetValueForOption(additionalImportDirsOption);
+                var output = context.ParseResult.GetValueForOption(outputOption);
+                var url = context.ParseResult.GetValueForArgument(urlArgument);
+
                 try
                 {
                     if (string.IsNullOrEmpty(output))
@@ -70,18 +77,18 @@ internal class AddUrlCommand : CommandBase
                         throw new CLIToolException(CoreStrings.ErrorNoOutputProvided);
                     }
 
-                    var command = new AddUrlCommand(console, project, httpClient);
+                    var command = new AddUrlCommand(context.Console, project, httpClient);
                     await command.AddUrlAsync(services, access, additionalImportDirs, url, output);
 
                     context.ExitCode = 0;
                 }
                 catch (CLIToolException e)
                 {
-                    console.LogError(e);
+                    context.Console.LogError(e);
 
                     context.ExitCode = -1;
                 }
-            }, projectOption, serviceOption, accessOption, additionalImportDirsOption, urlArgument, outputOption);
+            });
 
         return command;
     }

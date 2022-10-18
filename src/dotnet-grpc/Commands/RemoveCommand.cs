@@ -16,6 +16,7 @@
 
 #endregion
 
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using Grpc.Dotnet.Cli.Internal;
@@ -47,23 +48,27 @@ internal class RemoveCommand : CommandBase
         command.AddOption(projectOption);
         command.AddArgument(referencesArgument);
 
-        command.SetHandler<string, string[], InvocationContext, IConsole>(
-            (project, references, context, console) =>
+        command.SetHandler(
+            (context) =>
             {
+                var project = context.ParseResult.GetValueForOption(projectOption);
+                var references = context.ParseResult.GetValueForArgument(referencesArgument);
                 try
                 {
-                    var command = new RemoveCommand(console, project, httpClient);
+                    var command = new RemoveCommand(context.Console, project, httpClient);
                     command.Remove(references);
 
                     context.ExitCode = 0;
                 }
                 catch (CLIToolException e)
                 {
-                    console.LogError(e);
+                    context.Console.LogError(e);
 
                     context.ExitCode = -1;
                 }
-            }, projectOption, referencesArgument);
+
+                return Task.CompletedTask;
+            });
 
         return command;
     }
