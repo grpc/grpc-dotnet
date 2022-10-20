@@ -41,6 +41,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 {
     internal const int DefaultMaxReceiveMessageSize = 1024 * 1024 * 4; // 4 MB
 #if SUPPORT_LOAD_BALANCING
+    private readonly bool _useLoadBalancing;
     internal const long DefaultInitialReconnectBackoffTicks = TimeSpan.TicksPerSecond * 1;
     internal const long DefaultMaxReconnectBackoffTicks = TimeSpan.TicksPerSecond * 120;
 #endif
@@ -80,10 +81,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
 #if SUPPORT_LOAD_BALANCING
     // Load balancing
-    internal ConnectionManager ConnectionManager { get; }
+    internal ConnectionManager? ConnectionManager { get; }
 
     // Set in unit tests
-    internal ISubchannelTransportFactory SubchannelTransportFactory;
+    internal ISubchannelTransportFactory? SubchannelTransportFactory;
 #endif
 
     // Stateful
@@ -99,7 +100,8 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
     private readonly bool _shouldDisposeHttpClient;
 
-    internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions) : base(address.Authority)
+    internal GrpcChannel(Uri address, GrpcChannelOptions channelOptions)
+        : base(address.Authority)
     {
         _lock = new object();
         _methodInfoCache = new ConcurrentDictionary<IMethod, GrpcMethodInfo>();
@@ -108,7 +110,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         //   1. No client/handler was specified and so the channel created the client itself
         //   2. User has specified a client/handler and set DisposeHttpClient to true
         _shouldDisposeHttpClient = (channelOptions.HttpClient == null && channelOptions.HttpHandler == null)
-            || channelOptions.DisposeHttpClient;
+                                   || channelOptions.DisposeHttpClient;
 
         Address = address;
         LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
@@ -116,33 +118,48 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(channelOptions);
 
 #if SUPPORT_LOAD_BALANCING
-        InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
-        MaxReconnectBackoff = channelOptions.MaxReconnectBackoff;
-
-        var resolverFactory = GetResolverFactory(channelOptions);
-        ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-
-        SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
-
-        if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
+        _useLoadBalancing = !channelOptions.DisableLoadBalancing;
+        if (_useLoadBalancing)
         {
-            ValidateHttpHandlerSupportsConnectivity();
+
+            InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
+            MaxReconnectBackoff = channelOptions.MaxReconnectBackoff;
+
+            var resolverFactory = GetResolverFactory(channelOptions);
+            ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
+
+            SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
+
+            if (!IsHttpOrHttpsAddress() || channelOptions.ServiceConfig?.LoadBalancingConfigs.Count > 0)
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+            }
+
+            var defaultPort = IsSecure ? 443 : 80;
+            var resolver = resolverFactory.Create(new ResolverOptions(Address, defaultPort, LoggerFactory, channelOptions));
+
+            ConnectionManager = new ConnectionManager(
+                resolver,
+                channelOptions.DisableResolverServiceConfig,
+                LoggerFactory,
+                channelOptions.ResolveService<IBackoffPolicyFactory>(
+                    new ExponentialBackoffPolicyFactory(RandomGenerator, InitialReconnectBackoff, MaxReconnectBackoff)),
+                SubchannelTransportFactory,
+                ResolveLoadBalancerFactories(channelOptions));
+            ConnectionManager.ConfigureBalancer(
+                c => new ChildHandlerLoadBalancer(
+                    c,
+                    channelOptions.ServiceConfig,
+                    ConnectionManager));
         }
-
-        var defaultPort = IsSecure ? 443 : 80;
-        var resolver = resolverFactory.Create(new ResolverOptions(Address, defaultPort, LoggerFactory, channelOptions));
-
-        ConnectionManager = new ConnectionManager(
-            resolver,
-            channelOptions.DisableResolverServiceConfig,
-            LoggerFactory,
-            channelOptions.ResolveService<IBackoffPolicyFactory>(new ExponentialBackoffPolicyFactory(RandomGenerator, InitialReconnectBackoff, MaxReconnectBackoff)),
-            SubchannelTransportFactory,
-            ResolveLoadBalancerFactories(channelOptions));
-        ConnectionManager.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
-            c,
-            channelOptions.ServiceConfig,
-            ConnectionManager));
+        else
+        {
+            if (string.IsNullOrEmpty(address.Host))
+            {
+                throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
+            }
+            ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
+        }
 #else
         if (string.IsNullOrEmpty(address.Host))
         {
@@ -388,15 +405,18 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 #endif
 
 #if SUPPORT_LOAD_BALANCING
-        if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+        if (_useLoadBalancing)
         {
-            var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(handler);
-            CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
+            if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
+            {
+                var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(handler);
+                CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
 
-            BalancerHttpHandler.ConfigureSocketsHttpHandlerSetup(socketsHttpHandler);
+                BalancerHttpHandler.ConfigureSocketsHttpHandlerSetup(socketsHttpHandler);
+            }
+
+            handler = new BalancerHttpHandler(handler, ConnectionManager!);
         }
-
-        handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
         // Use HttpMessageInvoker instead of HttpClient because it is faster
@@ -599,8 +619,12 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns></returns>
     public Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        if (!_useLoadBalancing)
+        {
+            return Task.CompletedTask;
+        }
         ValidateHttpHandlerSupportsConnectivity();
-        return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
+        return ConnectionManager!.ConnectAsync(waitForReady: true, cancellationToken);
     }
 
     /// <summary>
@@ -618,8 +642,14 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         get
         {
-            ValidateHttpHandlerSupportsConnectivity();
-            return ConnectionManager.State;
+            if (_useLoadBalancing)
+            {
+                ValidateHttpHandlerSupportsConnectivity();
+
+                return ConnectionManager!.State;
+            }
+
+            return ConnectivityState.Ready;
         }
     }
 
@@ -639,8 +669,13 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>The task object representing the asynchronous operation.</returns>
     public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
     {
+        if (!_useLoadBalancing)
+        {
+            return Task.CompletedTask;
+        }
+
         ValidateHttpHandlerSupportsConnectivity();
-        return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
+        return ConnectionManager!.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
     }
 #endif
 
@@ -675,7 +710,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             HttpInvoker.Dispose();
         }
 #if SUPPORT_LOAD_BALANCING
-        ConnectionManager.Dispose();
+        ConnectionManager?.Dispose();
 #endif
         Disposed = true;
     }

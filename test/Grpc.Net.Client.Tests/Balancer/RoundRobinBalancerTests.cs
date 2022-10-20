@@ -74,7 +74,7 @@ public class RoundRobinBalancerTests
         await channel.ConnectAsync().DefaultTimeout();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -134,7 +134,7 @@ public class RoundRobinBalancerTests
         await channel.ConnectAsync().DefaultTimeout();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -188,7 +188,7 @@ public class RoundRobinBalancerTests
         _ = channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -268,7 +268,7 @@ public class RoundRobinBalancerTests
         logger.LogInformation("Client waiting for connect to complete.");
         await connectTask.DefaultTimeout();
 
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -337,7 +337,7 @@ public class RoundRobinBalancerTests
         syncPoint!.Continue();
         await connectTask.DefaultTimeout();
 
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(2, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);

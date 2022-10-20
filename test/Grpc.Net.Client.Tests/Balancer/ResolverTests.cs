@@ -70,7 +70,7 @@ public class ResolverTests
         await channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
     }
 
@@ -109,7 +109,7 @@ public class ResolverTests
 
         await connectTask.DefaultTimeout();
 
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
     }
 
@@ -182,7 +182,7 @@ public class ResolverTests
 
         await connectTask.DefaultTimeout();
 
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, createdCount);
@@ -257,7 +257,7 @@ public class ResolverTests
         // Ensure that channel has processed results
         await resolver.HasResolvedTask.DefaultTimeout();
 
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
         Assert.AreEqual(ConnectivityState.Connecting, subchannels[0].State);
 
@@ -337,7 +337,7 @@ public class ResolverTests
         await channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(disabled, resolverOptions!.DisableServiceConfig);
@@ -410,7 +410,7 @@ public class ResolverTests
 
         // Act
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-        await channel.ConnectionManager.ConnectAsync(waitForReady: false, CancellationToken.None).DefaultTimeout();
+        await channel.ConnectionManager!.ConnectAsync(waitForReady: false, CancellationToken.None).DefaultTimeout();
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
         {
@@ -454,7 +454,7 @@ public class ResolverTests
 
         // Act
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
-        await channel.ConnectionManager.ConnectAsync(waitForReady: false, CancellationToken.None).DefaultTimeout();
+        await channel.ConnectionManager!.ConnectAsync(waitForReady: false, CancellationToken.None).DefaultTimeout();
 
         resolver.UpdateAddresses(
             new List<BalancerAddress> { new BalancerAddress("localhost", 80) },
@@ -473,7 +473,7 @@ public class ResolverTests
 
     public static T? GetInnerLoadBalancer<T>(GrpcChannel channel) where T : LoadBalancer
     {
-        var balancer = (ChildHandlerLoadBalancer)channel.ConnectionManager._balancer!;
+        var balancer = (ChildHandlerLoadBalancer)channel.ConnectionManager!._balancer!;
         return (T?)balancer._current?.LoadBalancer;
     }
 }

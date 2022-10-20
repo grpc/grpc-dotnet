@@ -212,6 +212,12 @@ public sealed class GrpcChannelOptions
     public ServiceConfig? ServiceConfig { get; set; }
 
 #if SUPPORT_LOAD_BALANCING
+
+    /// <summary>
+    /// Full off all support for load balancing
+    /// </summary>
+    public bool DisableLoadBalancing { get; set; }
+
     /// <summary>
     /// Gets or sets a value indicating whether resolving a service config from the <see cref="Balancer.Resolver"/>
     /// is disabled.
@@ -240,7 +246,7 @@ public sealed class GrpcChannelOptions
     /// </para>
     /// </summary>
     public TimeSpan? MaxReconnectBackoff
-    { 
+    {
         get => _maxReconnectBackoff;
         set
         {
@@ -248,6 +254,7 @@ public sealed class GrpcChannelOptions
             {
                 throw new ArgumentException("Maximum reconnect backoff must be greater than zero.");
             }
+
             _maxReconnectBackoff = value;
         }
     }
@@ -274,6 +281,7 @@ public sealed class GrpcChannelOptions
             {
                 throw new ArgumentException("Initial reconnect backoff must be greater than zero.");
             }
+
             _initialReconnectBackoff = value;
         }
     }

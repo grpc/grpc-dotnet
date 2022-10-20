@@ -72,7 +72,7 @@ public class PickFirstBalancerTests
         await channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -116,7 +116,7 @@ public class PickFirstBalancerTests
         await channel.ConnectAsync().DefaultTimeout();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -168,7 +168,7 @@ public class PickFirstBalancerTests
         _ = channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -236,7 +236,7 @@ public class PickFirstBalancerTests
         await connectTask.DefaultTimeout();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -280,7 +280,7 @@ public class PickFirstBalancerTests
         await channel.ConnectAsync();
 
         // Assert
-        var subchannels = channel.ConnectionManager.GetSubchannels();
+        var subchannels = channel.ConnectionManager!.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
@@ -379,7 +379,7 @@ public class PickFirstBalancerTests
 
         var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
 
-        var pick = await channel.ConnectionManager.PickAsync(
+        var pick = await channel.ConnectionManager!.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: false,
             CancellationToken.None).AsTask().DefaultTimeout();

@@ -761,7 +761,7 @@ public class GrpcChannelTests
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
 
         // Assert
-        Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager._resolver);
+        Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager!._resolver);
     }
 
     [Test]
@@ -814,9 +814,9 @@ public class GrpcChannelTests
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
 
         // Assert
-        Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager._resolver);
+        Assert.IsInstanceOf(typeof(ChannelTestResolver), channel.ConnectionManager!._resolver);
 
-        var resolver = (ChannelTestResolver)channel.ConnectionManager._resolver;
+        var resolver = (ChannelTestResolver)channel.ConnectionManager!._resolver;
         Assert.AreEqual(expectedPort, resolver.Options.DefaultPort);
     }
 
@@ -860,7 +860,7 @@ public class GrpcChannelTests
 
         // Act
         var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
-        var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
+        var backoffPolicy = channel.ConnectionManager!.BackoffPolicyFactory.Create();
 
         // Assert
         Assert.AreEqual(TimeSpan.FromSeconds(0.2), backoffPolicy.NextBackoff());
@@ -881,7 +881,7 @@ public class GrpcChannelTests
 
         // Act
         var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
-        var backoffPolicy = channel.ConnectionManager.BackoffPolicyFactory.Create();
+        var backoffPolicy = channel.ConnectionManager!.BackoffPolicyFactory.Create();
 
         // Assert
         for (var i = 0; i < 100; i++)
