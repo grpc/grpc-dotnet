@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace InteropTestsWebsite;
@@ -29,6 +30,8 @@ public class Program
         CreateHostBuilder(args).Build().Run();
     }
 
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode", 
+        Justification = "DependencyInject only used with safe types.")]
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .ConfigureServices(services =>
@@ -41,10 +44,10 @@ public class Program
                 {
                     // Support --port and --use_tls cmdline arguments normally supported
                     // by gRPC interop servers.
-                    var http2Port = context.Configuration.GetValue<int>("port", 50052);
-                    var http1Port = context.Configuration.GetValue<int>("port_http1", -1);
-                    var http3Port = context.Configuration.GetValue<int>("port_http3", -1);
-                    var useTls = context.Configuration.GetValue<bool>("use_tls", false);
+                    var http2Port = GetConfigValue<int>(context.Configuration, "port", 50052);
+                    var http1Port = GetConfigValue<int>(context.Configuration, "port_http1", -1);
+                    var http3Port = GetConfigValue<int>(context.Configuration, "port_http3", -1);
+                    var useTls = GetConfigValue<bool>(context.Configuration, "use_tls", false);
 
                     options.Limits.MinRequestBodyDataRate = null;
                     options.ListenAnyIP(http2Port, o => ConfigureEndpoint(o, useTls, HttpProtocols.Http2));
@@ -65,7 +68,7 @@ public class Program
 
                         if (useTls)
                         {
-                            var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                            var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
                             var certPath = Path.Combine(basePath!, "Certs", "server1.pfx");
 
                             listenOptions.UseHttps(certPath, "1111");
@@ -75,4 +78,11 @@ public class Program
                 });
                 webBuilder.UseStartup<Startup>();
             });
+
+    [UnconditionalSuppressMessage("TrimmingAnalysis", "IL2026:UnrecognizedReflectionPattern",
+        Justification = "Only primitive values retrieved from config.")]
+    private static TValue? GetConfigValue<TValue>(IConfiguration configuration, string key, TValue defaultValue)
+    {
+        return configuration.GetValue<TValue>(key, defaultValue);
+    }
 }
