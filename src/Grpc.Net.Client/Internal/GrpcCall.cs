@@ -1109,6 +1109,8 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 #if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
         Justification = "The values being passed into Write have the commonly used properties being preserved with DynamicDependency.")]
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
+        Justification = "The values being passed into Write have the commonly used properties being preserved with DynamicDependency.")]
 #endif
     private static void WriteDiagnosticEvent<
 #if NET5_0_OR_GREATER
