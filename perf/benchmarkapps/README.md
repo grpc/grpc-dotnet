@@ -12,8 +12,8 @@ Because the driver is challenging to get setup, the benchmarks can be run locall
 
 Example of running client using Grpc.Net.Client against Grpc.AspNetCore server:
 
-1. **Launch server:** dotnet run -c Release -p .\perf\benchmarkapps\GrpcAspNetCoreServer\ --protocol h2c
-2. **Launch client:** dotnet run -c Release -p .\perf\benchmarkapps\GrpcClient\ -- -u http://localhost:5000 -c 10 --streams 50 -s unary -p h2c --grpcClientType grpcnetclient
+1. **Launch server:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcAspNetCoreServer\ --protocol h2c
+2. **Launch client:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcClient\ -- -u http://localhost:5000 -c 10 --streams 50 -s unary -p h2c --grpcClientType grpcnetclient
 
 ## QpsWorker
 

@@ -31,7 +31,7 @@ public class Program
     }
 
     [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode", 
-        Justification = "DependencyInject only used with safe types.")]
+        Justification = "DependencyInjection only used with safe types.")]
     public static IHostBuilder CreateHostBuilder(string[] args) =>
         Host.CreateDefaultBuilder(args)
             .ConfigureServices(services =>

@@ -38,18 +38,8 @@
     </Content>
 
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(EnableGrpcWeb)' == 'true'">
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
-  </ItemGroup>
-  
-  <ItemGroup Condition="$([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), 5.0))">
-    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
-
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
-
     <!--
       TODO(JamesNK): This package ref should use MicrosoftAspNetCoreAppPackageVersion.
       There is currently an issue using 6.0 versions so hardcode to 5.0
@@ -57,9 +47,14 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" Version="5.0.1" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.23.2" />
-    <PackageReference Include="Google.Protobuf" Version="3.9.1" />
-    <PackageReference Include="Grpc.Tools" Version="2.23.0" PrivateAssets="All" />
+  <!-- TODO: Workaround https://github.com/dotnet/sdk/issues/28169. Remove when fixed. -->
+  <ItemGroup Condition="'$(PublishAot)'!='true'">
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
+    <ProjectReference Include="..\..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />
   </ItemGroup>
+  <ItemGroup Condition="'$(PublishAot)'=='true'">
+    <PackageReference Include="Grpc.AspNetCore.Server" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.AspNetCore.Web" Version="$(GrpcDotNetPackageVersion)" />
+  </ItemGroup>
+
 </Project>
