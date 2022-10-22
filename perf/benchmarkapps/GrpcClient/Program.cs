@@ -174,6 +174,17 @@ class Program
             Log("Warm up: " + _options.Warmup);
             Log("Duration: " + _options.Duration);
 
+            _cts.Token.Register(() =>
+            {
+                if (IsCallCountExceeded())
+                {
+                    Log($"Reached call count {_options.CallCount}.");
+                }
+                else
+                {
+                    Log($"Reached duration {_options.Duration}.");
+                }
+            });
             _cts.CancelAfter(TimeSpan.FromSeconds(_options.Duration + _options.Warmup));
 
             _warmingUp = true;
@@ -601,7 +612,9 @@ class Program
 
         var client = new BenchmarkService.BenchmarkServiceClient(_channels[connectionId]);
         var request = CreateSimpleRequest();
-        using var call = client.StreamingCall(CreateCallOptions());
+        var callOptions = CreateCallOptions();
+        callOptions = callOptions.WithCancellationToken(cts.Token);
+        using var call = client.StreamingCall(callOptions);
 
         while (!cts.IsCancellationRequested)
         {
