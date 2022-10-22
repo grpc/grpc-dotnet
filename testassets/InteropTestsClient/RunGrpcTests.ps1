@@ -10,7 +10,7 @@
 )
 
 # Command line example:
-# .\RunGrpcTestsAot.ps1 -publish_aot $true
+# .\RunGrpcTests.ps1 -publish_aot $true
 
 $allTests =
   "empty_unary",

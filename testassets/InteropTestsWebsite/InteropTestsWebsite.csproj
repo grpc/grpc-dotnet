@@ -22,6 +22,7 @@
     </None>
   </ItemGroup>
 
+  <!-- TODO: Workaround https://github.com/dotnet/sdk/issues/28169. Remove when fixed. -->
   <ItemGroup Condition="'$(PublishAot)'!='true'">
     <ProjectReference Include="..\..\src\Grpc.AspNetCore\Grpc.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Grpc.AspNetCore.Web\Grpc.AspNetCore.Web.csproj" />

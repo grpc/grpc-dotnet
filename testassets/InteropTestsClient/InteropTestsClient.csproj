@@ -40,6 +40,7 @@
     <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
   </ItemGroup>
 
+  <!-- TODO: Workaround https://github.com/dotnet/sdk/issues/28169. Remove when fixed. -->
   <ItemGroup Condition="'$(PublishAot)'!='true'">
     <ProjectReference Include="..\..\src\Grpc.Auth\Grpc.Auth.csproj" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
