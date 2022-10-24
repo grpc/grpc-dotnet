@@ -25,6 +25,7 @@ using Grpc.Testing;
 using Microsoft.Extensions.Logging;
 using Empty = Grpc.Testing.Empty;
 using System.Security.Authentication;
+using System.Diagnostics.CodeAnalysis;
 
 #if !BLAZOR_WASM
 using Google.Apis.Auth.OAuth2;
@@ -250,7 +251,11 @@ public class InteropClient
 
     private bool IsHttpClient() => string.Equals(options.ClientType, "httpclient", StringComparison.OrdinalIgnoreCase);
 
-    private static TClient CreateClient<TClient>(IChannelWrapper channel) where TClient : ClientBase
+    private static TClient CreateClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(IChannelWrapper channel) where TClient : ClientBase
     {
         return (TClient)Activator.CreateInstance(typeof(TClient), channel.Channel)!;
     }

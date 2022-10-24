@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net7.0;net6.0;net5.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net7.0;net6.0;net472</TargetFrameworks>
     <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net7.0</TargetFrameworks>
   </PropertyGroup>
 
@@ -29,10 +29,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
-    <ProjectReference Include="..\..\src\Grpc.Auth\Grpc.Auth.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
-    <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
-
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Core" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
@@ -44,8 +40,16 @@
     <PackageReference Include="System.Net.Http.WinHttpHandler" Version="$(SystemNetHttpWinHttpHandlerPackageVersion)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
+  <!-- TODO: Workaround https://github.com/dotnet/sdk/issues/28169. Remove when fixed. -->
+  <ItemGroup Condition="'$(PublishAot)'!='true'">
+    <ProjectReference Include="..\..\src\Grpc.Auth\Grpc.Auth.csproj" />
+    <ProjectReference Include="..\..\src\Grpc.Net.Client\Grpc.Net.Client.csproj" />
     <ProjectReference Include="..\..\src\Grpc.Net.Client.Web\Grpc.Net.Client.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(PublishAot)'=='true'">
+    <PackageReference Include="Grpc.Auth" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
+    <PackageReference Include="Grpc.Net.Client.Web" Version="$(GrpcDotNetPackageVersion)" />
   </ItemGroup>
   
 </Project>

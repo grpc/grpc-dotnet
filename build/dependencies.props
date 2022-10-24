@@ -15,7 +15,8 @@
     <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22464.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
-    <MicrosoftExtensionsPackageVersion>3.0.3</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>7.0.0-rc.2.22472.3</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensions3PackageVersion>3.0.3</MicrosoftExtensions3PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.9.1</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0</MicrosoftSourceLinkGitHubPackageVersion>
     <MicrosoftWin32RegistryLinePackageVersion>4.6.0</MicrosoftWin32RegistryLinePackageVersion>

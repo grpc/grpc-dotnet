@@ -67,7 +67,7 @@ public static class TestCredentials
 
     private static string GetPath(string relativePath)
     {
-        var assemblyDir = Path.GetDirectoryName(typeof(TestCredentials).GetTypeInfo().Assembly.Location);
+        var assemblyDir = Path.GetDirectoryName(AppContext.BaseDirectory);
         return Path.Combine(assemblyDir!, relativePath);
     }
 }

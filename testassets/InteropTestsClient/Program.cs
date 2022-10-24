@@ -17,9 +17,8 @@
 #endregion
 
 using System.CommandLine;
-using System.CommandLine.Binding;
 using System.CommandLine.Invocation;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using Grpc.Shared.TestAssets;
@@ -34,88 +33,92 @@ public class Program
     public static async Task<int> Main(string[] args)
     {
         var options = new List<Option>();
-        options.Add(new Option<string>(new string[] { "--client_type" }, () => "httpclient") { Name = nameof(ClientOptions.ClientType) });
-        options.Add(new Option<string>(new string[] { "--server_host" }) { IsRequired = true, Name = nameof(ClientOptions.ServerHost) });
-        options.Add(new Option<string>(new string[] { "--server_host_override" }) { Name = nameof(ClientOptions.ServerHostOverride) });
-        options.Add(new Option<int>(new string[] { "--server_port" }) { IsRequired = true, Name = nameof(ClientOptions.ServerPort) });
-        options.Add(new Option<string>(new string[] { "--test_case" }) { IsRequired = true, Name = nameof(ClientOptions.TestCase) });
-        options.Add(new Option<bool>(new string[] { "--use_tls" }) { Name = nameof(ClientOptions.UseTls) });
-        options.Add(new Option<bool>(new string[] { "--use_test_ca" }) { Name = nameof(ClientOptions.UseTestCa) });
-        options.Add(new Option<string>(new string[] { "--default_service_account" }) { Name = nameof(ClientOptions.DefaultServiceAccount) });
-        options.Add(new Option<string>(new string[] { "--oauth_scope" }) { Name = nameof(ClientOptions.OAuthScope) });
-        options.Add(new Option<string>(new string[] { "--service_account_key_file" }) { Name = nameof(ClientOptions.ServiceAccountKeyFile) });
-        options.Add(new Option<string>(new string[] { "--grpc_web_mode" }) { Name = nameof(ClientOptions.GrpcWebMode) });
-        options.Add(new Option<bool>(new string[] { "--use_winhttp" }) { Name = nameof(ClientOptions.UseWinHttp) });
-        options.Add(new Option<bool>(new string[] { "--use_http3" }) { Name = nameof(ClientOptions.UseHttp3) });
+        var clientTypeOption = new Option<string>(new string[] { "--client_type" }, () => "httpclient") { Name = nameof(ClientOptions.ClientType) };
+        var serverHostOption = new Option<string>(new string[] { "--server_host" }) { IsRequired = true, Name = nameof(ClientOptions.ServerHost) };
+        var serverHostOverrideOption = new Option<string>(new string[] { "--server_host_override" }) { Name = nameof(ClientOptions.ServerHostOverride) };
+        var serverPortOption = new Option<int>(new string[] { "--server_port" }) { IsRequired = true, Name = nameof(ClientOptions.ServerPort) };
+        var testCaseOption = new Option<string>(new string[] { "--test_case" }) { IsRequired = true, Name = nameof(ClientOptions.TestCase) };
+        var useTlsOption = new Option<bool>(new string[] { "--use_tls" }) { Name = nameof(ClientOptions.UseTls) };
+        var useTestCAOption = new Option<bool>(new string[] { "--use_test_ca" }) { Name = nameof(ClientOptions.UseTestCa) };
+        var defaultServiceAccountOption = new Option<string>(new string[] { "--default_service_account" }) { Name = nameof(ClientOptions.DefaultServiceAccount) };
+        var oauthScopeOption = new Option<string>(new string[] { "--oauth_scope" }) { Name = nameof(ClientOptions.OAuthScope) };
+        var serviceAccountKeyFileOption = new Option<string>(new string[] { "--service_account_key_file" }) { Name = nameof(ClientOptions.ServiceAccountKeyFile) };
+        var grpcWebModeOption = new Option<string>(new string[] { "--grpc_web_mode" }) { Name = nameof(ClientOptions.GrpcWebMode) };
+        var useWinHttpOption = new Option<bool>(new string[] { "--use_winhttp" }) { Name = nameof(ClientOptions.UseWinHttp) };
+        var useHttp3Option = new Option<bool>(new string[] { "--use_http3" }) { Name = nameof(ClientOptions.UseHttp3) };
 
         var rootCommand = new RootCommand();
-        foreach (var option in options)
-        {
-            rootCommand.AddOption(option);
-        }
+        rootCommand.AddOption(clientTypeOption);
+        rootCommand.AddOption(serverHostOption);
+        rootCommand.AddOption(serverHostOverrideOption);
+        rootCommand.AddOption(serverPortOption);
+        rootCommand.AddOption(testCaseOption);
+        rootCommand.AddOption(useTlsOption);
+        rootCommand.AddOption(useTestCAOption);
+        rootCommand.AddOption(defaultServiceAccountOption);
+        rootCommand.AddOption(oauthScopeOption);
+        rootCommand.AddOption(serviceAccountKeyFileOption);
+        rootCommand.AddOption(grpcWebModeOption);
+        rootCommand.AddOption(useWinHttpOption);
+        rootCommand.AddOption(useHttp3Option);
 
-        rootCommand.SetHandler<ClientOptions>(async (options) =>
+        rootCommand.SetHandler(async (InvocationContext context) =>
         {
+            var options = new ClientOptions();
+            options.ClientType = context.ParseResult.GetValueForOption(clientTypeOption);
+            options.ServerHost = context.ParseResult.GetValueForOption(serverHostOption);
+            options.ServerHostOverride = context.ParseResult.GetValueForOption(serverHostOverrideOption);
+            options.ServerPort = context.ParseResult.GetValueForOption(serverPortOption);
+            options.TestCase = context.ParseResult.GetValueForOption(testCaseOption);
+            options.UseTls = context.ParseResult.GetValueForOption(useTlsOption);
+            options.UseTestCa = context.ParseResult.GetValueForOption(useTestCAOption);
+            options.DefaultServiceAccount = context.ParseResult.GetValueForOption(defaultServiceAccountOption);
+            options.OAuthScope = context.ParseResult.GetValueForOption(oauthScopeOption);
+            options.ServiceAccountKeyFile = context.ParseResult.GetValueForOption(serviceAccountKeyFileOption);
+            options.GrpcWebMode = context.ParseResult.GetValueForOption(grpcWebModeOption);
+            options.UseWinHttp = context.ParseResult.GetValueForOption(useWinHttpOption);
+            options.UseHttp3 = context.ParseResult.GetValueForOption(useHttp3Option);
+
             var runtimeVersion = typeof(object).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
 
             Log("Runtime: " + runtimeVersion);
 
-            var services = new ServiceCollection();
-            services.AddLogging(configure =>
-            {
-                configure.SetMinimumLevel(LogLevel.Trace);
-                configure.AddConsole(loggerOptions => loggerOptions.IncludeScopes = true);
-            });
-
-            using var serviceProvider = services.BuildServiceProvider();
+            using var serviceProvider = CreateServiceProvider();
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
             using var httpEventListener = new HttpEventSourceListener(loggerFactory);
 
             var interopClient = new InteropClient(options, loggerFactory);
             await interopClient.Run();
-        }, new ReflectionBinder<ClientOptions>(options));
+
+            // Pause to ensure all logs are flushed.
+            await Task.Delay(TimeSpan.FromSeconds(0.1));
+        });
 
         Log("Interop Test Client");
 
         return await rootCommand.InvokeAsync(args);
     }
 
+#if NET5_0_OR_GREATER
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
+       Justification = "App's DependencyInjection usage is safe.")]
+#endif
+    private static ServiceProvider CreateServiceProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging(configure =>
+        {
+            configure.SetMinimumLevel(LogLevel.Trace);
+            configure.AddSimpleConsole(loggerOptions => loggerOptions.IncludeScopes = true);
+        });
+
+        return services.BuildServiceProvider();
+    }
+
     private static void Log(string message)
     {
         var time = DateTime.Now.ToString("hh:mm:ss.fff", CultureInfo.InvariantCulture);
         Console.WriteLine($"[{time}] {message}");
-    }
-
-    private class ReflectionBinder<T> : BinderBase<T> where T : new()
-    {
-        private readonly List<Option> _options;
-
-        public ReflectionBinder(List<Option> options)
-        {
-            _options = options;
-        }
-
-        protected override T GetBoundValue(BindingContext bindingContext)
-        {
-            var boundValue = new T();
-
-            Log($"Binding {typeof(T)}");
-
-            foreach (var option in _options)
-            {
-                var value = bindingContext.ParseResult.GetValueForOption(option);
-
-                var propertyInfo = typeof(T).GetProperty(option.Name, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
-                if (propertyInfo != null)
-                {
-                    propertyInfo.SetValue(boundValue, value);
-
-                    Log($"-{propertyInfo.Name} = {value}");
-                }
-            }
-
-            return boundValue;
-        }
     }
 }

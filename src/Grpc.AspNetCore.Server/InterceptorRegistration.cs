@@ -78,6 +78,8 @@ public class InterceptorRegistration
 #if NET5_0_OR_GREATER
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
         Justification = "Type parameter members are preserved with DynamicallyAccessedMembers on InterceptorRegistration.Type property.")]
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
+        Justification = "Type definition is explicitly specified and type argument is always an Interceptor type.")]
 #endif
     internal IGrpcInterceptorActivator GetActivator(IServiceProvider serviceProvider)
     {
