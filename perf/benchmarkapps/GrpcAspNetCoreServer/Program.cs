@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime;
 using Common;
@@ -31,6 +32,8 @@ public class Program
         CreateHostBuilder(args).Build().Run();
     }
 
+    [UnconditionalSuppressMessage("AotAnalysis", "IL3050:RequiresDynamicCode",
+        Justification = "DependencyInjection only used with safe types.")]
     public static IHostBuilder CreateHostBuilder(string[] args)
     {
         var runtimeVersion = typeof(object).GetTypeInfo().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Unknown";
@@ -42,7 +45,7 @@ public class Program
         Console.WriteLine("----------------------------");
         Console.WriteLine($"Args: {string.Join(' ', args)}");
         Console.WriteLine($"Current directory: {Directory.GetCurrentDirectory()}");
-        Console.WriteLine($"WebHostBuilder loading from: {typeof(WebHostBuilder).GetTypeInfo().Assembly.Location}");
+        Console.WriteLine($"WebHostBuilder loading from: {AppContext.BaseDirectory}");
         Console.WriteLine($"NetCoreAppVersion: {runtimeVersion}");
         Console.WriteLine($"{nameof(GCSettings.IsServerGC)}: {isServerGC}");
         Console.WriteLine($"{nameof(Environment.ProcessorCount)}: {processorCount}");
@@ -124,7 +127,7 @@ public class Program
 
     private static void ConfigureListenOptions(ListenOptions listenOptions, IConfigurationRoot config, System.Net.IPEndPoint endPoint)
     {
-        var basePath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+        var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
         var certPath = Path.Combine(basePath!, "Certs", "server1.pfx");
 
         var protocol = config["protocol"] ?? "";
