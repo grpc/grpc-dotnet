@@ -213,6 +213,7 @@ public class GetStatusTests
     private class TestOperatingSystem : IOperatingSystem
     {
         public bool IsBrowser { get; set; }
+        public bool IsAndroid { get; set; }
     }
 
     [Test]

@@ -26,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using Grpc.Net.Client.Internal;
+using System.Net;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -399,6 +400,87 @@ public class GrpcChannelTests
 
         Assert.IsTrue(channel.Disposed);
         Assert.AreEqual(0, channel.ActiveCalls.Count);
+    }
+
+    [TestCase(null)]
+    [TestCase(false)]
+    public void HttpHandler_HttpClientHandlerOverNativeOnAndroid_ThrowError(bool useDelegatingHandlers)
+    {
+        // Arrange
+        AppContext.SetSwitch("System.Net.Http.UseNativeHttpHandler", true);
+        
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
+
+            HttpMessageHandler handler = new HttpClientHandler();
+            if (useDelegatingHandlers)
+            {
+                handler = new TestDelegatingHandler(handler);
+            }
+
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+            {
+                GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+                {
+                    HttpHandler = handler,
+                    ServiceProvider = services.BuildServiceProvider()
+                });
+            });
+
+            Assert.AreEqual(ex!.Message, "The channel configuration isn't valid on Android devices. " +
+                "The channel is configured to use HttpClientHandler and Android's native HTTP/2 library. " +
+                "gRPC isn't fully supported by Android's native HTTP/2 library and it can cause runtime errors. " +
+                "To fix this problem, either configure the channel to use SocketsHttpHandler, or add " +
+                "<UseNativeHttpHandler>false</UseNativeHttpHandler> to the app's project file. " +
+                "For more information, see https://aka.ms/aspnet/grpc/android.");
+        }
+        finally
+        {
+            // Reset switch for other tests.
+            AppContext.SetSwitch("System.Net.Http.UseNativeHttpHandler", false);
+        }
+    }
+
+    private class TestDelegatingHandler : DelegatingHandler
+    {
+        public TestDelegatingHandler(HttpMessageHandler innerHandler) : base(innerHandler)
+        {
+        }
+    }
+
+    [Test]
+    [TestCase(null)]
+    [TestCase(false)]
+    public void HttpHandler_HttpClientHandlerOverSocketsOnAndroid_Success(bool? isNativeHttpHandler)
+    {
+        // Arrange
+        if (isNativeHttpHandler != null)
+        {
+            AppContext.SetSwitch("System.Net.Http.UseNativeHttpHandler", isNativeHttpHandler.Value);
+        }
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
+
+        var handler = new HttpClientHandler();
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+        {
+            HttpHandler = handler,
+            ServiceProvider = services.BuildServiceProvider()
+        });
+
+        // Assert
+        Assert.IsTrue(channel.OperatingSystem.IsAndroid);
+    }
+
+    private class TestOperatingSystem : IOperatingSystem
+    {
+        public bool IsBrowser { get; set; }
+        public bool IsAndroid { get; set; }
     }
 
 #if SUPPORT_LOAD_BALANCING

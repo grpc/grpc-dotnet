@@ -92,7 +92,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
     // Options that are set in unit tests
     internal ISystemClock Clock = SystemClock.Instance;
-    internal IOperatingSystem OperatingSystem = Internal.OperatingSystem.Instance;
+    internal IOperatingSystem OperatingSystem;
     internal IRandomGenerator RandomGenerator;
     internal bool DisableClientDeadline;
     internal long MaxTimerDueTime = uint.MaxValue - 1; // Max System.Threading.Timer due time
@@ -112,6 +112,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         Address = address;
         LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
+        OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
         (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(channelOptions);
 
@@ -381,6 +382,31 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         if (handler == null)
         {
             handler = HttpHandlerFactory.CreatePrimaryHandler();
+        }
+        else
+        {
+            // Validate the user specified handler is compatible with this platform.
+            //
+            // Android's native handler doesn't fully support HTTP/2 and using it could cause hard to understand errors
+            // in advanced gRPC scenarios. We want Android to use SocketsHttpHandler. Throw an error if:
+            // 1. Client is running on Android.
+            // 2. Channel is created with HttpClientHandler.
+            // 3. UseNativeHttpHandler switch is true.
+            if (OperatingSystem.IsAndroid)
+            {
+                // GetHttpHandlerType recurses through DelegatingHandlers that may wrap the HttpClientHandler.
+                var httpClientHandler = HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(handler);
+                
+                if (httpClientHandler != null && RuntimeHelpers.QueryRuntimeSettingSwitch("System.Net.Http.UseNativeHttpHandler", defaultValue: false))
+                {
+                    throw new InvalidOperationException("The channel configuration isn't valid on Android devices. " +
+                        "The channel is configured to use HttpClientHandler and Android's native HTTP/2 library. " +
+                        "gRPC isn't fully supported by Android's native HTTP/2 library and it can cause runtime errors. " +
+                        "To fix this problem, either configure the channel to use SocketsHttpHandler, or add " +
+                        "<UseNativeHttpHandler>false</UseNativeHttpHandler> to the app's project file. " +
+                        "For more information, see https://aka.ms/aspnet/grpc/android.");
+                }
+            }
         }
 
 #if NET5_0
