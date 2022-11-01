@@ -134,7 +134,7 @@ internal class CommandBase
 
             foreach (var packageVersion in packageVersionsElement.EnumerateObject())
             {
-                packageVersionsDictionary[packageVersion.Name] = packageVersion.Value.GetString();
+                packageVersionsDictionary[packageVersion.Name] = packageVersion.Value.GetString()!;
             }
 
             return packageVersionsDictionary;
@@ -375,7 +375,7 @@ internal class CommandBase
             var destinationDirectory = Path.GetDirectoryName(resolveDestination);
             if (!Directory.Exists(destinationDirectory))
             {
-                Directory.CreateDirectory(destinationDirectory);
+                Directory.CreateDirectory(destinationDirectory!);
             }
         }
         else
@@ -442,19 +442,7 @@ internal class CommandBase
 
     private static byte[] GetHash(Stream stream)
     {
-        SHA256 algorithm;
-        try
-        {
-            algorithm = SHA256.Create();
-        }
-        catch (TargetInvocationException)
-        {
-            // SHA256.Create is documented to throw this exception on FIPS-compliant machines. See
-            // https://msdn.microsoft.com/en-us/library/z08hz7ad Fall back to a FIPS-compliant SHA256 algorithm.
-            algorithm = new SHA256CryptoServiceProvider();
-        }
-
-        using (algorithm)
+        using (var algorithm = SHA256.Create())
         {
             return algorithm.ComputeHash(stream);
         }
