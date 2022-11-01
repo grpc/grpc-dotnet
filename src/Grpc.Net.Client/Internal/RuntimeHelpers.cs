@@ -16,30 +16,18 @@
 
 #endregion
 
-using System.Runtime.InteropServices;
 
 namespace Grpc.Net.Client.Internal;
 
-internal interface IOperatingSystem
+internal static class RuntimeHelpers
 {
-    bool IsBrowser { get; }
-    bool IsAndroid { get; }
-}
-
-internal sealed class OperatingSystem : IOperatingSystem
-{
-    public static readonly OperatingSystem Instance = new OperatingSystem();
-
-    public bool IsBrowser { get; }
-    public bool IsAndroid { get; }
-
-    private OperatingSystem()
+    public static bool QueryRuntimeSettingSwitch(string switchName, bool defaultValue)
     {
-        IsBrowser = RuntimeInformation.IsOSPlatform(OSPlatform.Create("browser"));
-#if NET5_0_OR_GREATER
-        IsAndroid = System.OperatingSystem.IsAndroid();
-#else
-        IsAndroid = false;
-#endif
+        if (AppContext.TryGetSwitch(switchName, out var value))
+        {
+            return value;
+        }
+
+        return defaultValue;
     }
 }
