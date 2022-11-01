@@ -514,8 +514,8 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                         else
                         {
                             // The server should never return StatusCode.OK in the header for a unary call.
-                            // If it does then throw an error that no message was returned from the server.
-                            GrpcCallLog.MessageNotReturned(Logger);
+                            // If it does then throw an error that explains why the server response is invalid.
+                            GrpcCallLog.InvalidGrpcStatusInHeader(Logger);
 
                             // Change the status code to a more accurate status.
                             // This is consistent with Grpc.Core client behavior.

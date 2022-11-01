@@ -36,7 +36,8 @@ public class UnaryTests : FunctionalTestBase
     {
         SetExpectedErrorsFilter(writeContext =>
         {
-            if (writeContext.State.ToString() == "Message not returned from unary or client streaming call.")
+            if (writeContext.State.ToString() == "Header contains an OK gRPC status. This is invalid for unary or client streaming calls because a status in the header indicates there is no response body. " +
+                "A message in the response body is required for unary and client streaming calls.")
             {
                 return true;
             }
