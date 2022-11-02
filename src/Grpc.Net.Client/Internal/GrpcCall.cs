@@ -519,7 +519,8 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
                             // Change the status code to a more accurate status.
                             // This is consistent with Grpc.Core client behavior.
-                            status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+                            status = new Status(StatusCode.Internal, "Failed to deserialize response message. The response header contains a gRPC status of OK, which means any message returned to the client for this call should be ignored. " +
+                                "A unary or client streaming gRPC call must have a response message, which makes this response invalid.");
 
                             finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                         }

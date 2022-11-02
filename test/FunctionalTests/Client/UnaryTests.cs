@@ -62,10 +62,10 @@ public class UnaryTests : FunctionalTestBase
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);
-        Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);
+        StringAssert.StartsWith("Failed to deserialize response message.", ex.Status.Detail);
 
         Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
-        Assert.AreEqual("Failed to deserialize response message.", call.GetStatus().Detail);
+        StringAssert.StartsWith("Failed to deserialize response message.", call.GetStatus().Detail);
     }
 
 #if NET5_0_OR_GREATER

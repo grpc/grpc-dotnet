@@ -816,7 +816,7 @@ public class RetryTests
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
 
         // Assert
-        Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);
+        StringAssert.StartsWith("Failed to deserialize response message.", ex.Status.Detail);
         Assert.AreEqual(StatusCode.Internal, ex.StatusCode);
 
         var log = testSink.Writes.Single(w => w.EventId.Name == "CallCommited");
