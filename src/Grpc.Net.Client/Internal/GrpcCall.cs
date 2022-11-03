@@ -514,12 +514,13 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                         else
                         {
                             // The server should never return StatusCode.OK in the header for a unary call.
-                            // If it does then throw an error that no message was returned from the server.
-                            GrpcCallLog.MessageNotReturned(Logger);
+                            // If it does then throw an error that explains why the server response is invalid.
+                            GrpcCallLog.InvalidGrpcStatusInHeader(Logger);
 
                             // Change the status code to a more accurate status.
                             // This is consistent with Grpc.Core client behavior.
-                            status = new Status(StatusCode.Internal, "Failed to deserialize response message.");
+                            status = new Status(StatusCode.Internal, "Failed to deserialize response message. The response header contains a gRPC status of OK, which means any message returned to the client for this call should be ignored. " +
+                                "A unary or client streaming gRPC call must have a response message, which makes this response invalid.");
 
                             finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
                         }
