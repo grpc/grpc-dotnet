@@ -3,19 +3,19 @@
     <BenchmarkDotNetPackageVersion>0.13.1</BenchmarkDotNetPackageVersion>
     <GoogleApisAuthPackageVersion>1.46.0</GoogleApisAuthPackageVersion>
     <GoogleProtobufPackageVersion>3.21.5</GoogleProtobufPackageVersion>
-    <GrpcDotNetPackageVersion>2.47.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
+    <GrpcDotNetPackageVersion>2.49.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
     <GrpcPackageVersion>2.46.5</GrpcPackageVersion>
     <GrpcToolsPackageVersion>2.50.0</GrpcToolsPackageVersion>
-    <MicrosoftAspNetCoreAppPackageVersion>7.0.0-rc.2.22476.2</MicrosoftAspNetCoreAppPackageVersion>
+    <MicrosoftAspNetCoreAppPackageVersion>7.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.0</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftAspNetCoreApp5PackageVersion>5.0.3</MicrosoftAspNetCoreApp5PackageVersion>
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.5.5</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.9.0</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22464.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22518.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
-    <MicrosoftExtensionsPackageVersion>7.0.0-rc.2.22472.3</MicrosoftExtensionsPackageVersion>
+    <MicrosoftExtensionsPackageVersion>7.0.0</MicrosoftExtensionsPackageVersion>
     <MicrosoftExtensions3PackageVersion>3.0.3</MicrosoftExtensions3PackageVersion>
     <MicrosoftNETTestSdkPackageVersion>16.9.1</MicrosoftNETTestSdkPackageVersion>
     <MicrosoftSourceLinkGitHubPackageVersion>1.0.0</MicrosoftSourceLinkGitHubPackageVersion>
