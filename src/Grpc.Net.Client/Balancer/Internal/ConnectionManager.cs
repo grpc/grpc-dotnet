@@ -103,7 +103,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
     Subchannel IChannelControlHelper.CreateSubchannel(SubchannelOptions options)
     {
         var subchannel = new Subchannel(this, options.Addresses);
-        subchannel.Transport = _subchannelTransportFactory.Create(subchannel);
+        subchannel.SetTransport(_subchannelTransportFactory.Create(subchannel));
 
         lock (_subchannels)
         {
