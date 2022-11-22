@@ -18,7 +18,7 @@ ensure_dir() {
 # main
 
 # resolve SDK version
-sdk_version="7.0.100-rc.2.22477.23"
+sdk_version=$(jq -r .sdk.version $global_json_path)
 
 # download dotnet-install.sh
 ensure_dir $OBJDIR

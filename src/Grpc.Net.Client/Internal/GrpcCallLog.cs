@@ -104,6 +104,10 @@ internal static class GrpcCallLog
     private static readonly Action<ILogger, Exception> _errorExceedingDeadline =
         LoggerMessage.Define(LogLevel.Error, new EventId(27, "ErrorExceedingDeadline"), "Error exceeding deadline.");
 
+    private static readonly Action<ILogger, Exception?> _invalidGrpcStatusInHeader =
+      LoggerMessage.Define(LogLevel.Error, new EventId(28, "InvalidGrpcStatusInHeader"), "Header contains an OK gRPC status. This is invalid for unary or client streaming calls because a status in the header indicates there is no response body. " +
+          "A message in the response body is required for unary and client streaming calls.");
+
     public static void StartingCall(ILogger logger, MethodType methodType, Uri uri)
     {
         _startingCall(logger, methodType, uri, null);
@@ -237,5 +241,10 @@ internal static class GrpcCallLog
     public static void ErrorExceedingDeadline(ILogger logger, Exception ex)
     {
         _errorExceedingDeadline(logger, ex);
+    }
+
+    public static void InvalidGrpcStatusInHeader(ILogger logger)
+    {
+        _invalidGrpcStatusInHeader(logger, null);
     }
 }
