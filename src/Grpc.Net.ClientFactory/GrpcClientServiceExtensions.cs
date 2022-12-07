@@ -53,7 +53,11 @@ public static class GrpcClientServiceExtensions
     /// <typeparamref name="TClient"/> as the service type.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services)
         where TClient : class
     {
         if (services == null)
@@ -89,7 +93,11 @@ public static class GrpcClientServiceExtensions
     /// <typeparamref name="TClient"/> as the service type.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services, Action<GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
         var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
@@ -124,7 +132,11 @@ public static class GrpcClientServiceExtensions
     /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
         var name = TypeNameHelper.GetTypeDisplayName(typeof(TClient), fullName: false);
@@ -154,7 +166,11 @@ public static class GrpcClientServiceExtensions
     /// <typeparamref name="TClient"/> as the service type.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services, string name)
         where TClient : class
     {
         if (services == null)
@@ -193,7 +209,11 @@ public static class GrpcClientServiceExtensions
     /// <typeparamref name="TClient"/> as the service type.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services, string name, Action<GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
         if (services == null)
@@ -243,7 +263,11 @@ public static class GrpcClientServiceExtensions
     /// a reference to a scoped service provider that shares the lifetime of the handler being constructed.
     /// </para>
     /// </remarks>
-    public static IHttpClientBuilder AddGrpcClient<TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
+    public static IHttpClientBuilder AddGrpcClient<
+#if NET5_0_OR_GREATER
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
+#endif
+        TClient>(this IServiceCollection services, string name, Action<IServiceProvider, GrpcClientFactoryOptions> configureClient)
         where TClient : class
     {
         if (services == null)
