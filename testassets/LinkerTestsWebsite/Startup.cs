@@ -24,8 +24,6 @@ public class Startup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        typeof(GrpcServiceOptions).GetMethod("name");
-
         services.AddGrpc();
     }
 
