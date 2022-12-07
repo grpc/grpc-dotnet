@@ -221,10 +221,10 @@ public class AsyncUnaryCallTests
         Assert.IsFalse(responseMessage!.TrailingHeaders().Any()); // sanity check that there are no trailers
 
         Assert.AreEqual(StatusCode.Internal, ex.Status.StatusCode);
-        Assert.AreEqual("Failed to deserialize response message.", ex.Status.Detail);
+        StringAssert.StartsWith("Failed to deserialize response message.", ex.Status.Detail);
 
         Assert.AreEqual(StatusCode.Internal, call.GetStatus().StatusCode);
-        Assert.AreEqual("Failed to deserialize response message.", call.GetStatus().Detail);
+        StringAssert.StartsWith("Failed to deserialize response message.", call.GetStatus().Detail);
 
         Assert.AreEqual(0, headers.Count);
         Assert.AreEqual(0, call.GetTrailers().Count);

@@ -46,7 +46,7 @@ public sealed class Subchannel : IDisposable
 {
     internal readonly List<BalancerAddress> _addresses;
     internal readonly object Lock;
-    internal ISubchannelTransport Transport { get; set; } = default!;
+    internal ISubchannelTransport Transport => _transport;
     internal int Id { get; }
 
     /// <summary>
@@ -60,6 +60,7 @@ public sealed class Subchannel : IDisposable
     internal readonly ConnectionManager _manager;
     private readonly ILogger _logger;
 
+    private ISubchannelTransport _transport = default!;
     private ConnectContext? _connectContext;
     private ConnectivityState _state;
     private TaskCompletionSource<object?>? _delayInterruptTcs;
@@ -68,7 +69,7 @@ public sealed class Subchannel : IDisposable
     /// <summary>
     /// Gets the current connected address.
     /// </summary>
-    public BalancerAddress? CurrentAddress => Transport.CurrentAddress;
+    public BalancerAddress? CurrentAddress => _transport.CurrentAddress;
 
     /// <summary>
     /// Gets the metadata attributes.
@@ -86,6 +87,11 @@ public sealed class Subchannel : IDisposable
         Attributes = new BalancerAttributes();
 
         SubchannelLog.SubchannelCreated(_logger, Id, addresses);
+    }
+
+    internal void SetTransport(ISubchannelTransport transport)
+    {
+        _transport = transport;
     }
 
     private readonly List<StateChangedRegistration> _stateChangedRegistrations = new List<StateChangedRegistration>();
@@ -190,7 +196,7 @@ public sealed class Subchannel : IDisposable
         if (requireReconnect)
         {
             CancelInProgressConnect();
-            Transport.Disconnect();
+            _transport.Disconnect();
             RequestConnection();
         }
     }
@@ -249,7 +255,7 @@ public sealed class Subchannel : IDisposable
         // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
         CancelInProgressConnect();
 
-        var connectContext = _connectContext = new ConnectContext(Transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
+        var connectContext = _connectContext = new ConnectContext(_transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
 
         var backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
@@ -267,7 +273,7 @@ public sealed class Subchannel : IDisposable
                     }
                 }
 
-                if (await Transport.TryConnectAsync(connectContext).ConfigureAwait(false))
+                if (await _transport.TryConnectAsync(connectContext).ConfigureAwait(false))
                 {
                     return;
                 }
@@ -408,7 +414,7 @@ public sealed class Subchannel : IDisposable
         _stateChangedRegistrations.Clear();
 
         CancelInProgressConnect();
-        Transport.Dispose();
+        _transport.Dispose();
     }
 }
 
