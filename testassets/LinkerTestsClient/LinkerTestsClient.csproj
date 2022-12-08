@@ -21,4 +21,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionsPackageVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Grpc.Net.Client" />
+    <TrimmerRootAssembly Include="Grpc.Net.ClientFactory" />
+  </ItemGroup>
+
 </Project>
