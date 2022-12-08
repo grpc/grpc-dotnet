@@ -277,6 +277,9 @@ public class RoundRobinBalancerTests
         await transportFactory.Transports.Single().TryConnectTask.DefaultTimeout();
         Assert.AreEqual(ConnectivityState.Ready, subchannels[0].State);
 
+        logger.LogInformation("Wait for the internal resolve task to be completed before triggering refresh again.");
+        await resolver._resolveTask.DefaultTimeout();
+
         logger.LogInformation("Transport factory updating state.");
         connectState = ConnectivityState.TransientFailure;
         transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);

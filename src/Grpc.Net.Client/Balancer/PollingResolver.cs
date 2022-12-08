@@ -143,6 +143,11 @@ public abstract class PollingResolver : Resolver
             if (_resolveTask.IsCompleted)
             {
                 _resolveTask = ResolveNowAsync(_cts.Token);
+                _resolveTask.ContinueWith(static (t, state) =>
+                {
+                    var pollingResolver = (PollingResolver)state!;
+                    Log.ResolveTaskCompleted(pollingResolver._logger, pollingResolver.GetType());
+                }, this);
             }
             else
             {
@@ -255,6 +260,9 @@ public abstract class PollingResolver : Resolver
         private static readonly Action<ILogger, string, Exception> _errorRetryingResolve =
             LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, "ErrorRetryingResolve"), "{ResolveType} error retrying resolve.");
 
+        private static readonly Action<ILogger, string,Exception?> _resolveTaskCompleted =
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(7, "ResolveTaskCompleted"), "{ResolveType} resolve task completed.");
+
         public static void ResolverRefreshRequested(ILogger logger, Type resolverType)
         {
             _resolverRefreshRequested(logger, resolverType.Name, null);
@@ -283,6 +291,11 @@ public abstract class PollingResolver : Resolver
         public static void ErrorRetryingResolve(ILogger logger, Type resolverType, Exception ex)
         {
             _errorRetryingResolve(logger, resolverType.Name, ex);
+        }
+
+        public static void ResolveTaskCompleted(ILogger logger, Type resolverType)
+        {
+            _resolveTaskCompleted(logger, resolverType.Name, null);
         }
     }
 }
