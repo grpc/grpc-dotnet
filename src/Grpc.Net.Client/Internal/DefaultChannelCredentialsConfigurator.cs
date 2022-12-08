@@ -16,18 +16,33 @@
 
 #endregion
 
+using System.Globalization;
 using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
 internal sealed class DefaultChannelCredentialsConfigurator : ChannelCredentialsConfiguratorBase
 {
+    private readonly bool _allowInsecureChannelCallCredentials;
+
+    public DefaultChannelCredentialsConfigurator(bool allowInsecureChannelCallCredentials)
+    {
+        _allowInsecureChannelCallCredentials = allowInsecureChannelCallCredentials;
+    }
+
     public bool? IsSecure { get; private set; }
     public List<CallCredentials>? CallCredentials { get; private set; }
 
     public override void SetCompositeCredentials(object state, ChannelCredentials channelCredentials, CallCredentials callCredentials)
     {
         channelCredentials.InternalPopulateConfiguration(this, state);
+
+        if (!(IsSecure ?? false) && !_allowInsecureChannelCallCredentials)
+        {
+            throw new InvalidOperationException($"CallCredentials can't be composed with {channelCredentials.GetType().Name}. " +
+                $"CallCredentials must be used with secure channel credentials like SslCredentials or by enabling " +
+                $"{nameof(GrpcChannelOptions)}.{nameof(GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials)} on the channel.");
+        }
 
         if (callCredentials != null)
         {

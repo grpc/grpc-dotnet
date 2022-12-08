@@ -159,6 +159,147 @@ public class CallCredentialTests
     }
 
     [Test]
+    public async Task CallCredentialsWithHttp_UnsafeUseInsecureChannelCallCredentials_ChannelCredentials_MetadataOnRequest()
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            authorizationValue = request.Headers.GetValues("authorization").Single();
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri("http://localhost"));
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+        {
+            // The operation is asynchronous to ensure delegate is awaited
+            await Task.Delay(50);
+            metadata.Add("authorization", "SECRET_TOKEN");
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(
+            httpClient,
+            configure: o =>
+            {
+                o.UnsafeUseInsecureChannelCallCredentials = true;
+                o.Credentials = ChannelCredentials.Create(ChannelCredentials.Insecure, callCredentials);
+            });
+
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, default, new HelloRequest());
+        await call.ResponseAsync.DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual("SECRET_TOKEN", authorizationValue);
+    }
+
+    [Test]
+    public void CallCredentialsWithHttp_ChannelCredentials_Error()
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            authorizationValue = request.Headers.GetValues("authorization").Single();
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri("http://localhost"));
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+        {
+            // The operation is asynchronous to ensure delegate is awaited
+            await Task.Delay(50);
+            metadata.Add("authorization", "SECRET_TOKEN");
+        });
+
+        // Act
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            _ = HttpClientCallInvokerFactory.Create(
+                httpClient,
+                configure: o =>
+                {
+                    o.Credentials = ChannelCredentials.Create(ChannelCredentials.Insecure, callCredentials);
+                });
+        })!;
+
+        // Assert
+        Assert.AreEqual("CallCredentials can't be composed with InsecureCredentials. " +
+            "CallCredentials must be used with secure channel credentials like SslCredentials " +
+            "or by enabling GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials on the channel.", ex.Message);
+    }
+
+    [TestCase(true, "https://localhost")]
+    [TestCase(false, "http://localhost")]
+    public void CallCredentialsWithHttp_CustomChannelCredentials_CheckSecureStatus(bool isSecure, string address)
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            authorizationValue = request.Headers.GetValues("authorization").Single();
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        }, new Uri(address));
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+        {
+            // The operation is asynchronous to ensure delegate is awaited
+            await Task.Delay(50);
+            metadata.Add("authorization", "SECRET_TOKEN");
+        });
+
+        if (isSecure)
+        {
+            // Act && Assert
+            CreateInvoker(httpClient, isSecure, callCredentials);
+        }
+        else
+        {
+            // Act
+            var ex = Assert.Throws<InvalidOperationException>(() => CreateInvoker(httpClient, isSecure, callCredentials))!;
+            // Assert
+            Assert.AreEqual("CallCredentials can't be composed with FakeChannelCredentials. " +
+                "CallCredentials must be used with secure channel credentials like SslCredentials " +
+                "or by enabling GrpcChannelOptions.UnsafeUseInsecureChannelCallCredentials on the channel.", ex.Message);
+        }
+
+        static Internal.HttpClientCallInvoker CreateInvoker(HttpClient httpClient, bool isSecure, CallCredentials callCredentials)
+        {
+            return HttpClientCallInvokerFactory.Create(
+                httpClient,
+                configure: o =>
+                {
+                    o.Credentials = ChannelCredentials.Create(new FakeChannelCredentials(isSecure), callCredentials);
+                });
+        }
+    }
+
+    internal class FakeChannelCredentials : ChannelCredentials
+    {
+        private readonly bool _isSecure;
+
+        public FakeChannelCredentials(bool isSecure)
+        {
+            _isSecure = isSecure;
+        }
+
+        public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
+        {
+            if (_isSecure)
+            {
+                configurator.SetSslCredentials(this, null, null, null);
+            }
+            else
+            {
+                configurator.SetInsecureCredentials(this);
+            }
+        }
+    }
+
+    [Test]
     public async Task CompositeCallCredentialsWithHttps_MetadataOnRequest()
     {
         // Arrange
