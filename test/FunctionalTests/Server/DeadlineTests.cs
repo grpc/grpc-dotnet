@@ -70,6 +70,21 @@ public class DeadlineTests : FunctionalTestBase
 
     public async Task WriteUntilDeadline_SuccessResponsesStreamed_CoreAsync(ServerStreamingServerMethod<HelloRequest, HelloReply> callHandler)
     {
+            SetExpectedErrorsFilter(writeContext =>
+            {
+                if (writeContext.LoggerName == TestConstants.ServerCallHandlerTestName)
+                {
+                    // Deadline happened during write (error raised from pipeline writer)
+                    if (writeContext.Exception is InvalidOperationException &&
+                        writeContext.Exception.Message == "Writing is not allowed after writer was completed.")
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
         // Arrange
         var method = Fixture.DynamicGrpc.AddServerStreamingMethod<HelloRequest, HelloReply>(callHandler);
 
