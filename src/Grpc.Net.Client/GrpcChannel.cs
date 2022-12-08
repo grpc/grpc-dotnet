@@ -185,7 +185,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         if (channelOptions.Credentials != null)
         {
-            var configurator = new DefaultChannelCredentialsConfigurator();
+            var configurator = new DefaultChannelCredentialsConfigurator(channelOptions.UnsafeUseInsecureChannelCallCredentials);
             channelOptions.Credentials.InternalPopulateConfiguration(configurator, channelOptions.Credentials);
 
             isSecure = configurator.IsSecure ?? false;
