@@ -62,7 +62,7 @@ internal static partial class StreamExtensions
             GrpcCallLog.ReadingMessage(call.Logger);
             cancellationToken.ThrowIfCancellationRequested();
 
-#if NET7_0_OR_GREATER
+#if NET6_0_OR_GREATER
             // Start with zero-byte read.
             // A zero-byte read avoids renting buffer until the response is ready. Especially useful for long running streaming calls.
             var readCount = await responseStream.ReadAsync(Memory<byte>.Empty, cancellationToken).ConfigureAwait(false);

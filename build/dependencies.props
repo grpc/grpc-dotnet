@@ -7,7 +7,7 @@
     <GrpcPackageVersion>2.46.5</GrpcPackageVersion>
     <GrpcToolsPackageVersion>2.51.0</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAppPackageVersion>7.0.0</MicrosoftAspNetCoreAppPackageVersion>
-    <MicrosoftAspNetCoreApp6PackageVersion>6.0.0</MicrosoftAspNetCoreApp6PackageVersion>
+    <MicrosoftAspNetCoreApp6PackageVersion>6.0.11</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftAspNetCoreApp5PackageVersion>5.0.3</MicrosoftAspNetCoreApp5PackageVersion>
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.5.5</MicrosoftBuildLocatorPackageVersion>
