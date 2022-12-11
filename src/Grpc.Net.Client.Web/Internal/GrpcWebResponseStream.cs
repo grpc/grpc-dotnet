@@ -56,6 +56,17 @@ internal class GrpcWebResponseStream : Stream
         switch (_state)
         {
             case ResponseState.Ready:
+                if (data.Length == 0)
+                {
+                    // Handle zero byte reads.
+                    return 0;
+                }
+                else
+                {
+                    _state = ResponseState.Header;
+                    goto case ResponseState.Header;
+                }
+            case ResponseState.Header:
                 // Read the header first
                 // - 1 byte flag for compression
                 // - 4 bytes for the content length
@@ -88,7 +99,7 @@ internal class GrpcWebResponseStream : Stream
                 }
 
                 _contentRemaining = length;
-                // If there is no content then state is still ready
+                // If there is no content then state is reset to ready.
                 _state = _contentRemaining > 0 ? ResponseState.Content : ResponseState.Ready;
                 return 5;
             case ResponseState.Content:
@@ -260,6 +271,7 @@ internal class GrpcWebResponseStream : Stream
     private enum ResponseState
     {
         Ready,
+        Header,
         Content,
         Complete
     }

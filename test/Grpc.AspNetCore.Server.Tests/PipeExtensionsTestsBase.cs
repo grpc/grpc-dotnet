@@ -275,7 +275,7 @@ public abstract class PipeExtensionsTestsBase
 
         // Act 3
         var messageData3Task = pipeReader.ReadStreamMessageAsync(testServerCallContext, TestDataMarshaller.ContextualDeserializer).AsTask();
-        await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+        await requestStream.EndStreamAndWait().DefaultTimeout();
 
         // Assert 3
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => messageData3Task).DefaultTimeout();
@@ -436,7 +436,7 @@ public abstract class PipeExtensionsTestsBase
             }
         }
 
-        await requestStream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+        await requestStream.EndStreamAndWait().DefaultTimeout();
 
         var readMessageData = await readTask.DefaultTimeout();
 
