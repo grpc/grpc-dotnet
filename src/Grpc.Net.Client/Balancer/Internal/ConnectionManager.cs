@@ -436,7 +436,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
             WaitForState = waitForState;
             Tcs = tcs;
         }
-        
+
         public CancellationToken CancellationToken { get; }
         public ConnectivityState? WaitForState { get; }
         public TaskCompletionSource<object?> Tcs { get; }
