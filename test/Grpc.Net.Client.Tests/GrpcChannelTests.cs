@@ -624,8 +624,7 @@ public class GrpcChannelTests
         await waitForNonReadyTask.DefaultTimeout();
         Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
 
-        waitForNonReadyTask = channel.WaitForStateChangedAsync(ConnectivityState.Ready);
-        Assert.IsTrue(waitForNonReadyTask.IsCompleted);
+        await ExceptionAssert.ThrowsAsync<ObjectDisposedException>(() => channel.WaitForStateChangedAsync(ConnectivityState.Ready)).DefaultTimeout();
     }
 
     [Test]
@@ -762,6 +761,42 @@ public class GrpcChannelTests
 
         await waitForStateTask.DefaultTimeout();
         Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
+    }
+
+    [Test]
+    public async Task ConnectAsync_DisposeDuringConnect_ConnectTaskCanceled()
+    {
+        // Arrange
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var currentConnectivityState = ConnectivityState.TransientFailure;
+
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        services.AddSingleton<ResolverFactory, ChannelTestResolverFactory>();
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
+        {
+            await syncPoint.WaitToContinue();
+            return currentConnectivityState;
+        }));
+
+        var handler = new TestHttpMessageHandler();
+        var channelOptions = new GrpcChannelOptions
+        {
+            ServiceProvider = services.BuildServiceProvider(),
+            HttpHandler = handler
+        };
+
+        // Act
+        var channel = GrpcChannel.ForAddress("https://localhost", channelOptions);
+
+        var connectTask = channel.ConnectAsync();
+
+        // Assert
+        Assert.IsFalse(connectTask.IsCompleted);
+
+        channel.Dispose();
+
+        await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => connectTask).DefaultTimeout();
     }
 
     private static async Task WaitForStateAsync(GrpcChannel channel, ConnectivityState state)
