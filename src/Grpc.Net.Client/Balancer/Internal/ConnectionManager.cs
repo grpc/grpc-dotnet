@@ -279,7 +279,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
                     if (stateWatcher.WaitForState == null || stateWatcher.WaitForState == State)
                     {
                         _stateWatchers.RemoveAt(i);
-                        stateWatcher.Tcs.TrySetResult(null);
+                        stateWatcher.Tcs.SetResult(null);
                     }
                 }
             }
@@ -420,7 +420,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
             StateWatcher watcher = (StateWatcher)s!;
             if (_stateWatchers.Remove(watcher))
             {
-                watcher.Tcs.TrySetCanceled(watcher.CancellationToken);
+                watcher.Tcs.SetCanceled(watcher.CancellationToken);
             }
         }
     }
@@ -455,7 +455,7 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
             {
                 var stateWatcher = _stateWatchers[i];
 
-                stateWatcher.Tcs.TrySetCanceled();
+                stateWatcher.Tcs.SetCanceled();
                 _stateWatchers.RemoveAt(i);
             }
         }
