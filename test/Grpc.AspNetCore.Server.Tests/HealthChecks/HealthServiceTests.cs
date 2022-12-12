@@ -16,14 +16,18 @@
 
 #endregion
 
+using Grpc.AspNetCore.HealthChecks;
+using Grpc.AspNetCore.HealthChecks.Internal;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.Server.Tests.HealthChecks;
@@ -50,7 +54,7 @@ public class HealthServiceTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        var healthService = serviceProvider.GetRequiredService<HealthServiceImpl>();
+        var healthService = CreateService(serviceProvider);
         var hostedService = serviceProvider.GetServices<IHostedService>().Single();
 
         HealthCheckResponse? response = null;
@@ -113,8 +117,17 @@ public class HealthServiceTests
         }
     }
 
+    private static HealthServiceIntegration CreateService(IServiceProvider serviceProvider)
+    {
+        return new HealthServiceIntegration(
+            serviceProvider.GetRequiredService<HealthServiceImpl>(),
+            serviceProvider.GetRequiredService<IOptions<HealthCheckOptions>>(),
+            serviceProvider.GetRequiredService<IOptions<GrpcHealthChecksOptions>>(),
+            serviceProvider.GetRequiredService<HealthCheckService>());
+    }
+
     [Test]
-    public async Task HealthService_CheckWithFilter_FilteredResultsExcluded()
+    public async Task HealthService_CheckWithFilter_RunChecks_FilteredResultsExcluded()
     {
         // Arrange
         var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
@@ -125,6 +138,45 @@ public class HealthServiceTests
             .AddGrpcHealthChecks(o =>
             {
                 o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+            })
+            .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
+            .AddAsyncCheck("filtered", () => Task.FromResult(healthCheckResult), new string[] { "exclude" });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+
+        async Task CheckForStatusAsync(string service, HealthCheckResponse.Types.ServingStatus status)
+        {
+            var context = new TestServerCallContext(DateTime.MaxValue, CancellationToken.None);
+
+            var result = await healthService!.Check(new HealthCheckRequest() { Service = service }, context);
+
+            Assert.AreEqual(status, result.Status);
+        }
+
+        // Act & Assert
+        await CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.Serving);
+
+        healthCheckResult = new HealthCheckResult(HealthStatus.Unhealthy);
+        await CheckForStatusAsync(service: "", HealthCheckResponse.Types.ServingStatus.NotServing);
+
+        await ExceptionAssert.ThrowsAsync<RpcException>(() => CheckForStatusAsync(service: "filtered", HealthCheckResponse.Types.ServingStatus.ServiceUnknown));
+    }
+
+    [Test]
+    public async Task HealthService_CheckWithFilter_UsePublishedChecks_FilteredResultsExcluded()
+    {
+        // Arrange
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services
+            .AddGrpcHealthChecks(o =>
+            {
+                o.Services.MapService("", result => !result.Tags.Contains("exclude"));
+                o.RunHealthChecksOnCheck = false;
             })
             .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
             .AddAsyncCheck("filtered", () => Task.FromResult(healthCheckResult), new string[] { "exclude" });
@@ -146,7 +198,7 @@ public class HealthServiceTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        var healthService = serviceProvider.GetRequiredService<HealthServiceImpl>();
+        var healthService = CreateService(serviceProvider);
         var hostedService = serviceProvider.GetServices<IHostedService>().Single();
 
         async Task CheckForStatusAsync(string service, HealthCheckResponse.Types.ServingStatus status)
@@ -220,7 +272,7 @@ public class HealthServiceTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        var healthService = serviceProvider.GetRequiredService<HealthServiceImpl>();
+        var healthService = CreateService(serviceProvider);
         var hostedService = serviceProvider.GetServices<IHostedService>().Single();
 
         async Task CheckForStatusAsync(string service, HealthCheckResponse.Types.ServingStatus status)

@@ -16,6 +16,8 @@
 
 #endregion
 
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 namespace Grpc.AspNetCore.HealthChecks;
 
 /// <summary>
@@ -27,4 +29,11 @@ public sealed class GrpcHealthChecksOptions
     /// Gets a collection of service mappings used to map health results to gRPC health checks services.
     /// </summary>
     public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the <c>Check</c> method runs health checks when it is called.
+    /// If <see cref="RunHealthChecksOnCheck" /> is <c>false</c> then cached health check results previously published by 
+    /// <see cref="IHealthCheckPublisher"/> are returned by the <c>Check</c> method.
+    /// </summary>
+    public bool RunHealthChecksOnCheck { get; set; } = true;
 }

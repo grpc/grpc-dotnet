@@ -16,7 +16,6 @@
 
 #endregion
 
-using Grpc.Health.V1;
 using Grpc.HealthCheck;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -36,27 +35,10 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
 
     public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {
-        foreach (var registration in _options.Services)
+        var serviceStatuses = GrpcHealthChecksPublisherHelpers.CalculateStatuses(report, _options);
+        foreach (var serviceStatus in serviceStatuses)
         {
-            var filteredResults = report.Entries
-                .Select(entry => new HealthResult(entry.Key, entry.Value.Tags, entry.Value.Status, entry.Value.Description, entry.Value.Duration, entry.Value.Exception, entry.Value.Data))
-                .Where(registration.Predicate);
-
-            var resolvedStatus = HealthCheckResponse.Types.ServingStatus.Unknown;
-            foreach (var result in filteredResults)
-            {
-                if (result.Status == HealthStatus.Unhealthy)
-                {
-                    resolvedStatus = HealthCheckResponse.Types.ServingStatus.NotServing;
-
-                    // No point continuing to check statuses.
-                    break;
-                }
-                
-                resolvedStatus = HealthCheckResponse.Types.ServingStatus.Serving;
-            }
-
-            _healthService.SetStatus(registration.Name, resolvedStatus);
+            _healthService.SetStatus(serviceStatus.Name, serviceStatus.Status);
         }
 
         return Task.CompletedTask;

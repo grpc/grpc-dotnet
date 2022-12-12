@@ -18,6 +18,7 @@
 
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Grpc.AspNetCore.HealthChecks;
 
@@ -35,6 +36,11 @@ public sealed class ServiceMappingCollection : IEnumerable<ServiceMapping>
     }
 
     private readonly ServiceMappingKeyedCollection _mappings = new ServiceMappingKeyedCollection();
+
+    internal bool TryGetServiceMapping(string name, [NotNullWhen(true)] out ServiceMapping? serviceMapping)
+    {
+        return _mappings.TryGetValue(name, out serviceMapping);
+    }
 
     /// <summary>
     /// Remove all service mappings.
