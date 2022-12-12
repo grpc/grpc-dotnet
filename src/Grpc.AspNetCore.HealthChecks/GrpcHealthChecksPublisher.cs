@@ -35,10 +35,11 @@ internal sealed class GrpcHealthChecksPublisher : IHealthCheckPublisher
 
     public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {
-        var serviceStatuses = GrpcHealthChecksPublisherHelpers.CalculateStatuses(report, _options);
-        foreach (var serviceStatus in serviceStatuses)
+        foreach (var registration in _options.Services)
         {
-            _healthService.SetStatus(serviceStatus.Name, serviceStatus.Status);
+            var resolvedStatus = HealthChecksStatusHelpers.GetStatus(report, registration.Predicate);
+
+            _healthService.SetStatus(registration.Name, resolvedStatus);
         }
 
         return Task.CompletedTask;

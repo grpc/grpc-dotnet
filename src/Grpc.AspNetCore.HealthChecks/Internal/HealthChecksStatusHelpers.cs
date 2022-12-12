@@ -1,22 +1,27 @@
-﻿using Grpc.AspNetCore.HealthChecks;
+﻿#region Copyright notice and license
+
+// Copyright 2019 The gRPC Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#endregion
+
+using Grpc.AspNetCore.HealthChecks;
 using Grpc.Health.V1;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-internal static class GrpcHealthChecksPublisherHelpers
+internal static class HealthChecksStatusHelpers
 {
-    public static List<ServiceStatus> CalculateStatuses(HealthReport report, GrpcHealthChecksOptions options)
-    {
-        var statuses = new List<ServiceStatus>();
-        foreach (var registration in options.Services)
-        {
-            var resolvedStatus = GetStatus(report, registration.Predicate);
-
-            statuses.Add(new ServiceStatus(registration.Name, resolvedStatus));
-        }
-
-        return statuses;
-    }
-
     public static HealthCheckResponse.Types.ServingStatus GetStatus(HealthReport report, Func<HealthResult, bool> predicate)
     {
         var filteredResults = report.Entries
@@ -40,5 +45,3 @@ internal static class GrpcHealthChecksPublisherHelpers
         return resolvedStatus;
     }
 }
-
-internal record struct ServiceStatus(string Name, HealthCheckResponse.Types.ServingStatus Status);

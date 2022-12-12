@@ -55,7 +55,7 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
 
                 return new HealthCheckResponse
                 {
-                    Status = GrpcHealthChecksPublisherHelpers.GetStatus(result, serviceMapping.Predicate)
+                    Status = HealthChecksStatusHelpers.GetStatus(result, serviceMapping.Predicate)
                 };
             }
 
