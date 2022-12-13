@@ -92,6 +92,50 @@ public class ConnectionTests : FunctionalTestBase
     }
 
     [Test]
+    public async Task Active_UnaryCall_ConnectDispose_ConnectTaskCanceled()
+    {
+        // Ignore errors
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        string? host = null;
+        async Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            var protocol = context.GetHttpContext().Request.Protocol;
+
+            Logger.LogInformation("Received protocol: " + protocol);
+
+            await tcs.Task;
+            host = context.Host;
+            return new HelloReply { Message = request.Name };
+        }
+
+        // Arrange
+        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        
+        // Dispose endpoint so that channel pauses while attempting to connect to the port.
+        endpoint.Dispose();
+
+        var channel = GrpcChannel.ForAddress(endpoint.Address, new GrpcChannelOptions()
+        {
+            LoggerFactory = LoggerFactory
+        });
+
+        Logger.LogInformation("Connecting channel.");
+        var connectTask = channel.ConnectAsync();
+
+        Logger.LogInformation("Disposing channel.");
+        channel.Dispose();
+
+        // Assert
+        Logger.LogInformation("Awaiting connect task.");
+        await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => connectTask).DefaultTimeout();
+    }
+
+    [Test]
     public async Task Active_UnaryCall_MultipleStreams_UnavailableAddress_FallbackToWorkingAddress()
     {
         // Ignore errors

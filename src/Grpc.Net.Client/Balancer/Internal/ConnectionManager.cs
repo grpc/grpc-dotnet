@@ -194,15 +194,6 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         }
     }
 
-    public void Dispose()
-    {
-        _resolver.Dispose();
-        lock (_lock)
-        {
-            _balancer?.Dispose();
-        }
-    }
-
     internal void OnSubchannelStateChange(Subchannel subchannel, ConnectivityState state, Status status)
     {
         if (state == ConnectivityState.Shutdown)
@@ -449,6 +440,25 @@ internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
         public CancellationToken CancellationToken { get; }
         public ConnectivityState? WaitForState { get; }
         public TaskCompletionSource<object?> Tcs { get; }
+    }
+
+    public void Dispose()
+    {
+        _resolver.Dispose();
+        lock (_lock)
+        {
+            _balancer?.Dispose();
+
+            // Cancel pending state watchers.
+            // Iterate in reverse to reduce shifting items in the list as watchers are removed.
+            for (var i = _stateWatchers.Count - 1; i >= 0; i--)
+            {
+                var stateWatcher = _stateWatchers[i];
+
+                stateWatcher.Tcs.SetCanceled();
+                _stateWatchers.RemoveAt(i);
+            }
+        }
     }
 }
 
