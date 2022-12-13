@@ -562,6 +562,17 @@ public class GrpcChannelTests
     }
 
     [Test]
+    public async Task ConnectAsync_AfterDispose_DisposedError()
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress("https://localhost");
+        channel.Dispose();
+
+        // Act & Assert
+        await ExceptionAssert.ThrowsAsync<ObjectDisposedException>(() => channel.ConnectAsync());
+    }
+
+    [Test]
     public async Task State_ConnectAndDispose_StateChanges()
     {
         // Arrange
@@ -587,6 +598,17 @@ public class GrpcChannelTests
 
         channel.Dispose();
         Assert.AreEqual(ConnectivityState.Shutdown, channel.State);
+    }
+
+    [Test]
+    public async Task WaitForStateChangedAsync_AfterDispose_DisposedError()
+    {
+        // Arrange
+        var channel = GrpcChannel.ForAddress("https://localhost");
+        channel.Dispose();
+
+        // Act & Assert
+        await ExceptionAssert.ThrowsAsync<ObjectDisposedException>(() => channel.WaitForStateChangedAsync(ConnectivityState.Idle));
     }
 
     [Test]
