@@ -46,6 +46,14 @@ internal class Base64ResponseStream : Stream
         var data = buffer.AsMemory(offset, count);
 #endif
 
+        // Handle zero byte reads.
+        if (data.Length == 0)
+        {
+            var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
+            Debug.Assert(read == 0);
+            return 0;
+        }
+
         // There is enough remaining data to fill passed in data
         if (data.Length <= _remainder)
         {

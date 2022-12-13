@@ -60,6 +60,53 @@ public class GrpcWebResponseStreamTests
     }
 
     [Test]
+    public async Task ReadAsync_EmptyMessage_OneByteBuffer_ParseMessageAndTrailers()
+    {
+        // Arrange
+        var header = new byte[] { 0, 0, 0, 1, 2 };
+        var content = new byte[258];
+        for (var i = 0; i < content.Length; i++)
+        {
+            content[i] = (byte)(i % byte.MaxValue);
+        }
+        var trailer = new byte[] { 128, 0, 0, 0, 16, 13, 10, 103, 114, 112, 99, 45, 115, 116, 97, 116, 117, 115, 58, 32, 48 };
+        var data = header.Concat(content).Concat(trailer).ToArray();
+
+        var trailingHeaders = new TestHttpHeaders();
+        var ms = new MemoryStream(data);
+        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+
+        // Act & Assert header
+        var contentHeaderData = new byte[1];
+
+        Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(258, responseStream._contentRemaining);
+        Assert.AreEqual(GrpcWebResponseStream.ResponseState.Content, responseStream._state);
+
+        // Act & Assert content
+        var readContent = new List<byte>();
+        while (responseStream._contentRemaining > 0)
+        {
+            Assert.AreEqual(1, await ReadAsync(responseStream, contentHeaderData));
+            readContent.Add(contentHeaderData[0]);
+        }
+        
+        CollectionAssert.AreEqual(content, readContent);
+
+        // Act trailer
+        var read2 = await ReadAsync(responseStream, contentHeaderData);
+
+        // Assert trailer
+        Assert.AreEqual(0, read2);
+        Assert.AreEqual(1, trailingHeaders.Count());
+        Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
+    }
+
+    [Test]
     public async Task ReadAsync_EmptyMessageAndTrailers_ParseMessageAndTrailers()
     {
         // Arrange
@@ -89,6 +136,40 @@ public class GrpcWebResponseStreamTests
     }
 
     [Test]
+    public async Task ReadAsync_EmptyMessageAndTrailers_OneByteBuffer_ParseMessageAndTrailers()
+    {
+        // Arrange
+        var data = new byte[] { 0, 0, 0, 0, 0, 128, 0, 0, 0, 0 };
+        var trailingHeaders = new TestHttpHeaders();
+        var ms = new MemoryStream(data);
+        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+        var contentHeaderData = new byte[1];
+
+        await ReadByteAsync(responseStream, contentHeaderData);
+        await ReadByteAsync(responseStream, contentHeaderData);
+        await ReadByteAsync(responseStream, contentHeaderData);
+        await ReadByteAsync(responseStream, contentHeaderData);
+        await ReadByteAsync(responseStream, contentHeaderData);
+
+        // Act 2
+        var read2 = await ReadAsync(responseStream, contentHeaderData);
+
+        // Assert 2
+        Assert.AreEqual(0, read2);
+        Assert.AreEqual(0, trailingHeaders.Count());
+
+        async Task ReadByteAsync(GrpcWebResponseStream responseStream, byte[] buffer)
+        {
+            // Act
+            var read = await ReadAsync(responseStream, buffer);
+
+            // Assert
+            Assert.AreEqual(1, read);
+            Assert.AreEqual(0, buffer[0]);
+        }
+    }
+
+    [Test]
     public async Task ReadAsync_ReadContentWithLargeBuffer_ParseMessageAndTrailers()
     {
         // Arrange
@@ -107,12 +188,16 @@ public class GrpcWebResponseStreamTests
         Assert.AreEqual(0, contentHeaderData[2]);
         Assert.AreEqual(0, contentHeaderData[3]);
         Assert.AreEqual(1, contentHeaderData[4]);
+        Assert.AreEqual(1, responseStream._contentRemaining);
+        Assert.AreEqual(GrpcWebResponseStream.ResponseState.Content, responseStream._state);
 
         // Act 2
         var read2 = await ReadAsync(responseStream, contentHeaderData);
 
         // Assert 2
         Assert.AreEqual(1, read2);
+        Assert.AreEqual(99, contentHeaderData[0]);
+        Assert.AreEqual(GrpcWebResponseStream.ResponseState.Ready, responseStream._state);
 
         // Act 2
         var read3 = await ReadAsync(responseStream, contentHeaderData);
