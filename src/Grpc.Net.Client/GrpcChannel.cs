@@ -665,6 +665,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns></returns>
     public Task ConnectAsync(CancellationToken cancellationToken = default)
     {
+        if (Disposed)
+        {
+            throw new ObjectDisposedException(nameof(GrpcChannel));
+        }
+
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
     }
@@ -705,6 +710,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>The task object representing the asynchronous operation.</returns>
     public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
     {
+        if (Disposed)
+        {
+            throw new ObjectDisposedException(nameof(GrpcChannel));
+        }
+
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);
     }
