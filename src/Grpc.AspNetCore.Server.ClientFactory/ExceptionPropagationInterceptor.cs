@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Grpc.AspNetCore.Server;
 using Grpc.Core.Interceptors;
 using System.Threading.Tasks;
+using System.Runtime.ExceptionServices;
 
 namespace Grpc.AspNetCore.ClientFactory;
 
@@ -78,11 +79,12 @@ internal class ExceptionPropagationInterceptor : Interceptor
 		catch (RpcException rpcEx) when (rpcEx.Status.StatusCode == StatusCode.Application)
 		{
 			var applicationException = DeserializeApplicationException(rpcEx.Trailers);
-			if (applicationException != null)
-			{
-				throw applicationException;
-			}
-			throw;
+			
+			ExceptionDispatchInfo.Capture(
+				applicationException ?? rpcEx
+			).Throw();
+
+			return null;
 		}
 	}
 
