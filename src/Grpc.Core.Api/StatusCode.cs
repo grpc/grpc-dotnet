@@ -120,5 +120,10 @@ public enum StatusCode
     Unavailable = 14,
 
     /// <summary>Unrecoverable data loss or corruption.</summary>
-    DataLoss = 15
+    DataLoss = 15,
+
+    /// <summary>
+    /// The operation throws an application exception.
+    /// </summary>
+    Application = 16
 }

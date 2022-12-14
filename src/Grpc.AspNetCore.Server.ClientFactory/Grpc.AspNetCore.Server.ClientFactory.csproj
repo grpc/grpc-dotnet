@@ -14,6 +14,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+	<PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
+  </ItemGroup>	
+	
+  <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />

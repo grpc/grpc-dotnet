@@ -15,6 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+	<PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
+  </ItemGroup>
+
+	<ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
 
     <Compile Include="..\Shared\CommonGrpcProtocolHelpers.cs" Link="Internal\CommonGrpcProtocolHelpers.cs" />

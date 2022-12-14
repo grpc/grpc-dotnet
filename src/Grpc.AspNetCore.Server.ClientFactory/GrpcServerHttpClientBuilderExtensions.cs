@@ -74,7 +74,33 @@ public static class GrpcServerHttpClientBuilderExtensions
         return builder;
     }
 
-    private static void EnableCallContextPropagationCore(IHttpClientBuilder builder, GrpcContextPropagationOptions options)
+	/// <summary>
+	/// Configures the server to propagate a server call's exception onto the gRPC client.
+	/// </summary>
+	/// <param name="builder">
+    /// The <see cref="IHttpClientBuilder"/>.
+    /// </param>
+	/// <returns>
+    /// An <see cref="IHttpClientBuilder"/> that can be used to configure the client.
+    /// </returns>
+	public static IHttpClientBuilder EnableExceptionPropagation(this IHttpClientBuilder builder)
+	{
+		ValidateGrpcClient(builder ?? throw new ArgumentNullException(nameof(builder)));
+
+		builder.Services.Configure<GrpcClientFactoryOptions>(builder.Name, o =>
+		{
+			o.InterceptorRegistrations.Add(new InterceptorRegistration(
+				InterceptorScope.Channel,
+				_ =>
+				{
+					return new ExceptionPropagationInterceptor();
+				}));
+		});
+
+		return builder;
+	}
+
+	private static void EnableCallContextPropagationCore(IHttpClientBuilder builder, GrpcContextPropagationOptions options)
     {
         ValidateGrpcClient(builder);
 
