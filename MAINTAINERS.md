@@ -8,15 +8,16 @@ See [CONTRIBUTING.md](https://github.com/grpc/grpc-community/blob/master/CONTRIB
 for general contribution guidelines.
 
 ## Maintainers (in alphabetical order)
+- [adityamandaleeka](https://github.com/adityamandaleeka), Microsoft Corporation
+- [amcasey](https://github.com/amcasey), Microsoft Corporation
 - [apolcyn](https://github.com/apolcyn), Google LLC
+- [benjaminpetit](https://github.com/benjaminpetit), Microsoft Corporation
 - [BrennanConroy](https://github.com/BrennanConroy), Microsoft Corporation
-- [brunolins16](https://github.com/brunolins16), Microsoft Corporation
-- [captainsafia](https://github.com/captainsafia), Microsoft Corporation
 - [davidfowl](https://github.com/davidfowl), Microsoft Corporation
-- [halter73](https://github.com/halter73), Microsoft Corporation
 - [JamesNK](https://github.com/JamesNK), Microsoft Corporation
 - [jtattermusch](https://github.com/jtattermusch), Google LLC
-- [rafikiassumaniMSFT](https://github.com/rafikiassumaniMSFT), Microsoft Corporation
+- [mgravell](https://github.com/mgravell), Microsoft Corporation
+- [ReubenBond](https://github.com/ReubenBond), Microsoft Corporation
 
 ## Emeritus Maintainers (in alphabetical order)
 - [JunTaoLuo](https://github.com/JunTaoLuo)
