@@ -83,9 +83,11 @@ internal class GrpcWebResponseStream : Stream
                 }
             case ResponseState.Header:
                 {
+                    Debug.Assert(_contentRemaining > 0);
+
                     headerBuffer = data.Length >= _contentRemaining ? data.Slice(0, _contentRemaining) : data;
                     var success = await TryReadDataAsync(_inner, headerBuffer, cancellationToken).ConfigureAwait(false);
-                    if (!success || headerBuffer.Length == 0)
+                    if (!success)
                     {
                         return 0;
                     }
