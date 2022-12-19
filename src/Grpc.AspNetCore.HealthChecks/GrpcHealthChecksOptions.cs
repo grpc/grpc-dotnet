@@ -31,9 +31,12 @@ public sealed class GrpcHealthChecksOptions
     public ServiceMappingCollection Services { get; } = new ServiceMappingCollection();
 
     /// <summary>
-    /// Gets or sets a value indicating whether the <c>Check</c> method runs health checks when it is called.
-    /// If <see cref="RunHealthChecksOnCheck" /> is <c>false</c> then cached health check results previously published by 
-    /// <see cref="IHealthCheckPublisher"/> are returned by the <c>Check</c> method.
+    /// Gets or sets a value indicating whether methods use cached health checks results. 
+    /// The default value is <c>false</c>.
     /// </summary>
-    public bool RunHealthChecksOnCheck { get; set; } = true;
+    /// <remarks>
+    /// When <c>false</c>, health checks are recalculated and returned. When <c>true</c>, cached health check results previously
+    /// published by <see cref="IHealthCheckPublisher"/> are returned.
+    /// </remarks>
+    public bool UseHealthChecksCache { get; set; }
 }

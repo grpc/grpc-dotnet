@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Health.V1;
 using Grpc.HealthCheck;
@@ -44,31 +45,91 @@ internal sealed class HealthServiceIntegration : Grpc.Health.V1.Health.HealthBas
         _healthCheckService = healthCheckService;
     }
 
-    public override async Task<HealthCheckResponse> Check(HealthCheckRequest request, ServerCallContext context)
+    public override Task<HealthCheckResponse> Check(HealthCheckRequest request, ServerCallContext context)
     {
-        if (_grpcHealthCheckOptions.RunHealthChecksOnCheck)
+        if (!_grpcHealthCheckOptions.UseHealthChecksCache)
         {
-            // Match Check behavior from Grpc.HealthCheck.HealthServiceImpl.
-            if (_grpcHealthCheckOptions.Services.TryGetServiceMapping(request.Service, out var serviceMapping))
-            {
-                var result = await _healthCheckService.CheckHealthAsync(_healthCheckOptions.Predicate, context.CancellationToken);
-
-                return new HealthCheckResponse
-                {
-                    Status = HealthChecksStatusHelpers.GetStatus(result, serviceMapping.Predicate)
-                };
-            }
-
-            throw new RpcException(new Status(StatusCode.NotFound, ""));
+            return GetHealthCheckResponseAsync(request.Service, throwOnNotFound: true, context.CancellationToken);
         }
         else
         {
-            return await _healthServiceImpl.Check(request, context);
+            return _healthServiceImpl.Check(request, context);
         }
     }
 
     public override Task Watch(HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, ServerCallContext context)
     {
+        if (!_grpcHealthCheckOptions.UseHealthChecksCache)
+        {
+            // Stream writer replaces first health checks results from the cache with newly calculated health check results.
+            responseStream = new WatchServerStreamWriter(this, request, responseStream, context.CancellationToken);
+        }
+
         return _healthServiceImpl.Watch(request, responseStream, context);
+    }
+
+    private async Task<HealthCheckResponse> GetHealthCheckResponseAsync(string service, bool throwOnNotFound, CancellationToken cancellationToken)
+    {
+        // Match Check behavior from Grpc.HealthCheck.HealthServiceImpl.
+        HealthCheckResponse.Types.ServingStatus status;
+        if (_grpcHealthCheckOptions.Services.TryGetServiceMapping(service, out var serviceMapping))
+        {
+            var result = await _healthCheckService.CheckHealthAsync(_healthCheckOptions.Predicate, cancellationToken);
+            status = HealthChecksStatusHelpers.GetStatus(result, serviceMapping.Predicate);
+        }
+        else
+        {
+            if (throwOnNotFound)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, ""));
+            }
+            else
+            {
+                status = HealthCheckResponse.Types.ServingStatus.ServiceUnknown;
+            }
+        }
+
+        return new HealthCheckResponse { Status = status };
+    }
+
+    /// <summary>
+    /// The stream writer intercepts and replaces the first watch results because they're cached values.
+    /// Newly calculated values from .NET health checks are returned instead.
+    /// </summary>
+    private sealed class WatchServerStreamWriter : IServerStreamWriter<HealthCheckResponse>
+    {
+        private readonly HealthServiceIntegration _service;
+        private readonly HealthCheckRequest _request;
+        private readonly IServerStreamWriter<HealthCheckResponse> _innerResponseStream;
+        private readonly CancellationToken _cancellationToken;
+        private bool _receivedFirstWrite;
+
+        public WriteOptions? WriteOptions
+        {
+            get => _innerResponseStream.WriteOptions;
+            set => _innerResponseStream.WriteOptions = value;
+        }
+
+        public WatchServerStreamWriter(HealthServiceIntegration service, HealthCheckRequest request, IServerStreamWriter<HealthCheckResponse> responseStream, CancellationToken cancellationToken)
+        {
+            Debug.Assert(!service._grpcHealthCheckOptions.UseHealthChecksCache);
+
+            _service = service;
+            _request = request;
+            _innerResponseStream = responseStream;
+            _cancellationToken = cancellationToken;
+        }
+
+        public async Task WriteAsync(HealthCheckResponse message)
+        {
+            // Replace first results.
+            if (!_receivedFirstWrite)
+            {
+                _receivedFirstWrite = true;
+                message = await _service.GetHealthCheckResponseAsync(_request.Service, throwOnNotFound: false, _cancellationToken);
+            }
+            
+            await _innerResponseStream.WriteAsync(message);
+        }
     }
 }

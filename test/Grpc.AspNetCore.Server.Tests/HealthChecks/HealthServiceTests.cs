@@ -36,7 +36,76 @@ namespace Grpc.AspNetCore.Server.Tests.HealthChecks;
 public class HealthServiceTests
 {
     [Test]
-    public async Task HealthService_Watch_WriteResults()
+    public async Task HealthService_Watch_UsePublishedChecks_WriteResults()
+    {
+        // Arrange
+        var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddGrpcHealthChecks(o => o.UseHealthChecksCache = true).AddAsyncCheck(
+            "",
+            () => Task.FromResult(healthCheckResult), new string[] { "sample" });
+        services.Configure<HealthCheckPublisherOptions>(o =>
+        {
+            o.Delay = TimeSpan.FromSeconds(1);
+            o.Period = TimeSpan.FromSeconds(1);
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var healthService = CreateService(serviceProvider);
+        var hostedService = serviceProvider.GetServices<IHostedService>().Single();
+
+        HealthCheckResponse? response = null;
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+        var testServerStreamWriter = new TestServerStreamWriter<HealthCheckResponse>();
+        testServerStreamWriter.OnWriteAsync = async message =>
+        {
+            response = message;
+            await syncPoint.WaitToContinue();
+        };
+
+        var cts = new CancellationTokenSource();
+        var callTask = healthService.Watch(
+            new HealthCheckRequest(),
+            testServerStreamWriter,
+            new TestServerCallContext(DateTime.MaxValue, cts.Token));
+
+        // Act
+        await hostedService.StartAsync(CancellationToken.None);
+
+        // Assert
+        try
+        {
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.ServiceUnknown, response!.Status);
+            syncPoint.Continue();
+
+            healthCheckResult = new HealthCheckResult(HealthStatus.Unhealthy);
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response!.Status);
+            syncPoint.Continue();
+
+            healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
+            syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
+            await syncPoint.WaitForSyncPoint().DefaultTimeout();
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response!.Status);
+            syncPoint.Continue();
+
+            cts.Cancel();
+
+            await callTask.DefaultTimeout();
+        }
+        finally
+        {
+            await hostedService.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task HealthService_Watch_RunChecks_WriteResults()
     {
         // Arrange
         var healthCheckResult = new HealthCheckResult(HealthStatus.Healthy);
@@ -79,7 +148,7 @@ public class HealthServiceTests
         try
         {
             await syncPoint.WaitForSyncPoint().DefaultTimeout();
-            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.ServiceUnknown, response!.Status);
+            Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response!.Status);
             syncPoint.Continue();
 
             healthCheckResult = new HealthCheckResult(HealthStatus.Unhealthy);
@@ -176,7 +245,7 @@ public class HealthServiceTests
             .AddGrpcHealthChecks(o =>
             {
                 o.Services.MapService("", result => !result.Tags.Contains("exclude"));
-                o.RunHealthChecksOnCheck = false;
+                o.UseHealthChecksCache = true;
             })
             .AddAsyncCheck("", () => Task.FromResult(healthCheckResult))
             .AddAsyncCheck("filtered", () => Task.FromResult(healthCheckResult), new string[] { "exclude" });
