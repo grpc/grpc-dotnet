@@ -88,7 +88,8 @@ public struct Status
     {
         if (DebugException != null)
         {
-            return $"Status(StatusCode=\"{StatusCode}\", Detail=\"{Detail}\", DebugException=\"{DebugException}\")";
+            return $"Status(StatusCode=\"{StatusCode}\", Detail=\"{Detail}\"," +
+                $" DebugException=\"{DebugException.GetType().Name}: {DebugException.Message}\")";
         }
         return $"Status(StatusCode=\"{StatusCode}\", Detail=\"{Detail}\")";
     }
