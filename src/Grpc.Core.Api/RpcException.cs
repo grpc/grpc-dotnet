@@ -65,7 +65,7 @@ public class RpcException : Exception
     /// <param name="status">Resulting status of a call.</param>
     /// <param name="trailers">Response trailing metadata.</param>
     /// <param name="message">The exception message.</param>
-    public RpcException(Status status, Metadata trailers, string message) : base(message)
+    public RpcException(Status status, Metadata trailers, string message) : base(message, status.DebugException)
     {
         this.status = status;
         this.trailers = GrpcPreconditions.CheckNotNull(trailers);
