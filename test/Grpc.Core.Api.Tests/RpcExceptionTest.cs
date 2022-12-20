@@ -51,10 +51,9 @@ public class RpcExceptionTest
             someExceptionWithStacktrace = caughtEx;
         }
         var ex = new RpcException(new Status(StatusCode.Internal, "abc", someExceptionWithStacktrace));
-        Console.WriteLine(ex.Message);
         // Check debug exceptions's message is contained.
         StringAssert.Contains(someExceptionWithStacktrace.Message, ex.Message);
-        StringAssert.Contains(someExceptionWithStacktrace.GetType().Name, ex.Message);
+        StringAssert.Contains(someExceptionWithStacktrace.GetType().FullName, ex.Message);
         // If name of the current method is not in the message, it probably doesn't contain the stack trace.
         StringAssert.DoesNotContain(nameof(DefaultMessageDoesntContainDebugExceptionStacktrace), ex.Message);
     }
