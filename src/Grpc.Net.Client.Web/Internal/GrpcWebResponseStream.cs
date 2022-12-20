@@ -58,7 +58,7 @@ internal class GrpcWebResponseStream : Stream
 #if NETSTANDARD2_0
         var data = buffer.AsMemory(offset, count);
 #endif
-        Memory<byte> headerBuffer = Memory<byte>.Empty;
+        var headerBuffer = Memory<byte>.Empty;
 
         switch (_state)
         {
