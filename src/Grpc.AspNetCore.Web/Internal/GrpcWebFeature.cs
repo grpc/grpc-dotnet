@@ -32,6 +32,7 @@ internal class GrpcWebFeature :
     private readonly IRequestBodyPipeFeature? _initialRequestFeature;
     private readonly IHttpResetFeature? _initialResetFeature;
     private readonly IHttpResponseTrailersFeature? _initialTrailersFeature;
+    private Stream? _responseStream;
     private bool _isComplete;
 
     public GrpcWebFeature(ServerGrpcWebContext grcpWebContext, HttpContext httpContext)
@@ -90,7 +91,7 @@ internal class GrpcWebFeature :
 
     public PipeWriter Writer { get; }
 
-    public Stream Stream => throw new NotSupportedException("Writing to the response stream during a gRPC call is not supported.");
+    Stream IHttpResponseBodyFeature.Stream => _responseStream ??= Writer.AsStream();
 
     public IHeaderDictionary Trailers { get; set; }
 
