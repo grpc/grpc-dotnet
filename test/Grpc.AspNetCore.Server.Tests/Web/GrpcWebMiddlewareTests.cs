@@ -16,9 +16,12 @@
 
 #endregion
 
+using System.IO.Pipelines;
+using System.Text;
 using Grpc.AspNetCore.Server.Tests.Infrastructure;
 using Grpc.AspNetCore.Web;
 using Grpc.AspNetCore.Web.Internal;
+using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -196,13 +199,81 @@ public class GrpcWebMiddlewareTests
         Assert.AreEqual(GrpcWebProtocolConstants.GrpcWebContentType, httpContext.Response.ContentType);
     }
 
+    [Test]
+    public async Task Invoke_GrpcWebContentTypeAndMetadata_WriteToResponseStream_Processed()
+    {
+        // Arrange
+        var expectedMessage = Encoding.UTF8.GetBytes("Hello world");
+
+        var middleware = CreateMiddleware(
+            options: new GrpcWebOptions { DefaultEnabled = true },
+            next: c => c.GetEndpoint()!.RequestDelegate!.Invoke(c));
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Protocol = "HTTP/1.1";
+        httpContext.Request.Method = HttpMethods.Post;
+        httpContext.Request.ContentType = GrpcWebProtocolConstants.GrpcWebContentType;
+        httpContext.SetEndpoint(new Endpoint(
+            c =>
+            {
+                c.Response.Body.Write(expectedMessage);
+                c.Response.AppendTrailer("one", "two");
+                return Task.CompletedTask;
+            },
+            new EndpointMetadataCollection(),
+            string.Empty));
+
+        var testHttpResponseFeature = new TestHttpResponseFeature();
+        httpContext.Features.Set<IHttpResponseFeature>(testHttpResponseFeature);
+
+        var ms = new MemoryStream();
+        httpContext.Features.Set<IHttpResponseBodyFeature>(new TestResponseBodyFeature(PipeWriter.Create(ms)));
+
+        // Act 1
+        await middleware.Invoke(httpContext);
+
+        // Assert 1
+        Assert.AreEqual(GrpcWebProtocolConstants.GrpcContentType, httpContext.Request.ContentType);
+        Assert.AreEqual(GrpcWebProtocolConstants.Http2Protocol, httpContext.Request.Protocol);
+        Assert.AreEqual(1, testHttpResponseFeature.StartingCallbackCount);
+
+        // Act 2
+        httpContext.Response.ContentType = GrpcWebProtocolConstants.GrpcContentType;
+
+        var c = testHttpResponseFeature.StartingCallbacks[0];
+        await c.callback(c.state);
+
+        // Assert 2
+        Assert.AreEqual("HTTP/1.1", httpContext.Request.Protocol);
+        Assert.AreEqual(GrpcWebProtocolConstants.GrpcWebContentType, httpContext.Response.ContentType);
+
+        var bodyContent = ms.ToArray().AsMemory();
+
+        Assert.IsTrue(bodyContent.Slice(0, expectedMessage.Length).Span.SequenceEqual(expectedMessage));
+        var trailerContent = bodyContent.Slice(expectedMessage.Length);
+
+        Assert.AreEqual(15, trailerContent.Length);
+
+        Assert.AreEqual(128, trailerContent.Span[0]);
+        Assert.AreEqual(0, trailerContent.Span[1]);
+        Assert.AreEqual(0, trailerContent.Span[2]);
+        Assert.AreEqual(0, trailerContent.Span[3]);
+        Assert.AreEqual(10, trailerContent.Span[4]);
+
+        var text = Encoding.ASCII.GetString(trailerContent.Span.Slice(5));
+
+        Assert.AreEqual("one: two\r\n", text);
+    }
+
     private static GrpcWebMiddleware CreateMiddleware(
         GrpcWebOptions? options = null,
-        ILogger<GrpcWebMiddleware>? logger = null)
+        ILogger<GrpcWebMiddleware>? logger = null,
+        RequestDelegate? next = null)
     {
         return new GrpcWebMiddleware(
             Options.Create<GrpcWebOptions>(options ?? new GrpcWebOptions()),
             logger ?? NullLogger<GrpcWebMiddleware>.Instance,
-            c => Task.CompletedTask);
+            next ?? EmptyRequestDelegate);
+
+        static Task EmptyRequestDelegate(HttpContext context) => Task.CompletedTask;
     }
 }
