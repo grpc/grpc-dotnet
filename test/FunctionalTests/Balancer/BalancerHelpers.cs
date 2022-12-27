@@ -23,6 +23,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite;
 using Google.Protobuf;
@@ -110,21 +111,37 @@ internal static class BalancerHelpers
             endpointName);
     }
 
-    public static Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, Uri[] endpoints, HttpMessageHandler? httpMessageHandler = null, bool? connect = null, RetryPolicy? retryPolicy = null)
+    public static Task<GrpcChannel> CreateChannel(
+        ILoggerFactory loggerFactory,
+        LoadBalancingConfig? loadBalancingConfig,
+        Uri[] endpoints,
+        HttpMessageHandler? httpMessageHandler = null,
+        bool? connect = null,
+        RetryPolicy? retryPolicy = null,
+        Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
+        TimeSpan? connectTimeout = null)
     {
         var resolver = new TestResolver();
         var e = endpoints.Select(i => new BalancerAddress(i.Host, i.Port)).ToList();
         resolver.UpdateAddresses(e);
 
-        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy);
+        return CreateChannel(loggerFactory, loadBalancingConfig, resolver, httpMessageHandler, connect, retryPolicy, socketConnect, connectTimeout);
     }
 
-    public static async Task<GrpcChannel> CreateChannel(ILoggerFactory loggerFactory, LoadBalancingConfig? loadBalancingConfig, TestResolver resolver, HttpMessageHandler? httpMessageHandler = null, bool? connect = null, RetryPolicy? retryPolicy = null)
+    public static async Task<GrpcChannel> CreateChannel(
+        ILoggerFactory loggerFactory,
+        LoadBalancingConfig? loadBalancingConfig,
+        TestResolver resolver,
+        HttpMessageHandler? httpMessageHandler = null,
+        bool? connect = null,
+        RetryPolicy? retryPolicy = null,
+        Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect = null,
+        TimeSpan? connectTimeout = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<IRandomGenerator>(new TestRandomGenerator());
-        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout: null));
+        services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(TimeSpan.FromSeconds(0.5), connectTimeout, socketConnect));
         services.AddSingleton<LoadBalancerFactory>(new LeastUsedBalancerFactory());
 
         var serviceConfig = new ServiceConfig();
@@ -249,17 +266,24 @@ internal static class BalancerHelpers
     {
         private readonly TimeSpan _socketPingInterval;
         private readonly TimeSpan? _connectTimeout;
+        private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? _socketConnect;
 
-        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout)
+        public TestSubchannelTransportFactory(TimeSpan socketPingInterval, TimeSpan? connectTimeout, Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
         {
             _socketPingInterval = socketPingInterval;
             _connectTimeout = connectTimeout;
+            _socketConnect = socketConnect;
         }
 
         public ISubchannelTransport Create(Subchannel subchannel)
         {
 #if NET5_0_OR_GREATER
-            return new SocketConnectivitySubchannelTransport(subchannel, _socketPingInterval, _connectTimeout, subchannel._manager.LoggerFactory);
+            return new SocketConnectivitySubchannelTransport(
+                subchannel,
+                _socketPingInterval,
+                _connectTimeout,
+                subchannel._manager.LoggerFactory,
+                _socketConnect);
 #else
             return new PassiveSubchannelTransport(subchannel);
 #endif

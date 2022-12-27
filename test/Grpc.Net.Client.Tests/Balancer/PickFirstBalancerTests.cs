@@ -151,7 +151,7 @@ public class PickFirstBalancerTests
             new BalancerAddress("localhost", 80)
         });
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure)));
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
 
@@ -205,7 +205,7 @@ public class PickFirstBalancerTests
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
-            return connectivityState;
+            return new TryConnectResult(connectivityState);
         }));
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
@@ -261,7 +261,7 @@ public class PickFirstBalancerTests
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
             transportConnectCount++;
-            return Task.FromResult(ConnectivityState.Ready);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -311,7 +311,7 @@ public class PickFirstBalancerTests
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
             transportConnectCount++;
-            return Task.FromResult(ConnectivityState.Ready);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -356,7 +356,7 @@ public class PickFirstBalancerTests
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
             transportConnectCount++;
-            return Task.FromResult(ConnectivityState.Ready);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Ready));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -421,7 +421,7 @@ public class PickFirstBalancerTests
                 tcs.SetResult(null);
             }
 
-            return Task.FromResult(ConnectivityState.Connecting);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Connecting));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -483,7 +483,7 @@ public class PickFirstBalancerTests
                 tcs.SetResult(null);
             }
 
-            return Task.FromResult(ConnectivityState.Connecting);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Connecting));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -541,7 +541,7 @@ public class PickFirstBalancerTests
 
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
-            return Task.FromResult(ConnectivityState.Connecting);
+            return Task.FromResult(new TryConnectResult(ConnectivityState.Connecting));
         });
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
@@ -584,6 +584,73 @@ public class PickFirstBalancerTests
         // Assert 2
         var ex2 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call2.ResponseAsync).DefaultTimeout();
         Assert.AreEqual(StatusCode.DeadlineExceeded, ex2.StatusCode);
+    }
+
+    [Test]
+    public async Task ConnectTimeout_MultipleCalls_AttemptReconnect()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        var testSink = new TestSink();
+        services.AddLogging(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+        });
+        services.AddNUnitLogger();
+
+        var resolver = new TestResolver();
+        resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 80) });
+
+        var tryConnectTcs = new TaskCompletionSource<TryConnectResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var transportFactory = new TestSubchannelTransportFactory((s, ct) =>
+        {
+            return tryConnectTcs.Task;
+        });
+
+        services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
+        services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+
+        var serviceProvider = services.BuildServiceProvider();
+
+        var logger = serviceProvider.GetRequiredService<ILogger<PickFirstBalancerTests>>();
+        var handler = ClientTestHelpers.CreateTestMessageHandler(new HelloReply { Message = "Message!" });
+        var channelOptions = new GrpcChannelOptions
+        {
+            Credentials = ChannelCredentials.Insecure,
+            ServiceProvider = serviceProvider,
+            HttpHandler = handler
+        };
+
+        var invoker = HttpClientCallInvokerFactory.Create(handler, "test:///localhost", configure: o =>
+        {
+            o.Credentials = ChannelCredentials.Insecure;
+            o.ServiceProvider = services.BuildServiceProvider();
+        });
+
+        // Act 1
+        logger.LogInformation("Client making call 1.");
+        var call1 = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+        tryConnectTcs.SetResult(new TryConnectResult(ConnectivityState.TransientFailure, ConnectResult.Timeout));
+
+        // Assert 1
+        logger.LogInformation("Client waiting for call 1.");
+        var ex1 = await ExceptionAssert.ThrowsAsync<RpcException>(() => call1.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Internal, ex1.StatusCode);
+
+        logger.LogInformation("Client waiting for state change.");
+        await invoker.Channel.WaitForStateChangedAsync(ConnectivityState.TransientFailure).DefaultTimeout();
+
+        // Act 2
+        tryConnectTcs = new TaskCompletionSource<TryConnectResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        tryConnectTcs.SetResult(new TryConnectResult(ConnectivityState.Ready));
+        logger.LogInformation("Client making call 2.");
+        var call2 = invoker.AsyncUnaryCall(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest());
+
+        // Assert 2
+        logger.LogInformation("Client waiting for call 2.");
+        var response = await call2.ResponseAsync.DefaultTimeout();
+        Assert.AreEqual("Message!", response.Message);
     }
 }
 #endif

@@ -54,6 +54,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private readonly ILogger _logger;
     private readonly Subchannel _subchannel;
     private readonly TimeSpan _socketPingInterval;
+    private readonly Func<Socket, DnsEndPoint, CancellationToken, ValueTask> _socketConnect;
     private readonly List<ActiveStream> _activeStreams;
     private readonly Timer _socketConnectedTimer;
 
@@ -63,12 +64,18 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
     private bool _disposed;
     private BalancerAddress? _currentAddress;
 
-    public SocketConnectivitySubchannelTransport(Subchannel subchannel, TimeSpan socketPingInterval, TimeSpan? connectTimeout, ILoggerFactory loggerFactory)
+    public SocketConnectivitySubchannelTransport(
+        Subchannel subchannel,
+        TimeSpan socketPingInterval,
+        TimeSpan? connectTimeout,
+        ILoggerFactory loggerFactory,
+        Func<Socket, DnsEndPoint, CancellationToken, ValueTask>? socketConnect)
     {
         _logger = loggerFactory.CreateLogger<SocketConnectivitySubchannelTransport>();
         _subchannel = subchannel;
         _socketPingInterval = socketPingInterval;
         ConnectTimeout = connectTimeout;
+        _socketConnect = socketConnect ?? OnConnect;
         _activeStreams = new List<ActiveStream>();
         _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
@@ -85,6 +92,11 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         {
             return _activeStreams.ToList();
         }
+    }
+
+    private static ValueTask OnConnect(Socket socket, DnsEndPoint endpoint, CancellationToken cancellationToken)
+    {
+        return socket.ConnectAsync(endpoint, cancellationToken);
     }
 
     public void Disconnect()
@@ -114,7 +126,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _currentAddress = null;
     }
 
-    public async ValueTask<bool> TryConnectAsync(ConnectContext context)
+    public async ValueTask<ConnectResult> TryConnectAsync(ConnectContext context)
     {
         Debug.Assert(CurrentAddress == null);
 
@@ -137,7 +149,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             try
             {
                 SocketConnectivitySubchannelTransportLog.ConnectingSocket(_logger, _subchannel.Id, currentAddress);
-                await socket.ConnectAsync(currentAddress.EndPoint, context.CancellationToken).ConfigureAwait(false);
+                await _socketConnect(socket, currentAddress.EndPoint, context.CancellationToken).ConfigureAwait(false);
                 SocketConnectivitySubchannelTransportLog.ConnectedSocket(_logger, _subchannel.Id, currentAddress);
 
                 lock (Lock)
@@ -150,7 +162,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 }
 
                 _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Successfully connected to socket.");
-                return true;
+                return ConnectResult.Success;
             }
             catch (Exception ex)
             {
@@ -169,12 +181,15 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
             }
         }
 
+        var result = ConnectResult.Failure;
+
         // Check if cancellation happened because of timeout.
         if (firstConnectionError is OperationCanceledException oce &&
             oce.CancellationToken == context.CancellationToken &&
             !context.IsConnectCanceled)
         {
             firstConnectionError = new TimeoutException("A connection could not be established within the configured ConnectTimeout.", firstConnectionError);
+            result = ConnectResult.Timeout;
         }
 
         // All connections failed
@@ -188,7 +203,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                 _socketConnectedTimer.Change(TimeSpan.Zero, TimeSpan.Zero);
             }
         }
-        return false;
+        return result;
     }
 
     private async void OnCheckSocketConnection(object? state)

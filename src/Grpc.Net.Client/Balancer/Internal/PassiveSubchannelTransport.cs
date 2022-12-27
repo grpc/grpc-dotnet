@@ -53,9 +53,9 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
 
     public
 #if !NETSTANDARD2_0
-        ValueTask<bool>
+        ValueTask<ConnectResult>
 #else
-        Task<bool>
+        Task<ConnectResult>
 #endif
         TryConnectAsync(ConnectContext context)
     {
@@ -69,9 +69,9 @@ internal class PassiveSubchannelTransport : ISubchannelTransport, IDisposable
         _subchannel.UpdateConnectivityState(ConnectivityState.Ready, "Passively connected.");
 
 #if !NETSTANDARD2_0
-        return new ValueTask<bool>(true);
+        return new ValueTask<ConnectResult>(ConnectResult.Success);
 #else
-        return Task.FromResult(true);
+        return Task.FromResult(ConnectResult.Success);
 #endif
     }
 

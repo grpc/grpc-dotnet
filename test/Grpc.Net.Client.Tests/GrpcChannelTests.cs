@@ -734,7 +734,7 @@ public class GrpcChannelTests
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
-            return currentConnectivityState;
+            return new TryConnectResult(currentConnectivityState);
         }));
 
         var handler = new TestHttpMessageHandler();
@@ -798,7 +798,7 @@ public class GrpcChannelTests
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
-            return currentConnectivityState;
+            return new TryConnectResult(currentConnectivityState);
         }));
 
         var handler = new TestHttpMessageHandler();

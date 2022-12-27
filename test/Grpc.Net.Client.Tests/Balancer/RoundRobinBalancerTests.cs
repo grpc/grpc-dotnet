@@ -164,7 +164,7 @@ public class RoundRobinBalancerTests
         services.AddNUnitLogger();
         services.AddSingleton<TestResolver>();
         services.AddSingleton<ResolverFactory, TestResolverFactory>();
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(ConnectivityState.TransientFailure));
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure)));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
         var serviceProvider = services.BuildServiceProvider();
 
@@ -222,7 +222,7 @@ public class RoundRobinBalancerTests
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
             logger.LogInformation($"Transport factory returning state: {connectState}");
-            return Task.FromResult(connectState);
+            return Task.FromResult(new TryConnectResult(connectState));
         });
         services.AddSingleton<TestResolver>(s =>
         {
@@ -301,7 +301,7 @@ public class RoundRobinBalancerTests
 
         var connectState = ConnectivityState.Ready;
 
-        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(connectState));
+        var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(connectState)));
         services.AddSingleton<TestResolver>(s =>
         {
             return new TestResolver(

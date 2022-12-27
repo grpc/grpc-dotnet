@@ -161,7 +161,7 @@ public class ClientChannelTests
 
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
-            return Task.FromException<ConnectivityState>(new Exception("Test error!"));
+            return Task.FromException<TryConnectResult>(new Exception("Test error!"));
         });
         var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
         clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
@@ -334,7 +334,7 @@ public class ClientChannelTests
             await syncPoint.WaitToContinue();
 
             c.ThrowIfCancellationRequested();
-            return ConnectivityState.Ready;
+            return new TryConnectResult(ConnectivityState.Ready);
         });
         var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
         clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));

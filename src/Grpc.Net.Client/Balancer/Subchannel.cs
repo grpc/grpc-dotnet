@@ -273,9 +273,17 @@ public sealed class Subchannel : IDisposable
                     }
                 }
 
-                if (await _transport.TryConnectAsync(connectContext).ConfigureAwait(false))
+                switch (await _transport.TryConnectAsync(connectContext).ConfigureAwait(false))
                 {
-                    return;
+                    case ConnectResult.Success:
+                        return;
+                    case ConnectResult.Timeout:
+                        // Reset connectivity state back to idle so that new calls try to reconnect.
+                        UpdateConnectivityState(ConnectivityState.Idle, new Status(StatusCode.Unavailable, "Timeout connecting to subchannel."));
+                        return;
+                    case ConnectResult.Failure:
+                    default:
+                        break;
                 }
 
                 connectContext.CancellationToken.ThrowIfCancellationRequested();

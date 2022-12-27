@@ -34,13 +34,20 @@ internal interface ISubchannelTransport : IDisposable
 #endif
 
 #if !NETSTANDARD2_0
-    ValueTask<bool>
+    ValueTask<ConnectResult>
 #else
-    Task<bool>
+    Task<ConnectResult>
 #endif
         TryConnectAsync(ConnectContext context);
 
     void Disconnect();
+}
+
+internal enum ConnectResult
+{
+    Success,
+    Failure,
+    Timeout
 }
 
 internal sealed class ConnectContext

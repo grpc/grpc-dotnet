@@ -30,26 +30,29 @@ using Grpc.Net.Client.Balancer.Internal;
 
 namespace Grpc.Net.Client.Tests.Infrastructure.Balancer;
 
+internal record TryConnectResult(ConnectivityState ConnectivityState, ConnectResult? ConnectResult = null);
+
 internal class TestSubchannelTransportFactory : ISubchannelTransportFactory
 {
-    private readonly Func<Subchannel, CancellationToken, Task<ConnectivityState>>? _onSubchannelTryConnect;
+    private readonly Func<Subchannel, CancellationToken, Task<TryConnectResult>>? _onSubchannelTryConnect;
 
     public List<TestSubchannelTransport> Transports { get; } = new List<TestSubchannelTransport>();
+    public TimeSpan? ConnectTimeout { get; set; }
 
-    public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<ConnectivityState>>? onSubchannelTryConnect = null)
+    public TestSubchannelTransportFactory(Func<Subchannel, CancellationToken, Task<TryConnectResult>>? onSubchannelTryConnect = null)
     {
         _onSubchannelTryConnect = onSubchannelTryConnect;
     }
 
     public ISubchannelTransport Create(Subchannel subchannel)
     {
-        Func<CancellationToken, Task<ConnectivityState>>? onTryConnect = null;
+        Func<CancellationToken, Task<TryConnectResult>>? onTryConnect = null;
         if (_onSubchannelTryConnect != null)
         {
             onTryConnect = (c) => _onSubchannelTryConnect(subchannel, c);
         }
 
-        var transport = new TestSubchannelTransport(subchannel, onTryConnect);
+        var transport = new TestSubchannelTransport(this, subchannel, onTryConnect);
         Transports.Add(transport);
 
         return transport;
