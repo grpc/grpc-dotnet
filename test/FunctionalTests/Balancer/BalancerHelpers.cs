@@ -105,7 +105,6 @@ internal static class BalancerHelpers
 
                     if (isHttps.GetValueOrDefault(false))
                     {
-                        //listenOptions.UseHttps();
                         if (certificate == null)
                         {
                             var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);

@@ -29,7 +29,6 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using Greet;
 using Grpc.AspNetCore.FunctionalTests;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
@@ -178,7 +177,7 @@ public class ConnectionTests : FunctionalTestBase
         var socketsHttpHandler = new SocketsHttpHandler
         {
             EnableMultipleHttp2Connections = true,
-            SslOptions = new System.Net.Security.SslClientAuthenticationOptions()
+            SslOptions = new SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback = (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
                 {
@@ -304,6 +303,8 @@ public class ConnectionTests : FunctionalTestBase
             return Task.FromResult(new HelloReply { Message = request.Name });
         }
 
+        // Use localhost.pfx instead of server1.pfx because server1.pfx always reports RemoteCertificateNameMismatch
+        // even after specifying the correct host override.
         var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
         var certPath = Path.Combine(basePath!, "localhost.pfx");
         var cert = new X509Certificate2(certPath, "11111");
@@ -408,7 +409,7 @@ public class ConnectionTests : FunctionalTestBase
         var socketsHttpHandler = new SocketsHttpHandler
         {
             EnableMultipleHttp2Connections = true,
-            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            SslOptions = new SslClientAuthenticationOptions
             {
                 EnabledSslProtocols = SslProtocols.Tls12,
                 RemoteCertificateValidationCallback = (_, __, ___, ____) => true
