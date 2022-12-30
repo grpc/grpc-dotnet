@@ -24,6 +24,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using FunctionalTestsWebsite;
 using Google.Protobuf;
@@ -37,6 +38,7 @@ using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -50,11 +52,12 @@ internal static class BalancerHelpers
         UnaryServerMethod<TRequest, TResponse> callHandler,
         string methodName,
         HttpProtocols? protocols = null,
-        bool? isHttps = null)
+        bool? isHttps = null,
+        X509Certificate2? certificate = null)
         where TRequest : class, IMessage, new()
         where TResponse : class, IMessage, new()
     {
-        var server = CreateServer(port, protocols, isHttps);
+        var server = CreateServer(port, protocols, isHttps, certificate);
         var method = server.DynamicGrpc.AddUnaryMethod(callHandler, methodName);
         var url = server.GetUrl(isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2);
 
@@ -85,7 +88,7 @@ internal static class BalancerHelpers
         }
     }
 
-    public static GrpcTestFixture<Startup> CreateServer(int port, HttpProtocols? protocols = null, bool? isHttps = null)
+    public static GrpcTestFixture<Startup> CreateServer(int port, HttpProtocols? protocols = null, bool? isHttps = null, X509Certificate2? certificate = null)
     {
         var endpointName = isHttps.GetValueOrDefault(false) ? TestServerEndpointName.Http2WithTls : TestServerEndpointName.Http2;
 
@@ -102,9 +105,17 @@ internal static class BalancerHelpers
 
                     if (isHttps.GetValueOrDefault(false))
                     {
-                        var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
-                        var certPath = Path.Combine(basePath!, "server1.pfx");
-                        listenOptions.UseHttps(certPath, "1111");
+                        //listenOptions.UseHttps();
+                        if (certificate == null)
+                        {
+                            var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
+                            var certPath = Path.Combine(basePath!, "server1.pfx");
+                            listenOptions.UseHttps(certPath, "1111");
+                        }
+                        else
+                        {
+                            listenOptions.UseHttps(certificate);
+                        }
                     }
                 });
             },

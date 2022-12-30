@@ -103,7 +103,12 @@ internal sealed class DnsResolver : PollingResolver
 
             DnsResolverLog.ReceivedDnsResults(_logger, addresses.Length, _dnsAddress, addresses);
 
-            var endpoints = addresses.Select(a => new BalancerAddress(a.ToString(), _port)).ToArray();
+            var endpoints = addresses.Select(a =>
+            {
+                var address = new BalancerAddress(a.ToString(), _port);
+                address.Attributes.Set(ConnectionManager.HostOverrideKey, _dnsAddress);
+                return address;
+            }).ToArray();
             var resolverResult = ResolverResult.ForResult(endpoints);
             Listener(resolverResult);
 
