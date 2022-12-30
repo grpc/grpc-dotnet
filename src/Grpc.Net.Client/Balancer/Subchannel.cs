@@ -238,24 +238,34 @@ public sealed class Subchannel : IDisposable
 
     private void CancelInProgressConnect()
     {
-        var connectContext = _connectContext;
-        if (connectContext != null)
+        lock (Lock)
         {
-            lock (Lock)
+            if (_connectContext != null && !_connectContext.Disposed)
             {
+                SubchannelLog.CancelingConnect(_logger, Id);
+
                 // Cancel connect cancellation token.
-                connectContext.CancelConnect();
-                connectContext.Dispose();
+                _connectContext.CancelConnect();
+                _connectContext.Dispose();
             }
+        }
+    }
+
+    private ConnectContext GetConnectContext()
+    {
+        lock (Lock)
+        {
+            // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
+            CancelInProgressConnect();
+
+            var connectContext = _connectContext = new ConnectContext(_transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
+            return connectContext;
         }
     }
 
     private async Task ConnectTransportAsync()
     {
-        // There shouldn't be a previous connect in progress, but cancel the CTS to ensure they're no longer running.
-        CancelInProgressConnect();
-
-        var connectContext = _connectContext = new ConnectContext(_transport.ConnectTimeout ?? Timeout.InfiniteTimeSpan);
+        var connectContext = GetConnectContext();
 
         var backoffPolicy = _manager.BackoffPolicyFactory.Create();
 
@@ -456,7 +466,7 @@ internal static class SubchannelLog
         LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "ConnectCanceled"), "Subchannel id '{SubchannelId}' connect canceled.");
 
     private static readonly Action<ILogger, int, Exception?> _connectError =
-        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' error while connecting to transport.");
+        LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ConnectError"), "Subchannel id '{SubchannelId}' unexpected error while connecting to transport.");
 
     private static readonly Action<ILogger, int, ConnectivityState, string, Exception?> _subchannelStateChanged =
         LoggerMessage.Define<int, ConnectivityState, string>(LogLevel.Debug, new EventId(11, "SubchannelStateChanged"), "Subchannel id '{SubchannelId}' state changed to {State}. Detail: '{Detail}'.");
@@ -475,6 +485,9 @@ internal static class SubchannelLog
 
     private static readonly Action<ILogger, int, BalancerAddress, Exception?> _subchannelPreserved =
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(16, "SubchannelPreserved"), "Subchannel id '{SubchannelId}' matches address '{Address}' and is preserved.");
+
+    private static readonly Action<ILogger, int, Exception?> _cancelingConnect =
+        LoggerMessage.Define<int>(LogLevel.Debug, new EventId(17, "CancelingConnect"), "Subchannel id '{SubchannelId}' canceling connect.");
 
     public static void SubchannelCreated(ILogger logger, int subchannelId, IReadOnlyList<BalancerAddress> addresses)
     {
@@ -558,6 +571,11 @@ internal static class SubchannelLog
     public static void SubchannelPreserved(ILogger logger, int subchannelId, BalancerAddress address)
     {
         _subchannelPreserved(logger, subchannelId, address, null);
+    }
+
+    public static void CancelingConnect(ILogger logger, int subchannelId)
+    {
+        _cancelingConnect(logger, subchannelId, null);
     }
 }
 #endif
