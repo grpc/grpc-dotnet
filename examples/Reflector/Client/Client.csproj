@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
-    <PackageReference Include="Grpc.Reflection" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.Reflection" Version="$(GrpcDotNetPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
   
