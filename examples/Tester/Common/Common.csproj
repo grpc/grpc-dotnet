@@ -9,7 +9,7 @@
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
-    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcPackageVersion)" PrivateAssets="All" />
+    <PackageReference Include="Grpc.Core.Api" Version="$(GrpcDotNetPackageVersion)"/>
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.HealthCheck" Version="$(GrpcPackageVersion)" />
+    <PackageReference Include="Grpc.HealthCheck" Version="$(GrpcDotNetPackageVersion)" />
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Net.Client" Version="$(GrpcDotNetPackageVersion)" />
