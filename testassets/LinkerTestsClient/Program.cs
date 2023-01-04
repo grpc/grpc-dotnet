@@ -19,10 +19,14 @@
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Unimplemented;
 
 namespace Client;
 
+// This app tests clients created directly from channel and clients created from factory.
+// Because of the vagaries of trimming, there is a small chance that testing both in the same app could
+// cause them to work when alone they might fail. Consider splitting into different client apps.
 public class Program
 {
     static async Task<int> Main(string[] args)
@@ -34,9 +38,27 @@ public class Program
                 throw new Exception("Port must be passed as an argument.");
             }
 
-            using var channel = GrpcChannel.ForAddress($"http://localhost:{port}");
-            await CallGreeter(channel);
-            await CallUnimplemented(channel);
+            var address = new Uri($"http://localhost:{port}");
+
+            // Basic channel
+            using var channel = GrpcChannel.ForAddress(address);
+            await CallGreeter(new Greeter.GreeterClient(channel));
+            await CallUnimplemented(new UnimplementedService.UnimplementedServiceClient(channel));
+
+            // Client factory
+            var services = new ServiceCollection();
+            services.AddGrpcClient<Greeter.GreeterClient>(op =>
+            {
+                op.Address = address;
+            });
+            services.AddGrpcClient<UnimplementedService.UnimplementedServiceClient>(op =>
+            {
+                op.Address = address;
+            });
+            var serviceProvider = services.BuildServiceProvider();
+            
+            await CallGreeter(serviceProvider.GetRequiredService<Greeter.GreeterClient>());
+            await CallUnimplemented(serviceProvider.GetRequiredService<UnimplementedService.UnimplementedServiceClient>());
 
             Console.WriteLine("Shutting down");
             return 0;
@@ -48,18 +70,14 @@ public class Program
         }
     }
 
-    private static async Task CallGreeter(GrpcChannel channel)
+    private static async Task CallGreeter(Greeter.GreeterClient client)
     {
-        var client = new Greeter.GreeterClient(channel);
-
         var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
         Console.WriteLine("Greeting: " + reply.Message);
     }
 
-    private static async Task CallUnimplemented(GrpcChannel channel)
+    private static async Task CallUnimplemented(UnimplementedService.UnimplementedServiceClient client)
     {
-        var client = new UnimplementedService.UnimplementedServiceClient(channel);
-
         var reply = client.DuplexData();
 
         try
