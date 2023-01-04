@@ -802,7 +802,12 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         {
             if (_channel.HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
             {
-                return new SocketConnectivitySubchannelTransport(subchannel, TimeSpan.FromSeconds(5), _channel.ConnectTimeout, _channel.LoggerFactory);
+                return new SocketConnectivitySubchannelTransport(
+                    subchannel,
+                    TimeSpan.FromSeconds(5),
+                    _channel.ConnectTimeout,
+                    _channel.LoggerFactory,
+                    socketConnect: null);
             }
 
             return new PassiveSubchannelTransport(subchannel);

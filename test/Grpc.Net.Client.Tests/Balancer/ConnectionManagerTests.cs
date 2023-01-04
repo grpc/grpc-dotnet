@@ -29,6 +29,7 @@ using Grpc.Net.Client.Tests.Infrastructure.Balancer;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using ChannelState = Grpc.Net.Client.Balancer.ChannelState;
 
@@ -161,7 +162,7 @@ public class ClientChannelTests
 
         var transportFactory = new TestSubchannelTransportFactory((s, c) =>
         {
-            return Task.FromException<ConnectivityState>(new Exception("Test error!"));
+            return Task.FromException<TryConnectResult>(new Exception("Test error!"));
         });
         var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
         clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
@@ -308,7 +309,12 @@ public class ClientChannelTests
     {
         // Arrange
         var services = new ServiceCollection();
+
+        var testSink = new TestSink();
+        var testProvider = new TestLoggerProvider(testSink);
+        services.AddLogging(o => o.AddProvider(testProvider));
         services.AddNUnitLogger();
+
         var serviceProvider = services.BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
         var testLogger = loggerFactory.CreateLogger(GetType());
@@ -334,9 +340,9 @@ public class ClientChannelTests
             await syncPoint.WaitToContinue();
 
             c.ThrowIfCancellationRequested();
-            return ConnectivityState.Ready;
+            return new TryConnectResult(ConnectivityState.Ready);
         });
-        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
+        using var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory);
         clientChannel.ConfigureBalancer(c => new PickFirstBalancer(c, loggerFactory));
 
         // Act
@@ -362,6 +368,9 @@ public class ClientChannelTests
 
         var connectAddress2 = await connectAddressesChannel.Reader.ReadAsync().AsTask().DefaultTimeout();
         Assert.AreEqual(81, connectAddress2.Port);
+
+        await TestHelpers.AssertIsTrueRetryAsync(() => testSink.Writes.Any(w => w.EventId.Name == "CancelingConnect"), "Wait for CancelingConnect.").DefaultTimeout();
+        await TestHelpers.AssertIsTrueRetryAsync(() => testSink.Writes.Any(w => w.EventId.Name == "ConnectCanceled"), "Wait for ConnectCanceled.").DefaultTimeout();
     }
 
     [Test]

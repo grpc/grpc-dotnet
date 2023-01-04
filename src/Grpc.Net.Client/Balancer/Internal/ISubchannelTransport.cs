@@ -34,25 +34,32 @@ internal interface ISubchannelTransport : IDisposable
 #endif
 
 #if !NETSTANDARD2_0
-    ValueTask<bool>
+    ValueTask<ConnectResult>
 #else
-    Task<bool>
+    Task<ConnectResult>
 #endif
         TryConnectAsync(ConnectContext context);
 
     void Disconnect();
 }
 
+internal enum ConnectResult
+{
+    Success,
+    Failure,
+    Timeout
+}
+
 internal sealed class ConnectContext
 {
     private readonly CancellationTokenSource _cts;
     private readonly CancellationToken _token;
-    private bool _disposed;
 
     // This flag allows the transport to determine why the cancellation token was canceled.
     // - Explicit cancellation, e.g. the channel was disposed.
     // - Connection timeout, e.g. SocketsHttpHandler.ConnectTimeout was exceeded.
     public bool IsConnectCanceled { get; private set; }
+    public bool Disposed { get; private set; }
 
     public CancellationToken CancellationToken => _token;
 
@@ -67,18 +74,20 @@ internal sealed class ConnectContext
     public void CancelConnect()
     {
         // Check disposed because CTS.Cancel throws if the CTS is disposed.
-        if (!_disposed)
+        if (Disposed)
         {
-            IsConnectCanceled = true;
-            _cts.Cancel();
+            throw new ObjectDisposedException(nameof(ConnectContext));
         }
+
+        IsConnectCanceled = true;
+        _cts.Cancel();
     }
 
     public void Dispose()
     {
         // Dispose the CTS because it could be created with an internal timer.
         _cts.Dispose();
-        _disposed = true;
+        Disposed = true;
     }
 }
 

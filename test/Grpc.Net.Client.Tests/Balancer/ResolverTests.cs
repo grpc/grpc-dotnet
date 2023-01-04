@@ -232,7 +232,7 @@ public class ResolverTests
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory(async (s, c) =>
         {
             await syncPoint.WaitToContinue();
-            return currentConnectivityState;
+            return new TryConnectResult(currentConnectivityState);
         }));
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(firstLoadBalancerFactory));
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(secondLoadBalancerFactory));
