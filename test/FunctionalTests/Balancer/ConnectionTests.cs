@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
@@ -72,18 +73,21 @@ public class ConnectionTests : FunctionalTestBase
         }
 
         // Arrange
-        using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
+        endpoint.Dispose();
 
-        var handler = new SocketsHttpHandler()
-        {
-            // ConnectTimeout is so small that CT will always be canceled before Socket is used.
-            ConnectTimeout = TimeSpan.FromTicks(1),
-        };
-        var channel = GrpcChannel.ForAddress(endpoint.Address, new GrpcChannelOptions()
-        {
-            HttpHandler = handler,
-            LoggerFactory = LoggerFactory
-        });
+        var connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var channel = await BalancerHelpers.CreateChannel(
+            LoggerFactory,
+            new PickFirstConfig(),
+            new[] { endpoint.Address },
+            socketConnect: async (socket, endpoint, cancellationToken) =>
+            {
+                cancellationToken.Register(() => connectTcs.SetCanceled(cancellationToken));
+
+                await connectTcs.Task;
+            },
+            connectTimeout: TimeSpan.FromSeconds(0.5)).DefaultTimeout();
 
         var client = TestClientFactory.Create(channel, endpoint.Method);
 
@@ -115,7 +119,7 @@ public class ConnectionTests : FunctionalTestBase
 
         // Arrange
         using var endpoint = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));
-        
+
         // Dispose endpoint so that channel pauses while attempting to connect to the port.
         endpoint.Dispose();
 

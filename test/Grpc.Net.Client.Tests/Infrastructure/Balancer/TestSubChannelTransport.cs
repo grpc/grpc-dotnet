@@ -33,17 +33,19 @@ internal class TestSubchannelTransport : ISubchannelTransport
     private ConnectivityState _state = ConnectivityState.Idle;
 
     private readonly TaskCompletionSource<object?> _connectTcs;
-    private readonly Func<CancellationToken, Task<ConnectivityState>>? _onTryConnect;
+    private readonly TestSubchannelTransportFactory _factory;
+    private readonly Func<CancellationToken, Task<TryConnectResult>>? _onTryConnect;
 
     public Subchannel Subchannel { get; }
 
     public BalancerAddress? CurrentAddress { get; private set; }
-    public TimeSpan? ConnectTimeout { get; }
+    public TimeSpan? ConnectTimeout => _factory.ConnectTimeout;
 
     public Task TryConnectTask => _connectTcs.Task;
 
-    public TestSubchannelTransport(Subchannel subchannel, Func<CancellationToken, Task<ConnectivityState>>? onTryConnect)
+    public TestSubchannelTransport(TestSubchannelTransportFactory factory, Subchannel subchannel, Func<CancellationToken, Task<TryConnectResult>>? onTryConnect)
     {
+        _factory = factory;
         Subchannel = subchannel;
         _onTryConnect = onTryConnect;
         _connectTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -72,13 +74,13 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
     public async
 #if !NET472
-        ValueTask<bool>
+        ValueTask<ConnectResult>
 #else
-        Task<bool>
+        Task<ConnectResult>
 #endif
         TryConnectAsync(ConnectContext context)
     {
-        var newState = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(ConnectivityState.Ready));
+        var (newState, connectResult) = await (_onTryConnect?.Invoke(context.CancellationToken) ?? Task.FromResult(new TryConnectResult(ConnectivityState.Ready)));
 
         CurrentAddress = Subchannel._addresses[0];
         var newStatus = newState == ConnectivityState.TransientFailure ? new Status(StatusCode.Internal, "") : Status.DefaultSuccess;
@@ -86,7 +88,12 @@ internal class TestSubchannelTransport : ISubchannelTransport
 
         _connectTcs.TrySetResult(null);
 
-        return newState == ConnectivityState.Ready;
+        if (connectResult is null)
+        {
+            return newState == ConnectivityState.Ready ? ConnectResult.Success : ConnectResult.Failure;
+        }
+
+        return connectResult.Value;
     }
 }
 #endif
