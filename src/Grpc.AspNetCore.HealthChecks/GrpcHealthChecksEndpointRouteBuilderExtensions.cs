@@ -16,7 +16,7 @@
 
 #endregion
 
-using Grpc.HealthCheck;
+using Grpc.AspNetCore.HealthChecks.Internal;
 using Microsoft.AspNetCore.Routing;
 
 namespace Microsoft.AspNetCore.Builder;
@@ -39,6 +39,6 @@ public static class GrpcHealthChecksEndpointRouteBuilderExtensions
             throw new ArgumentNullException(nameof(builder));
         }
 
-        return builder.MapGrpcService<HealthServiceImpl>();
+        return builder.MapGrpcService<HealthServiceIntegration>();
     }
 }
