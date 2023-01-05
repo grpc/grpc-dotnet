@@ -16,6 +16,7 @@ Support is provided for the following grpc-dotnet packages:
 * Grpc.AspNetCore.Server.Reflection
 * Grpc.Net.Client
 * Grpc.Net.ClientFactory
+* Grpc.Net.Client.Web
 * Grpc.Net.Common
 * dotnet-grpc
 
