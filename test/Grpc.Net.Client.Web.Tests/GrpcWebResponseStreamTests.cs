@@ -60,7 +60,7 @@ public class GrpcWebResponseStreamTests
     }
 
     [Test]
-    public async Task ReadAsync_EmptyMessage_OneByteBuffer_ParseMessageAndTrailers()
+    public async Task ReadAsync_HasMessage_OneByteBuffer_ParseMessageAndTrailers()
     {
         // Arrange
         var header = new byte[] { 0, 0, 0, 1, 2 };
@@ -104,6 +104,63 @@ public class GrpcWebResponseStreamTests
         Assert.AreEqual(0, read2);
         Assert.AreEqual(1, trailingHeaders.Count());
         Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
+    }
+
+    [Test]
+    public async Task ReadAsync_HasMessage_ZeroAndOneByteBuffer_ParseMessageAndTrailers()
+    {
+        // Arrange
+        var header = new byte[] { 0, 0, 0, 1, 2 };
+        var content = new byte[258];
+        for (var i = 0; i < content.Length; i++)
+        {
+            content[i] = (byte)(i % byte.MaxValue);
+        }
+        var trailer = new byte[] { 128, 0, 0, 0, 16, 13, 10, 103, 114, 112, 99, 45, 115, 116, 97, 116, 117, 115, 58, 32, 48 };
+        var data = header.Concat(content).Concat(trailer).ToArray();
+
+        var trailingHeaders = new TestHttpHeaders();
+        var ms = new MemoryStream(data);
+        var responseStream = new GrpcWebResponseStream(ms, trailingHeaders);
+
+        // Act & Assert header
+        var contentHeaderData = new byte[1];
+
+        Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+        Assert.AreEqual(258, responseStream._contentRemaining);
+        Assert.AreEqual(GrpcWebResponseStream.ResponseState.Content, responseStream._state);
+
+        // Act & Assert content
+        var readContent = new List<byte>();
+        while (responseStream._contentRemaining > 0)
+        {
+            Assert.AreEqual(1, await ZeroAndContentReadAsync(responseStream, contentHeaderData));
+            readContent.Add(contentHeaderData[0]);
+        }
+
+        CollectionAssert.AreEqual(content, readContent);
+
+        // Act trailer
+        var read2 = await ZeroAndContentReadAsync(responseStream, contentHeaderData);
+
+        // Assert trailer
+        Assert.AreEqual(0, read2);
+        Assert.AreEqual(1, trailingHeaders.Count());
+        Assert.AreEqual("0", trailingHeaders.GetValues("grpc-status").Single());
+
+        static async Task<int> ZeroAndContentReadAsync(Stream stream, Memory<byte> data, CancellationToken cancellationToken = default)
+        {
+            // Zero byte read to ensure this works in the current stream state.
+            var zeroRead = await ReadAsync(stream, Memory<byte>.Empty, cancellationToken);
+            Assert.AreEqual(0, zeroRead);
+
+            // Actual read.
+            return await ReadAsync(stream, data, cancellationToken);
+        }
     }
 
     [Test]

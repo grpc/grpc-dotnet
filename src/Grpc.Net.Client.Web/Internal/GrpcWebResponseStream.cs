@@ -31,8 +31,6 @@ namespace Grpc.Net.Client.Web.Internal;
 /// </summary>
 internal class GrpcWebResponseStream : Stream
 {
-    // This uses C# compiler's ability to refer to static data directly. For more information see https://vcsjones.dev/2019/02/01/csharp-readonly-span-bytes-static
-    private static ReadOnlySpan<byte> BytesNewLine => new byte[] { (byte)'\r', (byte)'\n' };
     private const int HeaderLength = 5;
 
     private readonly Stream _inner;
@@ -60,26 +58,24 @@ internal class GrpcWebResponseStream : Stream
 #endif
         var headerBuffer = Memory<byte>.Empty;
 
+        if (data.Length == 0)
+        {
+            // Handle zero byte reads.
+            var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
+            Debug.Assert(read == 0);
+            return 0;
+        }
+
         switch (_state)
         {
             case ResponseState.Ready:
                 {
-                    if (data.Length == 0)
-                    {
-                        // Handle zero byte reads.
-                        var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
-                        Debug.Assert(read == 0);
-                        return 0;
-                    }
-                    else
-                    {
-                        // Read the header first
-                        // - 1 byte flag for compression
-                        // - 4 bytes for the content length
-                        _contentRemaining = HeaderLength;
-                        _state = ResponseState.Header;
-                        goto case ResponseState.Header;
-                    }
+                    // Read the header first
+                    // - 1 byte flag for compression
+                    // - 4 bytes for the content length
+                    _contentRemaining = HeaderLength;
+                    _state = ResponseState.Header;
+                    goto case ResponseState.Header;
                 }
             case ResponseState.Header:
                 {
@@ -151,7 +147,7 @@ internal class GrpcWebResponseStream : Stream
 
                     // The trailer needs to be completely read before returning 0 to the caller.
                     // Ensure buffer is large enough to contain the trailer header.
-                    if (headerBuffer.Length < 5)
+                    if (headerBuffer.Length < HeaderLength)
                     {
                         var newBuffer = new byte[HeaderLength];
                         headerBuffer.CopyTo(newBuffer);
@@ -225,7 +221,7 @@ internal class GrpcWebResponseStream : Stream
         {
             ReadOnlySpan<byte> line;
 
-            var lineEndIndex = remainingContent.IndexOf(BytesNewLine);
+            var lineEndIndex = remainingContent.IndexOf("\r\n"u8);
             if (lineEndIndex == -1)
             {
                 line = remainingContent;
