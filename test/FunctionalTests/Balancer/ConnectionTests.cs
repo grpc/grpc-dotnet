@@ -24,7 +24,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Greet;
@@ -175,7 +177,13 @@ public class ConnectionTests : FunctionalTestBase
         var socketsHttpHandler = new SocketsHttpHandler
         {
             EnableMultipleHttp2Connections = true,
-            SslOptions = new System.Net.Security.SslClientAuthenticationOptions() { RemoteCertificateValidationCallback = (_, __, ___, ____) => true }
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
+                {
+                    return true;
+                }
+            }
         };
         var grpcWebHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, new RequestVersionHandler(socketsHttpHandler));
         var channel = GrpcChannel.ForAddress("static:///localhost", new GrpcChannelOptions
@@ -279,6 +287,101 @@ public class ConnectionTests : FunctionalTestBase
         Assert.AreEqual(new DnsEndPoint("127.0.0.1", 50052), activeStreams[0].Address.EndPoint);
     }
 
+#if NET7_0_OR_GREATER
+    [Test]
+    public async Task Active_UnaryCall_HostOverride_Success()
+    {
+        string? host = null;
+        IPAddress? ipAddress = null;
+        int? port = null;
+        Task<HelloReply> UnaryMethod(HelloRequest request, ServerCallContext context)
+        {
+            host = context.Host;
+            var httpContext = context.GetHttpContext();
+            ipAddress = httpContext.Connection.LocalIpAddress;
+            port = httpContext.Connection.LocalPort;
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
+
+        // Use localhost.pfx instead of server1.pfx because server1.pfx always reports RemoteCertificateNameMismatch
+        // even after specifying the correct host override.
+        var basePath = Path.GetDirectoryName(typeof(InProcessTestServer).Assembly.Location);
+        var certPath = Path.Combine(basePath!, "localhost.pfx");
+        var cert = new X509Certificate2(certPath, "11111");
+
+        // Arrange
+        using var endpoint1 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
+        using var endpoint2 = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50052, UnaryMethod, nameof(UnaryMethod), HttpProtocols.Http1AndHttp2, isHttps: true, certificate: cert);
+
+        var services = new ServiceCollection();
+        services.AddSingleton((ResolverFactory)new StaticResolverFactory(_ => (new[]
+        {
+            CreateAddress(endpoint1.Address, "localhost"),
+            CreateAddress(endpoint2.Address, "localhost")
+        })));
+
+        // Ignore that the cert isn't trusted.
+        var policy = new X509ChainPolicy();
+        policy.RevocationMode = X509RevocationMode.NoCheck;
+        policy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+
+        SslPolicyErrors? callbackPolicyErrors = null;
+        var socketsHttpHandler = new SocketsHttpHandler
+        {
+            SslOptions = new SslClientAuthenticationOptions
+            {
+                CertificateChainPolicy = policy,
+                RemoteCertificateValidationCallback = (object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) =>
+                {
+                    callbackPolicyErrors = sslPolicyErrors;
+                    return true;
+                }
+            }
+        };
+        var channel = GrpcChannel.ForAddress("static:///localhost", new GrpcChannelOptions
+        {
+            LoggerFactory = LoggerFactory,
+            HttpHandler = socketsHttpHandler,
+            ServiceProvider = services.BuildServiceProvider(),
+            Credentials = new SslCredentials(),
+            ServiceConfig = new ServiceConfig
+            {
+                LoadBalancingConfigs = { new RoundRobinConfig() }
+            }
+        });
+
+        await channel.ConnectAsync().DefaultTimeout();
+
+        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+
+        var client = TestClientFactory.Create(channel, endpoint1.Method);
+
+        // Act
+        var ports = new HashSet<int>();
+        for (var i = 0; i < 4; i++)
+        {
+            var response = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
+            Assert.AreEqual("Balancer", response.Message);
+            Assert.AreEqual("localhost", host);
+            Assert.AreEqual(SslPolicyErrors.None, callbackPolicyErrors);
+            Assert.AreEqual(IPAddress.Parse("127.0.0.1"), ipAddress);
+            Assert.IsTrue(port == 50051 || port == 50052);
+
+            ports.Add(port!.Value);
+        }
+
+        Assert.IsTrue(ports.Contains(50051), "Has 50051");
+        Assert.IsTrue(ports.Contains(50052), "Has 50052");
+
+        static BalancerAddress CreateAddress(Uri address, string hostOverride)
+        {
+            var balancerAddress = new BalancerAddress(address.Host, address.Port);
+            balancerAddress.Attributes.Set(ConnectionManager.HostOverrideKey, hostOverride);
+            return balancerAddress;
+        }
+    }
+#endif
+
     [Test]
     public async Task Client_CallCredentials_WithLoadBalancing_RoundtripToken()
     {
@@ -306,7 +409,7 @@ public class ConnectionTests : FunctionalTestBase
         var socketsHttpHandler = new SocketsHttpHandler
         {
             EnableMultipleHttp2Connections = true,
-            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            SslOptions = new SslClientAuthenticationOptions
             {
                 EnabledSslProtocols = SslProtocols.Tls12,
                 RemoteCertificateValidationCallback = (_, __, ___, ____) => true
