@@ -119,6 +119,11 @@ internal class BalancerHttpHandler : DelegatingHandler
             uriBuilder.Host = addressEndpoint.Host;
             uriBuilder.Port = addressEndpoint.Port;
             request.RequestUri = uriBuilder.Uri;
+
+            if (address.Attributes.TryGetValue(ConnectionManager.HostOverrideKey, out var hostOverride))
+            {
+                request.Headers.TryAddWithoutValidation("Host", hostOverride);
+            }
         }
 
 #if NET5_0_OR_GREATER

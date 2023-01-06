@@ -34,6 +34,8 @@ namespace Grpc.Net.Client.Balancer.Internal;
 
 internal sealed class ConnectionManager : IDisposable, IChannelControlHelper
 {
+    public static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
+
     private readonly object _lock;
     internal readonly Resolver _resolver;
     private readonly ISubchannelTransportFactory _subchannelTransportFactory;
