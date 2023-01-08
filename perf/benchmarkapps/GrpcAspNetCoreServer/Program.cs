@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime;
+using System.Runtime.InteropServices;
 using Common;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -96,6 +97,11 @@ public class Program
 
                     // Other gRPC servers don't include a server header
                     options.AddServerHeader = false;
+                });
+
+                webBuilder.UseSockets(options =>
+                {
+                    options.WaitForDataBeforeAllocatingBuffer = false;
                 });
             })
             .ConfigureLogging(loggerFactory =>
