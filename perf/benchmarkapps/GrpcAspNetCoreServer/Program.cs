@@ -97,6 +97,11 @@ public class Program
                     // Other gRPC servers don't include a server header
                     options.AddServerHeader = false;
                 });
+
+                webBuilder.UseSockets(options =>
+                {
+                    options.WaitForDataBeforeAllocatingBuffer = false;
+                });
             })
             .ConfigureLogging(loggerFactory =>
             {
