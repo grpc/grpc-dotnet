@@ -41,7 +41,7 @@ public class SyncPointMemoryStream : Stream
 
     /// <summary>
     /// End stream and wait for at least one more read that returns zero bytes.
-    /// Note that because of zero-byte reads, the stream maybe read multiple times.
+    /// Note that because of zero-byte reads, the stream may be read multiple times.
     /// </summary>
     public Task EndStreamAndWait()
     {
