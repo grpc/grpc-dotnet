@@ -137,7 +137,7 @@ public class AsyncServerStreamingCallTests
         var moveNextTask3 = responseStream.MoveNext(CancellationToken.None);
         Assert.IsFalse(moveNextTask3.IsCompleted);
 
-        await streamContent.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+        await streamContent.EndStreamAndWait().DefaultTimeout();
 
         Assert.IsFalse(await moveNextTask3.DefaultTimeout());
 

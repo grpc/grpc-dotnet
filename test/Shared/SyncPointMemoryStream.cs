@@ -28,6 +28,8 @@ public class SyncPointMemoryStream : Stream
     private SyncPoint _syncPoint;
     private Func<Task> _awaiter;
     private byte[] _currentData;
+    private bool _streamEnded;
+    private bool _streamEndedObserved;
     private Exception? _exception;
 
     public SyncPointMemoryStream(bool runContinuationsAsynchronously = true)
@@ -35,6 +37,17 @@ public class SyncPointMemoryStream : Stream
         _runContinuationsAsynchronously = runContinuationsAsynchronously;
         _currentData = Array.Empty<byte>();
         _awaiter = SyncPoint.Create(out _syncPoint, _runContinuationsAsynchronously);
+    }
+
+    /// <summary>
+    /// End stream and wait for at least one more read that returns zero bytes.
+    /// Note that because of zero-byte reads, the stream may be read multiple times.
+    /// </summary>
+    public Task EndStreamAndWait()
+    {
+        AddDataCore(Array.Empty<byte>());
+        _streamEnded = true;
+        return _awaiter();
     }
 
     /// <summary>
@@ -73,6 +86,12 @@ public class SyncPointMemoryStream : Stream
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
+        if (_streamEndedObserved)
+        {
+            // Stream has ended and ReadAsync has been called again. Just return immediately.
+            return 0;
+        }
+
         // Still have leftover data?
         if (_currentData.Length > 0)
         {
@@ -111,6 +130,10 @@ public class SyncPointMemoryStream : Stream
 
         if (_currentData.Length == 0)
         {
+            if (_streamEnded)
+            {
+                _streamEndedObserved = true;
+            }
             ResetSyncPointAndContinuePrevious();
         }
 

@@ -17,6 +17,8 @@
 #endregion
 
 using System.Buffers.Binary;
+using System.Data;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -29,13 +31,15 @@ namespace Grpc.Net.Client.Web.Internal;
 /// </summary>
 internal class GrpcWebResponseStream : Stream
 {
-    // This uses C# compiler's ability to refer to static data directly. For more information see https://vcsjones.dev/2019/02/01/csharp-readonly-span-bytes-static
-    private static ReadOnlySpan<byte> BytesNewLine => new byte[] { (byte)'\r', (byte)'\n' };
+    private const int HeaderLength = 5;
 
     private readonly Stream _inner;
     private readonly HttpHeaders _responseTrailers;
-    private int _contentRemaining;
-    private ResponseState _state;
+    private byte[]? _headerBuffer;
+
+    // Internal for testing
+    internal ResponseState _state;
+    internal int _contentRemaining;
 
     public GrpcWebResponseStream(Stream inner, HttpHeaders responseTrailers)
     {
@@ -52,59 +56,113 @@ internal class GrpcWebResponseStream : Stream
 #if NETSTANDARD2_0
         var data = buffer.AsMemory(offset, count);
 #endif
+        var headerBuffer = Memory<byte>.Empty;
+
+        if (data.Length == 0)
+        {
+            // Handle zero byte reads.
+            var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
+            Debug.Assert(read == 0);
+            return 0;
+        }
 
         switch (_state)
         {
             case ResponseState.Ready:
-                // Read the header first
-                // - 1 byte flag for compression
-                // - 4 bytes for the content length
-                Memory<byte> headerBuffer;
-
-                if (data.Length >= 5)
                 {
-                    headerBuffer = data.Slice(0, 5);
+                    // Read the header first
+                    // - 1 byte flag for compression
+                    // - 4 bytes for the content length
+                    _contentRemaining = HeaderLength;
+                    _state = ResponseState.Header;
+                    goto case ResponseState.Header;
                 }
-                else
+            case ResponseState.Header:
                 {
-                    // Should never get here. Client always passes 5 to read the header.
-                    throw new InvalidOperationException("Buffer is not large enough for header");
+                    Debug.Assert(_contentRemaining > 0);
+
+                    headerBuffer = data.Length >= _contentRemaining ? data.Slice(0, _contentRemaining) : data;
+                    var success = await TryReadDataAsync(_inner, headerBuffer, cancellationToken).ConfigureAwait(false);
+                    if (!success)
+                    {
+                        return 0;
+                    }
+
+                    // On first read of header data, check first byte to see if this is a trailer.
+                    if (_contentRemaining == HeaderLength)
+                    {
+                        var compressed = headerBuffer.Span[0];
+                        var isTrailer = IsBitSet(compressed, pos: 7);
+                        if (isTrailer)
+                        {
+                            _state = ResponseState.Trailer;
+                            goto case ResponseState.Trailer;
+                        }
+                    }
+
+                    var read = headerBuffer.Length;
+
+                    // The buffer was less than header length either because this is the first read and the passed in buffer is small,
+                    // or it is an additonal read to finish getting header data.
+                    if (headerBuffer.Length < HeaderLength)
+                    {
+                        _headerBuffer ??= new byte[HeaderLength];
+                        headerBuffer.CopyTo(_headerBuffer.AsMemory(HeaderLength - _contentRemaining));
+
+                        _contentRemaining -= headerBuffer.Length;
+                        if (_contentRemaining > 0)
+                        {
+                            return read;
+                        }
+
+                        headerBuffer = _headerBuffer;
+                    }
+
+                    var length = (int)BinaryPrimitives.ReadUInt32BigEndian(headerBuffer.Span.Slice(1));
+
+                    _contentRemaining = length;
+                    // If there is no content then state is reset to ready.
+                    _state = _contentRemaining > 0 ? ResponseState.Content : ResponseState.Ready;
+                    return read;
                 }
-
-                var success = await TryReadDataAsync(_inner, headerBuffer, cancellationToken).ConfigureAwait(false);
-                if (!success)
+            case ResponseState.Content:
                 {
-                    return 0;
+                    if (data.Length >= _contentRemaining)
+                    {
+                        data = data.Slice(0, _contentRemaining);
+                    }
+
+                    var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
+                    _contentRemaining -= read;
+                    if (_contentRemaining == 0)
+                    {
+                        _state = ResponseState.Ready;
+                    }
+
+                    return read;
                 }
-
-                var compressed = headerBuffer.Span[0];
-                var length = (int)BinaryPrimitives.ReadUInt32BigEndian(headerBuffer.Span.Slice(1));
-
-                var isTrailer = IsBitSet(compressed, pos: 7);
-                if (isTrailer)
+            case ResponseState.Trailer:
                 {
+                    Debug.Assert(headerBuffer.Length > 0);
+
+                    // The trailer needs to be completely read before returning 0 to the caller.
+                    // Ensure buffer is large enough to contain the trailer header.
+                    if (headerBuffer.Length < HeaderLength)
+                    {
+                        var newBuffer = new byte[HeaderLength];
+                        headerBuffer.CopyTo(newBuffer);
+                        var success = await TryReadDataAsync(_inner, newBuffer.AsMemory(headerBuffer.Length), cancellationToken).ConfigureAwait(false);
+                        if (!success)
+                        {
+                            return 0;
+                        }
+                        headerBuffer = newBuffer;
+                    }
+                    var length = (int)BinaryPrimitives.ReadUInt32BigEndian(headerBuffer.Span.Slice(1));
+
                     await ReadTrailersAsync(length, data, cancellationToken).ConfigureAwait(false);
                     return 0;
                 }
-
-                _contentRemaining = length;
-                // If there is no content then state is still ready
-                _state = _contentRemaining > 0 ? ResponseState.Content : ResponseState.Ready;
-                return 5;
-            case ResponseState.Content:
-                if (data.Length >= _contentRemaining)
-                {
-                    data = data.Slice(0, _contentRemaining);
-                }
-
-                var read = await StreamHelpers.ReadAsync(_inner, data, cancellationToken).ConfigureAwait(false);
-                _contentRemaining -= read;
-                if (_contentRemaining == 0)
-                {
-                    _state = ResponseState.Ready;
-                }
-
-                return read;
             default:
                 throw new InvalidOperationException("Unexpected state.");
         }
@@ -163,7 +221,7 @@ internal class GrpcWebResponseStream : Stream
         {
             ReadOnlySpan<byte> line;
 
-            var lineEndIndex = remainingContent.IndexOf(BytesNewLine);
+            var lineEndIndex = remainingContent.IndexOf("\r\n"u8);
             if (lineEndIndex == -1)
             {
                 line = remainingContent;
@@ -257,10 +315,12 @@ internal class GrpcWebResponseStream : Stream
         throw new InvalidDataException("Unexpected end of content while reading response stream.");
     }
 
-    private enum ResponseState
+    internal enum ResponseState
     {
         Ready,
+        Header,
         Content,
+        Trailer,
         Complete
     }
 

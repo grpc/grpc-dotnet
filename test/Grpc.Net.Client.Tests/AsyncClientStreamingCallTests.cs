@@ -209,7 +209,7 @@ public class AsyncClientStreamingCallTests
         {
             Message = "Hello world 1"
         }).DefaultTimeout()).DefaultTimeout();
-        await streamContent.AddDataAndWait(Array.Empty<byte>());
+        await streamContent.EndStreamAndWait();
 
         var result = await resultTask.DefaultTimeout();
         Assert.AreEqual("Hello world 1", result.Message);
