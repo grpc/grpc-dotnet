@@ -22,7 +22,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using Grpc.Core;
-using Grpc.Net.Client.Internal;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +29,7 @@ using Microsoft.Extensions.Logging;
 using ValueTask = System.Threading.Tasks.Task;
 #endif
 
-namespace Grpc.Net.Client;
+namespace Grpc.Net.Client.Internal;
 
 internal static partial class StreamExtensions
 {
