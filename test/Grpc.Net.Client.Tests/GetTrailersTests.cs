@@ -359,7 +359,7 @@ public class GetTrailersTests
 
                 var messageData = await ClientTestHelpers.GetResponseDataAsync(new HelloReply { Message = "Hello world" }).DefaultTimeout();
                 await stream.AddDataAndWait(messageData).DefaultTimeout();
-                await stream.AddDataAndWait(Array.Empty<byte>()).DefaultTimeout();
+                await stream.EndStreamAndWait().DefaultTimeout();
 
                 response.TrailingHeaders().Add("custom-header", "value");
                 trailingHeadersWrittenTcs.SetResult(true);
