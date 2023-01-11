@@ -16,7 +16,6 @@
 
 #endregion
 
-
 namespace Grpc.Net.Client.Internal;
 
 internal static class RuntimeHelpers
