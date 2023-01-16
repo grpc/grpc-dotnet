@@ -55,4 +55,15 @@ internal static class CompatibilityHelpers
         }
     }
 #endif
+
+    public static CancellationTokenRegistration RegisterWithCancellationTokenCallback(CancellationToken cancellationToken, Action<object?, CancellationToken> callback, object? state)
+    {
+        return cancellationToken.Register(
+#if NET6_0_OR_GREATER
+            callback
+#else
+            (state) => callback(state, cancellationToken)
+#endif
+            , state);
+    }
 }

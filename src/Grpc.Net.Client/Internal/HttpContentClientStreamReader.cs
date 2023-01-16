@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
@@ -70,6 +71,11 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
             }
             else
             {
+                if (_call.Options.CancellationToken.IsCancellationRequested)
+                {
+                    return Task.FromCanceled<bool>(_call.Options.CancellationToken);
+                }
+
                 return Task.FromCanceled<bool>(_call.CancellationToken);
             }
         }
@@ -174,6 +180,8 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
         }
         catch (OperationCanceledException ex)
         {
+            var resolvedCanceledException = _call.EnsureUserCancellationTokenReported(ex, cancellationToken);
+
             if (_call.ResponseFinished)
             {
                 // Call status will have been set before dispose.
@@ -186,16 +194,17 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
             }
             else
             {
-                _call.ResponseStreamEnded(new Status(StatusCode.Cancelled, ex.Message, ex), finishedGracefully: false);
+                _call.ResponseStreamEnded(new Status(StatusCode.Cancelled, ex.Message, resolvedCanceledException), finishedGracefully: false);
             }
 
             if (!_call.Channel.ThrowOperationCanceledOnCancellation)
             {
-                throw _call.CreateCanceledStatusException(ex);
+                throw _call.CreateCanceledStatusException(resolvedCanceledException);
             }
             else
             {
-                throw;
+                ExceptionDispatchInfo.Capture(resolvedCanceledException).Throw();
+                return false; // Won't reach here.
             }
         }
         catch (Exception ex)

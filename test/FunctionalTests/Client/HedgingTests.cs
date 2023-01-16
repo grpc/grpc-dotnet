@@ -861,7 +861,7 @@ public class HedgingTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
 
         var call = client.ClientStreamingCall();
 
@@ -875,6 +875,7 @@ public class HedgingTests : FunctionalTestBase
         if (throwOperationCanceledOnCancellation)
         {
             var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => writeTask).DefaultTimeout();
+            Assert.AreEqual(cts.Token, ex.CancellationToken);
             Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         }
         else

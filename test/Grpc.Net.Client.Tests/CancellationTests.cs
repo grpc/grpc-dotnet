@@ -90,7 +90,7 @@ public class CancellationTests
 
         cts.Cancel();
 
-        var ex = await ExceptionAssert.ThrowsAsync<TaskCanceledException>(() => responseTask).DefaultTimeout();
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => responseTask).DefaultTimeout();
         Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
         Assert.AreEqual("Call canceled by the client.", call.GetStatus().Detail);
     }
