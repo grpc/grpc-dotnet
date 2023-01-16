@@ -58,6 +58,8 @@ internal static class CompatibilityHelpers
 
     public static CancellationTokenRegistration RegisterWithCancellationTokenCallback(CancellationToken cancellationToken, Action<object?, CancellationToken> callback, object? state)
     {
+        // Register overload that provides the CT to the callback required .NET 6 or greater.
+        // Fallback to creating a closure in older platforms.
         return cancellationToken.Register(
 #if NET6_0_OR_GREATER
             callback
