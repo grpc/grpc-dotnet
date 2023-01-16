@@ -318,7 +318,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
             call.TryRegisterCancellation(cancellationToken, out var registration);
             try
             {
-                await call.WriteClientStreamAsync(WriteNewMessage, message).ConfigureAwait(false);
+                await call.WriteClientStreamAsync(WriteNewMessage, message, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

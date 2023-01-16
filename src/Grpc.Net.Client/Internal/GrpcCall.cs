@@ -763,9 +763,11 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         {
             return Options.CancellationToken;
         }
-
-        CompatibilityHelpers.Assert(CancellationToken.IsCancellationRequested);
-        return CancellationToken;
+        else if (CancellationToken.IsCancellationRequested)
+        {
+            return CancellationToken;
+        }
+        return CancellationToken.None;
     }
 
     private void SetFailedResult(Status status)
