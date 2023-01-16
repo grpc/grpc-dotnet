@@ -60,12 +60,10 @@ internal static class CompatibilityHelpers
     {
         // Register overload that provides the CT to the callback required .NET 6 or greater.
         // Fallback to creating a closure in older platforms.
-        return cancellationToken.Register(
 #if NET6_0_OR_GREATER
-            callback
+        return cancellationToken.Register(callback, state);
 #else
-            (state) => callback(state, cancellationToken)
+        return cancellationToken.Register((state) => callback(state, cancellationToken), state);
 #endif
-            , state);
     }
 }
