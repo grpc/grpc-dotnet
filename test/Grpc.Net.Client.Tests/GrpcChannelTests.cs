@@ -415,6 +415,8 @@ public class GrpcChannelTests
             services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
 
             HttpMessageHandler handler = new HttpClientHandler();
+
+            // Add an extra handler to verify that test successfully recurses down custom handlers.
             if (useDelegatingHandlers)
             {
                 handler = new TestDelegatingHandler(handler);
@@ -456,11 +458,13 @@ public class GrpcChannelTests
             services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
 
             HttpMessageHandler handler = new HttpClientHandler();
+            handler = new GrpcWebHandler(handler);
+
+            // Add an extra handler to verify that test successfully recurses down custom handlers.
             if (useDelegatingHandlers)
             {
                 handler = new TestDelegatingHandler(handler);
             }
-            handler = new GrpcWebHandler(handler);
 
             var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
             {
