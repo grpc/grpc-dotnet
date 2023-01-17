@@ -18,6 +18,7 @@
 
 namespace Grpc.Net.Client.Web;
 
+// Use a GrpcWebHandler type here with the same name and namespace because Grpc.Net.Client.Tests doesn't reference Grpc.Net.Client.Web.
 public class GrpcWebHandler : DelegatingHandler
 {
     public GrpcWebHandler(HttpMessageHandler innerHandler) : base(innerHandler)
