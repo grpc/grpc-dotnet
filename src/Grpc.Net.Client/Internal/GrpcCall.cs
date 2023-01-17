@@ -734,7 +734,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         return false;
     }
 
-    // Report correct CancellationToken. This method creates and throws a new OperationCanceledException with a different CancellationToken.
+    // Report correct CancellationToken. This method creates a new OperationCanceledException with a different CancellationToken.
     // It attempts to preserve the original stack trace using ExceptionDispatchInfo where available.
 #if NET6_0_OR_GREATER
     [StackTraceHidden]
