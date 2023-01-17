@@ -25,6 +25,7 @@ public class ClientOptions
     public Uri? Url { get; set; }
 #if NET5_0_OR_GREATER
     public string? UdsFileName { get; set; }
+    public string? NamedPipeName { get; set; }
 #endif
     public int Connections { get; set; }
     public int Warmup { get; set; }

@@ -8,12 +8,19 @@ View the latest results [here](https://msit.powerbi.com/view?r=eyJrIjoiYTZjMTk3Y
 
 The benchmark environment runs the tests using `qps_json_driver`. The driver is a C++ app in https://github.com/grpc/grpc repo that is only buildable on Unix based operating systems.
 
-Because the driver is challenging to get setup, the benchmarks can be run locally from the command line for quick testing. Note that there can be some differences in behavior. 
+Because the driver is challenging to get setup, the benchmarks can be run locally from the command line for quick testing. Note that there can be some differences in behavior.
 
-Example of running client using Grpc.Net.Client against Grpc.AspNetCore server:
+Examples of running client using Grpc.Net.Client against Grpc.AspNetCore server
+
+### TCP sockets
 
 1. **Launch server:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcAspNetCoreServer\ --protocol h2c
 2. **Launch client:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcClient\ -- -u http://localhost:5000 -c 10 --streams 50 -s unary -p h2c --grpcClientType grpcnetclient
+
+### Named pipes
+
+1. **Launch server:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcAspNetCoreServer\ --protocol h2c --namedPipeName PerfPipe
+2. **Launch client:** dotnet run -c Release --project .\perf\benchmarkapps\GrpcClient\ -- -u http://localhost:5000 -c 10 --streams 50 -s unary -p h2c --grpcClientType grpcnetclient --namedPipeName PerfPipe
 
 ## QpsWorker
 
