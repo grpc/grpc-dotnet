@@ -439,8 +439,10 @@ public class CancellationTests : FunctionalTestBase
     public async Task Unary_CancellationAfterDelay_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
         async Task<DataMessage> UnaryMethod(DataMessage request, ServerCallContext context)
         {
+            cts.Cancel();
             await tcs.Task;
             return new DataMessage();
         }
@@ -456,8 +458,6 @@ public class CancellationTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
-
         var call = client.UnaryCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
 
         // Assert
@@ -502,8 +502,10 @@ public class CancellationTests : FunctionalTestBase
     public async Task ServerStreaming_CancellationAfterDelay_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
         async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
         {
+            cts.Cancel();
             await tcs.Task;
         }
 
@@ -518,7 +520,6 @@ public class CancellationTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
 
         var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
 
@@ -563,8 +564,10 @@ public class CancellationTests : FunctionalTestBase
     public async Task ServerStreaming_MoveNext_CancellationAfterDelay_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
         async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
         {
+            cts.Cancel();
             await tcs.Task;
         }
 
@@ -579,8 +582,6 @@ public class CancellationTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
-
         var call = client.ServerStreamingCall(new DataMessage());
 
         // Assert
@@ -624,8 +625,10 @@ public class CancellationTests : FunctionalTestBase
     public async Task ClientStreaming_CancellationAfterDelay_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
         async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<DataMessage> reader, ServerCallContext context)
         {
+            cts.Cancel();
             await tcs.Task;
             return new DataMessage();
         }
@@ -641,8 +644,6 @@ public class CancellationTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
-
         var call = client.ClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
 
         // Assert
@@ -690,8 +691,10 @@ public class CancellationTests : FunctionalTestBase
     public async Task ClientStreaming_WriteAsync_CancellationAfterDelay_TokenMatchesSource()
     {
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
         async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<DataMessage> reader, ServerCallContext context)
         {
+            cts.Cancel();
             await tcs.Task;
             return new DataMessage();
         }
@@ -707,8 +710,6 @@ public class CancellationTests : FunctionalTestBase
         var client = TestClientFactory.Create(channel, method);
 
         // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
-
         var call = client.ClientStreamingCall();
 
         // Assert
