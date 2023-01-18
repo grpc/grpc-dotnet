@@ -69,8 +69,9 @@ internal static class GrpcProtocolConstants
 
     internal static readonly Status DeadlineExceededStatus = new Status(StatusCode.DeadlineExceeded, string.Empty);
     internal static readonly Status ThrottledStatus = new Status(StatusCode.Cancelled, "Retries stopped because retry throttling is active.");
-    internal static readonly Status ClientCanceledStatus = new Status(StatusCode.Cancelled, "Call canceled by the client.");
-    internal static readonly Status DisposeCanceledStatus = new Status(StatusCode.Cancelled, "gRPC call disposed.");
+
+    internal static Status CreateClientCanceledStatus(Exception? exception) => new Status(StatusCode.Cancelled, "Call canceled by the client.", exception);
+    internal static Status CreateDisposeCanceledStatus(Exception? exception) => new Status(StatusCode.Cancelled, "gRPC call disposed.", exception);
 
     internal static string GetMessageAcceptEncoding(Dictionary<string, ICompressionProvider> compressionProviders)
     {

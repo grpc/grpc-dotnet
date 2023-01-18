@@ -429,7 +429,7 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
                         registrations.Add(registration.Value);
                     }
 
-                    var writeTask = c.WriteClientStreamAsync(WriteNewMessage, message);
+                    var writeTask = c.WriteClientStreamAsync(WriteNewMessage, message, cancellationToken);
 
                     writeTasks.Add(writeTask);
                 }

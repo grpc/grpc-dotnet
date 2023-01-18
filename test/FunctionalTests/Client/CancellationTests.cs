@@ -16,7 +16,9 @@
 
 #endregion
 
+using System.Threading.Tasks;
 using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
@@ -431,5 +433,351 @@ public class CancellationTests : FunctionalTestBase
         await TestHelpers.AssertIsTrueRetryAsync(
             () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'Call canceled by the client.'."),
             "Missing client cancellation log.").DefaultTimeout();
+    }
+
+    [Test]
+    public async Task Unary_CancellationDuringCall_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
+        async Task<DataMessage> UnaryMethod(DataMessage request, ServerCallContext context)
+        {
+            cts.Cancel();
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.UnaryCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task Unary_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> UnaryMethod(DataMessage request, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<DataMessage, DataMessage>(UnaryMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.UnaryCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ServerStreaming_CancellationDuringCall_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
+        async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
+        {
+            cts.Cancel();
+            await tcs.Task;
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+
+        var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ServerStreaming_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
+        {
+            await tcs.Task;
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.ServerStreamingCall(new DataMessage(), new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ServerStreaming_MoveNext_CancellationDuringCall_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cts = new CancellationTokenSource();
+        async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
+        {
+            cts.Cancel();
+            await tcs.Task;
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.ServerStreamingCall(new DataMessage());
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseStream.MoveNext(cts.Token)).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ServerStreaming_MoveNext_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task ServerStreamingMethod(DataMessage request, IServerStreamWriter<DataMessage> writer, ServerCallContext context)
+        {
+            await tcs.Task;
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.ServerStreamingCall(new DataMessage());
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.ResponseStream.MoveNext(cts.Token)).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    // Support calling custom code when writing a message.
+    private class SerializationCallbackMessage : IMessage
+    {
+        public DataMessage DataMessage { get; private set; }
+        public Action? WriteCallback { get; set; }
+        public MessageDescriptor Descriptor => DataMessage.Descriptor;
+
+        public SerializationCallbackMessage()
+        {
+            DataMessage = new DataMessage();
+        }
+
+        public int CalculateSize() => DataMessage.CalculateSize();
+
+        public void MergeFrom(CodedInputStream input)
+        {
+            DataMessage.MergeFrom(input);
+        }
+
+        public void WriteTo(CodedOutputStream output)
+        {
+            WriteCallback?.Invoke();
+            DataMessage.WriteTo(output);
+        }
+    }
+
+    [Test]
+    public async Task ClientStreaming_CancellationDuringWrite_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<SerializationCallbackMessage> reader, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<SerializationCallbackMessage, DataMessage>(ClientStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        var cts = new CancellationTokenSource();
+        var message = new SerializationCallbackMessage { WriteCallback = cts.Cancel };
+
+        // Act
+        var call = client.ClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await call.RequestStream.WriteAsync(message);
+        }).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ClientStreaming_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<DataMessage> reader, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.ClientStreamingCall(new CallOptions(cancellationToken: cts.Token));
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new DataMessage())).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ClientStreaming_WriteAsync_CancellationDuringWrite_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<SerializationCallbackMessage> reader, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<SerializationCallbackMessage, DataMessage>(ClientStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        var cts = new CancellationTokenSource();
+        var message = new SerializationCallbackMessage { WriteCallback = cts.Cancel };
+
+        // Act
+        var call = client.ClientStreamingCall();
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await call.RequestStream.WriteAsync(message, cts.Token);
+        }).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
+    }
+
+    [Test]
+    public async Task ClientStreaming_WriteAsync_CancellationImmediately_TokenMatchesSource()
+    {
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task<DataMessage> ClientStreamingMethod(IAsyncStreamReader<DataMessage> reader, ServerCallContext context)
+        {
+            await tcs.Task;
+            return new DataMessage();
+        }
+
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddClientStreamingMethod<DataMessage, DataMessage>(ClientStreamingMethod);
+        var channel = CreateChannel(throwOperationCanceledOnCancellation: true);
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var call = client.ClientStreamingCall();
+
+        // Assert
+        var ex = await ExceptionAssert.ThrowsAsync<OperationCanceledException>(() => call.RequestStream.WriteAsync(new DataMessage(), cts.Token)).DefaultTimeout();
+        Assert.AreEqual(cts.Token, ex.CancellationToken);
+        Assert.AreEqual(StatusCode.Cancelled, call.GetStatus().StatusCode);
     }
 }

@@ -317,6 +317,13 @@ internal static partial class StreamExtensions
         catch (Exception ex)
         {
             GrpcCallLog.ErrorSendingMessage(call.Logger, ex);
+
+            // Cancellation from disposing response while waiting for WriteAsync can throw ObjectDisposedException.
+            if (ex is ObjectDisposedException && call.CancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException();
+            }
+
             throw;
         }
         finally

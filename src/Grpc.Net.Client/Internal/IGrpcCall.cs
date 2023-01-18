@@ -44,7 +44,8 @@ internal interface IGrpcCall<TRequest, TResponse> : IDisposable
 
     Task WriteClientStreamAsync<TState>(
         Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc,
-        TState state);
+        TState state,
+        CancellationToken cancellationToken);
 
     Exception CreateFailureStatusException(Status status);
 

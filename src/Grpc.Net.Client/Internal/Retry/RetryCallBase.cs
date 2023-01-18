@@ -392,7 +392,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
         }
     }
 
-    Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    Task IGrpcCall<TRequest, TResponse>.WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationTokens)
     {
         throw new NotSupportedException();
     }
@@ -504,7 +504,7 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
             else
             {
                 commitReason = CommitReason.Canceled;
-                resolvedCall = CreateStatusCall(Disposed ? GrpcProtocolConstants.DisposeCanceledStatus : GrpcProtocolConstants.ClientCanceledStatus);
+                resolvedCall = CreateStatusCall(Disposed ? GrpcProtocolConstants.CreateDisposeCanceledStatus(ex) : GrpcProtocolConstants.CreateClientCanceledStatus(ex));
             }
         }
         else
