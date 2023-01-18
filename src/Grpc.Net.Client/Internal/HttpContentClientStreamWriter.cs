@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Runtime.ExceptionServices;
 using Grpc.Core;
 using Grpc.Shared;
 using Log = Grpc.Net.Client.Internal.ClientStreamWriterBaseLog;
@@ -96,7 +97,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
         try
         {
-            await WriteAsync(WriteMessageToStream, message).ConfigureAwait(false);
+            await WriteAsync(WriteMessageToStream, message, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -109,7 +110,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
         }
     }
 
-    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    public Task WriteAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
     {
         _call.EnsureNotDisposed();
 
@@ -132,7 +133,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
                         _call.Channel.ThrowOperationCanceledOnCancellation &&
                         (status.StatusCode == StatusCode.Cancelled || status.StatusCode == StatusCode.DeadlineExceeded))
                     {
-                        return Task.FromCanceled(_call.CancellationToken);
+                        return Task.FromCanceled(_call.GetCanceledToken(cancellationToken));
                     }
 
                     return Task.FromException(_call.CreateCanceledStatusException());
@@ -145,7 +146,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
                 }
 
                 // Save write task to track whether it is complete. Must be set inside lock.
-                WriteTask = WriteAsyncCore(writeFunc, state);
+                WriteTask = WriteAsyncCore(writeFunc, state, cancellationToken);
             }
         }
 
@@ -154,7 +155,7 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
     public GrpcCall<TRequest, TResponse> Call => _call;
 
-    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    public async Task WriteAsyncCore<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
     {
         try
         {
@@ -176,9 +177,14 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
             GrpcEventSource.Log.MessageSent();
         }
-        catch (OperationCanceledException ex) when (!_call.Channel.ThrowOperationCanceledOnCancellation)
+        catch (OperationCanceledException ex)
         {
-            throw _call.CreateCanceledStatusException(ex);
+            var resolvedCanceledException = _call.EnsureUserCancellationTokenReported(ex, cancellationToken);
+            if (!_call.Channel.ThrowOperationCanceledOnCancellation)
+            {
+                throw _call.CreateCanceledStatusException(resolvedCanceledException);
+            }
+            ExceptionDispatchInfo.Capture(resolvedCanceledException).Throw();
         }
     }
 }

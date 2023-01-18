@@ -23,7 +23,7 @@ using Grpc.Core;
 using Grpc.Net.Client.Internal.Http;
 using Grpc.Shared;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
+using System.Runtime.ExceptionServices;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer.Internal;
 #endif
@@ -179,7 +179,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         {
             Disposed = true;
 
-            Cleanup(GrpcProtocolConstants.DisposeCanceledStatus);
+            Cleanup(GrpcProtocolConstants.CreateDisposeCanceledStatus(exception: null));
 
             // If the call was disposed then observe any potential response exception.
             // Observe the task's exception to prevent TaskScheduler.UnobservedTaskException from firing.
@@ -385,9 +385,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         // 2. The token isn't the same one used in CallOptions. Already listening for its cancellation.
         if (cancellationToken.CanBeCanceled && cancellationToken != Options.CancellationToken)
         {
-            cancellationTokenRegistration = cancellationToken.Register(
-                static (state) => ((GrpcCall<TRequest, TResponse>)state!).CancelCallFromCancellationToken(),
-                this);
+            cancellationTokenRegistration = RegisterCancellation(cancellationToken);
             return true;
         }
 
@@ -395,11 +393,23 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         return false;
     }
 
-    private void CancelCallFromCancellationToken()
+    private CancellationTokenRegistration RegisterCancellation(CancellationToken cancellationToken)
+    {
+        return CompatibilityHelpers.RegisterWithCancellationTokenCallback(
+            cancellationToken,
+            static (state, ct) =>
+            {
+                var call = (GrpcCall<TRequest, TResponse>)state!;
+                call.CancelCallFromCancellationToken(ct);
+            },
+            this);
+    }
+
+    private void CancelCallFromCancellationToken(CancellationToken cancellationToken)
     {
         using (StartScope())
         {
-            CancelCall(GrpcProtocolConstants.ClientCanceledStatus);
+            CancelCall(GrpcProtocolConstants.CreateClientCanceledStatus(new OperationCanceledException(cancellationToken)));
         }
     }
 
@@ -673,6 +683,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     {
         if (ex is OperationCanceledException)
         {
+            ex = EnsureUserCancellationTokenReported(ex, CancellationToken.None);
             status = (CallTask.IsCompletedSuccessfully()) ? CallTask.Result : new Status(StatusCode.Cancelled, string.Empty, ex);
             if (!Channel.ThrowOperationCanceledOnCancellation)
             {
@@ -721,6 +732,43 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
         resolvedException = ex;
         return false;
+    }
+
+    // Report correct CancellationToken. This method creates a new OperationCanceledException with a different CancellationToken.
+    // It attempts to preserve the original stack trace using ExceptionDispatchInfo where available.
+#if NET6_0_OR_GREATER
+    [StackTraceHidden]
+#endif
+    public Exception EnsureUserCancellationTokenReported(Exception ex, CancellationToken cancellationToken)
+    {
+        var token = GetCanceledToken(cancellationToken);
+        if (token != CancellationToken)
+        {
+#if NET6_0_OR_GREATER
+            return ExceptionDispatchInfo.SetCurrentStackTrace(new OperationCanceledException(ex.Message, ex, token));
+#else
+            return new OperationCanceledException(ex.Message, ex, token);
+#endif
+        }
+
+        return ex;
+    }
+
+    public CancellationToken GetCanceledToken(CancellationToken methodCancellationToken)
+    {
+        if (methodCancellationToken.IsCancellationRequested)
+        {
+            return methodCancellationToken;
+        }
+        else if (Options.CancellationToken.IsCancellationRequested)
+        {
+            return Options.CancellationToken;
+        }
+        else if (CancellationToken.IsCancellationRequested)
+        {
+            return CancellationToken;
+        }
+        return CancellationToken.None;
     }
 
     private void SetFailedResult(Status status)
@@ -810,9 +858,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             // The cancellation token will cancel the call CTS.
             // This must be registered after the client writer has been created
             // so that cancellation will always complete the writer.
-            _ctsRegistration = Options.CancellationToken.Register(
-                static (state) => ((GrpcCall<TRequest, TResponse>)state!).CancelCallFromCancellationToken(),
-                this);
+            _ctsRegistration = RegisterCancellation(Options.CancellationToken);
         }
 
         return (diagnosticSourceEnabled, activity);
@@ -1102,9 +1148,9 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             cancellationToken);
     }
 
-    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state)
+    public Task WriteClientStreamAsync<TState>(Func<GrpcCall<TRequest, TResponse>, Stream, CallOptions, TState, ValueTask> writeFunc, TState state, CancellationToken cancellationToken)
     {
-        return ClientStreamWriter!.WriteAsync(writeFunc, state);
+        return ClientStreamWriter!.WriteAsync(writeFunc, state, cancellationToken);
     }
 
 #if NET5_0_OR_GREATER
