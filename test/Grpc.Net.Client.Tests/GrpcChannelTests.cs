@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using Grpc.Net.Client.Internal;
-using System.Net;
+using Grpc.Net.Client.Web;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
@@ -402,7 +402,7 @@ public class GrpcChannelTests
         Assert.AreEqual(0, channel.ActiveCalls.Count);
     }
 
-    [TestCase(null)]
+    [TestCase(true)]
     [TestCase(false)]
     public void HttpHandler_HttpClientHandlerOverNativeOnAndroid_ThrowError(bool useDelegatingHandlers)
     {
@@ -415,6 +415,8 @@ public class GrpcChannelTests
             services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
 
             HttpMessageHandler handler = new HttpClientHandler();
+
+            // Add an extra handler to verify that test successfully recurses down custom handlers.
             if (useDelegatingHandlers)
             {
                 handler = new TestDelegatingHandler(handler);
@@ -435,6 +437,43 @@ public class GrpcChannelTests
                 "To fix this problem, either configure the channel to use SocketsHttpHandler, or add " +
                 "<UseNativeHttpHandler>false</UseNativeHttpHandler> to the app's project file. " +
                 "For more information, see https://aka.ms/aspnet/grpc/android.");
+        }
+        finally
+        {
+            // Reset switch for other tests.
+            AppContext.SetSwitch("System.Net.Http.UseNativeHttpHandler", false);
+        }
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void HttpHandler_HttpClientHandlerOverNativeOnAndroid_HasGrpcWebHandler_ThrowError(bool useDelegatingHandlers)
+    {
+        // Arrange
+        AppContext.SetSwitch("System.Net.Http.UseNativeHttpHandler", true);
+
+        try
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton<IOperatingSystem>(new TestOperatingSystem { IsAndroid = true });
+
+            HttpMessageHandler handler = new HttpClientHandler();
+            handler = new GrpcWebHandler(handler);
+
+            // Add an extra handler to verify that test successfully recurses down custom handlers.
+            if (useDelegatingHandlers)
+            {
+                handler = new TestDelegatingHandler(handler);
+            }
+
+            var channel = GrpcChannel.ForAddress("https://localhost", new GrpcChannelOptions
+            {
+                HttpHandler = handler,
+                ServiceProvider = services.BuildServiceProvider()
+            });
+
+            // Assert
+            Assert.IsTrue(channel.OperatingSystem.IsAndroid);
         }
         finally
         {

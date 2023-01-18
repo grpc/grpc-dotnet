@@ -431,13 +431,15 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             // in advanced gRPC scenarios. We want Android to use SocketsHttpHandler. Throw an error if:
             // 1. Client is running on Android.
             // 2. Channel is created with HttpClientHandler.
-            // 3. UseNativeHttpHandler switch is true.
+            // 3. Channel is not using GrpcWebHandler. grpc-web is compatible with the native handler.
+            // 4. UseNativeHttpHandler switch is true.
             if (OperatingSystem.IsAndroid)
             {
                 // GetHttpHandlerType recurses through DelegatingHandlers that may wrap the HttpClientHandler.
                 var httpClientHandler = HttpRequestHelpers.GetHttpHandlerType<HttpClientHandler>(handler);
+                var grpcWebHandler = HttpRequestHelpers.GetHttpHandlerType(handler, "Grpc.Net.Client.Web.GrpcWebHandler");
 
-                if (httpClientHandler != null && RuntimeHelpers.QueryRuntimeSettingSwitch("System.Net.Http.UseNativeHttpHandler", defaultValue: false))
+                if (httpClientHandler != null && grpcWebHandler == null && RuntimeHelpers.QueryRuntimeSettingSwitch("System.Net.Http.UseNativeHttpHandler", defaultValue: false))
                 {
                     throw new InvalidOperationException("The channel configuration isn't valid on Android devices. " +
                         "The channel is configured to use HttpClientHandler and Android's native HTTP/2 library. " +
