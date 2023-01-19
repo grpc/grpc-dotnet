@@ -20,10 +20,6 @@
 
     <IsTrimmable>true</IsTrimmable>
     <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
-
-    <!-- .NET 8 issue. Unable to trim netstandard2.1 projects. See https://github.com/dotnet/linker/issues/3175 -->
-    <!-- TODO: Don't use SDK's trimming functionality. Revert once fixed in linker/SDK -->
-    <_IsTrimmingEnabled>false</_IsTrimmingEnabled>
   </PropertyGroup>
 
   <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
@@ -33,5 +29,19 @@
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="$(MicrosoftCodeAnalysisNetAnalyzersPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="$(MicrosoftSourceLinkGitHubPackageVersion)" PrivateAssets="All" />
   </ItemGroup>
+
+  <!-- 
+    Make a netstandard2.1 copy of the .net ILLinkPack to work around a trimming issue.
+    See https://github.com/dotnet/linker/issues/3175
+  -->
+  <Target Name="_FixKnownILLinkPack"
+          BeforeTargets="ProcessFrameworkReferences">
+    <ItemGroup>
+      <KnownILLinkPack Include="@(KnownILLinkPack)"
+                       Condition="'%(TargetFramework)' == 'net8.0'"
+                       TargetFramework="netstandard2.1"
+                       ILLinkPackVersion="%(KnownILLinkPack.ILLinkPackVersion)" />
+    </ItemGroup>
+  </Target>
 
 </Project>
