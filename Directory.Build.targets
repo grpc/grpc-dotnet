@@ -20,6 +20,10 @@
 
     <IsTrimmable>true</IsTrimmable>
     <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
+
+    <!-- .NET 8 issue. Unable to trim netstandard2.1 projects. See https://github.com/dotnet/linker/issues/3175 -->
+    <!-- TODO: Don't use SDK's trimming functionality. Revert once fixed in linker/SDK -->
+    <_IsTrimmingEnabled>false</_IsTrimmingEnabled>
   </PropertyGroup>
 
   <!-- IsGrpcPublishedPackage is set in csproj so related config must be in targets file -->
