@@ -33,6 +33,7 @@
   <!-- 
     Make a netstandard2.1 copy of the .net ILLinkPack to work around a trimming issue.
     See https://github.com/dotnet/linker/issues/3175
+    TODO: Remove once .NET 8 + trimming + netstandard2.1 is fixed.
   -->
   <Target Name="_FixKnownILLinkPack"
           BeforeTargets="ProcessFrameworkReferences">
