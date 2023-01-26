@@ -81,9 +81,9 @@ namespace Grpc.Reflection.V1Alpha {
       get { return global::Grpc.Reflection.V1Alpha.ReflectionReflection.Descriptor.Services[0]; }
     }
 
-    /// <summary>Base class for server-side implementations of ServerReflection</summary>
+    /// <summary>Base record for server-side implementations of ServerReflection</summary>
     [grpc::BindServiceMethod(typeof(ServerReflection), "BindService")]
-    public abstract partial class ServerReflectionBase
+    public abstract partial record ServerReflectionBase
     {
       /// <summary>
       /// The reflection service is structured as a bidirectional stream, ensuring
