@@ -191,6 +191,10 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
                     // Return false to indicate that the stream is complete without a message.
                     return false;
                 }
+                else if (status.StatusCode != StatusCode.DeadlineExceeded && status.StatusCode != StatusCode.Cancelled)
+                {
+                    throw _call.CreateRpcException(status);
+                }
             }
             else
             {
