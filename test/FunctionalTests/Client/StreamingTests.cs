@@ -930,9 +930,6 @@ public class StreamingTests : FunctionalTestBase
             return true;
         });
 
-        var firstMessageTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var serverCanceledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
         Task ServerStreamingWithError(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
         {
             throw new RpcException(new Status(StatusCode.NotFound, "NotFound"));
