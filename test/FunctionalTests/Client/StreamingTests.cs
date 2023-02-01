@@ -922,6 +922,45 @@ public class StreamingTests : FunctionalTestBase
         return data;
     }
 
+    [Test]
+    public async Task ServerStreaming_ServerErrorBeforeRead_ClientRpcError()
+    {
+        SetExpectedErrorsFilter(writeContext =>
+        {
+            return true;
+        });
+
+        var firstMessageTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var serverCanceledTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task ServerStreamingWithError(DataMessage request, IServerStreamWriter<DataMessage> responseStream, ServerCallContext context)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "NotFound"));
+        }
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddServerStreamingMethod<DataMessage, DataMessage>(ServerStreamingWithError);
+
+        var channel = CreateChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        for (var i = 0; i < 10; i++)
+        {
+            // Act
+            var call = client.ServerStreamingCall(new DataMessage());
+            var ex = await ExceptionAssert.ThrowsAsync<RpcException>(async () =>
+            {
+                await foreach (var data in call.ResponseStream.ReadAllAsync())
+                {
+                }
+            });
+
+            // Assert
+            Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
+        }
+    }
+
 #if NET5_0_OR_GREATER
     [Test]
     public Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()
