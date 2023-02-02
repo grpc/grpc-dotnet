@@ -312,12 +312,12 @@ class Program
         Log($"Total errors: {errors}");
 
         BenchmarksEventSource.Register("grpc/firstrequest", Operations.Max, Operations.Max, "First Request (ms)", "Time to first request in ms", "n2");
-        BenchmarksEventSource.Register("grpc/rps/max;http/rps/mean", Operations.Max, Operations.Sum, "Max RPS", "RPS: max", "n0");
+        BenchmarksEventSource.Register("grpc/rps/mean;http/rps/mean", Operations.Max, Operations.Sum, "Requests/sec", "Requests per second", "n0");
         BenchmarksEventSource.Register("grpc/requests;http/requests", Operations.Max, Operations.Sum, "Requests", "Total number of requests", "n0");
         BenchmarksEventSource.Register("grpc/errors/badresponses;http/requests/badresponses", Operations.Max, Operations.Sum, "Bad responses", "Non-2xx or 3xx responses", "n0");
 
         BenchmarksEventSource.Measure("grpc/firstrequest", _firstRequestLatency);
-        BenchmarksEventSource.Measure("grpc/rps/max;http/rps/mean", rps);
+        BenchmarksEventSource.Measure("grpc/rps/mean;http/rps/mean", rps);
         BenchmarksEventSource.Measure("grpc/requests;http/requests", requestDelta);
         BenchmarksEventSource.Measure("grpc/errors/badresponses;http/requests/badresponses", errors);
 
