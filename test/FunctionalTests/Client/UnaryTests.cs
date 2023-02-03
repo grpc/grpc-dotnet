@@ -91,10 +91,9 @@ public class UnaryTests : FunctionalTestBase
 
         // Act
         var call = client.UnaryCall(new HelloRequest(), new CallOptions(headers: metadata));
-
-        // Assert
         await call.ResponseAsync.DefaultTimeout();
 
+        // Assert
         Assert.AreEqual(expectedServerCulture, serverCulture);
     }
 
