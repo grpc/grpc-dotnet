@@ -68,6 +68,36 @@ public class UnaryTests : FunctionalTestBase
         StringAssert.StartsWith("Failed to deserialize response message.", call.GetStatus().Detail);
     }
 
+    [TestCase("fr", "fr")]
+    [TestCase(null, "en-US")]
+    public async Task Unary_SetAcceptLanguage_ServerCultureChanged(string clientAcceptLanguage, string expectedServerCulture)
+    {
+        string? serverCulture = null;
+        Task<HelloReply> UnaryThrowError(HelloRequest request, ServerCallContext context)
+        {
+            serverCulture = Thread.CurrentThread.CurrentCulture.Name;
+            return Task.FromResult(new HelloReply { Message = serverCulture });
+        }
+
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryThrowError);
+        var channel = CreateChannel();
+        var client = TestClientFactory.Create(channel, method);
+        var metadata = new Metadata();
+        if (clientAcceptLanguage != null)
+        {
+            metadata.Add("accept-language", clientAcceptLanguage);
+        }
+
+        // Act
+        var call = client.UnaryCall(new HelloRequest(), new CallOptions(headers: metadata));
+
+        // Assert
+        await call.ResponseAsync.DefaultTimeout();
+
+        Assert.AreEqual(expectedServerCulture, serverCulture);
+    }
+
 #if NET5_0_OR_GREATER
     [Test]
     public async Task MaxConcurrentStreams_StartConcurrently_AdditionalConnectionsCreated()

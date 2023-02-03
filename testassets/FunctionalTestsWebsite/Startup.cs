@@ -17,8 +17,10 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using FunctionalTestsWebsite.Infrastructure;
 using FunctionalTestsWebsite.Services;
 using Greet;
@@ -26,7 +28,9 @@ using Grpc.AspNetCore.Server.Model;
 using Grpc.HealthCheck;
 using Grpc.Tests.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Localization;
 using Microsoft.IdentityModel.Tokens;
 
 namespace FunctionalTestsWebsite;
@@ -123,6 +127,20 @@ public class Startup
 
             return new Uri($"{context.Request.Scheme}://{context.Request.Host.Value}");
         }
+
+        services.Configure<RequestLocalizationOptions>(options =>
+        {
+            const string enUSCulture = "en-US";
+            var supportedCultures = new[]
+            {
+                new CultureInfo(enUSCulture),
+                new CultureInfo("fr")
+            };
+
+            options.DefaultRequestCulture = new RequestCulture(culture: enUSCulture, uiCulture: enUSCulture);
+            options.SupportedCultures = supportedCultures;
+            options.SupportedUICultures = supportedCultures;
+        });
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -168,8 +186,9 @@ public class Startup
                 await next();
             }
         });
-
         app.UseRouting();
+
+        app.UseRequestLocalization();
 
         app.UseAuthorization();
         app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
