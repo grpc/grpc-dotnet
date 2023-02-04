@@ -310,7 +310,7 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// <summary>
         /// Initializes a new instance of the <see cref="Grpc.Core.Metadata.Entry"/> struct with an ASCII value.
         /// </summary>
-        /// <param name="key">Metadata key. Gets converted to lowercase. Must not use suffix indicating a binary valued metadata entry. Can only contain lowercase alphanumeric characters, underscores, hyphens and dots.</param>
+        /// <param name="key">Metadata key. Gets converted to lowercase. Must not use '-bin' suffix indicating a binary-valued metadata entry. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
         /// <param name="value">Value string. Only ASCII characters are allowed.</param>
         public Entry(string key, string value)
         {
