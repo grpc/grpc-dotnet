@@ -130,8 +130,8 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// <summary>
     /// Adds a new ASCII-valued metadata entry.
     /// </summary>
-    /// <param name="key"><inheritdoc cref="Entry(string, string)" path="/param[@name='key']" /></param>
-    /// <param name="value"><inheritdoc cref="Entry(string, string)" path="/param[@name='value']" /></param>
+    /// <param name="key">Metadata key. Gets converted to lowercase. Must not use <c>-bin</c> suffix indicating a binary-valued metadata entry. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
+    /// <param name="value">Value string. Only ASCII characters are allowed.</param>
     public void Add(string key, string value)
     {
         Add(new Entry(key, value));
@@ -140,8 +140,8 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// <summary>
     /// Adds a new binary-valued metadata entry.
     /// </summary>
-    /// <param name="key"><inheritdoc cref="Entry(string, byte[])" path="/param[@name='key']" /></param>
-    /// <param name="valueBytes"><inheritdoc cref="Entry(string, byte[])" path="/param[@name='valueBytes']" /></param>
+    /// <param name="key">Metadata key. Gets converted to lowercase. Needs to have <c>-bin</c> suffix indicating a binary-valued metadata entry. The binary header suffix can be added to the key with <see cref="Metadata.BinaryHeaderSuffix"/>. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
+    /// <param name="valueBytes">Value bytes.</param>
     public void Add(string key, byte[] valueBytes)
     {
         Add(new Entry(key, valueBytes));
@@ -294,13 +294,13 @@ public sealed class Metadata : IList<Metadata.Entry>
         /// <summary>
         /// Initializes a new instance of the <see cref="Grpc.Core.Metadata.Entry"/> struct with a binary value.
         /// </summary>
-        /// <param name="key">Metadata key. Gets converted to lowercase. Needs to have suffix indicating a binary valued metadata entry (<see cref="Metadata.BinaryHeaderSuffix"/>). Can only contain lowercase alphanumeric characters, underscores, hyphens and dots.</param>
+        /// <param name="key">Metadata key. Gets converted to lowercase. Needs to have <c>-bin</c> suffix indicating a binary-valued metadata entry. The binary header suffix can be added to the key with <see cref="Metadata.BinaryHeaderSuffix"/>. Can only contain lowercase alphanumeric characters, underscores, hyphens, and dots.</param>
         /// <param name="valueBytes">Value bytes.</param>
         public Entry(string key, byte[] valueBytes)
         {
             this.key = NormalizeKey(key);
             GrpcPreconditions.CheckArgument(HasBinaryHeaderSuffix(this.key),
-                $"Key for binary valued metadata entry needs to have suffix indicating binary value. (See {nameof(Metadata)}.{nameof(BinaryHeaderSuffix)})");
+                $"Key for binary valued metadata entry needs to have '{BinaryHeaderSuffix}' suffix indicating binary value.");
             this.value = null;
             GrpcPreconditions.CheckNotNull(valueBytes, "valueBytes");
             this.valueBytes = new byte[valueBytes.Length];
