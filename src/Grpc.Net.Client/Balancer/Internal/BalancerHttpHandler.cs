@@ -20,10 +20,12 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
@@ -37,11 +39,13 @@ internal class BalancerHttpHandler : DelegatingHandler
     internal const string IsSocketsHttpHandlerSetupKey = "IsSocketsHttpHandlerSetup";
 
     private readonly ConnectionManager _manager;
+    private readonly ILogger _logger;
 
     public BalancerHttpHandler(HttpMessageHandler innerHandler, ConnectionManager manager)
         : base(innerHandler)
     {
         _manager = manager;
+        _logger = manager.LoggerFactory.CreateLogger<BalancerHttpHandler>();
     }
 
     internal static bool IsSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
@@ -54,7 +58,9 @@ internal class BalancerHttpHandler : DelegatingHandler
         }
     }
 
-    internal static void ConfigureSocketsHttpHandlerSetup(SocketsHttpHandler socketsHttpHandler)
+    internal static void ConfigureSocketsHttpHandlerSetup(
+        SocketsHttpHandler socketsHttpHandler,
+        Func<SocketsHttpConnectionContext, CancellationToken, ValueTask<Stream>> connectCallback)
     {
         // We're modifying the SocketsHttpHandler and nothing prevents two threads from creating a
         // channel with the same handler on different threads.
@@ -67,15 +73,17 @@ internal class BalancerHttpHandler : DelegatingHandler
             {
                 Debug.Assert(socketsHttpHandler.ConnectCallback == null, "ConnectCallback should be null to get to this point.");
 
-                socketsHttpHandler.ConnectCallback = OnConnect;
+                socketsHttpHandler.ConnectCallback = connectCallback;
                 socketsHttpHandler.Properties[IsSocketsHttpHandlerSetupKey] = true;
             }
         }
     }
 
 #if NET5_0_OR_GREATER
-    private static async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+    internal async ValueTask<Stream> OnConnect(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
     {
+        Log.StartingConnectCallback(_logger, context.DnsEndPoint);
+
         if (!context.InitialRequestMessage.TryGetOption<Subchannel>(SubchannelKey, out var subchannel))
         {
             throw new InvalidOperationException($"Unable to get subchannel from {nameof(HttpRequestMessage)}.");
@@ -133,11 +141,13 @@ internal class BalancerHttpHandler : DelegatingHandler
         request.SetOption(CurrentAddressKey, address);
 #endif
 
+        Log.SendingRequest(_logger, request.RequestUri);
         var responseMessageTask = base.SendAsync(request, cancellationToken);
         result.SubchannelCallTracker?.Start();
 
         try
         {
+            Log.WaitingForResponse(_logger, request.RequestUri);
             var responseMessage = await responseMessageTask.ConfigureAwait(false);
 
             // TODO(JamesNK): This doesn't take into account long running streams.
@@ -159,6 +169,36 @@ internal class BalancerHttpHandler : DelegatingHandler
             });
 
             throw;
+        }
+    }
+
+    internal static class Log
+    {
+        private static readonly Action<ILogger, Uri, Exception?> _sendingRequest =
+            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(1, "SendingRequest"), "Sending request {RequestUri}.");
+
+        private static readonly Action<ILogger, Uri, Exception?> _waitingForResponse =
+            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "WaitingForResponse"), "Wait for response for request {RequestUri}.");
+
+        private static readonly Action<ILogger, string, Exception?> _startingConnectCallback =
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, "StartingConnectCallback"), "{ResolveType} refresh ignored because resolve is already in progress.");
+
+        public static void SendingRequest(ILogger logger, Uri requestUri)
+        {
+            _sendingRequest(logger, requestUri, null);
+        }
+
+        public static void WaitingForResponse(ILogger logger, Uri requestUri)
+        {
+            _waitingForResponse(logger, requestUri, null);
+        }
+
+        public static void StartingConnectCallback(ILogger logger, DnsEndPoint endpoint)
+        {
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                _startingConnectCallback(logger, $"{endpoint.Host}:{endpoint.Port}", null);
+            }
         }
     }
 }
