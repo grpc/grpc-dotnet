@@ -178,10 +178,10 @@ internal class BalancerHttpHandler : DelegatingHandler
             LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(1, "SendingRequest"), "Sending request {RequestUri}.");
 
         private static readonly Action<ILogger, Uri, Exception?> _waitingForResponse =
-            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "WaitingForResponse"), "Wait for response for request {RequestUri}.");
+            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "WaitingForResponse"), "Waiting for response from {RequestUri}.");
 
         private static readonly Action<ILogger, string, Exception?> _startingConnectCallback =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, "StartingConnectCallback"), "{ResolveType} refresh ignored because resolve is already in progress.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, "StartingConnectCallback"), "Starting connect callback for {Endpoint}.");
 
         public static void SendingRequest(ILogger logger, Uri requestUri)
         {
