@@ -90,13 +90,13 @@ internal sealed class StreamWrapper : Stream
 
     public override async ValueTask DisposeAsync()
     {
-        await base.DisposeAsync();
+        await base.DisposeAsync().ConfigureAwait(false);
 
         // Avoid invoking dispose callback multiple times.
         if (_disposed)
         {
             _onDispose(this);
-            await _inner.DisposeAsync();
+            await _inner.DisposeAsync().ConfigureAwait(false);
             _disposed = true;
         }
     }
