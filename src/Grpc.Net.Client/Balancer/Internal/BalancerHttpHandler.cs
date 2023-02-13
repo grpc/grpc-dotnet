@@ -147,7 +147,6 @@ internal class BalancerHttpHandler : DelegatingHandler
 
         try
         {
-            Log.WaitingForResponse(_logger, request.RequestUri);
             var responseMessage = await responseMessageTask.ConfigureAwait(false);
 
             // TODO(JamesNK): This doesn't take into account long running streams.
@@ -177,20 +176,12 @@ internal class BalancerHttpHandler : DelegatingHandler
         private static readonly Action<ILogger, Uri, Exception?> _sendingRequest =
             LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(1, "SendingRequest"), "Sending request {RequestUri}.");
 
-        private static readonly Action<ILogger, Uri, Exception?> _waitingForResponse =
-            LoggerMessage.Define<Uri>(LogLevel.Trace, new EventId(2, "WaitingForResponse"), "Waiting for response from {RequestUri}.");
-
         private static readonly Action<ILogger, string, Exception?> _startingConnectCallback =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, "StartingConnectCallback"), "Starting connect callback for {Endpoint}.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, "StartingConnectCallback"), "Starting connect callback for {Endpoint}.");
 
         public static void SendingRequest(ILogger logger, Uri requestUri)
         {
             _sendingRequest(logger, requestUri, null);
-        }
-
-        public static void WaitingForResponse(ILogger logger, Uri requestUri)
-        {
-            _waitingForResponse(logger, requestUri, null);
         }
 
         public static void StartingConnectCallback(ILogger logger, DnsEndPoint endpoint)
