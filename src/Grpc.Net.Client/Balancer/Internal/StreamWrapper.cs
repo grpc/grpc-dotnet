@@ -18,16 +18,18 @@
 
 #if SUPPORT_LOAD_BALANCING
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Grpc.Net.Client.Balancer.Internal;
 
-internal class StreamWrapper : Stream
+internal sealed class StreamWrapper : Stream
 {
     private readonly Stream _inner;
     private readonly Action<Stream> _onDispose;
+    private bool _disposed;
 
     public StreamWrapper(Stream inner, Action<Stream> onDispose)
     {
@@ -86,13 +88,29 @@ internal class StreamWrapper : Stream
     public override Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken) =>
         _inner.CopyToAsync(destination, bufferSize, cancellationToken);
 
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync().ConfigureAwait(false);
+
+        // Avoid invoking dispose callback multiple times.
+        if (_disposed)
+        {
+            _onDispose(this);
+            await _inner.DisposeAsync().ConfigureAwait(false);
+            _disposed = true;
+        }
+    }
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing)
+
+        // Avoid invoking dispose callback multiple times.
+        if (disposing && !_disposed)
         {
             _onDispose(this);
             _inner.Dispose();
+            _disposed = true;
         }
     }
 }

@@ -80,10 +80,9 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
-    public object Lock => _subchannel.Lock;
+    private object Lock => _subchannel.Lock;
     public BalancerAddress? CurrentAddress => _currentAddress;
     public TimeSpan? ConnectTimeout { get; }
-    public bool HasStream { get; }
 
     // For testing. Take a copy under lock for thread-safety.
     internal IReadOnlyList<ActiveStream> GetActiveStreams()
@@ -264,13 +263,21 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         Socket? socket = null;
         lock (Lock)
         {
-            if (_initialSocket != null &&
-                _initialSocketAddress != null &&
-                Equals(_initialSocketAddress, address))
+            if (_initialSocket != null)
             {
+                var socketAddressMatch = Equals(_initialSocketAddress, address);
+
                 socket = _initialSocket;
                 _initialSocket = null;
                 _initialSocketAddress = null;
+
+                // Double check the address matches the socket address and only use socket on match.
+                // Not sure if this is possible in practice, but better safe than sorry.
+                if (!socketAddressMatch)
+                {
+                    socket.Dispose();
+                    socket = null;
+                }
             }
         }
 
@@ -288,6 +295,8 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
 
         if (socket == null)
         {
+            SocketConnectivitySubchannelTransportLog.ConnectingOnCreateStream(_logger, _subchannel.Id, address);
+
             socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             await socket.ConnectAsync(address.EndPoint, cancellationToken).ConfigureAwait(false);
         }
@@ -300,6 +309,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         lock (Lock)
         {
             _activeStreams.Add(new ActiveStream(address, socket, stream));
+            SocketConnectivitySubchannelTransportLog.StreamCreated(_logger, _subchannel.Id, address, _activeStreams.Count);
         }
 
         return stream;
@@ -331,7 +341,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
                     if (t.Stream == streamWrapper)
                     {
                         _activeStreams.RemoveAt(i);
-                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, _subchannel.Id, t.Address);
+                        SocketConnectivitySubchannelTransportLog.DisposingStream(_logger, _subchannel.Id, t.Address, _activeStreams.Count);
 
                         // If the last active streams is removed then there is no active connection.
                         disconnect = _activeStreams.Count == 0;
@@ -399,14 +409,20 @@ internal static class SocketConnectivitySubchannelTransportLog
     private static readonly Action<ILogger, int, BalancerAddress, Exception?> _creatingStream =
         LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(7, "CreatingStream"), "Subchannel id '{SubchannelId}' creating stream for {Address}.");
 
-    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _disposingStream =
-        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Subchannel id '{SubchannelId}' disposing stream for {Address}.");
+    private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _disposingStream =
+        LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(8, "DisposingStream"), "Subchannel id '{SubchannelId}' disposing stream for {Address}. Transport has {ActiveStreams} active streams.");
 
     private static readonly Action<ILogger, int, Exception?> _disposingTransport =
         LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "DisposingTransport"), "Subchannel id '{SubchannelId}' disposing transport.");
 
     private static readonly Action<ILogger, int, Exception> _errorOnDisposingStream =
         LoggerMessage.Define<int>(LogLevel.Error, new EventId(10, "ErrorOnDisposingStream"), "Subchannel id '{SubchannelId}' unexpected error when reacting to transport stream dispose.");
+
+    private static readonly Action<ILogger, int, BalancerAddress, Exception?> _connectingOnCreateStream =
+        LoggerMessage.Define<int, BalancerAddress>(LogLevel.Trace, new EventId(11, "ConnectingOnCreateStream"), "Subchannel id '{SubchannelId}' doesn't have a connected socket available. Connecting new stream socket for {Address}.");
+
+    private static readonly Action<ILogger, int, BalancerAddress, int, Exception?> _streamCreated =
+        LoggerMessage.Define<int, BalancerAddress, int>(LogLevel.Trace, new EventId(12, "StreamCreated"), "Subchannel id '{SubchannelId}' created stream for {Address}. Transport has {ActiveStreams} active streams.");
 
     public static void ConnectingSocket(ILogger logger, int subchannelId, BalancerAddress address)
     {
@@ -443,9 +459,9 @@ internal static class SocketConnectivitySubchannelTransportLog
         _creatingStream(logger, subchannelId, address, null);
     }
 
-    public static void DisposingStream(ILogger logger, int subchannelId, BalancerAddress address)
+    public static void DisposingStream(ILogger logger, int subchannelId, BalancerAddress address, int activeStreams)
     {
-        _disposingStream(logger, subchannelId, address, null);
+        _disposingStream(logger, subchannelId, address, activeStreams, null);
     }
 
     public static void DisposingTransport(ILogger logger, int subchannelId)
@@ -456,6 +472,16 @@ internal static class SocketConnectivitySubchannelTransportLog
     public static void ErrorOnDisposingStream(ILogger logger, int subchannelId, Exception ex)
     {
         _errorOnDisposingStream(logger, subchannelId, ex);
+    }
+
+    public static void ConnectingOnCreateStream(ILogger logger, int subchannelId, BalancerAddress address)
+    {
+        _connectingOnCreateStream(logger, subchannelId, address, null);
+    }
+
+    public static void StreamCreated(ILogger logger, int subchannelId, BalancerAddress address, int activeStreams)
+    {
+        _streamCreated(logger, subchannelId, address, activeStreams, null);
     }
 }
 #endif

@@ -456,15 +456,16 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 #endif
 
 #if SUPPORT_LOAD_BALANCING
+        BalancerHttpHandler balancerHttpHandler;
+        handler = balancerHttpHandler = new BalancerHttpHandler(handler, ConnectionManager);
+
         if (HttpHandlerType == HttpHandlerType.SocketsHttpHandler)
         {
             var socketsHttpHandler = HttpRequestHelpers.GetHttpHandlerType<SocketsHttpHandler>(handler);
             CompatibilityHelpers.Assert(socketsHttpHandler != null, "Should have handler with this handler type.");
 
-            BalancerHttpHandler.ConfigureSocketsHttpHandlerSetup(socketsHttpHandler);
+            BalancerHttpHandler.ConfigureSocketsHttpHandlerSetup(socketsHttpHandler, balancerHttpHandler.OnConnect);
         }
-
-        handler = new BalancerHttpHandler(handler, ConnectionManager);
 #endif
 
         // Use HttpMessageInvoker instead of HttpClient because it is faster
