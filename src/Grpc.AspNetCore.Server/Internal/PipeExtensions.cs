@@ -65,7 +65,7 @@ internal static partial class PipeExtensions
             serializer(response, serializationContext);
 
             GrpcServerLog.MessageSent(serverCallContext.Logger);
-            if (serverCallContext.EventSourceEnabled)
+            if (GrpcEventSource.Log.IsEnabled())
             {
                 GrpcEventSource.Log.MessageSent();
             }
@@ -115,7 +115,7 @@ internal static partial class PipeExtensions
             }
 
             GrpcServerLog.MessageSent(serverCallContext.Logger);
-            if (serverCallContext.EventSourceEnabled)
+            if (GrpcEventSource.Log.IsEnabled())
             {
                 GrpcEventSource.Log.MessageSent();
             }
@@ -232,7 +232,7 @@ internal static partial class PipeExtensions
                             serverCallContext.DeserializationContext.SetPayload(null);
 
                             GrpcServerLog.ReceivedMessage(logger);
-                            if (serverCallContext.EventSourceEnabled)
+                            if (GrpcEventSource.Log.IsEnabled())
                             {
                                 GrpcEventSource.Log.MessageReceived();
                             }
@@ -326,7 +326,7 @@ internal static partial class PipeExtensions
                             serverCallContext.DeserializationContext.SetPayload(null);
 
                             GrpcServerLog.ReceivedMessage(logger);
-                            if (serverCallContext.EventSourceEnabled)
+                            if (GrpcEventSource.Log.IsEnabled())
                             {
                                 GrpcEventSource.Log.MessageReceived();
                             }

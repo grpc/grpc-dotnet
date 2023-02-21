@@ -56,7 +56,6 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
     internal Type RequestType { get; }
     internal Type ResponseType { get; }
     internal string? ResponseGrpcEncoding { get; private set; }
-    internal bool EventSourceEnabled { get; private set; }
 
     internal HttpContextSerializationContext SerializationContext
     {
@@ -298,12 +297,12 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         }
         if (_status.StatusCode != StatusCode.OK)
         {
-            if (EventSourceEnabled)
+            if (GrpcEventSource.Log.IsEnabled())
             {
                 GrpcEventSource.Log.CallFailed(_status.StatusCode);
             }
         }
-        if (EventSourceEnabled)
+        if (GrpcEventSource.Log.IsEnabled())
         {
             GrpcEventSource.Log.CallStop();
         }
@@ -388,7 +387,6 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
 
         if (GrpcEventSource.Log.IsEnabled())
         {
-            EventSourceEnabled = true;
             GrpcEventSource.Log.CallStart(MethodCore);
         }
 
@@ -470,7 +468,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
     internal async Task DeadlineExceededAsync()
     {
         GrpcServerLog.DeadlineExceeded(Logger, GetTimeout());
-        if (EventSourceEnabled)
+        if (GrpcEventSource.Log.IsEnabled())
         {
             GrpcEventSource.Log.CallDeadlineExceeded();
         }
