@@ -174,8 +174,10 @@ internal class HttpContentClientStreamWriter<TRequest, TResponse> : ClientStream
 
             // Flush stream to ensure messages are sent immediately.
             await writeStream.FlushAsync(_call.CancellationToken).ConfigureAwait(false);
-
-            GrpcEventSource.Log.MessageSent();
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.MessageSent();
+            }
         }
         catch (OperationCanceledException ex)
         {

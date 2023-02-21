@@ -16,13 +16,14 @@
 
 #endregion
 
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using Grpc.Core;
 
 namespace Grpc.AspNetCore.Server.Internal;
 
-internal class GrpcEventSource : EventSource
+internal sealed class GrpcEventSource : EventSource
 {
     public static readonly GrpcEventSource Log = new GrpcEventSource();
 
@@ -68,6 +69,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 1, Level = EventLevel.Verbose)]
     public void CallStart(string method)
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _totalCalls);
         Interlocked.Increment(ref _currentCalls);
 
@@ -78,6 +81,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 2, Level = EventLevel.Verbose)]
     public void CallStop()
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Decrement(ref _currentCalls);
 
         WriteEvent(2);
@@ -87,6 +92,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 3, Level = EventLevel.Error)]
     public void CallFailed(StatusCode statusCode)
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _callsFailed);
 
         WriteEvent(3, (int)statusCode);
@@ -96,6 +103,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 4, Level = EventLevel.Error)]
     public void CallDeadlineExceeded()
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _callsDeadlineExceeded);
 
         WriteEvent(4);
@@ -105,6 +114,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 5, Level = EventLevel.Verbose)]
     public void MessageSent()
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _messageSent);
 
         WriteEvent(5);
@@ -114,6 +125,8 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 6, Level = EventLevel.Verbose)]
     public void MessageReceived()
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _messageReceived);
 
         WriteEvent(6);
@@ -123,9 +136,18 @@ internal class GrpcEventSource : EventSource
     [Event(eventId: 7, Level = EventLevel.Verbose)]
     public void CallUnimplemented(string method)
     {
+        AssertEventSourceEnabled();
+
         Interlocked.Increment(ref _callsUnimplemented);
 
         WriteEvent(7, method);
+    }
+
+    [Conditional("DEBUG")]
+    [NonEvent]
+    private void AssertEventSourceEnabled()
+    {
+        Debug.Assert(IsEnabled(), "Event source should be enabled.");
     }
 
     protected override void OnEventCommand(EventCommandEventArgs command)
