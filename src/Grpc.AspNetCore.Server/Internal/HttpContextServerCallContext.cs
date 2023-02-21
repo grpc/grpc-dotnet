@@ -56,6 +56,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
     internal Type RequestType { get; }
     internal Type ResponseType { get; }
     internal string? ResponseGrpcEncoding { get; private set; }
+    internal bool EventSourceEnabled { get; private set; }
 
     internal HttpContextSerializationContext SerializationContext
     {
@@ -297,9 +298,15 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
         }
         if (_status.StatusCode != StatusCode.OK)
         {
-            GrpcEventSource.Log.CallFailed(_status.StatusCode);
+            if (EventSourceEnabled)
+            {
+                GrpcEventSource.Log.CallFailed(_status.StatusCode);
+            }
         }
-        GrpcEventSource.Log.CallStop();
+        if (EventSourceEnabled)
+        {
+            GrpcEventSource.Log.CallStop();
+        }
     }
 
     protected override WriteOptions? WriteOptionsCore { get; set; }
@@ -379,7 +386,11 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
             _activity.AddTag(GrpcServerConstants.ActivityMethodTag, MethodCore);
         }
 
-        GrpcEventSource.Log.CallStart(MethodCore);
+        if (GrpcEventSource.Log.IsEnabled())
+        {
+            EventSourceEnabled = true;
+            GrpcEventSource.Log.CallStart(MethodCore);
+        }
 
         var timeout = GetTimeout();
 
@@ -459,7 +470,10 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
     internal async Task DeadlineExceededAsync()
     {
         GrpcServerLog.DeadlineExceeded(Logger, GetTimeout());
-        GrpcEventSource.Log.CallDeadlineExceeded();
+        if (EventSourceEnabled)
+        {
+            GrpcEventSource.Log.CallDeadlineExceeded();
+        }
 
         var status = new Status(StatusCode.DeadlineExceeded, "Deadline Exceeded");
 
