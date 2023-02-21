@@ -810,11 +810,11 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
 
     private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request, TimeSpan? timeout)
     {
+        GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri!);
         if (GrpcEventSource.Log.IsEnabled())
         {
-            GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri!);
+            GrpcEventSource.Log.CallStart(Method.FullName);
         }
-        GrpcEventSource.Log.CallStart(Method.FullName);
 
         // Deadline will cancel the call CTS.
         // Only exceed deadline/start timer after reader/writer have been created, otherwise deadline will cancel
