@@ -23,7 +23,7 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
-internal class GrpcEventSource : EventSource
+internal sealed class GrpcEventSource : EventSource
 {
     public static readonly GrpcEventSource Log = new GrpcEventSource();
 
