@@ -173,8 +173,10 @@ internal class HttpContentClientStreamReader<TRequest, TResponse> : IAsyncStream
                 Current = null!;
                 return false;
             }
-
-            GrpcEventSource.Log.MessageReceived();
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.MessageReceived();
+            }
             Current = readMessage!;
             return true;
         }
