@@ -585,8 +585,10 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                         }
                         else
                         {
-                            GrpcEventSource.Log.MessageReceived();
-
+                            if (GrpcEventSource.Log.IsEnabled())
+                            {
+                                GrpcEventSource.Log.MessageReceived();
+                            }
                             FinishResponseAndCleanUp(status.Value);
                             finished = FinishCall(request, diagnosticSourceEnabled, activity, status.Value);
 
@@ -809,7 +811,10 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     private (bool diagnosticSourceEnabled, Activity? activity) InitializeCall(HttpRequestMessage request, TimeSpan? timeout)
     {
         GrpcCallLog.StartingCall(Logger, Method.Type, request.RequestUri!);
-        GrpcEventSource.Log.CallStart(Method.FullName);
+        if (GrpcEventSource.Log.IsEnabled())
+        {
+            GrpcEventSource.Log.CallStart(Method.FullName);
+        }
 
         // Deadline will cancel the call CTS.
         // Only exceed deadline/start timer after reader/writer have been created, otherwise deadline will cancel
@@ -882,19 +887,26 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                     if (IsDeadlineExceededUnsynchronized())
                     {
                         GrpcCallLog.DeadlineExceeded(Logger);
-                        GrpcEventSource.Log.CallDeadlineExceeded();
-
+                        if (GrpcEventSource.Log.IsEnabled())
+                        {
+                            GrpcEventSource.Log.CallDeadlineExceeded();
+                        }
                         _deadline = DateTime.MaxValue;
                     }
                 }
             }
 
             GrpcCallLog.GrpcStatusError(Logger, status.StatusCode, status.Detail);
-            GrpcEventSource.Log.CallFailed(status.StatusCode);
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.CallFailed(status.StatusCode);
+            }
         }
         GrpcCallLog.FinishedCall(Logger);
-        GrpcEventSource.Log.CallStop();
-
+        if (GrpcEventSource.Log.IsEnabled())
+        {
+            GrpcEventSource.Log.CallStop();
+        }
         // Activity needs to be stopped in the same execution context it was started
         if (activity != null)
         {
@@ -1096,8 +1108,10 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
         Debug.Assert(Monitor.IsEntered(this));
 
         GrpcCallLog.DeadlineExceeded(Logger);
-        GrpcEventSource.Log.CallDeadlineExceeded();
-
+        if (GrpcEventSource.Log.IsEnabled())
+        {
+            GrpcEventSource.Log.CallDeadlineExceeded();
+        }
         // Set _deadline to DateTime.MaxValue to signal that deadline has been exceeded.
         // This prevents duplicate logging and cancellation.
         _deadline = DateTime.MaxValue;

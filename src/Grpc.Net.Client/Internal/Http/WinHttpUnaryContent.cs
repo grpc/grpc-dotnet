@@ -54,7 +54,10 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
 #pragma warning restore CA2012 // Use ValueTasks correctly
         if (writeMessageTask.IsCompletedSuccessfully())
         {
-            GrpcEventSource.Log.MessageSent();
+            if (GrpcEventSource.Log.IsEnabled())
+            {
+                GrpcEventSource.Log.MessageSent();
+            }
             return Task.CompletedTask;
         }
 
@@ -64,7 +67,10 @@ internal class WinHttpUnaryContent<TRequest, TResponse> : HttpContent
     private static async Task WriteMessageCore(ValueTask writeMessageTask)
     {
         await writeMessageTask.ConfigureAwait(false);
-        GrpcEventSource.Log.MessageSent();
+        if (GrpcEventSource.Log.IsEnabled())
+        {
+            GrpcEventSource.Log.MessageSent();
+        }
     }
 
     protected override bool TryComputeLength(out long length)
