@@ -72,7 +72,7 @@ public class TimeStats
 
         public override string ToString()
         {
-            return string.Format("[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
+            return $"[TimeStats.Snapshot: wallClock {WallClockTime}, userProcessor {UserProcessorTime}, privilegedProcessor {PrivilegedProcessorTime}]";
         }
     }
 }
