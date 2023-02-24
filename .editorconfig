@@ -310,7 +310,7 @@ dotnet_diagnostic.IDE0200.severity = warning
 dotnet_style_allow_multiple_blank_lines_experimental = false
 dotnet_diagnostic.IDE2000.severity = warning
 
-[{test,tests,testassets,samples,Samples,perf,scripts,stress}/**.cs]
+[{test,tests,testassets,examples,perf,scripts,stress}/**.cs]
 # CA1018: Mark attributes with AttributeUsageAttribute
 dotnet_diagnostic.CA1018.severity = suggestion
 # CA1507: Use nameof to express symbol names
