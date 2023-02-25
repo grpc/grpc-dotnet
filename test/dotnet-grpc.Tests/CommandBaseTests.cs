@@ -267,7 +267,6 @@ public class CommandBaseTests : TestBase
         Assert.False(protoRef.HasMetadata(CommandBase.LinkElement));
     }
 
-
     [Test]
     public void AddProtobufReference_Without_AdditionalImportDirs()
     {

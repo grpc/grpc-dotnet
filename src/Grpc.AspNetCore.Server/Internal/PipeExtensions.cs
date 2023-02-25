@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,9 +19,10 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
+#if NET6_0_OR_GREATER
 using System.Runtime.CompilerServices;
+#endif
 using Grpc.Core;
 using Grpc.Net.Compression;
 using Microsoft.Extensions.Logging;
@@ -87,7 +88,7 @@ internal static partial class PipeExtensions
             var httpResponse = serverCallContext.HttpContext.Response;
             if (!httpResponse.HasStarted)
             {
-                await httpResponse.StartAsync();
+                await httpResponse.StartAsync(cancellationToken);
             }
 
             GrpcServerLog.SendingMessage(logger);
@@ -102,7 +103,7 @@ internal static partial class PipeExtensions
 
             if (flush)
             {
-                var flushResult = await pipeWriter.FlushAsync();
+                var flushResult = await pipeWriter.FlushAsync(cancellationToken);
 
                 // Workaround bug where FlushAsync doesn't return IsCanceled = true on request abort.
                 // https://github.com/dotnet/aspnetcore/issues/40788

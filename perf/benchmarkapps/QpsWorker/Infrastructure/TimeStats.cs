@@ -17,6 +17,7 @@
 #endregion
 
 using System.Diagnostics;
+using System.Globalization;
 
 // Copied from https://github.com/grpc/grpc/tree/master/src/csharp/Grpc.IntegrationTesting
 namespace QpsWorker.Infrastructure;
@@ -72,7 +73,7 @@ public class TimeStats
 
         public override string ToString()
         {
-            return string.Format("[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
+            return string.Format(CultureInfo.InvariantCulture, "[TimeStats.Snapshot: wallClock {0}, userProcessor {1}, privilegedProcessor {2}]", WallClockTime, UserProcessorTime, PrivilegedProcessorTime);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -63,17 +63,22 @@ internal class ReadOnlySequenceStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
+        return Read(buffer.AsSpan(offset, count));
+    }
+
+    public override int Read(Span<byte> buffer)
+    {
         var remaining = _readOnlySequence.Slice(_position);
-        var toCopy = remaining.Slice(0, Math.Min(count, remaining.Length));
+        var toCopy = remaining.Slice(0, Math.Min(buffer.Length, remaining.Length));
         _position = toCopy.End;
-        toCopy.CopyTo(buffer.AsSpan(offset, count));
+        toCopy.CopyTo(buffer);
         return (int)toCopy.Length;
     }
 
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var bytesRead = Read(buffer, offset, count);
+        var bytesRead = Read(buffer.AsSpan(offset, count));
         if (bytesRead == 0)
         {
             return TaskOfZero;
@@ -87,6 +92,12 @@ internal class ReadOnlySequenceStream : Stream
         {
             return _lastReadTask = Task.FromResult(bytesRead);
         }
+    }
+
+    public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return new ValueTask<int>(Read(buffer.Span));
     }
 
     public override int ReadByte()
@@ -151,6 +162,8 @@ internal class ReadOnlySequenceStream : Stream
     public override void WriteByte(byte value) => throw new NotSupportedException();
 
     public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => throw new NotSupportedException();
 
     public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
     {
