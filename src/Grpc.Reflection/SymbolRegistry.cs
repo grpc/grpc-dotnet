@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 // Copyright 2015 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,8 @@
 // limitations under the License.
 #endregion
 
-using System.Collections.Generic;
-using Grpc.Core.Utils;
 using Google.Protobuf.Reflection;
+using Grpc.Core.Utils;
 
 namespace Grpc.Reflection;
 
@@ -71,7 +70,7 @@ public class SymbolRegistry
     /// <summary>
     /// Builder class which isn't exposed, but acts as a convenient alternative to passing round two dictionaries in recursive calls.
     /// </summary>
-    private class Builder
+    private sealed class Builder
     {
         private readonly Dictionary<string, FileDescriptor> filesByName;
         private readonly Dictionary<string, FileDescriptor> filesBySymbol;

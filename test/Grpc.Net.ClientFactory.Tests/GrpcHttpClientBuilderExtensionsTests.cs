@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Globalization;
 using System.Net;
 using Greet;
 using Grpc.Core;
@@ -498,7 +499,7 @@ public class GrpcHttpClientBuilderExtensionsTests
 
         var services = new ServiceCollection();
         services
-            .AddScoped<AuthProvider>(s => new AuthProvider((scopeCount++).ToString()))
+            .AddScoped<AuthProvider>(s => new AuthProvider((scopeCount++).ToString(CultureInfo.InvariantCulture)))
             .AddGrpcClient<Greeter.GreeterClient>(o =>
             {
                 o.Address = new Uri("https://localhost");
