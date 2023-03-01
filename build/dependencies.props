@@ -4,8 +4,8 @@
     <GoogleApisAuthPackageVersion>1.46.0</GoogleApisAuthPackageVersion>
     <GoogleProtobufPackageVersion>3.22.0</GoogleProtobufPackageVersion>
     <GrpcDotNetPackageVersion>2.49.0</GrpcDotNetPackageVersion>  <!-- Used by example projects -->
-    <GrpcPackageVersion>2.46.5</GrpcPackageVersion>
-    <GrpcToolsPackageVersion>2.51.0</GrpcToolsPackageVersion>
+    <GrpcPackageVersion>2.46.6</GrpcPackageVersion>
+    <GrpcToolsPackageVersion>2.52.0</GrpcToolsPackageVersion>
     <MicrosoftAspNetCoreAppPackageVersion>7.0.0</MicrosoftAspNetCoreAppPackageVersion>
     <MicrosoftAspNetCoreApp6PackageVersion>6.0.11</MicrosoftAspNetCoreApp6PackageVersion>
     <MicrosoftAspNetCoreApp5PackageVersion>5.0.3</MicrosoftAspNetCoreApp5PackageVersion>
