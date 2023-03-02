@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -61,7 +61,14 @@ public static class GrpcServicesExtensions
             throw new ArgumentNullException(nameof(services));
         }
 
-        services.AddRouting();
+        services.AddRouting(options =>
+        {
+#if NET7_0_OR_GREATER
+            options.SetParameterPolicy<GrpcUnimplementedConstraint>(GrpcServerConstants.GrpcContentTypeConstraintPrefix);
+#else
+            options.ConstraintMap[GrpcServerConstants.GrpcContentTypeConstraintPrefix] = typeof(GrpcUnimplementedConstraint);
+#endif
+        });
         services.AddOptions();
         services.TryAddSingleton<GrpcMarkerService>();
         services.TryAddSingleton(typeof(ServerCallHandlerFactory<>));
