@@ -226,11 +226,11 @@ public class GrpcEndpointRouteBuilderExtensionsTests
         Assert.NotNull(routeEndpoint2.Metadata.GetMetadata<CustomMetadata>());
 
         var routeEndpoint3 = (RouteEndpoint)endpoints[2];
-        Assert.AreEqual("{unimplementedService}/{unimplementedMethod}", routeEndpoint3.RoutePattern.RawText);
+        Assert.AreEqual("{unimplementedService}/{unimplementedMethod:grpcunimplemented}", routeEndpoint3.RoutePattern.RawText);
         Assert.NotNull(routeEndpoint3.Metadata.GetMetadata<CustomMetadata>());
 
         var routeEndpoint4 = (RouteEndpoint)endpoints[3];
-        Assert.AreEqual("greet.Greeter/{unimplementedMethod}", routeEndpoint4.RoutePattern.RawText);
+        Assert.AreEqual("greet.Greeter/{unimplementedMethod:grpcunimplemented}", routeEndpoint4.RoutePattern.RawText);
         Assert.NotNull(routeEndpoint4.Metadata.GetMetadata<CustomMetadata>());
     }
 
