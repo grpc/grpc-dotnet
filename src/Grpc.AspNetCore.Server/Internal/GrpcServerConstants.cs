@@ -26,5 +26,5 @@ internal static class GrpcServerConstants
     internal const string ActivityStatusCodeTag = "grpc.status_code";
     internal const string ActivityMethodTag = "grpc.method";
 
-    internal const string GrpcContentTypeConstraintPrefix = "grpccontenttype";
+    internal const string GrpcUnimplementedConstraintPrefix = "grpcunimplemented";
 }

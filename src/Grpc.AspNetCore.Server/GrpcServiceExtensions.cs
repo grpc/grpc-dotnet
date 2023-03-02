@@ -64,9 +64,9 @@ public static class GrpcServicesExtensions
         services.AddRouting(options =>
         {
 #if NET7_0_OR_GREATER
-            options.SetParameterPolicy<GrpcUnimplementedConstraint>(GrpcServerConstants.GrpcContentTypeConstraintPrefix);
+            options.SetParameterPolicy<GrpcUnimplementedConstraint>(GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
 #else
-            options.ConstraintMap[GrpcServerConstants.GrpcContentTypeConstraintPrefix] = typeof(GrpcUnimplementedConstraint);
+            options.ConstraintMap[GrpcServerConstants.GrpcUnimplementedConstraintPrefix] = typeof(GrpcUnimplementedConstraint);
 #endif
         });
         services.AddOptions();

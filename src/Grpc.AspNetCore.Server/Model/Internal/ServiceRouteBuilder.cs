@@ -123,7 +123,7 @@ internal class ServiceRouteBuilder<
         if (!serverCallHandlerFactory.IgnoreUnknownServices && serviceMethodsRegistry.Methods.Count == 0)
         {
             // Only one unimplemented service endpoint is needed for the application
-            endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{{unimplementedService}}/{{unimplementedMethod:{GrpcServerConstants.GrpcContentTypeConstraintPrefix}}}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService()));
+            endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{{unimplementedService}}/{{unimplementedMethod:{GrpcServerConstants.GrpcUnimplementedConstraintPrefix}}}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService()));
         }
 
         // Return UNIMPLEMENTED status for missing method:
@@ -142,7 +142,7 @@ internal class ServiceRouteBuilder<
                     continue;
                 }
 
-                endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{serviceName}/{{unimplementedMethod:{GrpcServerConstants.GrpcContentTypeConstraintPrefix}}}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod()));
+                endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{serviceName}/{{unimplementedMethod:{GrpcServerConstants.GrpcUnimplementedConstraintPrefix}}}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod()));
             }
         }
     }
@@ -192,35 +192,5 @@ internal static class ServiceRouteBuilderLog
     public static void NoServiceMethodsDiscovered(ILogger logger, Type serviceType)
     {
         _noServiceMethodsDiscovered(logger, serviceType, null);
-    }
-}
-
-internal sealed class GrpcUnimplementedConstraint : IRouteConstraint
-{
-    public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
-    {
-        if (httpContext == null)
-        {
-            return false;
-        }
-
-        // Constraint needs to be valid when a CORS preflight request is received so that CORS middleware will run
-        if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
-        {
-            return true;
-        }
-
-        if (!HttpMethods.IsPost(httpContext.Request.Method))
-        {
-            return false;
-        }
-
-        return CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, httpContext.Request.ContentType) ||
-            CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebContentType, httpContext.Request.ContentType) ||
-            CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebTextContentType, httpContext.Request.ContentType);
-    }
-
-    public GrpcUnimplementedConstraint()
-    {
     }
 }
