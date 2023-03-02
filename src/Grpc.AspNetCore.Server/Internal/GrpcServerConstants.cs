@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -25,4 +25,6 @@ internal static class GrpcServerConstants
 
     internal const string ActivityStatusCodeTag = "grpc.status_code";
     internal const string ActivityMethodTag = "grpc.method";
+
+    internal const string GrpcUnimplementedConstraintPrefix = "grpcunimplemented";
 }

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -123,7 +123,7 @@ internal class ServiceRouteBuilder<
         if (!serverCallHandlerFactory.IgnoreUnknownServices && serviceMethodsRegistry.Methods.Count == 0)
         {
             // Only one unimplemented service endpoint is needed for the application
-            endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, "{unimplementedService}/{unimplementedMethod}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService()));
+            endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{{unimplementedService}}/{{unimplementedMethod:{GrpcServerConstants.GrpcUnimplementedConstraintPrefix}}}", "Unimplemented service", serverCallHandlerFactory.CreateUnimplementedService()));
         }
 
         // Return UNIMPLEMENTED status for missing method:
@@ -142,19 +142,14 @@ internal class ServiceRouteBuilder<
                     continue;
                 }
 
-                endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, serviceName + "/{unimplementedMethod}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod()));
+                endpointConventionBuilders.Add(CreateUnimplementedEndpoint(endpointRouteBuilder, $"{serviceName}/{{unimplementedMethod:{GrpcServerConstants.GrpcUnimplementedConstraintPrefix}}}", $"Unimplemented method for {serviceName}", serverCallHandlerFactory.CreateUnimplementedMethod()));
             }
         }
     }
 
     private static IEndpointConventionBuilder CreateUnimplementedEndpoint(IEndpointRouteBuilder endpointRouteBuilder, string pattern, string displayName, RequestDelegate requestDelegate)
     {
-        var routePattern = RoutePatternFactory.Parse(
-            pattern,
-            defaults: null,
-            parameterPolicies: new RouteValueDictionary { ["contentType"] = GrpcUnimplementedConstraint.Instance });
-
-        var endpointBuilder = endpointRouteBuilder.Map(routePattern, requestDelegate);
+        var endpointBuilder = endpointRouteBuilder.Map(pattern, requestDelegate);
 
         endpointBuilder.Add(ep =>
         {
@@ -164,38 +159,6 @@ internal class ServiceRouteBuilder<
         });
 
         return endpointBuilder;
-    }
-
-    private class GrpcUnimplementedConstraint : IRouteConstraint
-    {
-        public static readonly GrpcUnimplementedConstraint Instance = new GrpcUnimplementedConstraint();
-
-        public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
-        {
-            if (httpContext == null)
-            {
-                return false;
-            }
-
-            // Constraint needs to be valid when a CORS preflight request is received so that CORS middleware will run
-            if (GrpcProtocolHelpers.IsCorsPreflightRequest(httpContext))
-            {
-                return true;
-            }
-
-            if (!HttpMethods.IsPost(httpContext.Request.Method))
-            {
-                return false;
-            }
-
-            return CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcContentType, httpContext.Request.ContentType) ||
-                CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebContentType, httpContext.Request.ContentType) ||
-                CommonGrpcProtocolHelpers.IsContentType(GrpcProtocolConstants.GrpcWebTextContentType, httpContext.Request.ContentType);
-        }
-
-        private GrpcUnimplementedConstraint()
-        {
-        }
     }
 }
 
