@@ -64,7 +64,7 @@ public static class GrpcServicesExtensions
         services.AddRouting(options =>
         {
             // Unimplemented constraint is added to the route as an inline constraint to avoid RoutePatternFactory.Parse overload that includes parameter policies. That overload infers strings as regex constraints, which brings in
-            // the regex engine when publishing trimmed or AOT apps. This change saves about 1 MB from a Native AOT gRPC server app.
+            // the regex engine when publishing trimmed or AOT apps. This change reduces Native AOT gRPC server app size by about 1 MB.
 #if NET7_0_OR_GREATER
             options.SetParameterPolicy<GrpcUnimplementedConstraint>(GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
 #else
