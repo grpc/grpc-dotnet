@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -355,21 +355,28 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
             throw new InvalidOperationException("Response headers can only be sent once per call.");
         }
 
-        foreach (var entry in responseHeaders)
+        foreach (var header in responseHeaders)
         {
-            if (entry.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
+            if (header.Key == GrpcProtocolConstants.CompressionRequestAlgorithmHeader)
             {
                 // grpc-internal-encoding-request is used in the server to set message compression
                 // on a per-call bassis.
                 // 'grpc-encoding' is sent even if WriteOptions.Flags = NoCompress. In that situation
                 // individual messages will not be written with compression.
-                ResponseGrpcEncoding = entry.Value;
+                ResponseGrpcEncoding = header.Value;
                 HttpContext.Response.Headers[GrpcProtocolConstants.MessageEncodingHeader] = ResponseGrpcEncoding;
             }
             else
             {
-                var encodedValue = entry.IsBinary ? Convert.ToBase64String(entry.ValueBytes) : entry.Value;
-                HttpContext.Response.Headers.Append(entry.Key, encodedValue);
+                var encodedValue = header.IsBinary ? Convert.ToBase64String(header.ValueBytes) : header.Value;
+                try
+                {
+                    HttpContext.Response.Headers.Append(header.Key, encodedValue);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Error adding response header '{header.Key}'.", ex);
+                }
             }
         }
 
