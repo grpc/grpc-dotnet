@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,6 +21,7 @@ using Greet;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.AspNetCore.FunctionalTests.Server;
@@ -124,6 +125,37 @@ public class TrailerMetadataTests : FunctionalTestBase
         Assert.AreEqual("Hello world", Encoding.UTF8.GetString(ex.Trailers.GetValueBytes("grpc-status-details-bin")!));
 
         AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
+    }
+
+    [Test]
+    public async Task GetTrailers_UnaryMethodThrowsExceptionWithInvalidTrailers_FriendlyServerError()
+    {
+        Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
+        {
+            var trailers = new Metadata();
+            trailers.Add(new Metadata.Entry("Name", "This is invalid: \u0011"));
+            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
+        }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext => true);
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
+
+        var channel = CreateChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
+        Assert.AreEqual("Bad gRPC response. HTTP status code: 500", ex.Status.Detail);
+
+        HasLogException(ex => ex.Message == "Error adding response trailer 'name'." && ex.InnerException!.Message == "Invalid non-ASCII or control character in header: 0x0011");
     }
 
     [Test]
