@@ -26,7 +26,7 @@ using NUnit.Framework;
 namespace Grpc.AspNetCore.FunctionalTests.Server;
 
 [TestFixture]
-public class TrailerMetadataTests : FunctionalTestBase
+public class MetadataTests : FunctionalTestBase
 {
     [Test]
     public async Task GetTrailers_UnaryMethodSetStatusWithTrailers_TrailersAvailableInClient()
@@ -127,37 +127,6 @@ public class TrailerMetadataTests : FunctionalTestBase
     }
 
     [Test]
-    public async Task GetTrailers_UnaryMethodThrowsExceptionWithInvalidTrailers_FriendlyServerError()
-    {
-        Task<HelloReply> UnaryDeadlineExceeded(HelloRequest request, ServerCallContext context)
-        {
-            var trailers = new Metadata();
-            trailers.Add(new Metadata.Entry("Name", "This is invalid: \u0011"));
-            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
-        }
-
-        // Arrange
-        SetExpectedErrorsFilter(writeContext => true);
-
-        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryDeadlineExceeded);
-
-        var channel = CreateChannel();
-
-        var client = TestClientFactory.Create(channel, method);
-
-        // Act
-        var call = client.UnaryCall(new HelloRequest());
-
-        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
-
-        // Assert
-        Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
-        Assert.AreEqual("Bad gRPC response. HTTP status code: 500", ex.Status.Detail);
-
-        HasLogException(ex => ex.Message == "Error adding response trailer 'name'." && ex.InnerException!.Message == "Invalid non-ASCII or control character in header: 0x0011");
-    }
-
-    [Test]
     public async Task GetTrailers_ServerStreamingMethodSetStatusWithTrailers_TrailersAvailableInClient()
     {
         async Task UnaryDeadlineExceeded(HelloRequest request, IAsyncStreamWriter<HelloReply> writer, ServerCallContext context)
@@ -254,5 +223,68 @@ public class TrailerMetadataTests : FunctionalTestBase
         Assert.AreEqual("the value was empty", ex.Trailers.GetValue("name"));
 
         AssertHasLogRpcConnectionError(StatusCode.InvalidArgument, "Validation failed");
+    }
+
+    [Test]
+    public async Task ServerTrailers_UnaryMethodThrowsExceptionWithInvalidTrailers_FriendlyServerError()
+    {
+        Task<HelloReply> UnaryCall(HelloRequest request, ServerCallContext context)
+        {
+            var trailers = new Metadata();
+            trailers.Add(new Metadata.Entry("Name", "This is invalid: \u0011"));
+            return Task.FromException<HelloReply>(new RpcException(new Status(StatusCode.InvalidArgument, "Validation failed"), trailers));
+        }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext => true);
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCall);
+
+        var channel = CreateChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
+        Assert.AreEqual("Bad gRPC response. HTTP status code: 500", ex.Status.Detail);
+
+        HasLogException(ex => ex.Message == "Error adding response trailer 'name'." && ex.InnerException!.Message == "Invalid non-ASCII or control character in header: 0x0011");
+    }
+
+    [Test]
+    public async Task ServerHeaders_UnaryMethodThrowsExceptionWithInvalidTrailers_FriendlyServerError()
+    {
+        async Task<HelloReply> UnaryCall(HelloRequest request, ServerCallContext context)
+        {
+            var headers = new Metadata();
+            headers.Add(new Metadata.Entry("Name", "This is invalid: \u0011"));
+            await context.WriteResponseHeadersAsync(headers);
+            return new HelloReply();
+        }
+
+        // Arrange
+        SetExpectedErrorsFilter(writeContext => true);
+
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(UnaryCall);
+
+        var channel = CreateChannel();
+
+        var client = TestClientFactory.Create(channel, method);
+
+        // Act
+        var call = client.UnaryCall(new HelloRequest());
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(StatusCode.Unknown, ex.StatusCode);
+        Assert.AreEqual("Exception was thrown by handler. InvalidOperationException: Error adding response header 'name'. InvalidOperationException: Invalid non-ASCII or control character in header: 0x0011", ex.Status.Detail);
+
+        HasLogException(ex => ex.Message == "Error adding response header 'name'." && ex.InnerException!.Message == "Invalid non-ASCII or control character in header: 0x0011");
     }
 }
