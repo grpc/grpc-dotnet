@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -31,7 +31,14 @@ internal static class HttpResponseExtensions
             foreach (var trailer in context.ResponseTrailers)
             {
                 var value = (trailer.IsBinary) ? Convert.ToBase64String(trailer.ValueBytes) : trailer.Value;
-                trailersDestination.Append(trailer.Key, value);
+                try
+                {
+                    trailersDestination.Append(trailer.Key, value);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Error adding response trailer '{trailer.Key}'.", ex);
+                }
             }
         }
 
