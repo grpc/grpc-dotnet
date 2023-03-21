@@ -16,10 +16,12 @@
 
 #endregion
 
+using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Model.Internal;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -65,11 +67,7 @@ public static class GrpcServicesExtensions
         {
             // Unimplemented constraint is added to the route as an inline constraint to avoid RoutePatternFactory.Parse overload that includes parameter policies. That overload infers strings as regex constraints, which brings in
             // the regex engine when publishing trimmed or AOT apps. This change reduces Native AOT gRPC server app size by about 1 MB.
-#if NET7_0_OR_GREATER
-            options.SetParameterPolicy<GrpcUnimplementedConstraint>(GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
-#else
-            options.ConstraintMap[GrpcServerConstants.GrpcUnimplementedConstraintPrefix] = typeof(GrpcUnimplementedConstraint);
-#endif
+            AddParameterPolicy<GrpcUnimplementedConstraint>(options, GrpcServerConstants.GrpcUnimplementedConstraintPrefix);
         });
         services.AddOptions();
         services.TryAddSingleton<GrpcMarkerService>();
@@ -84,6 +82,17 @@ public static class GrpcServicesExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IServiceMethodProvider<>), typeof(BinderServiceMethodProvider<>)));
 
         return new GrpcServerBuilder(services);
+
+        // This ensures the policy's constructors are preserved in .NET 6 with trimming. Remove when .NET 6 is no longer supported.
+        static void AddParameterPolicy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>(RouteOptions options, string name)
+            where T : IParameterPolicy
+        {
+#if NET7_0_OR_GREATER
+            options.SetParameterPolicy<T>(name);
+#else
+            options.ConstraintMap[name] = typeof(T);
+#endif
+        }
     }
 
     /// <summary>
