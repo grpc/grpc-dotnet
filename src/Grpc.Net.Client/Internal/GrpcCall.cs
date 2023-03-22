@@ -290,7 +290,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
             _responseHeadersTask = GetResponseHeadersCoreAsync();
 
             // ResponseHeadersAsync could be called inside a client interceptor when a call is wrapped.
-            // Most people won't use the headers result, so ignore potential error.
+            // Most people won't use the headers result. Observed exception to avoid unobserved exception event.
             _responseHeadersTask.ObserveException();
         }
 
