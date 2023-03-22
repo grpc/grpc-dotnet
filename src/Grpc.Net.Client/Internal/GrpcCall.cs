@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -286,8 +286,12 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
     {
         if (_responseHeadersTask == null)
         {
-            // Allocate metadata and task only when requested
+            // Allocate metadata and task only when requested.
             _responseHeadersTask = GetResponseHeadersCoreAsync();
+
+            // ResponseHeadersAsync could be called inside a client interceptor when a call is wrapped.
+            // Most people won't use the headers result. Observed exception to avoid unobserved exception event.
+            _responseHeadersTask.ObserveException();
         }
 
         return _responseHeadersTask;
