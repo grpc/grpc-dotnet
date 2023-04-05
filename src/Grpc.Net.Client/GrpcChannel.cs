@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -114,6 +114,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         LoggerFactory = channelOptions.LoggerFactory ?? channelOptions.ResolveService<ILoggerFactory>(NullLoggerFactory.Instance);
         OperatingSystem = channelOptions.ResolveService<IOperatingSystem>(Internal.OperatingSystem.Instance);
         RandomGenerator = channelOptions.ResolveService<IRandomGenerator>(new RandomGenerator());
+        Logger = LoggerFactory.CreateLogger<GrpcChannel>();
 
 #if SUPPORT_LOAD_BALANCING
         InitialReconnectBackoff = channelOptions.InitialReconnectBackoff;
@@ -121,7 +122,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 
         var resolverFactory = GetResolverFactory(channelOptions);
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 
         SubchannelTransportFactory = channelOptions.ResolveService<ISubchannelTransportFactory>(new SubChannelTransportFactory(this));
 
@@ -150,7 +151,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             throw new ArgumentException($"Address '{address.OriginalString}' doesn't have a host. Address should include a scheme, host, and optional port. For example, 'https://localhost:5001'.");
         }
         ResolveCredentials(channelOptions, out _isSecure, out _callCredentials);
-            (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(address, _isSecure, channelOptions);
+        (HttpHandlerType, ConnectTimeout) = CalculateHandlerContext(Logger, address, _isSecure, channelOptions);
 #endif
 
         HttpInvoker = channelOptions.HttpClient ?? CreateInternalHttpInvoker(channelOptions.HttpHandler);
@@ -161,7 +162,6 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         MaxRetryBufferPerCallSize = channelOptions.MaxRetryBufferPerCallSize;
         CompressionProviders = ResolveCompressionProviders(channelOptions.CompressionProviders);
         MessageAcceptEncoding = GrpcProtocolHelpers.GetMessageAcceptEncoding(CompressionProviders);
-        Logger = LoggerFactory.CreateLogger<GrpcChannel>();
         ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
         UnsafeUseInsecureChannelCallCredentials = channelOptions.UnsafeUseInsecureChannelCallCredentials;
         _createMethodInfoFunc = CreateMethodInfo;
@@ -220,7 +220,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         return address.Scheme == Uri.UriSchemeHttps || address.Scheme == Uri.UriSchemeHttp;
     }
 
-    private static HttpHandlerContext CalculateHandlerContext(Uri address, bool isSecure, GrpcChannelOptions channelOptions)
+    private static HttpHandlerContext CalculateHandlerContext(ILogger logger, Uri address, bool isSecure, GrpcChannelOptions channelOptions)
     {
         if (channelOptions.HttpHandler == null)
         {
@@ -267,10 +267,14 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             // Proxy can be specified via:
             // - SocketsHttpHandler.Proxy. Set via app code.
             // - HttpClient.DefaultProxy. Set via environment variables, e.g. HTTPS_PROXY.
-            if (IsProxied(socketsHttpHandler, address, isSecure))
+            if (type == HttpHandlerType.SocketsHttpHandler)
             {
-                type = HttpHandlerType.Custom;
-                connectTimeout = null;
+                if (IsProxied(socketsHttpHandler, address, isSecure) is { } proxyUri)
+                {
+                    logger.LogInformation("A proxy is detected. The way the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
+                        "To ensure a proxy is correctly used by the client, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
+                        "Note that HttpClientHandler isn't compatible with load balancing.", proxyUri);
+                }
             }
 #else
             type = HttpHandlerType.SocketsHttpHandler;
