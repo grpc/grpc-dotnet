@@ -269,11 +269,11 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             // - HttpClient.DefaultProxy. Set via environment variables, e.g. HTTPS_PROXY.
             if (type == HttpHandlerType.SocketsHttpHandler)
             {
-                if (IsProxied(socketsHttpHandler, address, isSecure) is { } proxyUri)
+                if (IsProxied(socketsHttpHandler, address, isSecure))
                 {
-                    logger.LogInformation("A proxy is detected. The way the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
-                        "To ensure a proxy is correctly used by the client, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
-                        "Note that HttpClientHandler isn't compatible with load balancing.", proxyUri);
+                    logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when configuring a proxy. " +
+                        "To ensure the client correctly uses a proxy, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
+                        "Note that HttpClientHandler isn't compatible with load balancing.");
                 }
             }
 #else
