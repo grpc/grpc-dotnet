@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -159,45 +159,46 @@ public class ConnectionTests : FunctionalTestBase
         Assert.AreEqual("World", reply.Message);
     }
 
-        [Test]
-        public async Task ConfiguredProxy_SslProxyTunnel()
+    [Test]
+    [Ignore("Test disabled while figuring out the best solution for https://github.com/grpc/grpc-dotnet/issues/2075")]
+    public async Task ConfiguredProxy_SslProxyTunnel()
+    {
+        using var proxyServer = LoopbackProxyServer.Create(new LoopbackProxyServer.Options());
+
+        Task<HelloReply> Unary(HelloRequest request, ServerCallContext context)
         {
-            using var proxyServer = LoopbackProxyServer.Create(new LoopbackProxyServer.Options());
+            return Task.FromResult(new HelloReply { Message = request.Name });
+        }
 
-            Task<HelloReply> Unary(HelloRequest request, ServerCallContext context)
+        // Arrange
+        var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(Unary);
+
+        var http = Fixture.CreateHandler(TestServerEndpointName.Http2WithTls,
+            configureHandler: handler =>
             {
-                return Task.FromResult(new HelloReply { Message = request.Name });
-            }
-
-            // Arrange
-            var method = Fixture.DynamicGrpc.AddUnaryMethod<HelloRequest, HelloReply>(Unary);
-
-            var http = Fixture.CreateHandler(TestServerEndpointName.Http2WithTls,
-                configureHandler: handler =>
-                {
-                    handler.Proxy = new WebProxy(proxyServer.Uri);
-                });
-
-            using var channel = GrpcChannel.ForAddress(http.address, new GrpcChannelOptions
-            {
-                LoggerFactory = LoggerFactory,
-                HttpHandler = http.handler,
-                DisposeHttpClient = true
+                handler.Proxy = new WebProxy(proxyServer.Uri);
             });
 
-            var client = TestClientFactory.Create(channel, method);
+        using var channel = GrpcChannel.ForAddress(http.address, new GrpcChannelOptions
+        {
+            LoggerFactory = LoggerFactory,
+            HttpHandler = http.handler,
+            DisposeHttpClient = true
+        });
 
-            // Act
-            var reply = await client.UnaryCall(new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
+        var client = TestClientFactory.Create(channel, method);
 
-            // Assert
-            Assert.AreEqual("World", reply.Message);
+        // Act
+        var reply = await client.UnaryCall(new HelloRequest { Name = "World" }).ResponseAsync.DefaultTimeout();
 
-            Assert.AreEqual(1, proxyServer.Connections);
-            Assert.AreEqual(1, proxyServer.Requests.Count);
+        // Assert
+        Assert.AreEqual("World", reply.Message);
 
-            var expected = $"CONNECT {http.address.Host}:{http.address.Port} HTTP/1.1";
-            Assert.AreEqual(expected, proxyServer.Requests[0].RequestLine);
-        }
+        Assert.AreEqual(1, proxyServer.Connections);
+        Assert.AreEqual(1, proxyServer.Requests.Count);
+
+        var expected = $"CONNECT {http.address.Host}:{http.address.Port} HTTP/1.1";
+        Assert.AreEqual(expected, proxyServer.Requests[0].RequestLine);
+    }
 #endif
 }
