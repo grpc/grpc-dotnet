@@ -271,7 +271,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
             {
                 if (IsProxied(socketsHttpHandler, address, isSecure))
                 {
-                    logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when configuring a proxy. " +
+                    logger.LogInformation("Proxy configuration is detected. How the gRPC client creates connections can cause unexpected behavior when a proxy is configured. " +
                         "To ensure the client correctly uses a proxy, configure GrpcChannelOptions.HttpHandler to use HttpClientHandler. " +
                         "Note that HttpClientHandler isn't compatible with load balancing.");
                 }
