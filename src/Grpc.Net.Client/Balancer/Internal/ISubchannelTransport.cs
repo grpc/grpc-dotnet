@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,8 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using Grpc.Shared;
+
 namespace Grpc.Net.Client.Balancer.Internal;
 
 /// <summary>
@@ -74,10 +76,7 @@ internal sealed class ConnectContext
     public void CancelConnect()
     {
         // Check disposed because CTS.Cancel throws if the CTS is disposed.
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(ConnectContext));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(ConnectContext));
 
         IsConnectCanceled = true;
         _cts.Cancel();

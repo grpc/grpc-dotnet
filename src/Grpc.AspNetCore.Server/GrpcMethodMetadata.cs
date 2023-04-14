@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.Core;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server;
 
@@ -39,15 +40,8 @@ public sealed class GrpcMethodMetadata
         Type serviceType,
         IMethod method)
     {
-        if (serviceType == null)
-        {
-            throw new ArgumentNullException(nameof(serviceType));
-        }
-
-        if (method == null)
-        {
-            throw new ArgumentNullException(nameof(method));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(serviceType);
+        ArgumentNullThrowHelper.ThrowIfNull(method);
 
         ServiceType = serviceType;
         Method = method;

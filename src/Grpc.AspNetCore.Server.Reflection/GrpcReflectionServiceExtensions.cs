@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,6 +21,7 @@ using System.Reflection;
 using Grpc.AspNetCore.Server;
 using Grpc.Core;
 using Grpc.Reflection;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -39,10 +40,7 @@ public static class GrpcReflectionServiceExtensions
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     public static IServiceCollection AddGrpcReflection(this IServiceCollection services)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
 
         services.TryAddSingleton<GrpcReflectionMarkerService>();
 

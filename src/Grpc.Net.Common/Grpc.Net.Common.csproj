@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>Infrastructure for common functionality in gRPC</Description>
@@ -10,6 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
+    <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
+    <Compile Include="..\Shared\CallerArgumentExpressionAttribute.cs" Link="Internal\CallerArgumentExpressionAttribute.cs" />
     <ProjectReference Include="..\Grpc.Core.Api\Grpc.Core.Api.csproj" />
   </ItemGroup>
 

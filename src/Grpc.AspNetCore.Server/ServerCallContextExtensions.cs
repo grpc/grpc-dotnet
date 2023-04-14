@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using Grpc.AspNetCore.Server.Internal;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Http;
 
 namespace Grpc.Core;
@@ -39,10 +40,7 @@ public static class ServerCallContextExtensions
     /// <returns>The call's <see cref="HttpContext"/>.</returns>
     public static HttpContext GetHttpContext(this ServerCallContext serverCallContext)
     {
-        if (serverCallContext == null)
-        {
-            throw new ArgumentNullException(nameof(serverCallContext));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(serverCallContext);
 
         // Attempt to quickly get HttpContext from known call context type.
         if (serverCallContext is HttpContextServerCallContext httpContextServerCallContext)

@@ -16,10 +16,13 @@
 
 #endregion
 
+using System.Net;
+using System.Xml.Linq;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Grpc.Net.ClientFactory;
+using Grpc.Shared;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -37,15 +40,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder ConfigureChannel(this IHttpClientBuilder builder, Action<IServiceProvider, GrpcChannelOptions> configureChannel)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureChannel == null)
-        {
-            throw new ArgumentNullException(nameof(configureChannel));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureChannel);
 
         ValidateGrpcClient(builder, nameof(ConfigureChannel));
 
@@ -68,15 +64,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder ConfigureChannel(this IHttpClientBuilder builder, Action<GrpcChannelOptions> configureChannel)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureChannel == null)
-        {
-            throw new ArgumentNullException(nameof(configureChannel));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureChannel);
 
         ValidateGrpcClient(builder, nameof(ConfigureChannel));
 
@@ -109,15 +98,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorScope scope, Func<IServiceProvider, Interceptor> configureInvoker)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureInvoker == null)
-        {
-            throw new ArgumentNullException(nameof(configureInvoker));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureInvoker);
 
         ValidateGrpcClient(builder, nameof(AddInterceptor));
 
@@ -137,15 +119,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, Task> authInterceptor)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (authInterceptor == null)
-        {
-            throw new ArgumentNullException(nameof(authInterceptor));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(authInterceptor);
 
         ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
@@ -171,15 +146,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, Func<AuthInterceptorContext, Metadata, IServiceProvider, Task> authInterceptor)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (authInterceptor == null)
-        {
-            throw new ArgumentNullException(nameof(authInterceptor));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(authInterceptor);
 
         ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
@@ -205,15 +173,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder AddCallCredentials(this IHttpClientBuilder builder, CallCredentials credentials)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (credentials == null)
-        {
-            throw new ArgumentNullException(nameof(credentials));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(credentials);
 
         ValidateGrpcClient(builder, nameof(AddCallCredentials));
 
@@ -260,15 +221,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder AddInterceptor(this IHttpClientBuilder builder, InterceptorScope scope, Func<Interceptor> configureInvoker)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureInvoker == null)
-        {
-            throw new ArgumentNullException(nameof(configureInvoker));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureInvoker);
 
         ValidateGrpcClient(builder, nameof(AddInterceptor));
 
@@ -303,10 +257,7 @@ public static class GrpcHttpClientBuilderExtensions
     public static IHttpClientBuilder AddInterceptor<TInterceptor>(this IHttpClientBuilder builder, InterceptorScope scope)
         where TInterceptor : Interceptor
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
 
         ValidateGrpcClient(builder, nameof(AddInterceptor));
 
@@ -327,15 +278,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder ConfigureGrpcClientCreator(this IHttpClientBuilder builder, Func<IServiceProvider, CallInvoker, object> configureCreator)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureCreator == null)
-        {
-            throw new ArgumentNullException(nameof(configureCreator));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureCreator);
 
         ValidateGrpcClient(builder, nameof(ConfigureGrpcClientCreator));
 
@@ -359,15 +303,8 @@ public static class GrpcHttpClientBuilderExtensions
     /// <returns>An <see cref="IHttpClientBuilder"/> that can be used to configure the client.</returns>
     public static IHttpClientBuilder ConfigureGrpcClientCreator(this IHttpClientBuilder builder, Func<CallInvoker, object> configureCreator)
     {
-        if (builder == null)
-        {
-            throw new ArgumentNullException(nameof(builder));
-        }
-
-        if (configureCreator == null)
-        {
-            throw new ArgumentNullException(nameof(configureCreator));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(builder);
+        ArgumentNullThrowHelper.ThrowIfNull(configureCreator);
 
         ValidateGrpcClient(builder, nameof(ConfigureGrpcClientCreator));
 

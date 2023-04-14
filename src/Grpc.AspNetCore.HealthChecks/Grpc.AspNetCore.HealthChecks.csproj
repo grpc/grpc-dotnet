@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>Integration of ASP.NET Core health checks with Grpc.HealthCheck</Description>
@@ -18,6 +18,8 @@
 
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <ProjectReference Include="..\Grpc.HealthCheck\Grpc.HealthCheck.csproj" />
+
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
   </ItemGroup>
 
 </Project>

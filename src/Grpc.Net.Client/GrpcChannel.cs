@@ -646,10 +646,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>A new <see cref="CallInvoker"/>.</returns>
     public override CallInvoker CreateCallInvoker()
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         var invoker = new HttpClientCallInvoker(this);
 
@@ -695,15 +692,8 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>A new instance of <see cref="GrpcChannel"/>.</returns>
     public static GrpcChannel ForAddress(Uri address, GrpcChannelOptions channelOptions)
     {
-        if (address == null)
-        {
-            throw new ArgumentNullException(nameof(address));
-        }
-
-        if (channelOptions == null)
-        {
-            throw new ArgumentNullException(nameof(channelOptions));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(address);
+        ArgumentNullThrowHelper.ThrowIfNull(channelOptions);
 
         if (channelOptions.HttpClient != null && channelOptions.HttpHandler != null)
         {
@@ -732,10 +722,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns></returns>
     public Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.ConnectAsync(waitForReady: true, cancellationToken);
@@ -777,10 +764,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// <returns>The task object representing the asynchronous operation.</returns>
     public Task WaitForStateChangedAsync(ConnectivityState lastObservedState, CancellationToken cancellationToken = default)
     {
-        if (Disposed)
-        {
-            throw new ObjectDisposedException(nameof(GrpcChannel));
-        }
+        ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
 
         ValidateHttpHandlerSupportsConnectivity();
         return ConnectionManager.WaitForStateChangedAsync(lastObservedState, waitForState: null, cancellationToken);

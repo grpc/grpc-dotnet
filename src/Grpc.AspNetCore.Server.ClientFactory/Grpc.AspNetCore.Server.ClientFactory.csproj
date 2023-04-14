@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>HttpClientFactory integration the for gRPC .NET client when running in ASP.NET Core</Description>
@@ -19,5 +19,7 @@
     <ProjectReference Include="..\Grpc.AspNetCore.Server\Grpc.AspNetCore.Server.csproj" />
     <!-- PrivateAssets set to None to ensure the build targets/props are propagated to parent project -->
     <ProjectReference Include="..\Grpc.Net.ClientFactory\Grpc.Net.ClientFactory.csproj" PrivateAssets="None" />
+
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
   </ItemGroup>
 </Project>

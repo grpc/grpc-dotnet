@@ -338,10 +338,7 @@ internal sealed partial class HttpContextServerCallContext : ServerCallContext, 
 
     protected override Task WriteResponseHeadersAsyncCore(Metadata responseHeaders)
     {
-        if (responseHeaders == null)
-        {
-            throw new ArgumentNullException(nameof(responseHeaders));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(responseHeaders);
 
         // Headers can only be written once. Throw on subsequent call to write response header instead of silent no-op.
         if (HttpContext.Response.HasStarted)

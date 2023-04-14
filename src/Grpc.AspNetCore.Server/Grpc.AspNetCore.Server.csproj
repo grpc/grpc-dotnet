@@ -31,6 +31,8 @@
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
     <Compile Include="..\Shared\CodeAnalysisAttributes.cs" Link="Internal\CodeAnalysisAttributes.cs" />
     <Compile Include="..\Shared\NonCapturingTimer.cs" Link="Internal\NonCapturingTimer.cs" />
+    <Compile Include="..\Shared\ThrowHelpers\ObjectDisposedThrowHelper.cs" Link="Internal\ObjectDisposedThrowHelper.cs" />
+    <Compile Include="..\Shared\ThrowHelpers\ArgumentNullThrowHelper.cs" Link="Internal\ArgumentNullThrowHelper.cs" />
   </ItemGroup>
 
   <ItemGroup>

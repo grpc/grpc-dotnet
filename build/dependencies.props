@@ -12,7 +12,7 @@
     <MicrosoftAspNetCoreApp31PackageVersion>3.1.3</MicrosoftAspNetCoreApp31PackageVersion>
     <MicrosoftBuildLocatorPackageVersion>1.5.5</MicrosoftBuildLocatorPackageVersion>
     <MicrosoftBuildPackageVersion>16.9.0</MicrosoftBuildPackageVersion>
-    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>7.0.0-preview1.22518.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
+    <MicrosoftCodeAnalysisNetAnalyzersPackageVersion>8.0.0-preview1.23165.1</MicrosoftCodeAnalysisNetAnalyzersPackageVersion>
     <MicrosoftCrankEventSourcesPackageVersion>0.2.0-alpha.21255.1</MicrosoftCrankEventSourcesPackageVersion>
     <MicrosoftExtensionsLoggingTestingPackageVersion>2.1.1</MicrosoftExtensionsLoggingTestingPackageVersion>
     <MicrosoftExtensionsPackageVersion>7.0.0</MicrosoftExtensionsPackageVersion>

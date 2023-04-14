@@ -21,6 +21,7 @@ using Grpc.AspNetCore.Server;
 using Grpc.AspNetCore.Server.Internal;
 using Grpc.AspNetCore.Server.Model;
 using Grpc.AspNetCore.Server.Model.Internal;
+using Grpc.Shared;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -41,10 +42,7 @@ public static class GrpcServicesExtensions
     /// <returns>The same instance of the <see cref="IGrpcServerBuilder"/> for chaining.</returns>
     public static IGrpcServerBuilder AddServiceOptions<TService>(this IGrpcServerBuilder grpcBuilder, Action<GrpcServiceOptions<TService>> configure) where TService : class
     {
-        if (grpcBuilder == null)
-        {
-            throw new ArgumentNullException(nameof(grpcBuilder));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(grpcBuilder);
 
         grpcBuilder.Services.AddSingleton<IConfigureOptions<GrpcServiceOptions<TService>>, GrpcServiceOptionsSetup<TService>>();
         grpcBuilder.Services.Configure(configure);
@@ -58,10 +56,7 @@ public static class GrpcServicesExtensions
     /// <returns>An <see cref="IGrpcServerBuilder"/> that can be used to further configure the gRPC services.</returns>
     public static IGrpcServerBuilder AddGrpc(this IServiceCollection services)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
 
         services.AddRouting(options =>
         {
@@ -103,10 +98,7 @@ public static class GrpcServicesExtensions
     /// <returns>An <see cref="IGrpcServerBuilder"/> that can be used to further configure the gRPC services.</returns>
     public static IGrpcServerBuilder AddGrpc(this IServiceCollection services, Action<GrpcServiceOptions> configureOptions)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(services);
 
         return services.Configure(configureOptions).AddGrpc();
     }

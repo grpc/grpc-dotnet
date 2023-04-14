@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -19,6 +19,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using Grpc.Core.Interceptors;
+using Grpc.Shared;
 
 namespace Grpc.AspNetCore.Server;
 
@@ -52,10 +53,8 @@ public class InterceptorCollection : Collection<InterceptorRegistration>
 #endif
         Type interceptorType, params object[] args)
     {
-        if (interceptorType == null)
-        {
-            throw new ArgumentNullException(nameof(interceptorType));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(interceptorType);
+
         if (!interceptorType.IsSubclassOf(typeof(Interceptor)))
         {
             throw new ArgumentException($"Type must inherit from {typeof(Interceptor).FullName}.", nameof(interceptorType));
@@ -70,10 +69,7 @@ public class InterceptorCollection : Collection<InterceptorRegistration>
     /// <param name="registrations">The set of interceptor registrations to add.</param>
     internal void AddRange(IEnumerable<InterceptorRegistration> registrations)
     {
-        if (registrations == null)
-        {
-            throw new ArgumentNullException(nameof(registrations));
-        }
+        ArgumentNullThrowHelper.ThrowIfNull(registrations);
 
         foreach (var interceptorRegistration in registrations)
         {
