@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -57,9 +57,7 @@ public class Program
                     }
                     if (http3Port != -1)
                     {
-#pragma warning disable CA2252 // This API requires opting into preview features
                         options.ListenAnyIP(http3Port, o => ConfigureEndpoint(o, useTls, HttpProtocols.Http3));
-#pragma warning restore CA2252 // This API requires opting into preview features
                     }
 
                     void ConfigureEndpoint(ListenOptions listenOptions, bool useTls, HttpProtocols httpProtocols)

@@ -9,7 +9,7 @@ class CustomEnvironment extends JestPuppeteerEnvironment {
         console.log('Calling gRPC-Web client app');
 
         var page = this.global.page;
-        await page.goto('http:localhost:8081', { waitUntil: 'networkidle0' });
+        await page.goto('http://localhost:8081', { waitUntil: 'networkidle0' });
 
         // Wait for Blazor to finish loading
         await expect(page).toMatchTextContent('gRPC-Web interop tests');
