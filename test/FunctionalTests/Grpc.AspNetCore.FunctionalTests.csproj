@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net5.0;net6.0;net7.0;net8.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <VerifyDependencyInjectionOpenGenericServiceTrimmability>true</VerifyDependencyInjectionOpenGenericServiceTrimmability>
 
@@ -9,7 +9,7 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0'">
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0' OR '$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0' OR '$(TargetFramework)' == 'net8.0'">
     <DefineConstants>SUPPORT_LOAD_BALANCING;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
@@ -68,6 +68,9 @@
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreApp6PackageVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)'=='net7.0'">
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreApp7PackageVersion)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='net8.0'">
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftAspNetCoreAppPackageVersion)" />
   </ItemGroup>
 

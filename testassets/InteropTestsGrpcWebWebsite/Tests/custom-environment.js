@@ -1,7 +1,3 @@
-// For some reason the expect-puppeteer require is returning a module rather than the function.
-// Helper function unwraps the module and returns the inner function.
-function _interopDefault(ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
 const JestPuppeteerEnvironment = require("jest-environment-puppeteer").TestEnvironment;
 const expect = require('expect-puppeteer').expect;
 

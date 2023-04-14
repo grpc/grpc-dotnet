@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net7.0;net6.0;net472</TargetFrameworks>
-    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net7.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'!='true'">net8.0;net7.0;net6.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(LatestFramework)'=='true'">net8.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

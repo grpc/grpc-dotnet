@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <DefineConstants>BLAZOR_WASM</DefineConstants>
   </PropertyGroup>
 
@@ -24,7 +24,7 @@
 
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="Grpc.Tools" Version="$(GrpcToolsPackageVersion)" PrivateAssets="All" />
-    
+
     <Protobuf Include="..\Proto\grpc\testing\test.proto" GrpcServices="Client" Link="Protos\test.proto" />
     <Protobuf Include="..\Proto\grpc\testing\empty.proto" GrpcServices="None" Link="Protos\empty.proto" />
     <Protobuf Include="..\Proto\grpc\testing\messages.proto" GrpcServices="None" Link="Protos\messages.proto" />
