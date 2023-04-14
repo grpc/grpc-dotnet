@@ -16,8 +16,6 @@
 
 #endregion
 
-using System.Net;
-using System.Xml.Linq;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
