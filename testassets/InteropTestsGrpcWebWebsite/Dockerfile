@@ -11,4 +11,4 @@ RUN dotnet publish testassets/InteropTestsGrpcWebWebsite -c Release -o out
 FROM mcr.microsoft.com/dotnet/nightly/aspnet:8.0-preview
 WORKDIR /app
 COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "InteropTestsGrpcWebWebsite.dll", "--urls", "http://localhost:80"]
+ENTRYPOINT ["dotnet", "InteropTestsGrpcWebWebsite.dll", "--urls", "http://+:80"]
