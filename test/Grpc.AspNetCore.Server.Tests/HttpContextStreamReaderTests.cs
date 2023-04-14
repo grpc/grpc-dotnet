@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -76,7 +76,7 @@ public class HttpContextStreamReaderTests
             await nextTask;
             Assert.Fail();
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
         }
 
