@@ -2,10 +2,10 @@
 // Helper function unwraps the module and returns the inner function.
 function _interopDefault(ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-const PuppeteerEnvironment = require('jest-environment-puppeteer');
+const JestPuppeteerEnvironment = require("jest-environment-puppeteer").TestEnvironment;
 const expect = _interopDefault(require('expect-puppeteer'));
 
-class CustomEnvironment extends PuppeteerEnvironment {
+class CustomEnvironment extends JestPuppeteerEnvironment {
     // Load page and get test names to run
     async setup() {
         await super.setup();
