@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . ./
 RUN dotnet --info
 RUN dotnet restore testassets/InteropTestsWebsite
-RUN dotnet publish testassets/InteropTestsWebsite --framework net7.0 -c Release -o out -p:LatestFramework=true
+RUN dotnet publish testassets/InteropTestsWebsite --framework net8.0 -c Release -o out -p:LatestFramework=true
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/nightly/aspnet:8.0-preview
