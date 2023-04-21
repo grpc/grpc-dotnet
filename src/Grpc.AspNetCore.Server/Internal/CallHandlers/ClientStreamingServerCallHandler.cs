@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -45,8 +45,11 @@ internal class ClientStreamingServerCallHandler<
 
     protected override async Task HandleCallAsyncCore(HttpContext httpContext, HttpContextServerCallContext serverCallContext)
     {
-        // Disable request body data rate for client streaming
+        // Disable certain features for client streaming methods.
         DisableMinRequestBodyDataRateAndMaxRequestBodySize(httpContext);
+#if NET8_0_OR_GREATER
+        DisableRequestTimeout(httpContext);
+#endif
 
         TResponse? response;
 
