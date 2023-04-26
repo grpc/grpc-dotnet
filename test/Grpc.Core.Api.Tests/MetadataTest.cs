@@ -17,15 +17,8 @@
 #endregion
 
 using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Grpc.Core;
-using Grpc.Core.Internal;
-using Grpc.Core.Utils;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -94,9 +87,9 @@ public class MetadataTest
     [Test]
     public void Entry_ConstructionPreconditions()
     {
-        Assert.Throws(typeof(ArgumentNullException), () => new Metadata.Entry(null, "xyz"));
-        Assert.Throws(typeof(ArgumentNullException), () => new Metadata.Entry("abc", (string)null));
-        Assert.Throws(typeof(ArgumentNullException), () => new Metadata.Entry("abc-bin", (byte[])null));
+        Assert.AreEqual("key", Assert.Throws<ArgumentNullException>(() => new Metadata.Entry(null!, "xyz"))!.ParamName);
+        Assert.AreEqual("value", Assert.Throws<ArgumentNullException>(() => new Metadata.Entry("abc", (string)null!))!.ParamName);
+        Assert.AreEqual("valueBytes", Assert.Throws<ArgumentNullException>(() => new Metadata.Entry("abc-bin", (byte[])null!))!.ParamName);
     }
 
     [Test]
@@ -218,7 +211,7 @@ public class MetadataTest
     {
         var metadata = CreateMetadata();
         var enumerator = (metadata as System.Collections.IEnumerable).GetEnumerator();
-        
+
         int i = 0;
         while (enumerator.MoveNext())
         {
@@ -279,13 +272,16 @@ public class MetadataTest
         };
 
         var abcEntry = metadata.Get("abc");
-        Assert.AreEqual("abc-value2", abcEntry.Value);
+        Assert.NotNull(abcEntry);
+        Assert.AreEqual("abc-value2", abcEntry!.Value);
 
         var xyzEntry = metadata.Get("xyz");
-        Assert.AreEqual("xyz-value1", xyzEntry.Value);
+        Assert.NotNull(xyzEntry);
+        Assert.AreEqual("xyz-value1", xyzEntry!.Value);
 
         var abcUppercaseEntry = metadata.Get("AbC");
-        Assert.AreEqual("abc-value2", abcUppercaseEntry.Value);
+        Assert.NotNull(abcUppercaseEntry);
+        Assert.AreEqual("abc-value2", abcUppercaseEntry!.Value);
 
         var notFound = metadata.Get("not-found");
         Assert.AreEqual(null, notFound);

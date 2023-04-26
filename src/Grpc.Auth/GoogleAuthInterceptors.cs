@@ -16,9 +16,6 @@
 
 #endregion
 
-using System.Threading;
-using System.Threading.Tasks;
-
 using Google.Apis.Auth.OAuth2;
 using Grpc.Core;
 using Grpc.Core.Utils;
@@ -83,7 +80,7 @@ public static class GoogleAuthInterceptors
     /// <returns>The interceptor.</returns>
     public static AsyncAuthInterceptor FromAccessToken(string accessToken)
     {
-        GrpcPreconditions.CheckNotNull(accessToken);
+        GrpcPreconditions.CheckNotNull(accessToken, nameof(accessToken));
         return new AsyncAuthInterceptor((context, metadata) =>
         {
             metadata.Add(CreateBearerTokenHeader(accessToken));

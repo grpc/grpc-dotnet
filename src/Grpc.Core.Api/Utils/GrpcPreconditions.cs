@@ -33,8 +33,11 @@ public static class GrpcPreconditions
     {
         if (!condition)
         {
-            throw new ArgumentException();
+            Throw();
         }
+
+        static void Throw()
+            => throw new ArgumentException();
     }
 
     /// <summary>
@@ -46,21 +49,32 @@ public static class GrpcPreconditions
     {
         if (!condition)
         {
-            throw new ArgumentException(errorMessage);
+            Throw(errorMessage);
         }
+
+        static void Throw(string errorMessage)
+            => throw new ArgumentException(errorMessage);
     }
 
     /// <summary>
     /// Throws <see cref="ArgumentNullException"/> if reference is null.
     /// </summary>
     /// <param name="reference">The reference.</param>
+#if DEBUG
+    // this method is on the public API; don't want to break anything
+    // external, but: prevent additional usage locally (i.e. in DEBUG mode)
+    [Obsolete("Specify parameter name when possible", error: true)]
+#endif
     public static T CheckNotNull<T>(T reference)
     {
-        if (reference == null)
+        if (reference is null)
         {
-            throw new ArgumentNullException();
+            Throw();
         }
         return reference;
+
+        static void Throw()
+            => throw new ArgumentNullException();
     }
 
     /// <summary>
@@ -70,11 +84,14 @@ public static class GrpcPreconditions
     /// <param name="paramName">The parameter name.</param>
     public static T CheckNotNull<T>(T reference, string paramName)
     {
-        if (reference == null)
+        if (reference is null)
         {
-            throw new ArgumentNullException(paramName);
+            Throw(paramName);
         }
         return reference;
+
+        static void Throw(string paramName)
+            => throw new ArgumentNullException(paramName);
     }
 
     /// <summary>
@@ -85,8 +102,10 @@ public static class GrpcPreconditions
     {
         if (!condition)
         {
-            throw new InvalidOperationException();
+            Throw();
         }
+        static void Throw()
+            => throw new InvalidOperationException();
     }
 
     /// <summary>
@@ -98,7 +117,9 @@ public static class GrpcPreconditions
     {
         if (!condition)
         {
-            throw new InvalidOperationException(errorMessage);
+            Throw(errorMessage);
         }
+        static void Throw(string errorMessage)
+            => throw new InvalidOperationException(errorMessage);
     }
 }

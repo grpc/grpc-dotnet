@@ -14,13 +14,10 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 using Grpc.Core;
+using Grpc.Core.Utils;
 using Grpc.Health.V1;
 
 namespace Grpc.HealthCheck;
@@ -227,11 +224,10 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
 
     private HealthCheckResponse GetHealthCheckResponse(string service, bool throwOnNotFound)
     {
-        HealthCheckResponse response = null;
+        HealthCheckResponse response;
         lock (statusLock)
         {
-            HealthCheckResponse.Types.ServingStatus status;
-            if (!statusMap.TryGetValue(service, out status))
+            if (!statusMap.TryGetValue(service, out HealthCheckResponse.Types.ServingStatus status))
             {
                 if (throwOnNotFound)
                 {
@@ -251,6 +247,7 @@ public class HealthServiceImpl : Grpc.Health.V1.Health.HealthBase
 
     private HealthCheckResponse.Types.ServingStatus GetServiceStatus(string service)
     {
+        GrpcPreconditions.CheckNotNull(service, nameof(service));
         if (statusMap.TryGetValue(service, out HealthCheckResponse.Types.ServingStatus s))
         {
             return s;

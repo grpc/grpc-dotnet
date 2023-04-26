@@ -38,7 +38,7 @@ public class SymbolRegistry
     /// <returns>A symbol registry for the given files.</returns>
     public static SymbolRegistry FromFiles(IEnumerable<FileDescriptor> fileDescriptors)
     {
-        GrpcPreconditions.CheckNotNull(fileDescriptors);
+        GrpcPreconditions.CheckNotNull(fileDescriptors, nameof(fileDescriptors));
         var builder = new Builder();
         foreach (var file in fileDescriptors)
         {
@@ -50,20 +50,18 @@ public class SymbolRegistry
     /// <summary>
     /// Gets file descriptor for given file name (including package path). Returns <c>null</c> if not found.
     /// </summary>
-    public FileDescriptor FileByName(string filename)
+    public FileDescriptor? FileByName(string filename)
     {
-        FileDescriptor file;
-        filesByName.TryGetValue(filename, out file);
+        filesByName.TryGetValue(filename, out var file);
         return file;
     }
 
     /// <summary>
     /// Gets file descriptor that contains definition of given symbol full name (including package path). Returns <c>null</c> if not found.
     /// </summary>
-    public FileDescriptor FileContainingSymbol(string symbol)
+    public FileDescriptor? FileContainingSymbol(string symbol)
     {
-        FileDescriptor file;
-        filesBySymbol.TryGetValue(symbol, out file);
+        filesBySymbol.TryGetValue(symbol, out var file);
         return file;
     }
 

@@ -17,11 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using Grpc.Core;
-using Grpc.Core.Internal;
-using Grpc.Core.Utils;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -41,7 +36,7 @@ public class RpcExceptionTest
     [Test]
     public void DefaultMessageDoesntContainDebugExceptionStacktrace()
     {
-        Exception someExceptionWithStacktrace = null;
+        Exception someExceptionWithStacktrace;
         try
         {
             throw new ArgumentException("test exception");

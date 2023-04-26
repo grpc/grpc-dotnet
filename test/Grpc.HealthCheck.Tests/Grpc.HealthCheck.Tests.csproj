@@ -2,9 +2,6 @@
   <PropertyGroup>
     <TargetFrameworks>net462;netcoreapp3.1</TargetFrameworks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
-    <!-- TODO(jtattermusch): re-enable nullable -->
-    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
