@@ -26,15 +26,15 @@ public class AuthPropertyTest
     [Test]
     public void Create_NameIsNotNull()
     {
-        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create(null, new byte[0]));
-        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe(null, new byte[0]));
+        Assert.AreEqual("name", Assert.Throws<ArgumentNullException>(() => AuthProperty.Create(null!, new byte[0]))!.ParamName);
+        Assert.AreEqual("name", Assert.Throws<ArgumentNullException>(() => AuthProperty.CreateUnsafe(null!, new byte[0]))!.ParamName);
     }
 
     [Test]
     public void Create_ValueIsNotNull()
     {
-        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.Create("abc", null));
-        Assert.Throws(typeof(ArgumentNullException), () => AuthProperty.CreateUnsafe("abc", null));
+        Assert.AreEqual("valueBytes", Assert.Throws<ArgumentNullException>(() => AuthProperty.Create("abc", null!))!.ParamName);
+        Assert.AreEqual("valueBytes", Assert.Throws<ArgumentNullException>(() => AuthProperty.CreateUnsafe("abc", null!))!.ParamName);
     }
 
     [Test]

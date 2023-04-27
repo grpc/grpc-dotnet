@@ -68,7 +68,7 @@ public class RpcException : Exception
     public RpcException(Status status, Metadata trailers, string message) : base(message, status.DebugException)
     {
         this.status = status;
-        this.trailers = GrpcPreconditions.CheckNotNull(trailers);
+        this.trailers = GrpcPreconditions.CheckNotNull(trailers, nameof(trailers));
     }
 
     /// <summary>

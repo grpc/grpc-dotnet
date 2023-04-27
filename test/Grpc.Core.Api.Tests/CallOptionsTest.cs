@@ -17,11 +17,8 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using Grpc.Core;
 using Grpc.Core.Internal;
-using Grpc.Core.Utils;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -37,7 +34,7 @@ public class CallOptionsTest
         Assert.AreSame(metadata, options.WithHeaders(metadata).Headers);
 
         var deadline = DateTime.UtcNow;
-        Assert.AreEqual(deadline, options.WithDeadline(deadline).Deadline.Value);
+        Assert.AreEqual(deadline, options.WithDeadline(deadline).Deadline!.Value);
 
         var cancellationToken = new CancellationTokenSource().Token;
         Assert.AreEqual(cancellationToken, options.WithCancellationToken(cancellationToken).CancellationToken);

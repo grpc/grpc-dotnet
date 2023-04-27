@@ -16,11 +16,7 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-
-using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core;
@@ -46,8 +42,8 @@ public class AuthInterceptorContext
     /// </summary>
     public AuthInterceptorContext(string serviceUrl, string methodName)
     {
-        this.serviceUrl = GrpcPreconditions.CheckNotNull(serviceUrl);
-        this.methodName = GrpcPreconditions.CheckNotNull(methodName);
+        this.serviceUrl = GrpcPreconditions.CheckNotNull(serviceUrl, nameof(serviceUrl));
+        this.methodName = GrpcPreconditions.CheckNotNull(methodName, nameof(methodName));
     }
 
     /// <summary>

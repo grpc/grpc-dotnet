@@ -29,14 +29,15 @@ namespace Grpc.Core;
 public class AuthProperty
 {
     static readonly Encoding EncodingUTF8 = System.Text.Encoding.UTF8;
-    string name;
-    byte[] valueBytes;
-    string? lazyValue;
+
+    private readonly string name;
+    private readonly byte[] valueBytes;
+    private string? lazyValue;
 
     private AuthProperty(string name, byte[] valueBytes)
     {
-        this.name = GrpcPreconditions.CheckNotNull(name);
-        this.valueBytes = GrpcPreconditions.CheckNotNull(valueBytes);
+        this.name = GrpcPreconditions.CheckNotNull(name, nameof(name));
+        this.valueBytes = GrpcPreconditions.CheckNotNull(valueBytes, nameof(valueBytes));
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public class AuthProperty
     {
         get
         {
-            return lazyValue ?? (lazyValue = EncodingUTF8.GetString(this.valueBytes));
+            return lazyValue ??= EncodingUTF8.GetString(this.valueBytes);
         }
     }
 
@@ -81,7 +82,7 @@ public class AuthProperty
     /// <param name="valueBytes">the binary value of the property</param>
     public static AuthProperty Create(string name, byte[] valueBytes)
     {
-        GrpcPreconditions.CheckNotNull(valueBytes);
+        GrpcPreconditions.CheckNotNull(valueBytes, nameof(valueBytes));
         var valueCopy = new byte[valueBytes.Length];
         Buffer.BlockCopy(valueBytes, 0, valueCopy, 0, valueBytes.Length);
         return new AuthProperty(name, valueCopy);

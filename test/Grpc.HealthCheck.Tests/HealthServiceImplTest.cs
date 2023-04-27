@@ -14,14 +14,6 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 using Grpc.Core;
 using Grpc.Health.V1;
 using NUnit.Framework;
@@ -59,7 +51,7 @@ public class HealthServiceImplTest
 
         impl.ClearStatus("");
 
-        var ex = Assert.Throws<RpcException>(() => GetStatusHelper(impl, ""));
+        var ex = Assert.Throws<RpcException>(() => GetStatusHelper(impl, ""))!;
         Assert.AreEqual(StatusCode.NotFound, ex.Status.StatusCode);
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Unknown, GetStatusHelper(impl, "grpc.test.TestService"));
     }
@@ -80,9 +72,8 @@ public class HealthServiceImplTest
     public void NullsRejected()
     {
         var impl = new HealthServiceImpl();
-        Assert.Throws(typeof(ArgumentNullException), () => impl.SetStatus(null, HealthCheckResponse.Types.ServingStatus.Serving));
-
-        Assert.Throws(typeof(ArgumentNullException), () => impl.ClearStatus(null));
+        Assert.AreEqual("service", Assert.Throws<ArgumentNullException>(() => impl.SetStatus(null!, HealthCheckResponse.Types.ServingStatus.Serving))!.ParamName);
+        Assert.AreEqual("service", Assert.Throws<ArgumentNullException>(() => impl.ClearStatus(null!))!.ParamName);
     }
 
     [Test]
@@ -252,6 +243,6 @@ public class HealthServiceImplTest
 
     private static HealthCheckResponse.Types.ServingStatus GetStatusHelper(HealthServiceImpl impl, string service)
     {
-        return impl.Check(new HealthCheckRequest { Service = service }, null).Result.Status;
+        return impl.Check(new HealthCheckRequest { Service = service }, null!).Result.Status;
     }
 }

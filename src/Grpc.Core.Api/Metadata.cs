@@ -149,7 +149,6 @@ public sealed class Metadata : IList<Metadata.Entry>
 
     #region IList members
 
-
     /// <summary>
     /// <see cref="T:IList`1"/>
     /// </summary>
@@ -163,7 +162,7 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// </summary>
     public void Insert(int index, Metadata.Entry item)
     {
-        GrpcPreconditions.CheckNotNull(item);
+        GrpcPreconditions.CheckNotNull(item, nameof(item));
         CheckWriteable();
         entries.Insert(index, item);
     }
@@ -189,7 +188,7 @@ public sealed class Metadata : IList<Metadata.Entry>
 
         set
         {
-            GrpcPreconditions.CheckNotNull(value);
+            GrpcPreconditions.CheckNotNull(value, nameof(value));
             CheckWriteable();
             entries[index] = value;
         }
@@ -200,7 +199,7 @@ public sealed class Metadata : IList<Metadata.Entry>
     /// </summary>
     public void Add(Metadata.Entry item)
     {
-        GrpcPreconditions.CheckNotNull(item);
+        GrpcPreconditions.CheckNotNull(item, nameof(item));
         CheckWriteable();
         entries.Add(item);
     }
@@ -462,8 +461,10 @@ public sealed class Metadata : IList<Metadata.Entry>
                     '0' <= c && c <= '9' ||
                     c == '.' ||
                     c == '_' ||
-                    c == '-' )
+                    c == '-')
+                {
                     continue;
+                }
 
                 if ('A' <= c && c <= 'Z')
                 {

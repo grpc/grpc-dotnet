@@ -16,8 +16,6 @@
 
 #endregion
 
-using Grpc.Core.Internal;
-
 namespace Grpc.Core.Tests;
 
 internal class FakeChannelCredentials : ChannelCredentials
@@ -42,7 +40,7 @@ internal class FakeChannelCredentials : ChannelCredentials
 
 internal class FakeCallCredentials : CallCredentials
 {
-    public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object state)
+    public override void InternalPopulateConfiguration(CallCredentialsConfiguratorBase configurator, object? state)
     {
         // not invoking the configurator on purpose
     }

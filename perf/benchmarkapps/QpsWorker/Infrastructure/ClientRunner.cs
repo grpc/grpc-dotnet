@@ -304,7 +304,7 @@ public class ClientRunner
             return RunGenericStreamingAsync(channel, timer);
         }
 
-        GrpcPreconditions.CheckNotNull(_payloadConfig.SimpleParams);
+        GrpcPreconditions.CheckNotNull(_payloadConfig.SimpleParams, "SimpleParams");
         if (_clientType == ClientType.SyncClient)
         {
             GrpcPreconditions.CheckArgument(_rpcType == RpcType.Unary, "Sync client can only be used for Unary calls in C#");
@@ -326,7 +326,7 @@ public class ClientRunner
 
     private SimpleRequest CreateSimpleRequest()
     {
-        GrpcPreconditions.CheckNotNull(_payloadConfig.SimpleParams);
+        GrpcPreconditions.CheckNotNull(_payloadConfig.SimpleParams, "SimpleParams");
         return new SimpleRequest
         {
             Payload = CreateZerosPayload(_payloadConfig.SimpleParams.ReqSize),

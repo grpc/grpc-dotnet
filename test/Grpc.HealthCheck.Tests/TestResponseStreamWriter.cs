@@ -15,7 +15,6 @@
 #endregion
 
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 using Grpc.Core;
 using Grpc.Health.V1;
@@ -25,7 +24,7 @@ namespace Grpc.HealthCheck.Tests;
 internal class TestResponseStreamWriter : IServerStreamWriter<HealthCheckResponse>
 {
     private readonly Channel<HealthCheckResponse> _channel;
-    private readonly TaskCompletionSource<object> _startTcs;
+    private readonly TaskCompletionSource<object?>? _startTcs;
 
     public TestResponseStreamWriter(int maxCapacity = 1, bool started = true)
     {
@@ -36,17 +35,17 @@ internal class TestResponseStreamWriter : IServerStreamWriter<HealthCheckRespons
         });
         if (!started)
         {
-            _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _startTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
     }
 
     public ChannelReader<HealthCheckResponse> WrittenMessagesReader => _channel.Reader;
 
-    public WriteOptions WriteOptions { get; set; }
+    public WriteOptions? WriteOptions { get; set; }
 
     public async Task WriteAsync(HealthCheckResponse message)
     {
-        if (_startTcs != null)
+        if (_startTcs is not null)
         {
             await _startTcs.Task;
         }
@@ -56,10 +55,7 @@ internal class TestResponseStreamWriter : IServerStreamWriter<HealthCheckRespons
 
     public void Start()
     {
-        if (_startTcs != null)
-        {
-            _startTcs.TrySetResult(null);
-        }
+        _startTcs?.TrySetResult(null);
     }
 
     public void Complete()

@@ -17,7 +17,6 @@
 #endregion
 
 using System;
-using Grpc.Core.Internal;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -30,7 +29,7 @@ public class ChannelCredentialsTest
         var composite = ChannelCredentials.Create(new FakeChannelCredentials(true), new FakeCallCredentials());
         Assert.IsFalse(composite.IsComposable);
 
-        Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(null, new FakeCallCredentials()));
-        Assert.Throws(typeof(ArgumentNullException), () => ChannelCredentials.Create(new FakeChannelCredentials(true), null));
+        Assert.AreEqual("channelCredentials", Assert.Throws<ArgumentNullException>(() => ChannelCredentials.Create(null!, new FakeCallCredentials()))!.ParamName);
+        Assert.AreEqual("callCredentials", Assert.Throws<ArgumentNullException>(() => ChannelCredentials.Create(new FakeChannelCredentials(true), null!))!.ParamName);
     }
 }

@@ -212,7 +212,7 @@ public abstract class ClientBase
 
         internal ClientBaseConfiguration(CallInvoker undecoratedCallInvoker, string? host)
         {
-            this.undecoratedCallInvoker = GrpcPreconditions.CheckNotNull(undecoratedCallInvoker);
+            this.undecoratedCallInvoker = GrpcPreconditions.CheckNotNull(undecoratedCallInvoker, nameof(undecoratedCallInvoker));
             this.host = host;
         }
 
