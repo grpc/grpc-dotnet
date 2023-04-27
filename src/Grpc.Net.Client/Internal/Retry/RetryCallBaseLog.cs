@@ -23,8 +23,8 @@ namespace Grpc.Net.Client.Internal.Retry;
 
 internal static class RetryCallBaseLog
 {
-    private static readonly Action<ILogger, StatusCode, int, bool, Exception?> _retryEvaluated =
-        LoggerMessage.Define<StatusCode, int, bool>(LogLevel.Debug, new EventId(1, "RetryEvaluated"), "Evaluated retry for failed gRPC call. Status code: '{StatusCode}', Attempt: {AttemptCount}, Retry: {WillRetry}");
+    private static readonly Action<ILogger, Status, int, bool, Exception?> _retryEvaluated =
+        LoggerMessage.Define<Status, int, bool>(LogLevel.Debug, new EventId(1, "RetryEvaluated"), "Evaluated retry for failed gRPC call. {Status}, Attempt: {AttemptCount}, Retry: {WillRetry}");
 
     private static readonly Action<ILogger, string, Exception?> _retryPushbackReceived =
         LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "RetryPushbackReceived"), "Retry pushback of '{RetryPushback}' received from the failed gRPC call.");
@@ -62,9 +62,9 @@ internal static class RetryCallBaseLog
     private static readonly Action<ILogger, Exception?> _canceledRetry =
         LoggerMessage.Define(LogLevel.Debug, new EventId(13, "CanceledRetry"), "gRPC retry call canceled.");
 
-    internal static void RetryEvaluated(ILogger logger, StatusCode statusCode, int attemptCount, bool willRetry)
+    internal static void RetryEvaluated(ILogger logger, Status status, int attemptCount, bool willRetry)
     {
-        _retryEvaluated(logger, statusCode, attemptCount, willRetry, null);
+        _retryEvaluated(logger, status, attemptCount, willRetry, null);
     }
 
     internal static void RetryPushbackReceived(ILogger logger, string retryPushback)

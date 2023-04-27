@@ -198,7 +198,7 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
                 }
 
                 var result = EvaluateRetry(status, retryPushbackMS);
-                Log.RetryEvaluated(Logger, status.StatusCode, AttemptCount, result == null);
+                Log.RetryEvaluated(Logger, status, AttemptCount, result == null);
 
                 if (result == null)
                 {

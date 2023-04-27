@@ -113,12 +113,14 @@ public class RetryTests : FunctionalTestBase
     [Test]
     public async Task Unary_ExceedRetryAttempts_Failure()
     {
+        var status = new Status(StatusCode.Unavailable, "Service not available");
+
         Task<DataMessage> UnaryFailure(DataMessage request, ServerCallContext context)
         {
             var metadata = new Metadata();
             metadata.Add("grpc-retry-pushback-ms", "5");
 
-            return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.Unavailable, ""), metadata));
+            return Task.FromException<DataMessage>(new RpcException(status, metadata));
         }
 
         // Arrange
@@ -137,9 +139,9 @@ public class RetryTests : FunctionalTestBase
         Assert.AreEqual(StatusCode.Unavailable, call.GetStatus().StatusCode);
 
         AssertHasLog(LogLevel.Debug, "RetryPushbackReceived", "Retry pushback of '5' received from the failed gRPC call.");
-        AssertHasLog(LogLevel.Debug, "RetryEvaluated", "Evaluated retry for failed gRPC call. Status code: 'Unavailable', Attempt: 1, Retry: True");
+        AssertHasLog(LogLevel.Debug, "RetryEvaluated", $"Evaluated retry for failed gRPC call. {status}, Attempt: 1, Retry: True");
         AssertHasLog(LogLevel.Trace, "StartingRetryDelay", "Starting retry delay of 00:00:00.0050000.");
-        AssertHasLog(LogLevel.Debug, "RetryEvaluated", "Evaluated retry for failed gRPC call. Status code: 'Unavailable', Attempt: 5, Retry: False");
+        AssertHasLog(LogLevel.Debug, "RetryEvaluated", $"Evaluated retry for failed gRPC call. {status}, Attempt: 5, Retry: False");
         AssertHasLog(LogLevel.Debug, "CallCommited", "Call commited. Reason: ExceededAttemptCount");
     }
 
@@ -147,10 +149,12 @@ public class RetryTests : FunctionalTestBase
     public async Task Unary_TriggerRetryThrottling_Failure()
     {
         var callCount = 0;
+        var status = new Status(StatusCode.Unavailable, "");
+
         Task<DataMessage> UnaryFailure(DataMessage request, ServerCallContext context)
         {
             callCount++;
-            return Task.FromException<DataMessage>(new RpcException(new Status(StatusCode.Unavailable, "")));
+            return Task.FromException<DataMessage>(new RpcException(status));
         }
 
         // Arrange
@@ -173,7 +177,7 @@ public class RetryTests : FunctionalTestBase
         Assert.AreEqual(StatusCode.Unavailable, ex.StatusCode);
         Assert.AreEqual(StatusCode.Unavailable, call.GetStatus().StatusCode);
 
-        AssertHasLog(LogLevel.Debug, "RetryEvaluated", "Evaluated retry for failed gRPC call. Status code: 'Unavailable', Attempt: 3, Retry: False");
+        AssertHasLog(LogLevel.Debug, "RetryEvaluated", $"Evaluated retry for failed gRPC call. {status}, Attempt: 3, Retry: False");
         AssertHasLog(LogLevel.Debug, "CallCommited", "Call commited. Reason: Throttled");
     }
 
@@ -324,7 +328,7 @@ public class RetryTests : FunctionalTestBase
         Assert.AreEqual(StatusCode.DeadlineExceeded, call.GetStatus().StatusCode);
         Assert.AreEqual(0, callCount);
 
-        AssertHasLog(LogLevel.Debug, "RetryEvaluated", "Evaluated retry for failed gRPC call. Status code: 'DeadlineExceeded', Attempt: 1, Retry: False");
+        AssertHasLog(LogLevel.Debug, "RetryEvaluated", $"Evaluated retry for failed gRPC call. {call.GetStatus()}, Attempt: 1, Retry: False");
         AssertHasLog(LogLevel.Debug, "CallCommited", "Call commited. Reason: DeadlineExceeded");
 
         tcs.SetResult(new DataMessage());
