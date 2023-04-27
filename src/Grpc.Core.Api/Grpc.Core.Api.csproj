@@ -9,7 +9,6 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Nullable>enable</Nullable>
     <!-- grpc-dotnet global usings break the build. -->
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>

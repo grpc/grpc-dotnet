@@ -14,12 +14,6 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using Grpc.Core;
 using Grpc.Health.V1;
 using NUnit.Framework;
@@ -32,10 +26,10 @@ namespace Grpc.HealthCheck.Tests;
 public class HealthClientServerTest
 {
     const string Host = "localhost";
-    Server server;
-    Channel channel;
-    Grpc.Health.V1.Health.HealthClient client;
-    Grpc.HealthCheck.HealthServiceImpl serviceImpl;
+    Server? server;
+    Channel? channel;
+    Grpc.Health.V1.Health.HealthClient? client;
+    Grpc.HealthCheck.HealthServiceImpl? serviceImpl;
 
     [OneTimeSetUp]
     public void Init()
@@ -57,24 +51,27 @@ public class HealthClientServerTest
     [OneTimeTearDown]
     public void Cleanup()
     {
-        channel.ShutdownAsync().Wait();
+        channel?.ShutdownAsync().Wait();
 
-        server.ShutdownAsync().Wait();
+        server?.ShutdownAsync().Wait();
     }
 
     [Test]
     public void ServiceIsRunning()
     {
-        serviceImpl.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
+        Assert.NotNull(serviceImpl);
+        serviceImpl!.SetStatus("", HealthCheckResponse.Types.ServingStatus.Serving);
 
-        var response = client.Check(new HealthCheckRequest { Service = "" });
+        Assert.NotNull(client);
+        var response = client!.Check(new HealthCheckRequest { Service = "" });
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
     }
 
     [Test]
     public void ServiceDoesntExist()
     {
-        var ex = Assert.Throws<RpcException>(() => client.Check(new HealthCheckRequest { Service = "nonexistent.service" }));
+        Assert.NotNull(client);
+        var ex = Assert.Throws<RpcException>(() => client!.Check(new HealthCheckRequest { Service = "nonexistent.service" }))!;
         Assert.AreEqual(StatusCode.NotFound, ex.Status.StatusCode);
     }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -41,7 +41,7 @@ public class GrpcHealthChecksPublisherTests
         HealthCheckResponse response;
 
         // Act 1
-        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null));
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null!));
 
         // Assert 1
         Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
@@ -50,7 +50,7 @@ public class GrpcHealthChecksPublisherTests
         var report = CreateSimpleHealthReport(HealthStatus.Healthy);
         await publisher.PublishAsync(report, CancellationToken.None);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null!);
 
         // Assert 2
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
@@ -59,7 +59,7 @@ public class GrpcHealthChecksPublisherTests
         report = CreateSimpleHealthReport(HealthStatus.Unhealthy);
         await publisher.PublishAsync(report, CancellationToken.None);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null!);
 
         // Act 3
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
@@ -80,7 +80,7 @@ public class GrpcHealthChecksPublisherTests
         HealthCheckResponse response;
 
         // Act 1
-        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null));
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => healthService.Check(new HealthCheckRequest { Service = "" }, context: null!));
 
         // Assert 1
         Assert.AreEqual(StatusCode.NotFound, ex.StatusCode);
@@ -91,7 +91,7 @@ public class GrpcHealthChecksPublisherTests
             new HealthResult("other", HealthStatus.Healthy, new[] { "exclude" }));
         await publisher.PublishAsync(report, CancellationToken.None);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null!);
 
         // Assert 2
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
@@ -102,7 +102,7 @@ public class GrpcHealthChecksPublisherTests
             new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
         await publisher.PublishAsync(report, CancellationToken.None);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null!);
 
         // Act 3
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
@@ -113,7 +113,7 @@ public class GrpcHealthChecksPublisherTests
             new HealthResult("other", HealthStatus.Unhealthy, new[] { "exclude" }));
         await publisher.PublishAsync(report, CancellationToken.None);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = "" }, context: null!);
 
         // Act 4
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
@@ -164,13 +164,13 @@ public class GrpcHealthChecksPublisherTests
         await publisher.PublishAsync(report, CancellationToken.None);
 
         // Assert
-        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Healthy) }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Healthy) }, context: null!);
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Degraded) }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Degraded) }, context: null!);
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.Serving, response.Status);
 
-        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Unhealthy) }, context: null);
+        response = await healthService.Check(new HealthCheckRequest { Service = nameof(HealthStatus.Unhealthy) }, context: null!);
         Assert.AreEqual(HealthCheckResponse.Types.ServingStatus.NotServing, response.Status);
     }
 

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 // Copyright 2015 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +14,9 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Grpc.Core;
-using Grpc.Core.Utils;
-using Grpc.Reflection.V1Alpha;
 using Google.Protobuf.Reflection;
+using Grpc.Core;
+using Grpc.Reflection.V1Alpha;
 
 namespace Grpc.Reflection;
 
@@ -91,8 +84,8 @@ public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.Se
 
     ServerReflectionResponse FileByFilename(string filename)
     {
-        FileDescriptor file = symbolRegistry.FileByName(filename);
-        if (file == null)
+        FileDescriptor? file = symbolRegistry.FileByName(filename);
+        if (file is null)
         {
             return CreateErrorResponse(StatusCode.NotFound, "File not found.");
         }
@@ -108,8 +101,8 @@ public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.Se
 
     ServerReflectionResponse FileContainingSymbol(string symbol)
     {
-        FileDescriptor file = symbolRegistry.FileContainingSymbol(symbol);
-        if (file == null)
+        FileDescriptor? file = symbolRegistry.FileContainingSymbol(symbol);
+        if (file is null)
         {
             return CreateErrorResponse(StatusCode.NotFound, "Symbol not found.");
         }
@@ -126,7 +119,7 @@ public class ReflectionServiceImpl : Grpc.Reflection.V1Alpha.ServerReflection.Se
     ServerReflectionResponse ListServices()
     {
         var serviceResponses = new ListServiceResponse();
-        foreach (string serviceName in services)
+        foreach (var serviceName in services)
         {
             serviceResponses.Service.Add(new ServiceResponse { Name = serviceName });
         }

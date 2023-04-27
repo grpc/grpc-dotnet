@@ -17,16 +17,6 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Grpc.Core;
-using Grpc.Core.Internal;
-using Grpc.Core.Utils;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -49,7 +39,8 @@ public class MarshallerTest
         var serializationContext = new FakeSerializationContext();
         marshaller.ContextualSerializer(origMsg, serializationContext);
 
-        var deserializationContext = new FakeDeserializationContext(serializationContext.Payload);
+        Assert.NotNull(serializationContext.Payload);
+        var deserializationContext = new FakeDeserializationContext(serializationContext.Payload!);
         Assert.AreEqual(origMsg, marshaller.ContextualDeserializer(deserializationContext));
     }
 
@@ -75,7 +66,7 @@ public class MarshallerTest
 
     class FakeSerializationContext : SerializationContext
     {
-        public byte[] Payload;
+        public byte[]? Payload;
         public override void Complete(byte[] payload)
         {
             this.Payload = payload;

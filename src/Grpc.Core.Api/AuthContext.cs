@@ -16,7 +16,6 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Grpc.Core.Utils;
@@ -31,8 +30,8 @@ namespace Grpc.Core;
 /// </summary>
 public class AuthContext
 {
-    string? peerIdentityPropertyName;
-    Dictionary<string, List<AuthProperty>> properties;
+    private readonly string? peerIdentityPropertyName;
+    private readonly Dictionary<string, List<AuthProperty>> properties;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="T:Grpc.Core.AuthContext"/> class.
@@ -42,7 +41,7 @@ public class AuthContext
     public AuthContext(string? peerIdentityPropertyName, Dictionary<string, List<AuthProperty>> properties)
     {
         this.peerIdentityPropertyName = peerIdentityPropertyName;
-        this.properties = GrpcPreconditions.CheckNotNull(properties);
+        this.properties = GrpcPreconditions.CheckNotNull(properties, nameof(properties));
     }
 
     /// <summary>
@@ -101,8 +100,7 @@ public class AuthContext
     /// </summary>
     public IEnumerable<AuthProperty> FindPropertiesByName(string propertyName)
     {
-        List<AuthProperty>? result;
-        if (!properties.TryGetValue(propertyName, out result))
+        if (!properties.TryGetValue(propertyName, out var result))
         {
             return Enumerable.Empty<AuthProperty>();
         }

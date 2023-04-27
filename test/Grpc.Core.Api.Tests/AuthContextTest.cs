@@ -16,11 +16,9 @@
 
 #endregion
 
-using System;
 using System.Collections.Generic;
-using NUnit.Framework;
-using Grpc.Core;
 using System.Linq;
+using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
 

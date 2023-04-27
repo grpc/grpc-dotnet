@@ -14,14 +14,7 @@
 // limitations under the License.
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 using Grpc.Core;
-using Grpc.Reflection;
 using Grpc.Reflection.V1Alpha;
 using NUnit.Framework;
 
@@ -33,10 +26,10 @@ namespace Grpc.Reflection.Tests;
 public class ReflectionClientServerTest
 {
     const string Host = "localhost";
-    Server server;
-    Channel channel;
-    ServerReflection.ServerReflectionClient client;
-    ReflectionServiceImpl serviceImpl;
+    Server? server;
+    Channel? channel;
+    ServerReflection.ServerReflectionClient? client;
+    ReflectionServiceImpl? serviceImpl;
 
     [OneTimeSetUp]
     public void Init()
@@ -58,8 +51,8 @@ public class ReflectionClientServerTest
     [OneTimeTearDown]
     public void Cleanup()
     {
-        channel.ShutdownAsync().Wait();
-        server.ShutdownAsync().Wait();
+        channel?.ShutdownAsync().Wait();
+        server?.ShutdownAsync().Wait();
     }
 
     [Test]
@@ -127,7 +120,8 @@ public class ReflectionClientServerTest
 
     private async Task<ServerReflectionResponse> SingleRequestAsync(ServerReflectionRequest request)
     {
-        var call = client.ServerReflectionInfo();
+        Assert.NotNull(client);
+        var call = client!.ServerReflectionInfo();
         await call.RequestStream.WriteAsync(request);
         Assert.IsTrue(await call.ResponseStream.MoveNext());
 

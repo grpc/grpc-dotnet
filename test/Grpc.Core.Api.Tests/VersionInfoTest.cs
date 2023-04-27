@@ -16,12 +16,8 @@
 
 #endregion
 
-using System;
 using System.Diagnostics;
 using System.Reflection;
-using Grpc.Core;
-using Grpc.Core.Internal;
-using Grpc.Core.Utils;
 using NUnit.Framework;
 
 namespace Grpc.Core.Tests;
@@ -33,16 +29,16 @@ public class VersionInfoTest
     {
         var assembly = typeof(Status).Assembly;  // the Grpc.Core.Api assembly
 
-        var assemblyVersion = assembly.GetName().Version.ToString();
+        var assemblyVersion = assembly!.GetName()!.Version!.ToString()!;
         Assert.AreEqual(VersionInfo.CurrentAssemblyVersion, assemblyVersion);
 
-        string assemblyFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
-        string assemblyFileVersionFromAttribute = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>().Version;
+        string assemblyFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location)!.FileVersion;
+        string assemblyFileVersionFromAttribute = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version;
         Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersion);
         Assert.AreEqual(VersionInfo.CurrentAssemblyFileVersion, assemblyFileVersionFromAttribute);
 
-        string productVersion = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
-        string informationalVersionFromAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
+        string productVersion = FileVersionInfo.GetVersionInfo(assembly.Location)!.ProductVersion;
+        string informationalVersionFromAttribute = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.AreEqual(productVersion, informationalVersionFromAttribute);
         // grpc-dotnet appends commit SHA to the product version (e.g. "2.45.0-dev+e30038495bd26b812b6684049353c045d1049d3c")
         string productVersionWithoutCommitSha = productVersion.Split('+')[0];

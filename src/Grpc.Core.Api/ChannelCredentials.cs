@@ -16,11 +16,6 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Threading.Tasks;
-using Grpc.Core.Internal;
 using Grpc.Core.Utils;
 
 namespace Grpc.Core;
@@ -121,8 +116,8 @@ public abstract class ChannelCredentials
         /// <param name="callCredentials">channelCredentials to compose</param>
         public CompositeChannelCredentials(ChannelCredentials channelCredentials, CallCredentials callCredentials)
         {
-            this.channelCredentials = GrpcPreconditions.CheckNotNull(channelCredentials);
-            this.callCredentials = GrpcPreconditions.CheckNotNull(callCredentials);
+            this.channelCredentials = GrpcPreconditions.CheckNotNull(channelCredentials, nameof(channelCredentials));
+            this.callCredentials = GrpcPreconditions.CheckNotNull(callCredentials, nameof(callCredentials));
         }
 
         public override void InternalPopulateConfiguration(ChannelCredentialsConfiguratorBase configurator, object state)
