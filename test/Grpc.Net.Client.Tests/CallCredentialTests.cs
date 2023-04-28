@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -18,6 +18,7 @@
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Threading;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Tests.Infrastructure;
@@ -79,17 +80,65 @@ public class CallCredentialTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
         {
             // The operation is asynchronous to ensure delegate is awaited
-            await Task.Delay(50);
+
+            // Ensure task hasn't been completed.
+            Assert.False(tcs.Task.IsCompleted);
+            // Wait for TCS to be completed.
+            await tcs.Task;
+
+            // Set header.
             metadata.Add("authorization", "SECRET_TOKEN");
         });
         var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
-        await call.ResponseAsync.DefaultTimeout();
+        var responseTask = call.ResponseAsync;
+
+        tcs.SetResult(null);
+        await responseTask.DefaultTimeout();
 
         // Assert
         Assert.AreEqual("SECRET_TOKEN", authorizationValue);
+    }
+
+    [Test]
+    public async Task CallCredentialsWithHttps_CancellationToken()
+    {
+        // Arrange
+        string? authorizationValue = null;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            authorizationValue = request.Headers.GetValues("authorization").Single();
+
+            var reply = new HelloReply { Message = "Hello world" };
+            var streamContent = await ClientTestHelpers.CreateResponseContent(reply).DefaultTimeout();
+            return ResponseUtils.CreateResponse(HttpStatusCode.OK, streamContent);
+        });
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient);
+
+        // Act
+        var unreachableAuthInterceptorSection = false;
+        var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
+        {
+            var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            context.CancellationToken.Register(s => ((TaskCompletionSource<object?>)s!).SetCanceled(), tcs);
+
+            await tcs.Task;
+
+            unreachableAuthInterceptorSection = true;
+        });
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
+        var responseTask = call.ResponseAsync;
+
+        call.Dispose();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => responseTask).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+
+        // Assert
+        Assert.False(unreachableAuthInterceptorSection);
     }
 
     [Test]

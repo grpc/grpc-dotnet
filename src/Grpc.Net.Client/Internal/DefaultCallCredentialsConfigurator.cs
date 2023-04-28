@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -20,15 +20,18 @@ using Grpc.Core;
 
 namespace Grpc.Net.Client.Internal;
 
-internal class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
+internal sealed class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorBase
 {
     public AsyncAuthInterceptor? Interceptor { get; private set; }
-    public IReadOnlyList<CallCredentials>? Credentials { get; private set; }
+    public IReadOnlyList<CallCredentials>? CompositeCredentials { get; private set; }
+
+    // A place to cache context to avoid creating a new context for each auth interceptor call.
+    public AuthInterceptorContext? CachedContext { get; set; }
 
     public void Reset()
     {
         Interceptor = null;
-        Credentials = null;
+        CompositeCredentials = null;
     }
 
     public override void SetAsyncAuthInterceptorCredentials(object? state, AsyncAuthInterceptor interceptor)
@@ -38,6 +41,6 @@ internal class DefaultCallCredentialsConfigurator : CallCredentialsConfiguratorB
 
     public override void SetCompositeCredentials(object? state, IReadOnlyList<CallCredentials> credentials)
     {
-        Credentials = credentials;
+        CompositeCredentials = credentials;
     }
 }
