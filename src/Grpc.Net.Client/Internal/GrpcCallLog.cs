@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -39,7 +39,7 @@ internal static class GrpcCallLog
         LoggerMessage.Define<TimeSpan>(LogLevel.Trace, new EventId(5, "StartingDeadlineTimeout"), "Starting deadline timeout. Duration: {DeadlineTimeout}.");
 
     private static readonly Action<ILogger, Exception?> _errorStartingCall =
-        LoggerMessage.Define(LogLevel.Error, new EventId(6, "ErrorStartingCall"), "Error starting gRPC call.");
+        LoggerMessage.Define(LogLevel.Debug, new EventId(6, "ErrorStartingCall"), "Error starting gRPC call.");
 
     private static readonly Action<ILogger, Exception?> _deadlineExceeded =
         LoggerMessage.Define(LogLevel.Warning, new EventId(7, "DeadlineExceeded"), "gRPC call deadline exceeded.");
@@ -48,13 +48,9 @@ internal static class GrpcCallLog
         LoggerMessage.Define(LogLevel.Debug, new EventId(8, "CanceledCall"), "gRPC call canceled.");
 
     private static readonly Action<ILogger, Exception?> _messageNotReturned =
-        LoggerMessage.Define(LogLevel.Error, new EventId(9, "MessageNotReturned"), "Message not returned from unary or client streaming call.");
+        LoggerMessage.Define(LogLevel.Debug, new EventId(9, "MessageNotReturned"), "Message not returned from unary or client streaming call.");
 
-    private static readonly Action<ILogger, Exception?> _errorValidatingResponseHeaders =
-        LoggerMessage.Define(LogLevel.Error, new EventId(10, "ErrorValidatingResponseHeaders"), "Error validating response headers.");
-
-    private static readonly Action<ILogger, Exception?> _errorFetchingGrpcStatus =
-        LoggerMessage.Define(LogLevel.Error, new EventId(11, "ErrorFetchingGrpcStatus"), "Error fetching gRPC status.");
+    // 10, 11 unused.
 
     private static readonly Action<ILogger, Exception?> _callCredentialsNotUsed =
         LoggerMessage.Define(LogLevel.Warning, new EventId(12, "CallCredentialsNotUsed"), "The configured CallCredentials were not used because the call does not use TLS.");
@@ -151,16 +147,6 @@ internal static class GrpcCallLog
     public static void MessageNotReturned(ILogger logger)
     {
         _messageNotReturned(logger, null);
-    }
-
-    public static void ErrorValidatingResponseHeaders(ILogger logger, Exception ex)
-    {
-        _errorValidatingResponseHeaders(logger, ex);
-    }
-
-    public static void ErrorFetchingGrpcStatus(ILogger logger, Exception ex)
-    {
-        _errorFetchingGrpcStatus(logger, ex);
     }
 
     public static void CallCredentialsNotUsed(ILogger logger)
