@@ -503,7 +503,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                     }
                     else
                     {
-                        GrpcCallLog.ErrorStartingCall(Logger, ex);
+                        GrpcCallLog.ErrorStartingCall(Logger);
                         throw;
                     }
                 }
@@ -900,7 +900,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 }
             }
 
-            GrpcCallLog.GrpcStatusError(Logger, status.StatusCode, status.Detail);
+            GrpcCallLog.GrpcStatusError(Logger, status.StatusCode, status.Detail, status.DebugException);
             if (GrpcEventSource.Log.IsEnabled())
             {
                 GrpcEventSource.Log.CallFailed(status.StatusCode);

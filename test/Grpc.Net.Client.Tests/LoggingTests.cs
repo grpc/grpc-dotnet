@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -67,6 +67,102 @@ public class LoggingTests
 
         log = testSink.Writes.Single(w => w.EventId.Name == "ReadingMessage");
         Assert.AreEqual("Reading message.", log.State.ToString());
+        AssertScope(log);
+
+        log = testSink.Writes.Single(w => w.EventId.Name == "FinishedCall");
+        Assert.AreEqual("Finished gRPC call.", log.State.ToString());
+        AssertScope(log);
+
+        static void AssertScope(WriteContext log)
+        {
+            var scope = (IReadOnlyList<KeyValuePair<string, object>>)log.Scope;
+            Assert.AreEqual(MethodType.Unary, scope[0].Value);
+            Assert.AreEqual(new Uri("/ServiceName/MethodName", UriKind.Relative), scope[1].Value);
+        }
+    }
+
+    [Test]
+    public async Task AsyncUnaryCall_RequestFailure_LogToFactory()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromException<HttpResponseMessage>(new Exception("An error occurred."));
+        });
+
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
+
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory);
+
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync);
+        var debugException = ex.Status.DebugException;
+
+        // Assert
+        Assert.NotNull(debugException);
+
+        var log = testSink.Writes.Single(w => w.EventId.Name == "StartingCall");
+        Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: 'https://localhost/ServiceName/MethodName'.", log.State.ToString());
+        AssertScope(log);
+
+        log = testSink.Writes.Single(w => w.EventId.Name == "ErrorStartingCall");
+        Assert.AreEqual("Error starting gRPC call.", log.State.ToString());
+        Assert.Null(log.Exception);
+        AssertScope(log);
+
+        log = testSink.Writes.Single(w => w.EventId.Name == "GrpcStatusError");
+        Assert.AreEqual("Call failed with gRPC error status. Status code: 'Internal', Message: 'Error starting gRPC call. Exception: An error occurred.'.", log.State.ToString());
+        Assert.AreEqual(debugException, log.Exception);
+        AssertScope(log);
+
+        log = testSink.Writes.Single(w => w.EventId.Name == "FinishedCall");
+        Assert.AreEqual("Finished gRPC call.", log.State.ToString());
+        AssertScope(log);
+
+        static void AssertScope(WriteContext log)
+        {
+            var scope = (IReadOnlyList<KeyValuePair<string, object>>)log.Scope;
+            Assert.AreEqual(MethodType.Unary, scope[0].Value);
+            Assert.AreEqual(new Uri("/ServiceName/MethodName", UriKind.Relative), scope[1].Value);
+        }
+    }
+
+    [Test]
+    public async Task AsyncUnaryCall_CredentialsFailure_LogToFactory()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromException<HttpResponseMessage>(new Exception("An error occurred."));
+        });
+
+        var testSink = new TestSink();
+        var loggerFactory = new TestLoggerFactory(testSink, true);
+
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, loggerFactory, configure: o =>
+        {
+            var credentials = CallCredentials.FromInterceptor((c, m) =>
+            {
+                return Task.FromException(new Exception("Credentials error."));
+            });
+            o.Credentials = ChannelCredentials.Create(ChannelCredentials.SecureSsl, credentials);
+        });
+
+        // Act
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest()).ResponseAsync);
+        var debugException = ex.Status.DebugException;
+
+        // Assert
+        Assert.NotNull(debugException);
+
+        var log = testSink.Writes.Single(w => w.EventId.Name == "StartingCall");
+        Assert.AreEqual("Starting gRPC call. Method type: 'Unary', URI: 'https://localhost/ServiceName/MethodName'.", log.State.ToString());
+        AssertScope(log);
+
+        log = testSink.Writes.Single(w => w.EventId.Name == "GrpcStatusError");
+        Assert.AreEqual("Call failed with gRPC error status. Status code: 'Internal', Message: 'Error starting gRPC call. Exception: Credentials error.'.", log.State.ToString());
+        Assert.AreEqual(debugException, log.Exception);
         AssertScope(log);
 
         log = testSink.Writes.Single(w => w.EventId.Name == "FinishedCall");

@@ -114,9 +114,9 @@ internal static class GrpcCallLog
         _responseHeadersReceived(logger, null);
     }
 
-    public static void GrpcStatusError(ILogger logger, StatusCode status, string message)
+    public static void GrpcStatusError(ILogger logger, StatusCode status, string message, Exception? debugException)
     {
-        _grpcStatusError(logger, status, message, null);
+        _grpcStatusError(logger, status, message, debugException);
     }
 
     public static void FinishedCall(ILogger logger)
@@ -129,9 +129,9 @@ internal static class GrpcCallLog
         _startingDeadlineTimeout(logger, deadlineTimeout, null);
     }
 
-    public static void ErrorStartingCall(ILogger logger, Exception ex)
+    public static void ErrorStartingCall(ILogger logger)
     {
-        _errorStartingCall(logger, ex);
+        _errorStartingCall(logger, null);
     }
 
     public static void DeadlineExceeded(ILogger logger)
