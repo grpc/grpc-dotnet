@@ -80,15 +80,12 @@ public class CallCredentialTests
         var invoker = HttpClientCallInvokerFactory.Create(httpClient);
 
         // Act
-        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
         var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
         {
-            // The operation is asynchronous to ensure delegate is awaited
+            // The operation is asynchronous to ensure delegate is awaited.
 
-            // Ensure task hasn't been completed.
-            Assert.False(tcs.Task.IsCompleted);
-            // Wait for TCS to be completed.
-            await tcs.Task;
+            await syncPoint.WaitToContinue();
 
             // Set header.
             metadata.Add("authorization", "SECRET_TOKEN");
@@ -96,7 +93,14 @@ public class CallCredentialTests
         var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(credentials: callCredentials), new HelloRequest());
         var responseTask = call.ResponseAsync;
 
-        tcs.SetResult(null);
+        await syncPoint.WaitForSyncPoint().DefaultTimeout();
+
+        // Response task should be blocked waiting for the auth interceptor to complete.
+        Assert.False(responseTask.IsCompleted);
+        // Sending the request should be blocked waiting for the auth interceptor to complete.
+        Assert.Null(authorizationValue);
+
+        syncPoint.Continue();
         await responseTask.DefaultTimeout();
 
         // Assert
