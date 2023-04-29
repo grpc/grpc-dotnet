@@ -288,7 +288,12 @@ internal static class GrpcProtocolHelpers
 
         if (configurator.Interceptor != null)
         {
+            // Multiple auth interceptors can be called for a gRPC call.
+            // These all have the same data: address, method and cancellation token.
+            // Lazily allocate the context if it is needed.
+            // Stored on the configurator instead of a ref parameter because ref parameters are not supported in async methods.
             configurator.CachedContext ??= CreateAuthInterceptorContext(channel.Address, method, cancellationToken);
+
             var metadata = new Metadata();
             await configurator.Interceptor(configurator.CachedContext, metadata).ConfigureAwait(false);
 
@@ -304,7 +309,7 @@ internal static class GrpcProtocolHelpers
             var compositeCredentials = configurator.CompositeCredentials;
             foreach (var callCredentials in compositeCredentials)
             {
-                configurator.Reset();
+                configurator.ResetPerCallCredentialState();
                 await ReadCredentialMetadata(configurator, channel, message, method, callCredentials, cancellationToken).ConfigureAwait(false);
             }
         }
