@@ -83,8 +83,8 @@ public class CallCredentialTests
         var syncPoint = new SyncPoint(runContinuationsAsynchronously: true);
         var callCredentials = CallCredentials.FromInterceptor(async (context, metadata) =>
         {
-            // The operation is asynchronous to ensure delegate is awaited.
-
+            // The operation is asynchronous to ensure auth interceptor is awaited.
+            // Sending the request and returning a response is blocked until the auth interceptor completes.
             await syncPoint.WaitToContinue();
 
             // Set header.
