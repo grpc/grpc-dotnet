@@ -26,6 +26,7 @@ internal sealed class DefaultCallCredentialsConfigurator : CallCredentialsConfig
     public IReadOnlyList<CallCredentials>? CompositeCredentials { get; private set; }
 
     // A place to cache the context to avoid creating a new instance for each auth interceptor call.
+    // It's ok not to reset this state because the context is only used for the lifetime of the call.
     public AuthInterceptorContext? CachedContext { get; set; }
 
     public void ResetPerCallCredentialState()
