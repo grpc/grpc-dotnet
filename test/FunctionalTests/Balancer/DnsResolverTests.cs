@@ -27,7 +27,6 @@ using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
