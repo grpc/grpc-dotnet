@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -112,6 +112,20 @@ public sealed class BalancerAttributes : IDictionary<string, object?>
     public void Set<TValue>(BalancerAttributesKey<TValue> key, TValue value)
     {
         _attributes[key.Key] = value;
+    }
+
+    /// <summary>
+    /// Removes the value associated with the specified key.
+    /// </summary>
+    /// <typeparam name="TValue">The value type.</typeparam>
+    /// <param name="key">The key of the value to set.</param>
+    /// <returns>
+    /// <c>true</c> if the element is successfully removed; otherwise, <c>false</c>.
+    /// This method also returns <c>false</c> if key was not found.
+    /// </returns>
+    public bool Remove<TValue>(BalancerAttributesKey<TValue> key)
+    {
+        return _attributes.Remove(key.Key);
     }
 }
 #endif
