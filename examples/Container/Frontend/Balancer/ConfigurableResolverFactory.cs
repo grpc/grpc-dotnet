@@ -104,6 +104,8 @@ namespace Frontend.Balancer
                         // Explicitly order by host to keep result order consistent.
                         var orderedAddresses = result.Addresses.OrderBy(a => a.EndPoint.Host).ToList();
                         // Remove host override from addresses so the destination IP address is available.
+                        // The sample does this because the server returns the IP address to the client.
+                        // This makes it clear that gRPC calls are balanced between pods.
                         foreach (var address in orderedAddresses)
                         {
                             ((IDictionary<string, object?>)address.Attributes).Remove(HostOverrideKey.Key);
