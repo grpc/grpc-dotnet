@@ -16,6 +16,7 @@
 
 #endregion
 
+using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core.Utils;
 
@@ -34,16 +35,25 @@ public delegate Task AsyncAuthInterceptor(AuthInterceptorContext context, Metada
 /// </summary>
 public class AuthInterceptorContext
 {
-    readonly string serviceUrl;
-    readonly string methodName;
+    private readonly string serviceUrl;
+    private readonly string methodName;
+    private readonly CancellationToken cancellationToken;
 
     /// <summary>
     /// Initializes a new instance of <c>AuthInterceptorContext</c>.
     /// </summary>
-    public AuthInterceptorContext(string serviceUrl, string methodName)
+    public AuthInterceptorContext(string serviceUrl, string methodName) : this(serviceUrl, methodName, CancellationToken.None)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <c>AuthInterceptorContext</c>.
+    /// </summary>
+    public AuthInterceptorContext(string serviceUrl, string methodName, CancellationToken cancellationToken)
     {
         this.serviceUrl = GrpcPreconditions.CheckNotNull(serviceUrl, nameof(serviceUrl));
         this.methodName = GrpcPreconditions.CheckNotNull(methodName, nameof(methodName));
+        this.cancellationToken = cancellationToken;
     }
 
     /// <summary>
@@ -60,5 +70,13 @@ public class AuthInterceptorContext
     public string MethodName
     {
         get { return methodName; }
+    }
+
+    /// <summary>
+    /// The cancellation token of the RPC being called.
+    /// </summary>
+    public CancellationToken CancellationToken
+    {
+        get { return cancellationToken; }
     }
 }

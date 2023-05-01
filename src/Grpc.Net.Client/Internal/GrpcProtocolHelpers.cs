@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -121,13 +121,34 @@ internal static class GrpcProtocolHelpers
     /* round an integer up to the next value with three significant figures */
     private static long TimeoutRoundUpToThreeSignificantFigures(long x)
     {
-        if (x < 1000) return x;
-        if (x < 10000) return RoundUp(x, 10);
-        if (x < 100000) return RoundUp(x, 100);
-        if (x < 1000000) return RoundUp(x, 1000);
-        if (x < 10000000) return RoundUp(x, 10000);
-        if (x < 100000000) return RoundUp(x, 100000);
-        if (x < 1000000000) return RoundUp(x, 1000000);
+        if (x < 1000)
+        {
+            return x;
+        }
+        if (x < 10000)
+        {
+            return RoundUp(x, 10);
+        }
+        if (x < 100000)
+        {
+            return RoundUp(x, 100);
+        }
+        if (x < 1000000)
+        {
+            return RoundUp(x, 1000);
+        }
+        if (x < 10000000)
+        {
+            return RoundUp(x, 10000);
+        }
+        if (x < 100000000)
+        {
+            return RoundUp(x, 100000);
+        }
+        if (x < 1000000000)
+        {
+            return RoundUp(x, 1000000);
+        }
         return RoundUp(x, 10000000);
 
         static long RoundUp(long x, long divisor)
@@ -235,7 +256,7 @@ internal static class GrpcProtocolHelpers
         return canCompress;
     }
 
-    internal static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method)
+    internal static AuthInterceptorContext CreateAuthInterceptorContext(Uri baseAddress, IMethod method, CancellationToken cancellationToken)
     {
         var authority = baseAddress.Authority;
         if (baseAddress.Scheme == Uri.UriSchemeHttps && authority.EndsWith(":443", StringComparison.Ordinal))
@@ -252,7 +273,7 @@ internal static class GrpcProtocolHelpers
             serviceUrl += "/";
         }
         serviceUrl += method.ServiceName;
-        return new AuthInterceptorContext(serviceUrl, method.Name);
+        return new AuthInterceptorContext(serviceUrl, method.Name, cancellationToken);
     }
 
     internal static async Task ReadCredentialMetadata(
@@ -260,15 +281,21 @@ internal static class GrpcProtocolHelpers
         GrpcChannel channel,
         HttpRequestMessage message,
         IMethod method,
-        CallCredentials credentials)
+        CallCredentials credentials,
+        CancellationToken cancellationToken)
     {
         credentials.InternalPopulateConfiguration(configurator, null);
 
         if (configurator.Interceptor != null)
         {
-            var authInterceptorContext = GrpcProtocolHelpers.CreateAuthInterceptorContext(channel.Address, method);
+            // Multiple auth interceptors can be called for a gRPC call.
+            // These all have the same data: address, method and cancellation token.
+            // Lazily allocate the context if it is needed.
+            // Stored on the configurator instead of a ref parameter because ref parameters are not supported in async methods.
+            configurator.CachedContext ??= CreateAuthInterceptorContext(channel.Address, method, cancellationToken);
+
             var metadata = new Metadata();
-            await configurator.Interceptor(authInterceptorContext, metadata).ConfigureAwait(false);
+            await configurator.Interceptor(configurator.CachedContext, metadata).ConfigureAwait(false);
 
             foreach (var entry in metadata)
             {
@@ -276,14 +303,14 @@ internal static class GrpcProtocolHelpers
             }
         }
 
-        if (configurator.Credentials != null)
+        if (configurator.CompositeCredentials != null)
         {
             // Copy credentials locally. ReadCredentialMetadata will update it.
-            var callCredentials = configurator.Credentials;
-            foreach (var c in callCredentials)
+            var compositeCredentials = configurator.CompositeCredentials;
+            foreach (var callCredentials in compositeCredentials)
             {
-                configurator.Reset();
-                await ReadCredentialMetadata(configurator, channel, message, method, c).ConfigureAwait(false);
+                configurator.ResetPerCallCredentialState();
+                await ReadCredentialMetadata(configurator, channel, message, method, callCredentials, cancellationToken).ConfigureAwait(false);
             }
         }
     }
