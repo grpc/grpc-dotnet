@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -27,6 +27,7 @@ using Grpc.Net.Client.Balancer;
 using Grpc.Net.Client.Balancer.Internal;
 using Grpc.Net.Client.Internal;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
@@ -52,7 +53,43 @@ public class DnsResolverTests : FunctionalTestBase
 
         // Assert
         var result = await tcs.Task.DefaultTimeout();
+
+        Logger.LogInformation($"Resolver result returned {result.Addresses!.Count} addresses.");
+
         Assert.Greater(result.Addresses!.Count, 0);
+        foreach (var address in result.Addresses)
+        {
+            Assert.True(address.Attributes.TryGetValue(ConnectionManager.HostOverrideKey, out var host));
+            Assert.AreEqual("localhost:80", host);
+        }
+    }
+
+    [Test]
+    public async Task Refresh_CustomPort_InHostOverride()
+    {
+        // Arranged
+        var tcs = new TaskCompletionSource<ResolverResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var dnsResolver = CreateDnsResolver(new Uri("dns:///localhost:5001"));
+        dnsResolver.Start(r =>
+        {
+            tcs.SetResult(r);
+        });
+
+        // Act
+        dnsResolver.Refresh();
+
+        // Assert
+        var result = await tcs.Task.DefaultTimeout();
+
+        Logger.LogInformation($"Resolver result returned {result.Addresses!.Count} addresses.");
+
+        Assert.Greater(result.Addresses!.Count, 0);
+        foreach (var address in result.Addresses)
+        {
+            Assert.True(address.Attributes.TryGetValue(ConnectionManager.HostOverrideKey, out var host));
+            Assert.AreEqual("localhost:5001", host);
+        }
     }
 
     [Test]
@@ -298,6 +335,9 @@ public class DnsResolverTests : FunctionalTestBase
 
             Logger.LogInformation($"Address: {address}");
             Assert.AreEqual(specifiedPort, address.EndPoint.Port);
+
+            Assert.True(address.Attributes.TryGetValue(ConnectionManager.HostOverrideKey, out var host));
+            Assert.AreEqual($"localhost:{specifiedPort}", host);
         }
     }
 
@@ -331,6 +371,9 @@ public class DnsResolverTests : FunctionalTestBase
 
             Logger.LogInformation($"Address: {address}");
             Assert.AreEqual(defaultPort, address.EndPoint.Port);
+
+            Assert.True(address.Attributes.TryGetValue(ConnectionManager.HostOverrideKey, out var host));
+            Assert.AreEqual($"localhost:{defaultPort}", host);
         }
     }
 
