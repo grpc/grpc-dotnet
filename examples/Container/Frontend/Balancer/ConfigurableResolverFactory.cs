@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -24,6 +24,8 @@ namespace Frontend.Balancer
 {
     public class ConfigurableResolverFactory : ResolverFactory
     {
+        private static readonly BalancerAttributesKey<string> HostOverrideKey = new BalancerAttributesKey<string>("HostOverride");
+
         private readonly ResolverFactory _innerResolverFactory;
         private readonly BalancerConfiguration _balancerConfiguration;
 
@@ -101,6 +103,13 @@ namespace Frontend.Balancer
                         // DNS results change order between refreshes.
                         // Explicitly order by host to keep result order consistent.
                         var orderedAddresses = result.Addresses.OrderBy(a => a.EndPoint.Host).ToList();
+                        // Remove host override from addresses so the destination IP address is available.
+                        // The sample does this because the server returns the IP address to the client.
+                        // This makes it clear that gRPC calls are balanced between pods.
+                        foreach (var address in orderedAddresses)
+                        {
+                            ((IDictionary<string, object?>)address.Attributes).Remove(HostOverrideKey.Key);
+                        }
                         _listener(ResolverResult.ForResult(orderedAddresses, serviceConfig, Status.DefaultSuccess));
                     }
                     else
