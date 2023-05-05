@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -103,10 +103,11 @@ internal sealed class DnsResolver : PollingResolver
 
             DnsResolverLog.ReceivedDnsResults(_logger, addresses.Length, _dnsAddress, addresses);
 
+            var hostOverride = $"{_dnsAddress}:{_port}";
             var endpoints = addresses.Select(a =>
             {
                 var address = new BalancerAddress(a.ToString(), _port);
-                address.Attributes.Set(ConnectionManager.HostOverrideKey, _dnsAddress);
+                address.Attributes.Set(ConnectionManager.HostOverrideKey, hostOverride);
                 return address;
             }).ToArray();
             var resolverResult = ResolverResult.ForResult(endpoints);
