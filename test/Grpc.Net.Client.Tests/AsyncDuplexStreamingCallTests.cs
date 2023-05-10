@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -17,6 +17,7 @@
 #endregion
 
 using System.Net;
+using System.Threading.Tasks;
 using Greet;
 using Grpc.Core;
 using Grpc.Net.Client.Internal;
@@ -24,6 +25,8 @@ using Grpc.Net.Client.Internal.Http;
 using Grpc.Net.Client.Tests.Infrastructure;
 using Grpc.Shared;
 using Grpc.Tests.Shared;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
 namespace Grpc.Net.Client.Tests;
@@ -176,5 +179,64 @@ public class AsyncDuplexStreamingCallTests
         var moveNextTask4 = responseStream.MoveNext(CancellationToken.None);
         Assert.IsTrue(moveNextTask4.IsCompleted);
         Assert.IsFalse(await moveNextTask3.DefaultTimeout());
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task AsyncDuplexStreamingCall_CancellationDisposeRace_Success(bool disposeCall)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
+
+        var tcs = new TaskCompletionSource<HttpResponseMessage>();
+        var handler = TestHttpMessageHandler.Create(request =>
+        {
+            return tcs.Task;
+        });
+        var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
+        {
+            HttpHandler = handler,
+            LoggerFactory = loggerFactory
+        });
+        var invoker = channel.CreateCallInvoker();
+        var actTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var tasks = new List<Task>();
+
+        for (var i = 0; i < 20; i++)
+        {
+            var cts = new CancellationTokenSource();
+            var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
+            tasks.Add(Task.Run(async () =>
+            {
+                await actTcs.Task;
+                if (disposeCall)
+                {
+                    call.Dispose();
+                }
+                else
+                {
+                    cts.Cancel();
+                }
+            }));
+        }
+
+        tasks.Add(Task.Run(async () =>
+        {
+            await actTcs.Task;
+            channel.Dispose();
+        }));
+
+        // Small pause to make sure we're waiting at the TCS everywhere.
+        await Task.Delay(50);
+
+        // Act
+        actTcs.SetResult(true);
+
+        // Assert
+        await Task.WhenAll(tasks).DefaultTimeout();
     }
 }

@@ -483,6 +483,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         lock (_lock)
         {
+            // Test disposed flag inside lock to ensure there is no chance of adding a call after dispose.
+            ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
+
             ActiveCalls.Add(grpcCall);
         }
     }
@@ -733,23 +736,29 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (Disposed)
-        {
-            return;
-        }
-
+        IDisposable[]? activeCallsCopy = null;
         lock (_lock)
         {
+            // Check and set disposed flag inside lock;
+            if (Disposed)
+            {
+                return;
+            }
+
             if (ActiveCalls.Count > 0)
             {
-                // Disposing a call will remove it from ActiveCalls. Need to take a copy
-                // to avoid enumeration from being modified
-                var activeCallsCopy = ActiveCalls.ToArray();
+                activeCallsCopy = ActiveCalls.ToArray();
+            }
 
-                foreach (var activeCall in activeCallsCopy)
-                {
-                    activeCall.Dispose();
-                }
+            Disposed = true;
+        }
+
+        // Dispose calls outside of lock to avoid chance of deadlock.
+        if (activeCallsCopy is not null)
+        {
+            foreach (var activeCall in activeCallsCopy)
+            {
+                activeCall.Dispose();
             }
         }
 
@@ -760,7 +769,6 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
 #if SUPPORT_LOAD_BALANCING
         ConnectionManager.Dispose();
 #endif
-        Disposed = true;
     }
 
     internal bool TryAddToRetryBuffer(long messageSize)
