@@ -484,7 +484,10 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         lock (_lock)
         {
             // Test disposed flag inside lock to ensure there is no chance of adding a call after dispose.
-            ObjectDisposedThrowHelper.ThrowIf(Disposed, typeof(GrpcChannel));
+            if (Disposed)
+            {
+                throw new ObjectDisposedException(nameof(GrpcChannel));
+            }
 
             ActiveCalls.Add(grpcCall);
         }
