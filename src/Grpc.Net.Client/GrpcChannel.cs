@@ -742,7 +742,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         IDisposable[]? activeCallsCopy = null;
         lock (_lock)
         {
-            // Check and set disposed flag inside lock;
+            // Check and set disposed flag inside lock.
             if (Disposed)
             {
                 return;
