@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -129,20 +129,10 @@ internal sealed class HttpClientCallInvoker : CallInvoker
 
         if (retryPolicy != null)
         {
-            if (channel.Disposed)
-            {
-                throw new ObjectDisposedException(nameof(GrpcChannel));
-            }
-
             return new RetryCall<TRequest, TResponse>(retryPolicy, channel, method, options);
         }
         else if (hedgingPolicy != null)
         {
-            if (channel.Disposed)
-            {
-                throw new ObjectDisposedException(nameof(GrpcChannel));
-            }
-
             return new HedgingCall<TRequest, TResponse>(hedgingPolicy, channel, method, options);
         }
         else

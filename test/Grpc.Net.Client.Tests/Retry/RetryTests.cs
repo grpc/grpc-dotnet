@@ -387,7 +387,7 @@ public class RetryTests
     }
 
     [Test]
-    public async Task AsyncUnaryCall_DisposeDuringBackoff_CanceledStatus()
+    public async Task AsyncUnaryCall_CallDisposeDuringBackoff_CanceledStatus()
     {
         // Arrange
         var callCount = 0;
@@ -412,6 +412,38 @@ public class RetryTests
         Assert.AreEqual(delayTask, completedTask); // Ensure that we're waiting for retry
 
         call.Dispose();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
+    }
+
+    [Test]
+    public async Task AsyncUnaryCall_ChannelDisposeDuringBackoff_CanceledStatus()
+    {
+        // Arrange
+        var callCount = 0;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            callCount++;
+
+            await request.Content!.CopyToAsync(new MemoryStream());
+            return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
+        });
+        var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest { Name = "World" });
+
+        var delayTask = Task.Delay(100);
+        var completedTask = await Task.WhenAny(call.ResponseAsync, delayTask);
+
+        // Assert
+        Assert.AreEqual(delayTask, completedTask); // Ensure that we're waiting for retry
+
+        invoker.Channel.Dispose();
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
         Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);

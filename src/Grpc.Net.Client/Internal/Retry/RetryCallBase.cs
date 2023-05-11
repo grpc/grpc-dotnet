@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -440,6 +440,8 @@ internal abstract partial class RetryCallBase<TRequest, TResponse> : IGrpcCall<T
 
     protected void Cleanup()
     {
+        Channel.FinishActiveCall(this);
+
         _ctsRegistration?.Dispose();
         _ctsRegistration = null;
         CancellationTokenSource.Cancel();

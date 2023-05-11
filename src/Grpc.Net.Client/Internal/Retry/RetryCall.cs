@@ -42,6 +42,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
         _retryPolicy = retryPolicy;
 
         _nextRetryDelayMilliseconds = Convert.ToInt32(retryPolicy.InitialBackoff.TotalMilliseconds);
+
+        Channel.RegisterActiveCall(this);
     }
 
     private int CalculateNextRetryDelay()

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -37,7 +37,7 @@ public sealed class HedgingPolicy : ConfigObject
     internal const string HedgingDelayPropertyName = "hedgingDelay";
     internal const string NonFatalStatusCodesPropertyName = "nonFatalStatusCodes";
 
-    private ConfigProperty<Values<StatusCode, object>, IList<object>> _nonFatalStatusCodes =
+    private readonly ConfigProperty<Values<StatusCode, object>, IList<object>> _nonFatalStatusCodes =
         new(i => new Values<StatusCode, object>(i ?? new List<object>(), s => ConvertHelpers.ConvertStatusCode(s), s => ConvertHelpers.ConvertStatusCode(s.ToString()!)), NonFatalStatusCodesPropertyName);
 
     /// <summary>
