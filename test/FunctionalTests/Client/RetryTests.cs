@@ -108,6 +108,8 @@ public class RetryTests : FunctionalTestBase
 
         // Assert
         Assert.IsTrue(result.Data.Span.SequenceEqual(sentData.ToArray()));
+
+        Assert.AreEqual(0, channel.ActiveCalls.Count);
     }
 
     [Test]

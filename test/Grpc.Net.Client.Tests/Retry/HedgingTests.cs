@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -72,6 +72,8 @@ public class HedgingTests
         var rs = await call.ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Hello world", rs.Message);
         Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+
+        Assert.AreEqual(0, invoker.Channel.ActiveCalls.Count);
     }
 
     [Test]
