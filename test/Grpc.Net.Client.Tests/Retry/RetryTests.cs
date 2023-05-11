@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -1012,6 +1012,22 @@ public class RetryTests
         Assert.AreEqual("2", requestMessage!.Name);
         requestMessage = await ReadRequestMessage(requestContent).DefaultTimeout();
         Assert.IsNull(requestMessage);
+    }
+
+    [Test]
+    public void AsyncUnaryCall_DisposedChannel_Error()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+        });
+        var serviceConfig = ServiceConfigHelpers.CreateRetryServiceConfig();
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+
+        // Act & Assert
+        invoker.Channel.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }));
     }
 
     private static Task<HelloRequest?> ReadRequestMessage(Stream requestContent)

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -685,6 +685,22 @@ public class HedgingTests
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();
         Assert.AreEqual(StatusCode.OK, ex.StatusCode);
+    }
+
+    [Test]
+    public void AsyncUnaryCall_DisposedChannel_Error()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+        });
+        var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig();
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+
+        // Act & Assert
+        invoker.Channel.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }));
     }
 
     private static Task<HelloRequest?> ReadRequestMessage(Stream requestContent)

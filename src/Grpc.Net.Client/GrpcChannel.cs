@@ -483,7 +483,8 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         lock (_lock)
         {
-            // Test disposed flag inside lock to ensure there is no chance of adding a call after dispose.
+            // Test the disposed flag inside the lock to ensure there is no chance of a race and adding a call after dispose.
+            // Note that a GrpcCall has been created but hasn't been started. The error will prevent it from starting.
             if (Disposed)
             {
                 throw new ObjectDisposedException(nameof(GrpcChannel));
