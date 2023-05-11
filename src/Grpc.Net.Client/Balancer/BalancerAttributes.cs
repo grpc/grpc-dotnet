@@ -17,6 +17,7 @@
 #endregion
 
 #if SUPPORT_LOAD_BALANCING
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
@@ -29,7 +30,7 @@ namespace Grpc.Net.Client.Balancer;
 /// Note: Experimental API that can change or be removed without any prior notice.
 /// </para>
 /// </summary>
-public sealed class BalancerAttributes : IDictionary<string, object?>
+public sealed class BalancerAttributes : IDictionary<string, object?>, IReadOnlyDictionary<string, object?>
 {
     /// <summary>
     /// Gets a read-only collection of metadata attributes.
@@ -61,22 +62,28 @@ public sealed class BalancerAttributes : IDictionary<string, object?>
             _attributes[key] = value;
         }
     }
+
     ICollection<string> IDictionary<string, object?>.Keys => _attributes.Keys;
     ICollection<object?> IDictionary<string, object?>.Values => _attributes.Values;
     int ICollection<KeyValuePair<string, object?>>.Count => _attributes.Count;
-    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => ((IDictionary<string, object?>)_attributes).IsReadOnly;
+    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => _attributes.IsReadOnly;
+    IEnumerable<string> IReadOnlyDictionary<string, object?>.Keys => _attributes.Keys;
+    IEnumerable<object?> IReadOnlyDictionary<string, object?>.Values => _attributes.Values;
+    int IReadOnlyCollection<KeyValuePair<string, object?>>.Count => _attributes.Count;
+    object? IReadOnlyDictionary<string, object?>.this[string key] => _attributes[key];
     void IDictionary<string, object?>.Add(string key, object? value) => _attributes.Add(key, value);
-    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)_attributes).Add(item);
+    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) => _attributes.Add(item);
     void ICollection<KeyValuePair<string, object?>>.Clear() => _attributes.Clear();
-    bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)_attributes).Contains(item);
+    bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) => _attributes.Contains(item);
     bool IDictionary<string, object?>.ContainsKey(string key) => _attributes.ContainsKey(key);
-    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) =>
-        ((IDictionary<string, object?>)_attributes).CopyTo(array, arrayIndex);
+    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) => _attributes.CopyTo(array, arrayIndex);
     IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator() => _attributes.GetEnumerator();
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => ((System.Collections.IEnumerable)_attributes).GetEnumerator();
+    IEnumerator System.Collections.IEnumerable.GetEnumerator() => ((System.Collections.IEnumerable)_attributes).GetEnumerator();
     bool IDictionary<string, object?>.Remove(string key) => _attributes.Remove(key);
-    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)_attributes).Remove(item);
+    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) => _attributes.Remove(item);
     bool IDictionary<string, object?>.TryGetValue(string key, out object? value) => _attributes.TryGetValue(key, out value);
+    bool IReadOnlyDictionary<string, object?>.ContainsKey(string key) => _attributes.ContainsKey(key);
+    bool IReadOnlyDictionary<string, object?>.TryGetValue(string key, out object? value) => _attributes.TryGetValue(key, out value);
 
     /// <summary>
     /// Gets the value associated with the specified key.
