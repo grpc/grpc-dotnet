@@ -181,9 +181,8 @@ public class AsyncDuplexStreamingCallTests
         Assert.IsFalse(await moveNextTask3.DefaultTimeout());
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public async Task AsyncDuplexStreamingCall_CancellationDisposeRace_Success(bool disposeCall)
+    [Test]
+    public async Task AsyncDuplexStreamingCall_CancellationDisposeRace_Success()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -191,52 +190,71 @@ public class AsyncDuplexStreamingCallTests
         var loggerFactory = services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger(GetType());
 
-        var tcs = new TaskCompletionSource<HttpResponseMessage>();
-        var handler = TestHttpMessageHandler.Create(request =>
-        {
-            return tcs.Task;
-        });
-        var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-        {
-            HttpHandler = handler,
-            LoggerFactory = loggerFactory
-        });
-        var invoker = channel.CreateCallInvoker();
-        var actTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        var tasks = new List<Task>();
-
         for (var i = 0; i < 20; i++)
         {
+            // Let's mimic a real call first to get GrpcCall.RunCall where we need to for reproducing the deadlock.
+            var streamContent = new SyncPointMemoryStream();
+            var requestContentTcs = new TaskCompletionSource<Task<Stream>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            PushStreamContent<HelloRequest, HelloReply>? content = null;
+
+            var handler = TestHttpMessageHandler.Create(async request =>
+            {
+                content = (PushStreamContent<HelloRequest, HelloReply>)request.Content!;
+                var streamTask = content.ReadAsStreamAsync();
+                requestContentTcs.SetResult(streamTask);
+                // Wait for RequestStream.CompleteAsync()
+                await streamTask;
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, new StreamContent(streamContent));
+            });
+            var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
+            {
+                HttpHandler = handler,
+                LoggerFactory = loggerFactory
+            });
+            var invoker = channel.CreateCallInvoker();
+
             var cts = new CancellationTokenSource();
+
             var call = invoker.AsyncDuplexStreamingCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token));
-            tasks.Add(Task.Run(async () =>
+            await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
+            await call.RequestStream.CompleteAsync().DefaultTimeout();
+
+            // Let's read a response
+            var deserializationContext = new DefaultDeserializationContext();
+            var requestContent = await await requestContentTcs.Task.DefaultTimeout();
+            var requestMessage = await StreamSerializationHelper.ReadMessageAsync(
+                requestContent,
+                ClientTestHelpers.ServiceMethod.RequestMarshaller.ContextualDeserializer,
+                GrpcProtocolConstants.IdentityGrpcEncoding,
+                maximumMessageSize: null,
+                GrpcProtocolConstants.DefaultCompressionProviders,
+                singleMessage: false,
+                CancellationToken.None).DefaultTimeout();
+            Assert.AreEqual("1", requestMessage!.Name);
+
+            var actTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var cancellationTask = Task.Run(async () =>
             {
                 await actTcs.Task;
-                if (disposeCall)
-                {
-                    call.Dispose();
-                }
-                else
-                {
-                    cts.Cancel();
-                }
-            }));
+                cts.Cancel();
+            });
+            var disposingTask = Task.Run(async () =>
+            {
+                await actTcs.Task;
+                channel.Dispose();
+            });
+
+            // Small pause to make sure we're waiting at the TCS everywhere.
+            await Task.Delay(50);
+
+            // Act
+            actTcs.SetResult(null);
+
+            // Assert
+            // Cancellation and disposing should both complete quickly. If there is a deadlock then the await will timeout.
+            await Task.WhenAll(cancellationTask, disposingTask).DefaultTimeout();
         }
-
-        tasks.Add(Task.Run(async () =>
-        {
-            await actTcs.Task;
-            channel.Dispose();
-        }));
-
-        // Small pause to make sure we're waiting at the TCS everywhere.
-        await Task.Delay(50);
-
-        // Act
-        actTcs.SetResult(true);
-
-        // Assert
-        await Task.WhenAll(tasks).DefaultTimeout();
     }
 }
