@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -42,6 +42,8 @@ internal sealed class RetryCall<TRequest, TResponse> : RetryCallBase<TRequest, T
         _retryPolicy = retryPolicy;
 
         _nextRetryDelayMilliseconds = Convert.ToInt32(retryPolicy.InitialBackoff.TotalMilliseconds);
+
+        Channel.RegisterActiveCall(this);
     }
 
     private int CalculateNextRetryDelay()

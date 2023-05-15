@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -72,6 +72,8 @@ public class HedgingTests
         var rs = await call.ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Hello world", rs.Message);
         Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
+
+        Assert.AreEqual(0, invoker.Channel.ActiveCalls.Count);
     }
 
     [Test]
@@ -591,7 +593,6 @@ public class HedgingTests
         var responseTask = call.ResponseAsync;
         Assert.IsFalse(responseTask.IsCompleted, "Response not returned until client stream is complete.");
 
-
         await call.RequestStream.WriteAsync(new HelloRequest { Name = "1" }).DefaultTimeout();
         await call.RequestStream.WriteAsync(new HelloRequest { Name = "2" }).DefaultTimeout();
 
@@ -685,6 +686,54 @@ public class HedgingTests
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.RequestStream.WriteAsync(new HelloRequest { Name = "1" })).DefaultTimeout();
         Assert.AreEqual(StatusCode.OK, ex.StatusCode);
+    }
+
+    [Test]
+    public void AsyncUnaryCall_DisposedChannel_Error()
+    {
+        // Arrange
+        var httpClient = ClientTestHelpers.CreateTestClient(request =>
+        {
+            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.OK));
+        });
+        var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig();
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+
+        // Act & Assert
+        invoker.Channel.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(), new HelloRequest { Name = "World" }));
+    }
+
+    [Test]
+    public async Task AsyncUnaryCall_ChannelDisposeDuringBackoff_CanceledStatus()
+    {
+        // Arrange
+        var callCount = 0;
+        var httpClient = ClientTestHelpers.CreateTestClient(async request =>
+        {
+            callCount++;
+
+            await request.Content!.CopyToAsync(new MemoryStream());
+            return ResponseUtils.CreateHeadersOnlyResponse(HttpStatusCode.OK, StatusCode.Unavailable, retryPushbackHeader: TimeSpan.FromSeconds(10).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
+        });
+        var serviceConfig = ServiceConfigHelpers.CreateHedgingServiceConfig(hedgingDelay: TimeSpan.FromSeconds(10));
+        var invoker = HttpClientCallInvokerFactory.Create(httpClient, serviceConfig: serviceConfig);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var call = invoker.AsyncUnaryCall<HelloRequest, HelloReply>(ClientTestHelpers.ServiceMethod, string.Empty, new CallOptions(cancellationToken: cts.Token), new HelloRequest { Name = "World" });
+
+        var delayTask = Task.Delay(100);
+        var completedTask = await Task.WhenAny(call.ResponseAsync, delayTask);
+
+        // Assert
+        Assert.AreEqual(delayTask, completedTask); // Ensure that we're waiting for retry
+
+        invoker.Channel.Dispose();
+
+        var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync).DefaultTimeout();
+        Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
+        Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
     }
 
     private static Task<HelloRequest?> ReadRequestMessage(Stream requestContent)
