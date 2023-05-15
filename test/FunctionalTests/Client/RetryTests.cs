@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -108,6 +108,8 @@ public class RetryTests : FunctionalTestBase
 
         // Assert
         Assert.IsTrue(result.Data.Span.SequenceEqual(sentData.ToArray()));
+
+        Assert.AreEqual(0, channel.ActiveCalls.Count);
     }
 
     [Test]
@@ -390,6 +392,8 @@ public class RetryTests : FunctionalTestBase
         await MakeCallsAsync(channel, method, references, cts.Token).DefaultTimeout();
 
         // Assert
+        Assert.AreEqual(0, channel.ActiveCalls.Count);
+
         // There is a race when cleaning up cancellation token registry.
         // Retry a few times to ensure GC is run after unregister.
         await TestHelpers.AssertIsTrueRetryAsync(() =>

@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -54,6 +54,8 @@ internal sealed partial class HedgingCall<TRequest, TResponse> : RetryCallBase<T
             _delayInterruptTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             _hedgingDelayCts = new CancellationTokenSource();
         }
+
+        Channel.RegisterActiveCall(this);
     }
 
     private async Task StartCall(Action<GrpcCall<TRequest, TResponse>> startCallFunc)
