@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -77,7 +77,7 @@ internal class SocketConnectivitySubchannelTransport : ISubchannelTransport, IDi
         ConnectTimeout = connectTimeout;
         _socketConnect = socketConnect ?? OnConnect;
         _activeStreams = new List<ActiveStream>();
-        _socketConnectedTimer = new Timer(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _socketConnectedTimer = NonCapturingTimer.Create(OnCheckSocketConnection, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
     private object Lock => _subchannel.Lock;

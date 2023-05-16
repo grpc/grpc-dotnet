@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -183,74 +183,6 @@ internal static class BalancerHelpers
         }
 
         return channel;
-    }
-
-    public static Task WaitForChannelStateAsync(ILogger logger, GrpcChannel channel, ConnectivityState state, int channelId = 1)
-    {
-        return WaitForChannelStatesAsync(logger, channel, new[] { state }, channelId);
-    }
-
-    public static async Task WaitForChannelStatesAsync(ILogger logger, GrpcChannel channel, ConnectivityState[] states, int channelId = 1)
-    {
-        var statesText = string.Join(", ", states.Select(s => $"'{s}'"));
-        logger.LogInformation($"Channel id {channelId}: Waiting for channel states {statesText}.");
-
-        var currentState = channel.State;
-
-        while (!states.Contains(currentState))
-        {
-            logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' doesn't match expected states {statesText}.");
-
-            await channel.WaitForStateChangedAsync(currentState).DefaultTimeout();
-            currentState = channel.State;
-        }
-
-        logger.LogInformation($"Channel id {channelId}: Current channel state '{currentState}' matches expected states {statesText}.");
-    }
-
-    public static async Task<Subchannel> WaitForSubchannelToBeReadyAsync(ILogger logger, GrpcChannel channel, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
-    {
-        var subChannel = (await WaitForSubchannelsToBeReadyAsync(logger, channel, 1)).Single();
-        return subChannel;
-    }
-
-    public static async Task<Subchannel[]> WaitForSubchannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null)
-    {
-        if (getPickerSubchannels == null)
-        {
-            getPickerSubchannels = (picker) =>
-            {
-                return picker switch
-                {
-                    RoundRobinPicker roundRobinPicker => roundRobinPicker._subchannels.ToArray(),
-                    PickFirstPicker pickFirstPicker => new[] { pickFirstPicker.Subchannel },
-                    EmptyPicker emptyPicker => Array.Empty<Subchannel>(),
-                    null => Array.Empty<Subchannel>(),
-                    _ => throw new Exception("Unexpected picker type: " + picker.GetType().FullName)
-                };
-            };
-        }
-
-        logger.LogInformation($"Waiting for subchannel ready count: {expectedCount}");
-
-        Subchannel[]? subChannelsCopy = null;
-        await TestHelpers.AssertIsTrueRetryAsync(() =>
-        {
-            var picker = channel.ConnectionManager._picker;
-            subChannelsCopy = getPickerSubchannels(picker);
-            logger.LogInformation($"Current subchannel ready count: {subChannelsCopy.Length}");
-            for (var i = 0; i < subChannelsCopy.Length; i++)
-            {
-                logger.LogInformation($"Ready subchannel: {subChannelsCopy[i]}");
-            }
-
-            return subChannelsCopy.Length == expectedCount;
-        }, "Wait for all subconnections to be connected.");
-
-        logger.LogInformation($"Finished waiting for subchannel ready.");
-
-        Debug.Assert(subChannelsCopy != null);
-        return subChannelsCopy;
     }
 
     public static T? GetInnerLoadBalancer<T>(GrpcChannel channel) where T : LoadBalancer

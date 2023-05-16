@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -65,7 +65,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         await channel.ConnectAsync().DefaultTimeout();
 
-        var subchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+        var subchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
         // Act
         endpoint.Dispose();
@@ -160,8 +160,8 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         // Use failure as backup status.
         var expectedStates = new[] { ConnectivityState.Connecting, ConnectivityState.TransientFailure };
         var waitForConnectingTask = Task.WhenAll(
-            BalancerHelpers.WaitForChannelStatesAsync(Logger, channel1, expectedStates, channelId: 1),
-            BalancerHelpers.WaitForChannelStatesAsync(Logger, channel2, expectedStates, channelId: 2));
+            BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel1, expectedStates, channelId: 1),
+            BalancerWaitHelpers.WaitForChannelStatesAsync(Logger, channel2, expectedStates, channelId: 2));
 
         Logger.LogInformation("Ending " + endpoint.Address);
         endpoint.Dispose();
@@ -203,7 +203,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -254,7 +254,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -271,7 +271,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         endpoint1.Dispose();
 
-        var subChannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+        var subChannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
         Assert.AreEqual(50052, subChannel.CurrentAddress?.EndPoint.Port);
 
         reply1 = await client.UnaryCall(new HelloRequest { Name = "Balancer" });
@@ -313,7 +313,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
         var waitForRefreshTask = syncPoint.WaitForSyncPoint();
 
@@ -328,7 +328,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         syncPoint.Continue();
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 1).DefaultTimeout();
     }
 
     [Test]
@@ -359,7 +359,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
-        var disposedSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+        var disposedSubchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
 
@@ -381,7 +381,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
         Subchannel? newSubchannel = null;
         while (true)
         {
-            newSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+            newSubchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
             if (newSubchannel.CurrentAddress?.EndPoint.Equals(endpoint2.EndPoint) ?? false)
             {
@@ -439,7 +439,7 @@ public class RoundRobinBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new RoundRobinConfig(), resolver, connect: true);
 
-        var disposedSubchannel = await BalancerHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
+        var disposedSubchannel = await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(Logger, channel).DefaultTimeout();
 
         Assert.IsNotNull(((SocketConnectivitySubchannelTransport)disposedSubchannel.Transport)._initialSocket);
 

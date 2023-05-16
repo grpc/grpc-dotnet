@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -238,8 +238,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Logger.LogInformation("Ending " + endpoint1.Address);
         endpoint1.Dispose();
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, expectedCount: 1,
-            getPickerSubchannels: picker=>
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, expectedCount: 1,
+            getPickerSubchannels: picker =>
             {
                 // We want a subchannel that has no current address
                 if (picker is PickFirstPicker pickFirstPicker)
@@ -293,8 +293,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
         Assert.AreEqual(ConnectivityState.Ready, channel.State);
 
         // Wait for pooled connection to timeout and return to idle
-        await channel.WaitForStateChangedAsync(channel.State).DefaultTimeout();
-        Assert.AreEqual(ConnectivityState.Idle, channel.State);
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Idle).DefaultTimeout();
 
         reply = await client.UnaryCall(new HelloRequest { Name = "Balancer" }).ResponseAsync.DefaultTimeout();
         Assert.AreEqual("Balancer", reply.Message);
@@ -355,7 +354,7 @@ public class PickFirstBalancerTests : FunctionalTestBase
 
         Logger.LogInformation($"All gRPC calls on server");
 
-        await BalancerHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Ready).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel, ConnectivityState.Ready).DefaultTimeout();
 
         var balancer = BalancerHelpers.GetInnerLoadBalancer<PickFirstBalancer>(channel)!;
         var subchannel = balancer._subchannel!;
@@ -468,8 +467,8 @@ public class PickFirstBalancerTests : FunctionalTestBase
         endpoint.Dispose();
 
         await Task.WhenAll(
-            BalancerHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Idle, channelId: 1),
-            BalancerHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Idle, channelId: 2)).DefaultTimeout();
+            BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel1, ConnectivityState.Idle, channelId: 1),
+            BalancerWaitHelpers.WaitForChannelStateAsync(Logger, channel2, ConnectivityState.Idle, channelId: 2)).DefaultTimeout();
 
         Logger.LogInformation("Restarting");
         using var endpointNew = BalancerHelpers.CreateGrpcEndpoint<HelloRequest, HelloReply>(50051, UnaryMethod, nameof(UnaryMethod));

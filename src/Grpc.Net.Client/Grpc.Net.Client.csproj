@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Description>.NET client for gRPC</Description>
@@ -35,6 +35,7 @@
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
     <Compile Include="..\Shared\Http2ErrorCode.cs" Link="Internal\Http2ErrorCode.cs" />
     <Compile Include="..\Shared\Http3ErrorCode.cs" Link="Internal\Http3ErrorCode.cs" />
+    <Compile Include="..\Shared\NonCapturingTimer.cs" Link="Internal\NonCapturingTimer.cs" />
     <Compile Include="..\Shared\NonDisposableMemoryStream.cs" Link="Internal\NonDisposableMemoryStream.cs" />
   </ItemGroup>
 
