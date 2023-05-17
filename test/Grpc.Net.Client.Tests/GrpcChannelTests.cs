@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -388,7 +388,7 @@ public class GrpcChannelTests
 
         var exTask = ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseAsync);
         Assert.IsFalse(exTask.IsCompleted);
-        Assert.AreEqual(1, channel.ActiveCalls.Count);
+        Assert.AreEqual(1, channel.GetActiveCalls().Length);
 
         // Act
         channel.Dispose();
@@ -399,7 +399,7 @@ public class GrpcChannelTests
         Assert.AreEqual("gRPC call disposed.", ex.Status.Detail);
 
         Assert.IsTrue(channel.Disposed);
-        Assert.AreEqual(0, channel.ActiveCalls.Count);
+        Assert.AreEqual(0, channel.GetActiveCalls().Length);
     }
 
     [TestCase(true)]

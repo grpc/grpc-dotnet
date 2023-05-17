@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -86,7 +86,7 @@ public abstract class PollingResolver : Resolver
     /// </para>
     /// </summary>
     /// <param name="listener">The callback used to receive updates on the target.</param>
-    public override sealed void Start(Action<ResolverResult> listener)
+    public sealed override void Start(Action<ResolverResult> listener)
     {
         if (listener == null)
         {

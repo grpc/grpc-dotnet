@@ -838,7 +838,7 @@ internal sealed partial class GrpcCall<TRequest, TResponse> : GrpcCall, IGrpcCal
                 GrpcCallLog.StartingDeadlineTimeout(Logger, timeout.Value);
 
                 var dueTime = CommonGrpcProtocolHelpers.GetTimerDueTime(timeout.Value, Channel.MaxTimerDueTime);
-                _deadlineTimer = new Timer(DeadlineExceededCallback, null, dueTime, Timeout.Infinite);
+                _deadlineTimer = NonCapturingTimer.Create(DeadlineExceededCallback, state: null, TimeSpan.FromMilliseconds(dueTime), Timeout.InfiniteTimeSpan);
             }
         }
 

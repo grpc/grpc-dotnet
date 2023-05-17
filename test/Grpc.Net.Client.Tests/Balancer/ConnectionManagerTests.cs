@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -40,16 +40,34 @@ public class ClientChannelTests
 {
     internal class TestBackoffPolicyFactory : IBackoffPolicyFactory
     {
+        private readonly TimeSpan _backoff;
+
+        public TestBackoffPolicyFactory() : this(TimeSpan.FromSeconds(20))
+        {
+        }
+
+        public TestBackoffPolicyFactory(TimeSpan backoff)
+        {
+            _backoff = backoff;
+        }
+
         public IBackoffPolicy Create()
         {
-            return new TestBackoffPolicy();
+            return new TestBackoffPolicy(_backoff);
         }
 
         private class TestBackoffPolicy : IBackoffPolicy
         {
+            private readonly TimeSpan _backoff;
+
+            public TestBackoffPolicy(TimeSpan backoff)
+            {
+                _backoff = backoff;
+            }
+
             public TimeSpan NextBackoff()
             {
-                return TimeSpan.FromSeconds(20);
+                return _backoff;
             }
         }
     }
@@ -485,17 +503,77 @@ public class ClientChannelTests
         await pickTask.DefaultTimeout();
     }
 
+    [Test]
+    public async Task PickAsync_ExecutionContext_DoesNotCaptureAsyncLocalsInConnect()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNUnitLogger();
+        await using var serviceProvider = services.BuildServiceProvider();
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+        var resolver = new TestResolver(loggerFactory);
+
+        GrpcChannelOptions channelOptions = new GrpcChannelOptions();
+        channelOptions.ServiceConfig = new ServiceConfig()
+        {
+            LoadBalancingConfigs = { new RoundRobinConfig() }
+        };
+
+        AsyncLocal<object> asyncLocal = new AsyncLocal<object>();
+        asyncLocal.Value = new object();
+
+        var callbackAsyncLocalValues = new List<object>();
+
+        var transportFactory = new TestSubchannelTransportFactory((subchannel, cancellationToken) =>
+        {
+            callbackAsyncLocalValues.Add(asyncLocal.Value);
+            if (callbackAsyncLocalValues.Count >= 2)
+            {
+                return Task.FromResult(new TryConnectResult(ConnectivityState.Ready, ConnectResult.Success));
+            }
+
+            return Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure, ConnectResult.Failure));
+        });
+        var backoffPolicy = new TestBackoffPolicyFactory(TimeSpan.FromMilliseconds(200));
+        var clientChannel = CreateConnectionManager(loggerFactory, resolver, transportFactory, new[] { new RoundRobinBalancerFactory() }, backoffPolicy);
+        // Configure balancer similar to how GrpcChannel constructor does it
+        clientChannel.ConfigureBalancer(c => new ChildHandlerLoadBalancer(
+            c,
+            channelOptions.ServiceConfig,
+            clientChannel));
+
+        // Act
+        var connectTask = clientChannel.ConnectAsync(waitForReady: true, cancellationToken: CancellationToken.None);
+        var pickTask = clientChannel.PickAsync(
+            new PickContext { Request = new HttpRequestMessage() },
+            waitForReady: true,
+            CancellationToken.None).AsTask();
+
+        resolver.UpdateAddresses(new List<BalancerAddress>
+        {
+            new BalancerAddress("localhost", 80)
+        });
+        await Task.WhenAll(connectTask, pickTask).DefaultTimeout();
+
+        // Assert
+        Assert.AreEqual(2, callbackAsyncLocalValues.Count);
+        Assert.IsNull(callbackAsyncLocalValues[0]);
+        Assert.IsNull(callbackAsyncLocalValues[1]);
+    }
+
     private static ConnectionManager CreateConnectionManager(
         ILoggerFactory loggerFactory,
         Resolver resolver,
         TestSubchannelTransportFactory transportFactory,
-        LoadBalancerFactory[]? loadBalancerFactories = null)
+        LoadBalancerFactory[]? loadBalancerFactories = null,
+        IBackoffPolicyFactory? backoffPolicyFactory = null)
     {
         return new ConnectionManager(
             resolver,
             disableResolverServiceConfig: false,
             loggerFactory,
-            new TestBackoffPolicyFactory(),
+            backoffPolicyFactory ?? new TestBackoffPolicyFactory(),
             transportFactory,
             loadBalancerFactories ?? Array.Empty<LoadBalancerFactory>());
     }

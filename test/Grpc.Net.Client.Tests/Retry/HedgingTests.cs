@@ -73,7 +73,7 @@ public class HedgingTests
         Assert.AreEqual("Hello world", rs.Message);
         Assert.AreEqual(StatusCode.OK, call.GetStatus().StatusCode);
 
-        Assert.AreEqual(0, invoker.Channel.ActiveCalls.Count);
+        await WaitForActiveCallsCountAsync(invoker.Channel, 0).DefaultTimeout();
     }
 
     [Test]
@@ -746,5 +746,15 @@ public class HedgingTests
             GrpcProtocolConstants.DefaultCompressionProviders,
             singleMessage: false,
             CancellationToken.None);
+    }
+
+    private static async Task WaitForActiveCallsCountAsync(GrpcChannel channel, int count)
+    {
+        // Active calls is modified after response TCS is completed.
+        // Retry a few times to ensure active calls count is updated.
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            return channel.GetActiveCalls().Length == count;
+        }, $"Assert there are {count} active calls.");
     }
 }

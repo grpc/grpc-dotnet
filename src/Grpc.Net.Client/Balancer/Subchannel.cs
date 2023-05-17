@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -233,7 +233,21 @@ public sealed class Subchannel : IDisposable
             }
         }
 
-        _ = ConnectTransportAsync();
+        // Don't capture the current ExecutionContext and its AsyncLocals onto the connect
+        bool restoreFlow = false;
+        if (!ExecutionContext.IsFlowSuppressed())
+        {
+            ExecutionContext.SuppressFlow();
+            restoreFlow = true;
+        }
+
+        _ = Task.Run(ConnectTransportAsync);
+
+        // Restore the current ExecutionContext
+        if (restoreFlow)
+        {
+            ExecutionContext.RestoreFlow();
+        }
     }
 
     private void CancelInProgressConnect()

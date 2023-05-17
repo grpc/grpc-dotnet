@@ -30,6 +30,7 @@
     <Compile Include="..\Shared\Server\UnaryServerMethodInvoker.cs" Link="Model\Internal\UnaryServerMethodInvoker.cs" />
     <Compile Include="..\Shared\NullableAttributes.cs" Link="Internal\NullableAttributes.cs" />
     <Compile Include="..\Shared\CodeAnalysisAttributes.cs" Link="Internal\CodeAnalysisAttributes.cs" />
+    <Compile Include="..\Shared\NonCapturingTimer.cs" Link="Internal\NonCapturingTimer.cs" />
   </ItemGroup>
 
   <ItemGroup>
