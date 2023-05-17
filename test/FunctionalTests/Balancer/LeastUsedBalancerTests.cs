@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -67,7 +67,7 @@ public class LeastUsedBalancerTests : FunctionalTestBase
 
         var channel = await BalancerHelpers.CreateChannel(LoggerFactory, new LoadBalancingConfig("least_used"), new[] { endpoint1.Address, endpoint2.Address }, connect: true);
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(
             Logger,
             channel,
             expectedCount: 2,

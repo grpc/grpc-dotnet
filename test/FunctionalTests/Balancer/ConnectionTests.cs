@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -352,7 +352,7 @@ public class ConnectionTests : FunctionalTestBase
 
         await channel.ConnectAsync().DefaultTimeout();
 
-        await BalancerHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(Logger, channel, 2).DefaultTimeout();
 
         var client = TestClientFactory.Create(channel, endpoint1.Method);
 

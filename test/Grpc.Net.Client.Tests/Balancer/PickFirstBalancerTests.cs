@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -58,22 +58,27 @@ public class PickFirstBalancerTests
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(new TestSubchannelTransportFactory());
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
         {
             Credentials = ChannelCredentials.Insecure,
-            ServiceProvider = services.BuildServiceProvider(),
+            ServiceProvider = serviceProvider,
             HttpHandler = handler
         };
 
         // Act
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        var stateChangedTask = BalancerWaitHelpers.WaitForChannelStateAsync(logger, channel, ConnectivityState.Ready);
         await channel.ConnectAsync();
 
         // Assert
         var subchannels = channel.ConnectionManager.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
+
+        await stateChangedTask.DefaultTimeout();
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
@@ -81,8 +86,12 @@ public class PickFirstBalancerTests
 
         resolver.UpdateAddresses(new List<BalancerAddress> { new BalancerAddress("localhost", 81) });
 
+        stateChangedTask = BalancerWaitHelpers.WaitForChannelStateAsync(logger, channel, ConnectivityState.Ready);
+
         var newSubchannels = channel.ConnectionManager.GetSubchannels();
         CollectionAssert.AreEqual(subchannels, newSubchannels);
+
+        await stateChangedTask.DefaultTimeout();
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 81), subchannels[0]._addresses[0].EndPoint);
@@ -154,22 +163,27 @@ public class PickFirstBalancerTests
         var transportFactory = new TestSubchannelTransportFactory((s, c) => Task.FromResult(new TryConnectResult(ConnectivityState.TransientFailure)));
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
         {
             Credentials = ChannelCredentials.Insecure,
-            ServiceProvider = services.BuildServiceProvider(),
+            ServiceProvider = serviceProvider,
             HttpHandler = handler
         };
 
         // Act
         var channel = GrpcChannel.ForAddress("test:///localhost", channelOptions);
+        var stateChangedTask = BalancerWaitHelpers.WaitForChannelStateAsync(logger, channel, ConnectivityState.TransientFailure);
         _ = channel.ConnectAsync();
 
         // Assert
         var subchannels = channel.ConnectionManager.GetSubchannels();
         Assert.AreEqual(1, subchannels.Count);
+
+        await stateChangedTask.DefaultTimeout();
 
         Assert.AreEqual(1, subchannels[0]._addresses.Count);
         Assert.AreEqual(new DnsEndPoint("localhost", 80), subchannels[0]._addresses[0].EndPoint);
@@ -361,12 +375,14 @@ public class PickFirstBalancerTests
 
         services.AddSingleton<ResolverFactory>(new TestResolverFactory(resolver));
         services.AddSingleton<ISubchannelTransportFactory>(transportFactory);
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
         {
             Credentials = ChannelCredentials.Insecure,
-            ServiceProvider = services.BuildServiceProvider(),
+            ServiceProvider = serviceProvider,
             HttpHandler = handler
         };
 
@@ -377,13 +393,16 @@ public class PickFirstBalancerTests
         transportFactory.Transports.Single().UpdateState(ConnectivityState.Idle);
         Assert.AreEqual(ConnectivityState.Idle, channel.State);
 
-        var stateChangedTask = channel.WaitForStateChangedAsync(ConnectivityState.Idle);
+        logger.LogInformation("Waiting for state change from current state of idle.");
+        var stateChangedTask = BalancerWaitHelpers.WaitForChannelStateAsync(logger, channel, ConnectivityState.Ready);
 
+        logger.LogInformation("Starting PickAsync");
         var pick = await channel.ConnectionManager.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: false,
             CancellationToken.None).AsTask().DefaultTimeout();
 
+        logger.LogInformation("Waiting for state change to complete");
         await stateChangedTask.DefaultTimeout();
         Assert.AreEqual(ConnectivityState.Ready, channel.State);
         Assert.AreEqual(2, transportConnectCount);
