@@ -19,7 +19,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Channels;
 using Google.Protobuf;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;

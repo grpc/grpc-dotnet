@@ -17,7 +17,6 @@
 #endregion
 
 using System.Collections.Concurrent;
-using System.Net.Mail;
 using Grpc.Core;
 #if SUPPORT_LOAD_BALANCING
 using Grpc.Net.Client.Balancer;
