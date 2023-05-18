@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -197,6 +197,7 @@ public class ResolverTests
     {
         // Arrange
         var services = new ServiceCollection();
+        services.AddNUnitLogger();
         var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var resolver = new TestResolver(NullLoggerFactory.Instance, () => tcs.Task);
@@ -236,12 +237,14 @@ public class ResolverTests
         }));
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(firstLoadBalancerFactory));
         services.Add(ServiceDescriptor.Singleton<LoadBalancerFactory>(secondLoadBalancerFactory));
+        var serviceProvider = services.BuildServiceProvider();
+        var logger = serviceProvider.GetRequiredService<ILoggerProvider>().CreateLogger(GetType().FullName);
 
         var handler = new TestHttpMessageHandler((r, ct) => default!);
         var channelOptions = new GrpcChannelOptions
         {
             Credentials = ChannelCredentials.Insecure,
-            ServiceProvider = services.BuildServiceProvider(),
+            ServiceProvider = serviceProvider,
             HttpHandler = handler
         };
 
@@ -254,7 +257,7 @@ public class ResolverTests
 
         tcs.SetResult(null);
 
-        // Ensure that channel has processed results
+        logger.LogInformation("Ensure that channel has processed results.");
         await resolver.HasResolvedTask.DefaultTimeout();
 
         var subchannels = channel.ConnectionManager.GetSubchannels();
@@ -268,7 +271,7 @@ public class ResolverTests
         var pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
         Assert.AreEqual(80, pick.Address.EndPoint.Port);
 
-        // Create new SyncPoint so new load balancer is waiting to connect
+        logger.LogInformation("Create new SyncPoint so new load balancer is waiting to connect.");
         syncPoint = new SyncPoint(runContinuationsAsynchronously: false);
 
         result = ResolverResult.ForResult(
@@ -283,15 +286,19 @@ public class ResolverTests
         Assert.AreEqual(1, firstLoadBalancerCreatedCount);
         Assert.AreEqual(1, secondLoadBalancerCreatedCount);
 
-        // Old address is still used because new load balancer is connecting
+        logger.LogInformation("Old address is still used because new load balancer is connecting.");
         pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
         Assert.AreEqual(80, pick.Address.EndPoint.Port);
 
         Assert.IsFalse(firstLoadBalancer!.Disposed);
 
+        logger.LogInformation("Allow sync point to continue and new load balancer to finish connecting.");
         syncPoint!.Continue();
 
-        // New address is used
+        logger.LogInformation("Wait for ready subchannel to come from the new resolver.");
+        await BalancerWaitHelpers.WaitForSubchannelToBeReadyAsync(logger, channel, validateSubchannel: s => s.CurrentAddress?.EndPoint.Port == 81);
+
+        logger.LogInformation("New address is used.");
         pick = await channel.ConnectionManager.PickAsync(new PickContext(), true, CancellationToken.None).AsTask().DefaultTimeout();
         Assert.AreEqual(81, pick.Address.EndPoint.Port);
 

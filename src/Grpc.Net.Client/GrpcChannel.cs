@@ -54,8 +54,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     private readonly Dictionary<MethodKey, MethodConfig>? _serviceConfigMethods;
     private readonly bool _isSecure;
     private readonly List<CallCredentials>? _callCredentials;
-    // Internal for testing
-    internal readonly HashSet<IDisposable> ActiveCalls;
+    private readonly HashSet<IDisposable> _activeCalls;
 
     internal Uri Address { get; }
     internal HttpMessageInvoker HttpInvoker { get; }
@@ -165,7 +164,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         ThrowOperationCanceledOnCancellation = channelOptions.ThrowOperationCanceledOnCancellation;
         UnsafeUseInsecureChannelCallCredentials = channelOptions.UnsafeUseInsecureChannelCallCredentials;
         _createMethodInfoFunc = CreateMethodInfo;
-        ActiveCalls = new HashSet<IDisposable>();
+        _activeCalls = new HashSet<IDisposable>();
         if (channelOptions.ServiceConfig is { } serviceConfig)
         {
             RetryThrottling = serviceConfig.RetryThrottling != null ? CreateChannelRetryThrottling(serviceConfig.RetryThrottling) : null;
@@ -490,7 +489,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 throw new ObjectDisposedException(nameof(GrpcChannel));
             }
 
-            ActiveCalls.Add(grpcCall);
+            _activeCalls.Add(grpcCall);
         }
     }
 
@@ -498,7 +497,7 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
     {
         lock (_lock)
         {
-            ActiveCalls.Remove(grpcCall);
+            _activeCalls.Remove(grpcCall);
         }
     }
 
@@ -749,9 +748,9 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
                 return;
             }
 
-            if (ActiveCalls.Count > 0)
+            if (_activeCalls.Count > 0)
             {
-                activeCallsCopy = ActiveCalls.ToArray();
+                activeCallsCopy = _activeCalls.ToArray();
             }
 
             Disposed = true;
@@ -804,6 +803,15 @@ public sealed class GrpcChannel : ChannelBase, IDisposable
         lock (_lock)
         {
             return RandomGenerator.Next(minValue, maxValue);
+        }
+    }
+
+    // Internal for testing
+    internal IDisposable[] GetActiveCalls()
+    {
+        lock (_lock)
+        {
+            return _activeCalls.ToArray();
         }
     }
 

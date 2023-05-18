@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -21,6 +21,7 @@ using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.AspNetCore.FunctionalTests.Infrastructure;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Grpc.Tests.Shared;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -266,12 +267,12 @@ public class CancellationTests : FunctionalTestBase
         syncPoint.Continue();
 
         // Assert
-        Assert.AreEqual(1, channel.ActiveCalls.Count);
+        await WaitForActiveCallsCountAsync(channel, 1).DefaultTimeout();
         var moveNextTask = call.ResponseStream.MoveNext(CancellationToken.None);
 
         channel.Dispose();
 
-        Assert.AreEqual(0, channel.ActiveCalls.Count);
+        await WaitForActiveCallsCountAsync(channel, 0).DefaultTimeout();
 
         var ex = await ExceptionAssert.ThrowsAsync<RpcException>(() => moveNextTask).DefaultTimeout();
         Assert.AreEqual(StatusCode.Cancelled, ex.StatusCode);
@@ -281,6 +282,16 @@ public class CancellationTests : FunctionalTestBase
         await TestHelpers.AssertIsTrueRetryAsync(
             () => HasLog(LogLevel.Information, "GrpcStatusError", "Call failed with gRPC error status. Status code: 'Cancelled', Message: 'gRPC call disposed.'."),
             "Missing client cancellation log.").DefaultTimeout();
+    }
+
+    private static async Task WaitForActiveCallsCountAsync(GrpcChannel channel, int count)
+    {
+        // Active calls is modified after response TCS is completed.
+        // Retry a few times to ensure active calls count is updated.
+        await TestHelpers.AssertIsTrueRetryAsync(() =>
+        {
+            return channel.GetActiveCalls().Length == count;
+        }, $"Assert there are {count} active calls.");
     }
 
     [Test]

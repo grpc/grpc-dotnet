@@ -1,4 +1,4 @@
-﻿#region Copyright notice and license
+#region Copyright notice and license
 
 // Copyright 2019 The gRPC Authors
 //
@@ -91,12 +91,12 @@ internal sealed class ServerCallDeadlineManager : IAsyncDisposable
             // Ensures there is no weird situation where the timer triggers
             // before the field is set. Shouldn't happen because only long deadlines
             // will take this path but better to be safe than sorry.
-            _longDeadlineTimer = new Timer(DeadlineExceededLongDelegate, (this, maxTimerDueTime), Timeout.Infinite, Timeout.Infinite);
+            _longDeadlineTimer = NonCapturingTimer.Create(DeadlineExceededLongDelegate, (this, maxTimerDueTime), Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _longDeadlineTimer.Change(timerMilliseconds, Timeout.Infinite);
         }
         else
         {
-            _longDeadlineTimer = new Timer(DeadlineExceededDelegate, this, timerMilliseconds, Timeout.Infinite);
+            _longDeadlineTimer = NonCapturingTimer.Create(DeadlineExceededDelegate, this, TimeSpan.FromMilliseconds(timerMilliseconds), Timeout.InfiniteTimeSpan);
         }
     }
 

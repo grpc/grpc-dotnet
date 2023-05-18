@@ -68,7 +68,7 @@ internal sealed class DnsResolver : PollingResolver
 
         if (_refreshInterval != Timeout.InfiniteTimeSpan)
         {
-            _timer = new Timer(OnTimerCallback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _timer = NonCapturingTimer.Create(OnTimerCallback, state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _timer.Change(_refreshInterval, _refreshInterval);
         }
     }
