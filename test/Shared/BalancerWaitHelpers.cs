@@ -26,7 +26,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Grpc.Tests.Shared;
 
-public static class BalancerWaitHelpers
+internal static class BalancerWaitHelpers
 {
     public static Task WaitForChannelStateAsync(ILogger logger, GrpcChannel channel, ConnectivityState state, int channelId = 1)
     {
@@ -57,7 +57,12 @@ public static class BalancerWaitHelpers
         return subChannel;
     }
 
-    public static async Task<Subchannel[]> WaitForSubchannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null, Func<Subchannel, bool>? validateSubchannel = null)
+    public static Task<Subchannel[]> WaitForSubchannelsToBeReadyAsync(ILogger logger, GrpcChannel channel, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null, Func<Subchannel, bool>? validateSubchannel = null)
+    {
+        return WaitForSubchannelsToBeReadyAsync(logger, channel.ConnectionManager, expectedCount, getPickerSubchannels, validateSubchannel);
+    }
+
+    public static async Task<Subchannel[]> WaitForSubchannelsToBeReadyAsync(ILogger logger, ConnectionManager connectionManager, int expectedCount, Func<SubchannelPicker?, Subchannel[]>? getPickerSubchannels = null, Func<Subchannel, bool>? validateSubchannel = null)
     {
         if (getPickerSubchannels == null)
         {
@@ -68,6 +73,7 @@ public static class BalancerWaitHelpers
                     RoundRobinPicker roundRobinPicker => roundRobinPicker._subchannels.ToArray(),
                     PickFirstPicker pickFirstPicker => new[] { pickFirstPicker.Subchannel },
                     EmptyPicker emptyPicker => Array.Empty<Subchannel>(),
+                    ErrorPicker errorPicker => Array.Empty<Subchannel>(),
                     null => Array.Empty<Subchannel>(),
                     _ => throw new Exception("Unexpected picker type: " + picker.GetType().FullName)
                 };
@@ -79,7 +85,7 @@ public static class BalancerWaitHelpers
         Subchannel[]? subChannelsCopy = null;
         await TestHelpers.AssertIsTrueRetryAsync(() =>
         {
-            var picker = channel.ConnectionManager._picker;
+            var picker = connectionManager._picker;
             subChannelsCopy = getPickerSubchannels(picker);
             logger.LogInformation($"Current subchannel ready count: {subChannelsCopy.Length}");
             for (var i = 0; i < subChannelsCopy.Length; i++)

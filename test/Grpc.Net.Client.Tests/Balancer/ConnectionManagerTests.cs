@@ -80,6 +80,7 @@ public class ClientChannelTests
         services.AddNUnitLogger();
         var serviceProvider = services.BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
 
         var resolver = new TestResolver(loggerFactory);
         resolver.UpdateAddresses(new List<BalancerAddress>
@@ -115,12 +116,14 @@ public class ClientChannelTests
             transportFactory.Transports[i].UpdateState(ConnectivityState.TransientFailure);
         }
 
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, 0);
+
         var pickTask2 = clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask().DefaultTimeout();
 
-        Assert.IsFalse(pickTask2.IsCompleted);
+        Assert.IsFalse(pickTask2.IsCompleted, "PickAsync should wait until an subchannel is ready.");
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
