@@ -149,13 +149,18 @@ internal class BalancerHttpHandler : DelegatingHandler
         {
             var responseMessage = await responseMessageTask.ConfigureAwait(false);
 
-            // TODO(JamesNK): This doesn't take into account long running streams.
-            // If there is response content then we need to wait until it is read to the end
-            // or the request is disposed.
-            result.SubchannelCallTracker?.Complete(new CompletionContext
+            if (result.SubchannelCallTracker is not null)
             {
-                Address = address
-            });
+                if (responseMessage.Content is not null)
+                {
+                    responseMessage.Content = new HttpContentWrapper(responseMessage.Content,
+                        () => result.SubchannelCallTracker.Complete(new CompletionContext { Address = address }));
+                }
+                else
+                {
+                    result.SubchannelCallTracker.Complete(new CompletionContext { Address = address });
+                }
+            }
 
             return responseMessage;
         }
