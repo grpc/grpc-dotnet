@@ -116,7 +116,7 @@ public class ClientChannelTests
             transportFactory.Transports[i].UpdateState(ConnectivityState.TransientFailure);
         }
 
-        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, 0);
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 0);
 
         var pickTask2 = clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
