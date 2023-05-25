@@ -115,13 +115,14 @@ public class ClientChannelTests
         logger.LogInformation("Wait for both subchannels to be ready.");
         await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 2);
 
+        // This needs to happen after both subchannels are ready so the Transports collection has two items in it.
         logger.LogInformation("Make subchannels not ready.");
         for (var i = 0; i < transportFactory.Transports.Count; i++)
         {
             transportFactory.Transports[i].UpdateState(ConnectivityState.TransientFailure);
         }
 
-        logger.LogInformation("Wait for both subchannels to NOT be ready..");
+        logger.LogInformation("Wait for both subchannels to not be ready.");
         await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 0);
 
         var pickTask2 = clientChannel.PickAsync(
