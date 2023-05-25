@@ -105,17 +105,23 @@ public class ClientChannelTests
         // Assert
         Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.Address!.EndPoint);
 
+        logger.LogInformation("Updating resolve to have 80 and 81 addresses.");
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 80),
             new BalancerAddress("localhost", 81)
         });
 
+        logger.LogInformation("Wait for both subchannels to be ready.");
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 2);
+
+        logger.LogInformation("Make subchannels not ready.");
         for (var i = 0; i < transportFactory.Transports.Count; i++)
         {
             transportFactory.Transports[i].UpdateState(ConnectivityState.TransientFailure);
         }
 
+        logger.LogInformation("Wait for both subchannels to NOT be ready..");
         await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 0);
 
         var pickTask2 = clientChannel.PickAsync(
