@@ -1176,7 +1176,9 @@ public class StreamingTests : FunctionalTestBase
 
         Logger.LogInformation("Client reading canceled message from server.");
         var clientEx = await ExceptionAssert.ThrowsAsync<RpcException>(() => call.ResponseStream.MoveNext()).DefaultTimeout();
-        Assert.AreEqual(StatusCode.Cancelled, clientEx.StatusCode);
+
+        // Race on the server can change which error is returned.
+        Assert.IsTrue(clientEx.StatusCode == StatusCode.Cancelled || clientEx.StatusCode == StatusCode.Internal);
     }
 
     [Test]

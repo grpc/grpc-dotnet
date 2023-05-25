@@ -80,6 +80,7 @@ public class ClientChannelTests
         services.AddNUnitLogger();
         var serviceProvider = services.BuildServiceProvider();
         var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(GetType());
 
         var resolver = new TestResolver(loggerFactory);
         resolver.UpdateAddresses(new List<BalancerAddress>
@@ -104,23 +105,32 @@ public class ClientChannelTests
         // Assert
         Assert.AreEqual(new DnsEndPoint("localhost", 80), result1.Address!.EndPoint);
 
+        logger.LogInformation("Updating resolve to have 80 and 81 addresses.");
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
             new BalancerAddress("localhost", 80),
             new BalancerAddress("localhost", 81)
         });
 
+        logger.LogInformation("Wait for both subchannels to be ready.");
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 2);
+
+        // This needs to happen after both subchannels are ready so the Transports collection has two items in it.
+        logger.LogInformation("Make subchannels not ready.");
         for (var i = 0; i < transportFactory.Transports.Count; i++)
         {
             transportFactory.Transports[i].UpdateState(ConnectivityState.TransientFailure);
         }
+
+        logger.LogInformation("Wait for both subchannels to not be ready.");
+        await BalancerWaitHelpers.WaitForSubchannelsToBeReadyAsync(logger, clientChannel, expectedCount: 0);
 
         var pickTask2 = clientChannel.PickAsync(
             new PickContext { Request = new HttpRequestMessage() },
             waitForReady: true,
             CancellationToken.None).AsTask().DefaultTimeout();
 
-        Assert.IsFalse(pickTask2.IsCompleted);
+        Assert.IsFalse(pickTask2.IsCompleted, "PickAsync should wait until an subchannel is ready.");
 
         resolver.UpdateAddresses(new List<BalancerAddress>
         {
